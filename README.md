@@ -28,9 +28,10 @@ Server-side API and services for the Strategiz platform. This repository contain
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v16 or higher)
 - npm (v6 or higher)
 - Firebase account and project
+- Firebase CLI (`npm install -g firebase-tools`)
 
 ### Installation
 
@@ -49,18 +50,69 @@ Server-side API and services for the Strategiz platform. This repository contain
    ```
    cp .env.example .env
    ```
-   Then edit the `.env` file with your actual credentials.
 
-4. Set up Firebase Service Account:
-   - Go to your Firebase project settings
-   - Navigate to "Service accounts"
-   - Click "Generate new private key"
-   - Save the JSON file as `serviceAccountKey.json` in the root directory
+## Deployment
 
-5. Start the server:
+### Local Development
+
+To run the server locally:
+
+```
+npm run dev
+```
+
+The server will start on port 3001 (or the port specified in your `.env` file).
+
+### Firebase Deployment
+
+This API is designed to be deployed as a Firebase Cloud Function. Follow these steps to deploy:
+
+1. Login to Firebase (if not already logged in):
    ```
-   npm run dev
+   firebase login
    ```
+
+2. Initialize your Firebase project (if not already initialized):
+   ```
+   firebase init
+   ```
+   - Select "Functions" when prompted
+   - Select your Firebase project
+   - Choose "Use an existing project" and select your project
+   - Select JavaScript when asked about language
+   - Choose "No" when asked about ESLint
+   - Choose "Yes" to install dependencies
+
+3. Deploy to Firebase:
+   ```
+   npm run deploy
+   ```
+   
+   Or use the provided deployment script:
+   ```
+   ./deploy.bat
+   ```
+
+4. After deployment, your API will be available at:
+   ```
+   https://us-central1-[YOUR-PROJECT-ID].cloudfunctions.net/api
+   ```
+
+5. Update the client-side application to use this URL by setting the `REACT_APP_API_URL` environment variable.
+
+### Viewing Logs
+
+To view the logs for your deployed functions:
+
+```
+npm run logs
+```
+
+Or:
+
+```
+firebase functions:log
+```
 
 ## API Endpoints
 

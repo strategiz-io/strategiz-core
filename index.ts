@@ -1,32 +1,33 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const dotenv = require('dotenv');
-const rateLimit = require('express-rate-limit');
-const admin = require('firebase-admin');
-const path = require('path');
+import * as functions from 'firebase-functions';
+// Import Express with proper type definitions
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+import * as admin from 'firebase-admin';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Firebase Admin
 try {
-  const serviceAccount = require('./serviceAccountKey.json');
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-  console.log('Firebase Admin initialized successfully');
+  // Check if already initialized
+  if (!admin.apps.length) {
+    admin.initializeApp();
+    console.log('Firebase Admin initialized successfully');
+  }
 } catch (error) {
   console.error('Error initializing Firebase Admin:', error);
 }
 
 // Create Express server
 const app = express();
-const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true }));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -93,9 +94,21 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Export the Express app as a Firebase Cloud Function
+// Set memory and timeout limits appropriate for API calls to external services
+export const api = functions
+  .runWith({
+    timeoutSeconds: 300,
+    memory: '1GB'
+  })
+  .https.onRequest(app);
 
-module.exports = app;
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+export default app;

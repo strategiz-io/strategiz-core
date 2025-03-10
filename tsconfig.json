@@ -15,6 +15,7 @@
     "noImplicitAny": false,
     "noImplicitThis": false,
     "strictNullChecks": false,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "paths": {
       "*": ["node_modules/*"]

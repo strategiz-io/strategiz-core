@@ -1,6 +1,9 @@
 package io.strategiz.kraken.controller;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import io.strategiz.kraken.model.KrakenAccount;
+import io.strategiz.kraken.service.FirestoreService;
 import io.strategiz.kraken.service.KrakenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +23,12 @@ import java.util.Map;
 public class KrakenController {
 
     private final KrakenService krakenService;
+    private final FirestoreService firestoreService;
 
     @Autowired
-    public KrakenController(KrakenService krakenService) {
+    public KrakenController(KrakenService krakenService, FirestoreService firestoreService) {
         this.krakenService = krakenService;
+        this.firestoreService = firestoreService;
     }
 
     /**
@@ -96,30 +101,79 @@ public class KrakenController {
                 ));
             }
             
-            // If using test keys, return sample data for admin page testing
-            if ("YOUR_KRAKEN_API_KEY".equals(apiKey) && "YOUR_KRAKEN_SECRET_KEY".equals(secretKey)) {
-                log.info("Using test keys, returning sample data for admin page");
-                
-                // Create a sample KrakenAccount with realistic data
-                KrakenAccount sampleAccount = new KrakenAccount();
-                
-                // Create sample result with asset balances
-                Map<String, Object> result = new HashMap<>();
-                result.put("XXBT", "0.5432100000");  // Bitcoin
-                result.put("XETH", "10.1234500000"); // Ethereum
-                result.put("XXRP", "1000.0000000000"); // Ripple
-                result.put("XLTC", "20.0000000000"); // Litecoin
-                result.put("XXMR", "15.0000000000"); // Monero
-                result.put("ZUSD", "5000.0000"); // USD
-                result.put("ZEUR", "4500.0000"); // EUR
-                
-                sampleAccount.setResult(result);
-                
-                // Return the sample data
-                return ResponseEntity.ok(sampleAccount);
-            }
-
             log.info("Fetching raw account data from Kraken API");
+            
+            try {
+                // Get the complete unmodified raw data from the Kraken API
+                KrakenAccount rawAccount = krakenService.getAccount(apiKey, secretKey);
+                
+                // Log the response to help with debugging
+                if (rawAccount != null) {
+                    if (rawAccount.getError() != null && rawAccount.getError().length > 0) {
+                        log.warn("Kraken API returned error: {}", String.join(", ", rawAccount.getError()));
+                    } else {
+                        log.info("Successfully retrieved raw account data from Kraken API");
+                        if (rawAccount.getResult() != null) {
+                            log.info("Kraken balance contains {} assets", rawAccount.getResult().size());
+                        }
+                    }
+                }
+                
+                // Return the completely unmodified raw data directly
+                // This ensures the frontend gets exactly what comes from the Kraken API
+                return ResponseEntity.ok(rawAccount);
+            } catch (Exception e) {
+                log.error("Error from Kraken API: {}", e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+                    "status", "error",
+                    "message", "Error from Kraken API: " + e.getMessage(),
+                    "error", e.getClass().getSimpleName()
+                ));
+            }
+        } catch (Exception e) {
+            log.error("Error processing request: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Get raw account data from Kraken API using stored credentials
+     * This endpoint returns the completely unmodified raw data from Kraken API
+     * 
+     * @param authHeader Authorization header containing Firebase ID token
+     * @return Raw account data from Kraken API
+     */
+    @GetMapping("/raw-data/user")
+    @CrossOrigin(origins = {"http://localhost:3000", "https://strategiz.io"}, allowedHeaders = "*")
+    public ResponseEntity<Object> getRawAccountDataForUser(@RequestHeader("Authorization") String authHeader) {
+        try {
+            log.info("Received request for raw Kraken data using stored credentials");
+            
+            // Verify the Firebase ID token
+            String idToken = authHeader.replace("Bearer ", "");
+            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
+            String userId = decodedToken.getUid();
+            
+            log.info("Authenticated user: {}", userId);
+            
+            // Retrieve the user's Kraken credentials from Firestore
+            Map<String, String> credentials = firestoreService.getKrakenCredentials(userId);
+            
+            if (credentials == null || credentials.get("apiKey") == null || credentials.get("secretKey") == null) {
+                log.warn("No Kraken credentials found for user: {}", userId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "status", "error",
+                    "message", "No Kraken credentials found. Please configure your Kraken API keys in settings."
+                ));
+            }
+            
+            String apiKey = credentials.get("apiKey");
+            String secretKey = credentials.get("secretKey");
+            
+            log.info("Retrieved Kraken credentials for user: {}", userId);
             
             try {
                 // Get the complete unmodified raw data from the Kraken API

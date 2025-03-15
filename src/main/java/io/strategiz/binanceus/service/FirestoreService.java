@@ -2,7 +2,9 @@ package io.strategiz.binanceus.service;
 
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.firebase.FirebaseApp;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +12,8 @@ import java.util.Map;
 /**
  * Service for interacting with Firestore database
  */
-@Service
+@Service("binanceUsFirestoreService")
+@Slf4j
 public class FirestoreService {
 
     /**
@@ -21,6 +24,11 @@ public class FirestoreService {
      * @return Map of credentials (apiKey, secretKey)
      */
     public Map<String, String> getExchangeCredentials(String userId, String exchange) {
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.warn("Firebase not initialized. Cannot retrieve {} credentials.", exchange);
+            return null;
+        }
+        
         try {
             DocumentSnapshot document = FirestoreClient.getFirestore()
                 .collection("users")
@@ -40,6 +48,7 @@ public class FirestoreService {
             
             return credentials;
         } catch (Exception e) {
+            log.error("Error retrieving {} credentials: {}", exchange, e.getMessage());
             return null;
         }
     }
@@ -53,16 +62,25 @@ public class FirestoreService {
      * @param secretKey Secret key
      */
     public void saveExchangeCredentials(String userId, String exchange, String apiKey, String secretKey) {
-        Map<String, Object> credentials = new HashMap<>();
-        credentials.put("apiKey", apiKey);
-        credentials.put("secretKey", secretKey);
-        credentials.put("updatedAt", System.currentTimeMillis());
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.warn("Firebase not initialized. Cannot save {} credentials.", exchange);
+            return;
+        }
         
-        FirestoreClient.getFirestore()
-            .collection("users")
-            .document(userId)
-            .collection("credentials")
-            .document(exchange)
-            .set(credentials);
+        try {
+            Map<String, Object> credentials = new HashMap<>();
+            credentials.put("apiKey", apiKey);
+            credentials.put("secretKey", secretKey);
+            credentials.put("updatedAt", System.currentTimeMillis());
+            
+            FirestoreClient.getFirestore()
+                .collection("users")
+                .document(userId)
+                .collection("credentials")
+                .document(exchange)
+                .set(credentials);
+        } catch (Exception e) {
+            log.error("Error saving {} credentials: {}", exchange, e.getMessage());
+        }
     }
 }

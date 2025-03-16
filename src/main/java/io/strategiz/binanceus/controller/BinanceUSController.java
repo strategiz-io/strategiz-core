@@ -324,145 +324,10 @@ public class BinanceUSController extends BaseServiceRestController {
                 ));
             }
             
-            log.info("Fetching Binance US API keys from Firebase for user: {}", userId);
+            log.info("Fetching Binance US API keys from Firestore for user: {}", userId);
             
-            // Get Firestore instance
-            Firestore firestore = FirestoreClient.getFirestore();
-            
-            // First try to get user document by ID
-            DocumentSnapshot userDoc = null;
-            try {
-                userDoc = firestore.collection("users").document(userId).get().get();
-            } catch (Exception e) {
-                log.warn("Error fetching user document by ID: {}", e.getMessage());
-            }
-            
-            // If user document not found by ID, try to query by email
-            if (userDoc == null || !userDoc.exists()) {
-                log.info("User document not found by ID, trying to query by email...");
-                try {
-                    // Query users collection where email field equals userId (which might be an email)
-                    QuerySnapshot querySnapshot = firestore.collection("users")
-                            .whereEqualTo("email", userId)
-                            .limit(1)
-                            .get()
-                            .get();
-                    
-                    if (!querySnapshot.isEmpty()) {
-                        userDoc = querySnapshot.getDocuments().get(0);
-                        log.info("Found user document by email query");
-                    } else {
-                        log.warn("User document not found by email query for: {}", userId);
-                    }
-                } catch (Exception e) {
-                    log.warn("Error querying user document by email: {}", e.getMessage());
-                }
-            }
-            
-            if (userDoc == null || !userDoc.exists()) {
-                log.warn("User document not found in Firebase for user: {}", userId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                    "status", "error",
-                    "message", "User document not found"
-                ));
-            }
-            
-            // Extract Binance US API keys from user document
-            Map<String, Object> userData = userDoc.getData();
-            
-            log.info("User data: {}", userData != null ? "not null" : "null");
-            
-            if (userData == null) {
-                log.warn("User data is null for user: {}", userId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                    "status", "error",
-                    "message", "User data not found"
-                ));
-            }
-            
-            // Now try to find the Binance US API keys in the user document
-            // We'll check multiple possible locations
-            Map<String, String> binanceusConfig = null;
-            
-            // Dump the entire user data structure for debugging
-            log.info("User document data structure: {}", userData != null ? userData.keySet() : "null");
-            
-            // Check path: preferences.apiKeys.binanceus
-            try {
-                Object preferencesObj = userData.get("preferences");
-                if (preferencesObj instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> preferences = (Map<String, Object>) preferencesObj;
-                    Object apiKeysObj = preferences.get("apiKeys");
-                    if (apiKeysObj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> apiKeys = (Map<String, Object>) apiKeysObj;
-                        Object binanceusKeysObj = apiKeys.get("binanceus");
-                        if (binanceusKeysObj instanceof Map) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, String> binanceusKeys = (Map<String, String>) binanceusKeysObj;
-                            log.info("Binance US keys found at preferences.apiKeys.binanceus: {}", 
-                                binanceusKeys != null ? binanceusKeys.keySet() : "null");
-                            
-                            if (binanceusKeys != null) {
-                                log.info("Found Binance US API keys at path: preferences.apiKeys.binanceus");
-                                binanceusConfig = binanceusKeys;
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("Error checking preferences.apiKeys.binanceus path: {}", e.getMessage());
-            }
-            
-            // If not found, check path: binanceusConfig
-            if (binanceusConfig == null) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> binanceusKeys = (Map<String, String>) userData.get("binanceusConfig");
-                    if (binanceusKeys != null) {
-                        log.info("Found Binance US API keys at path: binanceusConfig");
-                        binanceusConfig = binanceusKeys;
-                    }
-                } catch (Exception e) {
-                    log.warn("Error checking binanceusConfig path: {}", e.getMessage());
-                }
-            }
-            
-            // If still not found, check path: apiKeys.binanceus
-            if (binanceusConfig == null) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> apiKeys = (Map<String, Object>) userData.get("apiKeys");
-                    if (apiKeys != null) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> binanceusKeys = (Map<String, String>) apiKeys.get("binanceus");
-                        if (binanceusKeys != null) {
-                            log.info("Found Binance US API keys at path: apiKeys.binanceus");
-                            binanceusConfig = binanceusKeys;
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Error checking apiKeys.binanceus path: {}", e.getMessage());
-                }
-            }
-            
-            // If still not found, check if the API keys are directly at the root level
-            if (binanceusConfig == null) {
-                try {
-                    String apiKey = (String) userData.get("apiKey");
-                    String secretKey = (String) userData.get("secretKey");
-                    
-                    if (apiKey != null && secretKey != null) {
-                        log.info("Found Binance US API keys at root level");
-                        binanceusConfig = new HashMap<>();
-                        binanceusConfig.put("apiKey", apiKey);
-                        binanceusConfig.put("secretKey", secretKey);
-                    }
-                } catch (Exception e) {
-                    log.warn("Error checking root level API keys: {}", e.getMessage());
-                }
-            }
+            // Use the helper method to get Binance US API keys from Firestore
+            Map<String, String> binanceusConfig = getBinanceUSApiKeysFromFirestore(userId);
             
             if (binanceusConfig == null || binanceusConfig.get("apiKey") == null || binanceusConfig.get("secretKey") == null) {
                 log.warn("Binance US API keys not configured for user: {}", userId);
@@ -650,84 +515,141 @@ public class BinanceUSController extends BaseServiceRestController {
      */
     private Map<String, String> getBinanceUSApiKeysFromFirestore(String userId) {
         log.info("Getting Binance US API keys from Firestore for user: {}", userId);
-        Map<String, String> credentials = new HashMap<>();
+        Map<String, String> apiCredentials = new HashMap<>();
         
         try {
-            // Get the user document reference
-            DocumentReference userDocRef = FirestoreClient.getFirestore().collection("users").document(userId);
+            // Get Firestore instance
+            Firestore firestore = FirestoreClient.getFirestore();
             
-            // Get the api_credentials subcollection document for Binance US
+            // First try to get user document by ID
+            DocumentReference userDocRef = firestore.collection("users").document(userId);
+            DocumentSnapshot userDoc = userDocRef.get().get();
+            
+            // If user document not found by ID, try to query by email
+            if (!userDoc.exists()) {
+                log.info("User document not found by ID, trying to query by email...");
+                try {
+                    // Query users collection where email field equals userId (which might be an email)
+                    QuerySnapshot querySnapshot = firestore.collection("users")
+                            .whereEqualTo("email", userId)
+                            .limit(1)
+                            .get()
+                            .get();
+                    
+                    if (!querySnapshot.isEmpty()) {
+                        userDocRef = querySnapshot.getDocuments().get(0).getReference();
+                        userDoc = userDocRef.get().get();
+                        log.info("Found user document by email query");
+                    } else {
+                        log.warn("User document not found by email query for: {}", userId);
+                        return null;
+                    }
+                } catch (Exception e) {
+                    log.warn("Error querying user document by email: {}", e.getMessage());
+                    return null;
+                }
+            }
+            
+            // Check 1: Look in the new api_credentials subcollection (new structure)
             DocumentReference apiCredentialsDocRef = userDocRef.collection("api_credentials").document("binanceus");
             DocumentSnapshot apiCredentialsSnapshot = apiCredentialsDocRef.get().get();
             
             if (apiCredentialsSnapshot.exists()) {
-                log.info("Found Binance US API credentials in api_credentials subcollection");
+                apiCredentials.put("apiKey", apiCredentialsSnapshot.getString("apiKey"));
+                apiCredentials.put("secretKey", apiCredentialsSnapshot.getString("secretKey"));
                 
-                // Get the API key and secret key from the document
-                String apiKey = apiCredentialsSnapshot.getString("apiKey");
-                String secretKey = apiCredentialsSnapshot.getString("secretKey");
-                
-                if (apiKey != null && !apiKey.isEmpty() && secretKey != null && !secretKey.isEmpty()) {
-                    credentials.put("apiKey", apiKey);
-                    credentials.put("secretKey", secretKey);
-                    return credentials;
-                }
-            } else {
-                log.info("No Binance US API credentials found in api_credentials subcollection, checking legacy locations");
-                
-                // Check legacy location: user document preferences.apiKeys.binanceus
-                DocumentSnapshot userSnapshot = userDocRef.get().get();
-                if (userSnapshot.exists()) {
-                    Object preferencesObj = userSnapshot.get("preferences");
-                    if (preferencesObj instanceof Map) {
+                log.info("Found Binance US credentials in api_credentials subcollection for user: {}", userId);
+                return apiCredentials;
+            }
+            
+            // Check 2: Look in the legacy locations
+            Map<String, Object> userData = userDoc.getData();
+            if (userData == null) {
+                log.warn("User data is null for user: {}", userId);
+                return null;
+            }
+            
+            // Check path: preferences.apiKeys.binanceus
+            try {
+                Object preferencesObj = userData.get("preferences");
+                if (preferencesObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> preferences = (Map<String, Object>) preferencesObj;
+                    Object apiKeysObj = preferences.get("apiKeys");
+                    if (apiKeysObj instanceof Map) {
                         @SuppressWarnings("unchecked")
-                        Map<String, Object> preferences = (Map<String, Object>) preferencesObj;
-                        Object apiKeysObj = preferences.get("apiKeys");
-                        if (apiKeysObj instanceof Map) {
+                        Map<String, Object> apiKeys = (Map<String, Object>) apiKeysObj;
+                        Object binanceusKeysObj = apiKeys.get("binanceus");
+                        if (binanceusKeysObj instanceof Map) {
                             @SuppressWarnings("unchecked")
-                            Map<String, Object> apiKeys = (Map<String, Object>) apiKeysObj;
-                            Object binanceusKeysObj = apiKeys.get("binanceus");
-                            if (binanceusKeysObj instanceof Map) {
-                                @SuppressWarnings("unchecked")
-                                Map<String, Object> binanceusKeys = (Map<String, Object>) binanceusKeysObj;
-                                String apiKey = (String) binanceusKeys.get("apiKey");
-                                String secretKey = (String) binanceusKeys.get("secretKey");
+                            Map<String, String> binanceusKeys = (Map<String, String>) binanceusKeysObj;
+                            
+                            if (binanceusKeys != null) {
+                                log.info("Found Binance US API keys at path: preferences.apiKeys.binanceus");
                                 
-                                if (apiKey != null && !apiKey.isEmpty() && secretKey != null && !secretKey.isEmpty()) {
-                                    log.info("Found Binance US API credentials in user preferences");
-                                    credentials.put("apiKey", apiKey);
-                                    credentials.put("secretKey", secretKey);
-                                    return credentials;
-                                }
+                                // Migrate to new structure
+                                migrateToNewStructure(userDocRef, binanceusKeys.get("apiKey"), binanceusKeys.get("secretKey") != null ? 
+                                    binanceusKeys.get("secretKey") : binanceusKeys.get("privateKey"));
+                                
+                                return binanceusKeys;
                             }
                         }
                     }
                 }
-                
-                // Check another legacy location: binanceus_config collection
-                DocumentReference configDocRef = FirestoreClient.getFirestore()
-                    .collection("binanceus_config")
-                    .document(userId);
-                
-                DocumentSnapshot configSnapshot = configDocRef.get().get();
-                if (configSnapshot.exists()) {
-                    String apiKey = configSnapshot.getString("apiKey");
-                    String secretKey = configSnapshot.getString("secretKey");
-                    
-                    if (apiKey != null && !apiKey.isEmpty() && secretKey != null && !secretKey.isEmpty()) {
-                        log.info("Found Binance US API credentials in binanceus_config collection");
-                        credentials.put("apiKey", apiKey);
-                        credentials.put("secretKey", secretKey);
-                        return credentials;
-                    }
-                }
+            } catch (Exception e) {
+                log.warn("Error checking preferences.apiKeys.binanceus path: {}", e.getMessage());
             }
             
-            log.warn("No Binance US API credentials found for user: {}", userId);
-            return credentials;
+            // If not found, check path: binanceusConfig
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, String> binanceusKeys = (Map<String, String>) userData.get("binanceusConfig");
+                if (binanceusKeys != null) {
+                    log.info("Found Binance US API keys at path: binanceusConfig");
+                    
+                    // Migrate to new structure
+                    migrateToNewStructure(userDocRef, binanceusKeys.get("apiKey"), binanceusKeys.get("secretKey"));
+                    
+                    return binanceusKeys;
+                }
+            } catch (Exception e) {
+                log.warn("Error checking binanceusConfig path: {}", e.getMessage());
+            }
+            
+            log.warn("No Binance US API keys found for user: {}", userId);
+            return null;
         } catch (Exception e) {
-            log.error("Error getting Binance US API keys from Firestore: {}", e.getMessage(), e);
-            return credentials;
+            log.error("Error retrieving Binance US API keys: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * Migrate Binance US API keys to the new structure
+     * 
+     * @param userDocRef User document reference
+     * @param apiKey API key
+     * @param secretKey Secret key
+     */
+    private void migrateToNewStructure(DocumentReference userDocRef, String apiKey, String secretKey) {
+        try {
+            if (apiKey == null || secretKey == null) {
+                log.warn("Cannot migrate null API keys to new structure");
+                return;
+            }
+            
+            // Save to the new api_credentials subcollection
+            Map<String, Object> credentials = new HashMap<>();
+            credentials.put("provider", "binanceus");
+            credentials.put("apiKey", apiKey);
+            credentials.put("secretKey", secretKey);
+            credentials.put("updatedAt", System.currentTimeMillis());
+            
+            userDocRef.collection("api_credentials").document("binanceus").set(credentials);
+            
+            log.info("Migrated Binance US API keys to new api_credentials subcollection structure");
+        } catch (Exception e) {
+            log.error("Error migrating Binance US API keys to new structure: {}", e.getMessage(), e);
         }
     }
 }

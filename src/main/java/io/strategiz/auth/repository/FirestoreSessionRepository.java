@@ -2,10 +2,10 @@ package io.strategiz.auth.repository;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
-import com.google.firebase.cloud.FirestoreClient;
 import io.strategiz.auth.model.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -23,8 +23,9 @@ public class FirestoreSessionRepository implements SessionRepository {
 
     private final Firestore firestore;
 
-    public FirestoreSessionRepository() {
-        this.firestore = FirestoreClient.getFirestore();
+    @Autowired
+    public FirestoreSessionRepository(Firestore firestore) {
+        this.firestore = firestore;
     }
 
     @Override

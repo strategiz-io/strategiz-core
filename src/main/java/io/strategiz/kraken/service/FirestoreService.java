@@ -30,7 +30,10 @@ public class FirestoreService {
         }
         
         try {
+            log.info("Getting Kraken credentials for user: {}", userId);
+            
             // Check 1: Look in the new api_credentials subcollection (new structure)
+            log.info("Checking api_credentials subcollection for Kraken credentials");
             QuerySnapshot querySnapshot = FirestoreClient.getFirestore()
                 .collection("users")
                 .document(userId)
@@ -48,11 +51,21 @@ public class FirestoreService {
                     credentials.put("secretKey", document.getString("secretKey"));
                     
                     log.info("Found Kraken credentials in api_credentials subcollection for user: {}", userId);
+                    log.info("API key found (first 5 chars): {}", 
+                        credentials.get("apiKey") != null ? 
+                        credentials.get("apiKey").substring(0, Math.min(credentials.get("apiKey").length(), 5)) + "..." : "null");
+                    log.info("Secret key found (length): {}", 
+                        credentials.get("secretKey") != null ? 
+                        credentials.get("secretKey").length() + " chars" : "null");
+                    
                     return credentials;
                 }
+            } else {
+                log.info("No Kraken credentials found in api_credentials subcollection");
             }
             
             // Check 2: Look in the legacy credentials subcollection
+            log.info("Checking legacy credentials subcollection for Kraken credentials");
             DocumentSnapshot legacyDocument = FirestoreClient.getFirestore()
                 .collection("users")
                 .document(userId)
@@ -66,14 +79,24 @@ public class FirestoreService {
                 credentials.put("apiKey", legacyDocument.getString("apiKey"));
                 credentials.put("secretKey", legacyDocument.getString("secretKey"));
                 
+                log.info("Found Kraken credentials in legacy credentials subcollection for user: {}", userId);
+                log.info("API key found (first 5 chars): {}", 
+                    credentials.get("apiKey") != null ? 
+                    credentials.get("apiKey").substring(0, Math.min(credentials.get("apiKey").length(), 5)) + "..." : "null");
+                log.info("Secret key found (length): {}", 
+                    credentials.get("secretKey") != null ? 
+                    credentials.get("secretKey").length() + " chars" : "null");
+                
                 // Migrate to new structure
                 migrateToNewStructure(userId, legacyDocument.getString("apiKey"), legacyDocument.getString("secretKey"));
                 
-                log.info("Found Kraken credentials in legacy credentials subcollection for user: {}", userId);
                 return credentials;
+            } else {
+                log.info("No Kraken credentials found in legacy credentials subcollection");
             }
             
             // Check 3: Look in the user document preferences
+            log.info("Checking user document preferences for Kraken credentials");
             DocumentSnapshot userDoc = FirestoreClient.getFirestore()
                 .collection("users")
                 .document(userId)
@@ -97,17 +120,27 @@ public class FirestoreService {
                             credentials.put("apiKey", (String) krakenKeys.get("apiKey"));
                             credentials.put("secretKey", (String) krakenKeys.get("privateKey"));
                             
+                            log.info("Found Kraken credentials in user preferences for user: {}", userId);
+                            log.info("API key found (first 5 chars): {}", 
+                                credentials.get("apiKey") != null ? 
+                                credentials.get("apiKey").substring(0, Math.min(credentials.get("apiKey").length(), 5)) + "..." : "null");
+                            log.info("Secret key found (length): {}", 
+                                credentials.get("secretKey") != null ? 
+                                credentials.get("secretKey").length() + " chars" : "null");
+                            
                             // Migrate to new structure
                             migrateToNewStructure(userId, (String) krakenKeys.get("apiKey"), (String) krakenKeys.get("privateKey"));
                             
-                            log.info("Found Kraken credentials in user preferences for user: {}", userId);
                             return credentials;
                         }
                     }
                 }
+            } else {
+                log.info("No Kraken credentials found in user document preferences");
             }
             
             // Check 4: Look in the kraken_config collection
+            log.info("Checking kraken_config collection for Kraken credentials");
             DocumentSnapshot configDoc = FirestoreClient.getFirestore()
                 .collection("kraken_config")
                 .document(userId)
@@ -119,11 +152,20 @@ public class FirestoreService {
                 credentials.put("apiKey", configDoc.getString("apiKey"));
                 credentials.put("secretKey", configDoc.getString("secretKey"));
                 
+                log.info("Found Kraken credentials in kraken_config collection for user: {}", userId);
+                log.info("API key found (first 5 chars): {}", 
+                    credentials.get("apiKey") != null ? 
+                    credentials.get("apiKey").substring(0, Math.min(credentials.get("apiKey").length(), 5)) + "..." : "null");
+                log.info("Secret key found (length): {}", 
+                    credentials.get("secretKey") != null ? 
+                    credentials.get("secretKey").length() + " chars" : "null");
+                
                 // Migrate to new structure
                 migrateToNewStructure(userId, configDoc.getString("apiKey"), configDoc.getString("secretKey"));
                 
-                log.info("Found Kraken credentials in kraken_config collection for user: {}", userId);
                 return credentials;
+            } else {
+                log.info("No Kraken credentials found in kraken_config collection");
             }
             
             log.warn("No Kraken credentials found for user: {}", userId);

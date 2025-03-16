@@ -2,20 +2,20 @@ package io.strategiz.kraken.service;
 
 import io.strategiz.kraken.model.KrakenAccount;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.client.utils.URIBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.net.URI;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.net.URI;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,13 +24,14 @@ import java.util.Map;
 @Service
 public class KrakenService {
 
-    private static final String KRAKEN_API_URL = "https://api.kraken.com";
-    private static final String HMAC_SHA512 = "HmacSHA512";
+    @Value("${kraken.api.url:https://api.kraken.com}")
+    private String baseUrl;
 
-    private final RestTemplate restTemplate;
+    @Autowired
+    private RestTemplate restTemplate;
 
     public KrakenService() {
-        this.restTemplate = new RestTemplate();
+        log.info("KrakenService initialized");
     }
 
     /**
@@ -73,118 +74,200 @@ public class KrakenService {
      * @return Account information - completely unmodified raw data from Kraken API
      */
     public KrakenAccount getAccount(String apiKey, String secretKey) {
+        log.info("Starting Kraken getAccount API call");
+        
         try {
-            log.info("Making request to Kraken API for account balance");
-            log.info("Using API key starting with: {}", apiKey.substring(0, Math.min(apiKey.length(), 5)) + "...");
+            // Validate API key and secret key
+            if (apiKey == null || apiKey.isEmpty()) {
+                log.error("API key is null or empty");
+                throw new IllegalArgumentException("API key cannot be null or empty");
+            }
+            
+            if (secretKey == null || secretKey.isEmpty()) {
+                log.error("Secret key is null or empty");
+                throw new IllegalArgumentException("Secret key cannot be null or empty");
+            }
+            
+            log.info("API key format check - length: {}, contains slashes: {}, contains plus: {}", 
+                apiKey.length(), 
+                apiKey.contains("/"), 
+                apiKey.contains("+"));
+            
+            log.info("Secret key format check - length: {}, contains slashes: {}, contains plus: {}", 
+                secretKey.length(), 
+                secretKey.contains("/"), 
+                secretKey.contains("+"));
+            
+            // Create URI
+            String endpoint = "/0/private/Balance";
+            String url = baseUrl + endpoint;
+            URI uri = URI.create(url);
+            log.info("Kraken API URL: {}", url);
+            
+            // Create nonce
+            String nonce = String.valueOf(System.currentTimeMillis());
+            log.info("Generated nonce: {}", nonce);
+            
+            // Create data
+            String data = "nonce=" + nonce;
+            log.info("Request data: {}", data);
+            
+            // Create signature
+            try {
+                String signature = createSignature(endpoint, Long.parseLong(nonce), data, secretKey);
+                log.info("Generated signature with length: {}", signature.length());
+                
+                // Create headers
+                HttpHeaders headers = new HttpHeaders();
+                headers.add("API-Key", apiKey);
+                headers.add("API-Sign", signature);
+                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                log.info("Headers prepared with API-Key: {}", apiKey.substring(0, Math.min(apiKey.length(), 5)) + "...");
+                
+                // Create request entity
+                HttpEntity<String> entity = new HttpEntity<>(data, headers);
+                log.info("Request entity created");
+                
+                // Log the full request details for debugging
+                log.info("Making Kraken API request to: {} with method: {}", uri, HttpMethod.POST);
+                log.info("Request headers: {}", headers);
+                log.info("Request body: {}", data);
+                
+                // Execute request with timeout handling
+                long startTime = System.currentTimeMillis();
+                log.info("Sending request to Kraken API...");
+                
+                ResponseEntity<KrakenAccount> response = restTemplate.exchange(uri, HttpMethod.POST, entity, KrakenAccount.class);
+                
+                long endTime = System.currentTimeMillis();
+                log.info("Kraken API response received in {}ms", endTime - startTime);
+                log.info("Response status: {}", response.getStatusCode());
+                
+                KrakenAccount account = response.getBody();
+                
+                // Log response details
+                if (account != null) {
+                    if (account.getError() != null && account.getError().length > 0) {
+                        log.error("Kraken API returned error: {}", String.join(", ", account.getError()));
+                    } else {
+                        log.info("Kraken API call successful");
+                        if (account.getResult() != null) {
+                            log.info("Account balance contains {} assets", account.getResult().size());
+                        } else {
+                            log.warn("Account balance result is null");
+                        }
+                    }
+                } else {
+                    log.warn("Kraken API returned null response body");
+                }
+                
+                return account;
+            } catch (Exception e) {
+                log.error("Error creating signature: {}", e.getMessage(), e);
+                throw new RuntimeException("Error creating signature: " + e.getMessage(), e);
+            }
+        } catch (Exception e) {
+            log.error("Error calling Kraken API: {}", e.getMessage(), e);
+            throw new RuntimeException("Error calling Kraken API: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Test the connection with the Kraken API
+     * This method makes a simple API call to verify that the credentials are valid
+     * 
+     * @param apiKey Kraken API key
+     * @param secretKey Kraken API secret key
+     * @return true if the connection is successful, false otherwise
+     */
+    public boolean testConnection(String apiKey, String secretKey) {
+        log.info("Testing connection to Kraken API");
+        
+        if (apiKey == null || apiKey.isEmpty() || secretKey == null || secretKey.isEmpty()) {
+            log.error("API key or secret key is null or empty");
+            return false;
+        }
+        
+        try {
+            // Use the GetAccountBalance endpoint to test the connection
+            String endpoint = "/0/private/Balance";
+            String url = baseUrl + endpoint;
             
             long nonce = System.currentTimeMillis();
-            String path = "/0/private/Balance";
-            
-            // Create post data
             String postData = "nonce=" + nonce;
             
             // Create signature
-            String signature = createSignature(path, postData, secretKey);
+            String signature = createSignature(endpoint, nonce, postData, secretKey);
             
-            // Create headers
+            // Set up headers
             HttpHeaders headers = new HttpHeaders();
             headers.set("API-Key", apiKey);
             headers.set("API-Sign", signature);
-            headers.set("Content-Type", "application/x-www-form-urlencoded");
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             
             // Create request entity
             HttpEntity<String> entity = new HttpEntity<>(postData, headers);
             
-            // Make request
-            URI uri = new URIBuilder(KRAKEN_API_URL + path).build();
-            
-            log.info("Sending request to Kraken API at: {}", uri);
-            
-            ResponseEntity<KrakenAccount> response = restTemplate.exchange(
-                uri,
-                HttpMethod.POST,
-                entity,
-                KrakenAccount.class
+            // Make the request
+            log.info("Making test request to Kraken API: {}", url);
+            ResponseEntity<String> response = restTemplate.exchange(
+                url, 
+                HttpMethod.POST, 
+                entity, 
+                String.class
             );
             
-            // Log response for debugging
-            KrakenAccount account = response.getBody();
-            if (account != null) {
-                if (account.getError() != null && account.getError().length > 0) {
-                    log.warn("Kraken API returned error: {}", String.join(", ", account.getError()));
-                } else if (account.getResult() != null) {
-                    log.info("Kraken API returned {} assets in balance", account.getResult().size());
-                } else {
-                    log.warn("Kraken API returned null result");
-                }
+            // Check if the request was successful
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Connection test successful: Status code {}", response.getStatusCode());
+                return true;
             } else {
-                log.warn("Kraken API returned null response body");
+                log.error("Connection test failed: Status code {}", response.getStatusCode());
+                return false;
             }
-            
-            // Return completely unmodified raw data
-            return response.getBody();
         } catch (Exception e) {
-            log.error("Error getting Kraken account information", e);
-            throw new RuntimeException("Error getting Kraken account information: " + e.getMessage(), e);
+            log.error("Error testing connection to Kraken API: {}", e.getMessage(), e);
+            return false;
         }
     }
     
     /**
-     * Test the API connection
-     * @param apiKey API key
-     * @param secretKey Secret key
-     * @return Test results
-     */
-    public Map<String, Object> testConnection(String apiKey, String secretKey) {
-        Map<String, Object> result = new HashMap<>();
-        try {
-            KrakenAccount account = getAccount(apiKey, secretKey);
-            if (account != null && account.getError() != null && account.getError().length > 0) {
-                result.put("status", "error");
-                result.put("message", String.join(", ", account.getError()));
-                return result;
-            }
-            result.put("status", "success");
-            result.put("message", "Connection successful");
-            result.put("data", account);
-            return result;
-        } catch (Exception e) {
-            log.error("Error testing Kraken API connection", e);
-            result.put("status", "error");
-            result.put("message", e.getMessage());
-            return result;
-        }
-    }
-    
-    /**
-     * Create signature for Kraken API
-     * @param path API path
-     * @param postData Post data
-     * @param secretKey Secret key
+     * Create signature for Kraken API request
+     * 
+     * @param path API endpoint path
+     * @param nonce Nonce value
+     * @param postData POST data
+     * @param secret Secret key
      * @return Signature
      */
-    private String createSignature(String path, String postData, String secretKey) 
-            throws NoSuchAlgorithmException, InvalidKeyException {
-        // Decode base64 secret key
-        byte[] decodedSecretKey = Base64.getDecoder().decode(secretKey);
-        
-        // Create message
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        md.update((postData).getBytes());
-        byte[] messageHash = md.digest();
-        
-        byte[] pathBytes = path.getBytes();
-        byte[] message = new byte[messageHash.length + pathBytes.length];
-        System.arraycopy(pathBytes, 0, message, 0, pathBytes.length);
-        System.arraycopy(messageHash, 0, message, pathBytes.length, messageHash.length);
-        
-        // Create HMAC
-        Mac mac = Mac.getInstance(HMAC_SHA512);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(decodedSecretKey, HMAC_SHA512);
-        mac.init(secretKeySpec);
-        byte[] hmacBytes = mac.doFinal(message);
-        
-        // Encode as base64
-        return Base64.getEncoder().encodeToString(hmacBytes);
+    private String createSignature(String path, long nonce, String postData, String secret) {
+        try {
+            log.info("Creating signature for path: {}, nonce: {}", path, nonce);
+            
+            // Step 1: Create the SHA256 hash of (nonce + postData)
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] noncePostDataHash = md.digest((nonce + postData).getBytes());
+            
+            // Step 2: Concatenate path bytes with the hash from step 1
+            byte[] pathBytes = path.getBytes();
+            byte[] message = new byte[pathBytes.length + noncePostDataHash.length];
+            System.arraycopy(pathBytes, 0, message, 0, pathBytes.length);
+            System.arraycopy(noncePostDataHash, 0, message, pathBytes.length, noncePostDataHash.length);
+            
+            // Step 3: Apply HMAC-SHA512 using the base64-decoded secret key
+            Mac mac = Mac.getInstance("HmacSHA512");
+            SecretKeySpec key = new SecretKeySpec(Base64.getDecoder().decode(secret), "HmacSHA512");
+            mac.init(key);
+            byte[] hmacDigest = mac.doFinal(message);
+            
+            // Step 4: Base64 encode the result
+            String signature = Base64.getEncoder().encodeToString(hmacDigest);
+            log.info("Generated signature with length: {}", signature.length());
+            
+            return signature;
+        } catch (Exception e) {
+            log.error("Error creating signature", e);
+            throw new RuntimeException("Error creating signature", e);
+        }
     }
 }

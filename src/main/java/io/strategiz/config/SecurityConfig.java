@@ -33,6 +33,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(new AntPathRequestMatcher("/api/binanceus/raw-data")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/binanceus/admin/raw-data")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/binanceus/admin/debug-keys")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/binanceus/admin/debug-user-document")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/binanceus/public-admin-raw-data")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/binanceus/public-test")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/binanceus/test-api")).permitAll()

@@ -174,6 +174,7 @@ public class KrakenController {
             String secretKey = credentials.get("secretKey");
             
             log.info("Retrieved Kraken credentials for user: {}", userId);
+            log.info("Using Kraken API key: {}", apiKey.substring(0, Math.min(apiKey.length(), 5)) + "...");
             
             try {
                 // Get the complete unmodified raw data from the Kraken API
@@ -209,5 +210,20 @@ public class KrakenController {
                 "message", e.getMessage()
             ));
         }
+    }
+
+    /**
+     * Simple health check endpoint to verify the Kraken controller is accessible
+     * @return Health status
+     */
+    @GetMapping("/health")
+    @CrossOrigin(origins = {"http://localhost:3000", "https://strategiz.io"}, allowedHeaders = "*")
+    public ResponseEntity<Map<String, String>> healthCheck() {
+        log.info("Received health check request for Kraken controller");
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "ok");
+        response.put("controller", "KrakenController");
+        response.put("timestamp", String.valueOf(System.currentTimeMillis()));
+        return ResponseEntity.ok(response);
     }
 }

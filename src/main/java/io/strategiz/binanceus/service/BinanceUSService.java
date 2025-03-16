@@ -751,4 +751,77 @@ public class BinanceUSService {
         
         return result;
     }
+
+    /**
+     * Get completely unmodified raw account data from Binance US API
+     * This method returns the exact JSON response from the API without any transformations
+     * 
+     * @param apiKey Binance US API key
+     * @param secretKey Binance US API secret key
+     * @return Raw JSON response from Binance US API as a String
+     */
+    public String getRawAccountData(String apiKey, String secretKey) throws Exception {
+        log.info("Getting raw account data from Binance US API");
+        
+        // Create timestamp for the request
+        long timestamp = System.currentTimeMillis();
+        String queryString = "timestamp=" + timestamp;
+        
+        // Create HMAC SHA256 signature
+        String signature = createSignature(queryString, secretKey);
+        
+        // Build the URL with query parameters and signature
+        String endpoint = "/api/v3/account";
+        String url = BINANCEUS_API_URL + endpoint + "?" + queryString + "&signature=" + signature;
+        
+        // Set up headers with API key
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-MBX-APIKEY", apiKey);
+        
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        log.info("Sending request to Binance US API: {}", url);
+        
+        // Make the request with retries
+        for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+            try {
+                ResponseEntity<String> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+                );
+                
+                if (response.getStatusCode() == HttpStatus.OK) {
+                    log.info("Successfully retrieved raw account data from Binance US API");
+                    // Return the completely unmodified raw response body
+                    return response.getBody();
+                } else {
+                    log.warn("Unexpected status code from Binance US API: {}", response.getStatusCode());
+                    if (attempt < MAX_RETRY_ATTEMPTS) {
+                        log.info("Retrying request (attempt {}/{})", attempt, MAX_RETRY_ATTEMPTS);
+                        Thread.sleep(RETRY_DELAY_MS);
+                    }
+                }
+            } catch (HttpClientErrorException | HttpServerErrorException e) {
+                log.error("HTTP error from Binance US API: {} - {}", e.getStatusCode(), e.getResponseBodyAsString(), e);
+                if (attempt < MAX_RETRY_ATTEMPTS) {
+                    log.info("Retrying request (attempt {}/{})", attempt, MAX_RETRY_ATTEMPTS);
+                    Thread.sleep(RETRY_DELAY_MS);
+                } else {
+                    throw new Exception("Failed to get raw account data from Binance US API: " + e.getMessage());
+                }
+            } catch (ResourceAccessException e) {
+                log.error("Network error connecting to Binance US API", e);
+                if (attempt < MAX_RETRY_ATTEMPTS) {
+                    log.info("Retrying request (attempt {}/{})", attempt, MAX_RETRY_ATTEMPTS);
+                    Thread.sleep(RETRY_DELAY_MS);
+                } else {
+                    throw new Exception("Network error connecting to Binance US API: " + e.getMessage());
+                }
+            }
+        }
+        
+        throw new Exception("Failed to get raw account data from Binance US API after " + MAX_RETRY_ATTEMPTS + " attempts");
+    }
 }

@@ -68,49 +68,36 @@ public class KrakenService {
     }
 
     /**
-     * Get account information
+     * Get account information from Kraken API
+     * 
      * @param apiKey API key
      * @param secretKey Secret key
-     * @return Account information - completely unmodified raw data from Kraken API
+     * @return Account information
      */
     public KrakenAccount getAccount(String apiKey, String secretKey) {
-        log.info("Starting Kraken getAccount API call");
+        log.info("Getting account information from Kraken API");
+        
+        if (apiKey == null || apiKey.isEmpty() || secretKey == null || secretKey.isEmpty()) {
+            log.error("API key or secret key is null or empty");
+            KrakenAccount errorAccount = new KrakenAccount();
+            errorAccount.setError(new String[]{"API key or secret key is null or empty"});
+            return errorAccount;
+        }
         
         try {
-            // Validate API key and secret key
-            if (apiKey == null || apiKey.isEmpty()) {
-                log.error("API key is null or empty");
-                throw new IllegalArgumentException("API key cannot be null or empty");
-            }
+            // Create nonce
+            String nonce = String.valueOf(System.currentTimeMillis());
+            log.info("Generated nonce: {}", nonce);
             
-            if (secretKey == null || secretKey.isEmpty()) {
-                log.error("Secret key is null or empty");
-                throw new IllegalArgumentException("Secret key cannot be null or empty");
-            }
-            
-            log.info("API key format check - length: {}, contains slashes: {}, contains plus: {}", 
-                apiKey.length(), 
-                apiKey.contains("/"), 
-                apiKey.contains("+"));
-            
-            log.info("Secret key format check - length: {}, contains slashes: {}, contains plus: {}", 
-                secretKey.length(), 
-                secretKey.contains("/"), 
-                secretKey.contains("+"));
+            // Create post data
+            String data = "nonce=" + nonce;
+            log.info("Created post data: {}", data);
             
             // Create URI
             String endpoint = "/0/private/Balance";
             String url = baseUrl + endpoint;
             URI uri = URI.create(url);
             log.info("Kraken API URL: {}", url);
-            
-            // Create nonce
-            String nonce = String.valueOf(System.currentTimeMillis());
-            log.info("Generated nonce: {}", nonce);
-            
-            // Create data
-            String data = "nonce=" + nonce;
-            log.info("Request data: {}", data);
             
             // Create signature
             try {
@@ -128,47 +115,36 @@ public class KrakenService {
                 HttpEntity<String> entity = new HttpEntity<>(data, headers);
                 log.info("Request entity created");
                 
-                // Log the full request details for debugging
-                log.info("Making Kraken API request to: {} with method: {}", uri, HttpMethod.POST);
-                log.info("Request headers: {}", headers);
-                log.info("Request body: {}", data);
-                
-                // Execute request with timeout handling
-                long startTime = System.currentTimeMillis();
-                log.info("Sending request to Kraken API...");
-                
+                // Make request
+                log.info("Making request to Kraken API...");
                 ResponseEntity<KrakenAccount> response = restTemplate.exchange(uri, HttpMethod.POST, entity, KrakenAccount.class);
+                log.info("Received response from Kraken API with status code: {}", response.getStatusCode());
                 
-                long endTime = System.currentTimeMillis();
-                log.info("Kraken API response received in {}ms", endTime - startTime);
-                log.info("Response status: {}", response.getStatusCode());
-                
+                // Check response
                 KrakenAccount account = response.getBody();
-                
-                // Log response details
-                if (account != null) {
-                    if (account.getError() != null && account.getError().length > 0) {
-                        log.error("Kraken API returned error: {}", String.join(", ", account.getError()));
-                    } else {
-                        log.info("Kraken API call successful");
-                        if (account.getResult() != null) {
-                            log.info("Account balance contains {} assets", account.getResult().size());
-                        } else {
-                            log.warn("Account balance result is null");
-                        }
-                    }
-                } else {
-                    log.warn("Kraken API returned null response body");
+                if (account == null) {
+                    log.error("Response body is null");
+                    KrakenAccount errorAccount = new KrakenAccount();
+                    errorAccount.setError(new String[]{"Response body is null"});
+                    return errorAccount;
                 }
                 
+                if (account.getError() != null && account.getError().length > 0) {
+                    log.error("Kraken API returned error: {}", String.join(", ", account.getError()));
+                    return account;
+                }
+                
+                log.info("Successfully retrieved account information from Kraken API");
                 return account;
             } catch (Exception e) {
                 log.error("Error creating signature: {}", e.getMessage(), e);
                 throw new RuntimeException("Error creating signature: " + e.getMessage(), e);
             }
         } catch (Exception e) {
-            log.error("Error calling Kraken API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error calling Kraken API: " + e.getMessage(), e);
+            log.error("Error getting account information from Kraken API: {}", e.getMessage(), e);
+            KrakenAccount errorAccount = new KrakenAccount();
+            errorAccount.setError(new String[]{"Error getting account information: " + e.getMessage()});
+            return errorAccount;
         }
     }
     

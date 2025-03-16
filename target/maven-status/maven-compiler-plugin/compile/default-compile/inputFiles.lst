@@ -56,7 +56,7 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\s
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\service\firestore\FirestoreService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\model\Balance.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\service\SessionService.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSRawDataController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSAdminController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\response\ApiResponse.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\repository\FirestorePasskeyCredentialRepository.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\model\TickerPrice.java

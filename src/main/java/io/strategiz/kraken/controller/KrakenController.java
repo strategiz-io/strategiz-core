@@ -56,7 +56,8 @@ public class KrakenController {
     }
 
     /**
-     * Test Kraken API connection
+     * Test connection to Kraken API
+     * 
      * @param request Request containing API key and secret key
      * @return Test results
      */
@@ -66,7 +67,17 @@ public class KrakenController {
             String apiKey = request.get("apiKey");
             String secretKey = request.get("secretKey");
             
-            Map<String, Object> result = krakenService.testConnection(apiKey, secretKey);
+            boolean connectionSuccessful = krakenService.testConnection(apiKey, secretKey);
+            
+            Map<String, Object> result = new HashMap<>();
+            if (connectionSuccessful) {
+                result.put("status", "success");
+                result.put("message", "Connection to Kraken API successful");
+            } else {
+                result.put("status", "error");
+                result.put("message", "Connection to Kraken API failed");
+            }
+            
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error testing Kraken API connection", e);
@@ -275,13 +286,13 @@ public class KrakenController {
     /**
      * Set Kraken API credentials for a user
      * 
-     * @param apiKey API key
-     * @param secretKey Secret key
+     * @param request Request containing API key and secret key
+     * @param httpRequest HttpServletRequest
      * @return Configuration status
      */
     @PostMapping("/set-credentials")
     @CrossOrigin(origins = {"http://localhost:3000", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<?> setKrakenCredentials(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
+    public ResponseEntity<Map<String, Object>> setKrakenCredentials(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
         log.info("Received request to set Kraken API credentials");
         
         try {

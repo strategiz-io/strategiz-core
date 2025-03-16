@@ -71,28 +71,4 @@ public class BinanceUSConfigController {
         
         return ResponseEntity.ok(result);
     }
-    
-    /**
-     * Add test Binance US configuration for test2@gmail.com
-     * 
-     * @return Operation status and details
-     */
-    @GetMapping("/setup-test")
-    @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<Object> setupTestConfig() {
-        log.info("Setting up test Binance US configuration for test2@gmail.com");
-        
-        // Use test API keys for Binance US
-        String testEmail = "test2@gmail.com";
-        String testApiKey = "testApiKey123456789";
-        String testSecretKey = "testSecretKey987654321";
-        
-        Map<String, Object> result = configHelper.addBinanceUSConfig(testEmail, testApiKey, testSecretKey);
-        
-        if ("error".equals(result.get("status"))) {
-            return ResponseEntity.badRequest().body(result);
-        }
-        
-        return ResponseEntity.ok(result);
-    }
 }

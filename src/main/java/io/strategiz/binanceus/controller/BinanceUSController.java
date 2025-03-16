@@ -71,7 +71,7 @@ public class BinanceUSController extends BaseServiceRestController {
             Map<String, Object> result = binanceUSService.testConnection(apiKey, secretKey);
             if (result != null && "ok".equals(result.get("status"))) {
                 // Save credentials to Firestore if test is successful
-                firestoreService.saveExchangeCredentials(userId, "binanceus", apiKey, secretKey);
+                firestoreService.saveBinanceUSCredentials(userId, apiKey, secretKey);
                 return ResponseEntity.ok(StatusResponse.success("Connection successful"));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(StatusResponse.error("Invalid API credentials"));

@@ -257,12 +257,54 @@ public class AuthController {
     /**
      * Invalidates all sessions for a user
      * @param userId The user ID
+     * @param authHeader The Authorization header containing the Bearer token
      * @return A response indicating success or failure
      */
     @DeleteMapping("/sessions/user/{userId}")
-    public ResponseEntity<ApiResponse<Void>> invalidateAllUserSessions(@PathVariable("userId") String userId) {
+    public ResponseEntity<ApiResponse<Void>> invalidateAllUserSessions(
+            @PathVariable("userId") String userId,
+            @RequestHeader(name = "Authorization", required = false) String authHeader) {
         try {
             logger.info("Invalidating all sessions for user: {}", userId);
+            
+            // Check if Authorization header is present and has the correct format
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.warn("Missing or invalid Authorization header in invalidate-all-user-sessions request");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        ApiResponse.<Void>builder()
+                                .success(false)
+                                .message("Missing or invalid Authorization header")
+                                .build()
+                );
+            }
+            
+            // Extract the token from the Authorization header
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            try {
+                // Verify the token with Firebase Auth
+                FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
+                
+                // Only allow users to invalidate their own sessions or admins to invalidate any session
+                if (!decodedToken.getUid().equals(userId) && !Boolean.TRUE.equals(decodedToken.getClaims().get("admin"))) {
+                    logger.error("Unauthorized to invalidate sessions for user: {}", userId);
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                            ApiResponse.<Void>builder()
+                                    .success(false)
+                                    .message("Unauthorized to invalidate sessions for this user")
+                                    .build()
+                    );
+                }
+            } catch (FirebaseAuthException e) {
+                // Token is invalid or expired
+                logger.error("Invalid or expired token: {}", e.getMessage());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        ApiResponse.<Void>builder()
+                                .success(false)
+                                .message("Invalid or expired token: " + e.getMessage())
+                                .build()
+                );
+            }
             
             // Find all sessions for the user and delete them
             List<Session> userSessions = sessionRepository.findByUserId(userId).get();
@@ -287,74 +329,6 @@ public class AuthController {
                             .message("Failed to invalidate sessions: " + e.getMessage())
                             .build()
             );
-        }
-    }
-    
-    /**
-     * Invalidates all sessions for a user
-     *
-     * @param userId The user ID
-     * @return A response indicating the number of sessions invalidated
-     */
-    @DeleteMapping("/sessions/user/{userId}")
-    public ResponseEntity<Map<String, Object>> invalidateAllUserSessions(
-            @PathVariable String userId,
-            @RequestHeader(name = "Authorization", required = false) String authHeader) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        // Check if Authorization header is present and has the correct format
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("Missing or invalid Authorization header in invalidate-all-user-sessions request");
-            response.put("success", false);
-            response.put("message", "Missing or invalid Authorization header");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-        }
-        
-        // Extract the token from the Authorization header
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        try {
-            // Verify the token with Firebase Auth
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
-            
-            // Only allow users to invalidate their own sessions or admins to invalidate any session
-            if (!decodedToken.getUid().equals(userId) && !Boolean.TRUE.equals(decodedToken.getClaims().get("admin"))) {
-                logger.error("Unauthorized to invalidate sessions for user: {}", userId);
-                response.put("success", false);
-                response.put("message", "Unauthorized to invalidate sessions for this user");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-            }
-            
-            try {
-                // Find all sessions for the user and delete them
-                List<Session> userSessions = sessionRepository.findByUserId(userId).get();
-                int count = 0;
-                
-                for (Session session : userSessions) {
-                    sessionRepository.deleteById(session.getId()).get();
-                    count++;
-                }
-                
-                // Sessions invalidated successfully
-                logger.info("Invalidated {} sessions for user {}", count, userId);
-                response.put("success", true);
-                response.put("message", count + " sessions invalidated successfully");
-                
-                return ResponseEntity.ok(response);
-            } catch (InterruptedException | ExecutionException e) {
-                logger.error("Failed to invalidate sessions for user {}: {}", userId, e.getMessage());
-                response.put("success", false);
-                response.put("message", "Failed to invalidate sessions: " + e.getMessage());
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-            }
-        } catch (FirebaseAuthException e) {
-            // Token is invalid or expired
-            logger.error("Invalid or expired token: {}", e.getMessage());
-            response.put("success", false);
-            response.put("message", "Invalid or expired token: " + e.getMessage());
-            
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }
     

@@ -74,6 +74,9 @@ public class KrakenService {
      */
     public KrakenAccount getAccount(String apiKey, String secretKey) {
         try {
+            log.info("Making request to Kraken API for account balance");
+            log.info("Using API key starting with: {}", apiKey.substring(0, Math.min(apiKey.length(), 5)) + "...");
+            
             long nonce = System.currentTimeMillis();
             String path = "/0/private/Balance";
             
@@ -94,12 +97,29 @@ public class KrakenService {
             
             // Make request
             URI uri = new URIBuilder(KRAKEN_API_URL + path).build();
+            
+            log.info("Sending request to Kraken API at: {}", uri);
+            
             ResponseEntity<KrakenAccount> response = restTemplate.exchange(
                 uri,
                 HttpMethod.POST,
                 entity,
                 KrakenAccount.class
             );
+            
+            // Log response for debugging
+            KrakenAccount account = response.getBody();
+            if (account != null) {
+                if (account.getError() != null && account.getError().length > 0) {
+                    log.warn("Kraken API returned error: {}", String.join(", ", account.getError()));
+                } else if (account.getResult() != null) {
+                    log.info("Kraken API returned {} assets in balance", account.getResult().size());
+                } else {
+                    log.warn("Kraken API returned null result");
+                }
+            } else {
+                log.warn("Kraken API returned null response body");
+            }
             
             // Return completely unmodified raw data
             return response.getBody();

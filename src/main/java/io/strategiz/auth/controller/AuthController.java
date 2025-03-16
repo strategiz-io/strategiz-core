@@ -3,6 +3,9 @@ package io.strategiz.auth.controller;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import io.strategiz.auth.model.Session;
+import io.strategiz.auth.repository.SessionRepository;
+import io.strategiz.auth.response.ApiResponse;
 import io.strategiz.auth.service.SessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +15,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.lang.InterruptedException;
 
 /**
  * Controller for handling authentication-related endpoints
@@ -24,6 +31,9 @@ public class AuthController {
 
     @Autowired
     private SessionService sessionService;
+
+    @Autowired
+    private SessionRepository sessionRepository;
 
     /**
      * Verifies if a Firebase token is valid
@@ -74,58 +84,51 @@ public class AuthController {
     
     /**
      * Creates a new session for a user
-     *
-     * @param authHeader The Authorization header containing the Bearer token
-     * @return A response containing the session ID
+     * @param request The request containing the Firebase ID token
+     * @return A response with the session ID
      */
     @PostMapping("/session")
-    public ResponseEntity<Map<String, Object>> createSession(
-            @RequestHeader(name = "Authorization", required = false) String authHeader) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        // Check if Authorization header is present and has the correct format
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("Missing or invalid Authorization header in create-session request");
-            response.put("success", false);
-            response.put("message", "Missing or invalid Authorization header");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    public ResponseEntity<ApiResponse<Map<String, String>>> createSession(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+
+        if (token == null || token.isEmpty()) {
+            logger.error("Failed to create session: token is null or empty");
+            return ResponseEntity.badRequest().body(
+                    ApiResponse.<Map<String, String>>builder()
+                            .success(false)
+                            .message("token is required")
+                            .build()
+            );
         }
-        
-        // Extract the token from the Authorization header
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
+
         try {
-            // Verify the token with Firebase Auth
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
-            String userId = decodedToken.getUid();
-            
-            // Create a new session
-            String sessionId = sessionService.createSession(userId, token);
+            logger.info("Creating session with token");
+            String sessionId = sessionService.createSession(token);
             
             if (sessionId == null) {
-                logger.error("Failed to create session for user: {}", userId);
-                response.put("success", false);
-                response.put("message", "Failed to create session");
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+                logger.error("Failed to create session: sessionId is null");
+                return ResponseEntity.internalServerError().body(
+                        ApiResponse.<Map<String, String>>builder()
+                                .success(false)
+                                .message("Failed to create session")
+                                .build()
+                );
             }
             
-            // Session created successfully
-            logger.info("Session created successfully for user: {}", userId);
-            response.put("success", true);
-            response.put("sessionId", sessionId);
-            response.put("userId", userId);
-            response.put("email", decodedToken.getEmail());
-            
-            return ResponseEntity.ok(response);
-            
-        } catch (FirebaseAuthException e) {
-            // Token is invalid or expired
-            logger.error("Invalid or expired token in create-session: {}", e.getMessage());
-            response.put("success", false);
-            response.put("message", "Invalid or expired token: " + e.getMessage());
-            
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            return ResponseEntity.ok(
+                    ApiResponse.<Map<String, String>>builder()
+                            .success(true)
+                            .data(Map.of("sessionId", sessionId))
+                            .build()
+            );
+        } catch (Exception e) {
+            logger.error("Failed to create session", e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<Map<String, String>>builder()
+                            .success(false)
+                            .message("Failed to create session: " + e.getMessage())
+                            .build()
+            );
         }
     }
     
@@ -135,98 +138,156 @@ public class AuthController {
      * @param sessionId The session ID
      * @return A response indicating if the session is valid
      */
-    @GetMapping("/session/{sessionId}")
+    @GetMapping("/validate-session/{sessionId}")
     public ResponseEntity<Map<String, Object>> validateSession(
             @PathVariable String sessionId) {
         
         Map<String, Object> response = new HashMap<>();
         
-        String userId = sessionService.validateSession(sessionId);
-        
-        if (userId == null) {
-            logger.warn("Invalid or expired session: {}", sessionId);
-            response.put("valid", false);
-            response.put("message", "Invalid or expired session");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        try {
+            logger.info("Validating session: {}", sessionId);
+            
+            Optional<Session> optionalSession = sessionService.validateSession(sessionId);
+            
+            if (optionalSession.isPresent()) {
+                Session session = optionalSession.get();
+                logger.info("Session validated successfully: {}", sessionId);
+                response.put("success", true);
+                response.put("userId", session.getUserId());
+                response.put("expiresAt", session.getExpiresAt());
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Session validation failed: {}", sessionId);
+                response.put("success", false);
+                response.put("message", "Invalid session");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to validate session: {}", sessionId, e);
+            response.put("success", false);
+            response.put("message", "Failed to validate session: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-        
-        // Session is valid
-        logger.info("Session validated successfully for user: {}", userId);
-        response.put("valid", true);
-        response.put("userId", userId);
-        
-        return ResponseEntity.ok(response);
     }
     
     /**
      * Refreshes a session with a new token
      *
-     * @param sessionId The session ID
-     * @param authHeader The Authorization header containing the Bearer token
+     * @param request The request containing the session ID
      * @return A response indicating if the session was refreshed
      */
-    @PutMapping("/session/{sessionId}")
+    @PostMapping("/refresh-session")
     public ResponseEntity<Map<String, Object>> refreshSession(
-            @PathVariable String sessionId,
-            @RequestHeader(name = "Authorization", required = false) String authHeader) {
+            @RequestBody Map<String, String> request) {
         
         Map<String, Object> response = new HashMap<>();
         
-        // Check if Authorization header is present and has the correct format
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("Missing or invalid Authorization header in refresh-session request");
+        String sessionId = request.get("sessionId");
+        
+        if (sessionId == null) {
+            logger.warn("Missing sessionId in refresh request");
             response.put("success", false);
-            response.put("message", "Missing or invalid Authorization header");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-        }
-        
-        // Extract the token from the Authorization header
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        boolean refreshed = sessionService.refreshSession(sessionId, token);
-        
-        if (!refreshed) {
-            logger.error("Failed to refresh session: {}", sessionId);
-            response.put("success", false);
-            response.put("message", "Failed to refresh session");
+            response.put("message", "sessionId is required");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
         
-        // Session refreshed successfully
-        logger.info("Session refreshed successfully: {}", sessionId);
-        response.put("success", true);
-        response.put("message", "Session refreshed successfully");
-        
-        return ResponseEntity.ok(response);
+        try {
+            logger.info("Refreshing session: {}", sessionId);
+            
+            // Refresh the session
+            Session refreshedSession = sessionService.refreshSession(sessionId);
+            
+            if (refreshedSession != null) {
+                logger.info("Session refreshed successfully: {}", sessionId);
+                response.put("success", true);
+                response.put("message", "Session refreshed successfully");
+                response.put("sessionId", sessionId);
+                response.put("userId", refreshedSession.getUserId());
+                response.put("expiresAt", refreshedSession.getExpiresAt());
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Session not found for refresh: {}", sessionId);
+                response.put("success", false);
+                response.put("message", "Invalid session");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+        } catch (InterruptedException e) {
+            logger.error("Failed to refresh session: {}", sessionId, e);
+            response.put("success", false);
+            response.put("message", "Failed to refresh session: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (ExecutionException e) {
+            logger.error("Failed to refresh session: {}", sessionId, e);
+            response.put("success", false);
+            response.put("message", "Failed to refresh session: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
     
     /**
      * Invalidates a session
-     *
-     * @param sessionId The session ID
-     * @return A response indicating if the session was invalidated
+     * @param sessionId The session ID to invalidate
+     * @return A response indicating success or failure
      */
     @DeleteMapping("/session/{sessionId}")
-    public ResponseEntity<Map<String, Object>> invalidateSession(
-            @PathVariable String sessionId) {
-        
-        Map<String, Object> response = new HashMap<>();
-        
-        boolean invalidated = sessionService.invalidateSession(sessionId);
-        
-        if (!invalidated) {
-            logger.error("Failed to invalidate session: {}", sessionId);
-            response.put("success", false);
-            response.put("message", "Failed to invalidate session");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<ApiResponse<Void>> invalidateSession(@PathVariable("sessionId") String sessionId) {
+        try {
+            logger.info("Invalidating session: {}", sessionId);
+            
+            // Since we no longer have an invalidateSession method, we'll delete the session directly
+            sessionRepository.deleteById(sessionId).get();
+            
+            return ResponseEntity.ok(
+                    ApiResponse.<Void>builder()
+                            .success(true)
+                            .message("Session invalidated successfully")
+                            .build()
+            );
+        } catch (Exception e) {
+            logger.error("Failed to invalidate session: {}", sessionId, e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<Void>builder()
+                            .success(false)
+                            .message("Failed to invalidate session: " + e.getMessage())
+                            .build()
+            );
         }
-        
-        // Session invalidated successfully
-        logger.info("Session invalidated successfully: {}", sessionId);
-        response.put("success", true);
-        response.put("message", "Session invalidated successfully");
-        
-        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Invalidates all sessions for a user
+     * @param userId The user ID
+     * @return A response indicating success or failure
+     */
+    @DeleteMapping("/sessions/user/{userId}")
+    public ResponseEntity<ApiResponse<Void>> invalidateAllUserSessions(@PathVariable("userId") String userId) {
+        try {
+            logger.info("Invalidating all sessions for user: {}", userId);
+            
+            // Find all sessions for the user and delete them
+            List<Session> userSessions = sessionRepository.findByUserId(userId).get();
+            int count = 0;
+            
+            for (Session session : userSessions) {
+                sessionRepository.deleteById(session.getId()).get();
+                count++;
+            }
+            
+            return ResponseEntity.ok(
+                    ApiResponse.<Void>builder()
+                            .success(true)
+                            .message("Invalidated " + count + " sessions for user")
+                            .build()
+            );
+        } catch (Exception e) {
+            logger.error("Failed to invalidate sessions for user: {}", userId, e);
+            return ResponseEntity.internalServerError().body(
+                    ApiResponse.<Void>builder()
+                            .success(false)
+                            .message("Failed to invalidate sessions: " + e.getMessage())
+                            .build()
+            );
+        }
     }
     
     /**
@@ -265,15 +326,28 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
             }
             
-            int count = sessionService.invalidateAllUserSessions(userId);
-            
-            // Sessions invalidated successfully
-            logger.info("Invalidated {} sessions for user: {}", count, userId);
-            response.put("success", true);
-            response.put("message", count + " sessions invalidated successfully");
-            
-            return ResponseEntity.ok(response);
-            
+            try {
+                // Find all sessions for the user and delete them
+                List<Session> userSessions = sessionRepository.findByUserId(userId).get();
+                int count = 0;
+                
+                for (Session session : userSessions) {
+                    sessionRepository.deleteById(session.getId()).get();
+                    count++;
+                }
+                
+                // Sessions invalidated successfully
+                logger.info("Invalidated {} sessions for user {}", count, userId);
+                response.put("success", true);
+                response.put("message", count + " sessions invalidated successfully");
+                
+                return ResponseEntity.ok(response);
+            } catch (InterruptedException | ExecutionException e) {
+                logger.error("Failed to invalidate sessions for user {}: {}", userId, e.getMessage());
+                response.put("success", false);
+                response.put("message", "Failed to invalidate sessions: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
         } catch (FirebaseAuthException e) {
             // Token is invalid or expired
             logger.error("Invalid or expired token: {}", e.getMessage());
@@ -283,4 +357,9 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }
+    
+    // Removed passkey and device session endpoints as they've been moved to dedicated controllers:
+    // - PasskeyController: handles /auth/passkey/session
+    // - DeviceIdentityController: handles /auth/device/session
+
 }

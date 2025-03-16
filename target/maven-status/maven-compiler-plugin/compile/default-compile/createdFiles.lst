@@ -1,7 +1,6 @@
 io\strategiz\auth\model\DeviceIdentity$DeviceIdentityBuilder.class
 io\strategiz\auth\model\Session.class
 io\strategiz\binanceus\controller\BinanceUSController.class
-io\strategiz\binanceus\controller\BinanceUSRawDataController.class
 io\strategiz\auth\service\DeviceIdentityService.class
 io\strategiz\auth\response\ApiResponse.class
 io\strategiz\coinbase\service\CoinbaseService$3.class

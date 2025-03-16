@@ -655,63 +655,6 @@ public class BinanceUSService {
     }
 
     /**
-     * Make a direct request to the Binance US API using the specialized binanceRestTemplate
-     * This is an alternative method that might bypass proxy issues
-     * 
-     * @param endpoint API endpoint
-     * @param params Request parameters
-     * @return Raw API response as String
-     */
-    public String directRequest(String endpoint, Map<String, String> params) {
-        try {
-            StringBuilder urlBuilder = new StringBuilder(BINANCEUS_API_URL + endpoint);
-            
-            if (params != null && !params.isEmpty()) {
-                urlBuilder.append("?");
-                boolean first = true;
-                for (Map.Entry<String, String> entry : params.entrySet()) {
-                    if (!first) {
-                        urlBuilder.append("&");
-                    }
-                    urlBuilder.append(entry.getKey()).append("=").append(entry.getValue());
-                    first = false;
-                }
-            }
-            
-            String url = urlBuilder.toString();
-            log.info("Making direct request to: {}", url);
-            
-            // Add custom headers to avoid browser detection
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-            headers.set("Accept", "application/json");
-            headers.set("Content-Type", "application/json");
-            
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            
-            // Use the specialized binanceRestTemplate for this request
-            ResponseEntity<String> response = binanceRestTemplate.exchange(
-                url, 
-                HttpMethod.GET, 
-                entity, 
-                String.class
-            );
-            
-            if (response.getStatusCode().is2xxSuccessful()) {
-                String responseBody = response.getBody();
-                log.info("Received direct response: {}", responseBody);
-                return responseBody;
-            } else {
-                log.error("Direct request failed with status code: {}", response.getStatusCode());
-                throw new RuntimeException("Direct request failed with status code: " + response.getStatusCode());
-            }
-        } catch (Exception e) {
-            log.error("Error making direct request to {}: {}", endpoint, e.getMessage(), e);
-            throw new RuntimeException("Error making direct request to " + endpoint + ": " + e.getMessage(), e);
-        }
-    }
-    
-    /**
      * Test connectivity to Binance US API with detailed debugging using direct request
      * 
      * @return Map containing connection details and status
@@ -756,8 +699,8 @@ public class BinanceUSService {
      * Get completely unmodified raw account data from Binance US API
      * This method returns the exact JSON response from the API without any transformations
      * 
-     * @param apiKey Binance US API key
-     * @param secretKey Binance US API secret key
+     * @param apiKey API key
+     * @param secretKey Secret key
      * @return Raw JSON response from Binance US API as a String
      */
     public String getRawAccountData(String apiKey, String secretKey) throws Exception {
@@ -823,5 +766,62 @@ public class BinanceUSService {
         }
         
         throw new Exception("Failed to get raw account data from Binance US API after " + MAX_RETRY_ATTEMPTS + " attempts");
+    }
+
+    /**
+     * Make a direct request to the Binance US API using the specialized binanceRestTemplate
+     * This is an alternative method that might bypass proxy issues
+     * 
+     * @param endpoint API endpoint
+     * @param params Request parameters
+     * @return Raw API response as String
+     */
+    public String directRequest(String endpoint, Map<String, String> params) {
+        try {
+            StringBuilder urlBuilder = new StringBuilder(BINANCEUS_API_URL + endpoint);
+            
+            if (params != null && !params.isEmpty()) {
+                urlBuilder.append("?");
+                boolean first = true;
+                for (Map.Entry<String, String> entry : params.entrySet()) {
+                    if (!first) {
+                        urlBuilder.append("&");
+                    }
+                    urlBuilder.append(entry.getKey()).append("=").append(entry.getValue());
+                    first = false;
+                }
+            }
+            
+            String url = urlBuilder.toString();
+            log.info("Making direct request to: {}", url);
+            
+            // Add custom headers to avoid browser detection
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+            headers.set("Accept", "application/json");
+            headers.set("Content-Type", "application/json");
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            // Use the specialized binanceRestTemplate for this request
+            ResponseEntity<String> response = binanceRestTemplate.exchange(
+                url, 
+                HttpMethod.GET, 
+                entity, 
+                String.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                String responseBody = response.getBody();
+                log.info("Received direct response: {}", responseBody);
+                return responseBody;
+            } else {
+                log.error("Direct request failed with status code: {}", response.getStatusCode());
+                throw new RuntimeException("Direct request failed with status code: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Error making direct request to {}: {}", endpoint, e.getMessage(), e);
+            throw new RuntimeException("Error making direct request to " + endpoint + ": " + e.getMessage(), e);
+        }
     }
 }

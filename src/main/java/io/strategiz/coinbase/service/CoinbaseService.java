@@ -283,51 +283,16 @@ public class CoinbaseService {
     }
 
     /**
-     * Test the API connection
-     * @param apiKey API key
-     * @param secretKey Secret key
-     * @return Test results
-     */
-    public Map<String, Object> testConnection(String apiKey, String secretKey) {
-        Map<String, Object> result = new HashMap<>();
-        
-        try {
-            // Test public API
-            TickerPrice btcPrice = getTickerPrice("BTC", "USD");
-            result.put("publicApiWorking", btcPrice != null);
-            
-            // Test private API
-            List<Account> accounts = null;
-            String error = null;
-            
-            try {
-                accounts = getAccounts(apiKey, secretKey);
-            } catch (Exception e) {
-                error = e.getMessage();
-            }
-            
-            result.put("privateApiWorking", accounts != null);
-            result.put("error", error);
-            result.put("accountsCount", accounts != null ? accounts.size() : 0);
-            
-            return result;
-        } catch (Exception e) {
-            log.error("Error testing connection: {}", e.getMessage());
-            result.put("publicApiWorking", false);
-            result.put("privateApiWorking", false);
-            result.put("error", e.getMessage());
-            return result;
-        }
-    }
-
-    /**
-     * Get raw account data for admin viewing
+     * Get raw account data from Coinbase API
+     * This method returns the completely unmodified raw data from Coinbase API
+     * 
      * @param apiKey API key
      * @param secretKey Secret key
      * @return Raw account data
      */
     public Object getRawAccountData(String apiKey, String secretKey) {
         try {
+            log.info("Getting raw account data from Coinbase API");
             return signedRequest(
                 HttpMethod.GET,
                 "/accounts",
@@ -339,6 +304,31 @@ public class CoinbaseService {
         } catch (Exception e) {
             log.error("Error getting raw account data: {}", e.getMessage());
             throw new RuntimeException("Error getting raw account data", e);
+        }
+    }
+
+    /**
+     * Test connection to Coinbase API
+     * 
+     * @param apiKey API key
+     * @param secretKey Secret key
+     * @return True if connection is successful, false otherwise
+     */
+    public boolean testConnection(String apiKey, String secretKey) {
+        try {
+            log.info("Testing connection to Coinbase API");
+            Object response = signedRequest(
+                HttpMethod.GET,
+                "/user",
+                null,
+                apiKey,
+                secretKey,
+                new ParameterizedTypeReference<Object>() {}
+            );
+            return response != null;
+        } catch (Exception e) {
+            log.error("Error testing connection to Coinbase API: {}", e.getMessage());
+            return false;
         }
     }
 }

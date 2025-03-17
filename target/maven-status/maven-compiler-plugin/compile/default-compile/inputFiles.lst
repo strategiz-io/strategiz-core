@@ -5,6 +5,7 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\r
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\kraken\model\KrakenAccount.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\model\request\BalanceRequest.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\repository\DeviceIdentityRepository.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\kraken\controller\KrakenPortfolioController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\kraken\model\KrakenBalance.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\util\BinanceUSConfigHelper.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\marketplace\model\MarketplaceModels.java
@@ -36,6 +37,7 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanc
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\BaseServiceResponse.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\model\AccountBalanceResponse.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\model\PasskeyCredential.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSPortfolioController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\model\Balance.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\model\Account.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\model\Session.java
@@ -43,10 +45,12 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\config
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\BaseServiceRestController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\controller\DeviceIdentityController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSConfigController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\controller\CoinbaseAdminController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\rest\model\BaseServiceRequest.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\model\response\BalanceResponse.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\service\FirestoreService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\service\CoinbaseService.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\portfolio\controller\PortfolioController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\service\PasskeyService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\BaseServiceRequest.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\healthcheck\controller\HealthCheckController.java

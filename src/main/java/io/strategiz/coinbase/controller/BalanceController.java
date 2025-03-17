@@ -97,7 +97,12 @@ public class BalanceController {
             String secretKey = credentials.get("secretKey");
             
             // Test connection
-            Map<String, Object> testResult = coinbaseService.testConnection(apiKey, secretKey);
+            boolean connectionSuccessful = coinbaseService.testConnection(apiKey, secretKey);
+            
+            Map<String, Object> testResult = new HashMap<>();
+            testResult.put("status", connectionSuccessful ? "success" : "error");
+            testResult.put("message", connectionSuccessful ? "Connection successful" : "Connection failed");
+            testResult.put("connected", connectionSuccessful);
             
             return ResponseEntity.ok(testResult);
         } catch (Exception e) {

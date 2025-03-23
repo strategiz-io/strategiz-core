@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "strategiz-io"
+  },
+  "targets": {
+    "strategiz-io": {
+      "hosting": {
+        "api": [
+          "api-strategiz-io"
+        ]
+      }
+    }
   }
 }

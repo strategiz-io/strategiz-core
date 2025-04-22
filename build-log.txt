@@ -1,0 +1,43 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< io.strategiz:strategiz-core >---------------------
+[INFO] Building strategiz-core 1.0-SNAPSHOT
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- maven-clean-plugin:3.2.0:clean (default-clean) @ strategiz-core ---
+[INFO] Deleting C:\Users\cuzto\Documents\GitHub\strategiz-core\target
+[INFO] 
+[INFO] --- maven-resources-plugin:3.2.0:resources (default-resources) @ strategiz-core ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 2 resources
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.10.1:compile (default-compile) @ strategiz-core ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 82 source files to C:\Users\cuzto\Documents\GitHub\strategiz-core\target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/cuzto/Documents/GitHub/strategiz-core/src/main/java/io/strategiz/coinbase/controller/CoinbaseAdminController.java:[524,87] cannot find symbol
+  symbol:   variable userId
+  location: class io.strategiz.coinbase.controller.CoinbaseAdminController
+[INFO] 1 error
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  7.810 s
+[INFO] Finished at: 2025-04-11T18:48:56-04:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.10.1:compile (default-compile) on project strategiz-core: Compilation failure
+[ERROR] /C:/Users/cuzto/Documents/GitHub/strategiz-core/src/main/java/io/strategiz/coinbase/controller/CoinbaseAdminController.java:[524,87] cannot find symbol
+[ERROR]   symbol:   variable userId
+[ERROR]   location: class io.strategiz.coinbase.controller.CoinbaseAdminController
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

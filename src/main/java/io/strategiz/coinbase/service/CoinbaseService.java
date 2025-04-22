@@ -1,25 +1,13 @@
 package io.strategiz.coinbase.service;
 
+import io.strategiz.coinbase.client.CoinbaseClient;
+import io.strategiz.coinbase.client.exception.CoinbaseApiException;
 import io.strategiz.coinbase.model.Account;
-import io.strategiz.coinbase.model.CoinbaseResponse;
 import io.strategiz.coinbase.model.TickerPrice;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.client.utils.URIBuilder;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.net.URI;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,169 +15,54 @@ import java.util.stream.Collectors;
 
 /**
  * Service for interacting with the Coinbase API
+ * This service uses CoinbaseClient for API communication and focuses on business logic
  */
 @Slf4j
 @Service
 public class CoinbaseService {
 
-    private static final String COINBASE_API_URL = "https://api.coinbase.com/v2";
-    private static final String HMAC_SHA256 = "HmacSHA256";
-
-    private final RestTemplate restTemplate;
-
-    public CoinbaseService() {
-        this.restTemplate = new RestTemplate();
+    private final CoinbaseClient coinbaseClient;
+    
+    @Autowired
+    public CoinbaseService(CoinbaseClient coinbaseClient) {
+        this.coinbaseClient = coinbaseClient;
     }
 
     /**
      * Configure the Coinbase API credentials
      * @param apiKey API key
-     * @param secretKey Secret key
+     * @param privateKey Private key
      * @return Configuration status
      */
-    public Map<String, String> configure(String apiKey, String secretKey) {
+    public Map<String, String> configure(String apiKey, String privateKey, String passphrase) {
         Map<String, String> response = new HashMap<>();
-        if (apiKey == null || apiKey.isEmpty() || secretKey == null || secretKey.isEmpty()) {
+        if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty() || passphrase == null || passphrase.isEmpty()) {
             response.put("status", "error");
-            response.put("message", "API Key and Secret Key are required");
+            response.put("message", "API Key, Secret Key, and Passphrase are all required");
             return response;
         }
-
-        response.put("status", "success");
-        response.put("message", "Coinbase API configured successfully");
+        
+        // Test the connection to verify credentials
+        boolean connectionSuccessful = testConnection(apiKey, privateKey, passphrase);
+        if (connectionSuccessful) {
+            response.put("status", "success");
+            response.put("message", "Coinbase API configured successfully");
+        } else {
+            response.put("status", "error");
+            response.put("message", "Failed to connect to Coinbase API with provided credentials");
+        }
+        
         return response;
-    }
-
-    /**
-     * Make a public request to Coinbase API
-     * @param method HTTP method
-     * @param endpoint API endpoint
-     * @param params Request parameters
-     * @return API response
-     */
-    public <T> T publicRequest(HttpMethod method, String endpoint, Map<String, String> params, 
-                              ParameterizedTypeReference<T> responseType) {
-        try {
-            URIBuilder uriBuilder = new URIBuilder(COINBASE_API_URL + endpoint);
-            
-            if (params != null) {
-                params.forEach(uriBuilder::addParameter);
-            }
-            
-            URI uri = uriBuilder.build();
-            
-            ResponseEntity<T> response = restTemplate.exchange(
-                uri,
-                method,
-                null,
-                responseType
-            );
-            
-            return response.getBody();
-        } catch (Exception e) {
-            log.error("Error making public request to {}: {}", endpoint, e.getMessage());
-            throw new RuntimeException("Error making public request", e);
-        }
-    }
-
-    /**
-     * Make a signed request to Coinbase API
-     * @param method HTTP method
-     * @param endpoint API endpoint
-     * @param params Request parameters
-     * @param apiKey API key
-     * @param secretKey Secret key
-     * @return API response
-     */
-    public <T> T signedRequest(HttpMethod method, String endpoint, Map<String, String> params, 
-                              String apiKey, String secretKey, ParameterizedTypeReference<T> responseType) {
-        try {
-            // Build the URL
-            URIBuilder uriBuilder = new URIBuilder(COINBASE_API_URL + endpoint);
-            if (params != null) {
-                params.forEach(uriBuilder::addParameter);
-            }
-            URI uri = uriBuilder.build();
-            
-            // Get timestamp
-            long timestamp = Instant.now().getEpochSecond();
-            
-            // Create the message to sign
-            String message = timestamp + method.name() + endpoint;
-            if (params != null && !params.isEmpty()) {
-                // Build query string manually instead of using getQuery()
-                StringBuilder queryString = new StringBuilder();
-                for (Map.Entry<String, String> entry : params.entrySet()) {
-                    if (queryString.length() > 0) {
-                        queryString.append("&");
-                    }
-                    queryString.append(entry.getKey()).append("=").append(entry.getValue());
-                }
-                message += "?" + queryString.toString();
-            }
-            
-            // Create signature
-            String signature = generateSignature(message, secretKey);
-            
-            // Set headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("CB-ACCESS-KEY", apiKey);
-            headers.set("CB-ACCESS-SIGN", signature);
-            headers.set("CB-ACCESS-TIMESTAMP", String.valueOf(timestamp));
-            headers.set("CB-VERSION", "2021-04-29");
-            
-            // Make request
-            ResponseEntity<T> response = restTemplate.exchange(
-                uri,
-                method,
-                new HttpEntity<>(headers),
-                responseType
-            );
-            
-            return response.getBody();
-        } catch (Exception e) {
-            log.error("Error making signed request to {}: {}", endpoint, e.getMessage());
-            throw new RuntimeException("Error making signed request", e);
-        }
-    }
-
-    /**
-     * Generate HMAC SHA256 signature for Coinbase API
-     * @param message Message to sign
-     * @param secretKey Secret key
-     * @return Signature
-     */
-    private String generateSignature(String message, String secretKey) 
-            throws NoSuchAlgorithmException, InvalidKeyException {
-        Mac hmacSha256 = Mac.getInstance(HMAC_SHA256);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(Base64.getDecoder().decode(secretKey), HMAC_SHA256);
-        hmacSha256.init(secretKeySpec);
-        byte[] hash = hmacSha256.doFinal(message.getBytes());
-        return Base64.getEncoder().encodeToString(hash);
     }
 
     /**
      * Get user accounts from Coinbase
      * @param apiKey API key
-     * @param secretKey Secret key
+     * @param privateKey Private key
      * @return List of accounts
      */
-    public List<Account> getAccounts(String apiKey, String secretKey) {
-        try {
-            CoinbaseResponse<Account> response = signedRequest(
-                HttpMethod.GET,
-                "/accounts",
-                null,
-                apiKey,
-                secretKey,
-                new ParameterizedTypeReference<CoinbaseResponse<Account>>() {}
-            );
-            
-            return response.getData();
-        } catch (Exception e) {
-            log.error("Error getting accounts: {}", e.getMessage());
-            throw new RuntimeException("Error getting accounts", e);
-        }
+    public List<Account> getAccounts(String apiKey, String privateKey, String passphrase) {
+        return coinbaseClient.getAccounts(apiKey, privateKey, passphrase);
     }
 
     /**
@@ -199,34 +72,19 @@ public class CoinbaseService {
      * @return Ticker price
      */
     public TickerPrice getTickerPrice(String baseCurrency, String quoteCurrency) {
-        try {
-            Map<String, String> params = new HashMap<>();
-            params.put("currency", quoteCurrency);
-            
-            CoinbaseResponse<TickerPrice> response = publicRequest(
-                HttpMethod.GET,
-                "/prices/" + baseCurrency + "/spot",
-                params,
-                new ParameterizedTypeReference<CoinbaseResponse<TickerPrice>>() {}
-            );
-            
-            return response.getData().get(0);
-        } catch (Exception e) {
-            log.error("Error getting ticker price for {}-{}: {}", baseCurrency, quoteCurrency, e.getMessage());
-            return null;
-        }
+        return coinbaseClient.getTickerPrice(baseCurrency, quoteCurrency);
     }
 
     /**
      * Get account balances with USD values
      * @param apiKey API key
-     * @param secretKey Secret key
+     * @param privateKey Private key
      * @return List of accounts with balances and USD values
      */
-    public List<Account> getAccountBalances(String apiKey, String secretKey) {
+    public List<Account> getAccountBalances(String apiKey, String privateKey, String passphrase) {
         try {
-            // Get all accounts
-            List<Account> accounts = getAccounts(apiKey, secretKey);
+            // Get all accounts using the client
+            List<Account> accounts = coinbaseClient.getAccounts(apiKey, privateKey, passphrase);
             
             // Filter accounts with non-zero balances
             List<Account> nonZeroAccounts = accounts.stream()
@@ -250,8 +108,8 @@ public class CoinbaseService {
                     currency.equals("BUSD") || currency.equals("DAI")) {
                     usdValue = amount;
                 } else {
-                    // Get price in USD
-                    TickerPrice ticker = getTickerPrice(currency, "USD");
+                    // Get price in USD using the client
+                    TickerPrice ticker = coinbaseClient.getTickerPrice(currency, "USD");
                     if (ticker != null) {
                         usdValue = amount * Double.parseDouble(ticker.getAmount());
                     }
@@ -287,23 +145,15 @@ public class CoinbaseService {
      * This method returns the completely unmodified raw data from Coinbase API
      * 
      * @param apiKey API key
-     * @param secretKey Secret key
+     * @param privateKey Private key
      * @return Raw account data
      */
-    public Object getRawAccountData(String apiKey, String secretKey) {
+    public Object getRawAccountData(String apiKey, String privateKey, String passphrase) {
         try {
-            log.info("Getting raw account data from Coinbase API");
-            return signedRequest(
-                HttpMethod.GET,
-                "/accounts",
-                null,
-                apiKey,
-                secretKey,
-                new ParameterizedTypeReference<Object>() {}
-            );
-        } catch (Exception e) {
-            log.error("Error getting raw account data: {}", e.getMessage());
-            throw new RuntimeException("Error getting raw account data", e);
+            return coinbaseClient.getRawAccountData(apiKey, privateKey, passphrase);
+        } catch (CoinbaseApiException e) {
+            log.error("Detailed Coinbase API error: {}", e.getErrorDetails());
+            throw e; // Re-throw to propagate to controller
         }
     }
 
@@ -311,24 +161,10 @@ public class CoinbaseService {
      * Test connection to Coinbase API
      * 
      * @param apiKey API key
-     * @param secretKey Secret key
+     * @param privateKey Private key
      * @return True if connection is successful, false otherwise
      */
-    public boolean testConnection(String apiKey, String secretKey) {
-        try {
-            log.info("Testing connection to Coinbase API");
-            Object response = signedRequest(
-                HttpMethod.GET,
-                "/user",
-                null,
-                apiKey,
-                secretKey,
-                new ParameterizedTypeReference<Object>() {}
-            );
-            return response != null;
-        } catch (Exception e) {
-            log.error("Error testing connection to Coinbase API: {}", e.getMessage());
-            return false;
-        }
+    public boolean testConnection(String apiKey, String privateKey, String passphrase) {
+        return coinbaseClient.testConnection(apiKey, privateKey, passphrase);
     }
 }

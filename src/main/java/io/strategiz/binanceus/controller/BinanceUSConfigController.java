@@ -44,7 +44,7 @@ public class BinanceUSConfigController {
     /**
      * Add Binance US configuration for a user
      * 
-     * @param request Request containing email, apiKey, and secretKey
+     * @param request Request containing email, apiKey, and privateKey
      * @return Operation status and details
      */
     @PostMapping("/add")
@@ -54,16 +54,22 @@ public class BinanceUSConfigController {
         
         String email = request.get("email");
         String apiKey = request.get("apiKey");
-        String secretKey = request.get("secretKey");
+        String privateKey = request.get("privateKey");
+        String secretKey = request.get("secretKey"); // For backward compatibility
         
-        if (email == null || apiKey == null || secretKey == null) {
+        // Check for privateKey first, fall back to secretKey for backward compatibility
+        if (privateKey == null) {
+            privateKey = secretKey;
+        }
+        
+        if (email == null || apiKey == null || privateKey == null) {
             return ResponseEntity.badRequest().body(Map.of(
                 "status", "error",
-                "message", "Email, apiKey, and secretKey are required"
+                "message", "Email, apiKey, and privateKey are required"
             ));
         }
         
-        Map<String, Object> result = configHelper.addBinanceUSConfig(email, apiKey, secretKey);
+        Map<String, Object> result = configHelper.addBinanceUSConfig(email, apiKey, privateKey);
         
         if ("error".equals(result.get("status"))) {
             return ResponseEntity.badRequest().body(result);

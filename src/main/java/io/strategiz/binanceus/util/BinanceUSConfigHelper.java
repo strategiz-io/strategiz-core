@@ -79,7 +79,7 @@ public class BinanceUSConfigHelper {
                 Map<String, Object> apiCredentials = apiCredentialsDoc.getData();
                 if (apiCredentials != null && 
                     apiCredentials.containsKey("apiKey") && 
-                    apiCredentials.containsKey("secretKey")) {
+                    (apiCredentials.containsKey("privateKey") || apiCredentials.containsKey("secretKey"))) {
                     hasApiKeys = true;
                     result.put("apiCredentialsConfig", apiCredentials);
                     result.put("apiCredentialsConfigComplete", true);
@@ -103,19 +103,21 @@ public class BinanceUSConfigHelper {
                             hasApiKeys = true;
                             result.put("preferencesBinanceusConfig", binanceusConfig);
                             result.put("preferencesBinanceusConfigComplete", 
-                                binanceusConfig.containsKey("apiKey") && binanceusConfig.containsKey("secretKey"));
+                                binanceusConfig.containsKey("apiKey") && (binanceusConfig.containsKey("privateKey") || binanceusConfig.containsKey("secretKey")));
                             
                             // Migrate to new structure if not already there
                             if (!apiCredentialsDoc.exists() && 
                                 binanceusConfig.containsKey("apiKey") && 
-                                binanceusConfig.containsKey("secretKey")) {
+                                (binanceusConfig.containsKey("privateKey") || binanceusConfig.containsKey("secretKey"))) {
                                 String oldApiKey = (String) binanceusConfig.get("apiKey");
-                                String oldSecretKey = (String) binanceusConfig.get("secretKey");
+                                String oldKey = (String) (binanceusConfig.containsKey("privateKey") ? 
+                                    binanceusConfig.get("privateKey") : binanceusConfig.get("secretKey"));
                                 
                                 // Migrate keys to new structure
                                 Map<String, Object> newCredentials = new HashMap<>();
                                 newCredentials.put("apiKey", oldApiKey);
-                                newCredentials.put("secretKey", oldSecretKey);
+                                newCredentials.put("privateKey", oldKey);
+                                newCredentials.put("secretKey", oldKey); // For backward compatibility
                                 newCredentials.put("createdAt", System.currentTimeMillis());
                                 newCredentials.put("updatedAt", System.currentTimeMillis());
                                 newCredentials.put("source", "migrated_from_preferences");
@@ -144,19 +146,21 @@ public class BinanceUSConfigHelper {
                     hasApiKeys = true;
                     result.put("rootBinanceusConfig", binanceusConfig);
                     result.put("rootBinanceusConfigComplete", 
-                        binanceusConfig.containsKey("apiKey") && binanceusConfig.containsKey("secretKey"));
+                        binanceusConfig.containsKey("apiKey") && (binanceusConfig.containsKey("privateKey") || binanceusConfig.containsKey("secretKey")));
                     
                     // Migrate to new structure if not already there
                     if (!apiCredentialsDoc.exists() && 
                         binanceusConfig.containsKey("apiKey") && 
-                        binanceusConfig.containsKey("secretKey")) {
+                        (binanceusConfig.containsKey("privateKey") || binanceusConfig.containsKey("secretKey"))) {
                         String oldApiKey = (String) binanceusConfig.get("apiKey");
-                        String oldSecretKey = (String) binanceusConfig.get("secretKey");
+                        String oldKey = (String) (binanceusConfig.containsKey("privateKey") ? 
+                            binanceusConfig.get("privateKey") : binanceusConfig.get("secretKey"));
                         
                         // Migrate keys to new structure
                         Map<String, Object> newCredentials = new HashMap<>();
                         newCredentials.put("apiKey", oldApiKey);
-                        newCredentials.put("secretKey", oldSecretKey);
+                        newCredentials.put("privateKey", oldKey);
+                        newCredentials.put("secretKey", oldKey); // For backward compatibility
                         newCredentials.put("createdAt", System.currentTimeMillis());
                         newCredentials.put("updatedAt", System.currentTimeMillis());
                         newCredentials.put("source", "migrated_from_root_config");
@@ -187,19 +191,21 @@ public class BinanceUSConfigHelper {
                         hasApiKeys = true;
                         result.put("rootApiKeysBinanceusConfig", binanceusConfig);
                         result.put("rootApiKeysBinanceusConfigComplete", 
-                            binanceusConfig.containsKey("apiKey") && binanceusConfig.containsKey("secretKey"));
+                            binanceusConfig.containsKey("apiKey") && (binanceusConfig.containsKey("privateKey") || binanceusConfig.containsKey("secretKey")));
                         
                         // Migrate to new structure if not already there
                         if (!apiCredentialsDoc.exists() && 
                             binanceusConfig.containsKey("apiKey") && 
-                            binanceusConfig.containsKey("secretKey")) {
+                            (binanceusConfig.containsKey("privateKey") || binanceusConfig.containsKey("secretKey"))) {
                             String oldApiKey = (String) binanceusConfig.get("apiKey");
-                            String oldSecretKey = (String) binanceusConfig.get("secretKey");
+                            String oldKey = (String) (binanceusConfig.containsKey("privateKey") ? 
+                                binanceusConfig.get("privateKey") : binanceusConfig.get("secretKey"));
                             
                             // Migrate keys to new structure
                             Map<String, Object> newCredentials = new HashMap<>();
                             newCredentials.put("apiKey", oldApiKey);
-                            newCredentials.put("secretKey", oldSecretKey);
+                            newCredentials.put("privateKey", oldKey);
+                            newCredentials.put("secretKey", oldKey); // For backward compatibility
                             newCredentials.put("createdAt", System.currentTimeMillis());
                             newCredentials.put("updatedAt", System.currentTimeMillis());
                             newCredentials.put("source", "migrated_from_root_apiKeys");
@@ -234,10 +240,10 @@ public class BinanceUSConfigHelper {
      * 
      * @param email User email
      * @param apiKey Binance US API key
-     * @param secretKey Binance US secret key
+     * @param privateKey Binance US private key
      * @return Map containing operation status and details
      */
-    public Map<String, Object> addBinanceUSConfig(String email, String apiKey, String secretKey) {
+    public Map<String, Object> addBinanceUSConfig(String email, String apiKey, String privateKey) {
         log.info("Adding Binance US configuration for user: {}", email);
         Map<String, Object> result = new HashMap<>();
         
@@ -264,7 +270,8 @@ public class BinanceUSConfigHelper {
             // Create Binance US configuration map for the new structure
             Map<String, Object> binanceusConfig = new HashMap<>();
             binanceusConfig.put("apiKey", apiKey);
-            binanceusConfig.put("secretKey", secretKey);
+            binanceusConfig.put("privateKey", privateKey);
+            binanceusConfig.put("secretKey", privateKey); // Keep for backward compatibility
             binanceusConfig.put("createdAt", System.currentTimeMillis());
             binanceusConfig.put("updatedAt", System.currentTimeMillis());
             binanceusConfig.put("source", "direct_config");
@@ -281,7 +288,8 @@ public class BinanceUSConfigHelper {
             Map<String, Object> updates = new HashMap<>();
             Map<String, String> oldFormatConfig = new HashMap<>();
             oldFormatConfig.put("apiKey", apiKey);
-            oldFormatConfig.put("secretKey", secretKey);
+            oldFormatConfig.put("privateKey", privateKey);
+            oldFormatConfig.put("secretKey", privateKey); // Keep for backward compatibility
             updates.put("preferences.apiKeys.binanceus", oldFormatConfig);
             
             // Update the user document with old structure for backward compatibility

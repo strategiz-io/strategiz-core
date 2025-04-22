@@ -1,0 +1,11 @@
+.git
+.idea
+.settings
+.vscode
+target
+*.iml
+*.class
+*.log
+.project
+.classpath
+firebase-credentials.json

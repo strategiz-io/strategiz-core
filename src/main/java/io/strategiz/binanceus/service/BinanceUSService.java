@@ -218,7 +218,13 @@ public class BinanceUSService {
         }
         
         // Add timestamp parameter for signed requests
+        // Add timestamp for the request
         params.put("timestamp", String.valueOf(System.currentTimeMillis()));
+        
+        // Add a larger recvWindow to prevent timestamp sync issues (default is 5000ms)
+        if (!params.containsKey("recvWindow")) {
+            params.put("recvWindow", "60000"); // Use 60 seconds window to avoid timestamp sync issues
+        }
         
         // Create signature
         String queryString = buildQueryString(params);

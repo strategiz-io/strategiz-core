@@ -1,6 +1,10 @@
 package io.strategiz.coinbase.controller;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 // Never use mock data - always use real API data
+// Important: This class must always use real API data, no mocks
 
 import io.strategiz.coinbase.client.exception.CoinbaseApiException;
 import io.strategiz.coinbase.service.CoinbaseService;
@@ -16,6 +20,8 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +45,150 @@ public class CoinbaseAdminController {
     @Qualifier("coinbaseFirestoreService")
     private FirestoreService firestoreService;
     
+    @Autowired
+    private io.strategiz.coinbase.service.CoinbaseCloudService coinbaseCloudService;
+    
     private final RestTemplate restTemplate = new RestTemplate();
+    
+    /**
+     * Test the JWT token generation and authentication with Coinbase API
+     * This endpoint uses the updated JJWT implementation to generate a JWT token
+     * and attempts to make a simple API call to verify the token works correctly
+     */
+    @GetMapping("/test-jwt-token")
+    public ResponseEntity<Map<String, Object>> testJwtToken() {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // Get user's credentials from Firestore
+            String userId = "test"; // Using test user for diagnostic
+            Map<String, String> credentials = firestoreService.getCoinbaseCredentials(userId);
+            
+            if (credentials == null || !credentials.containsKey("privateKey") || !credentials.containsKey("apiKey")) {
+                result.put("success", false);
+                result.put("error", "No Coinbase credentials found for user");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(result);
+            }
+            
+            String apiKey = credentials.get("apiKey");
+            String privateKeyPem = credentials.get("privateKey");
+            
+            // Record basic credential information
+            result.put("apiKeyFound", true);
+            result.put("privateKeyFound", true);
+            
+            // 1. Test JWT token generation
+            long startTime = System.currentTimeMillis();
+            String jwtToken = coinbaseCloudService.generateJwtTokenForDiagnostic(apiKey, privateKeyPem);
+            long endTime = System.currentTimeMillis();
+            
+            result.put("jwtGenerationSuccess", jwtToken != null && !jwtToken.isEmpty());
+            result.put("jwtGenerationTime", (endTime - startTime) + "ms");
+            result.put("jwtTokenLength", jwtToken != null ? jwtToken.length() : 0);
+            result.put("jwtTokenParts", jwtToken != null ? jwtToken.split("\\.",-1).length : 0); // -1 to include empty segments
+            
+            // Don't expose the full token in the response for security
+            if (jwtToken != null && jwtToken.length() > 20) {
+                result.put("jwtTokenPreview", jwtToken.substring(0, 10) + "..." + 
+                         jwtToken.substring(jwtToken.length() - 10));
+            }
+            
+            // 2. Test API authentication with the generated token
+            try {
+                // Make a simple API call to test the token
+                Map<String, Object> apiResponse = coinbaseCloudService.testApiAuthentication(apiKey, jwtToken);
+                result.put("apiCallSuccess", true);
+                result.put("apiResponse", apiResponse);
+            } catch (Exception e) {
+                result.put("apiCallSuccess", false);
+                result.put("apiCallError", e.getMessage());
+                // Add the stack trace for better debugging
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                result.put("stackTrace", sw.toString());
+            }
+            
+            result.put("success", true);
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("error", "Error testing JWT token: " + e.getMessage());
+            // Add the stack trace for better debugging
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            result.put("stackTrace", sw.toString());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+    }
+    
+    /**
+     * Diagnostic endpoint to check key format issues with real credentials
+     * 
+     * @param email User email for retrieving credentials
+     * @return Diagnostic information about the key format
+     */
+    @GetMapping("/diagnose-key")
+    public ResponseEntity<Map<String, Object>> diagnoseKeyFormat(@RequestParam String email) {
+        log.info("Running key format diagnostics for user: {}", email);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", new Date().toString());
+        response.put("email", email);
+        
+        try {
+            // Get user's real API credentials from Firestore
+            Map<String, String> credentials = firestoreService.getCoinbaseCredentials(email);
+            
+            if (credentials == null || credentials.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "No Coinbase credentials found for user");
+                return ResponseEntity.ok(response);
+            }
+            
+            String apiKey = credentials.get("apiKey");
+            String privateKey = credentials.get("privateKey");
+            
+            // Add basic diagnostics without exposing the full key
+            response.put("apiKeyPresent", apiKey != null && !apiKey.isEmpty());
+            response.put("privateKeyPresent", privateKey != null && !privateKey.isEmpty());
+            
+            if (privateKey != null && !privateKey.isEmpty()) {
+                response.put("privateKeyLength", privateKey.length());
+                response.put("containsBeginECTag", privateKey.contains("BEGIN EC PRIVATE KEY"));
+                response.put("containsBeginPrivateKeyTag", privateKey.contains("BEGIN PRIVATE KEY"));
+                response.put("containsDashes", privateKey.contains("-"));
+                response.put("containsEquals", privateKey.contains("="));
+                response.put("containsNewlines", privateKey.contains("\n") || privateKey.contains("\\n"));
+                
+                // Add first and last few characters (safely redacted)
+                if (privateKey.length() > 10) {
+                    response.put("keyPrefix", privateKey.substring(0, Math.min(10, privateKey.length())));
+                    response.put("keySuffix", privateKey.substring(Math.max(0, privateKey.length() - 10)));
+                }
+                
+                // Try to configure with the key to see what happens
+                try {
+                    Map<String, String> configResult = coinbaseCloudService.configure(apiKey, privateKey);
+                    response.put("configureResult", configResult);
+                } catch (Exception ex) {
+                    response.put("configureError", ex.getMessage());
+                    response.put("configureErrorType", ex.getClass().getName());
+                }
+                
+                // Sample output of a correctly formatted key for comparison
+                response.put("correctFormatExample", "-----BEGIN EC PRIVATE KEY-----\n[base64-encoded-data]\n-----END EC PRIVATE KEY-----");
+            }
+            
+            response.put("status", "success");
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error during key format diagnostics: {}", e.getMessage(), e);
+            response.put("status", "error");
+            response.put("message", "Error during diagnostics: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
     
     /**
      * Health check endpoint for Coinbase API integration
@@ -139,7 +288,7 @@ public class CoinbaseAdminController {
      * @param httpRequest HTTP request
      * @return Raw account data from Coinbase API
      */
-    @GetMapping("/raw-account-data")
+    @GetMapping({"/raw-account-data", "/raw-data"})
     @CrossOrigin(origins = {"http://localhost:3000", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> getRawAccountDataForFrontend(HttpServletRequest httpRequest) {
         String requestId = String.valueOf(System.currentTimeMillis());
@@ -168,9 +317,13 @@ public class CoinbaseAdminController {
             
             if (credentials == null || credentials.isEmpty()) {
                 log.warn("[{}] Coinbase API credentials not found for user: {}", requestId, userId);
-                return ResponseEntity.ok(Map.of(
-                    "error", "Not Found",
-                    "message", "API credentials not configured"
+                return ResponseEntity.ok(buildErrorResponse(
+                    500, // Error code
+                    "API Error", // User-friendly message
+                    "Failed to get API keys from Firestore", // Developer message
+                    null, // No additional information
+                    null, // No exception
+                    userId
                 ));
             }
             
@@ -178,27 +331,79 @@ public class CoinbaseAdminController {
             String privateKey = credentials.get("privateKey");
             String passphrase = credentials.get("passphrase");
             
-            // Check if we have a passphrase (required for Coinbase API)
+            // For Coinbase Cloud API, passphrase is not required
+            // For Advanced Trade API (formerly Pro), passphrase is required
+            boolean isCloudApi = true; // Default to Coinbase Cloud API
+            
             if (passphrase == null || passphrase.isEmpty()) {
-                log.error("Missing Coinbase API passphrase for user: {}", userId);
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "Missing Passphrase");
-                errorResponse.put("message", "Coinbase API requires a passphrase, but none was found in your stored credentials");
-                errorResponse.put("timestamp", new Date().toString());
-                errorResponse.put("userEmail", userId);
-                errorResponse.put("credentialsFound", true); // We did find credentials but they're incomplete
-                return ResponseEntity.ok(errorResponse);
+                log.info("No passphrase found for user: {}. Using Coinbase Cloud API mode.", userId);
+                
+                // Check that we have valid privateKey and apiKey for Cloud API
+                if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty()) {
+                    log.error("Missing required Coinbase Cloud API credentials for user: {}", userId);
+                    return ResponseEntity.ok(buildErrorResponse(
+                        400, // Error code
+                        "Missing Required Credentials", // User-friendly message
+                        "Coinbase Cloud API requires valid API Key and Private Key", // Developer message
+                        Map.of("credentialsFound", true), // More information
+                        null, // No exception
+                        userId
+                    ));
+                }
+            } else {
+                // If passphrase is present, we'll use Advanced Trade API
+                // No need to set isCloudApi as we're using the presence of passphrase directly
             }
             
-            // Get raw account data from Coinbase API
+            // Get raw account data from the appropriate Coinbase API based on available credentials
             try {
-                Object rawData = coinbaseService.getRawAccountData(apiKey, privateKey, passphrase);
+                Object rawData;
+                
+                // If passphrase is empty, use Coinbase Cloud API via CoinbaseCloudService
+                if (passphrase == null || passphrase.isEmpty()) {
+                    log.info("[{}] Using Coinbase Cloud API to get raw account data for user: {}", requestId, userId);
+                    rawData = coinbaseCloudService.getRawAccountData(apiKey, privateKey);
+                    
+                    // Check if the response from CoinbaseCloudService is an error response
+                    if (rawData instanceof Map) {
+                        Map<?, ?> responseMap = (Map<?, ?>) rawData;
+                        if (responseMap.containsKey("error")) {
+                            log.error("[{}] Coinbase Cloud API returned error: {}", requestId, responseMap);
+                            
+                                            // Cast the map to the correct type
+                            Map<String, Object> typedResponseMap = new HashMap<>();
+                            for (Map.Entry<?, ?> entry : responseMap.entrySet()) {
+                                if (entry.getKey() != null) {
+                                    typedResponseMap.put(entry.getKey().toString(), entry.getValue());
+                                }
+                            }
+                            
+                            // Use standardized error format
+                            return ResponseEntity.ok(buildErrorResponse(
+                                500, // Error code
+                                "Coinbase API Error", // User-friendly message
+                                "Error from Coinbase Cloud API: " + responseMap.get("message"), // Developer message
+                                typedResponseMap, // More information
+                                null, // No exception
+                                userId
+                            ));
+                        }
+                    }
+                } else {
+                    // Otherwise use Advanced Trade API via CoinbaseService
+                    log.info("[{}] Using Coinbase Advanced Trade API to get raw account data for user: {}", requestId, userId);
+                    rawData = coinbaseService.getRawAccountData(apiKey, privateKey, passphrase);
+                }
                 
                 if (rawData == null) {
                     log.error("[{}] Failed to get raw account data from Coinbase API for user: {}", requestId, userId);
-                    return ResponseEntity.ok(Map.of(
-                        "error", "API Error",
-                        "message", "Failed to get raw account data from Coinbase API"
+                    return ResponseEntity.ok(buildErrorResponse(
+                        500, // Error code
+                        "API Error", // User-friendly message
+                        "Failed to get raw account data from Coinbase API", // Developer message
+                        Map.of("credentialsFound", true), // More information
+                        null, // No exception
+                        userId
                     ));
                 }
                 
@@ -275,6 +480,95 @@ public class CoinbaseAdminController {
     }
     
     /**
+     * Diagnostic endpoint to check Coinbase credential completeness
+     * This endpoint helps diagnose issues with Coinbase credentials stored in Firestore
+     * 
+     * @param email User email for checking credentials
+     * @return Diagnostic information about the credentials
+     */
+    @GetMapping("/check-credentials")
+    public ResponseEntity<Map<String, Object>> checkCredentialCompleteness(@RequestParam String email) {
+        log.info("Checking Coinbase credential completeness for user: {}", email);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("email", email);
+        result.put("timestamp", new Date().toString());
+        
+        try {
+            // Try to get credentials from FirestoreService
+            Map<String, String> credentials = firestoreService.getCoinbaseCredentials(email);
+            
+            if (credentials == null) {
+                result.put("status", "error");
+                result.put("credentialsFound", false);
+                result.put("message", "No credentials found in Firestore for this user");
+                return ResponseEntity.ok(result);
+            }
+            
+            // Check if the map is empty
+            if (credentials.isEmpty()) {
+                result.put("status", "error");
+                result.put("credentialsFound", true);
+                result.put("credentialsEmpty", true);
+                result.put("message", "Credentials exist but are empty");
+                return ResponseEntity.ok(result);
+            }
+            
+            // Check each required field
+            result.put("credentialsFound", true);
+            result.put("credentialsEmpty", false);
+            
+            // Check API Key
+            String apiKey = credentials.get("apiKey");
+            boolean apiKeyPresent = apiKey != null && !apiKey.isEmpty();
+            result.put("apiKeyPresent", apiKeyPresent);
+            if (apiKeyPresent && apiKey.length() > 8) {
+                result.put("apiKeyPreview", apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length() - 4));
+            }
+            
+            // Check Private Key
+            String privateKey = credentials.get("privateKey");
+            boolean privateKeyPresent = privateKey != null && !privateKey.isEmpty();
+            result.put("privateKeyPresent", privateKeyPresent);
+            if (privateKeyPresent) {
+                result.put("privateKeyLength", privateKey.length());
+                result.put("privateKeyContainsPEM", privateKey.contains("-----BEGIN") && privateKey.contains("-----END"));
+            }
+            
+            // Check Passphrase
+            String passphrase = credentials.get("passphrase");
+            boolean passphrasePresent = passphrase != null && !passphrase.isEmpty();
+            result.put("passphrasePresent", passphrasePresent);
+            
+            // Overall status
+            boolean allFieldsPresent = apiKeyPresent && privateKeyPresent && passphrasePresent;
+            result.put("status", allFieldsPresent ? "success" : "incomplete");
+            result.put("allRequiredFieldsPresent", allFieldsPresent);
+            
+            if (!allFieldsPresent) {
+                result.put("message", "Credentials are incomplete. Missing fields: " + 
+                    (!apiKeyPresent ? "apiKey " : "") +
+                    (!privateKeyPresent ? "privateKey " : "") +
+                    (!passphrasePresent ? "passphrase" : ""));
+            } else {
+                result.put("message", "All required credential fields are present");
+            }
+            
+            // Show all keys in the credential map to check for naming inconsistencies
+            result.put("availableKeys", credentials.keySet());
+            
+            return ResponseEntity.ok(result);
+            
+        } catch (Exception e) {
+            log.error("Error checking credential completeness: {}", e.getMessage(), e);
+            result.put("status", "error");
+            result.put("error", e.getMessage());
+            result.put("errorType", e.getClass().getName());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+        }
+    }
+    
+    /**
      * Get Coinbase API keys
      * 
      * @param httpRequest HTTP request
@@ -317,16 +611,22 @@ public class CoinbaseAdminController {
             String privateKey = credentials.get("privateKey");
             String passphrase = credentials.get("passphrase");
             
-            // Validate that all required credentials are present
-            if (apiKey == null || apiKey.isEmpty() || 
-                privateKey == null || privateKey.isEmpty() ||
-                passphrase == null || passphrase.isEmpty()) {
-                
-                log.warn("Incomplete Coinbase API credentials for user: {}", userId);
+            // Validate that required credentials are present
+            boolean isCloudApi = true; // Assume using Coinbase Cloud API by default
+            
+            // For Cloud API, only API Key and Private Key are required
+            // For Advanced Trade API, API Key, Private Key, and Passphrase are required
+            if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty()) {
+                log.warn("Missing required Coinbase API credentials for user: {}", userId);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "status", "error",
-                    "message", "API credentials incomplete or invalid. Make sure you have provided API Key, Private Key, and Passphrase."
+                    "message", "API credentials incomplete or invalid. API Key and Private Key are required."
                 ));
+            }
+            
+            // Log a warning if passphrase is missing but don't fail for Cloud API
+            if (passphrase == null || passphrase.isEmpty()) {
+                log.info("No passphrase provided for user: {}. This is okay for Coinbase Cloud API but not for Advanced Trade API.", userId);
             }
             
             // Mask the private key for security
@@ -492,5 +792,60 @@ public class CoinbaseAdminController {
                 "errorType", e.getClass().getName()
             ));
         }
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleException(Exception e) {
+        log.error("Unhandled exception in CoinbaseAdminController: {}", e.getMessage(), e);
+        return ResponseEntity.ok(buildErrorResponse(
+            500, // Error code
+            "Server Error", // User-friendly message
+            "An unexpected error occurred: " + e.getMessage(), // Developer message
+            null, // No additional information
+            e, // Include the exception
+            "unknown" // No user email available
+        ));
+    }
+    
+    /**
+     * Helper method to build standardized error responses
+     * 
+     * @param code Error code (HTTP status code-like)
+     * @param message User-friendly error message
+     * @param developerMessage Technical message for developers (can include stack trace)
+     * @param moreInformation Additional details about the error
+     * @param exception The exception that occurred, if any
+     * @param userId User email or ID
+     * @return A standardized error response map
+     */
+    private Map<String, Object> buildErrorResponse(int code, String message, String developerMessage, 
+                                              Map<String, Object> moreInformation, Exception exception, String userId) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        
+        // Standard error fields
+        errorResponse.put("code", code);
+        errorResponse.put("message", message);
+        errorResponse.put("developerMessage", developerMessage);
+        errorResponse.put("timestamp", new Date().toString());
+        errorResponse.put("userEmail", userId);
+        
+        // Add stack trace if exception is provided
+        if (exception != null) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            exception.printStackTrace(pw);
+            errorResponse.put("stackTrace", sw.toString());
+            
+            // Add exception details to developerMessage
+            String fullDevMessage = developerMessage + "\nException: " + exception.getClass().getName() + ": " + exception.getMessage();
+            errorResponse.put("developerMessage", fullDevMessage);
+        }
+        
+        // Add additional information if provided
+        if (moreInformation != null) {
+            errorResponse.put("moreInformation", moreInformation);
+        }
+        
+        return errorResponse;
     }
 }

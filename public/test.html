@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategiz API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow: auto;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Strategiz API Test</h1>
+    <p>This page tests the connection to your deployed backend on Google Cloud Run.</p>
+    
+    <div>
+        <h2>Test Coinbase API Connection</h2>
+        <div>
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" placeholder="Enter user ID">
+        </div>
+        <div>
+            <label for="apiKey">API Key:</label>
+            <input type="text" id="apiKey" placeholder="Enter Coinbase API Key">
+        </div>
+        <div>
+            <label for="privateKey">Private Key:</label>
+            <input type="text" id="privateKey" placeholder="Enter Coinbase Private Key">
+        </div>
+        <button id="testCoinbaseBtn">Test Coinbase Connection</button>
+        <div id="coinbaseResult">
+            <h3>Result:</h3>
+            <pre id="coinbaseOutput">Results will appear here...</pre>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('testCoinbaseBtn').addEventListener('click', async () => {
+            const userId = document.getElementById('userId').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const privateKey = document.getElementById('privateKey').value;
+            
+            if (!userId || !apiKey || !privateKey) {
+                document.getElementById('coinbaseOutput').innerHTML = '<span class="error">Please enter all required fields</span>';
+                return;
+            }
+            
+            document.getElementById('coinbaseOutput').innerHTML = 'Loading...';
+            
+            try {
+                // Call your backend API endpoint
+                const response = await fetch('/api/coinbase/admin/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        apiKey: apiKey,
+                        privateKey: privateKey
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('coinbaseOutput').innerHTML = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('coinbaseOutput').innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        });
+    </script>
+</body>
+</html>

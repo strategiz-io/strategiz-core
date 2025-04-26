@@ -1,0 +1,23 @@
+steps:
+# Use a pre-built Docker image for Java 21
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/strategiz-core', '.']
+
+# Push the Docker image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-core']
+
+# Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'strategiz-core'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-core'
+    - '--platform=managed'
+    - '--region=us-central1'
+    - '--allow-unauthenticated'
+
+images:
+- 'gcr.io/$PROJECT_ID/strategiz-core'

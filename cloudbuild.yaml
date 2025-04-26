@@ -1,0 +1,40 @@
+steps:
+# Build the Docker image using the pre-built JAR file
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/strategiz-backend', '.']
+
+# Push the Docker image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-backend']
+
+# Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'strategiz-backend'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-backend'
+    - '--platform=managed'
+    - '--region=us-central1'
+    - '--allow-unauthenticated'
+    - '--memory=512Mi'
+    - '--cpu=1'
+    - '--port=8080'
+    - '--min-instances=0'
+    - '--max-instances=10'
+
+# Deploy Firebase hosting
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['install', '-g', 'firebase-tools']
+
+# Deploy Firebase hosting configuration
+- name: 'gcr.io/cloud-builders/npm'
+  entrypoint: 'firebase'
+  args: ['deploy', '--only', 'hosting', '--project', '$PROJECT_ID', '--token', '$_FIREBASE_TOKEN']
+
+images:
+- 'gcr.io/$PROJECT_ID/strategiz-backend'
+
+substitutions:
+  _FIREBASE_TOKEN: '' # Set this via Cloud Build trigger or command line

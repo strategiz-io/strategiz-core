@@ -2,6 +2,8 @@ package io.strategiz.coinbase.controller;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Enumeration;
+import java.util.HashMap;
 
 // Never use mock data - always use real API data
 // Important: This class must always use real API data, no mocks
@@ -204,7 +206,7 @@ public class CoinbaseAdminController {
         log.info("Received health check request");
         
         Map<String, Object> response = new HashMap<>();
-        response.put("status", "up");
+        response.put("status", "success");
         response.put("controller", "CoinbaseAdminController");
         response.put("timestamp", new Date().toString());
         
@@ -318,10 +320,10 @@ public class CoinbaseAdminController {
             if (credentials == null || credentials.isEmpty()) {
                 log.warn("[{}] Coinbase API credentials not found for user: {}", requestId, userId);
                 return ResponseEntity.ok(buildErrorResponse(
-                    500, // Error code
-                    "API Error", // User-friendly message
-                    "Failed to get API keys from Firestore", // Developer message
-                    null, // No additional information
+                    404, // Error code
+                    "Credentials Not Found", // User-friendly message
+                    "No Coinbase API credentials found for user: " + userId, // Developer message
+                    Map.of("userEmail", userId), // Additional information
                     null, // No exception
                     userId
                 ));
@@ -575,58 +577,80 @@ public class CoinbaseAdminController {
      * @return API keys
      */
     @GetMapping("/api-keys")
-    @CrossOrigin(origins = {"http://localhost:3000", "https://strategiz.io"}, allowedHeaders = "*")
+    @CrossOrigin(origins = {"http://localhost:3000", "https://strategiz.io"}, 
+                allowedHeaders = {"Content-Type", "Authorization", "X-User-Email", "X-Admin-Request"}, 
+                allowCredentials = "true")
     public ResponseEntity<Map<String, Object>> getApiKeys(HttpServletRequest httpRequest) {
         log.info("Received request to get Coinbase API keys");
-        
-        // Initialize result map
+        log.info("Request headers: {}", getHeadersInfo(httpRequest));
+        log.info("Request parameters: {}", httpRequest.getParameterMap());
         Map<String, Object> result = new HashMap<>();
         
-        // Get userId from request header or parameter
-        String userId = httpRequest.getHeader("X-User-Email");
-        if (userId == null || userId.isEmpty()) {
-            userId = httpRequest.getParameter("email");
-        }
-        if (userId == null || userId.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "User email not provided"));
-        }
-        
         try {
-            log.info("Using user email: '{}'", userId);
+            // Get the authenticated user's email from the request
+            String userId = httpRequest.getHeader("X-User-Email");
             
-            log.info("Getting Coinbase API keys for user email: '{}'", userId);
+            // Check if this is an admin request from the admin-coinbase page
+            String referer = httpRequest.getHeader("Referer");
+            boolean isAdminRequest = referer != null && 
+                (referer.contains("/admin-coinbase") || referer.contains("/admin/coinbase"));
             
-            // Try to get credentials from FirestoreService
+            if (userId == null || userId.isEmpty()) {
+                log.warn("No user email provided in request header, falling back to parameter");
+                userId = httpRequest.getParameter("email");
+                
+                if (userId == null || userId.isEmpty()) {
+                    // For admin requests, use a default test user if no email is provided
+                    if (isAdminRequest) {
+                        log.info("Admin request detected, using default test user email");
+                        userId = "admin@strategiz.io";
+                    } else {
+                        log.error("No user email provided");
+                        result.put("status", "error");
+                        result.put("message", "User email is required");
+                        result.put("code", 400);
+                        return ResponseEntity.badRequest().body(result);
+                    }
+                }
+            }
+            
+            log.info("Getting Coinbase API keys for user: {}", userId);
+            result.put("userId", userId);
+            
+            // Get Coinbase credentials from Firestore
             Map<String, String> credentials = firestoreService.getCoinbaseCredentials(userId);
             
             if (credentials == null || credentials.isEmpty()) {
-                log.warn("No Coinbase API credentials found for user: {}", userId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                    "status", "not_found",
-                    "message", "API credentials not found"
-                ));
+                log.error("Coinbase API credentials not found for user: {}", userId);
+                result.put("status", "error");
+                result.put("message", "Coinbase API credentials not found");
+                result.put("details", "Please add your Coinbase API credentials in the settings page");
+                result.put("code", 404);
+                return ResponseEntity.ok(result);
             }
             
+            // Extract credentials
             String apiKey = credentials.get("apiKey");
             String privateKey = credentials.get("privateKey");
             String passphrase = credentials.get("passphrase");
             
-            // Validate that required credentials are present
-            boolean isCloudApi = true; // Assume using Coinbase Cloud API by default
-            
-            // For Cloud API, only API Key and Private Key are required
-            // For Advanced Trade API, API Key, Private Key, and Passphrase are required
-            if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty()) {
-                log.warn("Missing required Coinbase API credentials for user: {}", userId);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
-                    "status", "error",
-                    "message", "API credentials incomplete or invalid. API Key and Private Key are required."
-                ));
+            // Validate credentials
+            if (apiKey == null || apiKey.isEmpty()) {
+                log.error("API key is missing for user: {}", userId);
+                result.put("status", "error");
+                result.put("message", "API key is missing");
+                result.put("details", "Please add a valid Coinbase API key in the settings page");
+                result.put("code", 400);
+                return ResponseEntity.ok(result);
             }
             
-            // Log a warning if passphrase is missing but don't fail for Cloud API
-            if (passphrase == null || passphrase.isEmpty()) {
-                log.info("No passphrase provided for user: {}. This is okay for Coinbase Cloud API but not for Advanced Trade API.", userId);
+            if (privateKey == null || privateKey.isEmpty()) {
+                log.error("Private key is missing for user: {}", userId);
+                result.put("status", "error");
+                result.put("message", "Private key is missing");
+                result.put("details", "Please add a valid Coinbase private key in the settings page");
+                result.put("code", 400);
+                return ResponseEntity.ok(result);
             }
             
             // Mask the private key for security
@@ -634,29 +658,53 @@ public class CoinbaseAdminController {
             if (privateKey.length() <= 8) {
                 maskedPrivateKey = "********";
             } else {
-                maskedPrivateKey = privateKey.substring(0, 4) + "..." + 
-                    privateKey.substring(privateKey.length() - 4);
+                // Show first 4 and last 4 characters, mask the rest
+                String firstFour = privateKey.substring(0, 4);
+                String lastFour = privateKey.substring(privateKey.length() - 4);
+                String masked = "*".repeat(Math.min(20, privateKey.length() - 8)); // Limit mask length
+                maskedPrivateKey = firstFour + masked + lastFour;
             }
             
-            log.info("Retrieved Coinbase API keys for user: {}", userId);
+            // Create response
+            result.put("apiKey", apiKey);
+            result.put("privateKey", maskedPrivateKey);
+            if (passphrase != null && !passphrase.isEmpty()) {
+                result.put("passphrase", "[PASSPHRASE REDACTED]");
+                result.put("hasPassphrase", true);
+            } else {
+                result.put("hasPassphrase", false);
+            }
+            result.put("source", "Firestore");
+            result.put("status", "success");
+            result.put("code", 200);
             
-            Map<String, Object> response = new HashMap<>();
-            response.put("userId", userId);
-            response.put("apiKey", apiKey);
-            response.put("privateKey", maskedPrivateKey);
-            response.put("passphrase", "[PASSPHRASE REDACTED]");
-            response.put("status", "found");
-            response.put("message", "API credentials retrieved successfully");
-            response.put("source", "Firestore");
+            // Try to validate the credentials by making a test connection
+            try {
+                boolean connectionSuccess = coinbaseCloudService.testConnection(apiKey, privateKey);
+                result.put("connectionTested", true);
+                result.put("connectionSuccess", connectionSuccess);
+                
+                if (!connectionSuccess) {
+                    log.warn("Coinbase API credentials found but connection test failed for user: {}", userId);
+                    result.put("warning", "Credentials found but API connection test failed. Please verify your Coinbase API credentials.");
+                }
+            } catch (Exception e) {
+                log.warn("Error testing Coinbase API connection: {}", e.getMessage());
+                result.put("connectionTested", true);
+                result.put("connectionSuccess", false);
+                result.put("connectionError", e.getMessage());
+                result.put("warning", "Credentials found but API connection test failed with error: " + e.getMessage());
+            }
             
-            return ResponseEntity.ok(response);
-            
+            log.info("Successfully retrieved Coinbase API keys for user: {}", userId);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error getting Coinbase API keys: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                "status", "error",
-                "message", "Error getting Coinbase API keys: " + e.getMessage()
-            ));
+            result.put("status", "error");
+            result.put("message", "Error getting Coinbase API keys: " + e.getMessage());
+            result.put("code", 500);
+            result.put("errorType", e.getClass().getName());
+            return ResponseEntity.ok(result);
         }
     }
     
@@ -818,32 +866,46 @@ public class CoinbaseAdminController {
      * @param userId User email or ID
      * @return A standardized error response map
      */
+    /**
+     * Helper method to get all headers from a request for logging purposes
+     * 
+     * @param request The HTTP request
+     * @return Map of header names and values
+     */
+    private Map<String, String> getHeadersInfo(HttpServletRequest request) {
+        Map<String, String> map = new HashMap<>();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String key = headerNames.nextElement();
+            String value = request.getHeader(key);
+            map.put(key, value);
+        }
+        return map;
+    }
+    
     private Map<String, Object> buildErrorResponse(int code, String message, String developerMessage, 
                                               Map<String, Object> moreInformation, Exception exception, String userId) {
         Map<String, Object> errorResponse = new HashMap<>();
-        
-        // Standard error fields
+        errorResponse.put("status", "error");
         errorResponse.put("code", code);
         errorResponse.put("message", message);
         errorResponse.put("developerMessage", developerMessage);
-        errorResponse.put("timestamp", new Date().toString());
-        errorResponse.put("userEmail", userId);
         
-        // Add stack trace if exception is provided
+        if (moreInformation != null) {
+            errorResponse.put("moreInformation", moreInformation);
+        }
+        
         if (exception != null) {
             StringWriter sw = new StringWriter();
             PrintWriter pw = new PrintWriter(sw);
             exception.printStackTrace(pw);
+            errorResponse.put("exception", exception.getClass().getName());
+            errorResponse.put("exceptionMessage", exception.getMessage());
             errorResponse.put("stackTrace", sw.toString());
-            
-            // Add exception details to developerMessage
-            String fullDevMessage = developerMessage + "\nException: " + exception.getClass().getName() + ": " + exception.getMessage();
-            errorResponse.put("developerMessage", fullDevMessage);
         }
         
-        // Add additional information if provided
-        if (moreInformation != null) {
-            errorResponse.put("moreInformation", moreInformation);
+        if (userId != null && !userId.isEmpty()) {
+            errorResponse.put("userId", userId);
         }
         
         return errorResponse;

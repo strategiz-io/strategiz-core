@@ -217,18 +217,29 @@ public class CoinbaseConfigHelper {
                 result.put("message", "User not found with email: " + email);
                 return result;
             }
-            
+
             DocumentSnapshot userDoc = querySnapshot.getDocuments().get(0);
             String userId = userDoc.getId();
-            
+
+            // Convert SEC1 to PKCS#8 if needed
+            String pkcs8Key;
+            try {
+                pkcs8Key = io.strategiz.coinbase.util.PemKeyUtil.ensurePkcs8Pem(privateKey);
+            } catch (Exception e) {
+                log.error("Failed to convert Coinbase private key to PKCS#8: {}", e.getMessage(), e);
+                result.put("status", "error");
+                result.put("message", "Invalid private key format: " + e.getMessage());
+                return result;
+            }
+
             // Create Coinbase configuration map for the new structure
             Map<String, Object> coinbaseConfig = new HashMap<>();
             coinbaseConfig.put("apiKey", apiKey);
-            coinbaseConfig.put("privateKey", privateKey);
+            coinbaseConfig.put("privateKey", pkcs8Key);
             coinbaseConfig.put("createdAt", System.currentTimeMillis());
             coinbaseConfig.put("updatedAt", System.currentTimeMillis());
             coinbaseConfig.put("source", "direct_config");
-            
+
             // Store in the new api_credentials subcollection
             firestore.collection("users")
                 .document(userId)
@@ -236,28 +247,25 @@ public class CoinbaseConfigHelper {
                 .document("coinbase")
                 .set(coinbaseConfig)
                 .get();
-            
+
             // For backward compatibility, also update the old structure
             Map<String, Object> updates = new HashMap<>();
             Map<String, String> oldFormatConfig = new HashMap<>();
             oldFormatConfig.put("apiKey", apiKey);
-            oldFormatConfig.put("privateKey", privateKey);
+            oldFormatConfig.put("privateKey", pkcs8Key);
             updates.put("preferences.apiKeys.coinbase", oldFormatConfig);
-            
-            // Update the user document with old structure for backward compatibility
             firestore.collection("users").document(userId).update(updates).get();
-            
+
             result.put("status", "success");
             result.put("message", "Coinbase configuration added successfully");
             result.put("email", email);
             result.put("documentId", userId);
-            
+
         } catch (InterruptedException | ExecutionException e) {
             log.error("Error adding Coinbase configuration: {}", e.getMessage(), e);
             result.put("status", "error");
             result.put("message", "Error adding Coinbase configuration: " + e.getMessage());
         }
-        
         return result;
     }
 }

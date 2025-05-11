@@ -3,6 +3,8 @@ package io.strategiz.coinbase.service;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
+import org.springframework.web.client.HttpClientErrorException;
+import com.google.gson.JsonSyntaxException;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -34,6 +36,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+// Bouncy Castle PEM parsing
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 
 // Import JJWT libraries
 import io.jsonwebtoken.Jwts;
@@ -86,161 +92,35 @@ public class CoinbaseCloudService {
      * Extract private key from PEM format string
      * Handles both PKCS#8 and SEC1 formats for EC keys
      */
-    private PrivateKey getPrivateKeyFromPem(String pemKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        // Debug: Print key characteristics to help diagnose format issues
-        log.info("Private key length: {} characters", pemKey.length());
-        log.info("Key format analysis: " + 
-                 "Contains BEGIN EC PRIVATE KEY: " + pemKey.contains("BEGIN EC PRIVATE KEY") + 
-                 ", Contains BEGIN PRIVATE KEY: " + pemKey.contains("BEGIN PRIVATE KEY") + 
-                 ", Contains dashes: " + pemKey.contains("-") + 
-                 ", Contains equals: " + pemKey.contains("="));
+    private PrivateKey getPrivateKeyFromPem(String pemKey) throws Exception {
+        log.info("[PEM] Raw key length: {} characters", pemKey == null ? 0 : pemKey.length());
+        if (pemKey == null || pemKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("PEM key is empty or null");
+        }
+        // Print the first and last 20 chars for diagnostics
+        log.info("[PEM] Starts with: '{}', ends with: '{}'", 
+            pemKey.substring(0, Math.min(20, pemKey.length())),
+            pemKey.substring(Math.max(0, pemKey.length() - 20)));
         
-        // Print first and last few characters to help identify format
-        String startChars = pemKey.length() > 10 ? pemKey.substring(0, 10) : pemKey;
-        String endChars = pemKey.length() > 10 ? pemKey.substring(pemKey.length() - 10) : pemKey;
-        log.info("Key starts with: '{}', ends with: '{}'", startChars, endChars);
-        try {
-            log.info("Attempting to parse private key with Bouncy Castle support");
-            
-            // Register Bouncy Castle provider if not already registered
-            if (java.security.Security.getProvider("BC") == null) {
-                java.security.Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-                log.info("Added Bouncy Castle security provider");
-            }
-            
-            // Determine the format based on content
-            boolean isSec1Format = pemKey.contains("BEGIN EC PRIVATE KEY");
-            boolean isPkcs8Format = pemKey.contains("BEGIN PRIVATE KEY");
-            
-            log.debug("Key format appears to be: {}. Contains BEGIN EC: {}, Contains BEGIN PRIVATE: {}", 
-                    isSec1Format ? "SEC1" : (isPkcs8Format ? "PKCS#8" : "unknown"), 
-                    pemKey.contains("BEGIN EC"), pemKey.contains("BEGIN PRIVATE"));
-            
-            // Clean the PEM format
-            String cleanedKey = pemKey
-                    .replace("-----BEGIN EC PRIVATE KEY-----", "")
-                    .replace("-----END EC PRIVATE KEY-----", "")
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace("\\n", "")
-                    .replace("\n", "")
-                    .replaceAll("\\s", "");
-            
-            // Decode the Base64 content
-            byte[] decodedKey;
-            try {
-                decodedKey = Base64.getDecoder().decode(cleanedKey);
-                log.debug("Successfully decoded Base64 key, length: {} bytes", decodedKey.length);
-            } catch (IllegalArgumentException e) {
-                log.error("Failed to decode Base64 key: {}", e.getMessage());
-                throw new InvalidKeySpecException("Invalid Base64 encoding in private key");
-            }
-            
-            // Method 1: Try direct parsing with Java's built-in providers
-            try {
-                KeyFactory keyFactory = KeyFactory.getInstance("EC");
-                EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(decodedKey);
-                return keyFactory.generatePrivate(privateKeySpec);
-            } catch (InvalidKeySpecException e) {
-                log.warn("Standard Java PKCS#8 parsing failed: {}", e.getMessage());
-                // Continue to other methods
-            }
-            
-            // Method 2: Try with Bouncy Castle directly
-            try {
-                // First try to parse as PKCS#8
-                try {
-                    KeyFactory bcKeyFactory = KeyFactory.getInstance("EC", "BC");
-                    return bcKeyFactory.generatePrivate(new PKCS8EncodedKeySpec(decodedKey));
-                } catch (InvalidKeySpecException e) {
-                    log.warn("Bouncy Castle PKCS#8 parsing failed, trying SEC1: {}", e.getMessage());
-                }
-                
-                // Then try direct SEC1 parsing if available
-                try {
-                    org.bouncycastle.asn1.pkcs.PrivateKeyInfo pki;
-                    
-                    // Check if this is already in SEC1 format
-                    if (isSec1Format || decodedKey[0] == 0x30) { // ASN.1 SEQUENCE tag
-                        log.debug("Key appears to be in SEC1/ASN.1 format, converting to PKCS#8");
-                        
-                        // Parse the SEC1 format private key
-                        org.bouncycastle.asn1.sec.ECPrivateKey ecKey = 
-                                org.bouncycastle.asn1.sec.ECPrivateKey.getInstance(decodedKey);
-                        
-                        // Get the curve parameters - try a few standard curves if not specified
-                        org.bouncycastle.jce.spec.ECNamedCurveParameterSpec curveSpec;
-                        
-                        // If curve is specified in the key, use it
-                        if (ecKey.getParametersObject() != null) {
-                            org.bouncycastle.asn1.ASN1ObjectIdentifier curveOid = 
-                                    org.bouncycastle.asn1.ASN1ObjectIdentifier.getInstance(
-                                            ecKey.getParametersObject());
-                            curveSpec = org.bouncycastle.jce.ECNamedCurveTable.getParameterSpec(
-                                    curveOid.getId());
-                        } else {
-                            // Try standard curves used by Coinbase
-                            String[] curves = {"secp256r1", "secp256k1", "prime256v1"};
-                            curveSpec = null;
-                            
-                            for (String curve : curves) {
-                                try {
-                                    curveSpec = org.bouncycastle.jce.ECNamedCurveTable.getParameterSpec(curve);
-                                    if (curveSpec != null) {
-                                        log.debug("Using curve: {}", curve);
-                                        break;
-                                    }
-                                } catch (Exception ex) {
-                                    log.debug("Curve {} not supported", curve);
-                                }
-                            }
-                            
-                            if (curveSpec == null) {
-                                throw new InvalidKeySpecException("Could not determine EC curve parameters");
-                            }
-                        }
-                        
-                        // Convert EC private key to JCE format
-                        org.bouncycastle.jce.spec.ECPrivateKeySpec ecPrivateKeySpec = 
-                                new org.bouncycastle.jce.spec.ECPrivateKeySpec(
-                                        ecKey.getKey(), curveSpec);
-                        
-                        // Generate the private key
-                        KeyFactory bcKeyFactory = KeyFactory.getInstance("EC", "BC");
-                        return bcKeyFactory.generatePrivate(ecPrivateKeySpec);
-                    } else {
-                        log.warn("Key is not in expected SEC1 format");
-                        throw new InvalidKeySpecException("Key format could not be determined");
-                    }
-                } catch (Exception ex) {
-                    log.error("SEC1 parsing with Bouncy Castle failed: {}", ex.getMessage());
-                    throw new InvalidKeySpecException("Could not parse key with Bouncy Castle: " + ex.getMessage());
-                }
-            } catch (Exception bcEx) {
-                log.error("All Bouncy Castle parsing attempts failed: {}", bcEx.getMessage(), bcEx);
-                
-                // Method 3: Simple fallback for raw EC key
-                try {
-                    log.debug("Attempting fallback method for raw EC key");
-                    org.bouncycastle.jce.spec.ECNamedCurveParameterSpec ecSpec = 
-                            org.bouncycastle.jce.ECNamedCurveTable.getParameterSpec("secp256r1");
-                    
-                    // Assume the decoded key contains just the private key value
-                    // This is a simplified approach that might work in some cases
-                    java.math.BigInteger privateKeyValue = new java.math.BigInteger(1, decodedKey);
-                    org.bouncycastle.jce.spec.ECPrivateKeySpec privateKeySpec = 
-                            new org.bouncycastle.jce.spec.ECPrivateKeySpec(privateKeyValue, ecSpec);
-                    
-                    KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
-                    return keyFactory.generatePrivate(privateKeySpec);
-                } catch (Exception fallbackEx) {
-                    log.error("Fallback parsing method failed: {}", fallbackEx.getMessage());
-                    throw new InvalidKeySpecException("All key parsing methods failed. The provided key format is not supported.");
-                }
+        try (org.bouncycastle.openssl.PEMParser pemParser = new org.bouncycastle.openssl.PEMParser(new java.io.StringReader(pemKey))) {
+            Object object = pemParser.readObject();
+            org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter converter = new org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter().setProvider("BC");
+            if (object instanceof org.bouncycastle.openssl.PEMKeyPair) {
+                log.info("[PEM] Detected PEMKeyPair (SEC1 format)");
+                return converter.getKeyPair((org.bouncycastle.openssl.PEMKeyPair) object).getPrivate();
+            } else if (object instanceof org.bouncycastle.asn1.pkcs.PrivateKeyInfo) {
+                log.info("[PEM] Detected PrivateKeyInfo (PKCS#8 format)");
+                return converter.getPrivateKey((org.bouncycastle.asn1.pkcs.PrivateKeyInfo) object);
+            } else if (object instanceof org.bouncycastle.openssl.PEMEncryptedKeyPair) {
+                log.error("[PEM] Encrypted key pairs are not supported. Please provide an unencrypted EC private key.");
+                throw new IllegalArgumentException("Encrypted EC keys are not supported");
+            } else {
+                log.error("[PEM] Unsupported PEM object type: {}", object == null ? "null" : object.getClass().getName());
+                throw new IllegalArgumentException("Unsupported PEM object: " + (object == null ? "null" : object.getClass()));
             }
         } catch (Exception e) {
-            log.error("Error parsing private key: {}", e.getMessage(), e);
-            throw e;
+            log.error("[PEM] Failed to parse PEM key: {}", e.getMessage(), e);
+            throw new InvalidKeySpecException("Could not parse EC private key from PEM. Check for a mismatched, truncated, or corrupted key. Original error: " + e.getMessage(), e);
         }
     }
     
@@ -265,15 +145,17 @@ public class CoinbaseCloudService {
         
         try {
             // Use JJWT library to build and sign the JWT token
+            // Important: The audience must be exactly "https://api.coinbase.com" without trailing slash
+            // This is a common cause of 401 Unauthorized errors
             String token = Jwts.builder()
                     .setHeaderParam("typ", "JWT")
                     .setId(requestId)                       // jti claim
                     .setIssuer(apiKey)                      // iss claim
                     .setSubject(apiKey)                     // sub claim
-                    .setAudience("https://api.coinbase.com/") // aud claim
+                    .setAudience("https://api.coinbase.com") // aud claim - NO trailing slash
                     .setIssuedAt(Date.from(Instant.ofEpochSecond(now))) // iat claim
                     .setNotBefore(Date.from(Instant.ofEpochSecond(now - 60))) // nbf claim
-                    .setExpiration(Date.from(Instant.ofEpochSecond(now + 60))) // exp claim
+                    .setExpiration(Date.from(Instant.ofEpochSecond(now + 300))) // exp claim - 5 minutes
                     .signWith(privateKey, SignatureAlgorithm.ES256) // ES256 signature
                     .compact();
             
@@ -293,11 +175,11 @@ public class CoinbaseCloudService {
             String encodedHeader = Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(gson.toJson(header).getBytes("UTF-8"));
             
-            // Create the payload
+            // Create the payload - fix the audience to match Coinbase requirements
             Map<String, Object> payload = new HashMap<>();
             payload.put("iat", now);
-            payload.put("exp", now + 60); // Token expires in 60 seconds
-            payload.put("aud", "https://api.coinbase.com/");
+            payload.put("exp", now + 300); // Token expires in 5 minutes (300 seconds)
+            payload.put("aud", "https://api.coinbase.com"); // NO trailing slash
             payload.put("sub", apiKey);
             payload.put("iss", apiKey);
             payload.put("nbf", now - 60);
@@ -346,7 +228,6 @@ public class CoinbaseCloudService {
                 throw new RuntimeException("Failed to generate JWT token for Coinbase API: " + e2.getMessage(), e2);
             }
         }
-        
     }
     
     /**
@@ -396,6 +277,9 @@ public class CoinbaseCloudService {
         headers.set("Authorization", "Bearer " + jwt);
         headers.set("Content-Type", "application/json");
         
+        // Add CB-VERSION header which is required by Coinbase API v3
+        headers.set("CB-VERSION", "2023-05-12");
+        
         HttpEntity<?> requestEntity;
         if (body != null) {
             requestEntity = new HttpEntity<>(gson.toJson(body), headers);
@@ -403,14 +287,50 @@ public class CoinbaseCloudService {
             requestEntity = new HttpEntity<>(headers);
         }
         
-        ResponseEntity<String> response = restTemplate.exchange(
-            COINBASE_API_URL + endpoint,
-            method,
-            requestEntity,
-            String.class
-        );
-        
-        return gson.fromJson(response.getBody(), responseType);
+        try {
+            log.info("Making Coinbase API request to: {} {}", method, COINBASE_API_URL + endpoint);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                COINBASE_API_URL + endpoint,
+                method,
+                requestEntity,
+                String.class
+            );
+            
+            log.info("Coinbase API request successful with status: {}", response.getStatusCode());
+            return gson.fromJson(response.getBody(), responseType);
+            
+        } catch (HttpClientErrorException e) {
+            // Log the detailed error information
+            log.error("Coinbase API request failed with status: {} and response: {}", 
+                      e.getStatusCode(), e.getResponseBodyAsString());
+            
+            // Try to parse the error response for more details
+            try {
+                JsonObject errorJson = gson.fromJson(e.getResponseBodyAsString(), JsonObject.class);
+                String errorMessage = "Unknown error";
+                
+                if (errorJson.has("error")) {
+                    JsonObject error = errorJson.getAsJsonObject("error");
+                    if (error.has("message")) {
+                        errorMessage = error.get("message").getAsString();
+                    }
+                } else if (errorJson.has("message")) {
+                    errorMessage = errorJson.get("message").getAsString();
+                }
+                
+                log.error("Coinbase API error message: {}", errorMessage);
+                throw new RuntimeException("API request failed with status: " + e.getStatusCode() + 
+                                         " - " + errorMessage, e);
+            } catch (JsonSyntaxException jsonEx) {
+                // If we can't parse the JSON, just use the raw response
+                throw new RuntimeException("API request failed with status: " + e.getStatusCode() + 
+                                         " - " + e.getResponseBodyAsString(), e);
+            }
+        } catch (Exception e) {
+            log.error("Error making Coinbase API request: {}", e.getMessage(), e);
+            throw new RuntimeException("Error making Coinbase API request: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -543,6 +463,9 @@ public class CoinbaseCloudService {
         headers.set("Authorization", "Bearer " + jwtToken);
         headers.set("CB-ACCESS-KEY", apiKey);
         
+        // Add CB-VERSION header which is required by Coinbase API v3
+        headers.set("CB-VERSION", "2023-05-12");
+        
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
         // Make the request
@@ -644,27 +567,38 @@ public class CoinbaseCloudService {
         } catch (Exception e) {
             log.error("Error getting raw account data from Coinbase Cloud API: {}", e.getMessage(), e);
             
-            // Create a standardized error response
+            // Create a standardized error response with appropriate status code
+            int statusCode = 500;
+            String userMessage = "Coinbase API Error";
+            String developerMessage = "Error getting raw account data from Coinbase Cloud API: " + e.getMessage();
+            Map<String, Object> additionalInfo = new HashMap<>();
+            
+            // Extract more specific error information for authentication issues
+            if (e instanceof HttpClientErrorException) {
+                HttpClientErrorException httpError = (HttpClientErrorException) e;
+                statusCode = httpError.getRawStatusCode();
+                
+                if (statusCode == 401) {
+                    userMessage = "Authentication Failed";
+                    developerMessage = "Coinbase API authentication failed. Please check your API credentials.";
+                    additionalInfo.put("suggestion", "Verify that your Coinbase API credentials are correct and have the necessary permissions.");
+                }
+                
+                additionalInfo.put("responseBody", httpError.getResponseBodyAsString());
+                additionalInfo.put("statusCode", statusCode);
+            }
+            
+            // Create the error response with the additionalInfo we've already populated
             Map<String, Object> errorResponse = buildErrorResponse(
-                500, // Error code
-                "Coinbase API Error", // User-friendly message
-                "Error getting raw account data from Coinbase Cloud API: " + e.getMessage(), // Developer message
-                null, // Additional info will be added below
+                statusCode,
+                userMessage,
+                developerMessage,
+                additionalInfo,
                 e // Include the exception
             );
             
-            // Extract more details if possible
-            Map<String, Object> additionalInfo = new HashMap<>();
-            if (e instanceof HttpStatusCodeException) {
-                HttpStatusCodeException httpError = (HttpStatusCodeException) e;
-                additionalInfo.put("statusCode", httpError.getRawStatusCode());
-                additionalInfo.put("responseBody", httpError.getResponseBodyAsString());
-            }
-            
-            // Add the additional info to the error response
-            if (!additionalInfo.isEmpty()) {
-                errorResponse.put("moreInformation", additionalInfo);
-            }
+            // No need to create another additionalInfo map or extract more details
+            // as we've already done that above in the HttpClientErrorException handling
             
             // Return error information instead of throwing exception
             // This allows the controller to see the actual error details

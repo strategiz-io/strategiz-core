@@ -205,8 +205,6 @@ public class FirestoreService {
             credentials.put("apiKey", apiKey);
             credentials.put("privateKey", privateKey);
             credentials.put("passphrase", passphrase);
-            // For backward compatibility, also store as secretKey
-            credentials.put("secretKey", privateKey);
             credentials.put("updatedAt", System.currentTimeMillis());
             
             // Save to the api_credentials subcollection (preferred location)

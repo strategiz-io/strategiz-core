@@ -45,7 +45,8 @@ public class WebConfig {
                 registry.addMapping("/**")
                     .allowedOrigins("http://localhost:3000", "http://localhost:3001", "https://strategiz.io", "https://api-strategiz-io.web.app")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                    .allowedHeaders("*")
+                    .allowedHeaders("Content-Type", "Authorization", "X-User-Email", "X-Admin-Request", "*")
+                    .exposedHeaders("Content-Type", "Authorization", "X-User-Email", "X-Admin-Request")
                     .allowCredentials(true)
                     .maxAge(3600);
             }

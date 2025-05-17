@@ -1,6 +1,7 @@
 package io.strategiz.robinhood.controller;
 
 import io.strategiz.robinhood.service.RobinhoodService;
+import io.strategiz.robinhood.service.FirestoreService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +20,12 @@ import java.util.Map;
 public class RobinhoodAdminController {
 
     private final RobinhoodService robinhoodService;
+    private final FirestoreService firestoreService;
 
     @Autowired
-    public RobinhoodAdminController(RobinhoodService robinhoodService) {
+    public RobinhoodAdminController(RobinhoodService robinhoodService, FirestoreService firestoreService) {
         this.robinhoodService = robinhoodService;
+        this.firestoreService = firestoreService;
     }
 
     /**
@@ -66,4 +69,32 @@ public class RobinhoodAdminController {
             "timestamp", String.valueOf(System.currentTimeMillis())
         ));
     }
+
+    /**
+     * Get Robinhood API credentials for a given user (admin only)
+     * @param userId The user ID (email) whose credentials to fetch
+     * @return Map with username and password, or error if not found
+     */
+    @GetMapping("/api-keys")
+    public ResponseEntity<Object> getRobinhoodApiKeys(@RequestParam String userId) {
+        try {
+            Map<String, String> creds = firestoreService.getRobinhoodCredentials(userId);
+            if (creds == null || !creds.containsKey("username") || !creds.containsKey("password")) {
+                return ResponseEntity.status(404).body(Map.of(
+                    "status", "error",
+                    "message", "No Robinhood credentials found for user: " + userId
+                ));
+            }
+            return ResponseEntity.ok(Map.of(
+                "username", creds.get("username"),
+                "password", creds.get("password")
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        }
+    }
 }
+

@@ -59,6 +59,7 @@ io\strategiz\common\model\ApiResponse$ApiResponseBuilder.class
 io\strategiz\framework\rest\controller\BaseServiceRestController.class
 io\strategiz\trading\agent\model\TradingSignal$TradingSignalBuilder.class
 io\strategiz\auth\model\Session.class
+io\strategiz\robinhood\controller\RobinhoodPortfolioController.class
 io\strategiz\auth\service\DeviceIdentityService.class
 io\strategiz\trading\agent\gemini\model\TradingAgentPrompt.class
 io\strategiz\trading\agent\gemini\CoinbaseDataFetcher$1.class
@@ -109,6 +110,7 @@ io\strategiz\auth\response\ApiResponse$ApiResponseBuilder.class
 io\strategiz\auth\repository\FirebaseSessionRepositoryImpl.class
 io\strategiz\walletaddress\model\WalletBalance.class
 io\strategiz\marketplace\model\MarketplaceModels$Transaction.class
+io\strategiz\robinhood\service\FirestoreService.class
 io\strategiz\kraken\controller\KrakenController.class
 io\strategiz\trading\agent\service\BitcoinTradingAgent.class
 io\strategiz\binanceus\model\response\StatusResponse.class

@@ -10,17 +10,11 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>data-strategy</artifactId>
-    <name>Strategiz Strategy Data</name>
-    <description>Strategy data models and repositories</description>
+    <artifactId>data-portfolio</artifactId>
+    <name>Strategiz Portfolio Data</name>
+    <description>Portfolio data models and repositories</description>
     
     <dependencies>
-        <!-- Module dependencies -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-document-storage</artifactId>
-        </dependency>
-        
         <!-- External dependencies -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -29,6 +23,17 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        
+        <!-- Google Cloud Firestore -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-firestore</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>${firebase.admin.version}</version>
         </dependency>
     </dependencies>
     

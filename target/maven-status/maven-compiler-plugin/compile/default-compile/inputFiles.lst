@@ -20,10 +20,8 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\c
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\trading\agent\gemini\model\GeminiTradingSignal.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\service\BinanceUSService.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\robinhood\service\RobinhoodService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\walletaddress\model\WalletAddress.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\BaseServiceResponse.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\robinhood\controller\RobinhoodAdminController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\model\Account.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\BaseServiceRestController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSConfigController.java
@@ -44,7 +42,6 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\s
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSAdminController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\model\TickerPrice.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\trading\agent\gemini\controller\GeminiTradingController.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\robinhood\controller\RobinhoodPortfolioController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\framework\rest\controller\BaseServiceRestController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\repository\FirebaseSessionRepositoryImpl.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\kraken\model\KrakenAccount.java
@@ -80,7 +77,6 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\kraken
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\binanceus\controller\BinanceUSPortfolioController.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\model\Balance.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\client\CoinbaseClient.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\robinhood\service\FirestoreService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\auth\model\Session.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\config\FirebaseConfig.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\src\main\java\io\strategiz\coinbase\admindashboard\CoinbaseJwtUtil.java

@@ -1,0 +1,160 @@
+package io.strategiz.service.exchange;
+
+import io.strategiz.client.kraken.KrakenClient;
+import io.strategiz.client.kraken.model.KrakenAccount;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Service for interacting with the Kraken exchange API
+ */
+@Slf4j
+@Service
+public class KrakenService {
+
+    private final KrakenClient krakenClient;
+    private final ExchangeCredentialsRepository credentialsRepository;
+
+    @Autowired
+    public KrakenService(KrakenClient krakenClient, ExchangeCredentialsRepository credentialsRepository) {
+        this.krakenClient = krakenClient;
+        this.credentialsRepository = credentialsRepository;
+        log.info("KrakenService initialized");
+    }
+
+    /**
+     * Configure the Kraken API credentials
+     * @param apiKey API key
+     * @param secretKey Secret key
+     * @return Configuration status
+     */
+    public Map<String, String> configure(String apiKey, String secretKey) {
+        Map<String, String> response = new HashMap<>();
+        if (apiKey == null || apiKey.isEmpty() || secretKey == null || secretKey.isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "API Key and Secret Key are required");
+            return response;
+        }
+
+        try {
+            // Test connection with the provided credentials
+            KrakenAccount account = krakenClient.getAccount(apiKey, secretKey);
+            if (account != null && account.getError() != null && account.getError().length > 0) {
+                response.put("status", "error");
+                response.put("message", String.join(", ", account.getError()));
+                return response;
+            }
+            response.put("status", "success");
+            response.put("message", "Kraken API credentials configured successfully");
+            return response;
+        } catch (Exception e) {
+            log.error("Error configuring Kraken API credentials", e);
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    /**
+     * Test connection to Kraken API
+     * 
+     * @param apiKey API key
+     * @param secretKey Secret key
+     * @return true if successful, false otherwise
+     */
+    public boolean testConnection(String apiKey, String secretKey) {
+        try {
+            return krakenClient.testConnection(apiKey, secretKey);
+        } catch (Exception e) {
+            log.error("Error testing Kraken API connection", e);
+            return false;
+        }
+    }
+
+    /**
+     * Get account information from Kraken API
+     * 
+     * @param apiKey API key
+     * @param secretKey Secret key
+     * @return Account information
+     */
+    public KrakenAccount getAccount(String apiKey, String secretKey) {
+        log.info("Getting account information from Kraken API");
+        return krakenClient.getAccount(apiKey, secretKey);
+    }
+    
+    /**
+     * Get account information from Kraken API for a specific user
+     * 
+     * @param userId User ID
+     * @return Account information or error if credentials not found
+     */
+    public KrakenAccount getAccountForUser(String userId) {
+        log.info("Getting Kraken account information for user: {}", userId);
+        
+        try {
+            // Get credentials from repository
+            Map<String, String> credentials = credentialsRepository.getExchangeCredentials(userId, "kraken");
+            
+            if (credentials == null || !credentials.containsKey("apiKey") || !credentials.containsKey("secretKey")) {
+                log.warn("Kraken credentials not found for user: {}", userId);
+                KrakenAccount errorAccount = new KrakenAccount();
+                errorAccount.setError(new String[]{"Kraken API credentials not configured"});
+                return errorAccount;
+            }
+            
+            String apiKey = credentials.get("apiKey");
+            String secretKey = credentials.get("secretKey");
+            
+            return getAccount(apiKey, secretKey);
+        } catch (Exception e) {
+            log.error("Error getting Kraken account for user: {}", userId, e);
+            KrakenAccount errorAccount = new KrakenAccount();
+            errorAccount.setError(new String[]{"Error retrieving Kraken account: " + e.getMessage()});
+            return errorAccount;
+        }
+    }
+    
+    /**
+     * Save Kraken API credentials for a user
+     * 
+     * @param userId User ID
+     * @param apiKey API key
+     * @param secretKey Secret key
+     * @return Status of the operation
+     */
+    public Map<String, String> saveCredentials(String userId, String apiKey, String secretKey) {
+        log.info("Saving Kraken API credentials for user: {}", userId);
+        Map<String, String> response = new HashMap<>();
+        
+        try {
+            // Test the credentials first
+            KrakenAccount account = getAccount(apiKey, secretKey);
+            if (account != null && account.getError() != null && account.getError().length > 0) {
+                response.put("status", "error");
+                response.put("message", String.join(", ", account.getError()));
+                return response;
+            }
+            
+            // Save the credentials
+            Map<String, String> credentials = new HashMap<>();
+            credentials.put("apiKey", apiKey);
+            credentials.put("secretKey", secretKey);
+            
+            credentialsRepository.saveExchangeCredentials(userId, "kraken", credentials);
+            
+            response.put("status", "success");
+            response.put("message", "Kraken API credentials saved successfully");
+            return response;
+        } catch (Exception e) {
+            log.error("Error saving Kraken API credentials", e);
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+}

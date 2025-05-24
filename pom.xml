@@ -14,6 +14,32 @@
     <groupId>io.strategiz</groupId>
     <artifactId>strategiz-core</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    
+    <modules>
+        <!-- Data Modules -->
+        <module>data/data-strategy</module>
+        <module>data/data-portfolio</module>
+        <module>data/data-exchange</module>
+        <module>data/data-document-storage</module>
+        <module>data/data-auth</module>
+        
+        <!-- Service Modules -->
+        <module>service/service-strategy</module>
+        <module>service/service-portfolio</module>
+        <module>service/service-exchange</module>
+        <module>service/service-auth</module>
+        
+        <!-- API Modules -->
+        <module>api/api-strategy</module>
+        <module>api/api-portfolio</module>
+        <module>api/api-exchange</module>
+        <module>api/api-auth</module>
+        <module>api/api-monitoring</module>
+        
+        <!-- Client Modules -->
+        <module>client/client-kraken</module>
+    </modules>
 
     <properties>
         <java.version>11</java.version>

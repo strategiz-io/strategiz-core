@@ -1,5 +1,2 @@
-strategiz\Application.class
+io\strategiz\application\config\WebConfig.class
 io\strategiz\application\Application.class
-strategiz\app\config\WebConfig.class
-strategiz\app\Application.class
-strategiz\config\WebConfig.class

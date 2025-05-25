@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>strategiz</groupId>
+        <groupId>io.strategiz</groupId>
         <artifactId>service</artifactId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -18,11 +18,11 @@
     <dependencies>
         <!-- Internal module dependencies -->
         <dependency>
-            <groupId>strategiz</groupId>
+            <groupId>io.strategiz</groupId>
             <artifactId>data-auth</artifactId>
         </dependency>
         <dependency>
-            <groupId>strategiz</groupId>
+            <groupId>io.strategiz</groupId>
             <artifactId>data-document-storage</artifactId>
         </dependency>
         

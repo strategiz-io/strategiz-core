@@ -4,7 +4,7 @@ import io.strategiz.api.auth.config.AuthConfig;
 import io.strategiz.api.monitoring.config.MonitoringConfig;
 import io.strategiz.api.portfolio.config.PortfolioConfig;
 import io.strategiz.api.strategy.config.StrategyConfig;
-import strategiz.api.exchange.config.ExchangeConfig;
+import io.strategiz.api.exchange.config.ExchangeConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;

@@ -1,0 +1,12 @@
+strategiz\api\exchange\coinbase\controller\CoinbasePortfolioController.class
+strategiz\api\exchange\coinbase\controller\CoinbaseConfigController.class
+strategiz\api\exchange\coinbase\controller\advanced\CoinbaseAdvancedTradeController.class
+strategiz\api\exchange\coinbase\controller\admin\CoinbaseAdminDashboardController.class
+strategiz\api\exchange\trading\agent\gemini\controller\GeminiTradingController.class
+strategiz\api\exchange\binanceus\controller\BinanceUSAdminController.class
+strategiz\api\exchange\binanceus\controller\BinanceUSPortfolioController.class
+io\strategiz\api\exchange\KrakenController.class
+strategiz\api\exchange\trading\agent\controller\BitcoinTradingAgentController.class
+strategiz\api\exchange\binanceus\controller\BinanceUSConfigController.class
+strategiz\api\exchange\binanceus\controller\BinanceUSController.class
+strategiz\api\exchange\coinbase\controller\CoinbaseAdminController.class

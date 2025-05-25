@@ -5,9 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.strategiz</groupId>
+        <groupId>strategiz</groupId>
         <artifactId>service</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>service-auth</artifactId>
@@ -17,11 +18,11 @@
     <dependencies>
         <!-- Internal module dependencies -->
         <dependency>
-            <groupId>io.strategiz</groupId>
+            <groupId>strategiz</groupId>
             <artifactId>data-auth</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.strategiz</groupId>
+            <groupId>strategiz</groupId>
             <artifactId>data-document-storage</artifactId>
         </dependency>
         
@@ -49,20 +50,11 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>0.11.5</version>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
     

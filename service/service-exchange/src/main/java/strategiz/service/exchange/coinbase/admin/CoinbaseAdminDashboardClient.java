@@ -1,6 +1,6 @@
 package strategiz.service.exchange.coinbase.admin;
 
-import strategiz.service.exchange.coinbase.util.CoinbaseJwtUtil;
+import strategiz.client.coinbase.util.CoinbaseJwtUtil;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;

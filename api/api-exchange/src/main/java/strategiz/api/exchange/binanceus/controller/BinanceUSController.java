@@ -114,7 +114,7 @@ public class BinanceUSController {
      * @return Balance response
      */
     @GetMapping("/balances")
-    public ResponseEntity<BalanceResponse> getBalances(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<strategiz.data.exchange.binanceus.model.response.BalanceResponse> getBalances(@RequestHeader("Authorization") String authHeader) {
         try {
             String idToken = authHeader.replace("Bearer ", "");
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
@@ -132,7 +132,7 @@ public class BinanceUSController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
             }
 
-            BalanceResponse response = binanceUSService.getBalances(apiKey, secretKey);
+            strategiz.data.exchange.binanceus.model.response.BalanceResponse response = binanceUSService.getBalances(apiKey, secretKey);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error getting balances", e);
@@ -147,7 +147,7 @@ public class BinanceUSController {
      * @return Balance response
      */
     @PostMapping("/balances")
-    public ResponseEntity<BalanceResponse> getBalancesWithCredentials(@RequestBody BalanceRequest request) {
+    public ResponseEntity<strategiz.data.exchange.binanceus.model.response.BalanceResponse> getBalancesWithCredentials(@RequestBody BalanceRequest request) {
         try {
             String apiKey = request.getApiKey();
             String secretKey = request.getSecretKey();
@@ -156,7 +156,7 @@ public class BinanceUSController {
                 return ResponseEntity.badRequest().body(null);
             }
 
-            BalanceResponse response = binanceUSService.getBalances(apiKey, secretKey);
+            strategiz.data.exchange.binanceus.model.response.BalanceResponse response = binanceUSService.getBalances(apiKey, secretKey);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error getting balances with credentials", e);

@@ -5,9 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.strategiz</groupId>
+        <groupId>strategiz</groupId>
         <artifactId>api</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>api-portfolio</artifactId>
@@ -17,7 +18,7 @@
     <dependencies>
         <!-- Internal module dependencies -->
         <dependency>
-            <groupId>io.strategiz</groupId>
+            <groupId>strategiz</groupId>
             <artifactId>service-portfolio</artifactId>
         </dependency>
         

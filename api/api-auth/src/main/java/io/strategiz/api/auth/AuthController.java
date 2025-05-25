@@ -46,30 +46,31 @@ public class AuthController {
     public ResponseEntity<ApiResponse> verifyToken(
             @RequestHeader(name = "Authorization", required = false) String authHeader) {
         
-        logger.info("Verifying token");
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("No token provided or invalid format");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("No token provided or invalid format"));
-        }
-        
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        // Verify the Firebase token
-        FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
-        
-        if (decodedToken == null) {
-            logger.error("Token verification failed");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Token is invalid"));
-        }
-        
-        String userId = decodedToken.getUid();
-        logger.info("Token verified for user: {}", userId);
-        
-        Map<String, Object> userData = firebaseAuthService.getUserDataFromToken(decodedToken);
-        return ResponseEntity.ok(ApiResponse.success("Token is valid", userData));
+        try {
+            logger.info("Verifying token");
+            
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.warn("No token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("No token provided or invalid format"));
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Verify the Firebase token
+            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            
+            if (decodedToken == null) {
+                logger.error("Token verification failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Token is invalid"));
+            }
+            
+            String userId = decodedToken.getUid();
+            logger.info("Token verified for user: {}", userId);
+            
+            Map<String, Object> userData = firebaseAuthService.getUserDataFromToken(decodedToken);
+            return ResponseEntity.ok(ApiResponse.success("Token is valid", userData));
         } catch (Exception e) {
             logger.error("Error processing request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -87,38 +88,39 @@ public class AuthController {
     public ResponseEntity<ApiResponse> createSession(
             @RequestHeader(name = "Authorization", required = false) String authHeader) {
         
-        logger.info("Creating new session");
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("No token provided or invalid format");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("No token provided or invalid format"));
-        }
-        
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        // Verify the Firebase token
-        FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
-        
-        if (decodedToken == null) {
-            logger.error("Token verification failed");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Token is invalid"));
-        }
-        
-        String userId = decodedToken.getUid();
-        
-        // Create a new session
-        Session session = sessionService.createSession(userId);
-        
-        logger.info("Session created for user: {}", userId);
-        
-        Map<String, Object> sessionData = new HashMap<>();
-        sessionData.put("sessionId", session.getId());
-        sessionData.put("token", session.getToken());
-        sessionData.put("expiresAt", session.getExpiresAt());
-        
-        return ResponseEntity.ok(ApiResponse.success("Session created", sessionData));
+        try {
+            logger.info("Creating new session");
+            
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.warn("No token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("No token provided or invalid format"));
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Verify the Firebase token
+            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            
+            if (decodedToken == null) {
+                logger.error("Token verification failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Token is invalid"));
+            }
+            
+            String userId = decodedToken.getUid();
+            
+            // Create a new session
+            Session session = sessionService.createSession(userId);
+            
+            logger.info("Session created for user: {}", userId);
+            
+            Map<String, Object> sessionData = new HashMap<>();
+            sessionData.put("sessionId", session.getId());
+            sessionData.put("token", session.getToken());
+            sessionData.put("expiresAt", session.getExpiresAt());
+            
+            return ResponseEntity.ok(ApiResponse.success("Session created", sessionData));
         } catch (Exception e) {
             logger.error("Error processing request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -167,37 +169,38 @@ public class AuthController {
     public ResponseEntity<ApiResponse> getUserSessions(
             @RequestHeader(name = "Authorization", required = false) String authHeader) {
         
-        logger.info("Getting user sessions");
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("No token provided or invalid format");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("No token provided or invalid format"));
-        }
-        
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        // Verify the Firebase token
-        FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
-        
-        if (decodedToken == null) {
-            logger.error("Token verification failed");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Token is invalid"));
-        }
-        
-        String userId = decodedToken.getUid();
-        
-        // Get all sessions for the user
-        List<Session> sessions = sessionService.getUserSessions(userId);
-        
-        logger.info("Found {} sessions for user: {}", sessions.size(), userId);
-        
-        Map<String, Object> sessionsData = new HashMap<>();
-        sessionsData.put("count", sessions.size());
-        sessionsData.put("sessions", sessions);
-        
-        return ResponseEntity.ok(ApiResponse.success("User sessions retrieved", sessionsData));
+        try {
+            logger.info("Getting user sessions");
+            
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.warn("No token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("No token provided or invalid format"));
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Verify the Firebase token
+            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            
+            if (decodedToken == null) {
+                logger.error("Token verification failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Token is invalid"));
+            }
+            
+            String userId = decodedToken.getUid();
+            
+            // Get all sessions for the user
+            List<Session> sessions = sessionService.getUserSessions(userId);
+            
+            logger.info("Found {} sessions for user: {}", sessions.size(), userId);
+            
+            Map<String, Object> sessionsData = new HashMap<>();
+            sessionsData.put("count", sessions.size());
+            sessionsData.put("sessions", sessions);
+            
+            return ResponseEntity.ok(ApiResponse.success("User sessions retrieved", sessionsData));
         } catch (Exception e) {
             logger.error("Error processing request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -217,36 +220,37 @@ public class AuthController {
             @PathVariable String sessionId,
             @RequestHeader(name = "Authorization", required = false) String authHeader) {
         
-        logger.info("Deleting session: {}", sessionId);
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("No token provided or invalid format");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("No token provided or invalid format"));
-        }
-        
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        // Verify the Firebase token
-        FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
-        
-        if (decodedToken == null) {
-            logger.error("Token verification failed");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Token is invalid"));
-        }
-        
-        // Delete the session
-        boolean deleted = sessionService.deleteSession(sessionId);
-        
-        if (deleted) {
-            logger.info("Session deleted: {}", sessionId);
-            return ResponseEntity.ok(ApiResponse.success("Session deleted"));
-        } else {
-            logger.warn("Session not found or could not be deleted: {}", sessionId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Session not found or could not be deleted"));
-        }
+        try {
+            logger.info("Deleting session: {}", sessionId);
+            
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.warn("No token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("No token provided or invalid format"));
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Verify the Firebase token
+            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            
+            if (decodedToken == null) {
+                logger.error("Token verification failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Token is invalid"));
+            }
+            
+            // Delete the session
+            boolean deleted = sessionService.deleteSession(sessionId);
+            
+            if (deleted) {
+                logger.info("Session deleted: {}", sessionId);
+                return ResponseEntity.ok(ApiResponse.success("Session deleted"));
+            } else {
+                logger.warn("Session not found or could not be deleted: {}", sessionId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Session not found or could not be deleted"));
+            }
         } catch (Exception e) {
             logger.error("Error processing request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -264,38 +268,39 @@ public class AuthController {
     public ResponseEntity<ApiResponse> logout(
             @RequestHeader(name = "Authorization", required = false) String authHeader) {
         
-        logger.info("Logging out user");
-        
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.warn("No token provided or invalid format");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("No token provided or invalid format"));
-        }
-        
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
-        
-        // Verify the Firebase token
-        FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
-        
-        if (decodedToken == null) {
-            logger.error("Token verification failed");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Token is invalid"));
-        }
-        
-        String userId = decodedToken.getUid();
-        
-        // Delete all sessions for the user
-        boolean deleted = sessionService.deleteUserSessions(userId);
-        
-        if (deleted) {
-            logger.info("All sessions deleted for user: {}", userId);
-            return ResponseEntity.ok(ApiResponse.success("Logout successful"));
-        } else {
-            logger.warn("Failed to delete all sessions for user: {}", userId);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Failed to delete all sessions"));
-        }
+        try {
+            logger.info("Logging out user");
+            
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.warn("No token provided or invalid format");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("No token provided or invalid format"));
+            }
+            
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Verify the Firebase token
+            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            
+            if (decodedToken == null) {
+                logger.error("Token verification failed");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.error("Token is invalid"));
+            }
+            
+            String userId = decodedToken.getUid();
+            
+            // Delete all sessions for the user
+            boolean deleted = sessionService.deleteUserSessions(userId);
+            
+            if (deleted) {
+                logger.info("All sessions deleted for user: {}", userId);
+                return ResponseEntity.ok(ApiResponse.success("Logout successful"));
+            } else {
+                logger.warn("Failed to delete all sessions for user: {}", userId);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(ApiResponse.error("Failed to delete all sessions"));
+            }
         } catch (Exception e) {
             logger.error("Error processing request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

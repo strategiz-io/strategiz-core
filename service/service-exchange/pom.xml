@@ -20,18 +20,22 @@
         <dependency>
             <groupId>strategiz</groupId>
             <artifactId>data-exchange</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>strategiz</groupId>
             <artifactId>data-document-storage</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>strategiz</groupId>
             <artifactId>client-kraken</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>strategiz</groupId>
             <artifactId>client-coinbase</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
         <!-- Spring dependencies -->
@@ -43,6 +47,10 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+        </dependency>
         
         <!-- Lombok -->
         <dependency>
@@ -51,16 +59,30 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- HTTP Client -->
+        <!-- Firebase -->
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.1.1</version>
         </dependency>
         
-        <!-- JSON Processing -->
+        <!-- JWT for Coinbase Advanced API Authentication -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
     

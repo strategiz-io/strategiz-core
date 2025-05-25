@@ -37,7 +37,6 @@ public class GeminiTradingAgent {
      * 
      * @param apiKey Coinbase API key
      * @param privateKey Coinbase private key
-     * @param passphrase Coinbase API passphrase
      * @param timeframe Timeframe for analysis (e.g., "1d", "6h", "1h", "15m")
      * @param riskProfile Risk profile for analysis ("conservative", "moderate", "aggressive")
      * @return AI-generated trading signal
@@ -45,7 +44,6 @@ public class GeminiTradingAgent {
     public GeminiTradingSignal generateTradingSignal(
             String apiKey, 
             String privateKey, 
-            String passphrase,
             String timeframe,
             String riskProfile) {
         
@@ -56,7 +54,7 @@ public class GeminiTradingAgent {
             // Step 1: Fetch real historical data from Coinbase
             int dataLimit = dataFetcher.getDefaultLimitForTimeframe(timeframe);
             List<HistoricalPriceData> historicalData = 
-                    dataFetcher.fetchBitcoinHistoricalData(apiKey, privateKey, passphrase, timeframe, dataLimit);
+                    dataFetcher.fetchBitcoinHistoricalData(apiKey, privateKey, timeframe, dataLimit);
             
             if (historicalData.isEmpty()) {
                 throw new RuntimeException("Failed to fetch historical BTC data from Coinbase");

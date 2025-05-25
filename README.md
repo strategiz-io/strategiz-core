@@ -24,6 +24,47 @@ Server-side API and services for the Strategiz platform. This repository contain
   - Firebase Authentication integration
   - Secure storage of user credentials
 
+## Architecture
+
+### Module Structure
+
+The project follows a modular architecture with clear separation of concerns:
+
+- **API Modules (`api-*`)**: 
+  - Contain only REST controllers and API-specific code
+  - Handle HTTP requests, authentication, and input validation
+  - Depend only on their corresponding service modules
+  - Located in the `api/` directory
+
+- **Service Modules (`service-*`)**:
+  - Contain business logic and service implementations
+  - Implement the core functionality of the application
+  - May depend on data modules and client modules
+  - Located in the `service/` directory
+
+- **Data Modules (`data-*`)**:
+  - Handle data persistence and database interactions
+  - Contain repositories, entities, and data access objects
+  - Located in the `data/` directory
+
+- **Client Modules (`client-*`)**:
+  - Provide integration with external services and APIs
+  - Implement HTTP clients and API wrappers
+  - Located in the `client/` directory
+
+### Dependency Flow
+
+The dependency flow follows a strict hierarchy to maintain clean architecture:
+
+```
+API Modules → Service Modules → Data Modules → Client Modules
+```
+
+This ensures that:
+1. Higher-level modules are not affected by changes in lower-level modules
+2. Business logic is isolated from presentation and data access concerns
+3. Each module has a single responsibility
+
 ## Getting Started
 
 ### Prerequisites

@@ -159,7 +159,8 @@ public class FirebaseAuthService {
         userData.put("picture", token.getPicture());
         userData.put("emailVerified", token.isEmailVerified());
         userData.put("issuer", token.getIssuer());
-        userData.put("authTime", token.getAuthTime());
+        // Auth time is not available in this version of the Firebase SDK
+        userData.put("authTime", null);
         return userData;
     }
 }

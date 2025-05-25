@@ -17,8 +17,12 @@
 
     <modules>
         <module>api-strategy</module>
-        <module>api-common</module>
+        <module>api-portfolio</module>
         <module>api-exchange</module>
+        <module>api-auth</module>
+        <module>api-monitoring</module>
+        <module>api-common</module>
+        <module>api-marketplace</module>
     </modules>
     
     <dependencies>

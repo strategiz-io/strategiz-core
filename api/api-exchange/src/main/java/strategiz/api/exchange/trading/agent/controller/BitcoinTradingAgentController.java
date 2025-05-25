@@ -1,8 +1,8 @@
 package strategiz.api.exchange.trading.agent.controller;
 
-import strategiz.service.exchange.coinbase.FirestoreService;
-import strategiz.service.exchange.trading.agent.model.TradingSignal;
-import strategiz.service.exchange.trading.agent.service.BitcoinTradingAgent;
+import io.strategiz.service.exchange.coinbase.FirestoreService;
+import io.strategiz.service.exchange.trading.agent.model.TradingSignal;
+import io.strategiz.service.exchange.trading.agent.service.BitcoinTradingAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

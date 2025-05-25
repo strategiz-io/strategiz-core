@@ -1,9 +1,9 @@
-package strategiz.api.exchange.coinbase.controller.advanced;
+package io.strategiz.api.exchange.coinbase.controller.advanced;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import strategiz.service.exchange.coinbase.advanced.CoinbaseAdvancedTradeService;
+import io.strategiz.service.exchange.coinbase.advanced.CoinbaseAdvancedTradeService;
 
 /**
  * Controller for Coinbase Advanced Trade API

@@ -1,5 +1,6 @@
 package io.strategiz.service.auth;
 
+import io.strategiz.data.auth.Passkey;
 import io.strategiz.data.auth.PasskeyCredential;
 import io.strategiz.data.auth.PasskeyCredentialRepository;
 import org.slf4j.Logger;
@@ -209,5 +210,85 @@ public class PasskeyService {
             log.warn("Passkey assertion verification failed for user: {}", userId);
             return false;
         }
+    }
+    
+    /**
+     * Convert PasskeyCredential to Passkey
+     * 
+     * @param credential PasskeyCredential to convert
+     * @return Passkey object
+     */
+    private Passkey convertToPasskey(PasskeyCredential credential) {
+        if (credential == null) {
+            return null;
+        }
+        
+        return Passkey.builder()
+                .id(credential.getId())
+                .userId(credential.getUserId())
+                .credentialId(credential.getCredentialId())
+                .publicKey(credential.getPublicKey())
+                .name(credential.getDeviceName())
+                .createdAt(credential.getCreatedAt())
+                .lastUsedAt(credential.getLastUsedAt())
+                .trusted(true)
+                .build();
+    }
+    
+    /**
+     * Register a new passkey
+     *
+     * @param userId User ID
+     * @param credentialId Credential ID
+     * @param publicKey Public key
+     * @return The registered passkey
+     */
+    public Passkey registerPasskey(String userId, String credentialId, String publicKey) {
+        log.info("Registering new passkey for user: {}, credential ID: {}", userId, credentialId);
+        
+        // Use the existing registerCredential method with minimal required parameters
+        PasskeyCredential credential = registerCredential(
+            userId,
+            credentialId,
+            publicKey,
+            "", // attestationObject
+            "", // clientDataJSON
+            "API", // userAgent
+            "Default Device" // deviceName
+        );
+        
+        return convertToPasskey(credential);
+    }
+    
+    /**
+     * Get all passkeys for a user
+     *
+     * @param userId User ID
+     * @return List of passkeys
+     */
+    public List<Passkey> getUserPasskeys(String userId) {
+        log.info("Getting passkeys for user: {}", userId);
+        List<PasskeyCredential> credentials = getUserCredentials(userId);
+        
+        return credentials.stream()
+                .map(this::convertToPasskey)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Delete a passkey by credential ID
+     *
+     * @param credentialId Credential ID
+     * @return true if deleted, false otherwise
+     */
+    public boolean deletePasskey(String credentialId) {
+        log.info("Deleting passkey with credential ID: {}", credentialId);
+        
+        Optional<PasskeyCredential> credential = getCredentialByCredentialId(credentialId);
+        if (credential.isPresent()) {
+            return deleteCredential(credential.get().getId());
+        }
+        
+        return false;
     }
 }

@@ -1,1 +1,2 @@
-io\strategiz\api\portfolio\PortfolioController.class
+io\strategiz\api\portfolio\controller\PortfolioController.class
+io\strategiz\api\portfolio\config\PortfolioConfig.class

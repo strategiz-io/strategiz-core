@@ -1,5 +1,5 @@
-C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\AuthConfig.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\AuthController.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\ApiResponse.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\DeviceIdentityController.java
-C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\PasskeyController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\controller\DeviceIdentityController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\controller\AuthController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\config\AuthConfig.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\controller\PasskeyController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-auth\src\main\java\io\strategiz\api\auth\model\ApiResponse.java

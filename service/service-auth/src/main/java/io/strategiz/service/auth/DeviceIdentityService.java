@@ -33,6 +33,19 @@ public class DeviceIdentityService {
      *
      * @param userId User ID
      * @param deviceId Device ID
+     * @param deviceName User-friendly device name
+     * @return The registered device identity
+     */
+    public DeviceIdentity registerDevice(String userId, String deviceId, String deviceName) {
+        // Call the full method with default values
+        return registerDevice(userId, deviceId, "", deviceName, null, true);
+    }
+    
+    /**
+     * Register a new device identity
+     *
+     * @param userId User ID
+     * @param deviceId Device ID
      * @param publicKey Public key for the device
      * @param name User-friendly device name
      * @param deviceInfo Device information

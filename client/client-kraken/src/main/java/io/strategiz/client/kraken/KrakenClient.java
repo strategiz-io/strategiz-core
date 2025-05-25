@@ -2,6 +2,7 @@ package io.strategiz.client.kraken;
 
 import io.strategiz.client.kraken.model.KrakenAccount;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -30,7 +31,7 @@ public class KrakenClient {
 
     private final RestTemplate restTemplate;
 
-    public KrakenClient(RestTemplate restTemplate) {
+    public KrakenClient(@Qualifier("krakenRestTemplate") RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
         log.info("KrakenClient initialized with API URL: {}", baseUrl);
     }

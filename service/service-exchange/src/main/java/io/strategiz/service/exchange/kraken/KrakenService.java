@@ -1,4 +1,4 @@
-package io.strategiz.service.exchange;
+package io.strategiz.service.exchange.kraken;
 
 import io.strategiz.client.kraken.KrakenClient;
 import io.strategiz.client.kraken.model.KrakenAccount;

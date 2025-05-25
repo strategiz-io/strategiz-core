@@ -1,4 +1,4 @@
-package strategiz.service.exchange.binanceus.util;
+package io.strategiz.service.exchange.binanceus.util;
 
 import com.google.firebase.auth.FirebaseToken;
 import com.google.firebase.cloud.FirestoreClient;

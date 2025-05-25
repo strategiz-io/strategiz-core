@@ -1,4 +1,4 @@
-package strategiz.service.exchange.trading.agent.model;
+package io.strategiz.service.exchange.trading.agent.model;
 
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;

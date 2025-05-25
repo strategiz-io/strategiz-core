@@ -1,6 +1,6 @@
-package strategiz.service.exchange.trading.agent.gemini.model;
+package io.strategiz.service.exchange.trading.agent.gemini.model;
 
-import strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
+import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import lombok.Builder;
 import lombok.Data;
 

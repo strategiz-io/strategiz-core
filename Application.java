@@ -8,14 +8,11 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan(basePackages = {
     // Application package
     "io.strategiz.application",
-    // API modules
-    "io.strategiz.api",
-    // Service modules
-    "io.strategiz.service",
-    // Data modules
-    "io.strategiz.data",
-    // Client modules
-    "io.strategiz.client",
+    
+    // Base packages for both naming conventions
+    "io.strategiz",
+    "strategiz",
+    
     // Legacy packages (to maintain backward compatibility)
     "io.strategiz.coinbase",
     "io.strategiz.coinbase.controller",

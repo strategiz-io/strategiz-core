@@ -1,4 +1,4 @@
-package strategiz.service.exchange.coinbase;
+package io.strategiz.service.exchange.coinbase;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

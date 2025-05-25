@@ -1,4 +1,4 @@
-package strategiz.service.marketplace.service;
+package io.strategiz.service.marketplace.service;
 
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;

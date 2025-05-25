@@ -11,7 +11,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"io.strategiz.application"})
+@ComponentScan(basePackages = {
+    "io.strategiz.application",
+    // Include both package naming conventions for better compatibility
+    "io.strategiz",
+    "strategiz"
+})
 @Import({
     // API module configurations
     AuthConfig.class,

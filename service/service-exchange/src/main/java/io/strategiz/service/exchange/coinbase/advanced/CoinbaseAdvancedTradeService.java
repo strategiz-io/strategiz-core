@@ -1,7 +1,7 @@
-package strategiz.service.exchange.coinbase.advanced;
+package io.strategiz.service.exchange.coinbase.advanced;
 
-import strategiz.service.exchange.coinbase.FirestoreService;
-import strategiz.client.coinbase.advanced.CoinbaseAdvancedTradeClient;
+import io.strategiz.service.exchange.coinbase.FirestoreService;
+import io.strategiz.client.coinbase.advanced.CoinbaseAdvancedTradeClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

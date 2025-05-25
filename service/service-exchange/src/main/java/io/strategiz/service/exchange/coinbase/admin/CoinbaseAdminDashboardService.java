@@ -1,6 +1,6 @@
-package strategiz.service.exchange.coinbase.admin;
+package io.strategiz.service.exchange.coinbase.admin;
 
-import strategiz.service.exchange.coinbase.FirestoreService;
+import io.strategiz.service.exchange.coinbase.FirestoreService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

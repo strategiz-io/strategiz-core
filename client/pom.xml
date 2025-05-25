@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>strategiz</groupId>
+        <groupId>io.strategiz</groupId>
         <artifactId>strategiz-core</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>

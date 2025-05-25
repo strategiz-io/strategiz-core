@@ -9,9 +9,8 @@ import org.springframework.context.annotation.ComponentScan;
     // Application package
     "io.strategiz.application",
     
-    // Base packages for both naming conventions
+    // Base package for consistent naming convention
     "io.strategiz",
-    "strategiz",
     
     // Legacy packages (to maintain backward compatibility)
     "io.strategiz.coinbase",

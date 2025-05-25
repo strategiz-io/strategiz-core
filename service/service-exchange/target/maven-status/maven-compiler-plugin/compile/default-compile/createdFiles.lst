@@ -16,7 +16,6 @@ io\strategiz\service\exchange\trading\agent\gemini\model\TradingAgentPrompt.clas
 io\strategiz\service\exchange\trading\agent\model\TradingSignal$SignalType.class
 io\strategiz\service\exchange\binanceus\BinanceUSService$1.class
 io\strategiz\service\exchange\binanceus\BinanceUSService.class
-io\strategiz\service\exchange\kraken\KrakenService.class
 io\strategiz\service\exchange\coinbase\util\CoinbaseConfigHelper.class
 io\strategiz\service\exchange\trading\agent\model\TradingSignal$SignalStrength.class
 io\strategiz\service\exchange\trading\agent\model\TradingSignal.class

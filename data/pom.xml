@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.strategiz</groupId>
+        <groupId>strategiz</groupId>
         <artifactId>strategiz-core</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
@@ -17,6 +17,10 @@
 
     <modules>
         <module>data-strategy</module>
+        <module>data-exchange</module>
+        <module>data-document-storage</module>
+        <module>data-portfolio</module>
+        <module>data-auth</module>
     </modules>
     
     <dependencies>

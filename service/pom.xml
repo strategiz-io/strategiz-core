@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.strategiz</groupId>
+        <groupId>strategiz</groupId>
         <artifactId>strategiz-core</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
@@ -17,6 +17,10 @@
 
     <modules>
         <module>service-strategy</module>
+        <module>service-exchange</module>
+        <module>service-common</module>
+        <module>service-marketplace</module>
+        <module>service-walletaddress</module>
     </modules>
     
     <dependencies>

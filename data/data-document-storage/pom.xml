@@ -5,9 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.strategiz</groupId>
+        <groupId>strategiz</groupId>
         <artifactId>data</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>data-document-storage</artifactId>
@@ -52,34 +53,45 @@
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>gax</artifactId>
+            <version>${google.api.gax.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>gax-grpc</artifactId>
+            <version>${google.api.gax.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.api</groupId>
+            <artifactId>gax-httpjson</artifactId>
+            <version>${google.api.gax.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.api-client</groupId>
             <artifactId>google-api-client</artifactId>
+            <version>${google.api.client.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client</artifactId>
+            <version>${google.http.client.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.http-client</groupId>
             <artifactId>google-http-client-gson</artifactId>
-        </dependency>
-        
-        <!-- Google Cloud Firestore -->
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-firestore</artifactId>
+            <version>${google.http.client.version}</version>
         </dependency>
         
         <!-- Spring dependencies -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+        </dependency>
+        
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     

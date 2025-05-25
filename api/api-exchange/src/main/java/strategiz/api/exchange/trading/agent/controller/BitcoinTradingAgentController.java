@@ -1,6 +1,6 @@
 package strategiz.api.exchange.trading.agent.controller;
 
-import strategiz.service.exchange.firestore.FirestoreService;
+import strategiz.service.exchange.coinbase.FirestoreService;
 import strategiz.service.exchange.trading.agent.model.TradingSignal;
 import strategiz.service.exchange.trading.agent.service.BitcoinTradingAgent;
 import lombok.extern.slf4j.Slf4j;
@@ -108,7 +108,7 @@ public class BitcoinTradingAgentController {
             }
             
             // Generate trading signal using real Coinbase data
-            TradingSignal signal = bitcoinTradingAgent.generateTradingSignal(apiKey, privateKey, passphrase, timeframe);
+            TradingSignal signal = bitcoinTradingAgent.generateTradingSignal(apiKey, privateKey, timeframe);
             
             // Prepare the response
             Map<String, Object> response = new HashMap<>();

@@ -46,11 +46,10 @@ public class BitcoinTradingAgent {
      * 
      * @param apiKey Coinbase API key
      * @param privateKey Coinbase private key
-     * @param passphrase Coinbase API passphrase
      * @param timeframe Timeframe for analysis (e.g., "1d", "6h", "1h", "15m")
      * @return Trading signal with buy/sell recommendation
      */
-    public TradingSignal generateTradingSignal(String apiKey, String privateKey, String passphrase, String timeframe) {
+    public TradingSignal generateTradingSignal(String apiKey, String privateKey, String timeframe) {
         log.info("Generating trading signal for BTC on {} timeframe", timeframe);
         
         // Validate inputs
@@ -61,7 +60,7 @@ public class BitcoinTradingAgent {
         
         try {
             // Fetch real historical price data from Coinbase
-            List<HistoricalPriceData> historicalData = fetchHistoricalData(apiKey, privateKey, passphrase, timeframe);
+            List<HistoricalPriceData> historicalData = fetchHistoricalData(apiKey, privateKey, timeframe);
             if (historicalData.isEmpty()) {
                 log.error("No historical data found");
                 throw new RuntimeException("No historical price data available");
@@ -107,7 +106,7 @@ public class BitcoinTradingAgent {
     /**
      * Fetch historical price data from Coinbase API
      */
-    private List<HistoricalPriceData> fetchHistoricalData(String apiKey, String privateKey, String passphrase, String timeframe) throws CoinbaseApiException {
+    private List<HistoricalPriceData> fetchHistoricalData(String apiKey, String privateKey, String timeframe) throws CoinbaseApiException {
         log.info("Fetching historical BTC price data from Coinbase API");
         
         // Determine how many data points to fetch based on timeframe
@@ -125,7 +124,6 @@ public class BitcoinTradingAgent {
             params,
             apiKey,
             privateKey,
-            passphrase,
             new ParameterizedTypeReference<List<Object[]>>() {}
         );
         

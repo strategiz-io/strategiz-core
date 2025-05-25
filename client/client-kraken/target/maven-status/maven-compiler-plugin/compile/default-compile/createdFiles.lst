@@ -1,0 +1,4 @@
+strategiz\client\kraken\model\KrakenBalance.class
+strategiz\client\kraken\KrakenClientConfig.class
+strategiz\client\kraken\model\KrakenAccount.class
+strategiz\client\kraken\KrakenClient.class

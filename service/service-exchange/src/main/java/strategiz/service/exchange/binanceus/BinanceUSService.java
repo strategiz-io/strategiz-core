@@ -202,4 +202,124 @@ public class BinanceUSService {
             throw new RuntimeException("Error generating signature", e);
         }
     }
+    
+    /**
+     * Get account information from Binance US API
+     * 
+     * @param apiKey Binance US API key
+     * @param secretKey Binance US secret key
+     * @return Account information
+     */
+    public Account getAccount(String apiKey, String secretKey) {
+        try {
+            long timestamp = System.currentTimeMillis();
+            String queryString = "timestamp=" + timestamp;
+            String signature = generateSignature(queryString, secretKey);
+            
+            String url = BINANCEUS_API_URL + "/api/v3/account?" + queryString + "&signature=" + signature;
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-MBX-APIKEY", apiKey);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<Account> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                Account.class
+            );
+            
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error getting account from Binance US API: {}", e.getMessage(), e);
+            throw new RuntimeException("Error getting account from Binance US API", e);
+        }
+    }
+    
+    /**
+     * Get ticker prices for all symbols from Binance US API
+     * 
+     * @return List of ticker prices
+     */
+    public List<TickerPrice> getTickerPrices() {
+        try {
+            String url = BINANCEUS_API_URL + "/api/v3/ticker/price";
+            
+            ResponseEntity<List<TickerPrice>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<List<TickerPrice>>() {}
+            );
+            
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error getting ticker prices from Binance US API: {}", e.getMessage(), e);
+            throw new RuntimeException("Error getting ticker prices from Binance US API", e);
+        }
+    }
+    
+    /**
+     * Get exchange information from Binance US API
+     * 
+     * @return Exchange information
+     */
+    public Object getExchangeInfo() {
+        try {
+            String url = BINANCEUS_API_URL + "/api/v3/exchangeInfo";
+            
+            ResponseEntity<Object> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                Object.class
+            );
+            
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error getting exchange info from Binance US API: {}", e.getMessage(), e);
+            throw new RuntimeException("Error getting exchange info from Binance US API", e);
+        }
+    }
+    
+    /**
+     * Get balances from Binance US API
+     * 
+     * @param apiKey Binance US API key
+     * @param secretKey Binance US secret key
+     * @return BalanceResponse containing balances and account data
+     */
+    public strategiz.data.exchange.binanceus.model.response.BalanceResponse getBalances(String apiKey, String secretKey) {
+        try {
+            Account account = getAccount(apiKey, secretKey);
+            strategiz.data.exchange.binanceus.model.response.BalanceResponse response = new strategiz.data.exchange.binanceus.model.response.BalanceResponse();
+            
+            if (account != null && account.getBalances() != null) {
+                List<Balance> nonZeroBalances = account.getBalances().stream()
+                    .filter(balance -> {
+                        double free = Double.parseDouble(balance.getFree());
+                        double locked = Double.parseDouble(balance.getLocked());
+                        return free > 0 || locked > 0;
+                    })
+                    .collect(Collectors.toList());
+                
+                response.setPositions(nonZeroBalances);
+                response.setRawAccountData(account);
+                
+                // Calculate total USD value (simplified implementation)
+                double totalUsdValue = 0.0;
+                // In a real implementation, you would fetch prices and calculate actual USD values
+                response.setTotalUsdValue(totalUsdValue);
+            } else {
+                response.setPositions(List.of());
+                response.setTotalUsdValue(0.0);
+            }
+            
+            return response;
+        } catch (Exception e) {
+            log.error("Error getting balances from Binance US API: {}", e.getMessage(), e);
+            throw new RuntimeException("Error getting balances from Binance US API", e);
+        }
+    }
 }

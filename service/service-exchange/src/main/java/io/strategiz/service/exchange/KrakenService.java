@@ -1,7 +1,8 @@
 package io.strategiz.service.exchange;
 
-import io.strategiz.client.kraken.KrakenClient;
-import io.strategiz.client.kraken.model.KrakenAccount;
+import strategiz.client.kraken.KrakenClient;
+import strategiz.client.kraken.model.KrakenAccount;
+import io.strategiz.data.exchange.ExchangeCredentialsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -141,11 +142,7 @@ public class KrakenService {
             }
             
             // Save the credentials
-            Map<String, String> credentials = new HashMap<>();
-            credentials.put("apiKey", apiKey);
-            credentials.put("secretKey", secretKey);
-            
-            credentialsRepository.saveExchangeCredentials(userId, "kraken", credentials);
+            credentialsRepository.saveExchangeCredentials(userId, "kraken", apiKey, secretKey);
             
             response.put("status", "success");
             response.put("message", "Kraken API credentials saved successfully");

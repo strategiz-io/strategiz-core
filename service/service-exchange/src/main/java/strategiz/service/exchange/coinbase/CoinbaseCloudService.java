@@ -13,9 +13,11 @@ import org.springframework.web.client.RestTemplate;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -163,5 +165,87 @@ public class CoinbaseCloudService {
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         
         return keyFactory.generatePrivate(keySpec);
+    }
+    
+    /**
+     * Configure the Coinbase API client with the provided credentials
+     * 
+     * @param apiKey Coinbase API key
+     * @param privateKey Coinbase private key
+     * @return Configuration status
+     */
+    public Map<String, Object> configure(String apiKey, String privateKey) {
+        try {
+            log.info("Configuring Coinbase API client with provided credentials");
+            
+            // Validate credentials by generating a JWT token
+            String jwtToken = generateJwtToken(apiKey, privateKey);
+            
+            // Test the token with a simple API call
+            Map<String, Object> testResult = testApiAuthentication(apiKey, jwtToken);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "success");
+            result.put("message", "Coinbase API client configured successfully");
+            result.put("timestamp", System.currentTimeMillis());
+            
+            return result;
+        } catch (Exception e) {
+            log.error("Error configuring Coinbase API client: {}", e.getMessage(), e);
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "error");
+            result.put("message", "Error configuring Coinbase API client: " + e.getMessage());
+            result.put("timestamp", System.currentTimeMillis());
+            
+            return result;
+        }
+    }
+    
+    /**
+     * Get account balances from Coinbase API
+     * 
+     * @param apiKey Coinbase API key
+     * @param privateKey Coinbase private key
+     * @return Map containing account data and status
+     */
+    public Map<String, Object> getAccountBalances(String apiKey, String privateKey) {
+        try {
+            log.info("Getting account balances from Coinbase API");
+            
+            // Generate JWT token for authentication
+            String jwtToken = generateJwtToken(apiKey, privateKey);
+            
+            // Set up headers with JWT token
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + jwtToken);
+            headers.set("CB-VERSION", "2023-04-01");
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            // Make API call to get accounts
+            String url = COINBASE_API_URL + "/v2/accounts";
+            
+            // Use a parameterized type for the response
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            
+            log.info("Successfully retrieved account balances from Coinbase API");
+            
+            // Create a response map
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "success");
+            result.put("statusCode", response.getStatusCodeValue());
+            result.put("data", response.getBody());
+            
+            return result;
+        } catch (Exception e) {
+            log.error("Error getting account balances from Coinbase API: {}", e.getMessage(), e);
+            throw new RuntimeException("Error getting account balances from Coinbase API: " + e.getMessage(), e);
+        }
     }
 }

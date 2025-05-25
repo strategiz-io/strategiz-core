@@ -47,4 +47,31 @@ public class TradingSignal {
     private String rationale;               // Human-readable explanation
     private String timeframe;               // Timeframe of analysis (e.g., "1d", "6h")
     private Map<String, Object> additionalMetrics; // Additional technical indicators
+    
+    /**
+     * Get a formatted string representation of the trading signal
+     * 
+     * @return Formatted trading signal string
+     */
+    public String getFormattedSignal() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(signalType.toString());
+        
+        if (strength != null) {
+            sb.append(" (").append(strength.toString()).append(")");
+        }
+        
+        sb.append(" - ").append(assetSymbol);
+        sb.append(" @ $").append(String.format("%.2f", currentPrice));
+        
+        if (targetPrice > 0) {
+            sb.append(" → Target: $").append(String.format("%.2f", targetPrice));
+            
+            // Calculate potential profit/loss percentage
+            double pctChange = ((targetPrice - currentPrice) / currentPrice) * 100;
+            sb.append(" (").append(String.format("%+.2f%%", pctChange)).append(")");
+        }
+        
+        return sb.toString();
+    }
 }

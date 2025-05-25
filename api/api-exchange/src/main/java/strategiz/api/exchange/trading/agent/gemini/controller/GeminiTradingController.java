@@ -1,6 +1,6 @@
 package strategiz.api.exchange.trading.agent.gemini.controller;
 
-import strategiz.service.exchange.firestore.FirestoreService;
+import strategiz.service.exchange.coinbase.FirestoreService;
 import strategiz.service.exchange.trading.agent.gemini.GeminiTradingAgent;
 import strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
 import lombok.extern.slf4j.Slf4j;
@@ -121,7 +121,7 @@ public class GeminiTradingController {
             
             // Generate AI trading signal using real Coinbase data with Gemini
             GeminiTradingSignal signal = geminiTradingAgent.generateTradingSignal(
-                    apiKey, privateKey, passphrase, timeframe, riskProfile);
+                    apiKey, privateKey, timeframe, riskProfile);
             
             // Prepare the response
             Map<String, Object> response = new HashMap<>();

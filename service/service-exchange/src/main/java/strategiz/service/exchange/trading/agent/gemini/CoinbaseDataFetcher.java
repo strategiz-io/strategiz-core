@@ -33,13 +33,12 @@ public class CoinbaseDataFetcher {
      * 
      * @param apiKey Coinbase API key
      * @param privateKey Coinbase private key
-     * @param passphrase Coinbase API passphrase
      * @param timeframe Timeframe for analysis (e.g., "1d", "6h", "1h", "15m")
      * @param limit Number of data points to fetch
      * @return List of historical price data
      */
     public List<HistoricalPriceData> fetchBitcoinHistoricalData(
-            String apiKey, String privateKey, String passphrase, String timeframe, int limit) {
+            String apiKey, String privateKey, String timeframe, int limit) {
         
         log.info("Fetching real historical BTC price data from Coinbase API");
         
@@ -56,7 +55,6 @@ public class CoinbaseDataFetcher {
                 params,
                 apiKey,
                 privateKey,
-                passphrase,
                 new ParameterizedTypeReference<List<Object[]>>() {}
             );
             

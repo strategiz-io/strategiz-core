@@ -16,7 +16,8 @@
     <description>External service client modules</description>
 
     <modules>
-        <module>client-firebase</module>
+        <module>client-kraken</module>
+        <module>client-coinbase</module>
     </modules>
     
     <dependencies>

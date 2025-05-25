@@ -27,7 +27,6 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-kraken</artifactId>
-            <version>1.0-SNAPSHOT</version>
         </dependency>
         
         <!-- Spring dependencies -->

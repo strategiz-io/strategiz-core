@@ -1,4 +1,4 @@
-package io.strategiz.api.exchange;
+package io.strategiz.api.exchange.kraken.controller;
 
 import io.strategiz.data.exchange.ExchangeCredentialsRepository;
 import io.strategiz.service.exchange.KrakenService;

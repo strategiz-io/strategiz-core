@@ -1,4 +1,4 @@
-package io.strategiz.client.kraken;
+package io.strategiz.client.kraken.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +16,7 @@ public class KrakenClientConfig {
      * @return RestTemplate instance
      */
     @Bean
-    public RestTemplate restTemplate() {
+    public RestTemplate krakenRestTemplate() {
         return new RestTemplate();
     }
 } 

@@ -1,37 +1,24 @@
 package io.strategiz.application;
 
+import io.strategiz.api.auth.config.AuthConfig;
+import io.strategiz.api.monitoring.config.MonitoringConfig;
+import io.strategiz.api.portfolio.config.PortfolioConfig;
+import io.strategiz.api.strategy.config.StrategyConfig;
+import strategiz.api.exchange.config.ExchangeConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {
-    "io.strategiz",
-    // API modules
-    "io.strategiz.api.auth",
-    "io.strategiz.api.exchange",
-    "io.strategiz.api.portfolio",
-    "io.strategiz.api.strategy",
-    "io.strategiz.api.monitoring",
-    // Client modules
-    "io.strategiz.client.kraken",
-    // Data modules
-    "io.strategiz.data.auth",
-    "io.strategiz.data.exchange",
-    "io.strategiz.data.portfolio",
-    "io.strategiz.data.strategy",
-    "io.strategiz.data.document.storage",
-    // Service modules
-    "io.strategiz.service.auth",
-    "io.strategiz.service.exchange",
-    "io.strategiz.service.portfolio",
-    "io.strategiz.service.strategy",
-    // Legacy packages (to maintain backward compatibility)
-    "io.strategiz.coinbase",
-    "io.strategiz.coinbase.controller",
-    "io.strategiz.coinbase.service",
-    "io.strategiz.binanceus",
-    "io.strategiz.kraken"
+@ComponentScan(basePackages = {"io.strategiz.application"})
+@Import({
+    // API module configurations
+    AuthConfig.class,
+    MonitoringConfig.class,
+    PortfolioConfig.class,
+    StrategyConfig.class,
+    ExchangeConfig.class
 })
 public class Application {
 

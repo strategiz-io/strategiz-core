@@ -1,1 +1,2 @@
-io\strategiz\api\strategy\StrategyController.class
+io\strategiz\api\strategy\controller\StrategyController.class
+io\strategiz\api\strategy\config\StrategyConfig.class

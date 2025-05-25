@@ -5,9 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>io.strategiz</groupId>
+        <groupId>strategiz</groupId>
         <artifactId>service</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>service-exchange</artifactId>
@@ -17,16 +18,20 @@
     <dependencies>
         <!-- Internal module dependencies -->
         <dependency>
-            <groupId>io.strategiz</groupId>
+            <groupId>strategiz</groupId>
             <artifactId>data-exchange</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.strategiz</groupId>
+            <groupId>strategiz</groupId>
             <artifactId>data-document-storage</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.strategiz</groupId>
+            <groupId>strategiz</groupId>
             <artifactId>client-kraken</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>strategiz</groupId>
+            <artifactId>client-coinbase</artifactId>
         </dependency>
         
         <!-- Spring dependencies -->

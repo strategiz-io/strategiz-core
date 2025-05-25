@@ -11,7 +11,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
-    <groupId>io.strategiz</groupId>
+    <groupId>strategiz</groupId>
     <artifactId>strategiz-core</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -32,6 +32,9 @@
         <module>service/service-portfolio</module>
         <module>service/service-exchange</module>
         <module>service/service-auth</module>
+        <module>service/service-common</module>
+        <module>service/service-marketplace</module>
+        <module>service/service-walletaddress</module>
         
         <!-- API Modules -->
         <module>api/api-strategy</module>
@@ -39,10 +42,12 @@
         <module>api/api-exchange</module>
         <module>api/api-auth</module>
         <module>api/api-monitoring</module>
+        <module>api/api-common</module>
         
         <!-- Client Modules -->
         <module>client/client-kraken</module>
         <module>client/client-coinbase</module>
+        <module>client/client-walletaddress</module>
     </modules>
 
     <properties>
@@ -67,88 +72,88 @@
             <!-- Internal Module Versions -->
             <!-- Data Modules -->
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>data-strategy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>data-portfolio</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>data-exchange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>data-document-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>data-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
             <!-- Service Modules -->
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>service-strategy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>service-portfolio</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>service-exchange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>service-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
             <!-- API Modules -->
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>api-strategy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>api-portfolio</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>api-exchange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>api-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>api-monitoring</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
             <!-- Client Modules -->
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>client-kraken</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.strategiz</groupId>
+                <groupId>strategiz</groupId>
                 <artifactId>client-coinbase</artifactId>
                 <version>${project.version}</version>
             </dependency>

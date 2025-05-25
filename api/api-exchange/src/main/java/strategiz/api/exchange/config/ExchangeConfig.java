@@ -1,4 +1,4 @@
-package strategiz.api.exchange.config;
+package io.strategiz.api.exchange.config;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;

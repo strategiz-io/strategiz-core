@@ -1,8 +1,8 @@
 package strategiz.api.exchange.trading.agent.gemini.controller;
 
-import strategiz.service.exchange.coinbase.FirestoreService;
-import strategiz.service.exchange.trading.agent.gemini.GeminiTradingAgent;
-import strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
+import io.strategiz.service.exchange.coinbase.FirestoreService;
+import io.strategiz.service.exchange.trading.agent.gemini.GeminiTradingAgent;
+import io.strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

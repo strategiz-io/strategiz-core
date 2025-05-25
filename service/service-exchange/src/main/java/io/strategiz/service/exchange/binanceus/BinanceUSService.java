@@ -3,6 +3,7 @@ package io.strategiz.service.exchange.binanceus;
 import io.strategiz.data.exchange.binanceus.model.Account;
 import io.strategiz.data.exchange.binanceus.model.Balance;
 import io.strategiz.data.exchange.binanceus.model.TickerPrice;
+import io.strategiz.data.exchange.binanceus.model.response.BalanceResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
@@ -290,10 +291,10 @@ public class BinanceUSService {
      * @param secretKey Binance US secret key
      * @return BalanceResponse containing balances and account data
      */
-    public strategiz.data.exchange.binanceus.model.response.BalanceResponse getBalances(String apiKey, String secretKey) {
+    public BalanceResponse getBalances(String apiKey, String secretKey) {
         try {
             Account account = getAccount(apiKey, secretKey);
-            strategiz.data.exchange.binanceus.model.response.BalanceResponse response = new strategiz.data.exchange.binanceus.model.response.BalanceResponse();
+            BalanceResponse response = new BalanceResponse();
             
             if (account != null && account.getBalances() != null) {
                 List<Balance> nonZeroBalances = account.getBalances().stream()

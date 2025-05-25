@@ -1,4 +1,4 @@
-package strategiz.service.exchange.binanceus;
+package io.strategiz.service.exchange.binanceus;
 
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.cloud.firestore.DocumentSnapshot;

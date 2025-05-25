@@ -1,7 +1,7 @@
 package io.strategiz.service.exchange;
 
-import strategiz.client.kraken.KrakenClient;
-import strategiz.client.kraken.model.KrakenAccount;
+import io.strategiz.client.kraken.KrakenClient;
+import io.strategiz.client.kraken.model.KrakenAccount;
 import io.strategiz.data.exchange.ExchangeCredentialsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

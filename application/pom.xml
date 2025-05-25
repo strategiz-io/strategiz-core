@@ -116,7 +116,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>strategiz.app.Application</mainClass>
+                    <mainClass>io.strategiz.application.Application</mainClass>
                 </configuration>
             </plugin>
         </plugins>

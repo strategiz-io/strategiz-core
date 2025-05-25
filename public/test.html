@@ -3,95 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategiz API Test</title>
+    <title>Strategiz API Test Page</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
         }
         button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
+            background-color: #3498db;
             color: white;
             border: none;
+            padding: 10px 15px;
             border-radius: 4px;
             cursor: pointer;
-            margin: 10px 0;
+            margin: 5px;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #2980b9;
         }
         pre {
-            background-color: #f5f5f5;
+            background-color: #f8f9fa;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 5px;
             overflow: auto;
+            max-height: 400px;
         }
-        .error {
-            color: red;
+        .endpoint-test {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e1e1e1;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <h1>Strategiz API Test</h1>
-    <p>This page tests the connection to your deployed backend on Google Cloud Run.</p>
+    <h1>Strategiz API Test Page</h1>
+    <p>Use this page to test the Strategiz Core API endpoints. Click on the buttons below to make API requests and see the responses.</p>
     
-    <div>
-        <h2>Test Coinbase API Connection</h2>
-        <div>
-            <label for="userId">User ID:</label>
-            <input type="text" id="userId" placeholder="Enter user ID">
-        </div>
-        <div>
-            <label for="apiKey">API Key:</label>
-            <input type="text" id="apiKey" placeholder="Enter Coinbase API Key">
-        </div>
-        <div>
-            <label for="privateKey">Private Key:</label>
-            <input type="text" id="privateKey" placeholder="Enter Coinbase Private Key">
-        </div>
-        <button id="testCoinbaseBtn">Test Coinbase Connection</button>
-        <div id="coinbaseResult">
-            <h3>Result:</h3>
-            <pre id="coinbaseOutput">Results will appear here...</pre>
+    <div class="endpoint-test">
+        <h2>Coinbase API Tests</h2>
+        <button onclick="testEndpoint('/api/coinbase/health')">Test Coinbase Health</button>
+        <button onclick="testEndpoint('/api/coinbase/api-keys')">Test Coinbase API Keys</button>
+        <button onclick="testEndpoint('/api/coinbase/raw-account-data')">Test Coinbase Raw Account Data</button>
+        <div id="coinbase-result">
+            <pre>Results will appear here...</pre>
         </div>
     </div>
-
+    
+    <div class="endpoint-test">
+        <h2>Kraken API Tests</h2>
+        <button onclick="testEndpoint('/api/kraken/health')">Test Kraken Health</button>
+        <button onclick="testEndpoint('/api/kraken/api-keys')">Test Kraken API Keys</button>
+        <button onclick="testEndpoint('/api/kraken/raw-account-data')">Test Kraken Raw Account Data</button>
+        <div id="kraken-result">
+            <pre>Results will appear here...</pre>
+        </div>
+    </div>
+    
+    <div class="endpoint-test">
+        <h2>Binance US API Tests</h2>
+        <button onclick="testEndpoint('/api/binanceus/health')">Test Binance US Health</button>
+        <button onclick="testEndpoint('/api/binanceus/api-keys')">Test Binance US API Keys</button>
+        <button onclick="testEndpoint('/api/binanceus/raw-account-data')">Test Binance US Raw Account Data</button>
+        <div id="binanceus-result">
+            <pre>Results will appear here...</pre>
+        </div>
+    </div>
+    
     <script>
-        document.getElementById('testCoinbaseBtn').addEventListener('click', async () => {
-            const userId = document.getElementById('userId').value;
-            const apiKey = document.getElementById('apiKey').value;
-            const privateKey = document.getElementById('privateKey').value;
+        async function testEndpoint(endpoint) {
+            const resultId = endpoint.split('/')[2] + '-result';
+            const resultElement = document.getElementById(resultId);
+            const resultPre = resultElement.querySelector('pre');
             
-            if (!userId || !apiKey || !privateKey) {
-                document.getElementById('coinbaseOutput').innerHTML = '<span class="error">Please enter all required fields</span>';
-                return;
-            }
-            
-            document.getElementById('coinbaseOutput').innerHTML = 'Loading...';
+            resultPre.textContent = 'Loading...';
             
             try {
-                // Call your backend API endpoint
-                const response = await fetch('/api/coinbase/admin/accounts', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        userId: userId,
-                        apiKey: apiKey,
-                        privateKey: privateKey
-                    })
-                });
-                
+                const response = await fetch('http://localhost:8081' + endpoint);
                 const data = await response.json();
-                document.getElementById('coinbaseOutput').innerHTML = JSON.stringify(data, null, 2);
+                resultPre.textContent = JSON.stringify(data, null, 2);
             } catch (error) {
-                document.getElementById('coinbaseOutput').innerHTML = `<span class="error">Error: ${error.message}</span>`;
+                resultPre.textContent = 'Error: ' + error.message;
             }
-        });
+        }
     </script>
 </body>
 </html>

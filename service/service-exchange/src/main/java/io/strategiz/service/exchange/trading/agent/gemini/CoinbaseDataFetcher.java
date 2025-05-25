@@ -1,8 +1,8 @@
-package strategiz.service.exchange.trading.agent.gemini;
+package io.strategiz.service.exchange.trading.agent.gemini;
 
-import strategiz.client.coinbase.CoinbaseClient;
-import strategiz.client.coinbase.exception.CoinbaseApiException;
-import strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
+import io.strategiz.client.coinbase.CoinbaseClient;
+import io.strategiz.client.coinbase.exception.CoinbaseApiException;
+import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;

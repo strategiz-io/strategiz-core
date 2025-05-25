@@ -1,11 +1,11 @@
-package strategiz.service.exchange.trading.agent.service;
+package io.strategiz.service.exchange.trading.agent.service;
 
-import strategiz.client.coinbase.CoinbaseClient;
-import strategiz.client.coinbase.exception.CoinbaseApiException;
-import strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
-import strategiz.service.exchange.trading.agent.model.TradingSignal;
-import strategiz.service.exchange.trading.agent.model.TradingSignal.SignalStrength;
-import strategiz.service.exchange.trading.agent.model.TradingSignal.SignalType;
+import io.strategiz.client.coinbase.CoinbaseClient;
+import io.strategiz.client.coinbase.exception.CoinbaseApiException;
+import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
+import io.strategiz.service.exchange.trading.agent.model.TradingSignal;
+import io.strategiz.service.exchange.trading.agent.model.TradingSignal.SignalStrength;
+import io.strategiz.service.exchange.trading.agent.model.TradingSignal.SignalType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;

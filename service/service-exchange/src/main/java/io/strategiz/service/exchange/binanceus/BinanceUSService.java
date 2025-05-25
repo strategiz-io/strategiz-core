@@ -1,8 +1,8 @@
-package strategiz.service.exchange.binanceus;
+package io.strategiz.service.exchange.binanceus;
 
-import strategiz.data.exchange.binanceus.model.Account;
-import strategiz.data.exchange.binanceus.model.Balance;
-import strategiz.data.exchange.binanceus.model.TickerPrice;
+import io.strategiz.data.exchange.binanceus.model.Account;
+import io.strategiz.data.exchange.binanceus.model.Balance;
+import io.strategiz.data.exchange.binanceus.model.TickerPrice;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;

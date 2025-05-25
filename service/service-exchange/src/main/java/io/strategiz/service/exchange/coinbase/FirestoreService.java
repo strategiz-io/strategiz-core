@@ -1,4 +1,4 @@
-package strategiz.service.exchange.coinbase;
+package io.strategiz.service.exchange.coinbase;
 
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.cloud.firestore.DocumentSnapshot;

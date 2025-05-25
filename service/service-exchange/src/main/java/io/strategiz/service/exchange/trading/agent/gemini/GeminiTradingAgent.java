@@ -1,9 +1,9 @@
-package strategiz.service.exchange.trading.agent.gemini;
+package io.strategiz.service.exchange.trading.agent.gemini;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
-import strategiz.service.exchange.trading.agent.gemini.model.TradingAgentPrompt;
-import strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
+import io.strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
+import io.strategiz.service.exchange.trading.agent.gemini.model.TradingAgentPrompt;
+import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

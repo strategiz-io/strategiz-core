@@ -1,4 +1,4 @@
-package strategiz.service.exchange.trading.agent.gemini.model;
+package io.strategiz.service.exchange.trading.agent.gemini.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

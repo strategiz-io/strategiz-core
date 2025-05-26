@@ -48,6 +48,7 @@
         <module>client/client-kraken</module>
         <module>client/client-coinbase</module>
         <module>client/client-walletaddress</module>
+        <module>client/client-binanceus</module>
     </modules>
 
     <properties>

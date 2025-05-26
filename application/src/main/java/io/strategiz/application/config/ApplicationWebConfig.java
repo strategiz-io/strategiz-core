@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * This configuration applies to all endpoints across the application
  */
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
+public class ApplicationWebConfig implements WebMvcConfigurer {
 
     @Value("${strategiz.cors.allowed-origins:http://localhost:3000,http://localhost:8080,https://strategiz.io}")
     private String[] allowedOrigins;
@@ -31,16 +31,13 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * Configure static resource handling
+     * Configure resource handlers to serve static resources
      * 
-     * @param registry Resource handler registry
+     * @param registry ResourceHandlerRegistry
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/static/**")
+        registry.addResourceHandler("/**")
                 .addResourceLocations("classpath:/static/");
-        
-        registry.addResourceHandler("/public/**")
-                .addResourceLocations("classpath:/public/");
     }
 }

@@ -37,6 +37,11 @@
             <artifactId>client-coinbase</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-binanceus</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- Spring dependencies -->
         <dependency>

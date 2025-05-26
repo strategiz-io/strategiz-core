@@ -19,6 +19,7 @@
         <module>client-kraken</module>
         <module>client-coinbase</module>
         <module>client-walletaddress</module>
+        <module>client-binanceus</module>
     </modules>
     
     <dependencies>

@@ -1,29 +1,30 @@
 package io.strategiz.application;
 
-import io.strategiz.api.auth.config.AuthConfig;
-import io.strategiz.api.monitoring.config.MonitoringConfig;
-import io.strategiz.api.portfolio.config.PortfolioConfig;
-import io.strategiz.api.strategy.config.StrategyConfig;
-import io.strategiz.api.exchange.config.ExchangeConfig;
+import io.strategiz.api.auth.config.ApiAuthConfig;
+import io.strategiz.api.monitoring.config.ApiMonitoringConfig;
+import io.strategiz.api.portfolio.config.ApiPortfolioConfig;
+import io.strategiz.api.strategy.config.ApiStrategyConfig;
+import io.strategiz.api.exchange.config.ApiExchangeConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 
+/**
+ * Main Application class for Strategiz Core
+ */
 @SpringBootApplication
 @ComponentScan(basePackages = {
     "io.strategiz.application",
-    // Include both package naming conventions for better compatibility
-    "io.strategiz",
-    "strategiz"
+    "io.strategiz"
 })
 @Import({
     // API module configurations
-    AuthConfig.class,
-    MonitoringConfig.class,
-    PortfolioConfig.class,
-    StrategyConfig.class,
-    ExchangeConfig.class
+    ApiAuthConfig.class,
+    ApiMonitoringConfig.class,
+    ApiPortfolioConfig.class,
+    ApiStrategyConfig.class,
+    ApiExchangeConfig.class
 })
 public class Application {
 

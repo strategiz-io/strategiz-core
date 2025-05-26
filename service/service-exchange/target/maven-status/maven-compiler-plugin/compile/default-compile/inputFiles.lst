@@ -12,6 +12,7 @@ C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main
 C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\coinbase\admin\CoinbaseAdminDashboardService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\trading\agent\gemini\model\TradingAgentPrompt.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\coinbase\advanced\CoinbaseAdvancedTradeService.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\config\ServiceExchangeConfig.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\kraken\KrakenService.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\trading\agent\gemini\GeminiTradingAgent.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\service\service-exchange\src\main\java\io\strategiz\service\exchange\coinbase\FirestoreService.java

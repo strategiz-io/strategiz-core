@@ -11,6 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientResponseException;
@@ -40,7 +41,7 @@ public class CoinbaseClient {
 
     private final RestTemplate restTemplate;
 
-    public CoinbaseClient(RestTemplate restTemplate) {
+    public CoinbaseClient(@Qualifier("coinbaseRestTemplate") RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
         log.info("CoinbaseClient initialized with API URL: {}", COINBASE_API_URL);
     }

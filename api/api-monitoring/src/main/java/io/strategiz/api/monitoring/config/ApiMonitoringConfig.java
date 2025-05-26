@@ -14,7 +14,7 @@ import org.springframework.web.client.RestTemplate;
 @ComponentScan(basePackages = {
     "io.strategiz.api.monitoring"
 })
-public class MonitoringConfig {
+public class ApiMonitoringConfig {
     
     /**
      * Creates a RestTemplate bean for making HTTP requests to other services

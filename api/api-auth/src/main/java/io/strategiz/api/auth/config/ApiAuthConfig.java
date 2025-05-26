@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
     "io.strategiz.service.auth",
     "io.strategiz.data.auth"
 })
-public class AuthConfig {
+public class ApiAuthConfig {
     // Configuration is now limited to component scanning
     // CORS and other web configurations are handled by the global WebConfig
 }

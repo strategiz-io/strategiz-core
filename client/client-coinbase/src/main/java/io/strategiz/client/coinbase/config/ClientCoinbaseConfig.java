@@ -8,7 +8,7 @@ import org.springframework.web.client.RestTemplate;
  * Configuration for Coinbase API client
  */
 @Configuration
-public class CoinbaseClientConfig {
+public class ClientCoinbaseConfig {
 
     @Bean("coinbaseRestTemplate")
     public RestTemplate coinbaseRestTemplate() {

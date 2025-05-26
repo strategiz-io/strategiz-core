@@ -1,4 +1,5 @@
 io\strategiz\client\kraken\model\KrakenAccount.class
 io\strategiz\client\kraken\model\KrakenBalance.class
-io\strategiz\client\kraken\KrakenClientConfig.class
 io\strategiz\client\kraken\KrakenClient.class
+io\strategiz\client\kraken\config\ClientKrakenConfig.class
+io\strategiz\client\kraken\config\KrakenClientConfig.class

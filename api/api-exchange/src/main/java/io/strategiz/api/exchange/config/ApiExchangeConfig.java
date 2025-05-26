@@ -1,7 +1,9 @@
 package io.strategiz.api.exchange.config;
 
+import io.strategiz.service.exchange.config.ServiceExchangeConfig;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 /**
  * Configuration class for the exchange API module
@@ -11,18 +13,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan(basePackages = {
     "io.strategiz.api.exchange",
-    "io.strategiz.service.exchange",
-    "io.strategiz.data.exchange",
-    "io.strategiz.client.coinbase",
-    "io.strategiz.client.kraken",
     // Legacy packages for backward compatibility
-    "io.strategiz.coinbase",
     "io.strategiz.coinbase.controller",
-    "io.strategiz.coinbase.service",
     "io.strategiz.binanceus",
     "io.strategiz.kraken"
 })
-public class ExchangeConfig {
+@Import({
+    ServiceExchangeConfig.class
+})
+public class ApiExchangeConfig {
     // Configuration is limited to component scanning
     // CORS and other web configurations are handled by the global WebConfig
 }

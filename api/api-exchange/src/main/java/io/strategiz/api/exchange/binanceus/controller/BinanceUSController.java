@@ -170,7 +170,7 @@ public class BinanceUSController {
      * @param authHeader Authorization header containing Firebase ID token
      * @return Raw account data
      */
-    @GetMapping("/raw-account-data")
+    @GetMapping("/raw-account-data-user")
     public ResponseEntity<?> getRawAccountData(@RequestHeader("Authorization") String authHeader) {
         try {
             String idToken = authHeader.replace("Bearer ", "");

@@ -1,5 +1,3 @@
+io\strategiz\api\monitoring\config\ApiMonitoringConfig.class
 io\strategiz\api\monitoring\model\StatusResponse.class
-io\strategiz\api\monitoring\HealthCheckController.class
-io\strategiz\api\monitoring\StatusResponse.class
-io\strategiz\api\monitoring\config\MonitoringConfig.class
 io\strategiz\api\monitoring\controller\HealthCheckController.class

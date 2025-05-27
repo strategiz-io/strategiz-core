@@ -1,6 +1,7 @@
 io\strategiz\client\coinbase\exception\CoinbaseApiException.class
 io\strategiz\client\coinbase\model\CoinbaseResponse$Pagination.class
 io\strategiz\client\coinbase\CoinbaseClient$1.class
+io\strategiz\client\coinbase\config\CoinbaseClientConfig.class
 io\strategiz\client\coinbase\demo\CoinbasePriceDemo$2.class
 io\strategiz\client\coinbase\demo\CoinbasePriceDemo.class
 io\strategiz\client\coinbase\CoinbaseClient.class

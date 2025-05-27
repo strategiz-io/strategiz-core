@@ -17,10 +17,12 @@
 
     <modules>
         <module>service-strategy</module>
-        <module>service-exchange</module>
+        <module>service-provider</module>
         <module>service-common</module>
         <module>service-marketplace</module>
         <module>service-walletaddress</module>
+        <module>service-dashboard</module>
+        <module>service-portfolio</module>
     </modules>
     
     <dependencies>

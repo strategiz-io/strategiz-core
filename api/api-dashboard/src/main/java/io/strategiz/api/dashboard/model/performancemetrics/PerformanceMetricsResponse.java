@@ -1,4 +1,4 @@
-package io.strategiz.api.dashboard.model;
+package io.strategiz.api.dashboard.model.performancemetrics;
 
 import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
 import lombok.Data;

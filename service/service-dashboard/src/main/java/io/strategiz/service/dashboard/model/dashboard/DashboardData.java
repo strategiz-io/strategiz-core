@@ -1,4 +1,4 @@
-package io.strategiz.service.dashboard.model;
+package io.strategiz.service.dashboard.model.dashboard;
 
 import io.americanexpress.synapse.service.rest.model.BaseServiceRequest;
 import lombok.Data;

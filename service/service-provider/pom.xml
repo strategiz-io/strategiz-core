@@ -11,22 +11,12 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>service-exchange</artifactId>
-    <name>Strategiz Exchange Service</name>
-    <description>Exchange and brokerage business logic services</description>
+    <artifactId>service-provider</artifactId>
+    <name>Strategiz Provider Service</name>
+    <description>Provider and brokerage integration service for Strategiz</description>
     
     <dependencies>
         <!-- Internal module dependencies -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-exchange</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-document-storage</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-user</artifactId>
@@ -35,11 +25,6 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-kraken</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-coinbase</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -55,11 +40,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
+            <artifactId>spring-web</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         
         <!-- Lombok -->
@@ -69,30 +54,17 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- Firebase -->
+        <!-- Logging -->
         <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>9.1.1</version>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
         
-        <!-- JWT for Coinbase Advanced API Authentication -->
+        <!-- Testing -->
         <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>0.11.5</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     

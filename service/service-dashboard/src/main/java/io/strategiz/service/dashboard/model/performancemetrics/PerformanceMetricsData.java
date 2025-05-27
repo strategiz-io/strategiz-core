@@ -1,4 +1,4 @@
-package io.strategiz.service.dashboard.model;
+package io.strategiz.service.dashboard.model.performancemetrics;
 
 import lombok.Data;
 

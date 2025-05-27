@@ -1,13 +1,13 @@
 package io.strategiz.api.dashboard.controller;
 
 import io.americanexpress.synapse.service.rest.controller.BaseController;
-import io.strategiz.api.dashboard.model.AssetAllocationResponse;
-import io.strategiz.api.dashboard.model.DashboardResponse;
-import io.strategiz.api.dashboard.model.MarketSentimentResponse;
-import io.strategiz.api.dashboard.model.PerformanceMetricsResponse;
-import io.strategiz.api.dashboard.model.PortfolioSummaryResponse;
-import io.strategiz.api.dashboard.model.RiskAnalysisResponse;
-import io.strategiz.api.dashboard.model.WatchlistResponse;
+import io.strategiz.api.dashboard.model.assetallocation.AssetAllocationResponse;
+import io.strategiz.api.dashboard.model.dashboard.DashboardResponse;
+import io.strategiz.api.dashboard.model.marketsentiment.MarketSentimentResponse;
+import io.strategiz.api.dashboard.model.performancemetrics.PerformanceMetricsResponse;
+import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
+import io.strategiz.api.dashboard.model.riskanalysis.RiskAnalysisResponse;
+import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.service.dashboard.AssetAllocationService;
 import io.strategiz.service.dashboard.DashboardService;
 import io.strategiz.service.dashboard.MarketSentimentService;
@@ -180,6 +180,12 @@ public class DashboardController extends BaseController {
             AssetAllocationResponse response = assetAllocationService.getAssetAllocation(userId);
             response.setMetadata(createSuccessMetadata());
             
+            // Check if there is meaningful data to display
+            if (response.getAllocations() == null || response.getAllocations().isEmpty()) {
+                // Return 204 No Content if there's no data
+                return new ResponseEntity<>(responseHeaders, HttpStatus.NO_CONTENT);
+            }
+            
             // Return successful response with headers
             return new ResponseEntity<>(response, responseHeaders, HttpStatus.OK);
         } catch (Exception e) {
@@ -213,6 +219,12 @@ public class DashboardController extends BaseController {
             // Get performance metrics data from service
             PerformanceMetricsResponse response = performanceMetricsService.getPerformanceMetrics(userId);
             response.setMetadata(createSuccessMetadata());
+            
+            // Check if there is meaningful data to display
+            if (response.getReturns() == null || response.getReturns().isEmpty()) {
+                // Return 204 No Content if there's no data
+                return new ResponseEntity<>(responseHeaders, HttpStatus.NO_CONTENT);
+            }
             
             // Return successful response with headers
             return new ResponseEntity<>(response, responseHeaders, HttpStatus.OK);
@@ -248,6 +260,12 @@ public class DashboardController extends BaseController {
             RiskAnalysisResponse response = riskAnalysisService.getRiskAnalysis(userId);
             response.setMetadata(createSuccessMetadata());
             
+            // Check if there is meaningful data to display
+            if (response.getRiskMetrics() == null || response.getRiskMetrics().isEmpty()) {
+                // Return 204 No Content if there's no data
+                return new ResponseEntity<>(responseHeaders, HttpStatus.NO_CONTENT);
+            }
+            
             // Return successful response with headers
             return new ResponseEntity<>(response, responseHeaders, HttpStatus.OK);
         } catch (Exception e) {
@@ -281,6 +299,12 @@ public class DashboardController extends BaseController {
             // Get market sentiment data from service
             MarketSentimentResponse response = marketSentimentService.getMarketSentiment(userId);
             response.setMetadata(createSuccessMetadata());
+            
+            // Check if there is meaningful data to display
+            if (response.getSentimentData() == null || response.getSentimentData().isEmpty()) {
+                // Return 204 No Content if there's no data
+                return new ResponseEntity<>(responseHeaders, HttpStatus.NO_CONTENT);
+            }
             
             // Return successful response with headers
             return new ResponseEntity<>(response, responseHeaders, HttpStatus.OK);

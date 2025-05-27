@@ -1,21 +1,18 @@
-package io.strategiz.api.dashboard.model;
+package io.strategiz.service.dashboard.model.assetallocation;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Response model for asset allocation data following Synapse patterns.
+ * Data model for asset allocation.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class AssetAllocationResponse extends BaseServiceResponse {
+public class AssetAllocationData {
     
     /**
-     * List of asset allocations for pie chart
+     * List of asset allocations
      */
     private List<AssetAllocation> allocations;
     

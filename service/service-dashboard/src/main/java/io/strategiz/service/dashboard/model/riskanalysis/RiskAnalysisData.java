@@ -1,17 +1,14 @@
-package io.strategiz.api.dashboard.model;
+package io.strategiz.service.dashboard.model.riskanalysis;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 
 /**
- * Response model for portfolio risk analysis following Synapse patterns.
+ * Data model for portfolio risk analysis.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class RiskAnalysisResponse extends BaseServiceResponse {
+public class RiskAnalysisData {
     
     /**
      * Overall portfolio volatility score

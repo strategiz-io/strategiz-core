@@ -3,7 +3,7 @@ package io.strategiz.service.dashboard;
 import io.americanexpress.synapse.service.rest.service.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
-import io.strategiz.service.dashboard.model.PerformanceMetricsData;
+import io.strategiz.service.dashboard.model.performancemetrics.PerformanceMetricsData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

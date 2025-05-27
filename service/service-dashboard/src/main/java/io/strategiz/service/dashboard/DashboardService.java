@@ -1,15 +1,15 @@
 package io.strategiz.service.dashboard;
 
 import io.americanexpress.synapse.service.rest.service.BaseService;
-import io.strategiz.api.dashboard.model.PortfolioSummaryResponse;
-import io.strategiz.api.dashboard.model.WatchlistResponse;
+import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
+import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.client.alphavantage.AlphaVantageClient;
 import io.strategiz.client.alphavantage.model.StockData;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
-import io.strategiz.service.dashboard.model.DashboardData;
+import io.strategiz.service.dashboard.model.dashboard.DashboardData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -69,6 +69,65 @@ public class DashboardService extends BaseService {
             dashboardData.setWatchlist(getWatchlistData(userId));
             
             return dashboardData;
+        } catch (Exception e) {
+            log.error("Error getting dashboard data for user {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve dashboard data", e);
+        }
+    }
+    
+    /**
+     * Gets portfolio summary data for the user
+     * 
+     * @param userId The user ID to fetch portfolio data for
+     * @return Portfolio summary response
+     */
+    public PortfolioSummaryResponse getPortfolioSummary(String userId) {
+        log.info("Getting portfolio summary for user: {}", userId);
+        
+        try {
+            // Use the business-portfolio module to get aggregated portfolio data
+            PortfolioData portfolioData = portfolioManager.getAggregatedPortfolioData(userId);
+            
+            // Create the response object
+            PortfolioSummaryResponse response = new PortfolioSummaryResponse();
+            
+            // Check if there are any exchange connections
+            boolean hasExchangeConnections = portfolioData.getExchanges() != null && !portfolioData.getExchanges().isEmpty();
+            response.setHasExchangeConnections(hasExchangeConnections);
+            
+            if (hasExchangeConnections) {
+                // Set portfolio data
+                response.setTotalValue(portfolioData.getTotalValue());
+                response.setDailyChange(portfolioData.getDailyChange());
+                response.setDailyChangePercent(portfolioData.getDailyChangePercent());
+                
+                // Convert exchange data to response format
+                Map<String, PortfolioSummaryResponse.ExchangeData> exchanges = new HashMap<>();
+                
+                for (Map.Entry<String, PortfolioData.ExchangeData> entry : portfolioData.getExchanges().entrySet()) {
+                    PortfolioData.ExchangeData exchangeData = entry.getValue();
+                    PortfolioSummaryResponse.ExchangeData responseExchange = new PortfolioSummaryResponse.ExchangeData();
+                    
+                    responseExchange.setId(exchangeData.getId());
+                    responseExchange.setName(exchangeData.getName());
+                    responseExchange.setValue(exchangeData.getValue());
+                    
+                    exchanges.put(entry.getKey(), responseExchange);
+                }
+                
+                response.setExchanges(exchanges);
+                response.setStatusMessage("Connected to " + exchanges.size() + " exchange(s)");
+            } else {
+                // No exchange connections found
+                response.setTotalValue(BigDecimal.ZERO);
+                response.setDailyChange(BigDecimal.ZERO);
+                response.setDailyChangePercent(BigDecimal.ZERO);
+                response.setExchanges(new HashMap<>());
+                response.setStatusMessage("No exchange connections found. Please configure your API keys in the settings.");
+                response.setNeedsApiKeyConfiguration(true);
+            }
+            
+            return response;
         } catch (Exception e) {
             log.error("Error getting dashboard data for user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Failed to retrieve dashboard data", e);

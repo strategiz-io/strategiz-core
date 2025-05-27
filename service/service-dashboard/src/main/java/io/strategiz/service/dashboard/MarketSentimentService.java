@@ -1,7 +1,7 @@
 package io.strategiz.service.dashboard;
 
 import io.americanexpress.synapse.service.rest.service.BaseService;
-import io.strategiz.api.dashboard.model.MarketSentimentResponse;
+import io.strategiz.api.dashboard.model.marketsentiment.MarketSentimentResponse;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.client.coingecko.CoinGeckoClient;

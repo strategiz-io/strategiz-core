@@ -1,19 +1,16 @@
-package io.strategiz.api.dashboard.model;
+package io.strategiz.service.dashboard.model.marketsentiment;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Response model for market sentiment data following Synapse patterns.
+ * Data model for market sentiment.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class MarketSentimentResponse extends BaseServiceResponse {
+public class MarketSentimentData {
     
     /**
      * Overall market sentiment indicator

@@ -20,6 +20,9 @@
         <!-- Application Module -->
         <module>application</module>
         
+        <!-- Business Modules -->
+        <module>business</module>
+        
         <!-- Data Modules -->
         <module>data/data-strategy</module>
         <module>data/data-portfolio</module>
@@ -35,6 +38,7 @@
         <module>service/service-common</module>
         <module>service/service-marketplace</module>
         <module>service/service-walletaddress</module>
+        <module>service/service-dashboard</module>
         
         <!-- API Modules -->
         <module>api/api-strategy</module>
@@ -43,6 +47,7 @@
         <module>api/api-auth</module>
         <module>api/api-monitoring</module>
         <module>api/api-common</module>
+        <module>api/api-dashboard</module>
         
         <!-- Client Modules -->
         <module>client/client-kraken</module>
@@ -418,6 +423,14 @@
         -->
     </dependencies>
 
+    <!-- Repository for Synapse Framework -->
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+    
     <build>
         <plugins>
             <plugin>

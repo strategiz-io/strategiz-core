@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>service-provider</artifactId>
-    <name>Strategiz Provider Service</name>
+    
     <description>Provider and brokerage integration service for Strategiz</description>
     
     <dependencies>

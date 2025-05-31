@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>service-strategy</artifactId>
-    <name>Strategiz Strategy Service</name>
+    
     <description>Strategy business logic services</description>
     
     <dependencies>

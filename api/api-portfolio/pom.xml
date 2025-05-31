@@ -12,7 +12,6 @@
     </parent>
 
     <artifactId>api-portfolio</artifactId>
-    <name>Strategiz Portfolio API</name>
     <description>Portfolio REST API controllers</description>
     
     <dependencies>

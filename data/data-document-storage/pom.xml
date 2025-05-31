@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>data-document-storage</artifactId>
-    <name>Strategiz Document Storage</name>
+    
     <description>Document-oriented storage access layer</description>
     
     <dependencies>

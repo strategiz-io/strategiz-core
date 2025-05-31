@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>service-portfolio</artifactId>
-    <name>Strategiz Portfolio Service</name>
+    
     <description>Portfolio business logic services</description>
     
     <dependencies>

@@ -1,9 +1,12 @@
-package io.strategiz.walletaddress.service;
+package strategiz.service.walletaddress.service;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.*;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.cloud.FirestoreClient;
-import io.strategiz.walletaddress.model.WalletAddress;
+import io.strategiz.client.walletaddress.model.WalletAddress;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>api-auth</artifactId>
-    <name>Strategiz Authentication API</name>
+    
     <description>Authentication and security REST API controllers</description>
     
     <dependencies>

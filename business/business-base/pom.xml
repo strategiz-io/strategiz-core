@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>business-base</artifactId>
-    <name>business-base</name>
+    
     <description>Base components for the Strategiz business modules</description>
     
     <dependencies>

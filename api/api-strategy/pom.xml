@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>api-strategy</artifactId>
-    <name>Strategiz Strategy API</name>
+    
     <description>Strategy REST API controllers</description>
     
     <dependencies>
@@ -20,6 +20,12 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-strategy</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-strategy</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
         <!-- Spring dependencies -->
@@ -42,3 +48,4 @@
         </plugins>
     </build>
 </project>
+

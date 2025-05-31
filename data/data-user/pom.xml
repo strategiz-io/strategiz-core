@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>data-user</artifactId>
-    <name>Strategiz User Data</name>
+    
     <description>User data and provider settings access module</description>
 
     <dependencies>

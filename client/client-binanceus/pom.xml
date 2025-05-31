@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>client-binanceus</artifactId>
-    <name>${project.artifactId}</name>
+    
     <description>BinanceUS API client for Strategiz platform</description>
 
     <dependencies>
@@ -60,3 +60,4 @@
         </dependency>
     </dependencies>
 </project>
+

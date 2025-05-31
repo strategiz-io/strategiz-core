@@ -12,7 +12,7 @@
 
     <artifactId>data</artifactId>
     <packaging>pom</packaging>
-    <name>Strategiz Data Modules</name>
+    
     <description>Data access and repository modules</description>
 
     <modules>

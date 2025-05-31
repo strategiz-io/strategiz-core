@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>client-coinbase</artifactId>
-    <name>client-coinbase</name>
+    
     <description>Coinbase API client for Strategiz platform</description>
 
     <dependencies>
@@ -107,3 +107,4 @@
         </plugins>
     </build>
 </project>
+

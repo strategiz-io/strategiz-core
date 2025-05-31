@@ -1,6 +1,6 @@
 package io.strategiz.service.dashboard;
 
-import io.americanexpress.synapse.service.rest.service.BaseService;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;

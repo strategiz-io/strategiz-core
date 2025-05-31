@@ -1,21 +1,12 @@
 package io.strategiz.service.dashboard;
 
-// Use local BaseService implementation instead of Synapse
 import org.springframework.stereotype.Service;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.client.coingecko.CoinGeckoClient;
-// Client for AlphaVantage API
-// TODO: Implement actual AlphaVantage client once available
-class AlphaVantageClient {
-    public Map<String, Object> getStockMarketData() {
-        return new HashMap<>();
-    }
-}
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -26,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import io.strategiz.client.alphavantage.AlphaVantageClient;
 
 /**
  * Service for market sentiment operations.

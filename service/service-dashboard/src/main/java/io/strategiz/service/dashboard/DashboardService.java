@@ -1,6 +1,6 @@
 package io.strategiz.service.dashboard;
 
-import io.americanexpress.synapse.service.rest.service.BaseService;
+import io.strategiz.service.base.BaseService;
 // Removed external API model imports to avoid circular dependencies
 // import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 // import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;

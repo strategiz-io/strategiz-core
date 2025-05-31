@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>data-exchange</artifactId>
-    <name>Strategiz Exchange Data</name>
+    
     <description>Exchange and brokerage data models and repositories</description>
     
     <dependencies>

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>data-auth</artifactId>
-    <name>Strategiz Authentication Data</name>
+    
     <description>Authentication data models and repositories</description>
     
     <dependencies>
@@ -20,6 +20,7 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-document-storage</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
         <!-- Spring dependencies -->

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>api-provider</artifactId>
-    <name>Strategiz Provider API</name>
+    
     <description>API endpoints for provider and brokerage integration</description>
     
     <dependencies>

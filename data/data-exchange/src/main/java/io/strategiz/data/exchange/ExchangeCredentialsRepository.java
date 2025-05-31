@@ -2,9 +2,8 @@ package io.strategiz.data.exchange;
 
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.cloud.FirestoreClient;
-import io.strategiz.data.document.DocumentStorageService;
+
+import io.strategiz.data.base.document.DocumentStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

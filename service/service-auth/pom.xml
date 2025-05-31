@@ -20,10 +20,12 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-auth</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-document-storage</artifactId>
+            <artifactId>data-base</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
         <!-- Spring dependencies -->
@@ -64,6 +66,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
+            <!-- Build configuration is now inherited from parent pom.xml -->
         </plugins>
     </build>
 </project>

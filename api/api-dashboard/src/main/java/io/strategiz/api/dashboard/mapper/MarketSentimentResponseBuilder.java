@@ -1,7 +1,7 @@
 package io.strategiz.api.dashboard.mapper;
 
 import io.strategiz.api.dashboard.model.marketsentiment.MarketSentimentResponse;
-import io.strategiz.api.common.model.ResponseMetadata;
+import io.strategiz.api.base.model.ResponseMetadata;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

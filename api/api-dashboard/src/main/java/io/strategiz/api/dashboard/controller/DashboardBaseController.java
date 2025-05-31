@@ -4,7 +4,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import io.strategiz.api.common.controller.BaseController;
-import io.strategiz.api.common.model.ResponseMetadata;
+import io.strategiz.api.base.model.ResponseMetadata;
 import io.strategiz.service.base.model.BaseServiceResponse;
 
 /**

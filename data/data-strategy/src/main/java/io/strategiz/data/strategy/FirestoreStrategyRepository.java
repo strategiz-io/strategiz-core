@@ -2,7 +2,7 @@ package io.strategiz.data.strategy;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
-import io.strategiz.data.document.DocumentStorageService;
+import io.strategiz.data.base.document.DocumentStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +21,10 @@ public class FirestoreStrategyRepository implements StrategyRepository {
     private static final String COLLECTION_PATH = "users";
     private static final String SUBCOLLECTION_PATH = "strategies";
 
-    private final DocumentStorageService documentStorage;
+    private final DocumentStorage documentStorage;
 
     @Autowired
-    public FirestoreStrategyRepository(DocumentStorageService documentStorage) {
+    public FirestoreStrategyRepository(DocumentStorage documentStorage) {
         this.documentStorage = documentStorage;
     }
 

@@ -19,7 +19,8 @@
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-document-storage</artifactId>
+            <artifactId>data-base</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
         <!-- External dependencies -->

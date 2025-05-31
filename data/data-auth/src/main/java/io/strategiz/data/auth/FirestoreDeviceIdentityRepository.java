@@ -2,7 +2,7 @@ package io.strategiz.data.auth;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
-import io.strategiz.data.document.DocumentStorageService;
+import io.strategiz.data.base.document.DocumentStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

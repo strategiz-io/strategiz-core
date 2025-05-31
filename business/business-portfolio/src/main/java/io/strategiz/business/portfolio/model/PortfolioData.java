@@ -1,6 +1,6 @@
 package io.strategiz.business.portfolio.model;
 
-import io.americanexpress.synapse.framework.model.BaseModel;
+import io.strategiz.framework.model.BaseModel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -59,6 +59,7 @@ public class PortfolioData extends BaseModel {
         private String symbol;
         private String name;
         private BigDecimal quantity;
+        private BigDecimal amount;  // Added for compatibility with existing code
         private BigDecimal price;
         private BigDecimal value;
         private BigDecimal allocationPercent;

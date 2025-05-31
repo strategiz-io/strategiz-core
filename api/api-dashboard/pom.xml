@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>api-dashboard</artifactId>
-    <name>Strategiz Dashboard API</name>
+    <name>api-dashboard</name>
     
     <dependencies>
         <!-- Internal Dependencies -->
@@ -34,14 +34,24 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- Synapse Dependencies -->
+        <!-- MapStruct for DTO mapping -->
         <dependency>
-            <groupId>io.americanexpress.synapse</groupId>
-            <artifactId>synapse-service-rest</artifactId>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.5.5.Final</version>
         </dependency>
         <dependency>
-            <groupId>io.americanexpress.synapse</groupId>
-            <artifactId>synapse-framework-api</artifactId>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>1.5.5.Final</version>
+            <scope>provided</scope>
+        </dependency>
+        
+        <!-- Service Base dependency -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -12,7 +12,7 @@
 
     <groupId>io.strategiz</groupId>
     <artifactId>application</artifactId>
-    <name>Strategiz Core Application</name>
+    <name>application</name>
     <description>Main application module for bootstrapping Strategiz Core</description>
 
     <dependencies>

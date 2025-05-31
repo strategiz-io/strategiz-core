@@ -17,6 +17,11 @@
         <!-- Internal Dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>business-portfolio</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -41,21 +46,11 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         
-        <!-- Synapse Dependencies -->
+        <!-- Local Synapse Framework replacement -->
         <dependency>
-            <groupId>io.americanexpress.synapse</groupId>
-            <artifactId>synapse-service-rest</artifactId>
-            <version>0.3.32</version>
-        </dependency>
-        <dependency>
-            <groupId>io.americanexpress.synapse</groupId>
-            <artifactId>synapse-framework-exception</artifactId>
-            <version>0.3.32</version>
-        </dependency>
-        <dependency>
-            <groupId>io.americanexpress.synapse</groupId>
-            <artifactId>synapse-framework-logging</artifactId>
-            <version>0.3.32</version>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-synapse</artifactId>
+            <version>${project.version}</version>
         </dependency>
         
         <!-- Lombok -->

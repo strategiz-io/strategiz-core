@@ -3,6 +3,7 @@ package io.strategiz.service.dashboard;
 import io.americanexpress.synapse.service.rest.service.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
+import io.strategiz.service.dashboard.model.assetallocation.AssetAllocation;
 import io.strategiz.service.dashboard.model.assetallocation.AssetAllocationData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +22,8 @@ import java.util.stream.Collectors;
  * Service for asset allocation operations.
  * This service provides data for asset allocation pie charts and related visualizations.
  */
-@Slf4j
 @Service
+@Slf4j
 public class AssetAllocationService extends BaseService {
 
     private final PortfolioManager portfolioManager;
@@ -68,7 +69,7 @@ public class AssetAllocationService extends BaseService {
      */
     private AssetAllocationData calculateAssetAllocation(PortfolioData portfolioData) {
         AssetAllocationData response = new AssetAllocationData();
-        List<AssetAllocationData.AssetAllocation> allocations = new ArrayList<>();
+        List<AssetAllocation> allocations = new ArrayList<>();
         
         // Check if portfolio has any assets
         if (portfolioData == null || portfolioData.getExchanges() == null || 
@@ -84,12 +85,11 @@ public class AssetAllocationService extends BaseService {
         BigDecimal totalValue = portfolioData.getTotalValue();
         
         // Track assets that appear in multiple exchanges to combine them
-        Map<String, AssetAllocationData.AssetAllocation> assetMap = new HashMap<>();
+        Map<String, AssetAllocation> assetMap = new HashMap<>();
         
         // Process each exchange
         int colorIndex = 0;
         for (Map.Entry<String, PortfolioData.ExchangeData> exchangeEntry : portfolioData.getExchanges().entrySet()) {
-            String exchangeKey = exchangeEntry.getKey();
             PortfolioData.ExchangeData exchangeData = exchangeEntry.getValue();
             
             // Process each asset in the exchange
@@ -104,15 +104,17 @@ public class AssetAllocationService extends BaseService {
                     
                     // Create or update asset allocation
                     String assetKey = assetData.getSymbol();
-                    AssetAllocationData.AssetAllocation allocation;
+                    AssetAllocation allocation;
                     
                     if (assetMap.containsKey(assetKey)) {
                         // Update existing asset allocation
                         allocation = assetMap.get(assetKey);
-                        allocation.setValue(allocation.getValue().add(assetData.getValue()));
+                        BigDecimal existingValue = allocation.getValue() != null ? allocation.getValue() : BigDecimal.ZERO;
+                        BigDecimal newValue = assetData.getValue() != null ? assetData.getValue() : BigDecimal.ZERO;
+                        allocation.setValue(existingValue.add(newValue));
                     } else {
                         // Create new asset allocation
-                        allocation = new AssetAllocationData.AssetAllocation();
+                        allocation = new AssetAllocation();
                         allocation.setName(assetData.getName());
                         allocation.setSymbol(assetData.getSymbol());
                         allocation.setValue(assetData.getValue());
@@ -127,7 +129,7 @@ public class AssetAllocationService extends BaseService {
         }
         
         // Calculate percentages and build final list
-        for (AssetAllocationData.AssetAllocation allocation : assetMap.values()) {
+        for (AssetAllocation allocation : assetMap.values()) {
             // Calculate percentage of total portfolio
             BigDecimal percentage = allocation.getValue()
                 .divide(totalValue, 6, RoundingMode.HALF_UP)

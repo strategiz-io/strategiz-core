@@ -1,6 +1,5 @@
 package io.strategiz.business.portfolio;
 
-import io.americanexpress.synapse.framework.manager.BaseManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.business.portfolio.model.PortfolioMetrics;
 import io.strategiz.client.binanceus.BinanceUSClient;
@@ -22,7 +21,7 @@ import org.json.JSONObject;
  */
 @Slf4j
 @Component
-public class PortfolioManager extends BaseManager {
+public class PortfolioManager  {
 
     private final KrakenClient krakenClient;
     private final BinanceUSClient binanceUSClient;

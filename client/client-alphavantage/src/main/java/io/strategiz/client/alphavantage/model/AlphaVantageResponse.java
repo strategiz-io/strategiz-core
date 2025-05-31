@@ -1,15 +1,18 @@
 package io.strategiz.client.alphavantage.model;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
- * Base response model for AlphaVantage API responses following Synapse patterns.
+ * Base response model for AlphaVantage API responses.
+ * Simple POJO that follows the pattern used in other client modules.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class AlphaVantageResponse extends BaseServiceResponse {
+public class AlphaVantageResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private boolean success;
     private String message;
+    private LocalDateTime timestamp = LocalDateTime.now();
 }

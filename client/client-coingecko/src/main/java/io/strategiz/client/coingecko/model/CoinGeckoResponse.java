@@ -1,15 +1,18 @@
 package io.strategiz.client.coingecko.model;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
- * Base response model for CoinGecko API responses following Synapse patterns.
+ * Base response model for CoinGecko API responses.
+ * Simple POJO that follows the pattern used in other client modules.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class CoinGeckoResponse extends BaseServiceResponse {
+public class CoinGeckoResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private boolean success;
     private String message;
+    private LocalDateTime timestamp = LocalDateTime.now();
 }

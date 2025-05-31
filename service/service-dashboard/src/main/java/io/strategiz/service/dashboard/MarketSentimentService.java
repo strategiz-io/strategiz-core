@@ -1,16 +1,24 @@
 package io.strategiz.service.dashboard;
 
-import io.americanexpress.synapse.service.rest.service.BaseService;
-import io.strategiz.api.dashboard.model.marketsentiment.MarketSentimentResponse;
+// Use local BaseService implementation instead of Synapse
+import org.springframework.stereotype.Service;
+import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.client.coingecko.CoinGeckoClient;
-import io.strategiz.client.alphavantage.AlphaVantageClient;
+// Client for AlphaVantage API
+// TODO: Implement actual AlphaVantage client once available
+class AlphaVantageClient {
+    public Map<String, Object> getStockMarketData() {
+        return new HashMap<>();
+    }
+}
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -25,7 +33,7 @@ import java.util.Random;
  */
 @Slf4j
 @Service
-public class MarketSentimentService extends BaseService {
+public class MarketSentimentService {
 
     private final PortfolioManager portfolioManager;
     private final CoinGeckoClient coinGeckoClient;
@@ -241,7 +249,7 @@ public class MarketSentimentService extends BaseService {
                     double normalizedChange = (marketCapChange + 5.0) / 10.0; // Normalize to 0-1 range
                     normalizedChange = Math.max(0.0, Math.min(1.0, normalizedChange)); // Clamp to 0-1
                     double sentimentValue = normalizedChange * 100.0;
-                    return new BigDecimal(String.valueOf(sentimentValue)).setScale(2, BigDecimal.ROUND_HALF_UP);
+                    return new BigDecimal(String.valueOf(sentimentValue)).setScale(2, RoundingMode.HALF_UP);
                 }
             }
         } catch (Exception e) {
@@ -251,7 +259,7 @@ public class MarketSentimentService extends BaseService {
         // Fallback to a random value between 30 and 70
         Random random = new Random();
         double randomValue = 30.0 + (random.nextDouble() * 40.0);
-        return new BigDecimal(String.valueOf(randomValue)).setScale(2, BigDecimal.ROUND_HALF_UP);
+        return new BigDecimal(String.valueOf(randomValue)).setScale(2, RoundingMode.HALF_UP);
     }
     
     /**
@@ -300,7 +308,7 @@ public class MarketSentimentService extends BaseService {
             // Generate a random value between 20 and 80
             Random random = new Random();
             double randomValue = 20.0 + (random.nextDouble() * 60.0);
-            return new BigDecimal(String.valueOf(randomValue)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            return new BigDecimal(String.valueOf(randomValue)).setScale(2, RoundingMode.HALF_UP);
         } catch (Exception e) {
             log.error("Error fetching Fear and Greed Index: {}", e.getMessage(), e);
             
@@ -322,7 +330,7 @@ public class MarketSentimentService extends BaseService {
             // Generate a random value between 20% and 60%
             Random random = new Random();
             double randomValue = 20.0 + (random.nextDouble() * 40.0);
-            return new BigDecimal(String.valueOf(randomValue)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            return new BigDecimal(String.valueOf(randomValue)).setScale(2, RoundingMode.HALF_UP);
         } catch (Exception e) {
             log.error("Error fetching market uptrend percentage: {}", e.getMessage(), e);
             
@@ -344,7 +352,7 @@ public class MarketSentimentService extends BaseService {
             // Generate a random value between 20% and 60%
             Random random = new Random();
             double randomValue = 20.0 + (random.nextDouble() * 40.0);
-            return new BigDecimal(String.valueOf(randomValue)).setScale(2, BigDecimal.ROUND_HALF_UP);
+            return new BigDecimal(String.valueOf(randomValue)).setScale(2, RoundingMode.HALF_UP);
         } catch (Exception e) {
             log.error("Error fetching market downtrend percentage: {}", e.getMessage(), e);
             

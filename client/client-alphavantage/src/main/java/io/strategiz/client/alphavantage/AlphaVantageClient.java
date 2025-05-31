@@ -1,6 +1,6 @@
 package io.strategiz.client.alphavantage;
 
-import io.americanexpress.synapse.framework.exception.ApplicationClientException;
+import io.strategiz.framework.exception.ApplicationClientException;
 import io.strategiz.client.alphavantage.model.StockData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

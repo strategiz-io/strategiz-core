@@ -16,6 +16,7 @@
     <description>Business logic service modules</description>
 
     <modules>
+        <module>service-base</module>
         <module>service-strategy</module>
         <module>service-provider</module>
         <module>service-common</module>

@@ -1,6 +1,6 @@
 package io.strategiz.client.coingecko;
 
-import io.americanexpress.synapse.framework.exception.ApplicationClientException;
+import io.strategiz.framework.exception.ApplicationClientException;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,7 @@ public class CoinGeckoClient {
     private static final Logger log = LoggerFactory.getLogger(CoinGeckoClient.class);
     private static final String MARKETS_ENDPOINT = "/coins/markets";
     private static final String SEARCH_ENDPOINT = "/search";
+    private static final String GLOBAL_ENDPOINT = "/global";
     
     @Value("${coingecko.api.url:https://api.coingecko.com/api/v3}")
     private String baseUrl;
@@ -130,13 +131,14 @@ public class CoinGeckoClient {
                     new ParameterizedTypeReference<Map<String, List<Map<String, Object>>>>() {}
             );
             
-            if (response.getBody() == null || !response.getBody().containsKey("coins")) {
+            Map<String, List<Map<String, Object>>> body = response.getBody();
+            if (body == null || !body.containsKey("coins")) {
                 log.error("Invalid response format from CoinGecko search API");
                 return Collections.emptyList();
             }
             
             // Return the first 10 results
-            List<Map<String, Object>> coins = response.getBody().get("coins");
+            List<Map<String, Object>> coins = body.get("coins");
             return coins.subList(0, Math.min(coins.size(), 10));
         } catch (RestClientException e) {
             log.error("Error searching cryptocurrencies from CoinGecko API: {}", e.getMessage(), e);
@@ -182,15 +184,68 @@ public class CoinGeckoClient {
                     new ParameterizedTypeReference<List<CryptoCurrency>>() {}
             );
             
-            if (response.getBody() == null) {
+            List<CryptoCurrency> body = response.getBody();
+            if (body == null) {
                 log.error("Empty response body from CoinGecko API for top cryptocurrencies");
                 return Collections.emptyList();
             }
             
-            return response.getBody();
+            return body;
         } catch (RestClientException e) {
             log.error("Error fetching top cryptocurrencies from CoinGecko API: {}", e.getMessage(), e);
             throw new ApplicationClientException("Failed to retrieve top cryptocurrencies", e);
+        }
+    }
+    
+    /**
+     * Get global cryptocurrency market data
+     * 
+     * @return Map containing global market data like total market cap, trading volume, etc.
+     */
+    @Cacheable(value = "globalMarketData", key = "'global'")
+    public Map<String, Object> getGlobalMarketData() {
+        log.info("Fetching global cryptocurrency market data");
+        
+        try {
+            // Build URL for global endpoint
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl + GLOBAL_ENDPOINT);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            
+            // Add API key if available
+            if (apiKey != null && !apiKey.isEmpty()) {
+                headers.set("x-cg-api-key", apiKey);
+            }
+            
+            HttpEntity<?> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    builder.toUriString(),
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            
+            Map<String, Object> body = response.getBody();
+            if (body == null || !body.containsKey("data")) {
+                log.error("Invalid response format from CoinGecko global API");
+                return Collections.emptyMap();
+            }
+            
+            // Return the data object which contains all the global market stats
+            Object dataObj = body.get("data");
+            if (dataObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> result = (Map<String, Object>) dataObj;
+                return result;
+            } else {
+                log.error("Unexpected data type in CoinGecko global API response");
+                return Collections.emptyMap();
+            }
+        } catch (RestClientException e) {
+            log.error("Error fetching global market data from CoinGecko API: {}", e.getMessage(), e);
+            throw new ApplicationClientException("Failed to retrieve global cryptocurrency market data", e);
         }
     }
 }

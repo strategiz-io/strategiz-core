@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>framework-core</artifactId>
-    <name>Strategiz Framework Core</name>
+    
     <description>Core framework components for the Strategiz application</description>
     
     <dependencies>

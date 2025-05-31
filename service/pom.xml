@@ -12,7 +12,7 @@
 
     <artifactId>service</artifactId>
     <packaging>pom</packaging>
-    <name>Strategiz Service Modules</name>
+    
     <description>Business logic service modules</description>
 
     <modules>

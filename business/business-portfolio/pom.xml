@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>business-portfolio</artifactId>
-    <name>Strategiz Portfolio Business Logic</name>
+    
     
     <dependencies>
         <!-- Business Base Module -->

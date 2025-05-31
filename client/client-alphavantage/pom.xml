@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>client-alphavantage</artifactId>
-    <name>client-alphavantage</name>
+    
     <description>AlphaVantage API client for stock market data</description>
 
     <properties>
@@ -61,3 +61,4 @@
         </dependency>
     </dependencies>
 </project>
+

@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>client-walletaddress</artifactId>
+    
 
     <dependencies>
         <dependency>
@@ -27,5 +28,6 @@
         </dependency>
     </dependencies>
 </project>
+
 
 

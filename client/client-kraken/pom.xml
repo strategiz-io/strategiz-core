@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>client-kraken</artifactId>
-    <name>Strategiz Kraken Client</name>
+    
     <description>Kraken API client for Strategiz platform</description>
 
     <dependencies>
@@ -70,4 +70,5 @@
         </plugins>
     </build>
 </project>
+
 

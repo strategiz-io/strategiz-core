@@ -1,6 +1,6 @@
 package io.strategiz.api.dashboard.model.performancemetrics;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceResponse;
+import io.strategiz.service.base.model.BaseServiceResponse;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 

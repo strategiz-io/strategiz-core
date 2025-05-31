@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>client-base</artifactId>
-    <name>Strategiz Client Base</name>
+    
     <description>Base components for Strategiz client modules</description>
     
     <dependencies>
@@ -50,3 +50,5 @@
         </dependency>
     </dependencies>
 </project>
+
+

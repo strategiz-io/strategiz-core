@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>service-dashboard</artifactId>
-    <name>Strategiz Dashboard Service</name>
+    
     
     <dependencies>
         <!-- Internal Dependencies -->
@@ -46,10 +46,10 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         
-        <!-- Local Synapse Framework replacement -->
+        <!-- Framework Core -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>framework-synapse</artifactId>
+            <artifactId>framework-core</artifactId>
             <version>${project.version}</version>
         </dependency>
         
@@ -61,3 +61,4 @@
         </dependency>
     </dependencies>
 </project>
+

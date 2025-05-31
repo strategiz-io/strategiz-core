@@ -1,8 +1,8 @@
-package io.strategiz.walletaddress.service;
+package strategiz.service.walletaddress.service;
 
-import io.strategiz.walletaddress.client.WalletAddressBlockchainClient;
-import io.strategiz.walletaddress.model.WalletAddress;
-import io.strategiz.walletaddress.model.WalletBalance;
+import io.strategiz.client.walletaddress.client.WalletAddressBlockchainClient;
+import io.strategiz.client.walletaddress.model.WalletAddress;
+import io.strategiz.client.walletaddress.model.WalletBalance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;

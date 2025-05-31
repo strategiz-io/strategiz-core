@@ -12,7 +12,6 @@
     </parent>
 
     <artifactId>api-monitoring</artifactId>
-    <name>Strategiz Monitoring API</name>
     <description>System monitoring and health check endpoints</description>
     
     <dependencies>

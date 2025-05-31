@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>service-exchange</artifactId>
-    <name>Strategiz Exchange Service</name>
+    
     <description>Exchange and brokerage business logic services</description>
     
     <dependencies>
@@ -93,6 +93,18 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>0.11.5</version>
             <scope>runtime</scope>
+        </dependency>
+        
+        <!-- BouncyCastle for cryptographic operations -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.76</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.76</version>
         </dependency>
     </dependencies>
     

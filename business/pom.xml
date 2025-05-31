@@ -11,7 +11,7 @@
     </parent>
     
     <artifactId>business</artifactId>
-    <name>Strategiz Business Modules</name>
+    
     <packaging>pom</packaging>
     
     <modules>

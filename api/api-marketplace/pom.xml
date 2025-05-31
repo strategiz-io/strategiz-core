@@ -12,7 +12,6 @@
     </parent>
 
     <artifactId>api-marketplace</artifactId>
-    <name>Strategiz Marketplace API</name>
     <description>Marketplace REST API controllers</description>
 
     <dependencies>

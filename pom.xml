@@ -15,12 +15,13 @@
     <artifactId>strategiz-core</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>strategiz-core</name>
+    
     <description>Strategiz Core Platform</description>
 
     <modules>
         <!-- API Modules -->
         <module>api/api-auth</module>
+        <module>api/api-base</module>
         <module>api/api-common</module>
         <module>api/api-dashboard</module>
         <module>api/api-exchange</module>
@@ -46,7 +47,8 @@
         <module>service/service-auth</module>
         <module>service/service-common</module>
         <module>service/service-marketplace</module>
-        <module>service/service-walletaddress</module>
+        <!-- Temporarily commented out due to Firestore dependency issues -->
+        <!-- <module>service/service-walletaddress</module> -->
         <module>service/service-dashboard</module>
         
         <!-- Client Modules -->
@@ -56,7 +58,8 @@
         <module>client/client-coinbase</module>
         <module>client/client-coingecko</module>
         <module>client/client-kraken</module>
-        <module>client/client-walletaddress</module>
+        <!-- Temporarily commented out due to dependency issues -->
+        <!-- <module>client/client-walletaddress</module> -->
     </modules>
 
     <properties>
@@ -77,17 +80,37 @@
     
     <!-- Define repositories for dependencies -->
     <repositories>
+        <!-- Maven Central is the primary repository -->
         <repository>
             <id>central</id>
             <name>Maven Central</name>
             <url>https://repo.maven.apache.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
         </repository>
+        <!-- Local repository for project-specific dependencies -->
         <repository>
             <id>local-repo</id>
             <name>Local Repository</name>
             <url>file://${project.basedir}/local-repo</url>
         </repository>
     </repositories>
+    
+    <!-- Define repository mirrors to redirect requests -->
+    <mirrors>
+        <!-- Force all requests to go through Maven Central -->
+        <mirror>
+            <id>maven-central-mirror</id>
+            <name>Maven Central Mirror</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <mirrorOf>*,!local-repo</mirrorOf>
+        </mirror>
+    </mirrors>
 
     <!-- Force specific versions of commonly used dependencies to avoid conflicts -->
     <dependencyManagement>

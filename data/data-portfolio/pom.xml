@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>data-portfolio</artifactId>
-    <name>Strategiz Portfolio Data</name>
+    
     <description>Portfolio data models and repositories</description>
     
     <dependencies>
@@ -48,3 +48,4 @@
         </plugins>
     </build>
 </project>
+

@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>client-coingecko</artifactId>
-    <name>client-coingecko</name>
+    
     <description>CoinGecko API client for cryptocurrency market data</description>
 
     <properties>
@@ -61,3 +61,4 @@
         </dependency>
     </dependencies>
 </project>
+

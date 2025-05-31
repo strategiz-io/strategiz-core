@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>service-auth</artifactId>
-    <name>Strategiz Authentication Service</name>
+    
     <description>Authentication and security business logic services</description>
     
     <dependencies>
@@ -67,3 +67,4 @@
         </plugins>
     </build>
 </project>
+

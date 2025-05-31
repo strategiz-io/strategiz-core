@@ -12,16 +12,17 @@
 
     <artifactId>api</artifactId>
     <packaging>pom</packaging>
-    <name>Strategiz API Modules</name>
+    
     <description>REST API and controller modules</description>
 
     <modules>
+        <module>api-base</module>
+        <module>api-common</module>
         <module>api-strategy</module>
         <module>api-portfolio</module>
         <module>api-provider</module>
         <module>api-auth</module>
         <module>api-monitoring</module>
-        <module>api-common</module>
         <module>api-marketplace</module>
         <module>api-dashboard</module>
     </modules>

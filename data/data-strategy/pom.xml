@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>data-strategy</artifactId>
-    <name>Strategiz Strategy Data</name>
+    
     <description>Strategy data models and repositories</description>
     
     <dependencies>

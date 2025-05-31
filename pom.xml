@@ -19,6 +19,9 @@
     <description>Strategiz Core Platform</description>
 
     <modules>
+        <!-- Application Module -->
+        <module>application</module>
+        
         <!-- API Modules -->
         <module>api/api-auth</module>
         <module>api/api-base</module>
@@ -31,7 +34,8 @@
         
         <!-- Data Modules -->
         <module>data/data-auth</module>
-        <module>data/data-document-storage</module>
+        <module>data/data-base</module>
+        <!-- data-document-storage module has been consolidated into data-base -->
         <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
@@ -119,17 +123,17 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>data-document-storage</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
                 <artifactId>data-exchange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>data-auth</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -328,20 +332,7 @@
         </dependencies>
     </dependencyManagement>
     
-    <dependencies>
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        
-        <!-- Test Dependencies -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <!-- No direct dependencies at the parent level - each module should declare its own dependencies -->
 
     <build>
         <plugins>
@@ -365,13 +356,15 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- Skip repackaging by default for all library modules -->
+                    <skip>true</skip>
+                    <mainClass>io.strategiz.application.Application</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
@@ -379,9 +372,6 @@
                         <goals>
                             <goal>repackage</goal>
                         </goals>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

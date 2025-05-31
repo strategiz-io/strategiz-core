@@ -6,7 +6,7 @@
 		<project>service-base</project>
 		<project>framework-core</project>
 		<project>data-exchange</project>
-		<project>data-document-storage</project>
+		<project>data-base</project>
 		<project>client-kraken</project>
 		<project>client-coinbase</project>
 		<project>client-binanceus</project>

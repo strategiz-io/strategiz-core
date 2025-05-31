@@ -12,7 +12,7 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" path="/data-document-storage"/>
+	<classpathentry kind="src" path="/data-base"/>
 	<classpathentry kind="var" path="M2_REPO/com/google/firebase/firebase-admin/9.1.1/firebase-admin-9.1.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/google/api-client/google-api-client-gson/2.0.0/google-api-client-gson-2.0.0.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/google/api/api-common/2.2.1/api-common-2.2.1.jar"/>
@@ -173,9 +173,6 @@
 	<classpathentry kind="src" output="target/test-classes" path="target/generated-test-sources/test-annotations">
 		<attributes>
 			<attribute name="optional" value="true"/>
-			<attribute name="maven.pomderived" value="true"/>
-			<attribute name="ignore_optional_problems" value="true"/>
-			<attribute name="m2e-apt" value="true"/>
 			<attribute name="test" value="true"/>
 		</attributes>
 	</classpathentry>

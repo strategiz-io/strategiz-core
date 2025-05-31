@@ -16,9 +16,9 @@
     <description>Data access and repository modules</description>
 
     <modules>
+        <module>data-base</module>
         <module>data-strategy</module>
         <module>data-exchange</module>
-        <module>data-document-storage</module>
         <module>data-portfolio</module>
         <module>data-auth</module>
         <module>data-user</module>

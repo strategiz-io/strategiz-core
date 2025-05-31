@@ -24,7 +24,60 @@ Server-side API and services for the Strategiz platform. This repository contain
   - Firebase Authentication integration
   - Secure storage of user credentials
 
-## Architecture
+## Documentation
+
+Strategiz Core has comprehensive documentation organized into several focused documents:
+
+### [Architecture Guidelines](docs/ARCHITECTURE.md)
+
+Our architectural principles, design patterns implementation, and SOLID principles:
+- Layered architecture diagram and dependencies
+- Technology stack used in each layer
+- Design patterns implementation (Factory, Builder, Adapter, Facade, etc.)
+- SOLID principles implementation
+- Naming conventions and class responsibilities
+
+### [Developer Guide](docs/DEVELOPER_GUIDE.md)
+
+Information on coding standards, contribution workflows, and development best practices:
+- Code of conduct
+- Coding standards for Java
+- REST API design principles
+- Pull request process
+- Testing standards
+- Release process
+
+### [API Endpoints Reference](docs/API_ENDPOINTS.md)
+
+Complete documentation of all available API endpoints:
+- Authentication endpoints
+- Exchange-specific endpoints
+- Portfolio and strategy endpoints
+- Response formats and rate limiting
+
+### [Exchange Integrations](docs/EXCHANGE_INTEGRATIONS.md)
+
+Detailed information about cryptocurrency exchange integrations:
+- Integration principles
+- Exchange-specific notes and data handling
+- Raw data transparency
+- Guidelines for adding new exchanges
+
+### [Security Features](docs/SECURITY.md)
+
+Comprehensive overview of security measures:
+- Authentication and API key management
+- Request and response protection
+- Data security and encryption
+- Monitoring and auditing
+
+### [Deployment Guide](docs/DEPLOYMENT.md)
+
+Instructions for deploying in different environments:
+- Local development setup
+- Production deployment options
+- Environment configuration
+- Troubleshooting common issues
 
 ### Module Structure
 
@@ -155,54 +208,49 @@ Or:
 firebase functions:log
 ```
 
-## API Endpoints
+## Key Features Quick Reference
 
-### Health Check
-- `GET /health` - Check if the server is running
+### API Integration Points
 
-### Binance US API
-- `GET /api/binanceus/balance/:userId` - Get user's Binance US account balance
-- `GET /api/binanceus/raw-data/:userId` - Get completely unmodified raw data from Binance US API (admin only)
+Strategiz Core integrates with multiple cryptocurrency exchanges and services:
 
-### Kraken API
-- `GET /api/kraken/balance/:userId` - Get user's Kraken account balance
-- `GET /api/kraken/raw-data/:userId` - Get completely unmodified raw data from Kraken API (admin only)
+- **Binance US** - Balance retrieval and raw data access
+- **Kraken** - Balance retrieval and raw data access
+- **Coinbase** - Balance retrieval and raw data access
+- **Uniswap** - Portfolio retrieval and blockchain data access
 
-### Coinbase API
-- `GET /api/coinbase/balance/:userId` - Get user's Coinbase account balance
-- `GET /api/coinbase/raw-data/:userId` - Get completely unmodified raw data from Coinbase API (admin only)
+For complete API documentation, see [API Endpoints Reference](docs/API_ENDPOINTS.md).
 
-### Uniswap API
-- `GET /api/uniswap/portfolio/:userId/:walletAddress` - Get user's Uniswap portfolio
-- `GET /api/uniswap/raw-data/:userId/:walletAddress` - Get completely unmodified raw data from Uniswap (admin only)
+### Security Overview
 
-## Security Features
+The application implements comprehensive security measures including:
 
-- **Secure Credential Storage**: API keys are stored in Firebase Firestore with encryption
-- **Server-side API Requests**: All API calls to exchanges are made from the server, not the client
-- **User-specific Credentials**: Each user's API credentials are stored separately
-- **Rate Limiting**: Prevents abuse of the API endpoints
-- **CORS Protection**: Restricts which domains can access the API
-- **Helmet Security Headers**: Adds various HTTP headers for enhanced security
+- **Real credential handling** (never using mock or test data)
+- **End-to-end encryption** for API keys and sensitive data
+- **Server-side API requests** (no client-side exposure of credentials)
 
-## Exchange-Specific Notes
+For detailed security information, see [Security Features](docs/SECURITY.md).
 
-### Binance US
-- Balances are returned in the "balances" array within the account data
-- Admin page displays completely unmodified raw data from the API
+## Core Principles
 
-### Kraken
-- Asset names in Kraken have special prefixes (X for crypto, Z for fiat)
-- The admin page shows the original asset name from the API alongside the cleaned version
+### Real Data Only
 
-### Coinbase
-- Uses OAuth 2.0 for authentication
-- Requires API key and secret for authentication
+Strategiz Core strictly adheres to using only real API data and real user credentials. This project:
 
-### Uniswap
-- Requires an Ethereum provider URL (e.g., Infura)
-- Interacts directly with the Ethereum blockchain
-- Uses ethers.js for blockchain interactions
+- **Never** uses mock responses, test data, or dummy data
+- **Always** connects to actual exchange APIs using real credentials
+- **Shows** completely unmodified API responses through admin endpoints
+- **Maintains** transparency about what's actually coming from the APIs
+
+### Transparency in Data Processing
+
+We maintain transparency in how we process exchange data:
+
+- Special handling for Kraken asset names (preserving .F suffixes for futures contracts)
+- Minimal transformation of raw API data
+- Admin pages showing exactly what we receive from exchanges
+
+For detailed information about exchange integrations, see [Exchange Integrations](docs/EXCHANGE_INTEGRATIONS.md).
 
 ## Troubleshooting
 

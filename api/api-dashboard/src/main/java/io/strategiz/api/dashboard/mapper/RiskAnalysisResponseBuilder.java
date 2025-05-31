@@ -2,7 +2,7 @@ package io.strategiz.api.dashboard.mapper;
 
 import io.strategiz.api.dashboard.model.riskanalysis.RiskAnalysisResponse;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
-import io.strategiz.api.common.model.ResponseMetadata;
+import io.strategiz.api.base.model.ResponseMetadata;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

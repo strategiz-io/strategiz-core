@@ -21,6 +21,7 @@
         <module>data-document-storage</module>
         <module>data-portfolio</module>
         <module>data-auth</module>
+        <module>data-user</module>
     </modules>
     
     <dependencies>

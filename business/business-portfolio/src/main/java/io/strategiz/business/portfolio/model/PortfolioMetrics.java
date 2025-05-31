@@ -1,18 +1,16 @@
 package io.strategiz.business.portfolio.model;
 
-import io.americanexpress.synapse.framework.model.BaseModel;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.io.Serializable;
 
 /**
- * Business model for portfolio metrics following Synapse patterns.
+ * Business model for portfolio metrics.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class PortfolioMetrics extends BaseModel {
+public class PortfolioMetrics implements Serializable {
     
     /**
      * User ID associated with these metrics

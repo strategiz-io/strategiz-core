@@ -1,8 +1,10 @@
 package io.strategiz.client.alphavantage.config;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -12,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
+
 
 /**
  * Configuration for AlphaVantage API client following Synapse patterns.
@@ -36,25 +38,26 @@ public class ClientAlphaVantageConfig {
         log.info("Initializing AlphaVantage RestTemplate with timeouts: connect={}ms, read={}ms", 
                 CONNECTION_TIMEOUT, READ_TIMEOUT);
         
-        // Configure timeouts for the RestTemplate
+        // Configure timeouts for the RestTemplate using the modern API
         RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(CONNECTION_TIMEOUT)
-                .setSocketTimeout(READ_TIMEOUT)
-                .setConnectionRequestTimeout(CONNECTION_TIMEOUT)
+                .setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+                .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
+                .setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
                 .build();
         
-        HttpClientBuilder clientBuilder = HttpClientBuilder.create()
+        HttpClientBuilder clientBuilder = HttpClients.custom()
                 .setDefaultRequestConfig(requestConfig);
         
-        HttpClient httpClient = clientBuilder.build();
+        CloseableHttpClient httpClient = clientBuilder.build();
         
+        // Create request factory with HttpClient 5.x
         HttpComponentsClientHttpRequestFactory requestFactory = 
                 new HttpComponentsClientHttpRequestFactory(httpClient);
         
-        return new RestTemplateBuilder()
-                .requestFactory(() -> requestFactory)
-                .setConnectTimeout(Duration.ofMillis(CONNECTION_TIMEOUT))
-                .setReadTimeout(Duration.ofMillis(READ_TIMEOUT))
-                .build();
+        // Create RestTemplate directly instead of using deprecated builder methods
+        RestTemplate restTemplate = new RestTemplate(requestFactory);
+        
+        log.info("AlphaVantage RestTemplate created with custom request factory");
+        return restTemplate;
     }
 }

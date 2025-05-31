@@ -1,8 +1,7 @@
 package io.strategiz.service.dashboard.model.dashboard;
 
-import io.americanexpress.synapse.service.rest.model.BaseServiceRequest;
+import java.io.Serializable;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,8 +11,7 @@ import java.util.Map;
  * Service model for dashboard data following Synapse patterns.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-public class DashboardData extends BaseServiceRequest {
+public class DashboardData implements Serializable {
     
     /**
      * User ID associated with this dashboard data

@@ -1,6 +1,9 @@
 package io.strategiz.service.dashboard.model.assetallocation;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -9,6 +12,9 @@ import java.util.List;
  * Data model for asset allocation.
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AssetAllocationData {
     
     /**
@@ -17,38 +23,7 @@ public class AssetAllocationData {
     private List<AssetAllocation> allocations;
     
     /**
-     * Asset allocation data
+     * Total value of all assets
      */
-    @Data
-    public static class AssetAllocation {
-        /**
-         * Asset name
-         */
-        private String name;
-        
-        /**
-         * Asset symbol
-         */
-        private String symbol;
-        
-        /**
-         * Value of asset holding in USD
-         */
-        private BigDecimal value;
-        
-        /**
-         * Percentage of total portfolio value
-         */
-        private BigDecimal percentage;
-        
-        /**
-         * Source exchange (Coinbase, Kraken, Binance, etc.)
-         */
-        private String exchange;
-        
-        /**
-         * Color to use for this asset in charts
-         */
-        private String color;
-    }
+    private BigDecimal totalValue;
 }

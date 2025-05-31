@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.8</version>
+        <version>3.5.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -15,22 +15,31 @@
     <artifactId>strategiz-core</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    
+    <name>strategiz-core</name>
+    <description>Strategiz Core Platform</description>
+
     <modules>
-        <!-- Application Module -->
-        <module>application</module>
-        
-        <!-- Business Modules -->
-        <module>business</module>
+        <!-- API Modules -->
+        <module>api/api-auth</module>
+        <module>api/api-common</module>
+        <module>api/api-dashboard</module>
+        <module>api/api-exchange</module>
+        <module>api/api-monitoring</module>
+        <module>api/api-portfolio</module>
+        <module>api/api-strategy</module>
         
         <!-- Data Modules -->
-        <module>data/data-strategy</module>
-        <module>data/data-portfolio</module>
-        <module>data/data-exchange</module>
-        <module>data/data-document-storage</module>
         <module>data/data-auth</module>
+        <module>data/data-document-storage</module>
+        <module>data/data-exchange</module>
+        <module>data/data-portfolio</module>
+        <module>data/data-strategy</module>
+        
+        <!-- Framework Modules -->
+        <module>framework/framework-core</module>
         
         <!-- Service Modules -->
+        <module>service/service-base</module>
         <module>service/service-strategy</module>
         <module>service/service-portfolio</module>
         <module>service/service-exchange</module>
@@ -40,37 +49,45 @@
         <module>service/service-walletaddress</module>
         <module>service/service-dashboard</module>
         
-        <!-- API Modules -->
-        <module>api/api-strategy</module>
-        <module>api/api-portfolio</module>
-        <module>api/api-exchange</module>
-        <module>api/api-auth</module>
-        <module>api/api-monitoring</module>
-        <module>api/api-common</module>
-        <module>api/api-dashboard</module>
-        
         <!-- Client Modules -->
-        <module>client/client-kraken</module>
-        <module>client/client-coinbase</module>
-        <module>client/client-walletaddress</module>
+        <module>client/client-base</module>
+        <module>client/client-alphavantage</module>
         <module>client/client-binanceus</module>
+        <module>client/client-coinbase</module>
+        <module>client/client-coingecko</module>
+        <module>client/client-kraken</module>
+        <module>client/client-walletaddress</module>
     </modules>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Using stable, compatible versions of Google libraries -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <firebase.admin.version>9.1.1</firebase.admin.version>
-        <google.auth.version>1.19.0</google.auth.version>
-        <google.cloud.core.version>2.20.0</google.cloud.core.version>
-        <google.api.gax.version>2.54.1</google.api.gax.version>
-        <google.http.client.version>1.43.3</google.http.client.version>
         <google.api.client.version>2.2.0</google.api.client.version>
-        <google.cloud.firestore.version>3.14.1</google.cloud.firestore.version>
-        <!-- Disabling Vertex AI for now to fix dependency conflicts -->
+        <google.api.gax.version>2.19.1</google.api.gax.version>
+        <google.http.client.version>1.42.1</google.http.client.version>
         <vertex.ai.version>0.3.0</vertex.ai.version>
         <google.cloud.aiplatform.version>3.4.0</google.cloud.aiplatform.version>
+        <google.cloud.firestore.version>3.15.4</google.cloud.firestore.version>
+        <apache.httpclient.version>4.5.14</apache.httpclient.version>
+        <synapse.version>0.3.32</synapse.version>
     </properties>
+    
+    <!-- Define repositories for dependencies -->
+    <repositories>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>local-repo</id>
+            <name>Local Repository</name>
+            <url>file://${project.basedir}/local-repo</url>
+        </repository>
+    </repositories>
 
     <!-- Force specific versions of commonly used dependencies to avoid conflicts -->
     <dependencyManagement>
@@ -89,12 +106,12 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>data-exchange</artifactId>
+                <artifactId>data-document-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>data-document-storage</artifactId>
+                <artifactId>data-exchange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -104,6 +121,11 @@
             </dependency>
             
             <!-- Service Modules -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-strategy</artifactId>
@@ -124,16 +146,85 @@
                 <artifactId>service-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
-            <!-- API Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>api-strategy</artifactId>
+                <artifactId>service-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>api-portfolio</artifactId>
+                <artifactId>service-walletaddress</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-marketplace</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-dashboard</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!-- Framework Modules -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>framework-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!-- Client Modules -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-alphavantage</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-binanceus</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-coinbase</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-coingecko</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-kraken</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-walletaddress</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!-- API Modules -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>api-auth</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>api-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>api-dashboard</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -143,35 +234,21 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>api-auth</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
                 <artifactId>api-monitoring</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
-            <!-- Client Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>client-kraken</artifactId>
+                <artifactId>api-portfolio</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>client-coinbase</artifactId>
+                <artifactId>api-strategy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
-            <!-- Google Cloud Libraries Version Management -->
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-bom</artifactId>
-                <version>0.148.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+            <!-- External Library Versions -->
             <dependency>
                 <groupId>com.google.api</groupId>
                 <artifactId>gax</artifactId>
@@ -188,6 +265,11 @@
                 <version>${google.api.gax.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.google.api-client</groupId>
+                <artifactId>google-api-client</artifactId>
+                <version>${google.api.client.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.http-client</groupId>
                 <artifactId>google-http-client</artifactId>
                 <version>${google.http.client.version}</version>
@@ -197,247 +279,85 @@
                 <artifactId>google-http-client-gson</artifactId>
                 <version>${google.http.client.version}</version>
             </dependency>
+            
+            <!-- Firebase Admin SDK with careful exclusions -->
             <dependency>
-                <groupId>com.google.auth</groupId>
-                <artifactId>google-auth-library-credentials</artifactId>
-                <version>${google.auth.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>google-cloud-firestore</artifactId>
-                <version>${google.cloud.firestore.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.api-client</groupId>
-                <artifactId>google-api-client</artifactId>
-                <version>${google.api.client.version}</version>
+                <groupId>com.google.firebase</groupId>
+                <artifactId>firebase-admin</artifactId>
+                <version>${firebase.admin.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.api</groupId>
+                        <artifactId>gax</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.api</groupId>
+                        <artifactId>gax-grpc</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.api</groupId>
+                        <artifactId>gax-httpjson</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.api-client</groupId>
+                        <artifactId>google-api-client</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.http-client</groupId>
+                        <artifactId>google-http-client</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.http-client</groupId>
+                        <artifactId>google-http-client-gson</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
+    
     <dependencies>
-        <!-- Lombok for annotation processing -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- Bouncy Castle for cryptography (PEM, etc.) -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-            <version>1.70</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk15on</artifactId>
-            <version>1.70</version>
-        </dependency>
-        <!-- org.json for JSON parsing -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20220320</version>
-        </dependency>
-
-        <!-- Spring Boot Dependencies -->
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+            <artifactId>spring-boot-starter</artifactId>
         </dependency>
         
-        <!-- Firebase Admin SDK with careful exclusions -->
-        <dependency>
-            <groupId>com.google.firebase</groupId>
-            <artifactId>firebase-admin</artifactId>
-            <version>${firebase.admin.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax-grpc</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax-httpjson</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api-client</groupId>
-                    <artifactId>google-api-client</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.http-client</groupId>
-                    <artifactId>google-http-client</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.http-client</groupId>
-                    <artifactId>google-http-client-gson</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        
-        <!-- Explicitly add the excluded dependencies with controlled versions -->
-        <dependency>
-            <groupId>com.google.api</groupId>
-            <artifactId>gax</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.api</groupId>
-            <artifactId>gax-grpc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.api-client</groupId>
-            <artifactId>google-api-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.http-client</groupId>
-            <artifactId>google-http-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.http-client</groupId>
-            <artifactId>google-http-client-gson</artifactId>
-        </dependency>
-
-        <!-- Google Auth Library - Required for Firebase Firestore -->
-        <dependency>
-            <groupId>com.google.auth</groupId>
-            <artifactId>google-auth-library-oauth2-http</artifactId>
-            <version>${google.auth.version}</version>
-        </dependency>
-        
-        <!-- Google Cloud Core - To ensure consistent API versions -->
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-core</artifactId>
-            <version>${google.cloud.core.version}</version>
-        </dependency>
-        
-        <!-- Jackson for JSON processing -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        
-        <!-- Apache HttpClient -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-        </dependency>
-        
-        <!-- Lombok declaration is earlier in the file -->
-        
-        <!-- Synapse Framework -->
-        <dependency>
-            <groupId>io.americanexpress.synapse</groupId>
-            <artifactId>synapse-service-rest</artifactId>
-            <version>0.3.32</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        
-        <!-- Testing Dependencies -->
+        <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        
-        <!-- Bouncy Castle declaration is earlier in the file -->
-        
-        <!-- JJWT for JWT token generation and validation -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>0.11.5</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- Google Cloud Vertex AI Dependencies for Gemini -->
-        <!-- Temporarily commenting out Vertex AI dependencies until dependency conflicts are resolved -->
-        <!--
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-vertexai</artifactId>
-            <version>${vertex.ai.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.auth</groupId>
-                    <artifactId>google-auth-library-oauth2-http</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax-grpc</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-aiplatform</artifactId>
-            <version>${google.cloud.aiplatform.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.auth</groupId>
-                    <artifactId>google-auth-library-oauth2-http</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.api</groupId>
-                    <artifactId>gax-grpc</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
     </dependencies>
 
-    <!-- Repository for Synapse Framework -->
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
-    
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin with Java 21 configuration -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <fork>true</fork>
+                    <executable>C:\Program Files\Java\jdk-21\bin\javac</executable>
+                    <compilerVersion>21</compilerVersion>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+            
+            <!-- Spring Boot Maven Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>strategiz.Application</mainClass>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
                     <skip>true</skip>
                 </configuration>
                 <executions>
@@ -452,32 +372,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>com.google.cloud.tools</groupId>
-                <artifactId>jib-maven-plugin</artifactId>
-                <version>3.3.2</version>
-                <configuration>
-                    <to>
-                        <image>gcr.io/strategiz-io/strategiz-core</image>
-                    </to>
-                    <container>
-                        <jvmFlags>
-                            <jvmFlag>-Xms512m</jvmFlag>
-                            <jvmFlag>-Xmx1g</jvmFlag>
-                        </jvmFlags>
-                        <ports>
-                            <port>8080</port>
-                        </ports>
-                        <environment>
-                            <SPRING_PROFILES_ACTIVE>prod</SPRING_PROFILES_ACTIVE>
-                        </environment>
-                    </container>
-                </configuration>
-            </plugin>
-            <!-- Enforcer plugin removed to allow build to proceed -->
-            <!-- We'll handle dependency conflicts manually -->
         </plugins>
     </build>
 </project>
-
-

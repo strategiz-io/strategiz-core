@@ -1,15 +1,26 @@
 package io.strategiz.service.dashboard;
 
 import io.americanexpress.synapse.service.rest.service.BaseService;
-import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
-import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
+// Removed external API model imports to avoid circular dependencies
+// import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
+// import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
+import io.strategiz.business.portfolio.model.PortfolioMetrics;
 import io.strategiz.client.alphavantage.AlphaVantageClient;
 import io.strategiz.client.alphavantage.model.StockData;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
+import io.strategiz.service.dashboard.constants.DashboardConstants;
 import io.strategiz.service.dashboard.model.dashboard.DashboardData;
+import io.strategiz.service.dashboard.model.dashboard.DashboardData.PortfolioSummary;
+import io.strategiz.service.dashboard.model.dashboard.DashboardData.MarketData;
+import io.strategiz.service.dashboard.model.dashboard.DashboardData.WatchlistItem;
+import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
+import io.strategiz.service.dashboard.model.watchlist.WatchlistResponse;
+import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,16 +31,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.strategiz.service.dashboard.constant.DashboardConstants;
+import java.util.stream.Collectors;
 
 /**
  * Service for dashboard operations.
  * This service coordinates data retrieval and processing for the dashboard.
  * Implements Synapse BaseService pattern.
  */
-@Slf4j
 @Service
+@Slf4j
 public class DashboardService extends BaseService {
 
     private final PortfolioManager portfolioManager;
@@ -64,7 +74,8 @@ public class DashboardService extends BaseService {
             
             // Convert data to structured objects
             dashboardData.setPortfolio(convertToPortfolioSummary(portfolioData));
-            dashboardData.setMetrics(portfolioManager.calculatePortfolioMetrics(portfolioData));
+            PortfolioMetrics portfolioMetrics = portfolioManager.calculatePortfolioMetrics(portfolioData);
+            dashboardData.setMetrics(convertToPerformanceMetrics(portfolioMetrics));
             dashboardData.setMarket(getMarketData());
             dashboardData.setWatchlist(getWatchlistData(userId));
             
@@ -135,12 +146,12 @@ public class DashboardService extends BaseService {
     }
     
     /**
-     * Gets portfolio summary for the authenticated user
+     * Gets detailed portfolio summary for the authenticated user
      * 
      * @param userId The user ID to fetch portfolio data for
      * @return Portfolio summary response
      */
-    public PortfolioSummaryResponse getPortfolioSummary(String userId) {
+    public PortfolioSummaryResponse getDetailedPortfolioSummary(String userId) {
         log.info("Getting portfolio summary for user: {}", userId);
         
         try {
@@ -461,6 +472,24 @@ public class DashboardService extends BaseService {
     }
     
     /**
+     * Converts PortfolioMetrics to DashboardData.PerformanceMetrics
+     * 
+     * @param portfolioMetrics Portfolio metrics from business layer
+     * @return Dashboard performance metrics
+     */
+    private DashboardData.PerformanceMetrics convertToPerformanceMetrics(PortfolioMetrics portfolioMetrics) {
+        if (portfolioMetrics == null) {
+            return null;
+        }
+        
+        DashboardData.PerformanceMetrics metrics = new DashboardData.PerformanceMetrics();
+        metrics.setPerformance(portfolioMetrics.getPerformance());
+        metrics.setAllocation(portfolioMetrics.getAllocation());
+        metrics.setRisk(portfolioMetrics.getRisk());
+        return metrics;
+    }
+    
+    /**
      * Provide fallback data for critical stocks if API call fails
      * 
      * @param stockAssets List of stock assets
@@ -494,41 +523,115 @@ public class DashboardService extends BaseService {
      * Asset data class for watchlist
      */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class WatchlistAsset {
-        private final String id;
-        private final String symbol;
-        private final String name;
-        private final String category;
+        private String id;
+        private String symbol;
+        private String name;
+        private String category;
         
-        public WatchlistAsset(String id, String symbol, String name, String category) {
+        public String getId() {
+            return id;
+        }
+        
+        public void setId(String id) {
             this.id = id;
+        }
+        
+        public String getSymbol() {
+            return symbol;
+        }
+        
+        public void setSymbol(String symbol) {
             this.symbol = symbol;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
             this.name = name;
+        }
+        
+        public String getCategory() {
+            return category;
+        }
+        
+        public void setCategory(String category) {
             this.category = category;
         }
     }
     
     /**
-     * Market data class for assets
+     * Market data class for watchlist items
      */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     private static class MarketData {
-        private final String id;
-        private final String symbol;
-        private final String name;
-        private final BigDecimal price;
-        private final BigDecimal change;
-        private final BigDecimal changePercent;
-        private final boolean positiveChange;
+        private String id;
+        private String symbol;
+        private String name;
+        private BigDecimal price;
+        private BigDecimal change;
+        private BigDecimal changePercent;
+        private boolean positiveChange;
         
-        public MarketData(String id, String symbol, String name, BigDecimal price, 
-                          BigDecimal change, BigDecimal changePercent, boolean positiveChange) {
+        public String getId() {
+            return id;
+        }
+        
+        public void setId(String id) {
             this.id = id;
+        }
+        
+        public String getSymbol() {
+            return symbol;
+        }
+        
+        public void setSymbol(String symbol) {
             this.symbol = symbol;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public void setName(String name) {
             this.name = name;
+        }
+        
+        public BigDecimal getPrice() {
+            return price;
+        }
+        
+        public void setPrice(BigDecimal price) {
             this.price = price;
+        }
+        
+        public BigDecimal getChange() {
+            return change;
+        }
+        
+        public void setChange(BigDecimal change) {
             this.change = change;
+        }
+        
+        public BigDecimal getChangePercent() {
+            return changePercent;
+        }
+        
+        public void setChangePercent(BigDecimal changePercent) {
             this.changePercent = changePercent;
+        }
+        
+        public boolean isPositiveChange() {
+            return positiveChange;
+        }
+        
+        public void setPositiveChange(boolean positiveChange) {
             this.positiveChange = positiveChange;
         }
     }

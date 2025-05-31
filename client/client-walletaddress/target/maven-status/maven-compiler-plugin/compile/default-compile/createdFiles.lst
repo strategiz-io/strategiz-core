@@ -1,3 +1,3 @@
-io\strategiz\walletaddress\model\WalletAddress.class
-io\strategiz\walletaddress\client\WalletAddressBlockchainClient.class
-io\strategiz\walletaddress\model\WalletBalance.class
+io\strategiz\client\walletaddress\client\WalletAddressBlockchainClient.class
+io\strategiz\client\walletaddress\model\WalletBalance.class
+io\strategiz\client\walletaddress\model\WalletAddress.class

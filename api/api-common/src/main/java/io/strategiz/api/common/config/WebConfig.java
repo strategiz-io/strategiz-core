@@ -1,11 +1,13 @@
 package io.strategiz.api.common.config;
 
-import org.apache.http.HttpHost;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
-import org.apache.http.conn.routing.HttpRoutePlanner;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.routing.DefaultProxyRoutePlanner;
+import org.apache.hc.client5.http.routing.HttpRoutePlanner;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,40 +63,52 @@ public class WebConfig {
      */
     @Bean
     public RestTemplate restTemplate() {
-        // Configure timeouts for the RestTemplate
-        RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
-                .setConnectTimeout(CONNECTION_TIMEOUT)
-                .setSocketTimeout(READ_TIMEOUT)
-                .setConnectionRequestTimeout(CONNECTION_TIMEOUT);
-        
-        HttpClientBuilder clientBuilder = HttpClientBuilder.create()
-                .setDefaultRequestConfig(requestConfigBuilder.build());
-        
-        // Check system properties for proxy settings
-        String systemProxyHost = System.getProperty("http.proxyHost");
-        String systemProxyPort = System.getProperty("http.proxyPort");
-        
-        if (systemProxyHost != null && !systemProxyHost.isEmpty() && systemProxyPort != null && !systemProxyPort.isEmpty()) {
-            log.info("RestTemplate using system proxy settings: {}:{}", systemProxyHost, systemProxyPort);
-            HttpHost proxy = new HttpHost(systemProxyHost, Integer.parseInt(systemProxyPort));
-            HttpRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
-            clientBuilder.setRoutePlanner(routePlanner);
-        } else if (proxyEnabled && proxyHost != null && !proxyHost.isEmpty() && proxyPort > 0) {
-            log.info("RestTemplate using configured proxy settings: {}:{}", proxyHost, proxyPort);
-            HttpHost proxy = new HttpHost(proxyHost, proxyPort);
-            HttpRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
-            clientBuilder.setRoutePlanner(routePlanner);
+        try {
+            // Configure timeouts for the RestTemplate using newer API style
+            // Updated to use Timeout.of() instead of deprecated methods
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+                    .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
+                    .setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+                    .build();
+            
+            // Use HttpClients factory method instead of HttpClientBuilder
+            HttpClientBuilder clientBuilder = HttpClients.custom()
+                    .setDefaultRequestConfig(requestConfig);
+            
+            // Check system properties for proxy settings
+            String systemProxyHost = System.getProperty("http.proxyHost");
+            String systemProxyPort = System.getProperty("http.proxyPort");
+            
+            try {
+                if (systemProxyHost != null && !systemProxyHost.isEmpty() && systemProxyPort != null && !systemProxyPort.isEmpty()) {
+                    log.info("RestTemplate using system proxy settings: {}:{}", systemProxyHost, systemProxyPort);
+                    HttpHost proxy = HttpHost.create(systemProxyHost + ":" + systemProxyPort);
+                    HttpRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+                    clientBuilder.setRoutePlanner(routePlanner);
+                } else if (proxyEnabled && proxyHost != null && !proxyHost.isEmpty() && proxyPort > 0) {
+                    log.info("RestTemplate using configured proxy settings: {}:{}", proxyHost, proxyPort);
+                    HttpHost proxy = HttpHost.create(proxyHost + ":" + proxyPort);
+                    HttpRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+                    clientBuilder.setRoutePlanner(routePlanner);
+                }
+            } catch (Exception e) {
+                log.error("Error configuring proxy settings: {}", e.getMessage());
+            }
+            
+            CloseableHttpClient httpClient = clientBuilder.build();
+            
+            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+            RestTemplate restTemplate = new RestTemplate(requestFactory);
+            
+            log.info("RestTemplate initialized with connection timeout: {}ms, read timeout: {}ms", 
+                    CONNECTION_TIMEOUT, READ_TIMEOUT);
+                    
+            return restTemplate;
+        } catch (Exception e) {
+            log.error("Error creating RestTemplate: {}", e.getMessage());
+            throw new RuntimeException("Failed to create RestTemplate", e);
         }
-        
-        HttpClient httpClient = clientBuilder.build();
-        
-        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-        RestTemplate restTemplate = new RestTemplate(requestFactory);
-        
-        log.info("RestTemplate initialized with connection timeout: {}ms, read timeout: {}ms", 
-                CONNECTION_TIMEOUT, READ_TIMEOUT);
-                
-        return restTemplate;
     }
     
     /**
@@ -105,31 +119,37 @@ public class WebConfig {
      */
     @Bean(name = "binanceRestTemplate")
     public RestTemplate binanceRestTemplate() {
-        // Configure timeouts for the RestTemplate
-        RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
-                .setConnectTimeout(CONNECTION_TIMEOUT)
-                .setSocketTimeout(READ_TIMEOUT)
-                .setConnectionRequestTimeout(CONNECTION_TIMEOUT)
-                .setRedirectsEnabled(false) // Disable redirects to avoid login pages
-                .setCircularRedirectsAllowed(false)
-                .setAuthenticationEnabled(false); // Disable authentication
-        
-        HttpClientBuilder clientBuilder = HttpClientBuilder.create()
-                .setDefaultRequestConfig(requestConfigBuilder.build())
-                .disableRedirectHandling() // Explicitly disable redirect handling
-                .disableAutomaticRetries();
-        
-        // Explicitly disable proxy for Binance US API
-        clientBuilder.setRoutePlanner(null);
-        
-        HttpClient httpClient = clientBuilder.build();
-        
-        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-        RestTemplate binanceRestTemplate = new RestTemplate(requestFactory);
-        
-        log.info("Binance RestTemplate initialized with connection timeout: {}ms, read timeout: {}ms, redirects disabled", 
-                CONNECTION_TIMEOUT, READ_TIMEOUT);
-                
-        return binanceRestTemplate;
+        try {
+            // Configure timeouts for the RestTemplate using modern API
+            // Use the latest API format for timeout configuration, avoiding deprecated methods
+            RequestConfig requestConfig = RequestConfig.custom()
+                    .setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+                    .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
+                    .setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+                    .setRedirectsEnabled(false) // Disable redirects to avoid login pages
+                    .build();
+            
+            // Use HttpClients factory method instead of HttpClientBuilder
+            HttpClientBuilder clientBuilder = HttpClients.custom()
+                    .setDefaultRequestConfig(requestConfig)
+                    .disableRedirectHandling() // Explicitly disable redirect handling
+                    .disableAutomaticRetries();
+            
+            // Explicitly disable proxy for Binance US API - this is important for Binance US integration
+            clientBuilder.setRoutePlanner(null);
+            
+            CloseableHttpClient httpClient = clientBuilder.build();
+            
+            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+            RestTemplate binanceRestTemplate = new RestTemplate(requestFactory);
+            
+            log.info("Binance RestTemplate initialized with connection timeout: {}ms, read timeout: {}ms, redirects disabled", 
+                    CONNECTION_TIMEOUT, READ_TIMEOUT);
+                    
+            return binanceRestTemplate;
+        } catch (Exception e) {
+            log.error("Error creating Binance RestTemplate: {}", e.getMessage());
+            throw new RuntimeException("Failed to create Binance RestTemplate", e);
+        }
     }
 }

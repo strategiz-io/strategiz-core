@@ -22,6 +22,13 @@
             <artifactId>data-portfolio</artifactId>
         </dependency>
         
+        <!-- Client module dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-kraken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
         <!-- Spring dependencies -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -43,6 +50,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
+            <version>${apache.httpclient.version}</version>
         </dependency>
         
         <!-- JSON Processing -->

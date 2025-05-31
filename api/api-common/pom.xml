@@ -31,6 +31,17 @@
             <artifactId>firebase-admin</artifactId>
             <version>9.1.1</version>
         </dependency>
+        <!-- Apache HttpClient 5.x -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.2.1</version>
+        </dependency>
+        <!-- Import Java Time Units -->
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+        </dependency>
     </dependencies>
 </project>
 

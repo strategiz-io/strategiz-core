@@ -19,17 +19,17 @@
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>data-exchange</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-document-storage</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-user</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

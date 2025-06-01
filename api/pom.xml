@@ -24,6 +24,7 @@
         <module>api-monitoring</module>
         <module>api-marketplace</module>
         <module>api-dashboard</module>
+        <module>api-exchange</module>
     </modules>
     
     <dependencies>

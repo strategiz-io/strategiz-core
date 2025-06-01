@@ -1,11 +1,10 @@
 @echo off
-echo Building Strategiz Core application...
+echo Building Strategiz Core using ordered build process...
+echo.
 
-cd application
-call mvn clean package -DskipTests
-
+call build-all.bat
 if %ERRORLEVEL% neq 0 (
-    echo Build failed!
+    echo Build failed with error level %ERRORLEVEL%
     exit /b %ERRORLEVEL%
 )
 
@@ -14,7 +13,7 @@ echo Starting Strategiz Core application...
 echo Press Ctrl+C to stop the application when finished.
 echo.
 
-cd target
+cd application\target
 java -jar application-1.0-SNAPSHOT.jar --spring.profiles.active=dev
 
 echo.

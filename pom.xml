@@ -19,19 +19,10 @@
     <description>Strategiz Core Platform</description>
 
     <modules>
-        <!-- Application Module -->
-        <module>application</module>
+        <!-- Framework Modules (Build First) -->
+        <module>framework/framework-core</module>
         
-        <!-- API Modules -->
-        <module>api/api-auth</module>
-        <module>api/api-base</module>
-        <module>api/api-dashboard</module>
-        <module>api/api-exchange</module>
-        <module>api/api-monitoring</module>
-        <module>api/api-portfolio</module>
-        <module>api/api-strategy</module>
-        
-        <!-- Data Modules -->
+        <!-- Data Modules (Build Second) -->
         <module>data/data-auth</module>
         <module>data/data-base</module>
         <!-- data-document-storage module has been consolidated into data-base -->
@@ -39,10 +30,17 @@
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
         
-        <!-- Framework Modules -->
-        <module>framework/framework-core</module>
+        <!-- Client Modules (Build Third) -->
+        <module>client/client-base</module>
+        <module>client/client-alphavantage</module>
+        <module>client/client-binanceus</module>
+        <module>client/client-coinbase</module>
+        <module>client/client-coingecko</module>
+        <module>client/client-kraken</module>
+        <!-- Temporarily commented out due to dependency issues -->
+        <!-- <module>client/client-walletaddress</module> -->
         
-        <!-- Service Modules -->
+        <!-- Service Modules (Build Fourth) -->
         <module>service/service-base</module>
         <module>service/service-strategy</module>
         <module>service/service-portfolio</module>
@@ -54,15 +52,17 @@
         <!-- <module>service/service-walletaddress</module> -->
         <module>service/service-dashboard</module>
         
-        <!-- Client Modules -->
-        <module>client/client-base</module>
-        <module>client/client-alphavantage</module>
-        <module>client/client-binanceus</module>
-        <module>client/client-coinbase</module>
-        <module>client/client-coingecko</module>
-        <module>client/client-kraken</module>
-        <!-- Temporarily commented out due to dependency issues -->
-        <!-- <module>client/client-walletaddress</module> -->
+        <!-- API Modules (Build Fifth) -->
+        <module>api/api-auth</module>
+        <module>api/api-base</module>
+        <module>api/api-dashboard</module>
+        <module>api/api-exchange</module>
+        <module>api/api-monitoring</module>
+        <module>api/api-portfolio</module>
+        <module>api/api-strategy</module>
+        
+        <!-- Application Module (Build Last) -->
+        <module>application</module>
     </modules>
 
     <properties>
@@ -260,6 +260,11 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>api-strategy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>api-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             

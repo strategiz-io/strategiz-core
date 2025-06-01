@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-05-31T21:22:24-0400",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.42.0.v20250514-1000, environment: Java 21.0.7 (Eclipse Adoptium)"
+    date = "2025-05-31T22:16:45-0400",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
 )
 @Component
 public class AssetAllocationResponseBuilderImpl implements AssetAllocationResponseBuilder {
@@ -36,12 +36,12 @@ public class AssetAllocationResponseBuilderImpl implements AssetAllocationRespon
 
         AssetAllocationResponse.AssetAllocation assetAllocation1 = new AssetAllocationResponse.AssetAllocation();
 
-        assetAllocation1.setColor( assetAllocation.getColor() );
-        assetAllocation1.setExchange( assetAllocation.getExchange() );
         assetAllocation1.setName( assetAllocation.getName() );
-        assetAllocation1.setPercentage( assetAllocation.getPercentage() );
         assetAllocation1.setSymbol( assetAllocation.getSymbol() );
         assetAllocation1.setValue( assetAllocation.getValue() );
+        assetAllocation1.setPercentage( assetAllocation.getPercentage() );
+        assetAllocation1.setExchange( assetAllocation.getExchange() );
+        assetAllocation1.setColor( assetAllocation.getColor() );
 
         return assetAllocation1;
     }

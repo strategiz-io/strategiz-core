@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-05-31T21:22:24-0400",
-    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.42.0.v20250514-1000, environment: Java 21.0.7 (Eclipse Adoptium)"
+    date = "2025-05-31T22:16:45-0400",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
 )
 @Component
 public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResponseBuilder {
@@ -22,13 +22,13 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
 
         io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse portfolioSummaryResponse = new io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse();
 
+        portfolioSummaryResponse.setTotalValue( serviceData.getTotalValue() );
         portfolioSummaryResponse.setDailyChange( serviceData.getDailyChange() );
         portfolioSummaryResponse.setDailyChangePercent( serviceData.getDailyChangePercent() );
         portfolioSummaryResponse.setExchanges( stringExchangeDataMapToStringExchangeDataMap( serviceData.getExchanges() ) );
         portfolioSummaryResponse.setHasExchangeConnections( serviceData.isHasExchangeConnections() );
-        portfolioSummaryResponse.setNeedsApiKeyConfiguration( serviceData.isNeedsApiKeyConfiguration() );
         portfolioSummaryResponse.setStatusMessage( serviceData.getStatusMessage() );
-        portfolioSummaryResponse.setTotalValue( serviceData.getTotalValue() );
+        portfolioSummaryResponse.setNeedsApiKeyConfiguration( serviceData.isNeedsApiKeyConfiguration() );
 
         return portfolioSummaryResponse;
     }
@@ -40,12 +40,12 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
 
         io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData assetData1 = new io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData();
 
-        assetData1.setAllocationPercent( assetData.getAllocationPercent() );
-        assetData1.setName( assetData.getName() );
-        assetData1.setPrice( assetData.getPrice() );
-        assetData1.setQuantity( assetData.getQuantity() );
         assetData1.setSymbol( assetData.getSymbol() );
+        assetData1.setName( assetData.getName() );
+        assetData1.setQuantity( assetData.getQuantity() );
+        assetData1.setPrice( assetData.getPrice() );
         assetData1.setValue( assetData.getValue() );
+        assetData1.setAllocationPercent( assetData.getAllocationPercent() );
 
         return assetData1;
     }
@@ -73,9 +73,9 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
 
         io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData exchangeData1 = new io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData();
 
-        exchangeData1.setAssets( stringAssetDataMapToStringAssetDataMap( exchangeData.getAssets() ) );
         exchangeData1.setName( exchangeData.getName() );
         exchangeData1.setValue( exchangeData.getValue() );
+        exchangeData1.setAssets( stringAssetDataMapToStringAssetDataMap( exchangeData.getAssets() ) );
 
         return exchangeData1;
     }

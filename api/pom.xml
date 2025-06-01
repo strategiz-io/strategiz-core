@@ -17,7 +17,6 @@
 
     <modules>
         <module>api-base</module>
-        <module>api-common</module>
         <module>api-strategy</module>
         <module>api-portfolio</module>
         <module>api-provider</module>

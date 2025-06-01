@@ -1,0 +1,6 @@
+io\strategiz\framework\apidocs\model\ApiResponseWrapper$ApiResponseWrapperBuilder.class
+io\strategiz\framework\apidocs\annotation\ApiDocumented.class
+io\strategiz\framework\apidocs\controller\ApiDocsController.class
+io\strategiz\framework\apidocs\controller\BaseApiController.class
+io\strategiz\framework\apidocs\config\OpenApiConfig.class
+io\strategiz\framework\apidocs\model\ApiResponseWrapper.class

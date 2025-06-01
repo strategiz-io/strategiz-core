@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategiz Core Architecture Diagram</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            overflow: hidden;
+            margin: auto;
+            max-width: 1600px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 3em;
+            font-weight: 200;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            margin: 15px 0 0 0;
+            font-size: 1.3em;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .diagram-container {
+            padding: 40px;
+            background: #f8f9fa;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .legend-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .legend-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.12);
+        }
+        
+        .legend-section h3 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            margin-right: 12px;
+            border: 2px solid rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .principles-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .principle-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 8px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s ease;
+        }
+        
+        .principle-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .diagram-svg {
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 2px solid #e9ecef;
+        }
+        
+        .layer-group {
+            transition: opacity 0.3s ease;
+        }
+        
+        .module-box {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .module-box:hover {
+            filter: brightness(1.1);
+            stroke-width: 3;
+        }
+        
+        .dependency-arrow {
+            transition: stroke-width 0.2s ease;
+        }
+        
+        .dependency-arrow:hover {
+            stroke-width: 3;
+        }
+        
+        .flow-animation {
+            animation: flowPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes flowPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Strategiz Core Architecture</h1>
+            <p>Enterprise-Grade Modular Java Backend System</p>
+        </div>
+        
+        <div class="diagram-container">
+            <div class="legend">
+                <div class="legend-section">
+                    <h3>🏗️ Architecture Layers</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #FF6B6B, #E74C3C);"></div>
+                        <span><strong>API Layer</strong> - REST & WebSocket Endpoints</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #4ECDC4, #26A69A);"></div>
+                        <span><strong>Service Layer</strong> - Business Logic</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #45B7D1, #3498DB);"></div>
+                        <span><strong>Data Layer</strong> - Persistence & ORM</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #96CEB4, #27AE60);"></div>
+                        <span><strong>Client Layer</strong> - External Integrations</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #FFEAA7, #F39C12);"></div>
+                        <span><strong>External Services</strong> - Third-party APIs</span>
+                    </div>
+                </div>
+                
+                <div class="legend-section">
+                    <h3>🎨 Design Patterns</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #D63031, #A71E24);"></div>
+                        <span><strong>Factory Pattern</strong> - Object Creation</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #74B9FF, #5A9FFF);"></div>
+                        <span><strong>Builder Pattern</strong> - Complex Construction</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #A29BFE, #8B7EFE);"></div>
+                        <span><strong>Adapter Pattern</strong> - Interface Conversion</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: linear-gradient(135deg, #FD79A8, #E84393);"></div>
+                        <span><strong>Strategy Pattern</strong> - Algorithm Selection</span>
+                    </div>
+                </div>
+                
+                <div class="legend-section">
+                    <h3>⚡ SOLID Principles</h3>
+                    <div class="principles-grid">
+                        <div class="principle-card" title="Single Responsibility Principle">SRP</div>
+                        <div class="principle-card" title="Open/Closed Principle">OCP</div>
+                        <div class="principle-card" title="Liskov Substitution Principle">LSP</div>
+                        <div class="principle-card" title="Interface Segregation Principle">ISP</div>
+                        <div class="principle-card" title="Dependency Inversion Principle">DIP</div>
+                    </div>
+                    <p style="margin-top: 15px; font-size: 0.9em; color: #7f8c8d;">
+                        Each principle enforced through clean architecture and dependency injection
+                    </p>
+                </div>
+            </div>
+            
+            <svg class="diagram-svg" viewBox="0 0 1400 700" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="apiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FF6B6B"/>
+                        <stop offset="100%" style="stop-color:#E74C3C"/>
+                    </linearGradient>
+                    <linearGradient id="serviceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4ECDC4"/>
+                        <stop offset="100%" style="stop-color:#26A69A"/>
+                    </linearGradient>
+                    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#45B7D1"/>
+                        <stop offset="100%" style="stop-color:#3498DB"/>
+                    </linearGradient>
+                    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#96CEB4"/>
+                        <stop offset="100%" style="stop-color:#27AE60"/>
+                    </linearGradient>
+                    <linearGradient id="externalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FFEAA7"/>
+                        <stop offset="100%" style="stop-color:#F39C12"/>
+                    </linearGradient>
+                    
+                    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.2"/>
+                    </filter>
+                    
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d"/>
+                    </marker>
+                </defs>
+                
+                <!-- Layer Backgrounds -->
+                <rect x="20" y="20" width="1360" height="80" fill="#2c3e50" rx="8" opacity="0.1"/>
+                <rect x="20" y="120" width="1360" height="80" fill="#2c3e50" rx="8" opacity="0.08"/>
+                <rect x="20" y="220" width="1360" height="80" fill="#2c3e50" rx="8" opacity="0.06"/>
+                <rect x="20" y="320" width="1360" height="80" fill="#2c3e50" rx="8" opacity="0.04"/>
+                <rect x="20" y="420" width="1360" height="80" fill="#2c3e50" rx="8" opacity="0.02"/>
+                
+                <!-- Layer Labels -->
+                <text x="40" y="15" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2c3e50">API LAYER</text>
+                <text x="40" y="115" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2c3e50">SERVICE LAYER</text>
+                <text x="40" y="215" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2c3e50">DATA LAYER</text>
+                <text x="40" y="315" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2c3e50">CLIENT LAYER</text>
+                <text x="40" y="415" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2c3e50">EXTERNAL SERVICES</text>
+                
+                <!-- API Layer Modules -->
+                <g class="layer-group" id="api-layer">
+                    <rect class="module-box" x="50" y="40" width="150" height="50" fill="url(#apiGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="125" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">api-auth</text>
+                    <text x="125" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">REST Endpoints</text>
+                    
+                    <rect class="module-box" x="220" y="40" width="150" height="50" fill="url(#apiGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="295" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">api-portfolio</text>
+                    <text x="295" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">REST Endpoints</text>
+                    
+                    <rect class="module-box" x="390" y="40" width="150" height="50" fill="url(#apiGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="465" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">api-strategy</text>
+                    <text x="465" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">REST Endpoints</text>
+                    
+                    <rect class="module-box" x="560" y="40" width="150" height="50" fill="url(#apiGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="635" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">api-monitoring</text>
+                    <text x="635" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">WebSocket</text>
+                    
+                    <rect class="module-box" x="730" y="40" width="150" height="50" fill="url(#apiGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="805" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">api-exchange</text>
+                    <text x="805" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">REST Endpoints</text>
+                </g>
+                
+                <!-- Service Layer Modules -->
+                <g class="layer-group" id="service-layer">
+                    <rect class="module-box" x="50" y="140" width="150" height="50" fill="url(#serviceGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="125" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">service-auth</text>
+                    <text x="125" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Business Logic</text>
+                    
+                    <rect class="module-box" x="220" y="140" width="150" height="50" fill="url(#serviceGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="295" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">service-portfolio</text>
+                    <text x="295" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Business Logic</text>
+                    
+                    <rect class="module-box" x="390" y="140" width="150" height="50" fill="url(#serviceGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="465" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">service-strategy</text>
+                    <text x="465" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Business Logic</text>
+                    
+                    <rect class="module-box" x="560" y="140" width="150" height="50" fill="url(#serviceGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="635" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">service-monitoring</text>
+                    <text x="635" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Business Logic</text>
+                    
+                    <rect class="module-box" x="730" y="140" width="150" height="50" fill="url(#serviceGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="805" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">service-exchange</text>
+                    <text x="805" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Business Logic</text>
+                </g>
+                
+                <!-- Data Layer Modules -->
+                <g class="layer-group" id="data-layer">
+                    <rect class="module-box" x="50" y="240" width="150" height="50" fill="url(#dataGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="125" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">data-base</text>
+                    <text x="125" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Common DB</text>
+                    
+                    <rect class="module-box" x="220" y="240" width="150" height="50" fill="url(#dataGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="295" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">data-portfolio</text>
+                    <text x="295" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Portfolio DB</text>
+                    
+                    <rect class="module-box" x="390" y="240" width="150" height="50" fill="url(#dataGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="465" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">data-strategy</text>
+                    <text x="465" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Strategy DB</text>
+                    
+                    <rect class="module-box" x="560" y="240" width="150" height="50" fill="url(#dataGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="635" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">data-auth</text>
+                    <text x="635" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">User DB</text>
+                    
+                    <rect class="module-box" x="730" y="240" width="150" height="50" fill="url(#dataGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="805" y="260" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">data-exchange</text>
+                    <text x="805" y="275" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Trade DB</text>
+                </g>
+                
+                <!-- Client Layer Modules -->
+                <g class="layer-group" id="client-layer">
+                    <rect class="module-box" x="50" y="340" width="150" height="50" fill="url(#clientGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="125" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">client-auth</text>
+                    <text x="125" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Firebase SDK</text>
+                    
+                    <rect class="module-box" x="220" y="340" width="150" height="50" fill="url(#clientGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="295" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">client-market</text>
+                    <text x="295" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Market Data</text>
+                    
+                    <rect class="module-box" x="390" y="340" width="150" height="50" fill="url(#clientGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="465" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">client-exchange</text>
+                    <text x="465" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Trading APIs</text>
+                    
+                    <rect class="module-box" x="560" y="340" width="150" height="50" fill="url(#clientGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="635" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">client-ethereum</text>
+                    <text x="635" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Web3 SDK</text>
+                    
+                    <rect class="module-box" x="730" y="340" width="150" height="50" fill="url(#clientGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="805" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">client-coinbase</text>
+                    <text x="805" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">CB SDK</text>
+                </g>
+                
+                <!-- External Services -->
+                <g class="layer-group" id="external-layer">
+                    <rect class="module-box" x="50" y="440" width="150" height="50" fill="url(#externalGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="125" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Firebase</text>
+                    <text x="125" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Auth & DB</text>
+                    
+                    <rect class="module-box" x="220" y="440" width="150" height="50" fill="url(#externalGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="295" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Kraken API</text>
+                    <text x="295" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Trading</text>
+                    
+                    <rect class="module-box" x="390" y="440" width="150" height="50" fill="url(#externalGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="465" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Binance US</text>
+                    <text x="465" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Trading</text>
+                    
+                    <rect class="module-box" x="560" y="440" width="150" height="50" fill="url(#externalGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="635" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Ethereum</text>
+                    <text x="635" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Blockchain</text>
+                    
+                    <rect class="module-box" x="730" y="440" width="150" height="50" fill="url(#externalGrad)" rx="8" filter="url(#shadow)"/>
+                    <text x="805" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Coinbase API</text>
+                    <text x="805" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Trading</text>
+                </g>
+                
+                <!-- Design Pattern Indicators -->
+                <rect x="920" y="40" width="100" height="30" fill="#D63031" rx="6" filter="url(#shadow)"/>
+                <text x="970" y="58" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Factory Pattern</text>
+                
+                <rect x="920" y="80" width="100" height="30" fill="#74B9FF" rx="6" filter="url(#shadow)"/>
+                <text x="970" y="98" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Builder Pattern</text>
+                
+                <rect x="920" y="340" width="100" height="30" fill="#A29BFE" rx="6" filter="url(#shadow)"/>
+                <text x="970" y="358" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Adapter Pattern</text>
+                
+                <rect x="920" y="240" width="100" height="30" fill="#FD79A8" rx="6" filter="url(#shadow)"/>
+                <text x="970" y="258" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white">Strategy Pattern</text>
+                
+                <!-- SOLID Principles Box -->
+                <rect x="1050" y="40" width="200" height="150" fill="#34495E" rx="10" filter="url(#shadow)"/>
+                <text x="1150" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">SOLID PRINCIPLES</text>
+                <text x="

@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-05-31T17:04:24-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
+    date = "2025-05-31T21:22:24-0400",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.42.0.v20250514-1000, environment: Java 21.0.7 (Eclipse Adoptium)"
 )
 @Component
 public class WatchlistResponseBuilderImpl implements WatchlistResponseBuilder {
@@ -38,15 +38,15 @@ public class WatchlistResponseBuilderImpl implements WatchlistResponseBuilder {
 
         WatchlistResponse.WatchlistItem watchlistItem1 = new WatchlistResponse.WatchlistItem();
 
-        watchlistItem1.setId( watchlistItem.getId() );
-        watchlistItem1.setSymbol( watchlistItem.getSymbol() );
-        watchlistItem1.setName( watchlistItem.getName() );
         watchlistItem1.setCategory( watchlistItem.getCategory() );
-        watchlistItem1.setPrice( watchlistItem.getPrice() );
         watchlistItem1.setChange( watchlistItem.getChange() );
         watchlistItem1.setChangePercent( watchlistItem.getChangePercent() );
-        watchlistItem1.setPositiveChange( watchlistItem.isPositiveChange() );
         watchlistItem1.setChartDataUrl( watchlistItem.getChartDataUrl() );
+        watchlistItem1.setId( watchlistItem.getId() );
+        watchlistItem1.setName( watchlistItem.getName() );
+        watchlistItem1.setPositiveChange( watchlistItem.isPositiveChange() );
+        watchlistItem1.setPrice( watchlistItem.getPrice() );
+        watchlistItem1.setSymbol( watchlistItem.getSymbol() );
 
         return watchlistItem1;
     }

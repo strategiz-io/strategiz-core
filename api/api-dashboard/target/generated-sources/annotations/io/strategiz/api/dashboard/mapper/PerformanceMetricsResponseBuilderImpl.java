@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-05-31T17:04:23-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
+    date = "2025-05-31T21:22:24-0400",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.42.0.v20250514-1000, environment: Java 21.0.7 (Eclipse Adoptium)"
 )
 @Component
 public class PerformanceMetricsResponseBuilderImpl implements PerformanceMetricsResponseBuilder {
@@ -35,17 +35,17 @@ public class PerformanceMetricsResponseBuilderImpl implements PerformanceMetrics
 
         PerformanceMetricsResponse.PerformanceSummary performanceSummary1 = new PerformanceMetricsResponse.PerformanceSummary();
 
-        performanceSummary1.setTotalProfitLoss( performanceSummary.getTotalProfitLoss() );
-        performanceSummary1.setTotalProfitLossPercentage( performanceSummary.getTotalProfitLossPercentage() );
         performanceSummary1.setDailyChange( performanceSummary.getDailyChange() );
         performanceSummary1.setDailyChangePercentage( performanceSummary.getDailyChangePercentage() );
-        performanceSummary1.setWeeklyChange( performanceSummary.getWeeklyChange() );
-        performanceSummary1.setWeeklyChangePercentage( performanceSummary.getWeeklyChangePercentage() );
         performanceSummary1.setMonthlyChange( performanceSummary.getMonthlyChange() );
         performanceSummary1.setMonthlyChangePercentage( performanceSummary.getMonthlyChangePercentage() );
+        performanceSummary1.setProfitable( performanceSummary.isProfitable() );
+        performanceSummary1.setTotalProfitLoss( performanceSummary.getTotalProfitLoss() );
+        performanceSummary1.setTotalProfitLossPercentage( performanceSummary.getTotalProfitLossPercentage() );
+        performanceSummary1.setWeeklyChange( performanceSummary.getWeeklyChange() );
+        performanceSummary1.setWeeklyChangePercentage( performanceSummary.getWeeklyChangePercentage() );
         performanceSummary1.setYtdChange( performanceSummary.getYtdChange() );
         performanceSummary1.setYtdChangePercentage( performanceSummary.getYtdChangePercentage() );
-        performanceSummary1.setProfitable( performanceSummary.isProfitable() );
 
         return performanceSummary1;
     }

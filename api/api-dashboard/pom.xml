@@ -64,11 +64,6 @@
             <artifactId>service-base</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>api-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
         <!-- Validation dependencies are already included above -->
     </dependencies>

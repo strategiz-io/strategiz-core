@@ -25,7 +25,6 @@
         <!-- API Modules -->
         <module>api/api-auth</module>
         <module>api/api-base</module>
-        <module>api/api-common</module>
         <module>api/api-dashboard</module>
         <module>api/api-exchange</module>
         <module>api/api-monitoring</module>
@@ -49,7 +48,7 @@
         <module>service/service-portfolio</module>
         <module>service/service-exchange</module>
         <module>service/service-auth</module>
-        <module>service/service-common</module>
+        <!-- <module>service/service-common</module> --> <!-- Module doesn't exist in filesystem -->
         <module>service/service-marketplace</module>
         <!-- Temporarily commented out due to Firestore dependency issues -->
         <!-- <module>service/service-walletaddress</module> -->
@@ -163,11 +162,14 @@
                 <artifactId>service-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!-- Module doesn't exist in filesystem -->
+            <!--
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            -->
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-walletaddress</artifactId>
@@ -234,11 +236,7 @@
                 <artifactId>api-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>api-dashboard</artifactId>

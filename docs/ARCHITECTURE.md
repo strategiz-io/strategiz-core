@@ -13,7 +13,25 @@ This document outlines the architectural principles, coding standards, naming co
 
 ## Architectural Principles
 
-The Strategiz platform follows a modular, clean architecture with clear separation of concerns. The following principles guide our development:
+The Strategiz platform follows a modular, clean architecture with clear separation of concerns. The diagram below illustrates our layered architecture and module dependencies:
+
+![Strategiz Core Architecture](images/strategiz-architecture.png)
+
+### Architecture Diagram Access
+
+**View the diagram in the following ways:**
+
+1. **Static Image**: The static PNG diagram is located at [docs/images/strategiz-architecture.png](images/strategiz-architecture.png)
+
+2. **Interactive HTML Diagram**: When the application is running, you can access the interactive HTML architecture diagram at:
+   - Direct URL: `http://localhost:8080/docs/strategiz_architecture_diagram.html`
+   - API Endpoint: `http://localhost:8080/api/docs/architecture`
+
+3. **Editable Source**: The editable source file is available at [docs/images/strategiz-architecture.drawio](images/strategiz-architecture.drawio)
+
+The interactive HTML diagram provides a comprehensive visual representation of the system's components, their relationships, and the underlying architectural principles.
+
+The following principles guide our development:
 
 1. **Separation of Concerns**: Each module has a single, well-defined responsibility
 2. **Dependency Rule**: Dependencies flow from high-level policies to low-level details, never the reverse

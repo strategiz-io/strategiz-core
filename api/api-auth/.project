@@ -5,7 +5,7 @@
 	<projects>
 		<project>service-auth</project>
 		<project>data-auth</project>
-		<project>data-document-storage</project>
+		<project>data-base</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

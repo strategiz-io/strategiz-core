@@ -14,7 +14,7 @@ import org.springframework.context.annotation.PropertySource;
     "io.strategiz"
 },
 excludeFilters = {
-    @ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.PATTERN, pattern = "io.strategiz.client.binanceus.*")
+    @ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "io.strategiz.client.binanceus.*")
 })
 @PropertySource("classpath:application.properties")
 @EntityScan(basePackages = {"io.strategiz"})

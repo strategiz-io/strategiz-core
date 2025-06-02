@@ -7,6 +7,9 @@ import io.strategiz.api.base.controller.BaseController;
 import io.strategiz.api.base.model.ResponseMetadata;
 import io.strategiz.service.base.model.BaseServiceResponse;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Base controller with common utilities for dashboard controllers.
  * Provides methods for response metadata creation and headers setup.
@@ -51,5 +54,27 @@ public abstract class DashboardBaseController extends BaseController<Object, Bas
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setContentType(MediaType.APPLICATION_JSON);
         return responseHeaders;
+    }
+    
+    /**
+     * Convert ResponseMetadata to a Map for inclusion in response objects.
+     * 
+     * @param metadata The ResponseMetadata to convert
+     * @return A Map representation of the metadata
+     */
+    protected Map<String, Object> convertMetadataToMap(ResponseMetadata metadata) {
+        Map<String, Object> metadataMap = new HashMap<>();
+        metadataMap.put("status", metadata.getStatus());
+        metadataMap.put("timestamp", metadata.getTimestamp());
+        
+        if (metadata.getErrorCode() != null) {
+            metadataMap.put("errorCode", metadata.getErrorCode());
+        }
+        
+        if (metadata.getErrorMessage() != null) {
+            metadataMap.put("errorMessage", metadata.getErrorMessage());
+        }
+        
+        return metadataMap;
     }
 }

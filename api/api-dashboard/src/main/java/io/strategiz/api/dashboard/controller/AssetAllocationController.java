@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.api.dashboard.mapper.AssetAllocationResponseBuilder;
 import io.strategiz.api.dashboard.model.assetallocation.AssetAllocationResponse;
-import io.strategiz.api.base.controller.DashboardBaseController;
+import io.strategiz.api.dashboard.controller.DashboardBaseController;
 import io.strategiz.service.base.model.BaseServiceResponse;
 import io.strategiz.service.dashboard.AssetAllocationService;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,6 @@
 package io.strategiz.client.binanceus;
 
-import io.strategiz.client.base.http.ExchangeApiClient;
+import io.strategiz.client.base.http.ProviderClient;
 import io.strategiz.framework.exception.ApplicationClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +26,11 @@ import java.util.Map;
 
 /**
  * Client for interacting with the Binance US exchange API.
- * Implements the ExchangeApiClient interface for standardized exchange interactions.
+ * Implements the ProviderClient abstract class for standardized provider interactions.
  * Ensures we ONLY work with real API data, never mocks or simulations.
  */
 @Component
-public class BinanceUSClient extends ExchangeApiClient {
+public class BinanceUSClient extends ProviderClient {
     
     private static final Logger log = LoggerFactory.getLogger(BinanceUSClient.class);
     private static final String ACCOUNT_INFO_PATH = "/api/v3/account";
@@ -73,13 +73,28 @@ public class BinanceUSClient extends ExchangeApiClient {
      */
     @PostConstruct
     public void init() {
-        log.info("Initializing BinanceUSClient with base URL: {}", apiUrl);
-        // Update fields from parent class
+        log.info("Initializing BinanceUSClient with URL {}", apiUrl);
         this.baseUrl = apiUrl;
         this.apiKey = apiKeyValue;
         this.privateKey = apiSecretValue;
+        
         // Create the RestClient
         this.restClient = createRestClient();
+    }
+    
+    /**
+     * Validates that we're connecting to a real Binance US account, not a test account.
+     * Binance US does not have a sandbox/test mode, so we just check if credentials are valid.
+     * 
+     * @throws ApplicationClientException if validation fails
+     */
+    @Override
+    protected void validateRealProviderAccount() {
+        if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty()) {
+            log.error("Missing API credentials for Binance US");
+            throw new ApplicationClientException("Cannot connect to Binance US: Missing API credentials");
+        }
+        log.debug("Validated Binance US credentials");
     }
     
     /**
@@ -88,10 +103,9 @@ public class BinanceUSClient extends ExchangeApiClient {
      * 
      * @return The raw, unmodified account data from the API
      */
-    @Override
     public Object getRawAccountData() {
         log.info("Getting raw account data from Binance US API");
-        validateRealExchangeAccount();
+        validateRealProviderAccount();
         
         Map<String, String> params = new HashMap<>();
         params.put("timestamp", String.valueOf(Instant.now().toEpochMilli()));
@@ -121,10 +135,9 @@ public class BinanceUSClient extends ExchangeApiClient {
      * 
      * @return The raw, unmodified position data from the API
      */
-    @Override
     public Object getRawPositionsData() {
         log.info("Getting raw position data from Binance US API");
-        validateRealExchangeAccount();
+        validateRealProviderAccount();
         
         // For Binance US, positions are in the same endpoint as account data
         return getRawAccountData();
@@ -206,5 +219,29 @@ public class BinanceUSClient extends ExchangeApiClient {
         
         String url = baseUrl + "/api/v3/ping";
         return restTemplate.getForObject(url, String.class);
+    }
+    
+    /**
+     * Check if the Binance US API is available.
+     * Uses a simple ping request to verify API availability.
+     * 
+     * @return true if the API is available, false otherwise
+     */
+    @Override
+    public boolean checkPublicApiAvailability() {
+        log.info("Checking Binance US API availability");
+        try {
+            String url = baseUrl + "/api/v3/ping";
+            if (restTemplate != null) {
+                restTemplate.getForObject(url, String.class);
+            } else {
+                getRawApiResponse("/api/v3/ping", String.class);
+            }
+            log.info("Binance US API is available");
+            return true;
+        } catch (Exception e) {
+            log.warn("Binance US API is not available: {}", e.getMessage());
+            return false;
+        }
     }
 }

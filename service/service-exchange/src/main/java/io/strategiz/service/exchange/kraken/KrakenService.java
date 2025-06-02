@@ -154,4 +154,24 @@ public class KrakenService {
             return response;
         }
     }
+    
+    /**
+     * Check if the Kraken API is available without authentication
+     * Used for health monitoring
+     * 
+     * @return true if the API is available, false otherwise
+     */
+    public boolean isApiAvailable() {
+        try {
+            log.debug("Checking Kraken API availability");
+            // Use the client to make a simple request to check API availability
+            // For Kraken, we can use the public Time endpoint
+            boolean available = krakenClient.checkPublicApiAvailability();
+            log.debug("Kraken API available: {}", available);
+            return available;
+        } catch (Exception e) {
+            log.debug("Kraken API unavailable: {}", e.getMessage());
+            return false;
+        }
+    }
 }

@@ -25,7 +25,6 @@
         <!-- Data Modules (Build Second) -->
         <module>data/data-auth</module>
         <module>data/data-base</module>
-        <!-- data-document-storage module has been consolidated into data-base -->
         <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
@@ -46,7 +45,6 @@
         <module>service/service-portfolio</module>
         <module>service/service-exchange</module>
         <module>service/service-auth</module>
-        <!-- <module>service/service-common</module> --> <!-- Module doesn't exist in filesystem -->
         <module>service/service-marketplace</module>
         <!-- Temporarily commented out due to Firestore dependency issues -->
         <!-- <module>service/service-walletaddress</module> -->
@@ -162,14 +160,6 @@
                 <artifactId>service-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!-- Module doesn't exist in filesystem -->
-            <!--
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>service-common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            -->
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-walletaddress</artifactId>

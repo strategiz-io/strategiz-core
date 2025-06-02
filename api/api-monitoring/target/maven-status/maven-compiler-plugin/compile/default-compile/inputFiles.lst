@@ -1,3 +1,4 @@
 C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-monitoring\src\main\java\io\strategiz\api\monitoring\model\StatusResponse.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-monitoring\src\main\java\io\strategiz\api\monitoring\controller\HealthCheckController.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-monitoring\src\main\java\io\strategiz\api\monitoring\health\ProviderApiHealthIndicator.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\api\api-monitoring\src\main\java\io\strategiz\api\monitoring\config\ApiMonitoringConfig.java

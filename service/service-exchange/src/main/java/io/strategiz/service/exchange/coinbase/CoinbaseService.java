@@ -71,6 +71,31 @@ public class CoinbaseService {
     }
     
     /**
+     * Check if the Coinbase API is available (for health monitoring)
+     * This method performs a lightweight check without requiring authentication
+     * 
+     * @return true if API is available, false otherwise
+     */
+    public boolean isApiAvailable() {
+        try {
+            log.debug("Checking Coinbase API availability");
+            String url = COINBASE_API_URL + "/v2/currencies";
+            ResponseEntity<Object> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                Object.class
+            );
+            boolean available = response.getStatusCode().is2xxSuccessful();
+            log.debug("Coinbase API available: {}", available);
+            return available;
+        } catch (Exception e) {
+            log.debug("Coinbase API unavailable: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Test connection to Coinbase API
      * 
      * @param apiKey Coinbase API key
@@ -103,7 +128,12 @@ public class CoinbaseService {
                 Object.class
             );
             
-            log.info("Successfully tested connection to Coinbase API");
+            // Check response status
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Failed to connect to Coinbase API: " + response.getStatusCode());
+            }
+            
+            log.info("Successfully tested connection to Coinbase API: {}", response.getStatusCode());
             result.put("status", "ok");
             result.put("message", "Connection successful");
             result.put("timestamp", System.currentTimeMillis());

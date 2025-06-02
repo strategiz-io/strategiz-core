@@ -31,6 +31,13 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- Provider service dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-exchange</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
     
     <build>

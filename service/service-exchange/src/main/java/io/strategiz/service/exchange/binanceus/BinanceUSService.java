@@ -7,8 +7,6 @@ import io.strategiz.data.exchange.binanceus.model.response.BalanceResponse;
 import io.strategiz.service.base.BaseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -18,6 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.crypto.Mac;
@@ -25,23 +25,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URL;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +43,6 @@ public class BinanceUSService extends BaseService {
 
     private static final String BINANCEUS_API_URL = "https://api.binance.us";
     private static final String HMAC_SHA256 = "HmacSHA256";
-    private static final int CONNECTION_TIMEOUT = 10000; // 10 seconds
     private static final int READ_TIMEOUT = 30000; // 30 seconds
     
     private final RestTemplate restTemplate;
@@ -69,8 +51,10 @@ public class BinanceUSService extends BaseService {
     public BinanceUSService(RestTemplateBuilder restTemplateBuilder) {
         // Use Spring's RestTemplateBuilder to configure the RestTemplate
         // This leverages Spring's built-in client capabilities instead of Apache HttpClient
+        // Note: These methods are deprecated but still needed for the current Spring Boot version
+        // They will be replaced in a future version with non-deprecated alternatives
         this.restTemplate = restTemplateBuilder
-                .setConnectTimeout(Duration.ofMillis(CONNECTION_TIMEOUT))
+                .setConnectTimeout(Duration.ofMillis(READ_TIMEOUT))
                 .setReadTimeout(Duration.ofMillis(READ_TIMEOUT))
                 .build();
         
@@ -101,6 +85,25 @@ public class BinanceUSService extends BaseService {
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception ex) {
             log.error("Failed to validate real API connection to Binance US: {}", ex.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if the Binance US API is available without authentication
+     * Used for health monitoring
+     * 
+     * @return true if the API is available, false otherwise
+     */
+    public boolean isApiAvailable() {
+        log.debug("Checking Binance US API availability");
+        try {
+            // We can reuse the validateRealApiConnection method which already does a ping check
+            boolean available = validateRealApiConnection();
+            log.debug("Binance US API available: {}", available);
+            return available;
+        } catch (Exception e) {
+            log.debug("Binance US API unavailable: {}", e.getMessage());
             return false;
         }
     }

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.strategiz.api.base.controller.DashboardBaseController;
+import io.strategiz.api.dashboard.controller.DashboardBaseController;
 import io.strategiz.api.dashboard.mapper.WatchlistResponseBuilder;
 import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.service.base.model.BaseServiceResponse;

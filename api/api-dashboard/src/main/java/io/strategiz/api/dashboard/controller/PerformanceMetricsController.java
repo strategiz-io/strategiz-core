@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.api.dashboard.mapper.PerformanceMetricsResponseBuilder;
 import io.strategiz.api.dashboard.model.performancemetrics.PerformanceMetricsResponse;
-import io.strategiz.api.base.controller.DashboardBaseController;
 import io.strategiz.service.base.model.BaseServiceResponse;
 import io.strategiz.service.dashboard.PerformanceMetricsService;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +31,7 @@ public class PerformanceMetricsController extends DashboardBaseController {
         io.strategiz.service.dashboard.model.performancemetrics.PerformanceMetricsData serviceData = 
             performanceMetricsService.getPerformanceMetrics(userId);
         PerformanceMetricsResponse response = responseBuilder.buildPerformanceMetricsResponse(serviceData);
-        response.setMetadata(responseBuilder.convertMetadataToMap(createSuccessMetadata()));
+        response.setMetadata(convertMetadataToMap(createSuccessMetadata()));
         return response;
     }
     

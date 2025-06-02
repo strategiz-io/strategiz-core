@@ -26,6 +26,7 @@
             <artifactId>data-base</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Note: data-document-storage has been consolidated into data-base -->
         
         <!-- Spring dependencies -->
         <dependency>

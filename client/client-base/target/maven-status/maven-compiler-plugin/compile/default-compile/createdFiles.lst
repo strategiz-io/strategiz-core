@@ -1,2 +1,2 @@
 io\strategiz\client\base\http\BaseHttpClient.class
-io\strategiz\client\base\http\ExchangeApiClient.class
+io\strategiz\client\base\http\ProviderClient.class

@@ -105,6 +105,16 @@ The project follows a modular architecture with clear separation of concerns:
   - Implement HTTP clients and API wrappers
   - Located in the `client/` directory
 
+### Build and Deployment Scripts
+
+The project includes dedicated scripts for building and deploying the application in both Windows and Linux/macOS environments:
+
+- **Build Scripts**: Compile and package all modules in the correct dependency order
+- **Deploy Scripts**: Run the compiled application with appropriate configuration
+- **Combined Scripts**: Build and deploy in a single step
+
+See the [Scripts README](scripts/README.md) for detailed usage instructions.
+
 ### Dependency Flow
 
 The dependency flow follows a strict hierarchy to maintain clean architecture:

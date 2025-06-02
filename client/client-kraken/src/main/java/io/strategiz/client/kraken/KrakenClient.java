@@ -150,4 +150,25 @@ public class KrakenClient {
         System.arraycopy(b, 0, result, a.length, b.length);
         return result;
     }
+    
+    /**
+     * Check if the Kraken public API is available without authentication
+     * Used for health monitoring
+     * 
+     * @return true if the API is available, false otherwise
+     */
+    public boolean checkPublicApiAvailability() {
+        log.debug("Checking Kraken public API availability");
+        try {
+            // Use the public Time endpoint which doesn't require authentication
+            String url = baseUrl + "/0/public/Time";
+            ResponseEntity<Object> response = restTemplate.getForEntity(url, Object.class);
+            boolean available = response.getStatusCode().is2xxSuccessful();
+            log.debug("Kraken public API available: {}", available);
+            return available;
+        } catch (Exception e) {
+            log.debug("Kraken public API unavailable: {}", e.getMessage());
+            return false;
+        }
+    }
 } 

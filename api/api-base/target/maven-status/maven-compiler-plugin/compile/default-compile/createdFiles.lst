@@ -8,6 +8,6 @@ io\strategiz\api\base\model\ApiResponseWrapper.class
 io\strategiz\api\base\config\FirebaseConfig.class
 io\strategiz\api\base\config\CorsFilter.class
 io\strategiz\api\base\config\WebConfig.class
+io\strategiz\api\base\controller\DocumentationController.class
 io\strategiz\api\base\config\SecurityConfig.class
 io\strategiz\api\base\config\WebConfig$1.class
-io\strategiz\api\base\controller\DashboardBaseController.class

@@ -1,4 +1,11 @@
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\SmsOtpAuthenticationMethod.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\repository\UserRepository.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\UserProfile.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\OAuthAuthenticationMethod.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\PasskeyAuthenticationMethod.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\User.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\ProviderSettings.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\TotpAuthenticationMethod.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\AuthenticationMethod.java
 C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\Credentials.java
+C:\Users\cuzto\Documents\GitHub\strategiz-core\data\data-user\src\main\java\io\strategiz\data\user\model\ConnectedProvider.java

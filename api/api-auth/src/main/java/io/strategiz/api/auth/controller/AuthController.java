@@ -2,7 +2,7 @@ package io.strategiz.api.auth.controller;
 
 import io.strategiz.api.auth.model.ApiResponse;
 import io.strategiz.data.auth.Session;
-import io.strategiz.service.auth.FirebaseAuthService;
+import io.strategiz.service.auth.UserAuthService;
 import io.strategiz.service.auth.SessionService;
 import com.google.firebase.auth.FirebaseToken;
 import org.slf4j.Logger;
@@ -25,22 +25,22 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
-    private FirebaseAuthService firebaseAuthService;
+    private UserAuthService userAuthService;
 
     @Autowired
     private SessionService sessionService;
 
     /**
-     * Verify a Firebase ID token
+     * Verify a user authentication token
      *
-     * @param token Firebase ID token
+     * @param token Authentication token
      * @return Response with token verification status
      */
     @PostMapping("/verify")
     public ResponseEntity<ApiResponse<Map<String, Object>>> verifyToken(@RequestParam String token) {
         try {
-            // Verify the Firebase token
-            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            // Verify the user authentication token
+            FirebaseToken decodedToken = userAuthService.verifyIdToken(token);
             
             if (decodedToken != null) {
                 Map<String, Object> claims = decodedToken.getClaims();
@@ -62,7 +62,7 @@ public class AuthController {
     }
 
     /**
-     * Create a new session for a user
+     * Create a new session for a user after sign-in
      *
      * @param userId User ID
      * @return Response with session details
@@ -145,14 +145,14 @@ public class AuthController {
     /**
      * Logout a user by deleting all their sessions
      *
-     * @param token Firebase ID token
+     * @param token User authentication token
      * @return Response with logout status
      */
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Boolean>> logout(@RequestParam String token) {
         try {
-            // Verify the Firebase token
-            FirebaseToken decodedToken = firebaseAuthService.verifyIdToken(token);
+            // Verify the user authentication token
+            FirebaseToken decodedToken = userAuthService.verifyIdToken(token);
             
             if (decodedToken != null) {
                 String userId = decodedToken.getUid();

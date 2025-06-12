@@ -3,14 +3,27 @@ package io.strategiz.service.auth;
 import io.strategiz.data.auth.Passkey;
 import io.strategiz.data.auth.PasskeyCredential;
 import io.strategiz.data.auth.PasskeyCredentialRepository;
+import io.strategiz.service.auth.token.TokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+
+// No WebAuthn imports needed for this simplified implementation
 
 /**
  * Service for passkey credential management
@@ -18,13 +31,20 @@ import java.util.Optional;
 @Service
 public class PasskeyService {
 
+    /**
+     * Result container for passkey authentication operations
+     */
+    public record PasskeyAuthResult(boolean success, String accessToken, String refreshToken) {}
+
     private static final Logger log = LoggerFactory.getLogger(PasskeyService.class);
     
     private final PasskeyCredentialRepository passkeyCredentialRepository;
+    private final TokenService tokenService;
     
     @Autowired
-    public PasskeyService(PasskeyCredentialRepository passkeyCredentialRepository) {
+    public PasskeyService(PasskeyCredentialRepository passkeyCredentialRepository, TokenService tokenService) {
         this.passkeyCredentialRepository = passkeyCredentialRepository;
+        this.tokenService = tokenService;
     }
     
     /**
@@ -173,14 +193,18 @@ public class PasskeyService {
      * @param signature Signature
      * @param authenticatorData Authenticator data
      * @param clientDataJSON Client data JSON
-     * @return true if verification is successful, false otherwise
+     * @param ipAddress the IP address of the client making the request
+     * @param deviceId optional device identifier
+     * @return PasskeyAuthResult containing success status and tokens if successful
      */
-    public boolean verifyAssertion(
+    public PasskeyAuthResult verifyAssertion(
             String credentialId,
             String userId,
             String signature,
             String authenticatorData,
-            String clientDataJSON) {
+            String clientDataJSON,
+            String ipAddress,
+            String deviceId) {
         
         log.info("Verifying passkey assertion for user: {}, credential ID: {}", userId, credentialId);
         
@@ -190,25 +214,72 @@ public class PasskeyService {
         
         if (credentialOpt.isEmpty()) {
             log.warn("Credential not found for user: {}, credential ID: {}", userId, credentialId);
-            return false;
+            return new PasskeyAuthResult(false, null, null);
         }
         
         PasskeyCredential credential = credentialOpt.get();
         
-        // TODO: Implement actual WebAuthn verification logic
-        // This is a placeholder for actual signature verification
-        boolean verificationSuccessful = true;
-        
-        if (verificationSuccessful) {
-            // Update last used time
-            credential.updateLastUsedTime();
-            passkeyCredentialRepository.save(credential);
+        try {
+            // Convert base64url encoded strings to byte arrays
+            byte[] publicKeyBytes = Base64.getUrlDecoder().decode(credential.getPublicKey());
+            byte[] signatureBytes = Base64.getUrlDecoder().decode(signature);
+            byte[] authenticatorDataBytes = Base64.getUrlDecoder().decode(authenticatorData);
+            byte[] clientDataJSONBytes = clientDataJSON.getBytes(StandardCharsets.UTF_8);
             
-            log.info("Passkey assertion verification successful for user: {}", userId);
-            return true;
-        } else {
-            log.warn("Passkey assertion verification failed for user: {}", userId);
-            return false;
+            // Calculate client data hash
+            byte[] clientDataHash = MessageDigest.getInstance("SHA-256").digest(clientDataJSONBytes);
+            
+            // Create assertion data (authenticator data + client data hash)
+            byte[] signedData = ByteBuffer.allocate(authenticatorDataBytes.length + clientDataHash.length)
+                    .put(authenticatorDataBytes)
+                    .put(clientDataHash)
+                    .array();
+            
+            // Parse the public key
+            PublicKey publicKey = null;
+            try {
+                // Use Java's built-in EC key spec parser
+                X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
+                KeyFactory keyFactory = KeyFactory.getInstance("EC");
+                publicKey = keyFactory.generatePublic(keySpec);
+            } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
+                log.error("Invalid public key format: {}", e.getMessage());
+                return new PasskeyAuthResult(false, null, null);
+            }
+            
+            // Verify signature
+            try {
+                Signature sig = Signature.getInstance("SHA256withECDSA");
+                sig.initVerify(publicKey);
+                sig.update(signedData);
+                boolean verificationSuccessful = sig.verify(signatureBytes);
+                
+                if (verificationSuccessful) {
+                    // Update last used time if verification is successful
+                    credential.updateLastUsedTime();
+                    passkeyCredentialRepository.save(credential);
+                    log.info("Passkey verification successful for user: {}", userId);
+                    
+                    // Generate token pair for successful authentication
+                    TokenService.TokenPair tokenPair = tokenService.createTokenPair(
+                            userId, 
+                            deviceId, 
+                            ipAddress, 
+                            "user");
+                    
+                    return new PasskeyAuthResult(true, tokenPair.accessToken(), tokenPair.refreshToken());
+                } else {
+                    log.warn("Passkey verification failed for user: {}", userId);
+                    return new PasskeyAuthResult(false, null, null);
+                }
+                
+            } catch (Exception e) {
+                log.error("Error verifying passkey signature: {}", e.getMessage());
+                return new PasskeyAuthResult(false, null, null);
+            }
+        } catch (Exception e) {
+            log.error("Error in passkey verification process: {}", e.getMessage());
+            return new PasskeyAuthResult(false, null, null);
         }
     }
     

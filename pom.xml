@@ -28,6 +28,10 @@
         <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
+        <module>data/data-user</module>
+        
+        <!-- Auth Modules -->
+        <module>auth</module>
         
         <!-- Client Modules (Build Third) -->
         <module>client/client-base</module>
@@ -106,6 +110,25 @@
     <!-- Force specific versions of commonly used dependencies to avoid conflicts -->
     <dependencyManagement>
         <dependencies>
+            <!-- New Auth Modules -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>auth-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>auth-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- data-user was missing from explicit management, ensure it's here -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-user</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Internal Module Versions -->
             <!-- Data Modules -->
             <dependency>

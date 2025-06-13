@@ -1,8 +1,12 @@
 #!/bin/bash
-echo "===================================================================="
+echo "====================================================================" 
 echo "Building Strategiz Core in the correct dependency order..."
-echo "===================================================================="
+echo "====================================================================" 
 echo
+
+# Store the project root directory
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Record the start time
 start_time=$(date +%s)
@@ -19,7 +23,15 @@ fi
 cd scripts # Go back to scripts directory to continue
 
 echo "Step 1/6: Building framework modules"
-cd ../framework/framework-core
+# First install the framework parent POM
+cd ../framework
+mvn clean install -N -f pom.xml
+if [ $? -ne 0 ]; then
+    echo "Build failed in framework parent POM"
+    cd ../scripts
+    exit 1
+fi
+cd framework-core
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in framework-core"
@@ -139,6 +151,15 @@ if [ $? -ne 0 ]; then
 fi
 cd ../../scripts
 
+cd ../client/client-coingecko
+mvn clean install -DskipTests
+if [ $? -ne 0 ]; then
+    echo "Build failed in client-coingecko"
+    cd ../../scripts
+    exit 1
+fi
+cd ../../scripts
+
 cd ../client/client-binanceus
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
@@ -149,52 +170,52 @@ fi
 cd ../..
 
 echo "Step 4/6: Building service modules"
-cd service/service-base
+cd ../service/service-base
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in service-base"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd service/service-strategy
+cd ../service/service-strategy
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in service-strategy"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd service/service-exchange
+cd ../service/service-exchange
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in service-exchange"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd service/service-portfolio
+cd ../service/service-portfolio
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in service-portfolio"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd service/service-dashboard
+cd ../service/service-dashboard
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in service-dashboard"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd service/service-auth
+cd ../service/service-auth
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in service-auth"
@@ -204,25 +225,25 @@ fi
 cd ../..
 
 echo "Step 5/6: Building API modules"
-cd api/api-base
+cd ../api/api-base
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in api-base"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd api/api-dashboard
+cd ../api/api-dashboard
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in api-dashboard"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd api/api-exchange
+cd ../api/api-exchange
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in api-exchange"
@@ -240,25 +261,34 @@ if [ $? -ne 0 ]; then
 fi
 cd ../scripts # Return to scripts directory
 
-cd api/api-strategy
+cd ../api/api-strategy
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in api-strategy"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd api/api-portfolio
+cd ../api/api-monitoring
+mvn clean install -DskipTests
+if [ $? -ne 0 ]; then
+    echo "Build failed in api-monitoring"
+    cd ../../scripts
+    exit 1
+fi
+cd ../../scripts
+
+cd ../api/api-portfolio
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in api-portfolio"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd api/api-auth
+cd ../api/api-auth
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in api-auth"

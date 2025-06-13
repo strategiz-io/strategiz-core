@@ -21,6 +21,8 @@
     <modules>
         <!-- Framework Modules (Build First) -->
         <module>framework/framework-core</module>
+        <module>framework/framework-api-docs</module>
+
         
         <!-- Data Modules (Build Second) -->
         <module>data/data-auth</module>

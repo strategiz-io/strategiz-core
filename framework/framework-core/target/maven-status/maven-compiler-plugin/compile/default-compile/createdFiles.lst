@@ -1,2 +1,2 @@
-io\strategiz\framework\model\BaseModel.class
-io\strategiz\framework\exception\ApplicationClientException.class
+io/strategiz/framework/model/BaseModel.class
+io/strategiz/framework/exception/ApplicationClientException.class

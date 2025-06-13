@@ -27,12 +27,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         
-        <!-- Lombok for code generation -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
         
         <!-- Testing dependencies -->
         <dependency>

@@ -7,6 +7,17 @@ echo
 # Record the start time
 start_time=$(date +%s)
 
+# Install the root POM first
+echo "Installing root POM (strategiz-core/pom.xml)..."
+cd .. # Go to strategiz-core directory from scripts
+mvn clean install -N
+if [ $? -ne 0 ]; then
+    echo "Build failed installing root POM"
+    cd scripts # Go back to scripts directory before exiting
+    exit 1
+fi
+cd scripts # Go back to scripts directory to continue
+
 echo "Step 1/6: Building framework modules"
 cd ../framework/framework-core
 mvn clean install -DskipTests
@@ -23,53 +34,73 @@ if [ $? -ne 0 ]; then
     cd ../../scripts
     exit 1
 fi
-cd ../../
+cd ../../scripts # Return to scripts directory from framework/framework-api-docs
+
+# Install parent POM for data modules first
+echo "Installing parent POM for data modules (data/pom.xml)..."
+cd ../data # Relative to scripts directory
+mvn clean install -N
+if [ $? -ne 0 ]; then
+    echo "Build failed installing data parent POM"
+    cd ../scripts # Go back to scripts directory before exiting
+    exit 1
+fi
+cd ../scripts # Go back to scripts directory to continue
 
 echo "Step 2/6: Building data modules"
-cd data/data-base
+cd ../data/data-base
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in data-base"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts # Return to scripts directory
 
-cd data/data-strategy
+cd ../data/data-strategy
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in data-strategy"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts # Return to scripts directory
 
-cd data/data-exchange
+cd ../data/data-exchange
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in data-exchange"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts # Return to scripts directory
 
-cd data/data-portfolio
+cd ../data/data-portfolio
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in data-portfolio"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts # Return to scripts directory
 
-cd data/data-auth
+cd ../data/data-auth
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in data-auth"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts # Return to scripts directory
+
+cd ../data/data-user
+mvn clean install -DskipTests
+if [ $? -ne 0 ]; then
+    echo "Build failed in data-user"
+    cd ../../scripts
+    exit 1
+fi
+cd ../../scripts # Return to scripts directory
 
 echo "Step 3/6: Building client modules"
 cd client/client-base
@@ -198,7 +229,16 @@ if [ $? -ne 0 ]; then
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts # Return to scripts directory
+
+cd ../data/data-userategy
+mvn clean install -DskipTests
+if [ $? -ne 0 ]; then
+    echo "Build failed in data-userategy"
+    cd ../scripts
+    exit 1
+fi
+cd ../scripts # Return to scripts directory
 
 cd api/api-strategy
 mvn clean install -DskipTests

@@ -103,43 +103,43 @@ fi
 cd ../../scripts # Return to scripts directory
 
 echo "Step 3/6: Building client modules"
-cd client/client-base
+cd ../client/client-base
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in client-base"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd client/client-alphavantage
+cd ../client/client-alphavantage
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in client-alphavantage"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd client/client-kraken
+cd ../client/client-kraken
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in client-kraken"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd client/client-coinbase
+cd ../client/client-coinbase
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in client-coinbase"
     cd ../../scripts
     exit 1
 fi
-cd ../..
+cd ../../scripts
 
-cd client/client-binanceus
+cd ../client/client-binanceus
 mvn clean install -DskipTests
 if [ $? -ne 0 ]; then
     echo "Build failed in client-binanceus"

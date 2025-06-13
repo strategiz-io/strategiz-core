@@ -31,7 +31,7 @@
         <module>data/data-user</module>
         
         <!-- Auth Modules -->
-        <module>auth</module>
+        <!-- <module>auth</module> -->
         
         <!-- Client Modules (Build Third) -->
         <module>client/client-base</module>
@@ -98,18 +98,13 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
-        <!-- Local repository for project-specific dependencies -->
-        <repository>
-            <id>local-repo</id>
-            <name>Local Repository</name>
-            <url>file://${project.basedir}/local-repo</url>
-        </repository>
     </repositories>
     
 
     <!-- Force specific versions of commonly used dependencies to avoid conflicts -->
     <dependencyManagement>
         <dependencies>
+
             <!-- New Auth Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>
@@ -356,15 +351,19 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.13.0</version>
                 <configuration>
                     <source>21</source>
                     <target>21</target>
-                    <fork>true</fork>
-                    <executable>C:\Program Files\Java\jdk-21\bin\javac</executable>
-                    <compilerVersion>21</compilerVersion>
-                    <release>21</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
+
             </plugin>
             
             <!-- Spring Boot Maven Plugin -->

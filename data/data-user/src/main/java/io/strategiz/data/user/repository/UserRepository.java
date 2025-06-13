@@ -1,6 +1,7 @@
 package io.strategiz.data.user.repository;
 
 import com.google.api.core.ApiFuture;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import io.strategiz.data.user.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,9 @@ public class UserRepository {
     private static final String DEVICES_COLLECTION = "devices";
     private static final String PREFERENCES_COLLECTION = "preferences";
     private static final String WATCHLIST_COLLECTION = "market_watchlist";
+    private static final String PROVIDERS_COLLECTION = "providers"; // For the Provider subcollection
+    private static final String CREDENTIALS_COLLECTION = "credentials"; // Subcollection under a provider
+    private static final String DEFAULT_CREDENTIALS_ID = "default"; // Default ID for credentials document
     
     private final Firestore firestore;
 
@@ -192,7 +196,7 @@ public class UserRepository {
             authMethodData.put("modifiedBy", authMethod.getModifiedBy());
             authMethodData.put("modifiedAt", FieldValue.serverTimestamp());
             authMethodData.put("version", authMethod.getVersion());
-            authMethodData.put("isActive", authMethod.getIsActive());
+            authMethodData.put("isActive", authMethod.isActive());
             
             // Add type-specific fields
             if (authMethod instanceof TotpAuthenticationMethod) {

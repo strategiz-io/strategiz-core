@@ -597,4 +597,38 @@ public class UserRepository {
             throw new RuntimeException("Error deleting credentials: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Compatibility method for TotpService - delegates to getUserById
+     */
+    public Optional<User> findById(String userId) {
+        return getUserById(userId);
+    }
+
+    /**
+     * Compatibility method for TotpService - saves or updates a user
+     */
+    public User save(User user) {
+        try {
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getId());
+            
+            // Convert user to map for Firestore
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("profile", user.getProfile());
+            userData.put("connectedProviders", user.getConnectedProviders());
+            userData.put("authenticationMethods", user.getAuthenticationMethods());
+            userData.put("createdBy", user.getCreatedBy());
+            userData.put("createdAt", user.getCreatedAt());
+            userData.put("modifiedBy", user.getModifiedBy());
+            userData.put("modifiedAt", new Date());
+            userData.put("version", user.getVersion());
+            userData.put("isActive", user.getIsActive());
+            
+            ApiFuture<WriteResult> future = docRef.set(userData, SetOptions.merge());
+            future.get();
+            return user;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error saving user: " + e.getMessage(), e);
+        }
+    }
 }

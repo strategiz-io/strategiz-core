@@ -6,13 +6,15 @@ import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal.SignalStrength;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal.SignalType;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -24,9 +26,10 @@ import java.util.stream.Collectors;
  * Bitcoin Trading Agent Service
  * Uses real Coinbase API data to analyze BTC price trends and generate trading signals
  */
-@Slf4j
 @Service
 public class BitcoinTradingAgent {
+
+    private static final Logger log = LoggerFactory.getLogger(BitcoinTradingAgent.class);
 
     private final CoinbaseClient coinbaseClient;
     private final RestTemplate restTemplate;
@@ -67,7 +70,7 @@ public class BitcoinTradingAgent {
             }
             
             // Get the current price (most recent close price)
-            double currentPrice = historicalData.get(0).getClose();
+            BigDecimal currentPrice = historicalData.get(0).getClose();
             
             // Calculate technical indicators
             Map<String, Object> indicators = calculateIndicators(historicalData);
@@ -79,7 +82,7 @@ public class BitcoinTradingAgent {
             SignalStrength signalStrength = calculateSignalStrength(indicators);
             
             // Calculate target price if it's a buy signal
-            double targetPrice = calculateTargetPrice(signalType, currentPrice, indicators);
+            BigDecimal targetPrice = calculateTargetPrice(signalType, currentPrice, indicators);
             
             // Generate rationale for the signal
             String rationale = generateRationale(signalType, indicators);
@@ -90,8 +93,8 @@ public class BitcoinTradingAgent {
                 .signalType(signalType)
                 .strength(signalStrength)
                 .timestamp(LocalDateTime.now())
-                .currentPrice(currentPrice)
-                .targetPrice(targetPrice)
+                .currentPrice(currentPrice.doubleValue())
+                .targetPrice(targetPrice.doubleValue())
                 .rationale(rationale)
                 .timeframe(timeframe)
                 .additionalMetrics(indicators)
@@ -140,11 +143,11 @@ public class BitcoinTradingAgent {
     private HistoricalPriceData convertCandleToHistoricalData(Object[] candle) {
         // Coinbase API returns candles in format [timestamp, low, high, open, close, volume]
         long timestamp = ((Number) candle[0]).longValue();
-        double low = ((Number) candle[1]).doubleValue();
-        double high = ((Number) candle[2]).doubleValue();
-        double open = ((Number) candle[3]).doubleValue();
-        double close = ((Number) candle[4]).doubleValue();
-        double volume = ((Number) candle[5]).doubleValue();
+        BigDecimal low = new BigDecimal(((Number) candle[1]).doubleValue());
+        BigDecimal high = new BigDecimal(((Number) candle[2]).doubleValue());
+        BigDecimal open = new BigDecimal(((Number) candle[3]).doubleValue());
+        BigDecimal close = new BigDecimal(((Number) candle[4]).doubleValue());
+        BigDecimal volume = new BigDecimal(((Number) candle[5]).doubleValue());
         
         return HistoricalPriceData.builder()
             .assetSymbol(BTC_SYMBOL)
@@ -154,7 +157,7 @@ public class BitcoinTradingAgent {
             .open(open)
             .close(close)
             .volume(volume)
-            .quoteVolume(volume * close) // Approximate quote volume
+            .quoteVolume(volume.multiply(close)) // Approximate quote volume
             .build();
     }
     
@@ -174,9 +177,9 @@ public class BitcoinTradingAgent {
         indicators.put("ema26", calculateEMA(data, 26));
         
         // Moving Average Convergence Divergence (MACD)
-        double ema12 = (double) indicators.get("ema12");
-        double ema26 = (double) indicators.get("ema26");
-        double macd = ema12 - ema26;
+        BigDecimal ema12 = (BigDecimal) indicators.get("ema12");
+        BigDecimal ema26 = (BigDecimal) indicators.get("ema26");
+        BigDecimal macd = ema12.subtract(ema26);
         indicators.put("macd", macd);
         
         // Relative Strength Index (RSI)
@@ -187,10 +190,10 @@ public class BitcoinTradingAgent {
         indicators.putAll(bollingerBands);
         
         // Current price position relative to indicators
-        double currentPrice = data.get(0).getClose();
-        indicators.put("priceVsSMA7", currentPrice / (double) indicators.get("sma7"));
-        indicators.put("priceVsSMA25", currentPrice / (double) indicators.get("sma25"));
-        indicators.put("priceVsSMA99", currentPrice / (double) indicators.get("sma99"));
+        BigDecimal currentPrice = data.get(0).getClose();
+        indicators.put("priceVsSMA7", currentPrice.divide((BigDecimal) indicators.get("sma7")));
+        indicators.put("priceVsSMA25", currentPrice.divide((BigDecimal) indicators.get("sma25")));
+        indicators.put("priceVsSMA99", currentPrice.divide((BigDecimal) indicators.get("sma99")));
         
         // Volatility metrics
         indicators.put("volatility", calculateVolatility(data, 14));
@@ -209,23 +212,23 @@ public class BitcoinTradingAgent {
         int sellSignals = 0;
         
         // SMA crossovers
-        double priceVsSMA7 = (double) indicators.get("priceVsSMA7");
-        double priceVsSMA25 = (double) indicators.get("priceVsSMA25");
-        double priceVsSMA99 = (double) indicators.get("priceVsSMA99");
+        BigDecimal priceVsSMA7 = (BigDecimal) indicators.get("priceVsSMA7");
+        BigDecimal priceVsSMA25 = (BigDecimal) indicators.get("priceVsSMA25");
+        BigDecimal priceVsSMA99 = (BigDecimal) indicators.get("priceVsSMA99");
         
         // Price above SMAs is bullish
-        if (priceVsSMA7 > 1.0) buySignals++;
+        if (priceVsSMA7.compareTo(BigDecimal.ONE) > 0) buySignals++;
         else sellSignals++;
         
-        if (priceVsSMA25 > 1.0) buySignals++;
+        if (priceVsSMA25.compareTo(BigDecimal.ONE) > 0) buySignals++;
         else sellSignals++;
         
-        if (priceVsSMA99 > 1.0) buySignals++;
+        if (priceVsSMA99.compareTo(BigDecimal.ONE) > 0) buySignals++;
         else sellSignals++;
         
         // MACD
-        double macd = (double) indicators.get("macd");
-        if (macd > 0) buySignals++;
+        BigDecimal macd = (BigDecimal) indicators.get("macd");
+        if (macd.compareTo(BigDecimal.ZERO) > 0) buySignals++;
         else sellSignals++;
         
         // RSI
@@ -236,12 +239,12 @@ public class BitcoinTradingAgent {
         else if (rsi > 55) sellSignals++;
         
         // Bollinger Bands
-        double currentPrice = (double) indicators.get("currentPrice");
+        BigDecimal currentPrice = (BigDecimal) indicators.get("currentPrice");
         double lowerBand = (double) indicators.get("lowerBand");
         double upperBand = (double) indicators.get("upperBand");
         
-        if (currentPrice < lowerBand) buySignals += 2; // Below lower band - strong buy signal
-        else if (currentPrice > upperBand) sellSignals += 2; // Above upper band - strong sell signal
+        if (currentPrice.compareTo(BigDecimal.valueOf(lowerBand)) < 0) buySignals += 2; // Below lower band - strong buy signal
+        else if (currentPrice.compareTo(BigDecimal.valueOf(upperBand)) > 0) sellSignals += 2; // Above upper band - strong sell signal
         
         // Uptrend
         boolean uptrend = (boolean) indicators.get("uptrend");
@@ -278,7 +281,7 @@ public class BitcoinTradingAgent {
     /**
      * Calculate target price based on signal type and indicators
      */
-    private double calculateTargetPrice(SignalType signalType, double currentPrice, Map<String, Object> indicators) {
+    private BigDecimal calculateTargetPrice(SignalType signalType, BigDecimal currentPrice, Map<String, Object> indicators) {
         // For buy signals, calculate a target price higher than current
         // For sell signals, calculate a target price lower than current
         
@@ -302,7 +305,7 @@ public class BitcoinTradingAgent {
                 break;
         }
         
-        return currentPrice * (1 + adjustment);
+        return currentPrice.multiply(BigDecimal.valueOf(1 + adjustment));
     }
     
     /**
@@ -337,9 +340,9 @@ public class BitcoinTradingAgent {
         else if (rsi > 70) rationale.append(" (overbought). ");
         else rationale.append(". ");
         
-        double macd = (double) indicators.get("macd");
+        BigDecimal macd = (BigDecimal) indicators.get("macd");
         rationale.append(String.format("MACD is %.2f", macd));
-        if (macd > 0) rationale.append(" (bullish). ");
+        if (macd.compareTo(BigDecimal.ZERO) > 0) rationale.append(" (bullish). ");
         else rationale.append(" (bearish). ");
         
         boolean uptrend = (boolean) indicators.get("uptrend");
@@ -358,31 +361,31 @@ public class BitcoinTradingAgent {
     /**
      * Calculate Simple Moving Average
      */
-    private double calculateSMA(List<HistoricalPriceData> data, int period) {
+    private BigDecimal calculateSMA(List<HistoricalPriceData> data, int period) {
         if (data.size() < period) {
-            return data.stream().mapToDouble(HistoricalPriceData::getClose).average().orElse(0);
+            return data.stream().map(HistoricalPriceData::getClose).reduce(BigDecimal.ZERO, BigDecimal::add).divide(BigDecimal.valueOf(data.size()));
         }
         
         return data.stream()
             .limit(period)
-            .mapToDouble(HistoricalPriceData::getClose)
-            .average()
-            .orElse(0);
+            .map(HistoricalPriceData::getClose)
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .divide(BigDecimal.valueOf(period));
     }
     
     /**
      * Calculate Exponential Moving Average
      */
-    private double calculateEMA(List<HistoricalPriceData> data, int period) {
+    private BigDecimal calculateEMA(List<HistoricalPriceData> data, int period) {
         if (data.size() < period) {
             return calculateSMA(data, data.size());
         }
         
         double smoothingFactor = 2.0 / (period + 1);
-        double ema = data.get(period - 1).getClose();
+        BigDecimal ema = data.get(period - 1).getClose();
         
         for (int i = period - 2; i >= 0; i--) {
-            ema = (data.get(i).getClose() * smoothingFactor) + (ema * (1 - smoothingFactor));
+            ema = data.get(i).getClose().multiply(BigDecimal.valueOf(smoothingFactor)).add(ema.multiply(BigDecimal.valueOf(1 - smoothingFactor)));
         }
         
         return ema;
@@ -401,11 +404,11 @@ public class BitcoinTradingAgent {
         
         // Calculate initial average gain/loss
         for (int i = 0; i < period; i++) {
-            double change = data.get(i).getClose() - data.get(i + 1).getClose();
-            if (change >= 0) {
-                sumGain += change;
+            BigDecimal change = data.get(i).getClose().subtract(data.get(i + 1).getClose());
+            if (change.compareTo(BigDecimal.ZERO) >= 0) {
+                sumGain += change.doubleValue();
             } else {
-                sumLoss -= change;
+                sumLoss -= change.doubleValue();
             }
         }
         
@@ -424,20 +427,20 @@ public class BitcoinTradingAgent {
         Map<String, Double> result = new HashMap<>();
         
         // Calculate SMA
-        double sma = calculateSMA(data, period);
-        result.put("middleBand", sma);
+        BigDecimal sma = calculateSMA(data, period);
+        result.put("middleBand", sma.doubleValue());
         
         // Calculate standard deviation
         double variance = data.stream()
             .limit(period)
-            .mapToDouble(d -> Math.pow(d.getClose() - sma, 2))
+            .mapToDouble(d -> Math.pow(d.getClose().doubleValue() - sma.doubleValue(), 2))
             .sum() / period;
         double stdDev = Math.sqrt(variance);
         
         // Calculate upper and lower bands
-        result.put("upperBand", sma + (stdDev * multiplier));
-        result.put("lowerBand", sma - (stdDev * multiplier));
-        result.put("currentPrice", data.get(0).getClose());
+        result.put("upperBand", sma.add(BigDecimal.valueOf(stdDev * multiplier)).doubleValue());
+        result.put("lowerBand", sma.subtract(BigDecimal.valueOf(stdDev * multiplier)).doubleValue());
+        result.put("currentPrice", data.get(0).getClose().doubleValue());
         
         return result;
     }
@@ -452,9 +455,9 @@ public class BitcoinTradingAgent {
         
         List<Double> returns = new ArrayList<>();
         for (int i = 0; i < period - 1; i++) {
-            double todayPrice = data.get(i).getClose();
-            double yesterdayPrice = data.get(i + 1).getClose();
-            double dailyReturn = (todayPrice / yesterdayPrice) - 1;
+            BigDecimal todayPrice = data.get(i).getClose();
+            BigDecimal yesterdayPrice = data.get(i + 1).getClose();
+            double dailyReturn = (todayPrice.divide(yesterdayPrice).doubleValue()) - 1;
             returns.add(dailyReturn);
         }
         
@@ -474,10 +477,10 @@ public class BitcoinTradingAgent {
             period = data.size();
         }
         
-        double currentPrice = data.get(0).getClose();
-        double oldPrice = data.get(period - 1).getClose();
+        BigDecimal currentPrice = data.get(0).getClose();
+        BigDecimal oldPrice = data.get(period - 1).getClose();
         
-        return currentPrice > oldPrice;
+        return currentPrice.compareTo(oldPrice) > 0;
     }
     
     /**

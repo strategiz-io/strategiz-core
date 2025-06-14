@@ -1,7 +1,8 @@
 package io.strategiz.client.kraken;
 
 import io.strategiz.client.kraken.model.KrakenAccount;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -20,10 +21,10 @@ import java.util.Map;
  * Client for interacting with the Kraken exchange API
  * This class handles all low-level API communication with Kraken
  */
-@Slf4j
 @Component
 public class KrakenClient {
 
+    private static final Logger log = LoggerFactory.getLogger(KrakenClient.class);
     private static final String ACCOUNT_BALANCE_PATH = "/0/private/Balance";
     
     @Value("${kraken.api.url:https://api.kraken.com}")

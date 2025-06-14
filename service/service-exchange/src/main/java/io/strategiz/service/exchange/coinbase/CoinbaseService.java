@@ -1,6 +1,7 @@
 package io.strategiz.service.exchange.coinbase;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,8 +21,9 @@ import java.util.Map;
  * IMPORTANT: This service always uses real API data, never mock responses.
  */
 @Service
-@Slf4j
 public class CoinbaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(CoinbaseService.class);
 
     private static final String COINBASE_API_URL = "https://api.coinbase.com";
     

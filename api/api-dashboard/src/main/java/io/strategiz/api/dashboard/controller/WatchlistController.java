@@ -13,7 +13,9 @@ import io.strategiz.api.dashboard.mapper.WatchlistResponseBuilder;
 import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.service.base.model.BaseServiceResponse;
 import io.strategiz.service.dashboard.DashboardService;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for watchlist data.
@@ -21,9 +23,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/api/dashboard/watchlist")
-@Slf4j
 public class WatchlistController extends DashboardBaseController {
     
+    private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
+
     private final DashboardService dashboardService;
     private final WatchlistResponseBuilder responseBuilder;
     

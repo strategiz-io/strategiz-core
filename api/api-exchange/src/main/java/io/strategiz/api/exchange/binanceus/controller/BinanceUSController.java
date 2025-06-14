@@ -11,7 +11,8 @@ import io.strategiz.data.exchange.binanceus.model.response.ExchangeInfoResponse;
 import io.strategiz.service.exchange.binanceus.BinanceUSService;
 import io.strategiz.service.exchange.binanceus.FirestoreService;
 import io.strategiz.service.exchange.binanceus.util.AdminUtil;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -24,10 +25,11 @@ import java.util.*;
 /**
  * Controller for Binance US API integration
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/binanceus")
 public class BinanceUSController {
+
+    private static final Logger log = LoggerFactory.getLogger(BinanceUSController.class);
 
     @Autowired
     private BinanceUSService binanceUSService;

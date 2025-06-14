@@ -13,7 +13,9 @@ import io.strategiz.api.dashboard.model.riskanalysis.RiskAnalysisResponse;
 import io.strategiz.api.dashboard.mapper.RiskAnalysisResponseBuilder;
 import io.strategiz.service.dashboard.RiskAnalysisService;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for risk analysis data.
@@ -21,9 +23,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/api/dashboard/risk")
-@Slf4j
 public class RiskAnalysisController extends DashboardBaseController {
     
+    private static final Logger log = LoggerFactory.getLogger(RiskAnalysisController.class);
+
     @Override
     public RiskAnalysisResponse process(Object request) {
         // Default implementation

@@ -2,7 +2,8 @@ package io.strategiz.service.portfolio;
 
 import io.strategiz.client.kraken.KrakenClient;
 import io.strategiz.client.kraken.model.KrakenAccount;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +15,10 @@ import java.util.Map;
  * Kraken implementation of the BrokerageService interface
  * Provides Kraken portfolio data via the Kraken API client
  */
-@Slf4j
-@Service
 public class KrakenBrokerageService implements BrokerageService {
 
     private static final String PROVIDER_NAME = "kraken";
+    private static final Logger log = LoggerFactory.getLogger(KrakenBrokerageService.class);
     private final KrakenClient krakenClient;
 
     @Autowired

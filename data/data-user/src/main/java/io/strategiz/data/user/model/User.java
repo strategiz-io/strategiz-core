@@ -13,6 +13,7 @@ public class User {
     private String id;
     private UserProfile profile;
     private List<ConnectedProvider> connectedProviders = new ArrayList<>();
+    private List<AuthenticationMethod> authenticationMethods = new ArrayList<>();
 
     // Audit fields
     private String createdBy;
@@ -48,10 +49,11 @@ public class User {
         // connectedProviders is initialized by default as new ArrayList<>()
     }
 
-    public User(String id, UserProfile profile, List<ConnectedProvider> connectedProviders, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive) {
+    public User(String id, UserProfile profile, List<ConnectedProvider> connectedProviders, List<AuthenticationMethod> authenticationMethods, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive) {
         this.id = id;
         this.profile = profile;
         this.connectedProviders = connectedProviders;
+        this.authenticationMethods = authenticationMethods;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
         this.modifiedBy = modifiedBy;
@@ -83,6 +85,21 @@ public class User {
 
     public void setConnectedProviders(List<ConnectedProvider> connectedProviders) {
         this.connectedProviders = connectedProviders;
+    }
+
+    public List<AuthenticationMethod> getAuthenticationMethods() {
+        return authenticationMethods;
+    }
+
+    public void setAuthenticationMethods(List<AuthenticationMethod> authenticationMethods) {
+        this.authenticationMethods = authenticationMethods;
+    }
+
+    public void addAuthenticationMethod(AuthenticationMethod authenticationMethod) {
+        if (this.authenticationMethods == null) {
+            this.authenticationMethods = new ArrayList<>();
+        }
+        this.authenticationMethods.add(authenticationMethod);
     }
 
     public String getCreatedBy() {
@@ -141,6 +158,7 @@ public class User {
         return Objects.equals(id, user.id) &&
                Objects.equals(profile, user.profile) &&
                Objects.equals(connectedProviders, user.connectedProviders) &&
+               Objects.equals(authenticationMethods, user.authenticationMethods) &&
                Objects.equals(createdBy, user.createdBy) &&
                Objects.equals(createdAt, user.createdAt) &&
                Objects.equals(modifiedBy, user.modifiedBy) &&
@@ -151,7 +169,7 @@ public class User {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, profile, connectedProviders, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+        return Objects.hash(id, profile, connectedProviders, authenticationMethods, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
     }
 
     @Override
@@ -160,6 +178,7 @@ public class User {
                "id='" + id + '\'' +
                ", profile=" + profile +
                ", connectedProviders=" + connectedProviders +
+               ", authenticationMethods=" + authenticationMethods +
                ", createdBy='" + createdBy + '\'' +
                ", createdAt=" + createdAt +
                ", modifiedBy='" + modifiedBy + '\'' +

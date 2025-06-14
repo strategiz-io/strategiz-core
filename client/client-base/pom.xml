@@ -34,14 +34,12 @@
             <version>${apache.httpclient.version}</version>
         </dependency>
         
-        <!-- Lombok for code generation -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-        
         <!-- Testing dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -61,5 +59,3 @@
         </plugins>
     </build>
 </project>
-
-

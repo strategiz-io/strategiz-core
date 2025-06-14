@@ -1,6 +1,7 @@
-/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/BrokerageService.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/KrakenBrokerageService.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/PortfolioService.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/RobinhoodBrokerageService.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/model/BrokerageCredentialsResponse.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/model/PortfolioResponse.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/KrakenBrokerageService.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/BrokerageService.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/RobinhoodBrokerageService.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/service/service-portfolio/src/main/java/io/strategiz/service/portfolio/model/AssetHolding.java

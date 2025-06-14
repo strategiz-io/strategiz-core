@@ -14,7 +14,9 @@ import io.strategiz.api.dashboard.model.assetallocation.AssetAllocationResponse;
 import io.strategiz.api.dashboard.controller.DashboardBaseController;
 import io.strategiz.service.base.model.BaseServiceResponse;
 import io.strategiz.service.dashboard.AssetAllocationService;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for asset allocation data.
@@ -22,9 +24,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/api/dashboard/asset-allocation")
-@Slf4j
 public class AssetAllocationController extends DashboardBaseController {
     
+    private static final Logger log = LoggerFactory.getLogger(AssetAllocationController.class);
+
     @Override
     public BaseServiceResponse process(Object request) {
         // Default implementation

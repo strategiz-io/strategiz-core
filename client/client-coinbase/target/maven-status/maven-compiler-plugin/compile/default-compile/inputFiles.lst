@@ -1,10 +1,10 @@
 /Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/CoinbaseClient.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/advanced/CoinbaseAdvancedTradeClient.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/config/ClientCoinbaseConfig.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/config/CoinbaseClientConfig.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/demo/CoinbasePriceDemo.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/exception/CoinbaseApiException.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/model/Balance.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/model/CoinbaseResponse.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/model/TickerPrice.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/util/CoinbaseJwtUtil.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/model/TickerPrice.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/demo/CoinbasePriceDemo.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/model/CoinbaseResponse.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/exception/CoinbaseApiException.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/config/CoinbaseClientConfig.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coinbase/src/main/java/io/strategiz/client/coinbase/config/ClientCoinbaseConfig.java

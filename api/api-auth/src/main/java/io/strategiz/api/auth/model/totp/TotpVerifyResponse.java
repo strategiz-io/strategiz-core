@@ -7,11 +7,11 @@ public record TotpVerifyResponse(
         boolean success,
         String message
 ) {
-    public static TotpVerifyResponse success() {
+    public static TotpVerifyResponse createSuccess() {
         return new TotpVerifyResponse(true, "TOTP setup completed successfully");
     }
     
-    public static TotpVerifyResponse error(String message) {
+    public static TotpVerifyResponse createError(String message) {
         return new TotpVerifyResponse(false, message);
     }
 }

@@ -1,10 +1,10 @@
-io/strategiz/service/portfolio/model/PortfolioResponse$PortfolioResponseBuilder.class
+io/strategiz/service/portfolio/model/PortfolioResponse$Builder.class
 io/strategiz/service/portfolio/KrakenBrokerageService.class
-io/strategiz/service/portfolio/model/PortfolioResponse$AssetHolding$AssetHoldingBuilder.class
+io/strategiz/service/portfolio/model/AssetHolding$Builder.class
 io/strategiz/service/portfolio/model/PortfolioResponse.class
+io/strategiz/service/portfolio/model/AssetHolding.class
 io/strategiz/service/portfolio/BrokerageService.class
 io/strategiz/service/portfolio/PortfolioService.class
-io/strategiz/service/portfolio/model/PortfolioResponse$AssetHolding.class
-io/strategiz/service/portfolio/model/BrokerageCredentialsResponse$BrokerageCredentialsResponseBuilder.class
 io/strategiz/service/portfolio/model/BrokerageCredentialsResponse.class
+io/strategiz/service/portfolio/model/BrokerageCredentialsResponse$Builder.class
 io/strategiz/service/portfolio/RobinhoodBrokerageService.class

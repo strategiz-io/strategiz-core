@@ -1,11 +1,12 @@
 package io.strategiz.service.exchange.binanceus;
 
-import com.google.firebase.cloud.FirestoreClient;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.cloud.FirestoreClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,8 +15,9 @@ import java.util.Map;
  * Service for interacting with Firestore database for Binance US credentials
  */
 @Service
-@Slf4j
 public class FirestoreService {
+
+    private static final Logger log = LoggerFactory.getLogger(FirestoreService.class);
 
     /**
      * Get Binance US credentials for a user

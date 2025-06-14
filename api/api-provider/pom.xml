@@ -37,13 +37,6 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

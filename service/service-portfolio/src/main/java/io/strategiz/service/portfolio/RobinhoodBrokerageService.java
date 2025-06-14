@@ -1,6 +1,7 @@
 package io.strategiz.service.portfolio;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -9,9 +10,9 @@ import java.util.Map;
 /**
  * Implementation of BrokerageService for Robinhood
  */
-@Slf4j
-@Service
 public class RobinhoodBrokerageService implements BrokerageService {
+
+    private static final Logger log = LoggerFactory.getLogger(RobinhoodBrokerageService.class);
 
     @Override
     public Map<String, Object> getPortfolioData(Map<String, String> credentials) {

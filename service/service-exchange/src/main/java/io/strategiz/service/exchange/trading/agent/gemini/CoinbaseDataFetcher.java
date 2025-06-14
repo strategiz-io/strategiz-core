@@ -3,12 +3,14 @@ package io.strategiz.service.exchange.trading.agent.gemini;
 import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.client.coinbase.exception.CoinbaseApiException;
 import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -18,10 +20,10 @@ import java.util.stream.Collectors;
  * Service to fetch real Coinbase historical data for the Gemini AI agent
  */
 @Service
-@Slf4j
 public class CoinbaseDataFetcher {
 
     private final CoinbaseClient coinbaseClient;
+    private static final Logger log = LoggerFactory.getLogger(CoinbaseDataFetcher.class);
     
     @Autowired
     public CoinbaseDataFetcher(CoinbaseClient coinbaseClient) {
@@ -79,11 +81,11 @@ public class CoinbaseDataFetcher {
     private HistoricalPriceData convertCandleToHistoricalData(Object[] candle) {
         // Coinbase API returns candles in format [timestamp, low, high, open, close, volume]
         long timestamp = ((Number) candle[0]).longValue();
-        double low = ((Number) candle[1]).doubleValue();
-        double high = ((Number) candle[2]).doubleValue();
-        double open = ((Number) candle[3]).doubleValue();
-        double close = ((Number) candle[4]).doubleValue();
-        double volume = ((Number) candle[5]).doubleValue();
+        BigDecimal low = BigDecimal.valueOf(((Number) candle[1]).doubleValue());
+        BigDecimal high = BigDecimal.valueOf(((Number) candle[2]).doubleValue());
+        BigDecimal open = BigDecimal.valueOf(((Number) candle[3]).doubleValue());
+        BigDecimal close = BigDecimal.valueOf(((Number) candle[4]).doubleValue());
+        BigDecimal volume = BigDecimal.valueOf(((Number) candle[5]).doubleValue());
         
         return HistoricalPriceData.builder()
             .assetSymbol("BTC")
@@ -93,7 +95,7 @@ public class CoinbaseDataFetcher {
             .open(open)
             .close(close)
             .volume(volume)
-            .quoteVolume(volume * close) // Approximate quote volume
+            .quoteVolume(volume.multiply(close)) // Approximate quote volume
             .build();
     }
     

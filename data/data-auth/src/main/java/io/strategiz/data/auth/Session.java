@@ -1,21 +1,13 @@
 package io.strategiz.data.auth;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Model class representing a user session
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Session {
     
     private String id;
@@ -24,6 +16,68 @@ public class Session {
     private long createdAt;
     private long expiresAt;
     private long lastAccessedAt;
+    
+    // Constructors
+    public Session() {
+    }
+    
+    public Session(String id, String userId, String token, long createdAt, long expiresAt, long lastAccessedAt) {
+        this.id = id;
+        this.userId = userId;
+        this.token = token;
+        this.createdAt = createdAt;
+        this.expiresAt = expiresAt;
+        this.lastAccessedAt = lastAccessedAt;
+    }
+    
+    // Getters and Setters
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+    
+    public String getToken() {
+        return token;
+    }
+    
+    public void setToken(String token) {
+        this.token = token;
+    }
+    
+    public long getCreatedAt() {
+        return createdAt;
+    }
+    
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+    
+    public long getExpiresAt() {
+        return expiresAt;
+    }
+    
+    public void setExpiresAt(long expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+    
+    public long getLastAccessedAt() {
+        return lastAccessedAt;
+    }
+    
+    public void setLastAccessedAt(long lastAccessedAt) {
+        this.lastAccessedAt = lastAccessedAt;
+    }
     
     /**
      * Checks if the session is expired
@@ -73,7 +127,7 @@ public class Session {
      * @return Session object
      */
     public static Session fromMap(Map<String, Object> map) {
-        return Session.builder()
+        return new SessionBuilder()
                 .id((String) map.get("id"))
                 .userId((String) map.get("userId"))
                 .token((String) map.get("token"))
@@ -81,5 +135,83 @@ public class Session {
                 .expiresAt(((Number) map.get("expiresAt")).longValue())
                 .lastAccessedAt(((Number) map.get("lastAccessedAt")).longValue())
                 .build();
+    }
+    
+    // Builder pattern
+    public static SessionBuilder builder() {
+        return new SessionBuilder();
+    }
+    
+    public static class SessionBuilder {
+        private String id;
+        private String userId;
+        private String token;
+        private long createdAt;
+        private long expiresAt;
+        private long lastAccessedAt;
+        
+        public SessionBuilder id(String id) {
+            this.id = id;
+            return this;
+        }
+        
+        public SessionBuilder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+        
+        public SessionBuilder token(String token) {
+            this.token = token;
+            return this;
+        }
+        
+        public SessionBuilder createdAt(long createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+        
+        public SessionBuilder expiresAt(long expiresAt) {
+            this.expiresAt = expiresAt;
+            return this;
+        }
+        
+        public SessionBuilder lastAccessedAt(long lastAccessedAt) {
+            this.lastAccessedAt = lastAccessedAt;
+            return this;
+        }
+        
+        public Session build() {
+            return new Session(id, userId, token, createdAt, expiresAt, lastAccessedAt);
+        }
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Session session = (Session) o;
+        return createdAt == session.createdAt &&
+                expiresAt == session.expiresAt &&
+                lastAccessedAt == session.lastAccessedAt &&
+                Objects.equals(id, session.id) &&
+                Objects.equals(userId, session.userId) &&
+                Objects.equals(token, session.token);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, userId, token, createdAt, expiresAt, lastAccessedAt);
+    }
+    
+    @Override
+    public String toString() {
+        return "Session{" +
+                "id='" + id + '\'' +
+                ", userId='" + userId + '\'' +
+                ", token='" + token + '\'' +
+                ", createdAt=" + createdAt +
+                ", expiresAt=" + expiresAt +
+                ", lastAccessedAt=" + lastAccessedAt +
+                '}';
     }
 }

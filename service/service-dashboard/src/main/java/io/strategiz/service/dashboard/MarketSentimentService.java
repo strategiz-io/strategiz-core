@@ -1,9 +1,8 @@
 package io.strategiz.service.dashboard;
 
-import io.strategiz.business.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
-import io.strategiz.client.coincap.CoinCapClient;
+import io.strategiz.client.alphavantage.AlphaVantageClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,16 +11,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.math.RoundingMode;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.Map;
+import java.util.HashMap;
+import java.time.LocalDateTime;
 
 /**
  * Service for market sentiment analysis within the Dashboard module.
  * This service provides fear & greed index, trending assets, and sentiment indicators.
  */
 @Service
-public class MarketSentimentService extends BaseService {
+public class MarketSentimentService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketSentimentService.class);
 

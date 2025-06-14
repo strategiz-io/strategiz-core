@@ -4,6 +4,9 @@ import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
+import io.strategiz.service.dashboard.model.riskanalysis.VolatilityMetric;
+import io.strategiz.service.dashboard.model.riskanalysis.DiversificationMetric;
+import io.strategiz.service.dashboard.model.riskanalysis.CorrelationMetric;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -88,16 +91,16 @@ public class RiskAnalysisService extends BaseService {
         RiskAnalysisData response = new RiskAnalysisData();
         
         // Calculate volatility metrics
-        RiskAnalysisData.VolatilityMetric volatilityMetric = calculateVolatilityMetrics(historicalData);
-        response.setVolatilityMetric(volatilityMetric);
+        VolatilityMetric volatilityMetric = calculateVolatilityMetrics(historicalData);
+        response.setVolatility(volatilityMetric);
         
         // Calculate diversification metrics
-        RiskAnalysisData.DiversificationMetric diversificationMetric = calculateDiversificationMetrics(portfolioData);
-        response.setDiversificationMetric(diversificationMetric);
+        DiversificationMetric diversificationMetric = calculateDiversificationMetrics(portfolioData);
+        response.setDiversification(diversificationMetric);
         
         // Calculate correlation metrics
-        RiskAnalysisData.CorrelationMetric correlationMetric = calculateCorrelationMetrics(portfolioData, historicalData);
-        response.setCorrelationMetric(correlationMetric);
+        CorrelationMetric correlationMetric = calculateCorrelationMetrics(portfolioData, historicalData);
+        response.setCorrelation(correlationMetric);
         
         return response;
     }
@@ -108,8 +111,8 @@ public class RiskAnalysisService extends BaseService {
      * @param historicalData Historical portfolio data
      * @return Volatility metrics
      */
-    private RiskAnalysisData.VolatilityMetric calculateVolatilityMetrics(List<PortfolioData> historicalData) {
-        RiskAnalysisData.VolatilityMetric volatilityMetric = new RiskAnalysisData.VolatilityMetric();
+    private VolatilityMetric calculateVolatilityMetrics(List<PortfolioData> historicalData) {
+        VolatilityMetric volatilityMetric = new VolatilityMetric();
         
         // Default values for empty or insufficient data
         volatilityMetric.setScore(new BigDecimal("50"));
@@ -168,8 +171,8 @@ public class RiskAnalysisService extends BaseService {
      * @param portfolioData Current portfolio data
      * @return Diversification metrics
      */
-    private RiskAnalysisData.DiversificationMetric calculateDiversificationMetrics(PortfolioData portfolioData) {
-        RiskAnalysisData.DiversificationMetric diversificationMetric = new RiskAnalysisData.DiversificationMetric();
+    private DiversificationMetric calculateDiversificationMetrics(PortfolioData portfolioData) {
+        DiversificationMetric diversificationMetric = new DiversificationMetric();
         
         // Default values for empty or insufficient data
         diversificationMetric.setScore(new BigDecimal("50"));
@@ -290,11 +293,11 @@ public class RiskAnalysisService extends BaseService {
      * @param historicalData Historical portfolio data
      * @return Correlation metrics
      */
-    private RiskAnalysisData.CorrelationMetric calculateCorrelationMetrics(
+    private CorrelationMetric calculateCorrelationMetrics(
             PortfolioData portfolioData, 
             List<PortfolioData> historicalData) {
         
-        RiskAnalysisData.CorrelationMetric correlationMetric = new RiskAnalysisData.CorrelationMetric();
+        CorrelationMetric correlationMetric = new CorrelationMetric();
         
         // Default values
         correlationMetric.setAverageCorrelation(new BigDecimal("0.5"));

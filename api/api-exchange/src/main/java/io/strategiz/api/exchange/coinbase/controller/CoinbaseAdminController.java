@@ -1,9 +1,5 @@
 package io.strategiz.api.exchange.coinbase.controller;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,23 +7,16 @@ import java.util.Map;
 // Important: This class must always use real API data, no mocks
 
 import io.strategiz.service.exchange.coinbase.CoinbaseService;
-import io.strategiz.service.exchange.coinbase.CoinbaseCloudService;
 import io.strategiz.service.exchange.coinbase.FirestoreService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestClientResponseException;
-import org.springframework.web.client.RestTemplate;
 
 import jakarta.servlet.http.HttpServletRequest;
-
-import com.google.firebase.cloud.FirestoreClient;
-import com.google.cloud.firestore.QuerySnapshot;
-import org.slf4j.MDC;
 
 /**
  * Controller for Coinbase admin operations
@@ -37,8 +26,9 @@ import org.slf4j.MDC;
  */
 @RestController
 @RequestMapping("/api/coinbase")
-@Slf4j
 public class CoinbaseAdminController {
+
+    private static final Logger log = LoggerFactory.getLogger(CoinbaseAdminController.class);
 
     @Autowired
     private CoinbaseService coinbaseService;
@@ -47,10 +37,6 @@ public class CoinbaseAdminController {
     @Qualifier("coinbaseFirestoreService")
     private FirestoreService firestoreService;
     
-    @Autowired
-    private CoinbaseCloudService coinbaseCloudService;
-    
-    private final RestTemplate restTemplate = new RestTemplate();
     
     /**
      * Health check endpoint for Coinbase API integration
@@ -235,7 +221,7 @@ public class CoinbaseAdminController {
                 response.put("privateKey", "");
             } else {
                 String apiKey = credentials.get("apiKey");
-                String privateKey = credentials.get("privateKey");
+                // String privateKey = credentials.get("privateKey"); // Unused
                 
                 // Mask the private key for security
                 String maskedPrivateKey = "PEM key available (not shown for security)";
@@ -256,22 +242,5 @@ public class CoinbaseAdminController {
                 "message", "Error getting Coinbase API keys: " + e.getMessage()
             ));
         }
-    }
-    
-    /**
-     * Helper method to get all headers from a request for logging purposes
-     * 
-     * @param request The HTTP request
-     * @return Map of header names and values
-     */
-    private Map<String, String> getHeadersInfo(HttpServletRequest request) {
-        Map<String, String> map = new HashMap<>();
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String key = headerNames.nextElement();
-            String value = request.getHeader(key);
-            map.put(key, value);
-        }
-        return map;
     }
 }

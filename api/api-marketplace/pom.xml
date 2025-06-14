@@ -38,13 +38,6 @@
             <artifactId>firebase-admin</artifactId>
             <version>9.1.1</version>
         </dependency>
-
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 
     <build>

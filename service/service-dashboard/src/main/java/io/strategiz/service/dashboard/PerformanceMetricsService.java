@@ -4,9 +4,10 @@ import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.service.dashboard.model.performancemetrics.PerformanceMetricsData;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -19,9 +20,10 @@ import java.util.List;
  * Service for portfolio performance metrics operations.
  * This service provides historical performance data and portfolio metrics.
  */
-@Slf4j
 @Service
 public class PerformanceMetricsService extends BaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(PerformanceMetricsService.class);
 
     private final PortfolioManager portfolioManager;
 

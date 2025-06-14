@@ -9,15 +9,17 @@ import org.springframework.web.client.RestTemplate;
 import io.strategiz.client.coinbase.exception.CoinbaseApiException;
 import io.strategiz.client.coinbase.util.CoinbaseJwtUtil;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Client for interacting with the Coinbase Advanced Trade API
  * This class handles direct API communication with Coinbase Advanced Trade
  */
 @Component
-@Slf4j
 public class CoinbaseAdvancedTradeClient {
+    
+    private static final Logger log = LoggerFactory.getLogger(CoinbaseAdvancedTradeClient.class);
     private static final String BASE_URL = "https://api.coinbase.com/api/v3/brokerage/accounts";
     
     @Autowired

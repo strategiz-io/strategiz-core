@@ -45,12 +45,5 @@
             <artifactId>json</artifactId>
             <version>20210307</version>
         </dependency>
-        
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>

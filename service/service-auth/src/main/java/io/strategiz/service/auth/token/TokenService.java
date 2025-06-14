@@ -1,6 +1,5 @@
 package io.strategiz.service.auth.token;
 
-import dev.paseto.jpaseto.Claims;
 import dev.paseto.jpaseto.PasetoException;
 import io.strategiz.data.auth.PasetoToken;
 import io.strategiz.data.auth.PasetoTokenRepository;
@@ -53,8 +52,8 @@ public class TokenService {
         String refreshToken = tokenProvider.createRefreshToken(userId);
         
         // Extract claims
-        Claims accessClaims = tokenProvider.parseToken(accessToken);
-        Claims refreshClaims = tokenProvider.parseToken(refreshToken);
+        Map<String, Object> accessClaims = tokenProvider.parseToken(accessToken);
+        Map<String, Object> refreshClaims = tokenProvider.parseToken(refreshToken);
         
         // Store access token in database
         PasetoToken accessTokenEntity = PasetoToken.builder()
@@ -62,8 +61,8 @@ public class TokenService {
                 .userId(userId)
                 .tokenType("ACCESS")
                 .tokenValue(accessToken)
-                .issuedAt(accessClaims.getIssuedAt().toEpochMilli() / 1000)
-                .expiresAt(accessClaims.getExpiration().toEpochMilli() / 1000)
+                .issuedAt(((Number) accessClaims.get("iat")).longValue())
+                .expiresAt(((Number) accessClaims.get("exp")).longValue())
                 .deviceId(deviceId)
                 .issuedFrom(ipAddress)
                 .revoked(false)
@@ -76,11 +75,12 @@ public class TokenService {
                 .userId(userId)
                 .tokenType("REFRESH")
                 .tokenValue(refreshToken)
-                .issuedAt(refreshClaims.getIssuedAt().toEpochMilli() / 1000)
-                .expiresAt(refreshClaims.getExpiration().toEpochMilli() / 1000)
+                .issuedAt(((Number) refreshClaims.get("iat")).longValue())
+                .expiresAt(((Number) refreshClaims.get("exp")).longValue())
                 .deviceId(deviceId)
                 .issuedFrom(ipAddress)
                 .revoked(false)
+                .claims(Map.of())
                 .build();
         
         tokenRepository.save(accessTokenEntity);
@@ -115,7 +115,7 @@ public class TokenService {
             
             // Create a new access token
             String newAccessToken = tokenProvider.createAccessToken(userId);
-            Claims accessClaims = tokenProvider.parseToken(newAccessToken);
+            Map<String, Object> accessClaims = tokenProvider.parseToken(newAccessToken);
             
             // Store the new access token
             PasetoToken accessTokenEntity = PasetoToken.builder()
@@ -123,8 +123,8 @@ public class TokenService {
                     .userId(userId)
                     .tokenType("ACCESS")
                     .tokenValue(newAccessToken)
-                    .issuedAt(accessClaims.getIssuedAt().toEpochMilli() / 1000)
-                    .expiresAt(accessClaims.getExpiration().toEpochMilli() / 1000)
+                    .issuedAt(((Number) accessClaims.get("iat")).longValue())
+                    .expiresAt(((Number) accessClaims.get("exp")).longValue())
                     .deviceId(refreshTokenEntity.getDeviceId())
                     .issuedFrom(ipAddress)
                     .revoked(false)

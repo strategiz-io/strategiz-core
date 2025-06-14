@@ -2,7 +2,8 @@ package io.strategiz.api.provider.controller;
 
 import io.americanexpress.synapse.service.rest.controller.BaseController;
 import io.strategiz.service.provider.ProviderOAuthService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,10 +19,11 @@ import java.util.UUID;
 /**
  * Controller for handling OAuth flows with exchanges and brokerages.
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/provider")
 public class ProviderOAuthController extends BaseController {
+
+    private static final Logger log = LoggerFactory.getLogger(ProviderOAuthController.class);
 
     private final ProviderOAuthService providerOAuthService;
     

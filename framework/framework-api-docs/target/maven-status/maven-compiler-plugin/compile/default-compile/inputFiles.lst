@@ -1,5 +1,5 @@
-/Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/annotation/ApiDocumented.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/config/OpenApiConfig.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/controller/ApiDocsController.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/config/OpenApiConfig.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/annotation/ApiDocumented.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/controller/BaseApiController.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/framework/framework-api-docs/src/main/java/io/strategiz/framework/apidocs/model/ApiResponseWrapper.java

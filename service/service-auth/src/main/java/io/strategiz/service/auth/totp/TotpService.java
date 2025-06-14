@@ -98,8 +98,16 @@ public class TotpService {
      * @throws QrGenerationException if QR code generation fails
      */
     public String generateQrCodeImageUri(String secret, String userIdentifier) throws QrGenerationException {
-        String uri = generateQrCodeUri(secret, userIdentifier);
-        byte[] imageData = qrGenerator.generate(uri);
+        QrData data = new QrData.Builder()
+                .label(userIdentifier)
+                .secret(secret)
+                .issuer(ISSUER)
+                .algorithm(HashingAlgorithm.SHA1)
+                .digits(DEFAULT_TOTP_CODE_DIGITS)
+                .period(DEFAULT_PERIOD_SECONDS)
+                .build();
+        
+        byte[] imageData = qrGenerator.generate(data);
         return getDataUriForImage(imageData, qrGenerator.getImageMimeType());
     }
     

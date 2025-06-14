@@ -1,20 +1,21 @@
 package io.strategiz.service.exchange.coinbase.admin;
 
 import io.strategiz.client.coinbase.util.CoinbaseJwtUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Client for interacting with the Coinbase API for admin dashboard purposes
  * This class handles direct API communication with Coinbase for admin operations
  */
 @Component
-@Slf4j
 public class CoinbaseAdminDashboardClient {
     private static final String BASE_URL = "https://api.coinbase.com/api/v3/brokerage/accounts";
     private final RestTemplate restTemplate = new RestTemplate();
+    private static final Logger log = LoggerFactory.getLogger(CoinbaseAdminDashboardClient.class);
 
     /**
      * Get account information from Coinbase API

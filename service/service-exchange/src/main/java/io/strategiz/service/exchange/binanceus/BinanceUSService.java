@@ -5,7 +5,8 @@ import io.strategiz.data.exchange.binanceus.model.Balance;
 import io.strategiz.data.exchange.binanceus.model.TickerPrice;
 import io.strategiz.data.exchange.binanceus.model.response.BalanceResponse;
 import io.strategiz.service.base.BaseService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
@@ -37,13 +38,14 @@ import org.apache.commons.codec.binary.Hex;
  * This service handles all communication with the Binance US API and provides
  * methods for accessing account data, balances, and other information.
  */
-@Slf4j
 @Service
 public class BinanceUSService extends BaseService {
 
     private static final String BINANCEUS_API_URL = "https://api.binance.us";
     private static final String HMAC_SHA256 = "HmacSHA256";
     private static final int READ_TIMEOUT = 30000; // 30 seconds
+    
+    private static final Logger log = LoggerFactory.getLogger(BinanceUSService.class);
     
     private final RestTemplate restTemplate;
     

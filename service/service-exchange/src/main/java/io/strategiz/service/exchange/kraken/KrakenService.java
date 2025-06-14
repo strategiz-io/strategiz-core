@@ -3,7 +3,8 @@ package io.strategiz.service.exchange.kraken;
 import io.strategiz.client.kraken.KrakenClient;
 import io.strategiz.client.kraken.model.KrakenAccount;
 import io.strategiz.data.exchange.ExchangeCredentialsRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,9 +14,10 @@ import java.util.Map;
 /**
  * Service for interacting with the Kraken exchange API
  */
-@Slf4j
 @Service
 public class KrakenService {
+
+    private static final Logger log = LoggerFactory.getLogger(KrakenService.class);
 
     private final KrakenClient krakenClient;
     private final ExchangeCredentialsRepository credentialsRepository;

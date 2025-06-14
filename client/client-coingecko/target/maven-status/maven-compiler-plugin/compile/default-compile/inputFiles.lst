@@ -1,5 +1,5 @@
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/CoinGeckoClient.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/model/CryptoCurrency.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/model/CoinGeckoResponse.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/config/ClientCoinGeckoConfig.java
 /Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/constant/CoinGeckoConstants.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/model/CoinGeckoResponse.java
-/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/model/CryptoCurrency.java
+/Users/cuztomizer/Documents/GitHub/strategiz-core/client/client-coingecko/src/main/java/io/strategiz/client/coingecko/CoinGeckoClient.java

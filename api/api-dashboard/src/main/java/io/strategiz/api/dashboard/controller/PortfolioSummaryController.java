@@ -13,7 +13,8 @@ import io.strategiz.api.dashboard.mapper.PortfolioSummaryResponseBuilder;
 import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 import io.strategiz.service.base.model.BaseServiceResponse;
 import io.strategiz.service.dashboard.DashboardService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for portfolio summary API endpoints.
@@ -21,8 +22,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/api/dashboard/portfolio")
-@Slf4j
 public class PortfolioSummaryController extends DashboardBaseController {
+
+    private static final Logger log = LoggerFactory.getLogger(PortfolioSummaryController.class);
 
     private final DashboardService dashboardService;
     private final PortfolioSummaryResponseBuilder responseBuilder;

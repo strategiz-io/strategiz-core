@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -47,7 +48,7 @@ public class TotpController {
                 log.warn("User not found for TOTP setup: {}", request.userId());
                 return ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error("User not found", HttpStatus.NOT_FOUND.value()));
+                        .body(ApiResponse.error("User not found"));
             }
             
             // Check if TOTP is already enabled
@@ -55,23 +56,22 @@ public class TotpController {
                 log.warn("TOTP already enabled for user: {}", request.userId());
                 return ResponseEntity
                         .status(HttpStatus.CONFLICT)
-                        .body(ApiResponse.error("TOTP is already enabled for this user", HttpStatus.CONFLICT.value()));
+                        .body(ApiResponse.error("TOTP is already enabled for this user"));
             }
             
             // Generate secret and QR code
             String secret = totpService.generateSecret();
-            String email = request.email() != null ? request.email() : userOpt.get().getEmail();
+            String email = request.email() != null ? request.email() : userOpt.get().getProfile().getEmail();
             String qrCodeImageUri = totpService.generateQrCodeImageUri(secret, email);
             
             TotpSetupResponse response = TotpSetupResponse.success(secret, qrCodeImageUri);
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("TOTP setup successful", response));
             
         } catch (Exception e) {
             log.error("Error setting up TOTP: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error setting up TOTP: " + e.getMessage(), 
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                    .body(ApiResponse.error("Error setting up TOTP: " + e.getMessage()));
         }
     }
     
@@ -91,7 +91,7 @@ public class TotpController {
                 log.warn("Invalid TOTP code provided for verification: {}", request.userId());
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
-                        .body(ApiResponse.error("Invalid verification code", HttpStatus.BAD_REQUEST.value()));
+                        .body(ApiResponse.error("Invalid verification code"));
             }
             
             // Enable TOTP for the user
@@ -100,17 +100,16 @@ public class TotpController {
                 log.error("Failed to enable TOTP for user: {}", request.userId());
                 return ResponseEntity
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(ApiResponse.error("Failed to enable TOTP", HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                        .body(ApiResponse.error("Failed to enable TOTP"));
             }
             
-            return ResponseEntity.ok(ApiResponse.success(TotpVerifyResponse.success()));
+            return ResponseEntity.ok(ApiResponse.success("TOTP verification successful", TotpVerifyResponse.createSuccess()));
             
         } catch (Exception e) {
             log.error("Error verifying TOTP: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error verifying TOTP: " + e.getMessage(), 
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                    .body(ApiResponse.error("Error verifying TOTP: " + e.getMessage()));
         }
     }
     
@@ -135,20 +134,19 @@ public class TotpController {
                 log.warn("TOTP authentication failed for user: {}", request.userId());
                 return ResponseEntity
                         .status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.error("Authentication failed", HttpStatus.UNAUTHORIZED.value()));
+                        .body(ApiResponse.error("Authentication failed"));
             }
             
             io.strategiz.service.auth.token.TokenService.TokenPair tokenPair = tokenPairOpt.get();
             TotpAuthResponse response = TotpAuthResponse.success(tokenPair.accessToken(), tokenPair.refreshToken());
             
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("TOTP authentication successful", response));
             
         } catch (Exception e) {
             log.error("Error during TOTP authentication: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error during authentication: " + e.getMessage(), 
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                    .body(ApiResponse.error("Error during authentication: " + e.getMessage()));
         }
     }
     
@@ -168,7 +166,7 @@ public class TotpController {
                 log.warn("TOTP not enabled for user: {}", userId);
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
-                        .body(ApiResponse.error("TOTP is not enabled for this user", HttpStatus.BAD_REQUEST.value()));
+                        .body(ApiResponse.error("TOTP is not enabled for this user"));
             }
             
             // Disable TOTP
@@ -177,18 +175,16 @@ public class TotpController {
                 log.error("Failed to disable TOTP for user: {}", userId);
                 return ResponseEntity
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(ApiResponse.error("Failed to disable TOTP", HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                        .body(ApiResponse.error("Failed to disable TOTP"));
             }
             
-            return ResponseEntity.ok(ApiResponse.success(
-                    new TotpVerifyResponse(true, "TOTP disabled successfully")));
+            return ResponseEntity.ok(ApiResponse.success("TOTP disabled successfully", TotpVerifyResponse.createSuccess()));
             
         } catch (Exception e) {
             log.error("Error disabling TOTP: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error disabling TOTP: " + e.getMessage(), 
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                    .body(ApiResponse.error("Error disabling TOTP: " + e.getMessage()));
         }
     }
     
@@ -204,15 +200,14 @@ public class TotpController {
         
         try {
             boolean isEnabled = totpService.isTotpEnabledForUser(userId);
-            Map<String, Boolean> response = Map.of("enabled", isEnabled);
+            Map<String, Boolean> status = Map.of("enabled", isEnabled);
             
-            return ResponseEntity.ok(ApiResponse.success(response));
+            return ResponseEntity.ok(ApiResponse.success("TOTP status retrieved", status));
         } catch (Exception e) {
             log.error("Error checking TOTP status: {}", e.getMessage(), e);
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error checking TOTP status", 
-                            HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                    .body(ApiResponse.error("Error checking TOTP status: " + e.getMessage()));
         }
     }
     

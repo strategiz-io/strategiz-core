@@ -27,11 +27,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
         <!-- Google Firestore dependencies -->
         <dependency>
             <groupId>com.google.firebase</groupId>
@@ -45,4 +40,3 @@
         </dependency>
     </dependencies>
 </project>
-

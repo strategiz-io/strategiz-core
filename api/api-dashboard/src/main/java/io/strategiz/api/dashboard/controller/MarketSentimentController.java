@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import io.strategiz.api.dashboard.mapper.MarketSentimentResponseBuilder;
 import io.strategiz.api.dashboard.model.marketsentiment.MarketSentimentResponse;
 import io.strategiz.service.dashboard.MarketSentimentService;
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for market sentiment data.
@@ -20,9 +22,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/api/dashboard/market")
-@Slf4j
 public class MarketSentimentController extends DashboardBaseController {
     
+    private static final Logger log = LoggerFactory.getLogger(MarketSentimentController.class);
+
     @Override
     public MarketSentimentResponse process(Object request) {
         // Default implementation

@@ -1,27 +1,16 @@
 package io.strategiz.service.dashboard;
 
-import io.strategiz.service.base.BaseService;
-// Removed external API model imports to avoid circular dependencies
-// import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
-// import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.business.portfolio.PortfolioManager;
-import io.strategiz.business.portfolio.model.PortfolioData;
-import io.strategiz.business.portfolio.model.PortfolioMetrics;
 import io.strategiz.client.alphavantage.AlphaVantageClient;
 import io.strategiz.client.alphavantage.model.StockData;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.service.dashboard.constants.DashboardConstants;
-import io.strategiz.service.dashboard.model.dashboard.DashboardData;
-import io.strategiz.service.dashboard.model.dashboard.DashboardData.PortfolioSummary;
-import io.strategiz.service.dashboard.model.dashboard.DashboardData.MarketData;
-import io.strategiz.service.dashboard.model.dashboard.DashboardData.WatchlistItem;
-import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
+import io.strategiz.service.dashboard.model.dashboard.AssetMarketData;
+import io.strategiz.service.dashboard.model.watchlist.WatchlistAsset;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistResponse;
-import lombok.Data;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,8 +28,9 @@ import java.util.stream.Collectors;
  * Implements Synapse BaseService pattern.
  */
 @Service
-@Slf4j
-public class DashboardService extends BaseService {
+public class DashboardService {
+
+    private static final Logger log = LoggerFactory.getLogger(DashboardService.class);
 
     private final PortfolioManager portfolioManager;
     private final CoinGeckoClient coinGeckoClient;
@@ -55,163 +45,6 @@ public class DashboardService extends BaseService {
         this.alphaVantageClient = alphaVantageClient;
     }
 
-    /**
-     * Gets all data needed for the dashboard using Synapse patterns
-     * 
-     * @param userId The user ID to fetch dashboard data for
-     * @return Dashboard data as a structured object
-     */
-    public DashboardData getDashboardData(String userId) {
-        log.info("Getting dashboard data for user: {}", userId);
-        
-        try {
-            // Create the dashboard data object
-            DashboardData dashboardData = new DashboardData();
-            dashboardData.setUserId(userId);
-            
-            // Use the business-portfolio module to get portfolio data
-            PortfolioData portfolioData = portfolioManager.getAggregatedPortfolioData(userId);
-            
-            // Convert data to structured objects
-            dashboardData.setPortfolio(convertToPortfolioSummary(portfolioData));
-            PortfolioMetrics portfolioMetrics = portfolioManager.calculatePortfolioMetrics(portfolioData);
-            dashboardData.setMetrics(convertToPerformanceMetrics(portfolioMetrics));
-            dashboardData.setMarket(getMarketData());
-            dashboardData.setWatchlist(getWatchlistData(userId));
-            
-            return dashboardData;
-        } catch (Exception e) {
-            log.error("Error getting dashboard data for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve dashboard data", e);
-        }
-    }
-    
-    /**
-     * Gets portfolio summary data for the user
-     * 
-     * @param userId The user ID to fetch portfolio data for
-     * @return Portfolio summary response
-     */
-    public PortfolioSummaryResponse getPortfolioSummary(String userId) {
-        log.info("Getting portfolio summary for user: {}", userId);
-        
-        try {
-            // Use the business-portfolio module to get aggregated portfolio data
-            PortfolioData portfolioData = portfolioManager.getAggregatedPortfolioData(userId);
-            
-            // Create the response object
-            PortfolioSummaryResponse response = new PortfolioSummaryResponse();
-            
-            // Check if there are any exchange connections
-            boolean hasExchangeConnections = portfolioData.getExchanges() != null && !portfolioData.getExchanges().isEmpty();
-            response.setHasExchangeConnections(hasExchangeConnections);
-            
-            if (hasExchangeConnections) {
-                // Set portfolio data
-                response.setTotalValue(portfolioData.getTotalValue());
-                response.setDailyChange(portfolioData.getDailyChange());
-                response.setDailyChangePercent(portfolioData.getDailyChangePercent());
-                
-                // Convert exchange data to response format
-                Map<String, PortfolioSummaryResponse.ExchangeData> exchanges = new HashMap<>();
-                
-                for (Map.Entry<String, PortfolioData.ExchangeData> entry : portfolioData.getExchanges().entrySet()) {
-                    PortfolioData.ExchangeData exchangeData = entry.getValue();
-                    PortfolioSummaryResponse.ExchangeData responseExchange = new PortfolioSummaryResponse.ExchangeData();
-                    
-                    responseExchange.setId(exchangeData.getId());
-                    responseExchange.setName(exchangeData.getName());
-                    responseExchange.setValue(exchangeData.getValue());
-                    
-                    exchanges.put(entry.getKey(), responseExchange);
-                }
-                
-                response.setExchanges(exchanges);
-                response.setStatusMessage("Connected to " + exchanges.size() + " exchange(s)");
-            } else {
-                // No exchange connections found
-                response.setTotalValue(BigDecimal.ZERO);
-                response.setDailyChange(BigDecimal.ZERO);
-                response.setDailyChangePercent(BigDecimal.ZERO);
-                response.setExchanges(new HashMap<>());
-                response.setStatusMessage("No exchange connections found. Please configure your API keys in the settings.");
-                response.setNeedsApiKeyConfiguration(true);
-            }
-            
-            return response;
-        } catch (Exception e) {
-            log.error("Error getting dashboard data for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve dashboard data", e);
-        }
-    }
-    
-    /**
-     * Gets detailed portfolio summary for the authenticated user
-     * 
-     * @param userId The user ID to fetch portfolio data for
-     * @return Portfolio summary response
-     */
-    public PortfolioSummaryResponse getDetailedPortfolioSummary(String userId) {
-        log.info("Getting portfolio summary for user: {}", userId);
-        
-        try {
-            // Get portfolio data from the business layer
-            PortfolioData portfolioData = portfolioManager.getAggregatedPortfolioData(userId);
-            
-            // Convert to API response model
-            PortfolioSummaryResponse response = new PortfolioSummaryResponse();
-            response.setTotalValue(portfolioData.getTotalValue() != null ? 
-                    portfolioData.getTotalValue() : BigDecimal.ZERO);
-            response.setDailyChange(portfolioData.getDailyChange() != null ? 
-                    portfolioData.getDailyChange() : BigDecimal.ZERO);
-            response.setDailyChangePercent(portfolioData.getDailyChangePercent() != null ? 
-                    portfolioData.getDailyChangePercent() : BigDecimal.ZERO);
-            
-            // Check if there are any exchange connections
-            boolean hasExchanges = portfolioData.getExchanges() != null && !portfolioData.getExchanges().isEmpty();
-            response.setHasExchangeConnections(hasExchanges);
-            
-            // Set the message shown in the UI when no exchanges are found
-            if (!hasExchanges) {
-                response.setStatusMessage("No exchange connections found. Please configure your API keys in the settings.");
-                response.setNeedsApiKeyConfiguration(true);
-            }
-            
-            // Convert exchanges
-            Map<String, PortfolioSummaryResponse.ExchangeData> exchanges = new HashMap<>();
-            if (hasExchanges) {
-                portfolioData.getExchanges().forEach((key, exchangeData) -> {
-                    PortfolioSummaryResponse.ExchangeData exchange = new PortfolioSummaryResponse.ExchangeData();
-                    exchange.setName(exchangeData.getName());
-                    exchange.setValue(exchangeData.getValue());
-                    
-                    // Convert assets
-                    Map<String, PortfolioSummaryResponse.AssetData> assets = new HashMap<>();
-                    if (exchangeData.getAssets() != null) {
-                        exchangeData.getAssets().forEach((assetKey, assetData) -> {
-                            PortfolioSummaryResponse.AssetData asset = new PortfolioSummaryResponse.AssetData();
-                            asset.setSymbol(assetData.getSymbol());
-                            asset.setName(assetData.getName());
-                            asset.setQuantity(assetData.getQuantity());
-                            asset.setPrice(assetData.getPrice());
-                            asset.setValue(assetData.getValue());
-                            asset.setAllocationPercent(assetData.getAllocationPercent());
-                            assets.put(assetKey, asset);
-                        });
-                    }
-                    exchange.setAssets(assets);
-                    exchanges.put(key, exchange);
-                });
-            }
-            response.setExchanges(exchanges);
-            
-            return response;
-        } catch (Exception e) {
-            log.error("Error getting portfolio summary for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve portfolio summary", e);
-        }
-    }
-    
     /**
      * Gets watchlist data for the authenticated user
      * 
@@ -248,48 +81,44 @@ public class DashboardService extends BaseService {
                 .filter(asset -> "Stocks".equalsIgnoreCase(asset.getCategory()))
                 .collect(Collectors.toList());
             
-            // Fetch crypto market data
+            // Fetch crypto market data in batch
             if (!cryptoAssets.isEmpty()) {
-                Map<String, MarketData> cryptoMarketData = fetchCryptoMarketData(cryptoAssets);
+                Map<String, AssetMarketData> cryptoMarketData = fetchCryptoMarketData(cryptoAssets);
                 
                 for (WatchlistAsset asset : cryptoAssets) {
-                    MarketData marketData = cryptoMarketData.getOrDefault(asset.getId(), 
-                            new MarketData(asset.getId(), asset.getSymbol(), asset.getName(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
+                    AssetMarketData marketData = cryptoMarketData.getOrDefault(asset.getId(), 
+                            new AssetMarketData(asset.getId(), asset.getSymbol(), asset.getName(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
                     
                     WatchlistResponse.WatchlistItem item = new WatchlistResponse.WatchlistItem();
                     item.setId(asset.getId());
                     item.setSymbol(asset.getSymbol());
                     item.setName(asset.getName());
-                    item.setCategory("Crypto");
+                    item.setCategory(asset.getCategory());
                     item.setPrice(marketData.getPrice());
                     item.setChange(marketData.getChange());
                     item.setChangePercent(marketData.getChangePercent());
                     item.setPositiveChange(marketData.isPositiveChange());
-                    item.setChartDataUrl("/api/chart/" + asset.getSymbol());
-                    
                     watchlistItems.add(item);
                 }
             }
             
             // Fetch stock market data
             if (!stockAssets.isEmpty()) {
-                Map<String, MarketData> stockMarketData = fetchStockMarketData(stockAssets);
+                Map<String, AssetMarketData> stockMarketData = fetchStockMarketData(stockAssets);
                 
                 for (WatchlistAsset asset : stockAssets) {
-                    MarketData marketData = stockMarketData.getOrDefault(asset.getId(), 
-                            new MarketData(asset.getId(), asset.getSymbol(), asset.getName(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
+                    AssetMarketData marketData = stockMarketData.getOrDefault(asset.getId(), 
+                            new AssetMarketData(asset.getId(), asset.getSymbol(), asset.getName(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false));
                     
                     WatchlistResponse.WatchlistItem item = new WatchlistResponse.WatchlistItem();
                     item.setId(asset.getId());
                     item.setSymbol(asset.getSymbol());
                     item.setName(asset.getName());
-                    item.setCategory("Stocks");
+                    item.setCategory(asset.getCategory());
                     item.setPrice(marketData.getPrice());
                     item.setChange(marketData.getChange());
                     item.setChangePercent(marketData.getChangePercent());
                     item.setPositiveChange(marketData.isPositiveChange());
-                    item.setChartDataUrl("/api/chart/" + asset.getSymbol());
-                    
                     watchlistItems.add(item);
                 }
             }
@@ -301,6 +130,114 @@ public class DashboardService extends BaseService {
             log.error("Error getting watchlist for user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Failed to retrieve watchlist", e);
         }
+    }
+    
+    // ... rest of the code ...
+
+    /**
+     * Fetch crypto market data from CoinGecko API
+     * 
+     * @param cryptoAssets List of crypto assets
+     * @return Map of asset ID to market data
+     */
+    private Map<String, AssetMarketData> fetchCryptoMarketData(List<WatchlistAsset> cryptoAssets) {
+        log.info("Fetching crypto market data for {} assets", cryptoAssets.size());
+        Map<String, AssetMarketData> marketData = new HashMap<>();
+        
+        try {
+            // Extract crypto IDs for the API call
+            List<String> cryptoIds = cryptoAssets.stream()
+                .map(WatchlistAsset::getId)
+                .collect(Collectors.toList());
+            
+            if (cryptoIds.isEmpty()) {
+                return marketData;
+            }
+            
+            // Call CoinGecko API to get real-time market data
+            List<CryptoCurrency> cryptoCurrencies = coinGeckoClient.getCryptocurrencyMarketData(cryptoIds, "usd");
+            
+            // Convert API response to our internal model
+            for (CryptoCurrency crypto : cryptoCurrencies) {
+                BigDecimal price = crypto.getCurrentPrice() != null ? crypto.getCurrentPrice() : BigDecimal.ZERO;
+                BigDecimal priceChange = crypto.getPriceChange24h() != null ? crypto.getPriceChange24h() : BigDecimal.ZERO;
+                BigDecimal priceChangePercent = crypto.getPriceChangePercentage24h() != null ? 
+                    crypto.getPriceChangePercentage24h() : BigDecimal.ZERO;
+                boolean isPositive = priceChange.compareTo(BigDecimal.ZERO) >= 0;
+                
+                marketData.put(crypto.getId(), new AssetMarketData(
+                    crypto.getId(),
+                    crypto.getSymbol().toUpperCase(),
+                    crypto.getName(),
+                    price,
+                    priceChange,
+                    priceChangePercent,
+                    isPositive
+                ));
+            }
+            
+            log.info("Successfully fetched market data for {} cryptocurrencies", cryptoCurrencies.size());
+        } catch (Exception e) {
+            log.error("Error fetching crypto market data: {}", e.getMessage(), e);
+            // Provide fallback data for critical assets if API fails
+            provideFallbackCryptoData(cryptoAssets, marketData);
+        }
+        
+        return marketData;
+    }
+    
+    /**
+     * Fetch stock market data from AlphaVantage API
+     * 
+     * @param stockAssets List of stock assets
+     * @return Map of asset ID to market data
+     */
+    private Map<String, AssetMarketData> fetchStockMarketData(List<WatchlistAsset> stockAssets) {
+        log.info("Fetching stock market data for {} assets", stockAssets.size());
+        Map<String, AssetMarketData> marketData = new HashMap<>();
+        
+        try {
+            // Extract stock symbols for the API call
+            List<String> symbols = stockAssets.stream()
+                .map(WatchlistAsset::getId)
+                .collect(Collectors.toList());
+            
+            if (symbols.isEmpty()) {
+                return marketData;
+            }
+            
+            // Call AlphaVantage API to get real-time stock data
+            Map<String, StockData> stockDataMap = alphaVantageClient.getBatchStockQuotes(symbols);
+            
+            // Convert API response to our internal model
+            for (Map.Entry<String, StockData> entry : stockDataMap.entrySet()) {
+                StockData stock = entry.getValue();
+                
+                BigDecimal price = stock.getPrice() != null ? stock.getPrice() : BigDecimal.ZERO;
+                BigDecimal change = stock.getChange() != null ? stock.getChange() : BigDecimal.ZERO;
+                BigDecimal changePercent = stock.getChangePercent() != null ? 
+                    stock.getChangePercent() : BigDecimal.ZERO;
+                boolean isPositive = change.compareTo(BigDecimal.ZERO) >= 0;
+                
+                marketData.put(entry.getKey(), new AssetMarketData(
+                    entry.getKey(),
+                    stock.getSymbol(),
+                    stock.getName(),
+                    price,
+                    change,
+                    changePercent,
+                    isPositive
+                ));
+            }
+            
+            log.info("Successfully fetched market data for {} stocks", stockDataMap.size());
+        } catch (Exception e) {
+            log.error("Error fetching stock market data: {}", e.getMessage(), e);
+            // Provide fallback data for critical stocks if API fails
+            provideFallbackStockData(stockAssets, marketData);
+        }
+        
+        return marketData;
     }
     
     /**
@@ -336,68 +273,16 @@ public class DashboardService extends BaseService {
     }
     
     /**
-     * Fetch crypto market data from CoinGecko API
-     * 
-     * @param cryptoAssets List of crypto assets
-     * @return Map of asset ID to market data
-     */
-    private Map<String, MarketData> fetchCryptoMarketData(List<WatchlistAsset> cryptoAssets) {
-        log.info("Fetching crypto market data for {} assets", cryptoAssets.size());
-        Map<String, MarketData> marketData = new HashMap<>();
-        
-        try {
-            // Extract crypto IDs for the API call
-            List<String> cryptoIds = cryptoAssets.stream()
-                .map(WatchlistAsset::getId)
-                .collect(Collectors.toList());
-            
-            if (cryptoIds.isEmpty()) {
-                return marketData;
-            }
-            
-            // Call CoinGecko API to get real-time market data
-            List<CryptoCurrency> cryptoCurrencies = coinGeckoClient.getCryptocurrencyMarketData(cryptoIds, "usd");
-            
-            // Convert API response to our internal model
-            for (CryptoCurrency crypto : cryptoCurrencies) {
-                BigDecimal price = crypto.getCurrentPrice() != null ? crypto.getCurrentPrice() : BigDecimal.ZERO;
-                BigDecimal priceChange = crypto.getPriceChange24h() != null ? crypto.getPriceChange24h() : BigDecimal.ZERO;
-                BigDecimal priceChangePercent = crypto.getPriceChangePercentage24h() != null ? 
-                    crypto.getPriceChangePercentage24h() : BigDecimal.ZERO;
-                boolean isPositive = priceChange.compareTo(BigDecimal.ZERO) >= 0;
-                
-                marketData.put(crypto.getId(), new MarketData(
-                    crypto.getId(),
-                    crypto.getSymbol().toUpperCase(),
-                    crypto.getName(),
-                    price,
-                    priceChange,
-                    priceChangePercent,
-                    isPositive
-                ));
-            }
-            
-            log.info("Successfully fetched market data for {} cryptocurrencies", cryptoCurrencies.size());
-        } catch (Exception e) {
-            log.error("Error fetching crypto market data: {}", e.getMessage(), e);
-            // Provide fallback data for critical assets if API fails
-            provideFallbackCryptoData(cryptoAssets, marketData);
-        }
-        
-        return marketData;
-    }
-    
-    /**
      * Provide fallback data for critical crypto assets if API call fails
      * 
      * @param cryptoAssets List of crypto assets
      * @param marketData Map to populate with fallback data
      */
-    private void provideFallbackCryptoData(List<WatchlistAsset> cryptoAssets, Map<String, MarketData> marketData) {
+    private void provideFallbackCryptoData(List<WatchlistAsset> cryptoAssets, Map<String, AssetMarketData> marketData) {
         log.warn("Using fallback crypto market data due to API failure");
         
         if (cryptoAssets.stream().anyMatch(asset -> DashboardConstants.DEFAULT_CRYPTO_BTC.equals(asset.getId()))) {
-            marketData.put("bitcoin", new MarketData(
+            marketData.put("bitcoin", new AssetMarketData(
                 "bitcoin", "BTC", "Bitcoin", 
                 new BigDecimal("109673.00"), 
                 new BigDecimal("1962.70"), 
@@ -407,7 +292,7 @@ public class DashboardService extends BaseService {
         }
         
         if (cryptoAssets.stream().anyMatch(asset -> DashboardConstants.DEFAULT_CRYPTO_ETH.equals(asset.getId()))) {
-            marketData.put("ethereum", new MarketData(
+            marketData.put("ethereum", new AssetMarketData(
                 "ethereum", "ETH", "Ethereum", 
                 new BigDecimal("2561.84"), 
                 new BigDecimal("65.01"), 
@@ -418,88 +303,16 @@ public class DashboardService extends BaseService {
     }
     
     /**
-     * Fetch stock market data from AlphaVantage API
-     * 
-     * @param stockAssets List of stock assets
-     * @return Map of asset ID to market data
-     */
-    private Map<String, MarketData> fetchStockMarketData(List<WatchlistAsset> stockAssets) {
-        log.info("Fetching stock market data for {} assets", stockAssets.size());
-        Map<String, MarketData> marketData = new HashMap<>();
-        
-        try {
-            // Extract stock symbols for the API call
-            List<String> symbols = stockAssets.stream()
-                .map(WatchlistAsset::getId)
-                .collect(Collectors.toList());
-            
-            if (symbols.isEmpty()) {
-                return marketData;
-            }
-            
-            // Call AlphaVantage API to get real-time stock data
-            Map<String, StockData> stockDataMap = alphaVantageClient.getBatchStockQuotes(symbols);
-            
-            // Convert API response to our internal model
-            for (Map.Entry<String, StockData> entry : stockDataMap.entrySet()) {
-                StockData stock = entry.getValue();
-                
-                BigDecimal price = stock.getPrice() != null ? stock.getPrice() : BigDecimal.ZERO;
-                BigDecimal change = stock.getChange() != null ? stock.getChange() : BigDecimal.ZERO;
-                BigDecimal changePercent = stock.getChangePercent() != null ? 
-                    stock.getChangePercent() : BigDecimal.ZERO;
-                boolean isPositive = change.compareTo(BigDecimal.ZERO) >= 0;
-                
-                marketData.put(entry.getKey(), new MarketData(
-                    entry.getKey(),
-                    stock.getSymbol(),
-                    stock.getName(),
-                    price,
-                    change,
-                    changePercent,
-                    isPositive
-                ));
-            }
-            
-            log.info("Successfully fetched market data for {} stocks", stockDataMap.size());
-        } catch (Exception e) {
-            log.error("Error fetching stock market data: {}", e.getMessage(), e);
-            // Provide fallback data for critical stocks if API fails
-            provideFallbackStockData(stockAssets, marketData);
-        }
-        
-        return marketData;
-    }
-    
-    /**
-     * Converts PortfolioMetrics to DashboardData.PerformanceMetrics
-     * 
-     * @param portfolioMetrics Portfolio metrics from business layer
-     * @return Dashboard performance metrics
-     */
-    private DashboardData.PerformanceMetrics convertToPerformanceMetrics(PortfolioMetrics portfolioMetrics) {
-        if (portfolioMetrics == null) {
-            return null;
-        }
-        
-        DashboardData.PerformanceMetrics metrics = new DashboardData.PerformanceMetrics();
-        metrics.setPerformance(portfolioMetrics.getPerformance());
-        metrics.setAllocation(portfolioMetrics.getAllocation());
-        metrics.setRisk(portfolioMetrics.getRisk());
-        return metrics;
-    }
-    
-    /**
      * Provide fallback data for critical stocks if API call fails
      * 
      * @param stockAssets List of stock assets
      * @param marketData Map to populate with fallback data
      */
-    private void provideFallbackStockData(List<WatchlistAsset> stockAssets, Map<String, MarketData> marketData) {
+    private void provideFallbackStockData(List<WatchlistAsset> stockAssets, Map<String, AssetMarketData> marketData) {
         log.warn("Using fallback stock market data due to API failure");
         
         if (stockAssets.stream().anyMatch(asset -> DashboardConstants.DEFAULT_STOCK_MSFT.equals(asset.getId()))) {
-            marketData.put("MSFT", new MarketData(
+            marketData.put("MSFT", new AssetMarketData(
                 "MSFT", "MSFT", "Microsoft", 
                 new BigDecimal("450.18"), 
                 new BigDecimal("-4.68"), 
@@ -509,247 +322,13 @@ public class DashboardService extends BaseService {
         }
         
         if (stockAssets.stream().anyMatch(asset -> DashboardConstants.DEFAULT_STOCK_AAPL.equals(asset.getId()))) {
-            marketData.put("AAPL", new MarketData(
+            marketData.put("AAPL", new AssetMarketData(
                 "AAPL", "AAPL", "Apple Inc.", 
                 new BigDecimal("213.07"), 
                 new BigDecimal("1.52"), 
                 new BigDecimal("0.72"), 
                 true
             ));
-        }
-    }
-    
-    /**
-     * Asset data class for watchlist
-     */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class WatchlistAsset {
-        private String id;
-        private String symbol;
-        private String name;
-        private String category;
-        
-        public String getId() {
-            return id;
-        }
-        
-        public void setId(String id) {
-            this.id = id;
-        }
-        
-        public String getSymbol() {
-            return symbol;
-        }
-        
-        public void setSymbol(String symbol) {
-            this.symbol = symbol;
-        }
-        
-        public String getName() {
-            return name;
-        }
-        
-        public void setName(String name) {
-            this.name = name;
-        }
-        
-        public String getCategory() {
-            return category;
-        }
-        
-        public void setCategory(String category) {
-            this.category = category;
-        }
-    }
-    
-    /**
-     * Market data class for watchlist items
-     */
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class MarketData {
-        private String id;
-        private String symbol;
-        private String name;
-        private BigDecimal price;
-        private BigDecimal change;
-        private BigDecimal changePercent;
-        private boolean positiveChange;
-        
-        public String getId() {
-            return id;
-        }
-        
-        public void setId(String id) {
-            this.id = id;
-        }
-        
-        public String getSymbol() {
-            return symbol;
-        }
-        
-        public void setSymbol(String symbol) {
-            this.symbol = symbol;
-        }
-        
-        public String getName() {
-            return name;
-        }
-        
-        public void setName(String name) {
-            this.name = name;
-        }
-        
-        public BigDecimal getPrice() {
-            return price;
-        }
-        
-        public void setPrice(BigDecimal price) {
-            this.price = price;
-        }
-        
-        public BigDecimal getChange() {
-            return change;
-        }
-        
-        public void setChange(BigDecimal change) {
-            this.change = change;
-        }
-        
-        public BigDecimal getChangePercent() {
-            return changePercent;
-        }
-        
-        public void setChangePercent(BigDecimal changePercent) {
-            this.changePercent = changePercent;
-        }
-        
-        public boolean isPositiveChange() {
-            return positiveChange;
-        }
-        
-        public void setPositiveChange(boolean positiveChange) {
-            this.positiveChange = positiveChange;
-        }
-    }
-    
-    /**
-     * Converts portfolio data to a structured PortfolioSummary object
-     * 
-     * @param portfolioData Portfolio data from PortfolioManager
-     * @return Structured PortfolioSummary object
-     */
-    private DashboardData.PortfolioSummary convertToPortfolioSummary(PortfolioData portfolioData) {
-        DashboardData.PortfolioSummary portfolioSummary = new DashboardData.PortfolioSummary();
-        
-        // Set values from the portfolio data
-        portfolioSummary.setTotalValue(portfolioData.getTotalValue());
-        portfolioSummary.setDailyChange(portfolioData.getDailyChange());
-        portfolioSummary.setDailyChangePercent(portfolioData.getDailyChangePercent());
-        
-        // Convert exchanges
-        Map<String, DashboardData.ExchangeData> exchanges = new HashMap<>();
-        if (portfolioData.getExchanges() != null) {
-            portfolioData.getExchanges().forEach((key, exchangeData) -> {
-                DashboardData.ExchangeData exchange = new DashboardData.ExchangeData();
-                exchange.setName(exchangeData.getName());
-                exchange.setValue(exchangeData.getValue());
-                
-                // Convert assets
-                Map<String, DashboardData.AssetData> assets = new HashMap<>();
-                if (exchangeData.getAssets() != null) {
-                    exchangeData.getAssets().forEach((assetKey, assetData) -> {
-                        DashboardData.AssetData asset = new DashboardData.AssetData();
-                        asset.setSymbol(assetData.getSymbol());
-                        asset.setName(assetData.getName());
-                        asset.setQuantity(assetData.getQuantity());
-                        asset.setPrice(assetData.getPrice());
-                        asset.setValue(assetData.getValue());
-                        asset.setAllocationPercent(assetData.getAllocationPercent());
-                        assets.put(assetKey, asset);
-                    });
-                }
-                exchange.setAssets(assets);
-                exchanges.put(key, exchange);
-            });
-        }
-        portfolioSummary.setExchanges(exchanges);
-        
-        return portfolioSummary;
-    }
-    
-    /**
-     * Gets market data for the dashboard following Synapse patterns
-     * 
-     * @return Market data as a structured object
-     */
-    private DashboardData.MarketData getMarketData() {
-        log.debug("Retrieving market data");
-        
-        try {
-            // Create market data object
-            DashboardData.MarketData marketData = new DashboardData.MarketData();
-            
-            // Add market indexes
-            Map<String, BigDecimal> indexes = new HashMap<>();
-            indexes.put("S&P500", new BigDecimal("4500.0"));
-            indexes.put("NASDAQ", new BigDecimal("14000.0"));
-            indexes.put("DOW", new BigDecimal("36000.0"));
-            marketData.setIndexes(indexes);
-            
-            // Add market trends
-            Map<String, BigDecimal> trends = new HashMap<>();
-            marketData.setTrends(trends);
-            
-            return marketData;
-        } catch (Exception e) {
-            log.error("Error retrieving market data: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve market data", e);
-        }
-    }
-    
-    /**
-     * Gets watchlist data for the dashboard following Synapse patterns
-     * 
-     * @param userId The user ID to fetch watchlist data for
-     * @return Watchlist data as a list of structured objects
-     */
-    private List<DashboardData.WatchlistItem> getWatchlistData(String userId) {
-        log.debug("Retrieving watchlist data for user: {}", userId);
-        
-        try {
-            // Create example watchlist items
-            List<DashboardData.WatchlistItem> watchlist = new ArrayList<>();
-            
-            // Example item 1
-            DashboardData.WatchlistItem item1 = new DashboardData.WatchlistItem();
-            item1.setId("BTC");
-            item1.setSymbol("BTC-USD");
-            item1.setName("Bitcoin");
-            item1.setType("CRYPTO");
-            item1.setPrice(new BigDecimal("50000.00"));
-            item1.setChange(new BigDecimal("1500.00"));
-            item1.setChangePercent(new BigDecimal("3.00"));
-            watchlist.add(item1);
-            
-            // Example item 2
-            DashboardData.WatchlistItem item2 = new DashboardData.WatchlistItem();
-            item2.setId("AAPL");
-            item2.setSymbol("AAPL");
-            item2.setName("Apple Inc.");
-            item2.setType("STOCK");
-            item2.setPrice(new BigDecimal("175.50"));
-            item2.setChange(new BigDecimal("-0.50"));
-            item2.setChangePercent(new BigDecimal("-0.28"));
-            watchlist.add(item2);
-            
-            return watchlist;
-        } catch (Exception e) {
-            log.error("Error retrieving watchlist data for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve watchlist data", e);
         }
     }
 }

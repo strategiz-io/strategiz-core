@@ -4,9 +4,10 @@ import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -16,12 +17,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service for portfolio risk analysis operations.
- * This service provides risk metrics for user portfolios.
+ * Service for analyzing portfolio risk within the Dashboard module.
+ * This service provides risk calculations, volatility analysis, and diversification metrics.
  */
-@Slf4j
 @Service
 public class RiskAnalysisService extends BaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(RiskAnalysisService.class);
 
     private final PortfolioManager portfolioManager;
 

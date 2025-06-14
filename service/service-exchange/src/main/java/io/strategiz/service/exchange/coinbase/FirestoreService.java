@@ -1,12 +1,12 @@
 package io.strategiz.service.exchange.coinbase;
 
-import com.google.firebase.cloud.FirestoreClient;
-import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.firebase.FirebaseApp;
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.firebase.cloud.FirestoreClient;
+import com.google.cloud.firestore.DocumentSnapshot;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,8 +16,9 @@ import java.util.Map;
  * as mentioned in the project requirements.
  */
 @Service("coinbaseFirestoreService")
-@Slf4j
 public class FirestoreService {
+
+    private static final Logger log = LoggerFactory.getLogger(FirestoreService.class);
 
     /**
      * Get Coinbase credentials for a user

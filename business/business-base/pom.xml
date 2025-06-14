@@ -15,13 +15,6 @@
     <description>Base components for the Strategiz business modules</description>
     
     <dependencies>
-        <!-- Lombok for code generation -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-        
         <!-- Testing dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

@@ -4,7 +4,8 @@ import io.americanexpress.synapse.service.rest.service.BaseService;
 import io.strategiz.data.user.model.Credentials;
 import io.strategiz.data.user.model.Provider;
 import io.strategiz.data.user.repository.UserRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -22,9 +23,10 @@ import java.util.Optional;
 /**
  * Service for handling OAuth flows with various exchanges and brokerages.
  */
-@Slf4j
 @Service
 public class ProviderOAuthService extends BaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProviderOAuthService.class);
 
     private final RestTemplate restTemplate;
     private final UserRepository userRepository;

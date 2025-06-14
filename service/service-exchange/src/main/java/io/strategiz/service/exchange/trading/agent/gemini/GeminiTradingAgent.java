@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
 import io.strategiz.service.exchange.trading.agent.gemini.model.TradingAgentPrompt;
 import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,8 +23,9 @@ import java.util.Map;
  * and generate intelligent trading signals based on real Coinbase data
  */
 @Service
-@Slf4j
 public class GeminiTradingAgent {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiTradingAgent.class);
 
     private final CoinbaseDataFetcher dataFetcher;
     private final ObjectMapper objectMapper;
@@ -60,8 +64,8 @@ public class GeminiTradingAgent {
                 throw new RuntimeException("Failed to fetch historical BTC data from Coinbase");
             }
             
-            double currentPrice = historicalData.get(0).getClose();
-            log.info("Successfully fetched {} data points from Coinbase. Current BTC price: ${}", 
+            BigDecimal currentPrice = historicalData.get(0).getClose();
+            log.info("Successfully fetched {} data points from Coinbase. Current BTC price: {}", 
                     historicalData.size(), currentPrice);
             
             // Step 2: Calculate key market indicators
@@ -72,7 +76,7 @@ public class GeminiTradingAgent {
                     .historicalData(historicalData)
                     .marketConditions(marketIndicators)
                     .timeframe(timeframe)
-                    .currentPrice(currentPrice)
+                    .currentPrice(currentPrice.doubleValue())
                     .riskProfile(riskProfile)
                     .marketTrends(detectMarketTrends(historicalData))
                     .build();
@@ -139,12 +143,12 @@ public class GeminiTradingAgent {
         indicators.put("SMA99", calculateSMA(data, 99));
         
         // Price relative to SMAs
-        double currentPrice = data.get(0).getClose();
-        double sma7 = (double) indicators.get("SMA7");
-        double sma25 = (double) indicators.get("SMA25");
+        BigDecimal currentPrice = data.get(0).getClose();
+        BigDecimal sma7 = (BigDecimal) indicators.get("SMA7");
+        BigDecimal sma25 = (BigDecimal) indicators.get("SMA25");
         
-        indicators.put("PriceToSMA7Ratio", currentPrice / sma7);
-        indicators.put("PriceToSMA25Ratio", currentPrice / sma25);
+        indicators.put("PriceToSMA7Ratio", currentPrice.divide(sma7, 8, RoundingMode.HALF_UP));
+        indicators.put("PriceToSMA25Ratio", currentPrice.divide(sma25, 8, RoundingMode.HALF_UP));
         
         // Volatility
         indicators.put("24hVolatility", calculateVolatility(data, 24));
@@ -230,16 +234,16 @@ public class GeminiTradingAgent {
     /**
      * Calculate Simple Moving Average
      */
-    private double calculateSMA(List<HistoricalPriceData> data, int period) {
+    private BigDecimal calculateSMA(List<HistoricalPriceData> data, int period) {
         if (data.size() < period) {
-            return data.stream().mapToDouble(HistoricalPriceData::getClose).average().orElse(0);
+            return data.stream().map(HistoricalPriceData::getClose).reduce(BigDecimal.ZERO, BigDecimal::add).divide(BigDecimal.valueOf(data.size()), 8, RoundingMode.HALF_UP);
         }
         
         return data.stream()
             .limit(period)
-            .mapToDouble(HistoricalPriceData::getClose)
-            .average()
-            .orElse(0);
+            .map(HistoricalPriceData::getClose)
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .divide(BigDecimal.valueOf(period), 8, RoundingMode.HALF_UP);
     }
     
     /**
@@ -253,10 +257,10 @@ public class GeminiTradingAgent {
             }
         }
         
-        double currentPrice = data.get(0).getClose();
-        double oldPrice = data.get(Math.min(period, data.size() - 1)).getClose();
+        BigDecimal currentPrice = data.get(0).getClose();
+        BigDecimal oldPrice = data.get(Math.min(period, data.size() - 1)).getClose();
         
-        return ((currentPrice / oldPrice) - 1.0) * 100.0;
+        return ((currentPrice.divide(oldPrice, 8, RoundingMode.HALF_UP).doubleValue()) - 1.0) * 100.0;
     }
     
     /**
@@ -273,9 +277,9 @@ public class GeminiTradingAgent {
         
         List<Double> returns = new ArrayList<>();
         for (int i = 0; i < period - 1; i++) {
-            double todayPrice = data.get(i).getClose();
-            double yesterdayPrice = data.get(i + 1).getClose();
-            double dailyReturn = (todayPrice / yesterdayPrice) - 1.0;
+            BigDecimal todayPrice = data.get(i).getClose();
+            BigDecimal yesterdayPrice = data.get(i + 1).getClose();
+            double dailyReturn = (todayPrice.divide(yesterdayPrice, 8, RoundingMode.HALF_UP).doubleValue()) - 1;
             returns.add(dailyReturn);
         }
         
@@ -295,11 +299,12 @@ public class GeminiTradingAgent {
             period = data.size();
         }
         
-        return data.stream()
+        double totalVolume = data.stream()
             .limit(period)
-            .mapToDouble(HistoricalPriceData::getVolume)
-            .average()
-            .orElse(0);
+            .mapToDouble(d -> d.getVolume().doubleValue())
+            .sum();
+        
+        return totalVolume / period;
     }
     
     /**
@@ -310,14 +315,14 @@ public class GeminiTradingAgent {
             return 0.0;
         }
         
-        double currentVolume = data.get(0).getVolume();
-        double oldVolume = data.get(Math.min(period, data.size() - 1)).getVolume();
+        BigDecimal currentVolume = data.get(0).getVolume();
+        BigDecimal oldVolume = data.get(Math.min(period, data.size() - 1)).getVolume();
         
-        if (oldVolume == 0) {
+        if (oldVolume.compareTo(BigDecimal.ZERO) == 0) {
             return 0.0;
         }
         
-        return ((currentVolume / oldVolume) - 1.0) * 100.0;
+        return ((currentVolume.divide(oldVolume, 8, RoundingMode.HALF_UP).doubleValue()) - 1.0) * 100.0;
     }
     
     /**
@@ -333,11 +338,11 @@ public class GeminiTradingAgent {
         
         // Calculate initial average gain/loss
         for (int i = 0; i < period; i++) {
-            double change = data.get(i).getClose() - data.get(i + 1).getClose();
-            if (change >= 0) {
-                sumGain += change;
+            BigDecimal change = data.get(i).getClose().subtract(data.get(i + 1).getClose());
+            if (change.compareTo(BigDecimal.ZERO) >= 0) {
+                sumGain += change.doubleValue();
             } else {
-                sumLoss -= change;
+                sumLoss -= change.doubleValue();
             }
         }
         

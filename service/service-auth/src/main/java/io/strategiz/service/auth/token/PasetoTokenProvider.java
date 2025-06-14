@@ -1,10 +1,8 @@
 package io.strategiz.service.auth.token;
 
-import dev.paseto.jpaseto.Claims;
 import dev.paseto.jpaseto.Paseto;
 import dev.paseto.jpaseto.Pasetos;
 import dev.paseto.jpaseto.PasetoException;
-import dev.paseto.jpaseto.Version;
 import dev.paseto.jpaseto.lang.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +11,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
-import java.security.KeyPair;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -46,7 +42,7 @@ public class PasetoTokenProvider {
     /**
      * Whether to use V4 (public/asymmetric) or V2 (local/symmetric)
      */
-    @Value("${auth.token.version:v4}")
+    @Value("${auth.token.version:v2}")
     private String tokenVersion;
 
     /**
@@ -67,7 +63,6 @@ public class PasetoTokenProvider {
     @Value("${auth.token.issuer:strategiz.io}")
     private String issuer;
 
-    private KeyPair keyPair; // For V4 tokens
     private SecretKey secretKey; // For V2 tokens
     
     /**
@@ -75,21 +70,16 @@ public class PasetoTokenProvider {
      */
     @PostConstruct
     public void init() {
-        if ("v4".equalsIgnoreCase(tokenVersion)) {
-            log.info("Initializing PASETO V4 token provider");
-            keyPair = Keys.keyPairFor(Version.V4);
+        log.info("Initializing PASETO V2 token provider");
+        if (secret != null && !secret.isEmpty()) {
+            secretKey = Keys.secretKey(Base64.getDecoder().decode(secret));
         } else {
-            log.info("Initializing PASETO V2 token provider");
-            if (secret != null && !secret.isEmpty()) {
-                secretKey = Keys.secretKey(Base64.getDecoder().decode(secret));
-            } else {
-                // Generate a random key for development
-                SecureRandom secureRandom = new SecureRandom();
-                byte[] key = new byte[32]; // 256 bits key
-                secureRandom.nextBytes(key);
-                secretKey = Keys.secretKey(key);
-                log.warn("Using randomly generated secret key. In production, provide a stable key.");
-            }
+            // Generate a random key for development
+            SecureRandom secureRandom = new SecureRandom();
+            byte[] key = new byte[32]; // 256 bits key
+            secureRandom.nextBytes(key);
+            secretKey = Keys.secretKey(key);
+            log.warn("Using randomly generated secret key. In production, provide a stable key.");
         }
     }
 
@@ -141,17 +131,17 @@ public class PasetoTokenProvider {
             claimsMap.put("scope", String.join(" ", scopes));
         }
         
-        if ("v4".equalsIgnoreCase(tokenVersion)) {
-            return Pasetos.V4.PUBLIC.builder()
-                    .setPrivateKey(keyPair.getPrivate())
-                    .setClaims(claimsMap)
-                    .compact();
-        } else {
-            return Pasetos.V2.LOCAL.builder()
-                    .setSharedSecret(secretKey)
-                    .setClaims(claimsMap)
-                    .compact();
-        }
+        return Pasetos.V2.LOCAL.builder()
+                .setSharedSecret(secretKey)
+                .claim("sub", claimsMap.get("sub"))
+                .claim("jti", claimsMap.get("jti"))
+                .claim("iat", claimsMap.get("iat"))
+                .claim("exp", claimsMap.get("exp"))
+                .claim("iss", claimsMap.get("iss"))
+                .claim("aud", claimsMap.get("aud"))
+                .claim("type", claimsMap.get("type"))
+                .claim("scope", claimsMap.get("scope"))
+                .compact();
     }
     
     /**
@@ -161,20 +151,12 @@ public class PasetoTokenProvider {
      * @return the claims from the token
      * @throws PasetoException if the token is invalid or expired
      */
-    public Claims parseToken(String token) throws PasetoException {
-        if ("v4".equalsIgnoreCase(tokenVersion)) {
-            return Pasetos.parserBuilder()
-                    .setPublicKey(keyPair.getPublic())
-                    .build()
-                    .parse(token)
-                    .getClaims();
-        } else {
-            return Pasetos.parserBuilder()
-                    .setSharedSecret(secretKey)
-                    .build()
-                    .parse(token)
-                    .getClaims();
-        }
+    public Map<String, Object> parseToken(String token) throws PasetoException {
+        Paseto paseto = Pasetos.parserBuilder()
+                .setSharedSecret(secretKey)
+                .build()
+                .parse(token);
+        return paseto.getClaims();
     }
     
     /**
@@ -185,7 +167,7 @@ public class PasetoTokenProvider {
      * @throws PasetoException if the token is invalid
      */
     public String getUserIdFromToken(String token) throws PasetoException {
-        return parseToken(token).getSubject();
+        return (String) parseToken(token).get("sub");
     }
     
     /**
@@ -196,8 +178,8 @@ public class PasetoTokenProvider {
      */
     public boolean isValidAccessToken(String token) {
         try {
-            Claims claims = parseToken(token);
-            String tokenType = claims.get("type", String.class);
+            Map<String, Object> claims = parseToken(token);
+            String tokenType = (String) claims.get("type");
             return TokenType.ACCESS.name().equals(tokenType);
         } catch (PasetoException e) {
             log.error("Invalid token: {}", e.getMessage());
@@ -213,8 +195,8 @@ public class PasetoTokenProvider {
      */
     public boolean isValidRefreshToken(String token) {
         try {
-            Claims claims = parseToken(token);
-            String tokenType = claims.get("type", String.class);
+            Map<String, Object> claims = parseToken(token);
+            String tokenType = (String) claims.get("type");
             return TokenType.REFRESH.name().equals(tokenType);
         } catch (PasetoException e) {
             log.error("Invalid token: {}", e.getMessage());
@@ -222,18 +204,6 @@ public class PasetoTokenProvider {
         }
     }
 
-    /**
-     * Gets the signing public key (only for V4 tokens)
-     * 
-     * @return the public key
-     */
-    public PublicKey getPublicKey() {
-        if (!"v4".equalsIgnoreCase(tokenVersion) || keyPair == null) {
-            throw new IllegalStateException("Public key is only available for V4 tokens");
-        }
-        return keyPair.getPublic();
-    }
-    
     /**
      * Parses a duration string like "30m", "1h", "7d"
      * 

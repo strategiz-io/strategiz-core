@@ -1,112 +1,124 @@
 package io.strategiz.service.dashboard.model.marketsentiment;
 
-import lombok.Data;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Data model for market sentiment.
+ * Market sentiment data containing sentiment metrics and trends
  */
-@Data
 public class MarketSentimentData {
     
     /**
-     * Overall market sentiment indicator
+     * Overall market sentiment indicators
      */
-    private SentimentIndicator overallSentiment;
+    @JsonProperty("sentiment_indicators")
+    @NotNull
+    private List<SentimentIndicator> sentimentIndicators;
     
     /**
-     * Sentiment data for specific assets in the user's portfolio
+     * Individual asset sentiment data
      */
+    @JsonProperty("asset_sentiments")
+    @NotNull
     private List<AssetSentiment> assetSentiments;
-    
-    /**
-     * Market trend indicators
-     */
-    private MarketTrends marketTrends;
-    
-    /**
-     * Sentiment indicator
-     */
-    @Data
-    public static class SentimentIndicator {
-        /**
-         * Sentiment score from 0 (most bearish) to 100 (most bullish)
-         */
-        private BigDecimal score;
-        
-        /**
-         * Sentiment category (Bearish, Slightly Bearish, Neutral, Slightly Bullish, Bullish)
-         */
-        private String category;
-        
-        /**
-         * Timestamp of this sentiment reading
-         */
-        private LocalDateTime timestamp;
-    }
-    
-    /**
-     * Asset-specific sentiment data
-     */
-    @Data
-    public static class AssetSentiment {
-        /**
-         * Asset symbol
-         */
-        private String symbol;
-        
-        /**
-         * Asset name
-         */
-        private String name;
-        
-        /**
-         * Sentiment score from 0 (most bearish) to 100 (most bullish)
-         */
-        private BigDecimal sentimentScore;
-        
-        /**
-         * Sentiment category (Bearish, Slightly Bearish, Neutral, Slightly Bullish, Bullish)
-         */
-        private String sentimentCategory;
-        
-        /**
-         * Color for visualization (usually green for bullish, red for bearish)
-         */
-        private String color;
-    }
     
     /**
      * Market trends data
      */
-    @Data
-    public static class MarketTrends {
-        /**
-         * Fear and Greed Index value
-         */
-        private BigDecimal fearGreedIndex;
-        
-        /**
-         * Fear and Greed category
-         */
-        private String fearGreedCategory;
-        
-        /**
-         * Percentage of assets in uptrend across the market
-         */
-        private BigDecimal uptrendPercentage;
-        
-        /**
-         * Percentage of assets in downtrend across the market
-         */
-        private BigDecimal downtrendPercentage;
-        
-        /**
-         * Percentage of assets in sideways/neutral trend
-         */
-        private BigDecimal neutralTrendPercentage;
+    @JsonProperty("market_trends")
+    @NotNull
+    private MarketTrends marketTrends;
+
+    // Constructors
+    public MarketSentimentData() {}
+
+    public MarketSentimentData(List<SentimentIndicator> sentimentIndicators, 
+                             List<AssetSentiment> assetSentiments, 
+                             MarketTrends marketTrends) {
+        this.sentimentIndicators = sentimentIndicators;
+        this.assetSentiments = assetSentiments;
+        this.marketTrends = marketTrends;
+    }
+
+    // Getters and Setters
+    public List<SentimentIndicator> getSentimentIndicators() {
+        return sentimentIndicators;
+    }
+
+    public void setSentimentIndicators(List<SentimentIndicator> sentimentIndicators) {
+        this.sentimentIndicators = sentimentIndicators;
+    }
+
+    public List<AssetSentiment> getAssetSentiments() {
+        return assetSentiments;
+    }
+
+    public void setAssetSentiments(List<AssetSentiment> assetSentiments) {
+        this.assetSentiments = assetSentiments;
+    }
+
+    public MarketTrends getMarketTrends() {
+        return marketTrends;
+    }
+
+    public void setMarketTrends(MarketTrends marketTrends) {
+        this.marketTrends = marketTrends;
+    }
+
+    // equals, hashCode, toString
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MarketSentimentData that = (MarketSentimentData) o;
+        return Objects.equals(sentimentIndicators, that.sentimentIndicators) &&
+               Objects.equals(assetSentiments, that.assetSentiments) &&
+               Objects.equals(marketTrends, that.marketTrends);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sentimentIndicators, assetSentiments, marketTrends);
+    }
+
+    @Override
+    public String toString() {
+        return "MarketSentimentData{" +
+               "sentimentIndicators=" + sentimentIndicators +
+               ", assetSentiments=" + assetSentiments +
+               ", marketTrends=" + marketTrends +
+               '}';
+    }
+
+    // Builder pattern
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private List<SentimentIndicator> sentimentIndicators;
+        private List<AssetSentiment> assetSentiments;
+        private MarketTrends marketTrends;
+
+        public Builder withSentimentIndicators(List<SentimentIndicator> sentimentIndicators) {
+            this.sentimentIndicators = sentimentIndicators;
+            return this;
+        }
+
+        public Builder withAssetSentiments(List<AssetSentiment> assetSentiments) {
+            this.assetSentiments = assetSentiments;
+            return this;
+        }
+
+        public Builder withMarketTrends(MarketTrends marketTrends) {
+            this.marketTrends = marketTrends;
+            return this;
+        }
+
+        public MarketSentimentData build() {
+            return new MarketSentimentData(sentimentIndicators, assetSentiments, marketTrends);
+        }
     }
 }

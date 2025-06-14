@@ -2,7 +2,8 @@ package io.strategiz.client.coinbase;
 
 import io.strategiz.client.coinbase.exception.CoinbaseApiException;
 import io.strategiz.client.coinbase.model.CoinbaseResponse;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -31,9 +32,10 @@ import javax.crypto.spec.SecretKeySpec;
  * Client for interacting with the Coinbase API
  * This class handles all direct API communication with Coinbase
  */
-@Slf4j
 @Component
 public class CoinbaseClient {
+    
+    private static final Logger log = LoggerFactory.getLogger(CoinbaseClient.class);
 
     private static final String COINBASE_API_URL = "https://api.coinbase.com/v2";
     private static final String HMAC_SHA256 = "HmacSHA256";

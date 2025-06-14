@@ -1,6 +1,6 @@
-io\strategiz\business\portfolio\config\BusinessPortfolioConfig.class
-io\strategiz\business\portfolio\model\PortfolioData$AssetData.class
-io\strategiz\business\portfolio\model\PortfolioData.class
-io\strategiz\business\portfolio\PortfolioManager.class
-io\strategiz\business\portfolio\model\PortfolioMetrics.class
-io\strategiz\business\portfolio\model\PortfolioData$ExchangeData.class
+io/strategiz/business/portfolio/config/BusinessPortfolioConfig.class
+io/strategiz/business/portfolio/model/PortfolioData$ExchangeData.class
+io/strategiz/business/portfolio/PortfolioManager.class
+io/strategiz/business/portfolio/model/PortfolioData$AssetData.class
+io/strategiz/business/portfolio/model/PortfolioMetrics.class
+io/strategiz/business/portfolio/model/PortfolioData.class

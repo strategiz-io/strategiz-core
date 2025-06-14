@@ -1,16 +1,14 @@
 package io.strategiz.service.dashboard.model.dashboard;
 
 import java.io.Serializable;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Service model for dashboard data following Synapse patterns.
  */
-@Data
 public class DashboardData implements Serializable {
     
     /**
@@ -37,71 +35,129 @@ public class DashboardData implements Serializable {
      * Portfolio performance metrics
      */
     private PerformanceMetrics metrics;
-    
-    /**
-     * Portfolio summary data
-     */
-    @Data
-    public static class PortfolioSummary {
-        private BigDecimal totalValue;
-        private BigDecimal dailyChange;
-        private BigDecimal dailyChangePercent;
-        private Map<String, ExchangeData> exchanges;
+
+    // Constructors
+    public DashboardData() {}
+
+    public DashboardData(String userId, PortfolioSummary portfolio, MarketData market, 
+                        List<WatchlistItem> watchlist, PerformanceMetrics metrics) {
+        this.userId = userId;
+        this.portfolio = portfolio;
+        this.market = market;
+        this.watchlist = watchlist;
+        this.metrics = metrics;
     }
-    
-    /**
-     * Exchange data
-     */
-    @Data
-    public static class ExchangeData {
-        private String name;
-        private BigDecimal value;
-        private Map<String, AssetData> assets;
+
+    // Getters
+    public String getUserId() {
+        return userId;
     }
-    
-    /**
-     * Asset data
-     */
-    @Data
-    public static class AssetData {
-        private String symbol;
-        private String name;
-        private BigDecimal quantity;
-        private BigDecimal price;
-        private BigDecimal value;
-        private BigDecimal allocationPercent;
+
+    public PortfolioSummary getPortfolio() {
+        return portfolio;
     }
-    
-    /**
-     * Market data
-     */
-    @Data
-    public static class MarketData {
-        private Map<String, BigDecimal> indexes;
-        private Map<String, BigDecimal> trends;
+
+    public MarketData getMarket() {
+        return market;
     }
-    
-    /**
-     * Watchlist item
-     */
-    @Data
-    public static class WatchlistItem {
-        private String id;
-        private String symbol;
-        private String name;
-        private String type;
-        private BigDecimal price;
-        private BigDecimal change;
-        private BigDecimal changePercent;
+
+    public List<WatchlistItem> getWatchlist() {
+        return watchlist;
     }
-    
-    /**
-     * Performance metrics
-     */
-    @Data
-    public static class PerformanceMetrics {
-        private Map<String, BigDecimal> performance;
-        private Map<String, BigDecimal> allocation;
-        private Map<String, BigDecimal> risk;
+
+    public PerformanceMetrics getMetrics() {
+        return metrics;
+    }
+
+    // Setters
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setPortfolio(PortfolioSummary portfolio) {
+        this.portfolio = portfolio;
+    }
+
+    public void setMarket(MarketData market) {
+        this.market = market;
+    }
+
+    public void setWatchlist(List<WatchlistItem> watchlist) {
+        this.watchlist = watchlist;
+    }
+
+    public void setMetrics(PerformanceMetrics metrics) {
+        this.metrics = metrics;
+    }
+
+    // equals, hashCode, toString
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DashboardData that = (DashboardData) o;
+        return Objects.equals(userId, that.userId) &&
+               Objects.equals(portfolio, that.portfolio) &&
+               Objects.equals(market, that.market) &&
+               Objects.equals(watchlist, that.watchlist) &&
+               Objects.equals(metrics, that.metrics);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userId, portfolio, market, watchlist, metrics);
+    }
+
+    @Override
+    public String toString() {
+        return "DashboardData{" +
+               "userId='" + userId + '\'' +
+               ", portfolio=" + portfolio +
+               ", market=" + market +
+               ", watchlist=" + watchlist +
+               ", metrics=" + metrics +
+               '}';
+    }
+
+    // Builder pattern
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String userId;
+        private PortfolioSummary portfolio;
+        private MarketData market;
+        private List<WatchlistItem> watchlist;
+        private PerformanceMetrics metrics;
+
+        public Builder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public Builder portfolio(PortfolioSummary portfolio) {
+            this.portfolio = portfolio;
+            return this;
+        }
+
+        public Builder market(MarketData market) {
+            this.market = market;
+            return this;
+        }
+
+        public Builder watchlist(List<WatchlistItem> watchlist) {
+            this.watchlist = watchlist;
+            return this;
+        }
+
+        public Builder metrics(PerformanceMetrics metrics) {
+            this.metrics = metrics;
+            return this;
+        }
+
+        public DashboardData build() {
+            return new DashboardData(userId, portfolio, market, watchlist, metrics);
+        }
     }
 }

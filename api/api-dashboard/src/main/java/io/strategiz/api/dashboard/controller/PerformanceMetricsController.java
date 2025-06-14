@@ -13,7 +13,8 @@ import io.strategiz.api.dashboard.mapper.PerformanceMetricsResponseBuilder;
 import io.strategiz.api.dashboard.model.performancemetrics.PerformanceMetricsResponse;
 import io.strategiz.service.base.model.BaseServiceResponse;
 import io.strategiz.service.dashboard.PerformanceMetricsService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for performance metrics data.
@@ -21,9 +22,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/api/dashboard/performance")
-@Slf4j
 public class PerformanceMetricsController extends DashboardBaseController {
     
+    private static final Logger log = LoggerFactory.getLogger(PerformanceMetricsController.class);
+
     @Override
     public BaseServiceResponse process(Object request) {
         // Default implementation

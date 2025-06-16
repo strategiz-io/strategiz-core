@@ -9,10 +9,10 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.user.model.TotpAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
-import io.strategiz.service.auth.token.TokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,12 +40,12 @@ public class TotpService {
     private final TimeProvider timeProvider;
     private final CodeVerifier codeVerifier;
     private final UserRepository userRepository;
-    private final TokenService tokenService;
+    private final SessionAuthBusiness sessionAuthBusiness;
     
     @Autowired
-    public TotpService(UserRepository userRepository, TokenService tokenService) {
+    public TotpService(UserRepository userRepository, SessionAuthBusiness sessionAuthBusiness) {
         this.userRepository = userRepository;
-        this.tokenService = tokenService;
+        this.sessionAuthBusiness = sessionAuthBusiness;
         
         // Initialize TOTP components
         this.secretGenerator = new DefaultSecretGenerator();
@@ -199,7 +199,7 @@ public class TotpService {
      * @param ipAddress IP address of the authentication request
      * @return Optional TokenPair if authentication succeeds, empty otherwise
      */
-    public Optional<TokenService.TokenPair> authenticateWithTotp(
+    public Optional<SessionAuthBusiness.TokenPair> authenticateWithTotp(
             String userId, String code, String deviceId, String ipAddress) {
         try {
             Optional<User> userOpt = userRepository.findById(userId);
@@ -227,7 +227,7 @@ public class TotpService {
             // Verify the TOTP code
             if (verifyCode(secret, code)) {
                 // Generate authentication tokens
-                TokenService.TokenPair tokenPair = tokenService.createTokenPair(
+                SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createTokenPair(
                         userId, deviceId, ipAddress, "user");
                 log.info("TOTP authentication successful for user: {}", userId);
                 return Optional.of(tokenPair);

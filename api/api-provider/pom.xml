@@ -17,11 +17,11 @@
     
     <dependencies>
         <!-- Internal module dependencies -->
-        <dependency>
+        <!-- <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-provider</artifactId>
             <version>${project.version}</version>
-        </dependency>
+        </dependency> -->
         
         <!-- Spring dependencies -->
         <dependency>

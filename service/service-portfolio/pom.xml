@@ -29,14 +29,15 @@
             <version>${project.version}</version>
         </dependency>
         
-        <!-- Spring dependencies -->
+        <!-- Google Cloud Firestore -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-firestore</artifactId>
+            <version>${google.cloud.firestore.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
         </dependency>
         
         <!-- HTTP Client -->

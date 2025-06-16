@@ -17,5 +17,6 @@
     <modules>
         <module>business-base</module>
         <module>business-portfolio</module>
+        <module>business-token-auth</module>
     </modules>
 </project>

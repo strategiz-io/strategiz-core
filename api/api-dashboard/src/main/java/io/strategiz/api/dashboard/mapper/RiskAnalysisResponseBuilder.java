@@ -2,6 +2,9 @@ package io.strategiz.api.dashboard.mapper;
 
 import io.strategiz.api.dashboard.model.riskanalysis.RiskAnalysisResponse;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
+import io.strategiz.service.dashboard.model.riskanalysis.VolatilityMetric;
+import io.strategiz.service.dashboard.model.riskanalysis.DiversificationMetric;
+import io.strategiz.service.dashboard.model.riskanalysis.CorrelationMetric;
 import io.strategiz.api.base.model.ResponseMetadata;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -29,7 +32,7 @@ public interface RiskAnalysisResponseBuilder {
     /**
      * Creates a VolatilityMetric from service data
      */
-    default RiskAnalysisResponse.VolatilityMetric createVolatilityMetric(RiskAnalysisData.VolatilityMetric serviceMetric) {
+    default RiskAnalysisResponse.VolatilityMetric createVolatilityMetric(VolatilityMetric serviceMetric) {
         if (serviceMetric == null) {
             return null;
         }
@@ -42,7 +45,7 @@ public interface RiskAnalysisResponseBuilder {
     /**
      * Creates a DiversificationMetric from service data
      */
-    default RiskAnalysisResponse.DiversificationMetric createDiversificationMetric(RiskAnalysisData.DiversificationMetric serviceMetric) {
+    default RiskAnalysisResponse.DiversificationMetric createDiversificationMetric(DiversificationMetric serviceMetric) {
         if (serviceMetric == null) {
             return null;
         }
@@ -55,7 +58,7 @@ public interface RiskAnalysisResponseBuilder {
     /**
      * Creates a CorrelationMetric from service data
      */
-    default RiskAnalysisResponse.CorrelationMetric createCorrelationMetric(RiskAnalysisData.CorrelationMetric serviceMetric) {
+    default RiskAnalysisResponse.CorrelationMetric createCorrelationMetric(CorrelationMetric serviceMetric) {
         if (serviceMetric == null) {
             return null;
         }

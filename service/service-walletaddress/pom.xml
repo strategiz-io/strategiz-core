@@ -15,11 +15,6 @@
     <dependencies>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
             <artifactId>client-walletaddress</artifactId>
             <version>${project.version}</version>
         </dependency>

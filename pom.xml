@@ -60,7 +60,6 @@
         <module>api/api-auth</module>
         <module>api/api-base</module>
         <module>api/api-dashboard</module>
-        <module>api/api-exchange</module>
         <module>api/api-monitoring</module>
         <module>api/api-portfolio</module>
         <module>api/api-strategy</module>

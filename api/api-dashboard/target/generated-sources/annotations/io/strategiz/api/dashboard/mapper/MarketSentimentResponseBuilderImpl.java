@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-06-08T12:36:20-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
+    date = "2025-06-15T22:37:06-0400",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 24.0.1 (Homebrew)"
 )
 @Component
 public class MarketSentimentResponseBuilderImpl implements MarketSentimentResponseBuilder {

@@ -1,5 +1,7 @@
 package io.strategiz.api.dashboard.mapper;
 
+import io.strategiz.service.dashboard.model.portfoliosummary.AssetData;
+import io.strategiz.service.dashboard.model.portfoliosummary.ExchangeData;
 import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -8,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-06-08T12:36:20-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
+    date = "2025-06-15T22:37:06-0400",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 24.0.1 (Homebrew)"
 )
 @Component
 public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResponseBuilder {
@@ -33,7 +35,7 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
         return portfolioSummaryResponse;
     }
 
-    protected io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData assetDataToAssetData(PortfolioSummaryResponse.AssetData assetData) {
+    protected io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData assetDataToAssetData(AssetData assetData) {
         if ( assetData == null ) {
             return null;
         }
@@ -50,14 +52,14 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
         return assetData1;
     }
 
-    protected Map<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData> stringAssetDataMapToStringAssetDataMap(Map<String, PortfolioSummaryResponse.AssetData> map) {
+    protected Map<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData> stringAssetDataMapToStringAssetDataMap(Map<String, AssetData> map) {
         if ( map == null ) {
             return null;
         }
 
         Map<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData> map1 = new LinkedHashMap<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData>( Math.max( (int) ( map.size() / .75f ) + 1, 16 ) );
 
-        for ( java.util.Map.Entry<String, PortfolioSummaryResponse.AssetData> entry : map.entrySet() ) {
+        for ( java.util.Map.Entry<String, AssetData> entry : map.entrySet() ) {
             String key = entry.getKey();
             io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.AssetData value = assetDataToAssetData( entry.getValue() );
             map1.put( key, value );
@@ -66,7 +68,7 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
         return map1;
     }
 
-    protected io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData exchangeDataToExchangeData(PortfolioSummaryResponse.ExchangeData exchangeData) {
+    protected io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData exchangeDataToExchangeData(ExchangeData exchangeData) {
         if ( exchangeData == null ) {
             return null;
         }
@@ -80,14 +82,14 @@ public class PortfolioSummaryResponseBuilderImpl implements PortfolioSummaryResp
         return exchangeData1;
     }
 
-    protected Map<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData> stringExchangeDataMapToStringExchangeDataMap(Map<String, PortfolioSummaryResponse.ExchangeData> map) {
+    protected Map<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData> stringExchangeDataMapToStringExchangeDataMap(Map<String, ExchangeData> map) {
         if ( map == null ) {
             return null;
         }
 
         Map<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData> map1 = new LinkedHashMap<String, io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData>( Math.max( (int) ( map.size() / .75f ) + 1, 16 ) );
 
-        for ( java.util.Map.Entry<String, PortfolioSummaryResponse.ExchangeData> entry : map.entrySet() ) {
+        for ( java.util.Map.Entry<String, ExchangeData> entry : map.entrySet() ) {
             String key = entry.getKey();
             io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse.ExchangeData value = exchangeDataToExchangeData( entry.getValue() );
             map1.put( key, value );

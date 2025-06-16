@@ -9,16 +9,16 @@ public class WatchlistAsset {
     private String id;
     private String symbol;
     private String name;
-    private String category;
+    private String type;
 
     // Constructors
     public WatchlistAsset() {}
 
-    public WatchlistAsset(String id, String symbol, String name, String category) {
+    public WatchlistAsset(String id, String symbol, String name, String type) {
         this.id = id;
         this.symbol = symbol;
         this.name = name;
-        this.category = category;
+        this.type = type;
     }
     
     public String getId() {
@@ -45,12 +45,12 @@ public class WatchlistAsset {
         this.name = name;
     }
     
-    public String getCategory() {
-        return category;
+    public String getType() {
+        return type;
     }
     
-    public void setCategory(String category) {
-        this.category = category;
+    public void setType(String type) {
+        this.type = type;
     }
 
     @Override
@@ -61,12 +61,12 @@ public class WatchlistAsset {
         return Objects.equals(id, that.id) &&
                Objects.equals(symbol, that.symbol) &&
                Objects.equals(name, that.name) &&
-               Objects.equals(category, that.category);
+               Objects.equals(type, that.type);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, symbol, name, category);
+        return Objects.hash(id, symbol, name, type);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class WatchlistAsset {
                "id='" + id + '\'' +
                ", symbol='" + symbol + '\'' +
                ", name='" + name + '\'' +
-               ", category='" + category + '\'' +
+               ", type='" + type + '\'' +
                '}';
     }
 }

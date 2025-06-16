@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-06-08T12:36:19-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
+    date = "2025-06-15T22:37:06-0400",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 24.0.1 (Homebrew)"
 )
 @Component
 public class RiskAnalysisResponseBuilderImpl implements RiskAnalysisResponseBuilder {
@@ -20,10 +20,6 @@ public class RiskAnalysisResponseBuilderImpl implements RiskAnalysisResponseBuil
         }
 
         RiskAnalysisResponse riskAnalysisResponse = new RiskAnalysisResponse();
-
-        riskAnalysisResponse.setVolatilityMetric( createVolatilityMetric( serviceData.getVolatilityMetric() ) );
-        riskAnalysisResponse.setDiversificationMetric( createDiversificationMetric( serviceData.getDiversificationMetric() ) );
-        riskAnalysisResponse.setCorrelationMetric( createCorrelationMetric( serviceData.getCorrelationMetric() ) );
 
         return riskAnalysisResponse;
     }

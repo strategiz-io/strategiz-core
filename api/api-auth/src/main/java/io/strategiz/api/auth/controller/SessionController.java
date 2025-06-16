@@ -1,8 +1,8 @@
 package io.strategiz.api.auth.controller;
 
 import io.strategiz.api.auth.model.ApiResponse;
-import io.strategiz.data.auth.Session;
-import io.strategiz.service.auth.SessionService;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,134 +10,210 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Optional;
 
 /**
- * Controller for session management endpoints
+ * Controller for session management operations
+ * This controller handles session-specific operations like refresh, validation, and revocation
+ * It's separate from authentication controllers to maintain clean separation of concerns
  */
 @RestController
 @RequestMapping("/auth/sessions")
 public class SessionController {
-
+    
     private static final Logger logger = LoggerFactory.getLogger(SessionController.class);
-
+    private final SessionAuthBusiness sessionAuthBusiness;
+    
     @Autowired
-    private SessionService sessionService;
-
+    public SessionController(SessionAuthBusiness sessionAuthBusiness) {
+        this.sessionAuthBusiness = sessionAuthBusiness;
+    }
+    
     /**
-     * Create a new session for a user after sign-in
-     *
-     * @param userId User ID
-     * @return Response with session details
+     * Refresh access token using a refresh token
+     * 
+     * @param request Refresh token request
+     * @param httpRequest HTTP request to extract client IP
+     * @return New access token
      */
-    @PostMapping
-    public ResponseEntity<ApiResponse<Session>> createSession(@RequestParam String userId) {
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<RefreshSessionResponse>> refreshSession(
+            @RequestBody RefreshSessionRequest request,
+            HttpServletRequest httpRequest) {
+        
+        logger.info("Refreshing session");
+        
         try {
-            // Create a new session
-            Session session = sessionService.createSession(userId);
+            Optional<String> newAccessTokenOpt = sessionAuthBusiness.refreshAccessToken(
+                    request.refreshToken(),
+                    getClientIp(httpRequest));
             
-            if (session != null) {
-                logger.info("Session created for user: {}", userId);
+            if (newAccessTokenOpt.isPresent()) {
+                logger.info("Session refresh successful");
+                RefreshSessionResponse response = new RefreshSessionResponse(newAccessTokenOpt.get());
                 return ResponseEntity.ok(
-                    ApiResponse.<Session>success("Session created successfully", session)
+                    ApiResponse.<RefreshSessionResponse>success("Session refreshed successfully", response)
                 );
             } else {
-                logger.warn("Failed to create session for user: {}", userId);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    ApiResponse.<Session>error("Failed to create session")
+                logger.warn("Session refresh failed - invalid refresh token");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    ApiResponse.<RefreshSessionResponse>error("Invalid refresh token")
                 );
             }
         } catch (Exception e) {
-            logger.error("Error creating session: {}", e.getMessage());
+            logger.error("Error during session refresh: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.<Session>error("Error creating session: " + e.getMessage())
-            );
-        }
-    }
-
-    /**
-     * Get all sessions for a user
-     *
-     * @param userId User ID
-     * @return Response with list of sessions
-     */
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<Session>>> getUserSessions(@RequestParam String userId) {
-        try {
-            // Get all sessions for the user
-            List<Session> sessions = sessionService.getUserSessions(userId);
-            
-            logger.info("Retrieved {} sessions for user: {}", sessions.size(), userId);
-            return ResponseEntity.ok(
-                ApiResponse.<List<Session>>success("Sessions retrieved successfully", sessions)
-            );
-        } catch (Exception e) {
-            logger.error("Error retrieving sessions: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.<List<Session>>error("Error retrieving sessions: " + e.getMessage())
-            );
-        }
-    }
-
-    /**
-     * Delete a specific session
-     *
-     * @param sessionId Session ID
-     * @return Response with deletion status
-     */
-    @DeleteMapping("/{sessionId}")
-    public ResponseEntity<ApiResponse<Boolean>> deleteSession(@PathVariable String sessionId) {
-        try {
-            // Delete the session
-            boolean deleted = sessionService.deleteSession(sessionId);
-            
-            if (deleted) {
-                logger.info("Session deleted: {}", sessionId);
-                return ResponseEntity.ok(
-                    ApiResponse.<Boolean>success("Session deleted successfully", true)
-                );
-            } else {
-                logger.warn("Session not found: {}", sessionId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ApiResponse.<Boolean>error("Session not found or could not be deleted", false)
-                );
-            }
-        } catch (Exception e) {
-            logger.error("Error deleting session: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.<Boolean>error("Error deleting session: " + e.getMessage())
+                ApiResponse.<RefreshSessionResponse>error("Session refresh error: " + e.getMessage())
             );
         }
     }
     
     /**
-     * Delete all sessions for a user
-     *
-     * @param userId User ID
-     * @return Response with deletion status
+     * Validate an access token
+     * 
+     * @param request Token validation request
+     * @return Validation result with user ID if valid
      */
-    @DeleteMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<Boolean>> deleteUserSessions(@PathVariable String userId) {
+    @PostMapping("/validate")
+    public ResponseEntity<ApiResponse<SessionValidationResponse>> validateSession(
+            @RequestBody SessionValidationRequest request) {
+        
+        logger.info("Validating session");
+        
         try {
-            // Delete all sessions for the user
-            boolean loggedOut = sessionService.deleteUserSessions(userId);
+            Optional<String> userIdOpt = sessionAuthBusiness.validateAccessToken(request.accessToken());
             
-            if (loggedOut) {
-                logger.info("All sessions deleted for user: {}", userId);
+            if (userIdOpt.isPresent()) {
+                String userId = userIdOpt.get();
+                logger.info("Session validation successful for user: {}", userId);
+                SessionValidationResponse response = new SessionValidationResponse(true, userId);
                 return ResponseEntity.ok(
-                    ApiResponse.<Boolean>success("All sessions deleted successfully", true)
+                    ApiResponse.<SessionValidationResponse>success("Session is valid", response)
                 );
             } else {
-                logger.warn("Failed to delete sessions for user: {}", userId);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    ApiResponse.<Boolean>error("Failed to delete sessions", false)
+                logger.warn("Session validation failed - invalid token");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    ApiResponse.<SessionValidationResponse>error("Invalid token")
                 );
             }
         } catch (Exception e) {
-            logger.error("Error deleting sessions: {}", e.getMessage());
+            logger.error("Error during session validation: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.<Boolean>error("Error deleting sessions: " + e.getMessage(), false)
+                ApiResponse.<SessionValidationResponse>error("Session validation error: " + e.getMessage())
             );
         }
     }
+    
+    /**
+     * Revoke a token (can be either access or refresh token)
+     * 
+     * @param request Token revocation request
+     * @return Revocation status
+     */
+    @PostMapping("/revoke")
+    public ResponseEntity<ApiResponse<RevocationResponse>> revokeSession(
+            @RequestBody SessionRevocationRequest request) {
+        
+        logger.info("Revoking session");
+        
+        try {
+            boolean revoked = sessionAuthBusiness.revokeToken(request.token());
+            
+            RevocationResponse response = new RevocationResponse(revoked);
+            if (revoked) {
+                logger.info("Session revocation successful");
+                return ResponseEntity.ok(
+                    ApiResponse.<RevocationResponse>success("Session revoked successfully", response)
+                );
+            } else {
+                logger.warn("Session revocation failed - token not found or already revoked");
+                return ResponseEntity.ok(
+                    ApiResponse.<RevocationResponse>success("Session not found or already revoked", response)
+                );
+            }
+        } catch (Exception e) {
+            logger.error("Error during session revocation: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ApiResponse.<RevocationResponse>error("Session revocation error: " + e.getMessage())
+            );
+        }
+    }
+    
+    /**
+     * Revoke all sessions for a user
+     * 
+     * @param userId User ID
+     * @return Number of sessions revoked
+     */
+    @PostMapping("/revoke-all/{userId}")
+    public ResponseEntity<ApiResponse<RevokeAllResponse>> revokeAllSessions(@PathVariable String userId) {
+        
+        logger.info("Revoking all sessions for user: {}", userId);
+        
+        try {
+            int count = sessionAuthBusiness.revokeAllUserTokens(userId);
+            logger.info("Revoked {} sessions for user: {}", count, userId);
+            RevokeAllResponse response = new RevokeAllResponse(count);
+            return ResponseEntity.ok(
+                ApiResponse.<RevokeAllResponse>success("All sessions revoked for user", response)
+            );
+        } catch (Exception e) {
+            logger.error("Error during session revocation for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ApiResponse.<RevokeAllResponse>error("Session revocation error: " + e.getMessage())
+            );
+        }
+    }
+    
+    /**
+     * Extract client IP address from request
+     * 
+     * @param request HTTP request
+     * @return Client IP address
+     */
+    private String getClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            // Return the first IP in X-Forwarded-For header (client IP)
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+    
+    // Request and response record classes
+    
+    /**
+     * Request to refresh session
+     */
+    public record RefreshSessionRequest(String refreshToken) {}
+    
+    /**
+     * Response for session refresh
+     */
+    public record RefreshSessionResponse(String accessToken) {}
+    
+    /**
+     * Request for session validation
+     */
+    public record SessionValidationRequest(String accessToken) {}
+    
+    /**
+     * Response for session validation
+     */
+    public record SessionValidationResponse(boolean valid, String userId) {}
+    
+    /**
+     * Request for session revocation
+     */
+    public record SessionRevocationRequest(String token) {}
+    
+    /**
+     * Response for session revocation
+     */
+    public record RevocationResponse(boolean revoked) {}
+    
+    /**
+     * Response for revoking all sessions
+     */
+    public record RevokeAllResponse(int count) {}
 }

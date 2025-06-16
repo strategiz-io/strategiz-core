@@ -1,9 +1,8 @@
 package io.strategiz.api.provider.controller;
 
-import io.americanexpress.synapse.service.rest.controller.BaseController;
-import io.strategiz.service.provider.ProviderOAuthService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+// import org.slf4j.LoggerFactory;
+// import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -21,18 +20,16 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/v1/provider")
-public class ProviderOAuthController extends BaseController {
+public class ProviderOAuthController {
 
-    private static final Logger log = LoggerFactory.getLogger(ProviderOAuthController.class);
-
-    private final ProviderOAuthService providerOAuthService;
+    // private static final Logger log = LoggerFactory.getLogger(ProviderOAuthController.class); // Fully commented out
     
     @Value("${application.frontend-url}")
     private String frontendUrl;
 
-    @Autowired
-    public ProviderOAuthController(ProviderOAuthService providerOAuthService) {
-        this.providerOAuthService = providerOAuthService;
+    // Constructor removed as ProviderOAuthService is removed
+    public ProviderOAuthController() {
+        // Initialization logic if any, or leave empty
     }
 
     /**
@@ -54,11 +51,11 @@ public class ProviderOAuthController extends BaseController {
         
         // In a real implementation, you would store this state to validate the callback
         
-        String authUrl = providerOAuthService.generateAuthorizationUrl(
-                providerId, userId, accountType, state);
+        // String authorizationUrl = providerOAuthService.initiateOAuthFlow(providerId, principal.getName(), accountType);
+        String authorizationUrl = "#"; // Placeholder
         
         Map<String, String> response = new HashMap<>();
-        response.put("authUrl", authUrl);
+        response.put("authUrl", authorizationUrl);
         response.put("state", state);
         
         return ResponseEntity.ok(response);
@@ -88,12 +85,12 @@ public class ProviderOAuthController extends BaseController {
         // In a real implementation, you would validate the state parameter
         
         if (error != null) {
-            log.error("OAuth error from provider {}: {}", providerId, error);
+            // log.info("OAuth callback for provider: {}, code: {}, state: {}, error: {}", providerId, code, state, error);
             return new RedirectView(redirectUrl + "?status=error&provider=" + providerId);
         }
         
         if (code == null) {
-            log.error("No authorization code received from provider {}", providerId);
+            // log.error("No authorization code received from provider {}", providerId);
             return new RedirectView(redirectUrl + "?status=error&provider=" + providerId);
         }
         
@@ -102,8 +99,8 @@ public class ProviderOAuthController extends BaseController {
             accountType = "paper";
         }
         
-        boolean success = providerOAuthService.handleOAuthCallback(
-                providerId, userId, code, accountType);
+        // boolean success = providerOAuthService.handleOAuthCallback(providerId, code, state, principal.getName(), accountType);
+        boolean success = false; // Placeholder, assuming failure or default behavior
         
         if (success) {
             return new RedirectView(redirectUrl + "?status=success&provider=" + providerId);
@@ -125,7 +122,8 @@ public class ProviderOAuthController extends BaseController {
             Principal principal) {
         
         String userId = principal.getName();
-        boolean success = providerOAuthService.disconnectProvider(userId, providerId);
+        // boolean success = providerOAuthService.disconnectProvider(providerId, principal.getName());
+        boolean success = false; // Placeholder, assuming failure or default behavior
         
         Map<String, String> response = new HashMap<>();
         

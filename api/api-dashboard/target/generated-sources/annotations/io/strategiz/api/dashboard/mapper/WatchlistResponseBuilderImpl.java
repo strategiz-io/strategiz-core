@@ -1,6 +1,7 @@
 package io.strategiz.api.dashboard.mapper;
 
 import io.strategiz.api.dashboard.model.watchlist.WatchlistResponse;
+import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.Generated;
@@ -8,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-06-08T12:36:20-0400",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Oracle Corporation)"
+    date = "2025-06-15T22:37:06-0400",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 24.0.1 (Homebrew)"
 )
 @Component
 public class WatchlistResponseBuilderImpl implements WatchlistResponseBuilder {
@@ -31,7 +32,7 @@ public class WatchlistResponseBuilderImpl implements WatchlistResponseBuilder {
         return watchlistResponse;
     }
 
-    protected WatchlistResponse.WatchlistItem watchlistItemToWatchlistItem(io.strategiz.service.dashboard.model.watchlist.WatchlistResponse.WatchlistItem watchlistItem) {
+    protected WatchlistResponse.WatchlistItem watchlistItemToWatchlistItem(WatchlistItem watchlistItem) {
         if ( watchlistItem == null ) {
             return null;
         }
@@ -41,7 +42,6 @@ public class WatchlistResponseBuilderImpl implements WatchlistResponseBuilder {
         watchlistItem1.setId( watchlistItem.getId() );
         watchlistItem1.setSymbol( watchlistItem.getSymbol() );
         watchlistItem1.setName( watchlistItem.getName() );
-        watchlistItem1.setCategory( watchlistItem.getCategory() );
         watchlistItem1.setPrice( watchlistItem.getPrice() );
         watchlistItem1.setChange( watchlistItem.getChange() );
         watchlistItem1.setChangePercent( watchlistItem.getChangePercent() );
@@ -51,13 +51,13 @@ public class WatchlistResponseBuilderImpl implements WatchlistResponseBuilder {
         return watchlistItem1;
     }
 
-    protected List<WatchlistResponse.WatchlistItem> watchlistItemListToWatchlistItemList(List<io.strategiz.service.dashboard.model.watchlist.WatchlistResponse.WatchlistItem> list) {
+    protected List<WatchlistResponse.WatchlistItem> watchlistItemListToWatchlistItemList(List<WatchlistItem> list) {
         if ( list == null ) {
             return null;
         }
 
         List<WatchlistResponse.WatchlistItem> list1 = new ArrayList<WatchlistResponse.WatchlistItem>( list.size() );
-        for ( io.strategiz.service.dashboard.model.watchlist.WatchlistResponse.WatchlistItem watchlistItem : list ) {
+        for ( WatchlistItem watchlistItem : list ) {
             list1.add( watchlistItemToWatchlistItem( watchlistItem ) );
         }
 

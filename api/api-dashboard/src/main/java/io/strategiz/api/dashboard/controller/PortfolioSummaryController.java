@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.strategiz.api.dashboard.mapper.PortfolioSummaryResponseBuilder;
 import io.strategiz.api.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 import io.strategiz.service.base.model.BaseServiceResponse;
-import io.strategiz.service.dashboard.DashboardService;
+import io.strategiz.service.dashboard.PortfolioSummaryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,7 @@ public class PortfolioSummaryController extends DashboardBaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioSummaryController.class);
 
-    private final DashboardService dashboardService;
+    private final PortfolioSummaryService portfolioSummaryService;
     private final PortfolioSummaryResponseBuilder responseBuilder;
     
     /**
@@ -36,8 +36,8 @@ public class PortfolioSummaryController extends DashboardBaseController {
      * @param responseBuilder Builder for portfolio summary responses
      */
     @Autowired
-    public PortfolioSummaryController(DashboardService dashboardService, PortfolioSummaryResponseBuilder responseBuilder) {
-        this.dashboardService = dashboardService;
+    public PortfolioSummaryController(PortfolioSummaryService portfolioSummaryService, PortfolioSummaryResponseBuilder responseBuilder) {
+        this.portfolioSummaryService = portfolioSummaryService;
         this.responseBuilder = responseBuilder;
     }
     
@@ -69,7 +69,7 @@ public class PortfolioSummaryController extends DashboardBaseController {
             
             // Get portfolio data from service
             io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse serviceResponse = 
-                dashboardService.getPortfolioSummary(userId);
+                portfolioSummaryService.getPortfolioSummary(userId);
             
             // Use the builder to create and populate API response
             PortfolioSummaryResponse dashboardResponse = responseBuilder.buildPortfolioSummaryResponse(serviceResponse);

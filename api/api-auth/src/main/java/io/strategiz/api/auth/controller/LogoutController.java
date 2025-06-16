@@ -1,9 +1,9 @@
 package io.strategiz.api.auth.controller;
 
 import com.google.firebase.auth.FirebaseToken;
-import io.strategiz.api.auth.model.ApiResponse;
+// import io.strategiz.api.auth.model.ApiResponse;
 import io.strategiz.service.auth.SessionService;
-import io.strategiz.service.auth.UserAuthService;
+// import io.strategiz.service.auth.UserAuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +20,8 @@ public class LogoutController {
 
     private static final Logger logger = LoggerFactory.getLogger(LogoutController.class);
 
-    @Autowired
-    private UserAuthService userAuthService;
+    // @Autowired
+    // private UserAuthService userAuthService;
 
     @Autowired
     private SessionService sessionService;
@@ -33,10 +33,11 @@ public class LogoutController {
      * @return Response with sign-out status
      */
     @PostMapping("/signout")
-    public ResponseEntity<ApiResponse<Boolean>> signOut(@RequestParam String token) {
+    public ResponseEntity<Object> signOut(@RequestParam String token) {
         try {
             // Verify the user authentication token
-            FirebaseToken decodedToken = userAuthService.verifyIdToken(token);
+            // FirebaseToken decodedToken = userAuthService.verifyIdToken(token);
+            FirebaseToken decodedToken = null; // Placeholder
             
             if (decodedToken != null) {
                 String userId = decodedToken.getUid();
@@ -44,26 +45,18 @@ public class LogoutController {
                 
                 if (loggedOut) {
                     logger.info("User signed out successfully: {}", userId);
-                    return ResponseEntity.ok(
-                        ApiResponse.<Boolean>success("User signed out successfully", true)
-                    );
+                    return ResponseEntity.ok().build(); // Adjusted for Object type
                 } else {
                     logger.warn("Failed to sign out user: {}", userId);
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                        ApiResponse.<Boolean>error("Failed to sign out user", false)
-                    );
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
                 }
             } else {
                 logger.warn("Invalid token provided for sign-out");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    ApiResponse.<Boolean>error("Invalid token", false)
-                );
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
         } catch (Exception e) {
             logger.error("Error signing out user: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ApiResponse.<Boolean>error("Error signing out user: " + e.getMessage(), false)
-            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

@@ -4,9 +4,10 @@ echo "Building Strategiz Core in the correct dependency order..."
 echo "===================================================================="
 echo
 
-# Store the project root directory
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-cd "$PROJECT_ROOT"
+# Change to the project root directory
+cd "$(dirname "$0")/../.."
+
+echo "Current working directory: $(pwd)"
 
 echo "Step 1/6: Building framework modules"
 # Install the framework parent POM
@@ -125,9 +126,6 @@ echo "Building api-dashboard"
 mvn -f api/api-dashboard/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in api-dashboard" && exit 1
 
-echo "Building api-exchange"
-mvn -f api/api-exchange/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-exchange" && exit 1
 
 echo "Building api-strategy" 
 mvn -f api/api-strategy/pom.xml clean install -DskipTests

@@ -2,7 +2,7 @@ package io.strategiz.data.portfolio;
 
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
-import io.strategiz.data.base.document.DocumentStorageService;
+import io.strategiz.data.base.document.DocumentStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +19,10 @@ public class PortfolioCredentialsRepository {
     
     private static final Logger log = LoggerFactory.getLogger(PortfolioCredentialsRepository.class);
     
-    private final DocumentStorageService documentStorage;
+    private final DocumentStorage documentStorage;
     
     @Autowired
-    public PortfolioCredentialsRepository(DocumentStorageService documentStorage) {
+    public PortfolioCredentialsRepository(DocumentStorage documentStorage) {
         this.documentStorage = documentStorage;
     }
     
@@ -34,13 +34,9 @@ public class PortfolioCredentialsRepository {
      * @return Map with credentials, or null if not found
      */
     public Map<String, String> getBrokerageCredentials(String userId, String provider) {
-        if (!documentStorage.isReady()) {
-            log.warn("Document storage not initialized. Cannot retrieve {} credentials.", provider);
-            return null;
-        }
-        
         try {
             log.info("Getting {} credentials for user: {}", provider, userId);
+            
             QuerySnapshot querySnapshot = documentStorage.getDocumentDb()
                 .collection("users")
                 .document(userId)
@@ -66,6 +62,9 @@ public class PortfolioCredentialsRepository {
             credentials.put("passphrase", document.getString("passphrase"));
             
             return credentials;
+        } catch (IllegalStateException e) {
+            log.warn("Document storage not initialized. Cannot retrieve {} credentials for user: {}", provider, userId, e);
+            return null;
         } catch (Exception e) {
             log.error("Error getting {} credentials for user: {}", provider, userId, e);
             return null;

@@ -1,146 +1,139 @@
 package io.strategiz.service.auth;
 
-import io.strategiz.data.auth.Session;
-import io.strategiz.data.auth.SessionRepository;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Service for session management
+ * Service for session management that delegates to SessionAuthBusiness
+ * This is a simplified proxy service to maintain compatibility during migration
+ * from api-auth to service-auth.
  */
 @Service
 public class SessionService {
 
     private static final Logger log = LoggerFactory.getLogger(SessionService.class);
+    private final SessionAuthBusiness sessionAuthBusiness;
     
-    @Value("${session.expiry.seconds:86400}") // Default to 24 hours
-    private long sessionExpirySeconds;
-    
-    private final SessionRepository sessionRepository;
-    
-    @Autowired
-    public SessionService(SessionRepository sessionRepository) {
-        this.sessionRepository = sessionRepository;
+    public SessionService(SessionAuthBusiness sessionAuthBusiness) {
+        this.sessionAuthBusiness = sessionAuthBusiness;
+        log.info("Using SessionAuthBusiness for token management");
     }
     
     /**
      * Create a new session for a user
-     *
-     * @param userId User ID
-     * @return The created session
+     * @param userId the user ID
+     * @param deviceId Optional device ID
+     * @param ipAddress Optional IP address
+     * @return the access token
      */
-    public Session createSession(String userId) {
-        log.info("Creating new session for user: {}", userId);
-        
-        long now = Instant.now().getEpochSecond();
-        
-        Session session = Session.builder()
-                .userId(userId)
-                .token(generateSessionToken())
-                .createdAt(now)
-                .lastAccessedAt(now)
-                .expiresAt(now + sessionExpirySeconds)
-                .build();
-        
-        return sessionRepository.save(session);
+    public String createSession(String userId, String deviceId, String ipAddress) {
+        return sessionAuthBusiness.createTokenPair(userId, deviceId, ipAddress).accessToken();
     }
     
     /**
-     * Validate a session by token
+     * Create a new session for a user with minimal info
+     * @param userId the user ID
+     * @return the access token
+     */
+    public String createSession(String userId) {
+        return sessionAuthBusiness.createTokenPair(userId, null, null).accessToken();
+    }
+
+    /**
+     * Validate a session token
      *
      * @param token Session token
-     * @return Optional containing the session if valid, empty otherwise
+     * @return true if token is valid, false otherwise
      */
-    public Optional<Session> validateSession(String token) {
-        if (token == null || token.isEmpty()) {
+    public boolean validateSession(String token) {
+        if (token == null || token.isBlank()) {
+            log.warn("Token is null or empty");
+            return false;
+        }
+        log.debug("Validating session token");
+        
+        try {
+            return sessionAuthBusiness.validateSession(token).isPresent();
+        } catch (Exception e) {
+            log.warn("Error validating token: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get user ID from token
+     *
+     * @param token Session token
+     * @return User ID if token is valid, empty otherwise
+     */
+    public Optional<String> getUserIdFromToken(String token) {
+        if (token == null || token.isBlank()) {
             log.warn("Token is null or empty");
             return Optional.empty();
         }
         
-        log.debug("Validating session token");
-        
-        Optional<Session> sessionOpt = sessionRepository.findByToken(token);
-        
-        if (sessionOpt.isEmpty()) {
-            log.debug("Session not found for token");
+        try {
+            return sessionAuthBusiness.validateSession(token);
+        } catch (Exception e) {
+            log.warn("Error extracting user ID from token: {}", e.getMessage());
             return Optional.empty();
         }
-        
-        Session session = sessionOpt.get();
-        
-        if (session.isExpired()) {
-            log.info("Session expired for user: {}", session.getUserId());
-            sessionRepository.deleteById(session.getId());
-            return Optional.empty();
+    }
+
+    /**
+     * Delete (revoke) a session
+     * @param token the session token
+     */
+    public void deleteSession(String token) {
+        try {
+            sessionAuthBusiness.deleteSession(token);
+            log.info("Session token revoked successfully");
+        } catch (Exception e) {
+            log.warn("Error revoking token: {}", e.getMessage());
         }
-        
-        // Update last accessed time and extend expiry
-        session.updateLastAccessedTime();
-        session.extendExpiry(sessionExpirySeconds);
-        sessionRepository.save(session);
-        
-        return Optional.of(session);
-    }
-    
-    /**
-     * Get all sessions for a user
-     *
-     * @param userId User ID
-     * @return List of sessions
-     */
-    public List<Session> getUserSessions(String userId) {
-        log.info("Getting sessions for user: {}", userId);
-        return sessionRepository.findAllByUserId(userId);
-    }
-    
-    /**
-     * Delete a session
-     *
-     * @param sessionId Session ID
-     * @return true if deleted, false otherwise
-     */
-    public boolean deleteSession(String sessionId) {
-        log.info("Deleting session: {}", sessionId);
-        return sessionRepository.deleteById(sessionId);
     }
     
     /**
      * Delete all sessions for a user
-     *
-     * @param userId User ID
-     * @return true if deleted, false otherwise
+     * @param userId the user ID
+     * @return true if any sessions were deleted, false otherwise
      */
     public boolean deleteUserSessions(String userId) {
-        log.info("Deleting all sessions for user: {}", userId);
-        return sessionRepository.deleteAllByUserId(userId);
+        try {
+            boolean result = sessionAuthBusiness.deleteUserSessions(userId);
+            if (result) {
+                log.info("All sessions for user {} revoked successfully", userId);
+            } else {
+                log.info("No active sessions found for user {}", userId);
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("Error deleting user sessions for {}: {}", userId, e.getMessage());
+            return false;
+        }
     }
-    
+
     /**
-     * Generate a unique session token
-     *
-     * @return Session token
+     * Refresh an access token
+     * @param refreshToken the refresh token
+     * @param ipAddress the IP address
+     * @return the new access token if successful, empty otherwise
      */
-    private String generateSessionToken() {
-        return UUID.randomUUID().toString();
+    public Optional<String> refreshToken(String refreshToken, String ipAddress) {
+        return sessionAuthBusiness.refreshAccessToken(refreshToken, ipAddress);
     }
-    
+
     /**
-     * Scheduled task to clean up expired sessions
-     * Runs every hour
+     * Clean up expired sessions
      */
-    @Scheduled(fixedRate = 3600000) // Every hour
+    @Scheduled(fixedRate = 3600000) // Run every hour
     public void cleanupExpiredSessions() {
-        log.info("Cleaning up expired sessions");
-        int deleted = sessionRepository.deleteExpiredSessions();
-        log.info("Deleted {} expired sessions", deleted);
+        log.info("Delegating cleanup of expired tokens to SessionAuthBusiness");
+        sessionAuthBusiness.cleanupExpiredTokens();
     }
 }

@@ -631,4 +631,57 @@ public class UserRepository {
             throw new RuntimeException("Error saving user: " + e.getMessage(), e);
         }
     }
+    
+    /**
+     * Retrieves a user by email address.
+     *
+     * @param email The email address to search for
+     * @return An Optional containing the user if found
+     */
+    public Optional<User> getUserByEmail(String email) {
+        try {
+            Query query = firestore.collection(USERS_COLLECTION)
+                    .whereEqualTo("profile.email", email)
+                    .limit(1);
+                    
+            ApiFuture<QuerySnapshot> future = query.get();
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            
+            if (!documents.isEmpty()) {
+                DocumentSnapshot document = documents.get(0);
+                return getUserById(document.getId());
+            } else {
+                return Optional.empty();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error retrieving user by email: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Updates an existing user.
+     *
+     * @param user The user to update
+     * @return The updated user
+     */
+    public User updateUser(User user) {
+        try {
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getId());
+            
+            // Convert user to map for Firestore
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("profile", user.getProfile());
+            userData.put("connectedProviders", user.getConnectedProviders());
+            userData.put("modifiedBy", user.getModifiedBy());
+            userData.put("modifiedAt", FieldValue.serverTimestamp());
+            userData.put("version", user.getVersion());
+            userData.put("isActive", user.getIsActive());
+            
+            ApiFuture<WriteResult> future = docRef.update(userData);
+            future.get();
+            return user;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error updating user: " + e.getMessage(), e);
+        }
+    }
 }

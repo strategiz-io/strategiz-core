@@ -92,6 +92,10 @@ echo "Building business-portfolio"
 mvn -f business/business-portfolio/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in business-portfolio" && exit 1
 
+echo "Building business-token-auth"
+mvn -f business/business-token-auth/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in business-token-auth" && exit 1
+
 echo "Step 5/6: Building service modules"
 echo "Building service-base"
 mvn -f service/service-base/pom.xml clean install -DskipTests

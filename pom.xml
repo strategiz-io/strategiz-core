@@ -55,11 +55,13 @@
         <!-- Temporarily commented out due to Firestore dependency issues -->
         <!-- <module>service/service-walletaddress</module> -->
         <module>service/service-dashboard</module>
+        <module>service/service-profile</module>
         
         <!-- API Modules (Build Fifth) -->
-        <module>api/api-auth</module>
+        <!-- Removed api-auth module as it was consolidated into service-auth -->
+        <!-- Removed api-dashboard module as it was consolidated into service-dashboard -->
+        <!-- Removed api-profile module as it was consolidated into service-profile -->
         <module>api/api-base</module>
-        <module>api/api-dashboard</module>
         <module>api/api-monitoring</module>
         <module>api/api-portfolio</module>
         <module>api/api-strategy</module>
@@ -194,6 +196,11 @@
                 <artifactId>service-dashboard</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-profile</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             
             <!-- Framework Modules -->
             <dependency>
@@ -240,17 +247,9 @@
             </dependency>
             
             <!-- API Modules -->
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-auth</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-dashboard</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+            <!-- Removed api-auth dependency as it was consolidated into service-auth -->
+            <!-- Removed api-dashboard dependency as it was consolidated into service-dashboard -->
+            <!-- Removed api-profile dependency as it was consolidated into service-profile -->
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>api-exchange</artifactId>

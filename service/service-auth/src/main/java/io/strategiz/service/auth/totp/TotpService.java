@@ -264,4 +264,51 @@ public class TotpService {
             return false;
         }
     }
+    
+    /**
+     * Verifies a user's TOTP code
+     *
+     * @param userId The user ID
+     * @param code The TOTP code to verify
+     * @return true if the code is valid, false otherwise
+     */
+    public boolean verifyUserTotp(String userId, String code) {
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                log.warn("User not found for TOTP verification: {}", userId);
+                return false;
+            }
+            
+            User user = userOpt.get();
+            
+            // Find a TOTP authentication method
+            Optional<TotpAuthenticationMethod> totpMethodOpt = user.getAuthenticationMethods().stream()
+                    .filter(method -> method instanceof TotpAuthenticationMethod)
+                    .map(method -> (TotpAuthenticationMethod) method)
+                    .findFirst();
+            
+            if (totpMethodOpt.isEmpty()) {
+                log.warn("No TOTP authentication method found for user: {}", userId);
+                return false;
+            }
+            
+            TotpAuthenticationMethod totpMethod = totpMethodOpt.get();
+            String secret = totpMethod.getSecret();
+            
+            // Verify the TOTP code
+            boolean isValid = verifyCode(secret, code);
+            
+            if (isValid) {
+                log.info("TOTP verification successful for user: {}", userId);
+            } else {
+                log.warn("Invalid TOTP code provided for user: {}", userId);
+            }
+            
+            return isValid;
+        } catch (Exception e) {
+            log.error("Error during TOTP verification for user: {}", userId, e);
+            return false;
+        }
+    }
 }

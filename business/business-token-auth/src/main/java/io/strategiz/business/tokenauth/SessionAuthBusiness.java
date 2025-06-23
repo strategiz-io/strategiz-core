@@ -300,4 +300,28 @@ public class SessionAuthBusiness {
      * Simple container for access and refresh token pair
      */
     public record TokenPair(String accessToken, String refreshToken) {}
+    
+    /**
+     * Generate an access token for a user
+     * This is a convenience method that doesn't store the token in the repository
+     *
+     * @param userId User ID
+     * @return The access token
+     */
+    public String generateToken(String userId) {
+        log.debug("Generating access token for user: {}", userId);
+        return tokenProvider.createAccessToken(userId);
+    }
+    
+    /**
+     * Generate a refresh token for a user
+     * This is a convenience method that doesn't store the token in the repository
+     *
+     * @param userId User ID
+     * @return The refresh token
+     */
+    public String generateRefreshToken(String userId) {
+        log.debug("Generating refresh token for user: {}", userId);
+        return tokenProvider.createRefreshToken(userId);
+    }
 }

@@ -22,6 +22,7 @@
         <module>data-portfolio</module>
         <module>data-auth</module>
         <module>data-user</module>
+        <module>data-device</module>
     </modules>
     
     <dependencies>

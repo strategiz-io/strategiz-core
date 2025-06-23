@@ -1,0 +1,118 @@
+package io.strategiz.service.profile.model;
+
+/**
+ * Response DTO for user profile data
+ */
+public class ProfileResponse {
+    private String userId;
+    private String name;
+    private String email;
+    private String photoURL;
+    private boolean verifiedEmail;
+    private String subscriptionTier;
+    private String tradingMode;
+    private boolean isActive;
+    private long createdAt;
+    private long modifiedAt;
+
+    // Default constructor
+    public ProfileResponse() {
+    }
+
+    // Full constructor
+    public ProfileResponse(String userId, String name, String email, String photoURL,
+                          boolean verifiedEmail, String subscriptionTier, String tradingMode,
+                          boolean isActive, long createdAt, long modifiedAt) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.photoURL = photoURL;
+        this.verifiedEmail = verifiedEmail;
+        this.subscriptionTier = subscriptionTier;
+        this.tradingMode = tradingMode;
+        this.isActive = isActive;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+    }
+
+    // Getters and setters
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhotoURL() {
+        return photoURL;
+    }
+
+    public void setPhotoURL(String photoURL) {
+        this.photoURL = photoURL;
+    }
+
+    public boolean isVerifiedEmail() {
+        return verifiedEmail;
+    }
+
+    public void setVerifiedEmail(boolean verifiedEmail) {
+        this.verifiedEmail = verifiedEmail;
+    }
+
+    public String getSubscriptionTier() {
+        return subscriptionTier;
+    }
+
+    public void setSubscriptionTier(String subscriptionTier) {
+        this.subscriptionTier = subscriptionTier;
+    }
+
+    public String getTradingMode() {
+        return tradingMode;
+    }
+
+    public void setTradingMode(String tradingMode) {
+        this.tradingMode = tradingMode;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getModifiedAt() {
+        return modifiedAt;
+    }
+
+    public void setModifiedAt(long modifiedAt) {
+        this.modifiedAt = modifiedAt;
+    }
+}

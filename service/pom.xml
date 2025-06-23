@@ -26,6 +26,7 @@
         <module>service-portfolio</module>
         <module>service-exchange</module>
         <module>data-portfolio</module>
+        <module>service-profile</module>
     </modules>
     
     <dependencies>

@@ -46,6 +46,13 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         
+        <!-- Device tracking dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-device</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
         <!-- Client Module explicit dependencies for critical classes -->
         <dependency>
             <groupId>io.strategiz</groupId>
@@ -64,9 +71,10 @@
             <artifactId>api-portfolio</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Replaced api-auth with service-auth as part of auth module consolidation -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>api-auth</artifactId>
+            <artifactId>service-auth</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -74,9 +82,22 @@
             <artifactId>api-monitoring</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Replaced api-dashboard with service-dashboard as part of dashboard module consolidation -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>api-dashboard</artifactId>
+            <artifactId>service-dashboard</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Replaced api-profile with service-profile as part of profile module consolidation -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-profile</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Replaced api-provider with service-provider as part of provider module consolidation -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-provider</artifactId>
             <version>${project.version}</version>
         </dependency>
         

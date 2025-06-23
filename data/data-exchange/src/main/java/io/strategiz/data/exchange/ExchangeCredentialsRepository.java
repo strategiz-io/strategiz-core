@@ -3,7 +3,7 @@ package io.strategiz.data.exchange;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 
-import io.strategiz.data.base.document.DocumentStorageService;
+import io.strategiz.data.base.document.DocumentStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +21,10 @@ public class ExchangeCredentialsRepository {
 
     private static final Logger log = LoggerFactory.getLogger(ExchangeCredentialsRepository.class);
     
-    private final DocumentStorageService documentStorage;
+    private final DocumentStorage documentStorage;
     
     @Autowired
-    public ExchangeCredentialsRepository(DocumentStorageService documentStorage) {
+    public ExchangeCredentialsRepository(DocumentStorage documentStorage) {
         this.documentStorage = documentStorage;
     }
 
@@ -36,7 +36,7 @@ public class ExchangeCredentialsRepository {
      * @return Map of credentials (apiKey, secretKey)
      */
     public Map<String, String> getExchangeCredentials(String userId, String provider) {
-        if (!documentStorage.isReady()) {
+        if (documentStorage.getDocumentDb() == null) {
             log.warn("Document storage not initialized. Cannot retrieve {} credentials.", provider);
             return null;
         }
@@ -127,7 +127,7 @@ public class ExchangeCredentialsRepository {
      * @return true if successful, false otherwise
      */
     public boolean saveExchangeCredentials(String userId, String provider, String apiKey, String secretKey) {
-        if (!documentStorage.isReady()) {
+        if (documentStorage.getDocumentDb() == null) {
             log.warn("Document storage not initialized. Cannot save {} credentials.", provider);
             return false;
         }

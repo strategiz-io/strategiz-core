@@ -19,12 +19,11 @@
         <module>api-base</module>
         <module>api-strategy</module>
         <module>api-portfolio</module>
-        <module>api-provider</module>
-        <module>api-auth</module>
         <module>api-monitoring</module>
         <module>api-marketplace</module>
-        <module>api-dashboard</module>
         <module>api-exchange</module>
+        <!-- Removed api-profile module as it was consolidated into service-profile -->
+        <!-- Removed api-provider module as it was consolidated into service-provider -->
     </modules>
     
     <dependencies>

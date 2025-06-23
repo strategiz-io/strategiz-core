@@ -1,6 +1,5 @@
 package io.strategiz.service.provider;
 
-import io.americanexpress.synapse.service.rest.service.BaseService;
 import io.strategiz.data.user.model.Credentials;
 import io.strategiz.data.user.model.Provider;
 import io.strategiz.data.user.repository.UserRepository;
@@ -24,7 +23,7 @@ import java.util.Optional;
  * Service for handling OAuth flows with various exchanges and brokerages.
  */
 @Service
-public class ProviderOAuthService extends BaseService {
+public class ProviderOAuthService {
 
     private static final Logger log = LoggerFactory.getLogger(ProviderOAuthService.class);
 

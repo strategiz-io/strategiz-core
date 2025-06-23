@@ -48,6 +48,10 @@ echo "Building data-portfolio"
 mvn -f data/data-portfolio/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in data-portfolio" && exit 1
 
+echo "Building data-device"
+mvn -f data/data-device/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-device" && exit 1
+
 echo "Step 3/6: Building client modules"
 echo "Building client-base"
 mvn -f client/client-base/pom.xml clean install -DskipTests
@@ -117,14 +121,20 @@ echo "Building service-marketplace"
 mvn -f service/service-marketplace/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in service-marketplace" && exit 1
 
+echo "Building service-provider"
+mvn -f service/service-provider/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in service-provider" && exit 1
+
+echo "Building service-profile"
+mvn -f service/service-profile/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in service-profile" && exit 1
+
 echo "Step 6/6: Building API modules"
 echo "Building api-base"
 mvn -f api/api-base/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in api-base" && exit 1
 
-echo "Building api-dashboard"
-mvn -f api/api-dashboard/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-dashboard" && exit 1
+# api-dashboard has been consolidated into service-dashboard
 
 
 echo "Building api-strategy" 
@@ -143,13 +153,12 @@ echo "Building api-marketplace"
 mvn -f api/api-marketplace/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in api-marketplace" && exit 1
 
-echo "Building api-provider"
-mvn -f api/api-provider/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-provider" && exit 1
+# api-provider has been consolidated into service-provider
 
-echo "Building api-auth"
-mvn -f api/api-auth/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-auth" && exit 1
+# api-auth has been consolidated into service-auth
+# echo "Building api-auth"
+# mvn -f api/api-auth/pom.xml clean install -DskipTests
+# [ $? -ne 0 ] && echo "Build failed in api-auth" && exit 1
 
 echo "Step 7/7: Building application"
 echo "Building application"

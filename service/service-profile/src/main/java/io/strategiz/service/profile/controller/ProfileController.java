@@ -190,7 +190,7 @@ public class ProfileController extends BaseApiController {
      */
     private ProfileResponse mapUserToProfileResponse(User user) {
         return new ProfileResponse(
-            user.getId(),
+            user.getUserId(),
             user.getProfile().getName(),
             user.getProfile().getEmail(),
             user.getProfile().getPhotoURL(),

@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Consolidated request model for user signup that includes both profile information
  * and authentication method selection
@@ -26,17 +29,21 @@ public class SignupRequest {
     // Optional fields for specific auth methods
     private String phoneNumber; // For SMS auth
     
+    // Authentication-specific data (tokens, credentials, etc.)
+    private Map<String, String> authData = new HashMap<>();
+    
     // Default constructor
     public SignupRequest() {
     }
     
     // Full constructor
-    public SignupRequest(String name, String email, String authMethod, String photoURL, String phoneNumber) {
+    public SignupRequest(String name, String email, String authMethod, String photoURL, String phoneNumber, Map<String, String> authData) {
         this.name = name;
         this.email = email;
         this.authMethod = authMethod;
         this.photoURL = photoURL;
         this.phoneNumber = phoneNumber;
+        this.authData = authData;
     }
     
     // Getters and setters
@@ -78,5 +85,13 @@ public class SignupRequest {
     
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+    
+    public Map<String, String> getAuthData() {
+        return authData;
+    }
+    
+    public void setAuthData(Map<String, String> authData) {
+        this.authData = authData;
     }
 }

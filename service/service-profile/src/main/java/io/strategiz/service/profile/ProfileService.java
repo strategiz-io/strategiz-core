@@ -102,7 +102,7 @@ public class ProfileService {
             // If email is changing, check if the new email is already in use
             if (!email.equals(profile.getEmail())) {
                 Optional<User> userWithEmail = userRepository.getUserByEmail(email);
-                if (userWithEmail.isPresent() && !userWithEmail.get().getId().equals(userId)) {
+                if (userWithEmail.isPresent() && !userWithEmail.get().getUserId().equals(userId)) {
                     throw new IllegalArgumentException("Email " + email + " is already in use");
                 }
                 profile.setEmail(email);

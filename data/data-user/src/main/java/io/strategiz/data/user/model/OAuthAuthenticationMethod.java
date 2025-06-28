@@ -10,6 +10,7 @@ public class OAuthAuthenticationMethod extends AuthenticationMethod {
     private String provider; // "GOOGLE" or "FACEBOOK"
     private String uid; // Provider-specific user ID
     private String email; // Email from provider
+    private String userId; // Reference to the User ID in the system
 
     // No-argument constructor
     public OAuthAuthenticationMethod() {
@@ -59,6 +60,30 @@ public class OAuthAuthenticationMethod extends AuthenticationMethod {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+    
+    public String getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+    
+    /**
+     * Sets the provider ID (alias for setUid for compatibility)
+     * @param providerId The provider-specific ID
+     */
+    public void setProviderId(String providerId) {
+        this.uid = providerId;
+    }
+    
+    /**
+     * Gets the provider ID (alias for getUid for compatibility)
+     * @return The provider-specific ID
+     */
+    public String getProviderId() {
+        return this.uid;
     }
 
     @Override

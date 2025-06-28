@@ -2,7 +2,7 @@ package io.strategiz.service.auth.controller.totp;
 
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
-import io.strategiz.service.auth.service.totp.TotpService;
+import io.strategiz.service.auth.service.totp.TotpRegistrationService;
 import io.strategiz.service.auth.model.totp.*;
 import io.strategiz.service.auth.model.ApiResponse;
 import org.slf4j.Logger;
@@ -25,7 +25,7 @@ public class TotpRegistrationController {
     private static final Logger log = LoggerFactory.getLogger(TotpRegistrationController.class);
 
     @Autowired
-    private TotpService totpService;
+    private TotpRegistrationService totpRegistrationService;
     
     @Autowired
     private UserRepository userRepository;
@@ -42,7 +42,7 @@ public class TotpRegistrationController {
         log.info("Initiating TOTP registration for user ID: {}", request.userId());
         
         try {
-            if (totpService.isTotpSetUp(request.userId())) {
+            if (totpRegistrationService.isTotpSetUp(request.userId())) {
                 log.warn("TOTP already registered for user: {}", request.userId());
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
@@ -67,7 +67,7 @@ public class TotpRegistrationController {
             }
             
             // Generate new TOTP secret and QR code
-            String qrCodeImageUri = totpService.generateTotpSecret(request.userId());
+            String qrCodeImageUri = totpRegistrationService.generateTotpSecret(request.userId());
             
             // Note: Secret is now managed internally by the service and not returned directly
             // We use a placeholder here as the secret needs to be passed to the frontend
@@ -98,7 +98,7 @@ public class TotpRegistrationController {
         log.info("Activating TOTP for user ID: {}", request.get("userId"));
         
         try {
-            boolean verified = totpService.enableTotp(
+            boolean verified = totpRegistrationService.enableTotp(
                 request.get("userId"), 
                 request.get("sessionToken"), 
                 request.get("code")
@@ -136,7 +136,7 @@ public class TotpRegistrationController {
         
         try {
             // Check if TOTP is already registered
-            if (!totpService.isTotpSetUp(userId)) {
+            if (!totpRegistrationService.isTotpSetUp(userId)) {
                 log.warn("TOTP not registered for user: {}", userId);
                 return ResponseEntity
                         .status(HttpStatus.BAD_REQUEST)
@@ -144,7 +144,7 @@ public class TotpRegistrationController {
             }
             
             // Disable TOTP
-            totpService.disableTotp(userId);
+            totpRegistrationService.disableTotp(userId);
             return ResponseEntity.ok(ApiResponse.success("TOTP disabled successfully"));
             
         } catch (Exception e) {
@@ -166,8 +166,8 @@ public class TotpRegistrationController {
         log.info("Checking TOTP status for user ID: {}", userId);
         
         try {
-            boolean enabled = totpService.isTotpSetUp(userId);
-            return ResponseEntity.ok(ApiResponse.success("TOTP status", Map.of("registered", enabled)));
+            boolean enabled = totpRegistrationService.isTotpSetUp(userId);
+            return ResponseEntity.ok(ApiResponse.success("TOTP status", Map.of("enabled", enabled)));
         } catch (Exception e) {
             log.error("Error checking TOTP status: {}", e.getMessage(), e);
             return ResponseEntity

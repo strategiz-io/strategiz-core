@@ -98,7 +98,26 @@ public class FacebookOAuthService {
         return response;
     }
     
-
+    /**
+     * Get frontend URL
+     * @return The frontend URL
+     */
+    public String getFrontendUrl() {
+        return frontendUrl;
+    }
+    
+    /**
+     * Handle OAuth callback from Facebook
+     * 
+     * @param code Authorization code from Facebook
+     * @param state State parameter for verification
+     * @param deviceId Optional device ID for fingerprinting
+     * @return Map containing user, tokens, and success status
+     */
+    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
             if (code == null) {
                 logger.error("Missing authorization code");
                 result.put("success", false);
@@ -266,165 +285,4 @@ public class FacebookOAuthService {
             return result;
         }
     }
-    
-    /**
-     * Get frontend URL
-     * @return The frontend URL
-     */
-    public String getFrontendUrl() {
-        return frontendUrl;
-    }
-    
-    /**
-     * Handle OAuth callback from Facebook
-     * 
-     * @param code Authorization code from Facebook
-     * @param state State parameter for verification
-     * @param deviceId Optional device ID for fingerprinting
-     * @return Map containing user, tokens, and success status
-     */
-    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
-        Map<String, Object> result = new HashMap<>();
-        
-        try {
-            if (code == null) {
-                logger.error("Missing authorization code");
-                result.put("success", false);
-                result.put("error", "Missing authorization code");
-                return result;
-            }
-        
-        // Exchange code for access token
-        String tokenUrl = UriComponentsBuilder.fromUriString(FACEBOOK_TOKEN_URL)
-                .queryParam("client_id", clientId)
-                .queryParam("client_secret", clientSecret)
-                .queryParam("code", code)
-                .queryParam("redirect_uri", redirectUri)
-                .toUriString();
-        
-        HttpHeaders headers = new HttpHeaders();
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        
-        ResponseEntity<Map<String, Object>> tokenResponse = restTemplate.exchange(
-                tokenUrl,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<Map<String, Object>>(){}
-        );
-        
-        if (!tokenResponse.getStatusCode().is2xxSuccessful()) {
-            logger.error("Failed to exchange authorization code for access token: {}", tokenResponse.getStatusCode());
-            return frontendUrl + "/auth/error?message=Failed+to+authenticate+with+Facebook";
-        }
-        
-        String accessToken = (String) tokenResponse.getBody().get("access_token");
-        
-        // Get user info
-        String userInfoUrl = UriComponentsBuilder.fromUriString(FACEBOOK_USER_INFO_URL)
-                .queryParam("fields", "id,name,email")
-                .queryParam("access_token", accessToken)
-                .toUriString();
-        
-        HttpHeaders userInfoHeaders = new HttpHeaders();
-        userInfoHeaders.set("Accept", MediaType.APPLICATION_JSON_VALUE);
-        HttpEntity<Void> requestEntity = new HttpEntity<>(userInfoHeaders);
-        
-        ResponseEntity<Map<String, Object>> userResponse = restTemplate.exchange(
-                userInfoUrl,
-                HttpMethod.GET,
-                requestEntity,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
-        );
-        
-        Map<String, Object> userData = userResponse.getBody();
-        if (userData == null || !userData.containsKey("id")) {
-            logger.error("Failed to get user data from Facebook: {}", userData);
-            return frontendUrl + "/auth/error?message=Failed+to+get+user+info";
-        }
-        
-        String facebookId = (String) userData.get("id");
-        String email = (String) userData.get("email");
-        String name = (String) userData.get("name");
-        
-        if (email == null) {
-            logger.error("Email not provided by Facebook: {}", userData);
-            return frontendUrl + "/auth/error?message=Email+not+provided";
-        }
-        
-        // Check if this is signup or login
-        boolean isSignup = state != null && state.startsWith("signup:");
-        User user;
-        
-    
-    // Find existing user by email
-        Optional<User> existingUser = userRepository.getUserByEmail(email);
-        user = existingUser.orElse(null);
-        
-        if (user == null) {
-            if (!isSignup) {
-                // User doesn't exist and this isn't signup flow
-                return frontendUrl + "/auth/error?message=Account+not+found";
-            }
-            
-         // User doesn't exist, create a new one through signup service
-        SignupRequest signupRequest = new SignupRequest();
-        signupRequest.setEmail(email);
-        signupRequest.setName(name);
-        signupRequest.setProfilePhotoUrl(pictureUrl);
-        signupRequest.setAuthMethod("facebook");
-        
-        // Store provider ID in auth data
-        Map<String, String> authData = new HashMap<>();
-        authData.put("providerId", facebookId);
-        authData.put("email", email);
-        signupRequest.setAuthData(authData);
-        
-        try {
-            SignupResponse signupResponse = signupService.processSignup(signupRequest);
-            
-            Map<String, Object> userMap = new HashMap<>();
-            userMap.put("userId", signupResponse.getUserId());
-            userMap.put("email", email);
-            userMap.put("name", name);
-            
-            result.put("success", true);
-            result.put("isNewUser", true);
-            result.put("user", userMap);
-            result.put("accessToken", signupResponse.getAccessToken());
-            result.put("refreshToken", signupResponse.getRefreshToken());
-            
-            return result;
-        } catch (Exception e) {
-            logger.error("Error during signup process", e);
-            result.put("success", false);
-            result.put("error", "Signup failed: " + e.getMessage());
-            return result;
-        }    }
-            
-            // Get the newly created user
-            Optional<User> newUser = userRepository.getUserById(signupResponse.getUserId());
-            if (newUser.isEmpty()) {
-                logger.error("Failed to retrieve newly created user");
-{{ ... }}
-                    authenticationMethodRepository.save(oAuthMethod);
-                }
-            }
-            
-            // Generate authentication tokens
-        String userAccessToken = tokenProvider.generateAccessToken(user.getUserId());
-        String refreshToken = tokenProvider.generateRefreshToken(user.getUserId());
-        
-        // Build result with user and tokens
-        Map<String, Object> userMap = new HashMap<>();
-        userMap.put("userId", user.getUserId());
-        userMap.put("email", user.getEmail());
-        userMap.put("name", user.getName());
-        
-        result.put("success", true);
-        result.put("isNewUser", false);
-        result.put("user", userMap);
-        result.put("accessToken", userAccessToken);
-        result.put("refreshToken", refreshToken);
-        
-        return result;   }
 }

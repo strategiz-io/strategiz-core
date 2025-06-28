@@ -43,7 +43,7 @@ public class UserRepository {
      */
     public User createUser(User user) {
         try {
-            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getId());
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getUserId());
             
             // Set timestamps to server timestamp
             Map<String, Object> userData = new HashMap<>();
@@ -79,7 +79,7 @@ public class UserRepository {
             
             if (document.exists()) {
                 User user = new User();
-                user.setId(document.getId());
+                user.setUserId(document.getId());
                 
                 // Get profile data
                 Map<String, Object> profileData = (Map<String, Object>) document.get("profile");
@@ -610,7 +610,7 @@ public class UserRepository {
      */
     public User save(User user) {
         try {
-            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getId());
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getUserId());
             
             // Convert user to map for Firestore
             Map<String, Object> userData = new HashMap<>();
@@ -666,7 +666,7 @@ public class UserRepository {
      */
     public User updateUser(User user) {
         try {
-            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getId());
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION).document(user.getUserId());
             
             // Convert user to map for Firestore
             Map<String, Object> userData = new HashMap<>();

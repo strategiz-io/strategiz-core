@@ -39,7 +39,7 @@ public class ProviderOAuthController extends BaseApiController {
     /**
      * Initiates the OAuth flow for a provider.
      *
-     * @param providerId The provider ID (kraken, binanceus, charlesschwab)
+     * @param providerId The provider ID (kraken, binanceus)
      * @param accountType The account type (paper or real)
      * @param principal The authenticated user
      * @return The authorization URL
@@ -183,13 +183,8 @@ public class ProviderOAuthController extends BaseApiController {
         binanceus.put("connected", false);
         binanceus.put("accountType", "paper");
         
-        Map<String, Object> charlesschwab = new HashMap<>();
-        charlesschwab.put("connected", false);
-        charlesschwab.put("accountType", "paper");
-        
         providers.put("kraken", kraken);
         providers.put("binanceus", binanceus);
-        providers.put("charlesschwab", charlesschwab);
         
         response.put("providers", providers);
         response.put("accountMode", "paper");

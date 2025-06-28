@@ -16,17 +16,18 @@
     <description>Business logic service modules</description>
 
     <modules>
-        <module>service-base</module>
-        <module>service-strategy</module>
-        <module>service-provider</module>
         <module>service-auth</module>
-        <module>service-marketplace</module>
-        <module>service-walletaddress</module>
+        <module>service-base</module>
         <module>service-dashboard</module>
-        <module>service-portfolio</module>
+        <module>service-device</module>
         <module>service-exchange</module>
-        <module>data-portfolio</module>
+        <module>service-marketplace</module>
+        <module>service-monitoring</module>
+        <module>service-portfolio</module>
         <module>service-profile</module>
+        <module>service-provider</module>
+        <module>service-strategy</module>
+        <module>service-walletaddress</module>
     </modules>
     
     <dependencies>

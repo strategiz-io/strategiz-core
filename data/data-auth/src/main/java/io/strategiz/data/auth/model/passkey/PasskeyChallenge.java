@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.Instant;
@@ -34,6 +35,9 @@ public class PasskeyChallenge {
     private boolean used;
     @Column(nullable = false)
     private String challengeType;
+    
+    @Version
+    private Long version;
     
     // Default constructor for deserialization
     public PasskeyChallenge() {

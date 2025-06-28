@@ -2,7 +2,6 @@ package io.strategiz.service.auth.config;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
-import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepository;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
 import io.strategiz.service.auth.service.passkey.PasskeyManagementService;
@@ -16,12 +15,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PasskeyServiceConfig {
 
-    @Bean
-    public PasskeyChallengeService passkeyChallengeBeanService(
-            PasskeyChallengeRepository challengeRepository) {
-        return new PasskeyChallengeService(challengeRepository);
-    }
-    
+
     @Bean
     public PasskeyRegistrationService passkeyRegistrationService(
             PasskeyChallengeService challengeService,

@@ -53,7 +53,20 @@ public class PasskeyRegistrationService {
             String username,
             String userId,
             String challenge,
-            int timeout) {}
+            int timeout,
+            AuthenticatorSelectionCriteria authenticatorSelection,
+            String attestation,
+            boolean excludeCredentials) {}
+            
+    /**
+     * Authenticator selection criteria for registration
+     */
+    public record AuthenticatorSelectionCriteria(
+            String authenticatorAttachment,  // "platform", "cross-platform", or null for both
+            String residentKey,              // "required", "preferred", or "discouraged"
+            boolean requireResidentKey,       // Legacy property, use residentKey instead
+            String userVerification)         // "required", "preferred", or "discouraged"
+    {}
     
     /**
      * Registration request data
@@ -107,6 +120,14 @@ public class PasskeyRegistrationService {
         // Generate a challenge for this registration
         String challenge = challengeService.createChallenge(userId, PasskeyChallengeType.REGISTRATION);
         
+        // Configure authenticator selection criteria to support both platform and cross-platform authenticators
+        AuthenticatorSelectionCriteria authenticatorSelection = new AuthenticatorSelectionCriteria(
+            null,              // null = support both platform and cross-platform authenticators
+            "preferred",       // Prefer resident keys (discoverable credentials)
+            false,            // Legacy property, using residentKey instead
+            "preferred"       // Prefer user verification
+        );
+        
         // Create registration options
         return new RegistrationChallenge(
             rpId,
@@ -114,7 +135,10 @@ public class PasskeyRegistrationService {
             username,
             userId,
             challenge,
-            challengeTimeoutMs
+            challengeTimeoutMs,
+            authenticatorSelection,
+            "none",           // Attestation conveyance preference - "none", "indirect", "direct", or "enterprise"
+            false             // Whether to exclude existing credentials
         );
     }
     

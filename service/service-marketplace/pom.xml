@@ -18,10 +18,25 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
+        <!-- Added Spring Web and Validation dependencies from api-marketplace -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>       
+        </dependency>
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
             <version>9.1.1</version>
+        </dependency>
+        <!-- Replaced service-common with service-base -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

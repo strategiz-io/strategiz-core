@@ -73,7 +73,8 @@ public class PasskeyAuthenticationService {
     public AuthenticationChallenge beginAuthentication() {
         // Generate a challenge for this authentication
         // No user ID at this stage since we don't know which user is authenticating yet
-        String challenge = challengeService.createChallenge(null, PasskeyChallengeType.AUTHENTICATION);
+        // Using "id" as a placeholder to satisfy database NOT NULL constraint
+        String challenge = challengeService.createChallenge("id", PasskeyChallengeType.AUTHENTICATION);
         
         // Create authentication options
         return new AuthenticationChallenge(rpId, challenge, challengeTimeoutMs);

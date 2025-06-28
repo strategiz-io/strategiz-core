@@ -43,11 +43,7 @@ public class ProviderOAuthService {
     @Value("${provider.binanceus.client-secret}")
     private String binanceUsClientSecret;
     
-    @Value("${provider.charlesschwab.client-id}")
-    private String charlesSchwabClientId;
-    
-    @Value("${provider.charlesschwab.client-secret}")
-    private String charlesSchwabClientSecret;
+    // Charles Schwab OAuth will be implemented separately
     
     // OAuth endpoints
     private static final String KRAKEN_AUTH_URL = "https://auth.kraken.com/oauth2/authorize";
@@ -56,8 +52,7 @@ public class ProviderOAuthService {
     private static final String BINANCEUS_AUTH_URL = "https://accounts.binance.us/oauth/authorize";
     private static final String BINANCEUS_TOKEN_URL = "https://accounts.binance.us/oauth/token";
     
-    private static final String CHARLESSCHWAB_AUTH_URL = "https://api.schwab.com/oauth/authorize";
-    private static final String CHARLESSCHWAB_TOKEN_URL = "https://api.schwab.com/oauth/token";
+    // Charles Schwab OAuth URLs removed - will be implemented separately
     
     // Redirect URI for OAuth callbacks
     @Value("${provider.oauth.redirect-uri}")
@@ -72,7 +67,7 @@ public class ProviderOAuthService {
     /**
      * Generate the OAuth authorization URL for a specific provider.
      *
-     * @param providerId The provider ID (kraken, binanceus, charlesschwab)
+     * @param providerId The provider ID (kraken, binanceus)
      * @param userId The user ID
      * @param accountType The account type (paper or real)
      * @param state A state parameter for security
@@ -96,14 +91,6 @@ public class ProviderOAuthService {
                         .queryParam("response_type", "code")
                         .queryParam("redirect_uri", redirectUri)
                         .queryParam("scope", "user:read account:read trade:read trade:write")
-                        .queryParam("state", state);
-                break;
-            case "charlesschwab":
-                builder = UriComponentsBuilder.fromHttpUrl(CHARLESSCHWAB_AUTH_URL)
-                        .queryParam("client_id", charlesSchwabClientId)
-                        .queryParam("response_type", "code")
-                        .queryParam("redirect_uri", redirectUri)
-                        .queryParam("scope", "accounts:read trading:read trading:write")
                         .queryParam("state", state);
                 break;
             default:
@@ -144,11 +131,6 @@ public class ProviderOAuthService {
                     tokenUrl = BINANCEUS_TOKEN_URL;
                     clientId = binanceUsClientId;
                     clientSecret = binanceUsClientSecret;
-                    break;
-                case "charlesschwab":
-                    tokenUrl = CHARLESSCHWAB_TOKEN_URL;
-                    clientId = charlesSchwabClientId;
-                    clientSecret = charlesSchwabClientSecret;
                     break;
                 default:
                     throw new IllegalArgumentException("Unsupported provider: " + providerId);
@@ -246,11 +228,6 @@ public class ProviderOAuthService {
                     tokenUrl = BINANCEUS_TOKEN_URL;
                     clientId = binanceUsClientId;
                     clientSecret = binanceUsClientSecret;
-                    break;
-                case "charlesschwab":
-                    tokenUrl = CHARLESSCHWAB_TOKEN_URL;
-                    clientId = charlesSchwabClientId;
-                    clientSecret = charlesSchwabClientSecret;
                     break;
                 default:
                     throw new IllegalArgumentException("Unsupported provider: " + providerId);

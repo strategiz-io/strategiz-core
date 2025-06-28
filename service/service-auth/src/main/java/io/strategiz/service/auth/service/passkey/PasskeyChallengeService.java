@@ -46,27 +46,35 @@ public class PasskeyChallengeService {
      * @param type Challenge type (authentication or registration)
      * @return The challenge string
      */
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
     public String createChallenge(String userId, PasskeyChallengeType type) {
-        // Generate a random challenge using URL-safe Base64 encoded UUID
-        String challenge = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(UUID.randomUUID().toString().getBytes());
-                
-        // Create a new challenge entity
-        PasskeyChallenge challengeEntity = new PasskeyChallenge();
-        challengeEntity.setId(UUID.randomUUID().toString());
-        challengeEntity.setUserId(userId);
-        challengeEntity.setChallenge(challenge);
-        challengeEntity.setChallengeType(type.name());
-        
-        Instant now = Instant.now();
-        challengeEntity.setCreatedAt(now);
-        challengeEntity.setExpiresAt(now.plusMillis(challengeTimeoutMs));
-        
-        // Save the challenge
-        passkeyChallengeRepository.save(challengeEntity);
-        
-        return challenge;
+        try {
+            // Generate a random challenge using URL-safe Base64 encoded UUID
+            String challenge = Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(UUID.randomUUID().toString().getBytes());
+                    
+            // Create a new challenge entity
+            Instant now = Instant.now();
+            
+            // Use the constructor instead of setter methods
+            PasskeyChallenge challengeEntity = new PasskeyChallenge(
+                userId,
+                challenge,
+                now,
+                now.plusMillis(challengeTimeoutMs),
+                type.name()
+            );
+            
+            // Let Hibernate generate the ID through the @GeneratedValue annotation
+            // Save the challenge
+            passkeyChallengeRepository.saveAndFlush(challengeEntity);
+            log.debug("Created new {} challenge for user {}", type, userId);
+            
+            return challenge;
+        } catch (Exception e) {
+            log.error("Error creating {} challenge for user {}: {}", type, userId, e.getMessage());
+            throw new RuntimeException("Failed to create passkey challenge", e);
+        }
     }
     
     /**

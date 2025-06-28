@@ -13,8 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,21 +39,7 @@ public class WebConfig {
     @Value("${proxy.port:0}")
     private int proxyPort;
 
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(@org.springframework.lang.NonNull CorsRegistry registry) {
-                registry.addMapping("/**")
-                    .allowedOrigins("http://localhost:3000", "http://localhost:3001", "https://strategiz.io", "https://api-strategiz-io.web.app")
-                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                    .allowedHeaders("Content-Type", "Authorization", "X-User-Email", "X-Admin-Request", "*")
-                    .exposedHeaders("Content-Type", "Authorization", "X-User-Email", "X-Admin-Request")
-                    .allowCredentials(true)
-                    .maxAge(3600);
-            }
-        };
-    }
+
     
     /**
      * Creates a RestTemplate bean with appropriate timeout and proxy settings

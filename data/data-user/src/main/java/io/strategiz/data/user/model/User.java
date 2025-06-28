@@ -10,7 +10,7 @@ import java.util.Objects;
  * Following the new schema design with profile, connectedProviders, and audit fields.
  */
 public class User {
-    private String id;
+    private String userId;
     private UserProfile profile;
     private List<ConnectedProvider> connectedProviders = new ArrayList<>();
     private List<AuthenticationMethod> authenticationMethods = new ArrayList<>();
@@ -30,8 +30,8 @@ public class User {
     /**
      * Creates a new user with the minimum required fields
      */
-    public User(String id, String name, String email, String createdBy) {
-        this.id = id;
+    public User(String userId, String name, String email, String createdBy) {
+        this.userId = userId;
         this.profile = new UserProfile();
         this.profile.setName(name);
         this.profile.setEmail(email);
@@ -49,8 +49,8 @@ public class User {
         // connectedProviders is initialized by default as new ArrayList<>()
     }
 
-    public User(String id, UserProfile profile, List<ConnectedProvider> connectedProviders, List<AuthenticationMethod> authenticationMethods, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive) {
-        this.id = id;
+    public User(String userId, UserProfile profile, List<ConnectedProvider> connectedProviders, List<AuthenticationMethod> authenticationMethods, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive) {
+        this.userId = userId;
         this.profile = profile;
         this.connectedProviders = connectedProviders;
         this.authenticationMethods = authenticationMethods;
@@ -63,12 +63,12 @@ public class User {
     }
 
     // Getters and Setters
-    public String getId() {
-        return id;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public UserProfile getProfile() {
@@ -155,7 +155,7 @@ public class User {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return Objects.equals(id, user.id) &&
+        return Objects.equals(userId, user.userId) &&
                Objects.equals(profile, user.profile) &&
                Objects.equals(connectedProviders, user.connectedProviders) &&
                Objects.equals(authenticationMethods, user.authenticationMethods) &&
@@ -169,13 +169,13 @@ public class User {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, profile, connectedProviders, authenticationMethods, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+        return Objects.hash(userId, profile, connectedProviders, authenticationMethods, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
     }
 
     @Override
     public String toString() {
         return "User{" +
-               "id='" + id + '\'' +
+               "userId='" + userId + '\'' +
                ", profile=" + profile +
                ", connectedProviders=" + connectedProviders +
                ", authenticationMethods=" + authenticationMethods +

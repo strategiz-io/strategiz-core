@@ -131,17 +131,25 @@ public class PasetoTokenProvider {
             claimsMap.put("scope", String.join(" ", scopes));
         }
         
-        return Pasetos.V2.LOCAL.builder()
+        // Build the token using the PASETO v2 local builder
+        var builder = Pasetos.V2.LOCAL.builder()
                 .setSharedSecret(secretKey)
-                .claim("sub", claimsMap.get("sub"))
-                .claim("jti", claimsMap.get("jti"))
-                .claim("iat", claimsMap.get("iat"))
-                .claim("exp", claimsMap.get("exp"))
-                .claim("iss", claimsMap.get("iss"))
-                .claim("aud", claimsMap.get("aud"))
-                .claim("type", claimsMap.get("type"))
-                .claim("scope", claimsMap.get("scope"))
-                .compact();
+                .setExpiration(expiresAt) // Use the Instant directly for expiration
+                .setIssuedAt(now)         // Use the Instant directly for issued at
+                .setIssuer(issuer)
+                .setAudience(audience)
+                .setSubject(userId)
+                .setKeyId(tokenId);
+                
+        // Add the token type
+        builder.claim("type", tokenType.name());
+                
+        // Add scopes if present
+        if (scopes != null && scopes.length > 0) {
+            builder.claim("scope", String.join(" ", scopes));
+        }
+                
+        return builder.compact();
     }
     
     /**

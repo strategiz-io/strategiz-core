@@ -61,10 +61,7 @@
         <!-- Removed api-auth module as it was consolidated into service-auth -->
         <!-- Removed api-dashboard module as it was consolidated into service-dashboard -->
         <!-- Removed api-profile module as it was consolidated into service-profile -->
-        <module>api/api-base</module>
-        <module>api/api-monitoring</module>
-        <module>api/api-portfolio</module>
-        <module>api/api-strategy</module>
+
         
         <!-- Application Module (Build Last) -->
         <module>application</module>
@@ -308,23 +305,20 @@
                 <version>${google.http.client.version}</version>
             </dependency>
             
-            <!-- Firebase Admin SDK with careful exclusions -->
+            <!-- Google Cloud Dependencies -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>spring-cloud-gcp-starter-firestore</artifactId>
+                <version>3.7.2</version>
+            </dependency>
             <dependency>
                 <groupId>com.google.firebase</groupId>
                 <artifactId>firebase-admin</artifactId>
-                <version>${firebase.admin.version}</version>
+                <version>9.2.0</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>com.google.api</groupId>
-                        <artifactId>gax</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api</groupId>
-                        <artifactId>gax-grpc</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.api</groupId>
-                        <artifactId>gax-httpjson</artifactId>
+                        <groupId>com.google.auth</groupId>
+                        <artifactId>google-auth-library-oauth2-http</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.api-client</groupId>
@@ -340,6 +334,43 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            
+            <!-- Google Auth Libraries - Use consistent versions -->
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-oauth2-http</artifactId>
+                <version>1.23.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-credentials</artifactId>
+                <version>1.23.0</version>
+            </dependency>
+            
+            <!-- Google API Client Libraries for FirebaseConfig -->
+            <dependency>
+                <groupId>com.google.api-client</groupId>
+                <artifactId>google-api-client</artifactId>
+                <version>2.2.0</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.oauth-client</groupId>
+                        <artifactId>google-oauth-client</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api-client</groupId>
+                <artifactId>google-api-client-gson</artifactId>
+                <version>2.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.oauth-client</groupId>
+                <artifactId>google-oauth-client</artifactId>
+                <version>1.34.1</version>
+            </dependency>
+            
+            <!-- Let Firebase Admin SDK manage its own Google API dependencies -->
         </dependencies>
     </dependencyManagement>
     

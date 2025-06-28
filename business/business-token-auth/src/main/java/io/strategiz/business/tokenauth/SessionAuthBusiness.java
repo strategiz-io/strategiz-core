@@ -1,8 +1,8 @@
 package io.strategiz.business.tokenauth;
 
 import dev.paseto.jpaseto.PasetoException;
-import io.strategiz.data.auth.PasetoToken;
-import io.strategiz.data.auth.PasetoTokenRepository;
+import io.strategiz.data.auth.model.session.PasetoToken;
+import io.strategiz.data.auth.repository.session.PasetoTokenRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,8 +61,8 @@ public class SessionAuthBusiness {
                 .userId(userId)
                 .tokenType("ACCESS")
                 .tokenValue(accessToken)
-                .issuedAt(((Number) accessClaims.get("iat")).longValue())
-                .expiresAt(((Number) accessClaims.get("exp")).longValue())
+                .issuedAt(getClaimAsLong(accessClaims, "iat"))
+                .expiresAt(getClaimAsLong(accessClaims, "exp"))
                 .deviceId(deviceId)
                 .issuedFrom(ipAddress)
                 .revoked(false)
@@ -75,8 +75,8 @@ public class SessionAuthBusiness {
                 .userId(userId)
                 .tokenType("REFRESH")
                 .tokenValue(refreshToken)
-                .issuedAt(((Number) refreshClaims.get("iat")).longValue())
-                .expiresAt(((Number) refreshClaims.get("exp")).longValue())
+                .issuedAt(getClaimAsLong(refreshClaims, "iat"))
+                .expiresAt(getClaimAsLong(refreshClaims, "exp"))
                 .deviceId(deviceId)
                 .issuedFrom(ipAddress)
                 .revoked(false)
@@ -87,6 +87,38 @@ public class SessionAuthBusiness {
         tokenRepository.save(refreshTokenEntity);
         
         return new TokenPair(accessToken, refreshToken);
+    }
+    
+    /**
+     * Helper method to handle different claim value types (Number or String) and convert to long
+     * 
+     * @param claims The claims map
+     * @param key The key of the claim
+     * @return The claim value as a long
+     */
+    private long getClaimAsLong(Map<String, Object> claims, String key) {
+        Object value = claims.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        } else if (value instanceof String) {
+            String strValue = (String) value;
+            try {
+                // First try to parse as a simple number
+                return Long.parseLong(strValue);
+            } catch (NumberFormatException e) {
+                try {
+                    // Try to parse as ISO 8601 format if direct parsing fails
+                    log.debug("Parsing ISO timestamp for claim {}: {}", key, strValue);
+                    return Instant.parse(strValue).getEpochSecond();
+                } catch (Exception dateException) {
+                    log.warn("Failed to parse claim {} ({}): {}", key, strValue, dateException.getMessage());
+                    return Instant.now().getEpochSecond();
+                }
+            }
+        } else {
+            log.warn("Unexpected claim type for {}: {}", key, value != null ? value.getClass() : "null");
+            return Instant.now().getEpochSecond(); // Fallback to current time if claim is missing or of unexpected type
+        }
     }
     
     /**

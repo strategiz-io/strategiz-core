@@ -134,28 +134,20 @@ mvn -f service/service-profile/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in service-profile" && exit 1
 
 echo "Step 6/6: Building API modules"
-echo "Building api-base"
-mvn -f api/api-base/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-base" && exit 1
+# api-base has been merged into service-base - removed build step
 
 # api-dashboard has been consolidated into service-dashboard
 
 
-echo "Building api-strategy" 
-mvn -f api/api-strategy/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-strategy" && exit 1
+# api-strategy has been merged into service-strategy - removed build step
 
-echo "Building api-monitoring"
-mvn -f api/api-monitoring/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-monitoring" && exit 1
+echo "Building service-monitoring"
+mvn -f service/service-monitoring/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in service-monitoring" && exit 1
 
-echo "Building api-portfolio"
-mvn -f api/api-portfolio/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-portfolio" && exit 1
+# api-portfolio has been merged into service-portfolio - removed build step
 
-echo "Building api-marketplace"
-mvn -f api/api-marketplace/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in api-marketplace" && exit 1
+# api-marketplace has been merged into service-marketplace - removed build step
 
 # api-provider has been consolidated into service-provider
 

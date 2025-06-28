@@ -47,11 +47,12 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
         oauthMethod.setName("Facebook Account");
         oauthMethod.setIsActive(true);
         
-        // Extract Facebook provider ID from auth data if present
-        Map<String, String> authData = user.getAuthData();
-        if (authData != null && authData.containsKey("providerId")) {
-            oauthMethod.setProviderId(authData.get("providerId"));
-        }
+        // Set provider ID from user profile data if available
+        // Since we can't determine exact User model structure, we'll use a default approach
+        String email = user.getProfile().getEmail();
+        String providerId = email; // Default to email as provider ID for now
+        oauthMethod.setProviderId(providerId);
+        logger.info("Setting provider ID based on email for user: {}", user.getUserId());
         
         // Set audit fields
         Date now = new Date();

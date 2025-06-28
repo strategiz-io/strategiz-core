@@ -3,7 +3,6 @@ package io.strategiz.service.auth.controller.emailotp;
 import io.strategiz.service.auth.model.ApiResponse;
 import io.strategiz.service.auth.model.emailotp.EmailOtpRequest;
 import io.strategiz.service.auth.model.emailotp.EmailOtpVerificationRequest;
-import io.strategiz.service.auth.service.token.SignupTokenService;
 import io.strategiz.service.auth.service.emailotp.EmailOtpService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -27,9 +26,6 @@ public class EmailOtpController {
     
     @Autowired
     private EmailOtpService emailOtpService;
-    
-    @Autowired
-    private SignupTokenService signupTokenService;
     
     /**
      * Send a one-time password to an email address
@@ -76,12 +72,10 @@ public class EmailOtpController {
         responseData.put("verified", verified);
         
         if (verified) {
-            // For signup purpose, also generate an identity token
+            // For signup purpose, the email verification is sufficient
+            // Client can proceed with the verified email
             if ("signup".equals(request.purpose())) {
-                String identityToken = signupTokenService.createSignupToken(
-                        request.email(), null);
-                responseData.put("identityToken", identityToken);
-                logger.info("Generated signup identity token for: {}", request.email());
+                logger.info("Email verification for signup successful: {}", request.email());
             }
             
             return ResponseEntity.ok(

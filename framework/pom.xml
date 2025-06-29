@@ -17,5 +17,6 @@
         <module>framework-core</module>
         <module>framework-api-docs</module>
         <module>framework-exception</module>
+        <module>framework-secrets</module>
     </modules>
 </project>

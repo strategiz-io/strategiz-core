@@ -53,10 +53,15 @@ public class FacebookOAuthService {
 
     @Value("${application.frontend-url}")
     private String frontendUrl;
-
-    private static final String FACEBOOK_AUTH_URL = "https://www.facebook.com/v12.0/dialog/oauth";
-    private static final String FACEBOOK_TOKEN_URL = "https://graph.facebook.com/v12.0/oauth/access_token";
-    private static final String FACEBOOK_USER_INFO_URL = "https://graph.facebook.com/me";
+    
+    @Value("${auth.facebook.auth-url:https://www.facebook.com/v12.0/dialog/oauth}")
+    private String facebookAuthUrl;
+    
+    @Value("${auth.facebook.token-url:https://graph.facebook.com/v12.0/oauth/access_token}")
+    private String facebookTokenUrl;
+    
+    @Value("${auth.facebook.user-info-url:https://graph.facebook.com/me}")
+    private String facebookUserInfoUrl;
 
     public FacebookOAuthService(
             SignupService signupService,
@@ -83,7 +88,7 @@ public class FacebookOAuthService {
             state = "signup:" + state;
         }
         
-        String authUrl = UriComponentsBuilder.fromUriString(FACEBOOK_AUTH_URL)
+        String authUrl = UriComponentsBuilder.fromUriString(facebookAuthUrl)
                 .queryParam("client_id", clientId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("state", state)
@@ -126,7 +131,7 @@ public class FacebookOAuthService {
             }
             
             // Exchange code for access token
-            String tokenUrl = UriComponentsBuilder.fromUriString(FACEBOOK_TOKEN_URL)
+            String tokenUrl = UriComponentsBuilder.fromUriString(facebookTokenUrl)
                     .queryParam("client_id", clientId)
                     .queryParam("client_secret", clientSecret)
                     .queryParam("code", code)
@@ -153,7 +158,7 @@ public class FacebookOAuthService {
             String accessToken = (String) tokenResponse.getBody().get("access_token");
             
             // Get user info
-            String userInfoUrl = UriComponentsBuilder.fromUriString(FACEBOOK_USER_INFO_URL)
+            String userInfoUrl = UriComponentsBuilder.fromUriString(facebookUserInfoUrl)
                     .queryParam("fields", "id,name,email")
                     .queryParam("access_token", accessToken)
                     .toUriString();

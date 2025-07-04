@@ -34,6 +34,11 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>framework-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>client-kraken</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -10,14 +10,17 @@ cd "$(dirname "$0")/../.."
 echo "Current working directory: $(pwd)"
 
 echo "Step 1/6: Building framework modules"
-# Install the framework parent POM
-echo "Building framework parent POM"
-mvn -f framework/pom.xml clean install -N -DskipTests
-[ $? -ne 0 ] && echo "Build failed in framework parent POM" && exit 1
+echo "Building framework-exception"
+mvn -f framework/framework-exception/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in framework-exception" && exit 1
 
-echo "Building framework-core"
-mvn -f framework/framework-core/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in framework-core" && exit 1
+echo "Building framework-logging"
+mvn -f framework/framework-logging/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in framework-logging" && exit 1
+
+echo "Building framework-secrets"
+mvn -f framework/framework-secrets/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in framework-secrets" && exit 1
 
 echo "Building framework-api-docs"
 mvn -f framework/framework-api-docs/pom.xml clean install -DskipTests
@@ -83,6 +86,14 @@ echo "Building client-walletaddress"
 mvn -f client/client-walletaddress/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in client-walletaddress" && exit 1
 
+echo "Building client-google"
+mvn -f client/client-google/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in client-google" && exit 1
+
+echo "Building client-facebook"
+mvn -f client/client-facebook/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in client-facebook" && exit 1
+
 echo "Step 4/6: Building business modules"
 echo "Building business-base"
 mvn -f business/business-base/pom.xml clean install -DskipTests
@@ -133,6 +144,14 @@ echo "Building service-profile"
 mvn -f service/service-profile/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in service-profile" && exit 1
 
+echo "Building service-device"
+mvn -f service/service-device/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in service-device" && exit 1
+
+echo "Building service-walletaddress"
+mvn -f service/service-walletaddress/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in service-walletaddress" && exit 1
+
 echo "Step 6/6: Building API modules"
 # api-base has been merged into service-base - removed build step
 
@@ -156,7 +175,7 @@ mvn -f service/service-monitoring/pom.xml clean install -DskipTests
 # mvn -f api/api-auth/pom.xml clean install -DskipTests
 # [ $? -ne 0 ] && echo "Build failed in api-auth" && exit 1
 
-echo "Step 7/7: Building application"
+echo "Final Step: Building application"
 echo "Building application"
 mvn -f application/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in application" && exit 1

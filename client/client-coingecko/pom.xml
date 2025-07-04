@@ -17,12 +17,7 @@
     </properties>
 
     <dependencies>
-        <!-- Strategiz Framework Core -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>framework-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+
 
         <!-- Spring Boot -->
         <dependency>

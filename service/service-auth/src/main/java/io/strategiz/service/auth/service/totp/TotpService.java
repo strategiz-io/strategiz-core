@@ -10,18 +10,19 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+
 import io.strategiz.data.user.model.TotpAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.model.AuthenticationMethod;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -45,12 +46,10 @@ public class TotpService {
     private final TimeProvider timeProvider;
     private final CodeVerifier codeVerifier;
     private final UserRepository userRepository;
-    private final SessionAuthBusiness sessionAuthBusiness;
+
     
-    @Autowired
-    public TotpService(UserRepository userRepository, SessionAuthBusiness sessionAuthBusiness) {
+    public TotpService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.sessionAuthBusiness = sessionAuthBusiness;
         
         // Initialize TOTP components
         this.secretGenerator = new DefaultSecretGenerator();
@@ -71,7 +70,7 @@ public class TotpService {
     public String generateTotpSecret(String username) {
         Optional<User> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found: " + username);
+            throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
         }
         User user = userOpt.get();
         
@@ -140,7 +139,7 @@ public class TotpService {
             return getDataUriForImage(qrCodeImage, qrGenerator.getImageMimeType());
         } catch (QrGenerationException e) {
             log.error("Error generating QR code", e);
-            throw new RuntimeException("Error generating QR code", e);
+            throw new StrategizException(AuthErrors.QR_GENERATION_FAILED, e.getMessage());
         }
     }
     
@@ -187,12 +186,15 @@ public class TotpService {
     }
     
     /**
-     * Check if a TOTP code is valid for a given secret
-     * @param code the code to verify
-     * @param secret the secret to verify against
-     * @return true if the code is valid, false otherwise
+     * Validates if the provided code matches the calculated TOTP code.
+     * This method is prepared for future use in TOTP verification flows.
+     * 
+     * @param secret TOTP secret in Base32
+     * @param code Code to verify
+     * @return true if valid, false otherwise
      */
-    private boolean isCodeValid(String code, String secret) {
+    @SuppressWarnings("unused")
+    private boolean isCodeValid(String secret, String code) {
         // Use a slightly longer verification window to account for clock skew
         return codeVerifier.isValidCode(secret, code);
     }

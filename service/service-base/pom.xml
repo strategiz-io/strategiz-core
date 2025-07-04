@@ -14,10 +14,12 @@
     <description>Base components for Strategiz service modules</description>
     
     <dependencies>
-        <!-- Framework Core -->
+
+        
+        <!-- Framework Exception -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>framework-core</artifactId>
+            <artifactId>framework-exception</artifactId>
             <version>${project.version}</version>
         </dependency>
         

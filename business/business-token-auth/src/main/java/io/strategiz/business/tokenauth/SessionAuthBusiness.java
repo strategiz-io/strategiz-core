@@ -10,11 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Business logic for session authentication and token management
@@ -35,27 +33,47 @@ public class SessionAuthBusiness {
         this.tokenRepository = tokenRepository;
     }
     
+
+    
     /**
-     * Creates and persists access and refresh tokens for a user
+     * Creates authentication tokens with full Strategiz claims structure
+     * 
+     * This method implements the complete token specification with ACR/AAL separation.
      *
      * @param userId User ID
+     * @param authenticationMethods List of authentication methods used
+     * @param isPartialAuth Whether this is partial authentication (2FA mandatory but incomplete)
      * @param deviceId Optional device ID
      * @param ipAddress IP address where the token is issued
-     * @param scopes Optional scopes/roles
-     * @return A TokenPair containing both tokens
+     * @return A TokenPair containing both tokens with full claims
      */
-    public TokenPair createTokenPair(String userId, String deviceId, String ipAddress, String... scopes) {
-        log.info("Creating token pair for user: {}", userId);
+    public TokenPair createAuthenticationTokenPair(String userId, List<String> authenticationMethods, 
+                                                  boolean isPartialAuth, String deviceId, String ipAddress) {
+        String acr = tokenProvider.calculateAcr(authenticationMethods, isPartialAuth);
+        String aal = tokenProvider.calculateAal(authenticationMethods);
         
-        // Create tokens
-        String accessToken = tokenProvider.createAccessToken(userId, scopes);
+        log.info("Creating authentication token pair for user: {} with ACR: {} AAL: {} and methods: {}", 
+                userId, acr, aal, authenticationMethods);
+        
+        // Create access token with full authentication claims
+        Duration accessValidity = Duration.ofHours(24); // 24 hours
+        String accessToken = tokenProvider.createAuthenticationToken(userId, authenticationMethods, acr, aal, accessValidity);
+        
+        // Create refresh token (standard, no auth-specific claims needed)
         String refreshToken = tokenProvider.createRefreshToken(userId);
         
-        // Extract claims
+        // Extract claims for persistence
         Map<String, Object> accessClaims = tokenProvider.parseToken(accessToken);
         Map<String, Object> refreshClaims = tokenProvider.parseToken(refreshToken);
         
-        // Store access token in database
+        // Store access token with authentication metadata
+        Map<String, Object> accessTokenMetadata = new HashMap<>();
+        accessTokenMetadata.put("amr", accessClaims.get("amr"));
+        accessTokenMetadata.put("acr", acr);
+        accessTokenMetadata.put("aal", aal);
+        accessTokenMetadata.put("auth_methods", String.join(",", authenticationMethods));
+        accessTokenMetadata.put("scope", accessClaims.get("scope"));
+        
         PasetoToken accessTokenEntity = PasetoToken.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(userId)
@@ -66,10 +84,10 @@ public class SessionAuthBusiness {
                 .deviceId(deviceId)
                 .issuedFrom(ipAddress)
                 .revoked(false)
-                .claims(Map.of("scopes", String.join(" ", scopes)))
+                .claims(accessTokenMetadata)
                 .build();
         
-        // Store refresh token in database
+        // Store refresh token
         PasetoToken refreshTokenEntity = PasetoToken.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(userId)
@@ -80,13 +98,102 @@ public class SessionAuthBusiness {
                 .deviceId(deviceId)
                 .issuedFrom(ipAddress)
                 .revoked(false)
-                .claims(Map.of())
+                .claims(Map.of("associated_access_token", accessTokenEntity.getId()))
                 .build();
         
         tokenRepository.save(accessTokenEntity);
         tokenRepository.save(refreshTokenEntity);
         
+        log.info("Successfully created authentication tokens for user: {} with {} methods", 
+                userId, authenticationMethods.size());
+        
         return new TokenPair(accessToken, refreshToken);
+    }
+    
+    /**
+     * Updates authentication tokens when new authenticator is completed during session
+     * This handles step-up authentication scenarios
+     *
+     * @param currentAccessToken The current access token
+     * @param additionalAuthMethods New authentication methods completed
+     * @param deviceId Optional device ID
+     * @param ipAddress IP address where the update is requested
+     * @return A new TokenPair with updated ACR/AAL claims
+     * @throws PasetoException if current token is invalid
+     */
+    public TokenPair updateAuthenticationTokenPair(String currentAccessToken, List<String> additionalAuthMethods,
+                                                  String deviceId, String ipAddress) throws PasetoException {
+        log.info("Updating authentication tokens with additional methods: {}", additionalAuthMethods);
+        
+        // Parse current token to get user info and existing auth methods
+        Map<String, Object> currentClaims = tokenProvider.parseToken(currentAccessToken);
+        String userId = (String) currentClaims.get("sub");
+        
+        // Get current authentication methods from AMR
+        int[] currentAmr = (int[]) currentClaims.get("amr");
+        List<String> currentMethods = decodeAuthenticationMethods(currentAmr);
+        
+        // Combine current and additional methods
+        List<String> combinedMethods = new ArrayList<>(currentMethods);
+        combinedMethods.addAll(additionalAuthMethods);
+        
+        // Create new token pair with updated authentication - assume full auth now
+        TokenPair newTokens = createAuthenticationTokenPair(userId, combinedMethods, false, deviceId, ipAddress);
+        
+        // Revoke the old access token
+        revokeToken(currentAccessToken);
+        
+        log.info("Successfully updated authentication tokens for user: {} with combined methods: {}", 
+                userId, combinedMethods);
+        
+        return newTokens;
+    }
+    
+    /**
+     * Decodes numeric AMR back to authentication method names (helper method)
+     */
+    private List<String> decodeAuthenticationMethods(int[] amr) {
+        if (amr == null || amr.length == 0) {
+            return new ArrayList<>();
+        }
+        
+        // Reverse mapping of authentication methods
+        Map<Integer, String> methodMap = Map.of(
+            1, "password",
+            2, "sms_otp", 
+            3, "passkeys",
+            4, "totp",
+            5, "email_otp",
+            6, "backup_codes"
+        );
+        
+        List<String> methods = new ArrayList<>();
+        for (int methodId : amr) {
+            if (methodMap.containsKey(methodId)) {
+                methods.add(methodMap.get(methodId));
+            }
+        }
+        
+        return methods;
+    }
+    
+    /**
+     * Legacy compatibility method - maintains backward compatibility with old ACR format
+     * 
+     * @param userId User ID
+     * @param authenticationMethods List of authentication methods used
+     * @param acr Authentication Context Class (legacy format like "2.1", "2.2", "2.3")
+     * @param deviceId Optional device ID
+     * @param ipAddress IP address where the token is issued
+     * @return A TokenPair containing both tokens with full claims
+     * @deprecated Use createAuthenticationTokenPair(userId, authMethods, isPartialAuth, deviceId, ipAddress) instead
+     */
+    @Deprecated
+    public TokenPair createAuthenticationTokenPair(String userId, List<String> authenticationMethods, 
+                                                  String acr, String deviceId, String ipAddress) {
+        // Convert legacy ACR to new format
+        boolean isPartialAuth = "1".equals(acr);
+        return createAuthenticationTokenPair(userId, authenticationMethods, isPartialAuth, deviceId, ipAddress);
     }
     
     /**
@@ -145,8 +252,18 @@ public class SessionAuthBusiness {
             PasetoToken refreshTokenEntity = storedToken.get();
             String userId = refreshTokenEntity.getUserId();
             
-            // Create a new access token
-            String newAccessToken = tokenProvider.createAccessToken(userId);
+            // Create a new access token using stored authentication metadata
+            // Try to preserve the original authentication method and ACR level
+            Map<String, Object> originalClaims = refreshTokenEntity.getClaims();
+            String originalAcr = (String) originalClaims.getOrDefault("acr", "2.1");
+            String authMethodsStr = (String) originalClaims.getOrDefault("auth_methods", "password");
+            List<String> authMethods = List.of(authMethodsStr.split(","));
+            
+            // Calculate AAL based on authentication methods
+            String originalAal = tokenProvider.calculateAal(authMethods);
+            
+            Duration accessValidity = Duration.ofHours(24); // 24 hours
+            String newAccessToken = tokenProvider.createAuthenticationToken(userId, authMethods, originalAcr, originalAal, accessValidity);
             Map<String, Object> accessClaims = tokenProvider.parseToken(newAccessToken);
             
             // Store the new access token
@@ -268,8 +385,15 @@ public class SessionAuthBusiness {
      */
     public String createSession(String userId) {
         log.info("Creating session for user: {}", userId);
-        // Create tokens without specific device ID since this is for session management
-        TokenPair tokenPair = createTokenPair(userId, null, "internal", "session");
+        // Create tokens with basic authentication for session management
+        // Using false for isPartialAuth since sessions are for completed authentication
+        TokenPair tokenPair = createAuthenticationTokenPair(
+            userId,
+            List.of("password"), // Default auth method for internal sessions
+            false, // Not partial auth - full session
+            null, // No device ID for sessions
+            "internal" // Internal session creation
+        );
         return tokenPair.accessToken();
     }
     
@@ -333,27 +457,5 @@ public class SessionAuthBusiness {
      */
     public record TokenPair(String accessToken, String refreshToken) {}
     
-    /**
-     * Generate an access token for a user
-     * This is a convenience method that doesn't store the token in the repository
-     *
-     * @param userId User ID
-     * @return The access token
-     */
-    public String generateToken(String userId) {
-        log.debug("Generating access token for user: {}", userId);
-        return tokenProvider.createAccessToken(userId);
-    }
-    
-    /**
-     * Generate a refresh token for a user
-     * This is a convenience method that doesn't store the token in the repository
-     *
-     * @param userId User ID
-     * @return The refresh token
-     */
-    public String generateRefreshToken(String userId) {
-        log.debug("Generating refresh token for user: {}", userId);
-        return tokenProvider.createRefreshToken(userId);
-    }
+
 }

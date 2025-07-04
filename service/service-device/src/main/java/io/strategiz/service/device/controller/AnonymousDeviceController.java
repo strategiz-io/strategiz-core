@@ -2,8 +2,8 @@ package io.strategiz.service.device.controller;
 
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.service.device.DeviceIdentityService;
-import io.strategiz.service.device.model.DeviceRegistrationRequest;
-import io.strategiz.service.device.model.DeviceRegistrationResponse;
+import io.strategiz.service.device.model.CreateDeviceRequest;
+import io.strategiz.service.device.model.CreateDeviceResponse;
 import io.strategiz.service.device.util.DeviceFingerprintUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 /**
@@ -47,9 +47,9 @@ public class AnonymousDeviceController {
      * @return Response with device ID
      */
     @PostMapping("/register")
-    public ResponseEntity<DeviceRegistrationResponse> registerAnonymousDevice(
+    public ResponseEntity<CreateDeviceResponse> registerAnonymousDevice(
             HttpServletRequest request,
-            @RequestBody(required = false) DeviceRegistrationRequest registrationRequest) {
+            @RequestBody(required = false) CreateDeviceRequest registrationRequest) {
         
         log.info("Registering anonymous device");
         
@@ -69,7 +69,7 @@ public class AnonymousDeviceController {
             DeviceIdentity device = deviceService.registerAnonymousDevice(deviceInfo, userAgent);
             
             // Prepare the response
-            DeviceRegistrationResponse response = new DeviceRegistrationResponse();
+            CreateDeviceResponse response = new CreateDeviceResponse();
             response.setDeviceId(device.getDeviceId());
             response.setRegistrationTime(device.getFirstSeen());
             response.setSuccess(true);
@@ -79,7 +79,7 @@ public class AnonymousDeviceController {
         } catch (Exception e) {
             log.error("Failed to register anonymous device: {}", e.getMessage(), e);
             
-            DeviceRegistrationResponse response = new DeviceRegistrationResponse();
+            CreateDeviceResponse response = new CreateDeviceResponse();
             response.setSuccess(false);
             response.setError("Failed to register device: " + e.getMessage());
             

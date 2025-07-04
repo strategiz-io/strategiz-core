@@ -1,150 +1,428 @@
-# business-token-auth
+# Business Token Auth Module
 
 ## Overview
 
-The `business-token-auth` module provides centralized token management and authentication services for the Strategiz platform using PASETO tokens. This module is responsible for securely creating, validating, refreshing, and revoking authentication tokens.
+The `business-token-auth` module is the **single source of truth** for all token-related operations in Strategiz. It handles token creation, claims population, scope calculation, and session management using **PASETO v4.public tokens**.
 
-## Features
+## 🎯 Responsibilities
 
-- **Secure Token Management**: Uses PASETO (Platform-Agnostic Security Tokens) for cryptographically secure tokens
-- **Token Persistence**: Stores tokens with metadata for comprehensive session management
-- **Refresh Token Workflow**: Implements secure token refresh mechanism
-- **Token Revocation**: Supports revoking single tokens or all tokens for a user
-- **Token Expiration**: Automatic cleanup of expired tokens
-- **Session Management**: Unified session handling for the entire platform
+- **Token Creation & Signing** - Generate PASETO v4.public tokens
+- **Claims Population** - Calculate and populate all JWT claims
+- **Scope Management** - Determine user permissions based on authentication context
+- **Session Management** - Handle token lifecycle and validation
+- **Security Policies** - Enforce authentication and authorization rules
 
-## Key Components
+## 🎫 Token Specification
 
-### SessionAuthBusiness
+### **Token Format: PASETO v4.public**
 
-Core business logic for session and token management:
-
-- Token pair (access + refresh) creation
-- Token validation
-- Token refresh
-- Token revocation
-- User session management
-- Scheduled cleanup of expired tokens
-
-### PasetoTokenProvider
-
-Low-level utility for PASETO token operations:
-
-- Token generation (V2/symmetric and V4/asymmetric)
-- Token parsing and validation
-- Claims extraction and verification
-- Token lifecycle management
-
-## Configuration
-
-### Required Properties
-
-```properties
-# Token configuration
-auth.token.version=v2                # Token version (v2 or v4)
-auth.token.secret=your-secret-key    # Base64-encoded secret key (32 bytes) for V2 tokens
-auth.token.access.validity=30m       # Access token validity duration
-auth.token.refresh.validity=7d       # Refresh token validity duration
-auth.token.audience=strategiz        # Token audience claim
-auth.token.issuer=strategiz.io       # Token issuer claim
-
-# Session configuration
-session.expiry.seconds=86400         # Session expiry in seconds (24 hours by default)
+```
+v4.public.eyJzdWIiOiJ1c3JfcHViXzd4OWsybThwNG42cSIsImp0aSI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCIsImlzcyI6InN0cmF0ZWdpei5pbyIsImF1ZCI6InN0cmF0ZWdpeiIsImlhdCI6MTcwMzk4MDgwMCwiZXhwIjoxNzA0MDY3MjAwLCJhbXIiOlsxLDNdLCJhY3IiOiIyLjMiLCJhdXRoX3RpbWUiOjE3MDM5ODA4MDAsInNjb3BlIjoidXNlcjpiYXNpYyJ9.signature_here
 ```
 
-## Usage Guide
+### **Token Structure**
+- **Header**: `v4.public.` (PASETO version 4, public key)
+- **Payload**: Base64URL encoded JSON claims
+- **Signature**: Ed25519 signature (32 bytes)
 
-### Creating a Session
+## 📋 Claims Reference
+
+### **Standard OIDC Claims**
+
+| Claim | Type | Description | Example |
+|-------|------|-------------|---------|
+| `sub` | string | Public User ID | `"usr_pub_7x9k2m8p4n6q"` |
+| `jti` | string | Unique Token ID (UUID v4) | `"550e8400-e29b-41d4-a716-446655440000"` |
+| `iss` | string | Token Issuer | `"strategiz.io"` |
+| `aud` | string | Token Audience | `"strategiz"` |
+| `iat` | number | Issued At (Unix timestamp) | `1703980800` |
+| `exp` | number | Expires At (Unix timestamp) | `1704067200` |
+| `auth_time` | number | Authentication Time | `1703980800` |
+
+### **Strategiz Custom Claims**
+
+| Claim | Type | Description | Example |
+|-------|------|-------------|---------|
+| `amr` | array | Authentication Methods (numeric) | `[1, 3]` |
+| `acr` | string | Authentication Context Class | `"2.3"` |
+| `scope` | string | Space-separated permissions | `"read:portfolio write:trades"` |
+
+## 🔢 Numeric Mappings
+
+### **Authentication Methods (AMR)**
 
 ```java
-// Inject the service
-@Autowired
-private SessionAuthBusiness sessionAuthBusiness;
-
-// Create a token pair (access + refresh tokens)
-String userId = "user-123";
-String deviceId = "device-456";  // Optional
-String ipAddress = "192.168.1.1"; // Client IP
-
-TokenPair tokens = sessionAuthBusiness.createTokenPair(userId, deviceId, ipAddress, "user", "admin");
-
-// Use the tokens
-String accessToken = tokens.accessToken();
-String refreshToken = tokens.refreshToken();
-```
-
-### Validating a Token
-
-```java
-boolean isValid = sessionAuthBusiness.validateSession(accessToken).isPresent();
-
-// Or to get the user ID from a valid token
-Optional<String> userId = sessionAuthBusiness.validateSession(accessToken);
-if (userId.isPresent()) {
-    // Token is valid, proceed with the user ID
+public class AuthMethodRegistry {
+    private static final Map<Integer, String> AUTH_METHODS = Map.of(
+        1, "password",
+        2, "sms_otp", 
+        3, "passkeys",
+        4, "totp",
+        5, "email_otp",
+        6, "backup_codes"
+    );
 }
 ```
 
-### Refreshing a Token
+### **Authentication Context Class (ACR)**
 
 ```java
-Optional<String> newAccessToken = sessionAuthBusiness.refreshAccessToken(refreshToken, clientIpAddress);
-if (newAccessToken.isPresent()) {
-    // Use the new access token
-} else {
-    // Refresh token was invalid or expired
+public class AcrRegistry {
+    // Authentication Levels
+    public static final String NONE = "0";           // No authentication
+    public static final String PARTIAL = "1";        // Profile only
+    
+    // Full Authentication + Assurance Levels
+    public static final String AUTH_BASIC = "2.1";        // AAL1 - Single factor
+    public static final String AUTH_SUBSTANTIAL = "2.2";  // AAL2 - Multi-factor  
+    public static final String AUTH_HIGH = "2.3";         // AAL3 - Hardware crypto
 }
 ```
 
-### Revoking Tokens
+## 🔐 Progressive Authentication
 
-```java
-// Revoke a single token
-boolean revoked = sessionAuthBusiness.deleteSession(accessToken);
-
-// Revoke all tokens for a user
-boolean allRevoked = sessionAuthBusiness.deleteUserSessions(userId);
+### **Step 1: Profile Created**
+```json
+{
+  "sub": "usr_pub_7x9k2m8p4n6q",
+  "jti": "440e7300-d19a-31c4-b612-335544330000",
+  "iss": "strategiz.io",
+  "aud": "strategiz",
+  "iat": 1703980700,
+  "exp": 1703984300,
+  "amr": [],
+  "acr": "1",
+  "scope": "read:profile write:profile read:auth_methods write:auth_methods"
+}
 ```
 
-## Integration
+### **Step 2A: Password Authentication**
+```json
+{
+  "sub": "usr_pub_7x9k2m8p4n6q",
+  "jti": "550e8400-e29b-41d4-a716-446655440000",
+  "iss": "strategiz.io",
+  "aud": "strategiz",
+  "iat": 1703980800,
+  "exp": 1704067200,
+  "amr": [1],
+  "acr": "2.1",
+  "auth_time": 1703980800,
+  "scope": "read:profile write:profile read:portfolio read:positions read:market_data read:watchlists write:watchlists"
+}
+```
 
-This module should be used as the single source of truth for all token and session management across the Strategiz platform. Other modules (like `service-auth`) should delegate their token and session management to this module.
+### **Step 2B: Passkey Authentication**
+```json
+{
+  "sub": "usr_pub_7x9k2m8p4n6q",
+  "jti": "550e8400-e29b-41d4-a716-446655440000",
+  "iss": "strategiz.io",
+  "aud": "strategiz",
+  "iat": 1703980800,
+  "exp": 1704067200,
+  "amr": [3],
+  "acr": "2.3",
+  "auth_time": 1703980800,
+  "scope": "read:profile write:profile admin:portfolio read:positions write:positions delete:positions read:trades write:trades admin:strategies admin:settings"
+}
+```
 
-Example integration with `service-auth`:
+### **Step 2C: Multi-Factor Authentication**
+```json
+{
+  "sub": "usr_pub_7x9k2m8p4n6q",
+  "jti": "550e8400-e29b-41d4-a716-446655440000",
+  "iss": "strategiz.io",
+  "aud": "strategiz",
+  "iat": 1703980800,
+  "exp": 1704067200,
+  "amr": [1, 4],
+  "acr": "2.2",
+  "auth_time": 1703980800,
+  "scope": "read:profile write:profile read:portfolio write:portfolio read:positions write:positions read:trades write:trades read:strategies write:strategies"
+}
+```
+
+## 🎯 Scope Management
+
+### **Scope Format**
+```
+{operation}:{resource}
+```
+
+### **Operations** (from `service-base`)
+- `read` - GET operations
+- `write` - POST, PUT, PATCH operations  
+- `delete` - DELETE operations
+- `admin` - Administrative operations
+
+### **Resources** (derived from endpoints)
+- `profile` - User profile information
+- `portfolio` - Portfolio data
+- `positions` - Trading positions
+- `trades` - Trade history and execution  
+- `strategies` - Trading strategies
+- `orders` - Order management
+- `market_data` - Market information
+- `watchlists` - User watchlists
+- `settings` - Account settings
+- `auth_methods` - Authentication methods
+- `sessions` - Session management
+
+### **Scope Calculation Logic**
 
 ```java
 @Service
-public class SessionService {
-    private final SessionAuthBusiness sessionAuthBusiness;
+public class ScopeCalculationService {
     
-    public SessionService(SessionAuthBusiness sessionAuthBusiness) {
-        this.sessionAuthBusiness = sessionAuthBusiness;
-    }
-    
-    public String createSession(String userId) {
-        return sessionAuthBusiness.createTokenPair(userId, null, null).accessToken();
-    }
-    
-    public boolean validateSession(String token) {
-        return sessionAuthBusiness.validateSession(token).isPresent();
+    public String calculateScopes(String acr, String userId) {
+        List<String> scopes = new ArrayList<>();
+        
+        switch (acr) {
+            case "0":
+                // Anonymous - no scopes
+                break;
+                
+            case "1":
+                // Partial authentication - profile and auth setup only
+                scopes.addAll(Arrays.asList(
+                    "read:profile", "write:profile",
+                    "read:auth_methods", "write:auth_methods"
+                ));
+                break;
+                
+            case "2.1":
+                // Basic assurance - read-only plus basic operations
+                scopes.addAll(Arrays.asList(
+                    "read:profile", "write:profile",
+                    "read:portfolio", "read:positions",
+                    "read:market_data", 
+                    "read:watchlists", "write:watchlists",
+                    "read:strategies"
+                ));
+                break;
+                
+            case "2.2":
+                // Substantial assurance - most trading operations
+                scopes.addAll(Arrays.asList(
+                    "read:profile", "write:profile",
+                    "read:portfolio", "write:portfolio",
+                    "read:positions", "write:positions",
+                    "read:trades", "write:trades",
+                    "read:strategies", "write:strategies",
+                    "read:market_data",
+                    "read:watchlists", "write:watchlists"
+                ));
+                break;
+                
+            case "2.3":
+                // High assurance - all operations including sensitive
+                scopes.addAll(Arrays.asList(
+                    "read:profile", "write:profile", "delete:profile",
+                    "read:portfolio", "write:portfolio", "admin:portfolio",
+                    "read:positions", "write:positions", "delete:positions",
+                    "read:trades", "write:trades", "delete:trades",
+                    "read:strategies", "write:strategies", "admin:strategies",
+                    "read:market_data",
+                    "read:watchlists", "write:watchlists",
+                    "read:settings", "write:settings", "admin:settings",
+                    "read:auth_methods", "write:auth_methods",
+                    "read:sessions", "write:sessions"
+                ));
+                break;
+        }
+        
+        return String.join(" ", scopes);
     }
 }
 ```
 
-## Security Considerations
+## 🔒 Security Implementation
 
-1. **Secret Management**: Always use a secure, environment-specific secret key in production.
-2. **Token Storage**: Store tokens securely on client-side (HttpOnly cookies preferred).
-3. **Token Validation**: Always validate tokens server-side before granting access.
-4. **Token Expiry**: Use appropriate expiration times for access tokens (short-lived) and refresh tokens (longer-lived).
-5. **Revocation**: Implement proper token revocation on logout or security events.
+### **Token Creation**
 
-## Dependencies
+```java
+@Service
+public class TokenCreationService {
+    
+    @Autowired
+    private PasetoTokenService pasetoService;
+    
+    @Autowired
+    private ScopeCalculationService scopeService;
+    
+    public String createToken(String userId, List<String> completedAuthMethods) {
+        // Calculate ACR based on completed methods
+        String acr = calculateAcr(userId, completedAuthMethods);
+        
+        // Build token claims
+        TokenClaims claims = TokenClaims.builder()
+            .subject(generatePublicUserId(userId))
+            .jwtId(UUID.randomUUID().toString())
+            .issuer("strategiz.io")
+            .audience("strategiz")
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plus(Duration.ofHours(24)))
+            .authenticationMethods(encodeAuthMethods(completedAuthMethods))
+            .authenticationContextClass(acr)
+            .authenticationTime(Instant.now())
+            .scope(scopeService.calculateScopes(acr, userId))
+            .build();
+            
+        return pasetoService.generateToken(claims);
+    }
+}
+```
 
-- `jpaseto`: Java implementation of PASETO
-- Spring Framework
-- `data-auth`: For token persistence
+### **Token Validation**
 
-## Cleanup Process
+```java
+@Service
+public class TokenValidationService {
+    
+    public boolean isValidToken(String token) {
+        try {
+            TokenClaims claims = pasetoService.validateToken(token);
+            return claims.getExpiresAt().isAfter(Instant.now());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    public boolean hasRequiredAccess(String token, String requiredAcr) {
+        TokenClaims claims = pasetoService.validateToken(token);
+        return meetsMinimumAcr(claims.getAcr(), requiredAcr);
+    }
+    
+    public boolean hasScope(String token, String requiredScope) {
+        TokenClaims claims = pasetoService.validateToken(token);
+        List<String> scopes = Arrays.asList(claims.getScope().split(" "));
+        return scopes.contains(requiredScope);
+    }
+}
+```
 
-The module automatically cleans up expired tokens via a scheduled job that runs hourly. This helps keep the database clean and ensures optimal performance.
+## 🍪 Cookie Management
+
+### **Cookie Settings**
+```java
+@Service
+public class CookieService {
+    
+    public void setAuthCookie(HttpServletResponse response, String token) {
+        Cookie cookie = new Cookie("strategiz_session", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(86400); // 24 hours
+        cookie.setSameSite("Strict");
+        cookie.setDomain("strategiz.io");
+        response.addCookie(cookie);
+    }
+}
+```
+
+## 🔄 Session Management
+
+### **Session Lifecycle**
+1. **Token Creation** - After successful authentication
+2. **Token Validation** - On each request
+3. **Token Refresh** - Before expiration (if needed)
+4. **Token Revocation** - On logout or security events
+
+### **Revocation Support**
+```java
+@Service  
+public class TokenRevocationService {
+    
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+    
+    public void revokeToken(String jti) {
+        // Add JTI to blacklist
+        redisTemplate.opsForSet().add("revoked_tokens", jti);
+        redisTemplate.expire("revoked_tokens", Duration.ofDays(1));
+    }
+    
+    public boolean isTokenRevoked(String jti) {
+        return redisTemplate.opsForSet().isMember("revoked_tokens", jti);
+    }
+}
+```
+
+## 🧪 Testing Examples
+
+### **Unit Tests**
+```java
+@Test
+public void testTokenCreation() {
+    String userId = "user123";
+    List<String> authMethods = Arrays.asList("password", "passkeys");
+    
+    String token = tokenCreationService.createToken(userId, authMethods);
+    
+    TokenClaims claims = pasetoService.validateToken(token);
+    assertEquals("2.3", claims.getAcr());
+    assertTrue(claims.getScope().contains("admin:portfolio"));
+}
+```
+
+### **Integration Tests**
+```java
+@Test
+public void testScopeBasedAccess() {
+    // Create token with basic assurance
+    String token = createTestToken("2.1");
+    
+    // Should have read access
+    assertTrue(tokenValidationService.hasScope(token, "read:portfolio"));
+    
+    // Should NOT have delete access
+    assertFalse(tokenValidationService.hasScope(token, "delete:positions"));
+}
+```
+
+## 📊 Metrics & Monitoring
+
+### **Key Metrics**
+- Token creation rate
+- Token validation success/failure rate
+- Authentication method usage
+- ACR level distribution
+- Scope usage patterns
+
+### **Security Alerts**
+- Multiple failed token validations
+- Unusual authentication patterns
+- High-value operations with low assurance
+- Token revocation spikes
+
+## 🔗 Integration with Services
+
+### **Service Usage**
+```java
+// In any service controller
+@RestController
+public class ExampleController {
+    
+    @GetMapping("/data")
+    @PreAuthorize("hasScope('read:data')")
+    public ResponseEntity<?> getData(@AuthenticationPrincipal JwtToken token) {
+        String userId = token.getSubject();
+        String acr = token.getClaim("acr");
+        
+        // Business logic based on user and assurance level
+        return ResponseEntity.ok(dataService.getData(userId, acr));
+    }
+}
+```
+
+## 🚀 Quick Start
+
+1. **Add Dependency** - Include `business-token-auth` in your service
+2. **Token Creation** - Use `TokenCreationService` after authentication
+3. **Token Validation** - Use `@PreAuthorize` annotations
+4. **Claims Access** - Extract user context from token claims
+
+For complete implementation examples, see the `examples/` directory.

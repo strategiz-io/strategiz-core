@@ -60,6 +60,18 @@
             <artifactId>framework-exception</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Facebook OAuth client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-facebook</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Google OAuth client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-google</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- PASETO implementation for crypto provider -->
         <dependency>
@@ -211,6 +223,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <release>17</release>
+                </configuration>
             </plugin>
             <!-- Build configuration is now inherited from parent pom.xml -->
         </plugins>

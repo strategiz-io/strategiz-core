@@ -43,6 +43,13 @@
             <version>${apache.httpclient.version}</version>
         </dependency>
 
+        <!-- Framework Exception -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- JWT for Coinbase Advanced API Authentication -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

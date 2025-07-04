@@ -4,13 +4,14 @@ import io.strategiz.data.user.model.TotpAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.DomainService;
-import io.strategiz.framework.exception.ErrorFactory;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.Optional;
 
 /**
  * Service for handling TOTP authentication operations
@@ -20,11 +21,9 @@ import java.util.Date;
 @DomainService(domain = "auth")
 public class TotpAuthenticationService extends BaseTotpService {
     private static final Logger log = LoggerFactory.getLogger(TotpAuthenticationService.class);
-    private final ErrorFactory errorFactory;
     
-    public TotpAuthenticationService(UserRepository userRepository, ErrorFactory errorFactory) {
+    public TotpAuthenticationService(UserRepository userRepository) {
         super(userRepository);
-        this.errorFactory = errorFactory;
     }
     
     /**
@@ -38,7 +37,7 @@ public class TotpAuthenticationService extends BaseTotpService {
             // Get remaining attempts - in a real system this would be stored and tracked
             int attemptsRemaining = 3; // Example value
             log.debug("TOTP verification failed for user: {}, attempts remaining: {}", username, attemptsRemaining);
-            throw errorFactory.totpVerificationFailed(username, attemptsRemaining);
+            throw new StrategizException(AuthErrors.TOTP_INVALID_CODE, username);
         }
         return true;
     }
@@ -54,13 +53,16 @@ public class TotpAuthenticationService extends BaseTotpService {
         verifyCode(username, code);
         
         // Update the last verification time
-        User user = userRepository.findById(username)
-            .orElseThrow(() -> errorFactory.userNotFound(username));
+        Optional<User> userOpt = userRepository.findById(username);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
+        }
             
+        User user = userOpt.get();
         TotpAuthenticationMethod totpAuth = findTotpAuthMethod(user);
         if (totpAuth == null) {
             log.error("User {} has no TOTP authentication method configured", username);
-            throw errorFactory.validationFailed("TOTP is not enabled for this user");
+            throw new StrategizException(AuthErrors.VALIDATION_FAILED, "TOTP is not enabled for this user");
         }
         
         totpAuth.setLastVerifiedAt(new Date());

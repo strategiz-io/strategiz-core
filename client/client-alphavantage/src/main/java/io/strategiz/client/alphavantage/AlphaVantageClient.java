@@ -1,6 +1,6 @@
 package io.strategiz.client.alphavantage;
 
-import io.strategiz.framework.exception.ApplicationClientException;
+// Using standard Java exceptions for client layer
 import io.strategiz.client.alphavantage.model.StockData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,13 +76,13 @@ public class AlphaVantageClient {
             
             if (response.getBody() == null || !response.getBody().containsKey("Global Quote")) {
                 log.error("Invalid response format from AlphaVantage API for symbol: {}", symbol);
-                throw new ApplicationClientException("Invalid response format from AlphaVantage API");
+                throw new RuntimeException("Invalid response format from AlphaVantage API");
             }
             
             return parseGlobalQuoteResponse(response.getBody(), symbol);
         } catch (RestClientException e) {
             log.error("Error fetching stock quote from AlphaVantage API: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Failed to retrieve stock quote data", e);
+            throw new RuntimeException("Failed to retrieve stock quote data", e);
         }
     }
     
@@ -154,7 +154,7 @@ public class AlphaVantageClient {
             return matches;
         } catch (RestClientException e) {
             log.error("Error searching stocks from AlphaVantage API: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Failed to search stocks", e);
+            throw new RuntimeException("Failed to search stocks", e);
         }
     }
     

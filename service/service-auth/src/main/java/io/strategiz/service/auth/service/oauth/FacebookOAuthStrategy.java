@@ -3,6 +3,7 @@ package io.strategiz.service.auth.service.oauth;
 import io.strategiz.data.user.model.OAuthAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.service.auth.config.AuthOAuthConfig;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,18 +23,11 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
     private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthStrategy.class);
     
     private final UserRepository userRepository;
+    private final AuthOAuthConfig oauthConfig;
     
-    @Value("${auth.facebook.client-id}")
-    private String facebookClientId;
-    
-    @Value("${auth.facebook.client-secret}")
-    private String facebookClientSecret;
-    
-    @Value("${auth.facebook.redirect-uri}")
-    private String redirectUri;
-    
-    public FacebookOAuthStrategy(UserRepository userRepository) {
+    public FacebookOAuthStrategy(UserRepository userRepository, AuthOAuthConfig oauthConfig) {
         this.userRepository = userRepository;
+        this.oauthConfig = oauthConfig;
     }
     
     @Override
@@ -66,9 +60,10 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
         userRepository.updateUser(user);
         
         // Return OAuth config for client
+        AuthOAuthConfig.AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         Map<String, String> authConfig = new HashMap<>();
-        authConfig.put("clientId", facebookClientId);
-        authConfig.put("redirectUri", redirectUri);
+        authConfig.put("clientId", facebookConfig.getClientId());
+        authConfig.put("redirectUri", facebookConfig.getRedirectUri());
         authConfig.put("provider", "facebook");
         
         return authConfig;

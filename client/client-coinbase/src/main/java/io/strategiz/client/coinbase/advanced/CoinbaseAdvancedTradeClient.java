@@ -6,8 +6,9 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import io.strategiz.client.coinbase.exception.CoinbaseApiException;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.client.coinbase.util.CoinbaseJwtUtil;
+import io.strategiz.client.coinbase.CoinbaseErrors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +59,7 @@ public class CoinbaseAdvancedTradeClient {
             return response;
         } catch (Exception e) {
             log.error("Error getting accounts from Coinbase Advanced Trade API: {}", e.getMessage(), e);
-            throw new CoinbaseApiException("Error accessing Coinbase Advanced Trade API: " + e.getMessage(), e);
+            throw new StrategizException(CoinbaseErrors.API_ERROR, e.getMessage());
         }
     }
     
@@ -97,7 +98,7 @@ public class CoinbaseAdvancedTradeClient {
             return response;
         } catch (Exception e) {
             log.error("Error getting product information from Coinbase Advanced Trade API: {}", e.getMessage(), e);
-            throw new CoinbaseApiException("Error accessing Coinbase Advanced Trade API: " + e.getMessage(), e);
+            throw new StrategizException(CoinbaseErrors.API_ERROR, e.getMessage());
         }
     }
 }

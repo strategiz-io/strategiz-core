@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,7 +33,16 @@ public class SessionService {
      * @return the access token
      */
     public String createSession(String userId, String deviceId, String ipAddress) {
-        return sessionAuthBusiness.createTokenPair(userId, deviceId, ipAddress).accessToken();
+        // Use ACR "2.1" (basic assurance) as default for generic session creation
+        // Assume basic authentication method since context is unknown
+        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+            userId,
+            List.of("password"), // Default to password auth for generic sessions
+            "2.1", // ACR "2.1" - Basic assurance
+            deviceId,
+            ipAddress
+        );
+        return tokenPair.accessToken();
     }
     
     /**
@@ -41,7 +51,15 @@ public class SessionService {
      * @return the access token
      */
     public String createSession(String userId) {
-        return sessionAuthBusiness.createTokenPair(userId, null, null).accessToken();
+        // Use ACR "2.1" (basic assurance) as default for generic session creation
+        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+            userId,
+            List.of("password"), // Default to password auth for generic sessions
+            "2.1", // ACR "2.1" - Basic assurance
+            null, // No device ID
+            null  // No IP address
+        );
+        return tokenPair.accessToken();
     }
 
     /**

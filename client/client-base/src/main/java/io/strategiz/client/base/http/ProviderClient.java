@@ -1,6 +1,6 @@
 package io.strategiz.client.base.http;
 
-import io.strategiz.framework.exception.ApplicationClientException;
+// Using standard Java exceptions for client layer
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -57,7 +57,7 @@ public abstract class ProviderClient extends BaseHttpClient {
      * Validates that we're connecting to a real provider account, not test/demo accounts.
      * This method should be overridden by implementations to ensure we always use real data.
      * 
-     * @throws ApplicationClientException if validation fails
+     * @throws RuntimeException if validation fails
      */
     protected abstract void validateRealProviderAccount();
     
@@ -66,7 +66,7 @@ public abstract class ProviderClient extends BaseHttpClient {
      * 
      * @param data The data to sign
      * @return Base64 encoded signature
-     * @throws ApplicationClientException if signing fails
+     * @throws RuntimeException if signing fails
      */
     protected String signRequest(String data) {
         try {
@@ -77,7 +77,7 @@ public abstract class ProviderClient extends BaseHttpClient {
             return Base64.getEncoder().encodeToString(signature);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             log.error("Failed to sign request: {}", e.getMessage());
-            throw new ApplicationClientException("Error signing API request", e);
+            throw new RuntimeException("Error signing API request", e);
         }
     }
     

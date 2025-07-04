@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.*;
 import io.strategiz.data.user.model.*;
+import io.strategiz.data.user.model.watchlist.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -681,6 +682,264 @@ public class UserRepository {
             return user;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error updating user: " + e.getMessage(), e);
+        }
+    }
+
+    // ===============================
+    // Market Watchlist CRUD Operations
+    // ===============================
+
+    /**
+     * CREATE - Creates a new watchlist item for a user.
+     *
+     * @param userId The user ID
+     * @param request The create request
+     * @return Operation response
+     */
+    public WatchlistOperationResponse createWatchlistItem(String userId, CreateWatchlistItemRequest request) {
+        try {
+            CollectionReference watchlistRef = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .collection(WATCHLIST_COLLECTION);
+
+            // Convert request to entity
+            MarketWatchlistItem item = request.toEntity();
+            
+            // Set audit fields
+            item.setCreatedBy(userId);
+            item.setCreatedAt(new Date());
+            item.setModifiedBy(userId);
+            item.setModifiedAt(new Date());
+            item.setVersion(1);
+            item.setIsActive(true);
+            
+            if (item.getAddedAt() == null) {
+                item.setAddedAt(new Date());
+            }
+
+            DocumentReference docRef = watchlistRef.add(item).get();
+            String id = docRef.getId();
+            
+            return WatchlistOperationResponse.createSuccess(id, item.getSymbol());
+        } catch (InterruptedException | ExecutionException e) {
+            return WatchlistOperationResponse.failure("CREATE", "Error creating watchlist item: " + e.getMessage());
+        }
+    }
+
+    /**
+     * READ - Gets all active watchlist items for a user.
+     *
+     * @param userId The user ID
+     * @return Collection response with watchlist items
+     */
+    public WatchlistCollectionResponse readUserWatchlist(String userId) {
+        try {
+            CollectionReference watchlistRef = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .collection(WATCHLIST_COLLECTION);
+
+            ApiFuture<QuerySnapshot> future = watchlistRef
+                    .whereEqualTo("isActive", true)
+                    .orderBy("addedAt", Query.Direction.DESCENDING)
+                    .get();
+            
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            List<MarketWatchlistItem> watchlistItems = new ArrayList<>();
+            
+            for (QueryDocumentSnapshot doc : documents) {
+                MarketWatchlistItem item = doc.toObject(MarketWatchlistItem.class);
+                item.setId(doc.getId());
+                watchlistItems.add(item);
+            }
+            
+            return WatchlistCollectionResponse.fromEntities(watchlistItems);
+        } catch (InterruptedException | ExecutionException e) {
+            return new WatchlistCollectionResponse(); // Empty response on error
+        }
+    }
+
+    /**
+     * READ - Gets a specific watchlist item by ID.
+     *
+     * @param userId The user ID
+     * @param itemId The watchlist item ID
+     * @return Optional containing the response if found
+     */
+    public Optional<ReadWatchlistItemResponse> readWatchlistItem(String userId, String itemId) {
+        try {
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .collection(WATCHLIST_COLLECTION)
+                    .document(itemId);
+
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot document = future.get();
+            
+            if (document.exists()) {
+                MarketWatchlistItem item = document.toObject(MarketWatchlistItem.class);
+                item.setId(document.getId());
+                return Optional.of(ReadWatchlistItemResponse.fromEntity(item));
+            } else {
+                return Optional.empty();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * UPDATE - Updates an existing watchlist item.
+     *
+     * @param userId The user ID
+     * @param request The update request
+     * @return Operation response
+     */
+    public WatchlistOperationResponse updateWatchlistItem(String userId, UpdateWatchlistItemRequest request) {
+        try {
+            DocumentReference docRef = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .collection(WATCHLIST_COLLECTION)
+                    .document(request.getId());
+
+            // Get current item
+            DocumentSnapshot doc = docRef.get().get();
+            if (!doc.exists()) {
+                return WatchlistOperationResponse.failure("UPDATE", "Watchlist item not found");
+            }
+            
+            MarketWatchlistItem item = doc.toObject(MarketWatchlistItem.class);
+            item.setId(doc.getId());
+            
+            // Apply the update
+            request.applyTo(item);
+
+            ApiFuture<WriteResult> future = docRef.set(item, SetOptions.merge());
+            future.get();
+            
+            return WatchlistOperationResponse.updateSuccess(request.getId(), item.getSymbol(), item.getVersion());
+        } catch (InterruptedException | ExecutionException e) {
+            return WatchlistOperationResponse.failure("UPDATE", "Error updating watchlist item: " + e.getMessage());
+        }
+    }
+
+    /**
+     * DELETE - Removes a watchlist item (soft delete).
+     *
+     * @param userId The user ID
+     * @param request The delete request
+     * @return Operation response
+     */
+    public WatchlistOperationResponse deleteWatchlistItem(String userId, DeleteWatchlistItemRequest request) {
+        try {
+            DocumentReference docRef;
+            String itemId = request.getId();
+            String symbol = request.getSymbol();
+            
+            if (itemId != null && !itemId.trim().isEmpty()) {
+                // Delete by ID
+                docRef = firestore.collection(USERS_COLLECTION)
+                        .document(userId)
+                        .collection(WATCHLIST_COLLECTION)
+                        .document(itemId);
+            } else if (symbol != null && !symbol.trim().isEmpty()) {
+                // Delete by symbol - find the item first
+                CollectionReference watchlistRef = firestore.collection(USERS_COLLECTION)
+                        .document(userId)
+                        .collection(WATCHLIST_COLLECTION);
+                
+                ApiFuture<QuerySnapshot> future = watchlistRef
+                        .whereEqualTo("symbol", symbol)
+                        .whereEqualTo("isActive", true)
+                        .limit(1)
+                        .get();
+                
+                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                if (documents.isEmpty()) {
+                    return WatchlistOperationResponse.failure("DELETE", "Watchlist item not found");
+                }
+                
+                docRef = documents.get(0).getReference();
+                itemId = documents.get(0).getId();
+            } else {
+                return WatchlistOperationResponse.failure("DELETE", "Either ID or symbol must be provided");
+            }
+
+            // Soft delete by setting isActive to false
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("isActive", false);
+            updates.put("modifiedAt", FieldValue.serverTimestamp());
+
+            ApiFuture<WriteResult> future = docRef.update(updates);
+            future.get();
+            
+            return WatchlistOperationResponse.deleteSuccess(itemId, symbol);
+        } catch (InterruptedException | ExecutionException e) {
+            return WatchlistOperationResponse.failure("DELETE", "Error deleting watchlist item: " + e.getMessage());
+        }
+    }
+
+    /**
+     * DELETE - Removes entire user watchlist (soft delete).
+     *
+     * @param userId The user ID
+     * @return Operation response
+     */
+    public WatchlistOperationResponse deleteUserWatchlist(String userId) {
+        try {
+            CollectionReference watchlistRef = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .collection(WATCHLIST_COLLECTION);
+
+            ApiFuture<QuerySnapshot> future = watchlistRef
+                    .whereEqualTo("isActive", true)
+                    .get();
+            
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            
+            if (documents.isEmpty()) {
+                return WatchlistOperationResponse.failure("DELETE", "No active watchlist items found");
+            }
+            
+            // Use batch write for atomicity
+            WriteBatch batch = firestore.batch();
+            for (QueryDocumentSnapshot doc : documents) {
+                batch.update(doc.getReference(), 
+                    "isActive", false,
+                    "modifiedAt", FieldValue.serverTimestamp(),
+                    "modifiedBy", userId);
+            }
+            
+            ApiFuture<List<WriteResult>> batchFuture = batch.commit();
+            batchFuture.get();
+            
+            return WatchlistOperationResponse.deleteSuccess(null, "All watchlist items");
+        } catch (InterruptedException | ExecutionException e) {
+            return WatchlistOperationResponse.failure("DELETE", "Error deleting user watchlist: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Checks if an asset is already in user's watchlist.
+     *
+     * @param userId The user ID
+     * @param symbol The asset symbol to check
+     * @return true if the asset is in the watchlist
+     */
+    public boolean isAssetInWatchlist(String userId, String symbol) {
+        try {
+            CollectionReference watchlistRef = firestore.collection(USERS_COLLECTION)
+                    .document(userId)
+                    .collection(WATCHLIST_COLLECTION);
+
+            ApiFuture<QuerySnapshot> future = watchlistRef
+                    .whereEqualTo("symbol", symbol)
+                    .whereEqualTo("isActive", true)
+                    .limit(1)
+                    .get();
+            
+            return !future.get().getDocuments().isEmpty();
+        } catch (InterruptedException | ExecutionException e) {
+            return false;
         }
     }
 }

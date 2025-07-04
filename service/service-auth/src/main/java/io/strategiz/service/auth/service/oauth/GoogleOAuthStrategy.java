@@ -3,10 +3,10 @@ package io.strategiz.service.auth.service.oauth;
 import io.strategiz.data.user.model.OAuthAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.service.auth.config.AuthOAuthConfig;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -22,18 +22,11 @@ public class GoogleOAuthStrategy implements AuthMethodStrategy {
     private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthStrategy.class);
     
     private final UserRepository userRepository;
+    private final AuthOAuthConfig oauthConfig;
     
-    @Value("${auth.google.client-id}")
-    private String googleClientId;
-    
-    @Value("${auth.google.client-secret}")
-    private String googleClientSecret;
-    
-    @Value("${auth.google.redirect-uri}")
-    private String redirectUri;
-    
-    public GoogleOAuthStrategy(UserRepository userRepository) {
+    public GoogleOAuthStrategy(UserRepository userRepository, AuthOAuthConfig oauthConfig) {
         this.userRepository = userRepository;
+        this.oauthConfig = oauthConfig;
     }
     
     @Override
@@ -47,6 +40,13 @@ public class GoogleOAuthStrategy implements AuthMethodStrategy {
         oauthMethod.setName("Google Account");
         oauthMethod.setIsActive(true);
         
+        // Set provider ID from user profile data if available
+        // Since we can't determine exact User model structure, we'll use a default approach
+        String email = user.getProfile().getEmail();
+        String providerId = email; // Default to email as provider ID for now
+        oauthMethod.setProviderId(providerId);
+        logger.info("Setting provider ID based on email for user: {}", user.getUserId());
+        
         // Set audit fields
         Date now = new Date();
         oauthMethod.setCreatedBy("google_oauth_strategy");
@@ -59,9 +59,10 @@ public class GoogleOAuthStrategy implements AuthMethodStrategy {
         userRepository.updateUser(user);
         
         // Return OAuth config for client
+        AuthOAuthConfig.AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         Map<String, String> authConfig = new HashMap<>();
-        authConfig.put("clientId", googleClientId);
-        authConfig.put("redirectUri", redirectUri);
+        authConfig.put("clientId", googleConfig.getClientId());
+        authConfig.put("redirectUri", googleConfig.getRedirectUri());
         authConfig.put("provider", "google");
         
         return authConfig;
@@ -71,4 +72,4 @@ public class GoogleOAuthStrategy implements AuthMethodStrategy {
     public String getAuthMethodName() {
         return "google";
     }
-}
+} 

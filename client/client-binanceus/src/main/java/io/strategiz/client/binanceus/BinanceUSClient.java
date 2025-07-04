@@ -1,7 +1,7 @@
 package io.strategiz.client.binanceus;
 
 import io.strategiz.client.base.http.ProviderClient;
-import io.strategiz.framework.exception.ApplicationClientException;
+// Using standard Java exceptions for client layer
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -86,13 +86,13 @@ public class BinanceUSClient extends ProviderClient {
      * Validates that we're connecting to a real Binance US account, not a test account.
      * Binance US does not have a sandbox/test mode, so we just check if credentials are valid.
      * 
-     * @throws ApplicationClientException if validation fails
+     * @throws RuntimeException if validation fails
      */
     @Override
     protected void validateRealProviderAccount() {
         if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty()) {
             log.error("Missing API credentials for Binance US");
-            throw new ApplicationClientException("Cannot connect to Binance US: Missing API credentials");
+            throw new RuntimeException("Cannot connect to Binance US: Missing API credentials");
         }
         log.debug("Validated Binance US credentials");
     }
@@ -175,7 +175,7 @@ public class BinanceUSClient extends ProviderClient {
             return Base64.getEncoder().encodeToString(sha256_HMAC.doFinal(data.getBytes()));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             log.error("Error generating signature: {}", e.getMessage());
-            throw new ApplicationClientException("Error generating Binance US API signature", e);
+            throw new RuntimeException("Error generating Binance US API signature", e);
         }
     }
     
@@ -188,7 +188,7 @@ public class BinanceUSClient extends ProviderClient {
      */
     public String getAccountInfo(String apiKey, String secretKey) {
         if (restTemplate == null) {
-            throw new ApplicationClientException("RestTemplate not initialized");
+            throw new RuntimeException("RestTemplate not initialized");
         }
         
         HttpHeaders headers = new HttpHeaders();
@@ -214,7 +214,7 @@ public class BinanceUSClient extends ProviderClient {
      */
     public String ping() {
         if (restTemplate == null) {
-            throw new ApplicationClientException("RestTemplate not initialized");
+            throw new RuntimeException("RestTemplate not initialized");
         }
         
         String url = baseUrl + "/api/v3/ping";

@@ -3,6 +3,7 @@ package io.strategiz.application;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 
@@ -19,6 +20,7 @@ excludeFilters = {
 })
 @PropertySource("classpath:application.properties")
 @EntityScan(basePackages = {"io.strategiz"})
+@ConfigurationPropertiesScan(basePackages = {"io.strategiz"})
 public class Application {
 
     // ANSI color codes for enhanced console output

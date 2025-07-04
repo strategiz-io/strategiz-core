@@ -13,6 +13,8 @@ import io.strategiz.data.user.model.AuthenticationMethod;
 import io.strategiz.data.user.model.TotpAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +78,7 @@ public abstract class BaseTotpService {
             return getDataUriForImage(qrCodeImage, qrGenerator.getImageMimeType());
         } catch (QrGenerationException e) {
             log.error("Error generating QR code", e);
-            throw new RuntimeException("Error generating QR code", e);
+            throw new StrategizException(AuthErrors.QR_GENERATION_FAILED, e.getMessage());
         }
     }
     

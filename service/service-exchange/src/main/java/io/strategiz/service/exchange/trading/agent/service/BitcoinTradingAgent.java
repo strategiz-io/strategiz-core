@@ -1,7 +1,7 @@
 package io.strategiz.service.exchange.trading.agent.service;
 
 import io.strategiz.client.coinbase.CoinbaseClient;
-import io.strategiz.client.coinbase.exception.CoinbaseApiException;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal.SignalStrength;
@@ -109,7 +109,7 @@ public class BitcoinTradingAgent {
     /**
      * Fetch historical price data from Coinbase API
      */
-    private List<HistoricalPriceData> fetchHistoricalData(String apiKey, String privateKey, String timeframe) throws CoinbaseApiException {
+    private List<HistoricalPriceData> fetchHistoricalData(String apiKey, String privateKey, String timeframe) {
         log.info("Fetching historical BTC price data from Coinbase API");
         
         // Determine how many data points to fetch based on timeframe

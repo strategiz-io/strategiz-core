@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.data.auth.model.passkey.PasskeyChallenge;
 import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
+import io.strategiz.service.auth.exception.AuthErrors;
+import io.strategiz.data.user.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,8 +75,7 @@ public class PasskeyChallengeService {
             
             return challenge;
         } catch (Exception e) {
-            log.error("Error creating {} challenge for user {}: {}", type, userId, e.getMessage());
-            throw new RuntimeException("Failed to create passkey challenge", e);
+            throw new StrategizException(AuthErrors.PASSKEY_REGISTRATION_FAILED, e.getMessage());
         }
     }
     

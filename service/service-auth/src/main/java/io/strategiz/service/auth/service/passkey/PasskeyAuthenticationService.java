@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -49,9 +50,9 @@ public class PasskeyAuthenticationService {
     public record AuthenticationResult(boolean success, String accessToken, String refreshToken, String errorMessage) {}
     
     /**
-     * Challenge data for authentication
+     * Challenge data for authentication with full WebAuthn options
      */
-    public record AuthenticationChallenge(String rpId, String challenge, int timeout) {}
+    public record AuthenticationChallenge(Object publicKeyCredentialRequestOptions) {}
     
     /**
      * Authentication completion request data
@@ -76,8 +77,38 @@ public class PasskeyAuthenticationService {
         // Using "id" as a placeholder to satisfy database NOT NULL constraint
         String challenge = challengeService.createChallenge("id", PasskeyChallengeType.AUTHENTICATION);
         
-        // Create authentication options
-        return new AuthenticationChallenge(rpId, challenge, challengeTimeoutMs);
+        // For discoverable credentials, we need to return all registered credentials
+        // so the browser can show available passkeys to the user
+        java.util.List<java.util.Map<String, Object>> allowCredentials;
+        try {
+            // Get all stored passkey credentials
+            java.util.List<PasskeyCredential> storedCredentials = credentialRepository.findAll();
+            log.info("Found {} stored passkey credentials for authentication", storedCredentials.size());
+            
+            // Convert to WebAuthn format
+            allowCredentials = storedCredentials.stream()
+                .map(credential -> java.util.Map.<String, Object>of(
+                    "id", credential.getCredentialId(),
+                    "type", "public-key"
+                ))
+                .collect(java.util.stream.Collectors.toList());
+                
+            log.debug("Converted {} credentials to allowCredentials format", allowCredentials.size());
+        } catch (Exception e) {
+            log.warn("Error retrieving stored credentials, falling back to empty allowCredentials", e);
+            allowCredentials = java.util.Collections.emptyList();
+        }
+        
+        // Create authentication options in proper WebAuthn format
+        var options = java.util.Map.of(
+            "challenge", challenge,
+            "timeout", challengeTimeoutMs,
+            "rpId", rpId,
+            "userVerification", "preferred",
+            "allowCredentials", allowCredentials // Return stored credentials for discovery
+        );
+        
+        return new AuthenticationChallenge(options);
     }
     
     /**
@@ -131,21 +162,18 @@ public class PasskeyAuthenticationService {
             credential.setLastUsedTime(Instant.now());
             credentialRepository.save(credential);
             
-            // Generate auth tokens via business-token-auth using reflection to avoid direct dependencies
-            Object tokenPair = sessionAuthBusiness.createTokenPair(userId, deviceId, ipAddress);
+            // Generate authentication tokens with proper ACR/AAL separation
+            // ACR "2" = Fully authenticated, AAL "3" = Hardware crypto (passkeys)
+            SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+                userId,
+                List.of("passkeys"), // Authentication method used
+                false, // Not partial auth - full authentication completed
+                deviceId,
+                ipAddress
+            );
             
-            // Extract token values using reflection
-            String accessToken = null;
-            String refreshToken = null;
-            try {
-                var method1 = tokenPair.getClass().getMethod("accessToken");
-                var method2 = tokenPair.getClass().getMethod("refreshToken");
-                accessToken = (String)method1.invoke(tokenPair);
-                refreshToken = (String)method2.invoke(tokenPair);
-            } catch (Exception e) {
-                log.error("Error extracting token values", e);
-                return new AuthenticationResult(false, null, null, "Error generating auth tokens");
-            }
+            String accessToken = tokenPair.accessToken();
+            String refreshToken = tokenPair.refreshToken();
             
             log.info("Successfully authenticated user {} with passkey", userId);
             return new AuthenticationResult(true, accessToken, refreshToken, null);

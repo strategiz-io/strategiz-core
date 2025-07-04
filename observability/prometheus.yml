@@ -1,0 +1,55 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Spring Boot Application Metrics
+  - job_name: 'strategiz-app'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Spring Boot app
+    scrape_timeout: 10s
+
+  # Frontend metrics (if we add a metrics endpoint)
+  - job_name: 'strategiz-frontend'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['host.docker.internal:3000']  # React app
+    scrape_timeout: 5s
+
+  # System metrics (if you want to add node_exporter)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['host.docker.internal:9100']  # node_exporter if installed
+
+  # Database metrics (if you want to add postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['host.docker.internal:9187']  # postgres_exporter if installed
+
+  # Container metrics (if you want to add cAdvisor)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # cAdvisor if installed
+
+# Alerting rules (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Recording rules for complex queries
+rule_files:
+  - "rules/*.yml" 

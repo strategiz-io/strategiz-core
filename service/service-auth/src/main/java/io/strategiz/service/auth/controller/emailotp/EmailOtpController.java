@@ -1,110 +1,93 @@
 package io.strategiz.service.auth.controller.emailotp;
 
-import io.strategiz.service.auth.model.ApiResponse;
+import io.strategiz.service.auth.service.emailotp.EmailOtpService;
 import io.strategiz.service.auth.model.emailotp.EmailOtpRequest;
 import io.strategiz.service.auth.model.emailotp.EmailOtpVerificationRequest;
-import io.strategiz.service.auth.service.emailotp.EmailOtpService;
-import jakarta.validation.Valid;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+import jakarta.validation.Valid;
 import java.util.Map;
 
 /**
- * Controller for email OTP operations
- * Provides endpoints for sending and verifying email one-time passwords
+ * Controller for Email OTP authentication operations.
+ * Handles sending and verifying email-based one-time passwords.
+ * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/auth/emailotp")
 public class EmailOtpController {
 
-    private static final Logger logger = LoggerFactory.getLogger(EmailOtpController.class);
+    private static final Logger log = LoggerFactory.getLogger(EmailOtpController.class);
     
-    @Autowired
-    private EmailOtpService emailOtpService;
+    private final EmailOtpService emailOtpService;
+    
+    public EmailOtpController(EmailOtpService emailOtpService) {
+        this.emailOtpService = emailOtpService;
+    }
     
     /**
-     * Send a one-time password to an email address
+     * Send OTP to email
      * 
-     * @param request Email and purpose information
-     * @return API response indicating success or failure
+     * @param request Email OTP request containing email address
+     * @return Clean success response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/send")
-    public ResponseEntity<ApiResponse<Void>> sendOtp(
-            @Valid @RequestBody EmailOtpRequest request) {
+    public ResponseEntity<Void> sendOtp(@Valid @RequestBody EmailOtpRequest request) {
+        log.info("Sending OTP to email: {}", request.email());
         
-        logger.info("Received request to send email OTP for purpose: {}", 
-                request.purpose());
+        // Send OTP - let exceptions bubble up
+        boolean sent = emailOtpService.sendOtp(request.email(), request.purpose());
         
-        boolean sent = emailOtpService.sendOtp(
-                request.email(), request.purpose());
-        
-        if (sent) {
-            return ResponseEntity.ok(
-                ApiResponse.<Void>success("Email OTP sent successfully", null));
-        } else {
-            return ResponseEntity.status(500).body(
-                ApiResponse.error("Failed to send email OTP"));
+        if (!sent) {
+            throw new RuntimeException("Failed to send OTP");
         }
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok().build();
     }
     
     /**
-     * Verify an OTP code submitted by a user
+     * Verify email OTP
      * 
-     * @param request Email, purpose, and code information
-     * @return API response indicating if verification was successful, includes identity token for signup
+     * @param request Email OTP verification request containing email and OTP code
+     * @return Clean verification response with result data - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/verify")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> verifyOtp(
-            @Valid @RequestBody EmailOtpVerificationRequest request) {
+    public ResponseEntity<Map<String, Object>> verifyOtp(@Valid @RequestBody EmailOtpVerificationRequest request) {
+        log.info("Verifying OTP for email: {}", request.email());
         
-        logger.info("Received request to verify email OTP for purpose: {}", 
-                request.purpose());
+        // Verify OTP - let exceptions bubble up
+        boolean verified = emailOtpService.verifyOtp(request.email(), request.purpose(), request.code());
         
-        boolean verified = emailOtpService.verifyOtp(
-                request.email(), request.purpose(), request.code());
+        Map<String, Object> result = Map.of(
+            "verified", verified,
+            "email", request.email(),
+            "purpose", request.purpose()
+        );
         
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("verified", verified);
-        
-        if (verified) {
-            // For signup purpose, the email verification is sufficient
-            // Client can proceed with the verified email
-            if ("signup".equals(request.purpose())) {
-                logger.info("Email verification for signup successful: {}", request.email());
-            }
-            
-            return ResponseEntity.ok(
-                ApiResponse.success("Email OTP verification successful", responseData));
-        } else {
-            return ResponseEntity.ok(
-                ApiResponse.success("Invalid or expired email OTP", responseData));
-        }
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(result);
     }
     
     /**
-     * Check if an email has a pending OTP verification
+     * Check if there's a pending OTP for an email
      * 
-     * @param email Email address to check
-     * @param purpose Purpose of verification
-     * @return API response indicating if a pending verification exists
+     * @param email The email address to check
+     * @param purpose The purpose to check for
+     * @return Clean status response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/status")
-    public ResponseEntity<ApiResponse<Boolean>> checkOtpStatus(
-            @RequestParam("email") String email,
-            @RequestParam("purpose") String purpose) {
+    public ResponseEntity<Boolean> checkOtpStatus(@RequestParam String email, @RequestParam String purpose) {
+        log.info("Checking OTP status for email: {} and purpose: {}", email, purpose);
         
-        logger.info("Checking email OTP status for email and purpose: {}", purpose);
-        
+        // Check status - let exceptions bubble up
         boolean hasPending = emailOtpService.hasPendingOtp(email, purpose);
         
-        return ResponseEntity.ok(
-            ApiResponse.success(
-                hasPending ? "Email OTP pending" : "No pending email OTP", 
-                hasPending));
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(hasPending);
     }
 }

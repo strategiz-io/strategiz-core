@@ -2,8 +2,8 @@ package io.strategiz.service.device.controller;
 
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.service.device.DeviceIdentityService;
-import io.strategiz.service.device.model.DeviceRegistrationRequest;
-import io.strategiz.service.device.model.DeviceRegistrationResponse;
+import io.strategiz.service.device.model.CreateDeviceRequest;
+import io.strategiz.service.device.model.CreateDeviceResponse;
 import io.strategiz.service.device.util.DeviceFingerprintUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,9 +49,9 @@ public class AuthenticatedDeviceController {
      * @return Response with registered device details
      */
     @PostMapping("/register")
-    public ResponseEntity<DeviceRegistrationResponse> registerAuthenticatedDevice(
+    public ResponseEntity<CreateDeviceResponse> registerAuthenticatedDevice(
             HttpServletRequest request,
-            @RequestBody DeviceRegistrationRequest registrationRequest) {
+            @RequestBody CreateDeviceRequest registrationRequest) {
         
         // Get the authenticated user ID
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -85,7 +85,7 @@ public class AuthenticatedDeviceController {
                     userAgent);
             
             // Prepare response
-            DeviceRegistrationResponse response = new DeviceRegistrationResponse();
+            CreateDeviceResponse response = new CreateDeviceResponse();
             response.setDeviceId(device.getDeviceId());
             response.setRegistrationTime(device.getFirstSeen());
             response.setSuccess(true);
@@ -95,7 +95,7 @@ public class AuthenticatedDeviceController {
         } catch (Exception e) {
             log.error("Failed to register authenticated device: {}", e.getMessage(), e);
             
-            DeviceRegistrationResponse response = new DeviceRegistrationResponse();
+            CreateDeviceResponse response = new CreateDeviceResponse();
             response.setSuccess(false);
             response.setError("Failed to register device: " + e.getMessage());
             

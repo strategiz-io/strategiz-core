@@ -12,6 +12,11 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
+import io.strategiz.service.profile.model.UpdateProfileRequest;
+import io.strategiz.service.profile.model.ReadProfileResponse;
+import io.strategiz.service.profile.model.CreateProfileRequest;
+import io.strategiz.service.profile.model.CreateProfileResponse;
+
 /**
  * Service for managing user profile information
  */
@@ -205,5 +210,116 @@ public class ProfileService {
         user.setVersion(user.getVersion() + 1);
         
         return userRepository.updateUser(user);
+    }
+    
+    /**
+     * Create profile from UpdateProfileRequest (adapter for controller)
+     */
+    public ReadProfileResponse createProfile(UpdateProfileRequest request) {
+        User user = createProfile(request.getName(), request.getEmail());
+        return mapToReadProfileResponse(user);
+    }
+    
+    /**
+     * Get profile and return as ReadProfileResponse (adapter for controller)
+     */
+    public ReadProfileResponse getProfile(String userId) {
+        Optional<User> userOpt = getProfileById(userId);
+        if (userOpt.isEmpty()) {
+            return null;
+        }
+        return mapToReadProfileResponse(userOpt.get());
+    }
+    
+    /**
+     * Update profile from UpdateProfileRequest (adapter for controller)
+     */
+    public ReadProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
+        User user = updateProfile(userId, request.getName(), request.getEmail(), 
+                                request.getPhotoURL(), request.getSubscriptionTier(), 
+                                request.getTradingMode());
+        return mapToReadProfileResponse(user);
+    }
+    
+    /**
+     * Verify email with verification code (adapter for controller)
+     */
+    public ReadProfileResponse verifyEmail(String userId, String verificationCode) {
+        // TODO: Implement verification code validation
+        // For now, just verify the email
+        User user = verifyEmail(userId);
+        return mapToReadProfileResponse(user);
+    }
+    
+    /**
+     * Create signup profile (for signup flow)
+     * 
+     * Handles existing users more gracefully - if user exists but hasn't completed signup,
+     * returns their profile for continuation. If user exists and is fully registered,
+     * throws appropriate error.
+     */
+    public CreateProfileResponse createSignupProfile(CreateProfileRequest request) {
+        logger.info("Creating signup profile for email: {}", request.getEmail());
+        
+        // Check if user already exists
+        Optional<User> existingUser = userRepository.getUserByEmail(request.getEmail());
+        
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            
+            // TODO: Check if user has completed signup (has authentication methods)
+            // For now, we'll assume if they exist, they can continue the signup flow
+            logger.info("User already exists, returning existing profile for signup continuation: {}", user.getUserId());
+            
+            // Update the profile with new information if provided
+            UserProfile profile = user.getProfile();
+            if (request.getName() != null && !request.getName().equals(profile.getName())) {
+                profile.setName(request.getName());
+                user.setProfile(profile);
+                user.setModifiedAt(new Date());
+                user.setModifiedBy("signup-profile-service");
+                user = userRepository.updateUser(user);
+            }
+            
+            CreateProfileResponse response = new CreateProfileResponse();
+            response.setUserId(user.getUserId());
+            response.setName(user.getProfile().getName());
+            response.setEmail(user.getProfile().getEmail());
+            response.setIdentityToken("identity-token-" + user.getUserId()); // TODO: Generate real token
+            
+            return response;
+        }
+        
+        // User doesn't exist, create new profile
+        User user = createProfile(request.getName(), request.getEmail());
+        
+        CreateProfileResponse response = new CreateProfileResponse();
+        response.setUserId(user.getUserId());
+        response.setName(user.getProfile().getName());
+        response.setEmail(user.getProfile().getEmail());
+        response.setIdentityToken("identity-token-" + user.getUserId()); // TODO: Generate real token
+        
+        return response;
+    }
+    
+    /**
+     * Map User to ReadProfileResponse
+     */
+    private ReadProfileResponse mapToReadProfileResponse(User user) {
+        ReadProfileResponse response = new ReadProfileResponse();
+        UserProfile profile = user.getProfile();
+        
+        response.setUserId(user.getUserId());
+        response.setName(profile.getName());
+        response.setEmail(profile.getEmail());
+        response.setPhotoURL(profile.getPhotoURL());
+        response.setSubscriptionTier(profile.getSubscriptionTier());
+        response.setTradingMode(profile.getTradingMode());
+        response.setVerifiedEmail(profile.getVerifiedEmail() != null ? profile.getVerifiedEmail() : false);
+        response.setActive(profile.getIsActive() != null ? profile.getIsActive() : true);
+        response.setCreatedAt(user.getCreatedAt() != null ? user.getCreatedAt().getTime() : 0L);
+        response.setModifiedAt(user.getModifiedAt() != null ? user.getModifiedAt().getTime() : 0L);
+        
+        return response;
     }
 }

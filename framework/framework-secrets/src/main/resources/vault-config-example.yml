@@ -1,0 +1,23 @@
+# Example configuration for Vault integration
+# Copy these properties to your application.yml or application.properties file
+
+# Spring Cloud Vault configuration
+spring:
+  cloud:
+    vault:
+      enabled: true  # Enable/disable Vault integration
+      uri: http://localhost:8200  # Vault server address
+      token: your-vault-token-here  # Authentication token
+      kv:
+        enabled: true  # Enable KV secrets engine
+        backend: secret  # KV backend name
+        default-context: strategiz  # Default context path
+
+# Strategiz Vault framework configuration
+strategiz:
+  vault:
+    enabled: true  # Enable the framework's Vault integration
+    secrets-path: secret/strategiz  # Base path for secrets in Vault
+    cache-timeout-ms: 60000  # Cache secrets for 1 minute (0 to disable)
+    fail-fast: false  # Don't fail startup if Vault is unavailable
+    fallback-to-properties: true  # Use application properties as fallback

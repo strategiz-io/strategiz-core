@@ -6,8 +6,9 @@
 
     <parent>
         <groupId>io.strategiz</groupId>
-        <artifactId>framework</artifactId>
+        <artifactId>strategiz-core</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../..</relativePath>
     </parent>
 
     <artifactId>framework-api-docs</artifactId>

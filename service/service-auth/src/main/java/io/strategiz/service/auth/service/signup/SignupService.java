@@ -9,6 +9,8 @@ import java.util.HashMap;
 import io.strategiz.business.tokenauth.SessionAuthBusiness.TokenPair;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.signup.SignupRequest;
 import io.strategiz.service.auth.model.signup.SignupResponse;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
@@ -77,7 +79,7 @@ public class SignupService {
             // Step 2: Persist the user in the repository
             User createdUser = userRepository.createUser(user);
             if (createdUser == null) {
-                throw new RuntimeException("Failed to create user profile");
+                throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Failed to create user profile");
             }
             logger.info("Successfully created user with ID: {}", createdUser.getUserId());
             
@@ -87,7 +89,7 @@ public class SignupService {
             // Step 4: Set up the authentication method
             AuthMethodStrategy authStrategy = authStrategies.get(authMethod);
             if (authStrategy == null) {
-                throw new IllegalArgumentException("Unsupported authentication method: " + authMethod);
+                throw new StrategizException(AuthErrors.VALIDATION_FAILED, "Unsupported authentication method: " + authMethod);
             }
             
             Object authMethodData = authStrategy.setupAuthentication(createdUser);
@@ -95,12 +97,9 @@ public class SignupService {
             // Step 5: Build and return the response
             return responseBuilder.buildResponse(createdUser, tokenPair, authMethodData);
             
-        } catch (RuntimeException e) {
-            logger.error("Failed to process signup: {}", e.getMessage());
-            throw e;
         } catch (Exception e) {
             logger.error("Unexpected error during signup: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to complete signup process: " + e.getMessage());
+            throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Failed to complete signup process");
         }
     }
 

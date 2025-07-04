@@ -1,13 +1,14 @@
 package io.strategiz.service.auth.controller.oauth;
 
 import io.strategiz.service.auth.service.oauth.GoogleOAuthService;
-import io.strategiz.service.base.controller.BaseApiController;
-import io.strategiz.service.base.model.ApiResponseWrapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,11 +17,12 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.util.Map;
 
 /**
- * Controller for handling Google OAuth authentication flow
+ * Controller for handling Google OAuth authentication flow.
+ * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/auth/oauth/google")
-public class GoogleOAuthController extends BaseApiController {
+public class GoogleOAuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthController.class);
     
@@ -31,9 +33,23 @@ public class GoogleOAuthController extends BaseApiController {
     }
     
     /**
-     * Initiates the Google OAuth flow with direct redirect
+     * Get Google OAuth authorization URL as JSON (for frontend)
      * @param isSignup Whether this is part of signup flow or just login
-     * @return Redirect to Google's authorization page
+     * @return JSON response with authorization URL
+     */
+    @GetMapping("/authorization-url")
+    public ResponseEntity<Map<String, String>> getAuthorizationUrl(
+            @RequestParam(defaultValue = "false") boolean isSignup) {
+        
+        Map<String, String> authInfo = googleOAuthService.getAuthorizationUrl(isSignup);
+        logger.info("Providing Google OAuth authorization URL: {}", authInfo.get("url"));
+        return ResponseEntity.ok(authInfo);
+    }
+
+    /**
+     * Initiates the Google OAuth flow with direct redirect (legacy)
+     * @param isSignup Whether this is part of signup flow or just login
+     * @return Redirect to Google's authorization URL
      */
     @GetMapping("/auth")
     public RedirectView initiateOAuth(
@@ -45,7 +61,37 @@ public class GoogleOAuthController extends BaseApiController {
     }
     
     /**
-     * Handle OAuth callback from Google
+     * Handle OAuth callback from Google (JSON API for new frontend)
+     * 
+     * @param callbackRequest JSON request with code and state
+     * @return JSON response with user data and success status
+     */
+    @PostMapping("/callback")
+    public ResponseEntity<Map<String, Object>> handleCallbackJson(
+            @RequestBody Map<String, String> callbackRequest) {
+        
+        String code = callbackRequest.get("code");
+        String state = callbackRequest.get("state");
+        
+        logger.info("Received OAuth callback JSON with state: {}", state);
+        
+        try {
+            // Delegate to service to handle the OAuth callback
+            Map<String, Object> result = googleOAuthService.handleOAuthCallback(code, state, null);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            logger.error("Error in Google OAuth callback", e);
+            Map<String, Object> errorResponse = Map.of(
+                "success", false,
+                "error", e.getMessage(),
+                "message", "Google OAuth callback failed"
+            );
+            return ResponseEntity.ok(errorResponse);
+        }
+    }
+
+    /**
+     * Handle OAuth callback from Google (legacy redirect)
      * 
      * @param code Authorization code from Google
      * @param state State parameter for verification
@@ -68,24 +114,17 @@ public class GoogleOAuthController extends BaseApiController {
             
             if (!success) {
                 String error = (String) result.getOrDefault("error", "Unknown error");
-                return new RedirectView(String.format("%s/auth?error=%s", 
+                return new RedirectView(String.format("%s/auth/oauth/google/callback?error=%s", 
                         googleOAuthService.getFrontendUrl(), error));
             }
             
-            // Extract data for redirect
-            String userId = ((Map<?, ?>)result.get("user")).get("userId").toString();
-            String accessToken = (String) result.get("accessToken");
-            String refreshToken = (String) result.get("refreshToken");
-            boolean isNewUser = (Boolean) result.getOrDefault("isNewUser", false);
-            
-            // Build the redirect URL
-            String redirectUrl = String.format("%s/auth/callback?accessToken=%s&refreshToken=%s&userId=%s&isNewUser=%s", 
-                    googleOAuthService.getFrontendUrl(), accessToken, refreshToken, userId, isNewUser);
-            
-            return new RedirectView(redirectUrl);
+            // Extract data for redirect to our frontend callback handler
+            return new RedirectView(String.format("%s/auth/oauth/google/callback?code=%s&state=%s", 
+                    googleOAuthService.getFrontendUrl(), code, state));
         } catch (Exception e) {
             logger.error("Error in Google OAuth callback", e);
-            return new RedirectView(googleOAuthService.getFrontendUrl() + "/auth?error=" + e.getMessage());
+            return new RedirectView(String.format("%s/auth/oauth/google/callback?error=%s", 
+                    googleOAuthService.getFrontendUrl(), e.getMessage()));
         }
     }
-}
+} 

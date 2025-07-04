@@ -1,0 +1,196 @@
+package io.strategiz.service.auth.service.oauth;
+
+import io.strategiz.data.user.model.User;
+import io.strategiz.service.auth.builder.OAuthResponseBuilder;
+import io.strategiz.service.auth.config.OAuthCredentialsConfig;
+import io.strategiz.service.auth.manager.OAuthAuthenticationManager;
+import io.strategiz.service.auth.manager.OAuthUserManager;
+import io.strategiz.service.auth.model.signup.SignupResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Service for handling Google OAuth flows
+ * 
+ * TODO: Temporarily disabled until client-google module is created
+ * This service requires GoogleClient and GoogleTokenResponse classes
+ * 
+ * Follows SOLID principles:
+ * - Single Responsibility: Orchestrates Google OAuth authentication flow
+ * - Open/Closed: Open for extension through manager composition
+ * - Dependency Inversion: Depends on GoogleClient abstraction instead of RestTemplate
+ * - Interface Segregation: Uses focused OAuth managers and builders
+ */
+// @Service - COMMENTED OUT until Google client module is created
+public class GoogleOAuthService {
+
+    private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthService.class);
+
+    // private final GoogleClient googleClient; // COMMENTED OUT - Google client doesn't exist yet
+    private final OAuthUserManager oauthUserManager;
+    private final OAuthAuthenticationManager oauthAuthenticationManager;
+    private final OAuthResponseBuilder oauthResponseBuilder;
+    private final OAuthCredentialsConfig oauthConfig;
+
+    @Value("${application.frontend-url}")
+    private String frontendUrl;
+
+    public GoogleOAuthService(
+            // GoogleClient googleClient, // COMMENTED OUT
+            OAuthUserManager oauthUserManager,
+            OAuthAuthenticationManager oauthAuthenticationManager,
+            OAuthResponseBuilder oauthResponseBuilder,
+            OAuthCredentialsConfig oauthConfig) {
+        // this.googleClient = googleClient; // COMMENTED OUT
+        this.oauthUserManager = oauthUserManager;
+        this.oauthAuthenticationManager = oauthAuthenticationManager;
+        this.oauthResponseBuilder = oauthResponseBuilder;
+        this.oauthConfig = oauthConfig;
+    }
+
+    /**
+     * Get the authorization URL for Google OAuth
+     *
+     * @param isSignup Whether this is for signup flow
+     * @return The authorization URL and state
+     */
+    public Map<String, String> getAuthorizationUrl(boolean isSignup) {
+        String state = UUID.randomUUID().toString();
+        if (isSignup) {
+            state = "signup:" + state;
+        }
+        
+        OAuthCredentialsConfig.OAuthProvider googleConfig = oauthConfig.getGoogle();
+        String authUrl = UriComponentsBuilder.fromUriString(googleConfig.getAuthUrl())
+                .queryParam("client_id", googleConfig.getClientId())
+                .queryParam("redirect_uri", googleConfig.getRedirectUri())
+                .queryParam("state", state)
+                .queryParam("response_type", "code")
+                .queryParam("scope", "email profile openid")
+                .queryParam("prompt", "select_account")
+                .toUriString();
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("url", authUrl);
+        response.put("state", state);
+        
+        return response;
+    }
+    
+    /**
+     * Get frontend URL
+     * @return The frontend URL
+     */
+    public String getFrontendUrl() {
+        return frontendUrl;
+    }
+    
+    /**
+     * Handle OAuth callback from Google
+     * 
+     * @param code Authorization code from Google
+     * @param state State parameter for verification
+     * @param deviceId Optional device ID for fingerprinting
+     * @return Map containing user, tokens, and success status
+     */
+    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
+        try {
+            if (!isValidAuthorizationCode(code)) {
+                return oauthResponseBuilder.buildErrorResponse("Missing authorization code");
+            }
+            
+            GoogleTokenResponse tokenResponse = exchangeCodeForToken(code);
+            if (tokenResponse == null) {
+                return oauthResponseBuilder.buildErrorResponse("Failed to exchange authorization code for token");
+            }
+            
+            GoogleUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
+            if (userInfo == null) {
+                return oauthResponseBuilder.buildErrorResponse("Failed to get user info");
+            }
+            
+            return processUserAuthentication(userInfo, state);
+            
+        } catch (Exception e) {
+            logger.error("Unexpected error in Google OAuth callback", e);
+            return oauthResponseBuilder.buildErrorResponse(e.getMessage());
+        }
+    }
+
+    private boolean isValidAuthorizationCode(String code) {
+        if (code == null) {
+            logger.error("Missing authorization code");
+            return false;
+        }
+        return true;
+    }
+
+    private GoogleTokenResponse exchangeCodeForToken(String code) {
+        OAuthCredentialsConfig.OAuthProvider googleConfig = oauthConfig.getGoogle();
+        return googleClient.exchangeCodeForToken(
+            code, 
+            googleConfig.getClientId(), 
+            googleConfig.getClientSecret(), 
+            googleConfig.getRedirectUri()
+        ).orElse(null);
+    }
+
+    private GoogleUserInfo getUserInfo(String accessToken) {
+        return googleClient.getUserInfo(accessToken).orElse(null);
+    }
+
+    private Map<String, Object> processUserAuthentication(GoogleUserInfo userInfo, String state) {
+        boolean isSignup = oauthUserManager.isSignupFlow(state);
+        Optional<User> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
+        
+        if (isSignup && existingUser.isPresent()) {
+            return oauthResponseBuilder.buildErrorResponse("email_already_exists");
+        }
+        
+        if (isSignup || !existingUser.isPresent()) {
+            return handleSignupFlow(userInfo);
+        } else {
+            return handleLoginFlow(existingUser.get(), userInfo);
+        }
+    }
+
+    private Map<String, Object> handleSignupFlow(GoogleUserInfo userInfo) {
+        try {
+            SignupResponse signupResponse = oauthUserManager.createOAuthUser(
+                userInfo.getEmail(), 
+                userInfo.getName(), 
+                userInfo.getPictureUrl(), 
+                "google", 
+                userInfo.getGoogleId()
+            );
+            
+            return oauthResponseBuilder.buildSignupSuccessResponse(
+                signupResponse, 
+                userInfo.getEmail(), 
+                userInfo.getName()
+            );
+        } catch (Exception e) {
+            logger.error("Error during signup process", e);
+            return oauthResponseBuilder.buildErrorResponse("Signup failed: " + e.getMessage());
+        }
+    }
+
+    private Map<String, Object> handleLoginFlow(User user, GoogleUserInfo userInfo) {
+        oauthAuthenticationManager.ensureOAuthMethod(
+            user, 
+            "google", 
+            userInfo.getGoogleId(), 
+            userInfo.getEmail()
+        );
+        
+        return oauthResponseBuilder.buildLoginSuccessResponse(user);
+    }
+}

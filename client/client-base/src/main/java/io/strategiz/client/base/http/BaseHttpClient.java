@@ -1,6 +1,6 @@
 package io.strategiz.client.base.http;
 
-import io.strategiz.framework.exception.ApplicationClientException;
+// Using standard Java exceptions for client layer
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -77,12 +77,12 @@ public abstract class BaseHttpClient {
                 HttpStatus status = HttpStatus.valueOf(response.getStatusCode().value());
                 String message = String.format("API error: %s %s", status.value(), status.getReasonPhrase());
                 log.error(message);
-                throw new ApplicationClientException(message);
+                throw new RuntimeException(message);
             }
             return false;
         } catch (Exception e) {
             log.error("Error handling response: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Error handling API response", e);
+            throw new RuntimeException("Error handling API response", e);
         }
     }
     
@@ -91,7 +91,7 @@ public abstract class BaseHttpClient {
      * This enforces Strategiz's requirement to use ONLY real APIs, never mock data.
      * 
      * @param serviceName The name of the service being accessed
-     * @throws ApplicationClientException if we would be using mock data
+     * @throws RuntimeException if we would be using mock data
      */
     protected void validateRealApiEndpoint(String serviceName) {
         log.info("Validating real API endpoint for: {}", serviceName);

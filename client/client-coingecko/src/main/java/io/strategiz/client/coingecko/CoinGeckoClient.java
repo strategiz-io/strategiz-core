@@ -1,6 +1,6 @@
 package io.strategiz.client.coingecko;
 
-import io.strategiz.framework.exception.ApplicationClientException;
+// Using standard Java exceptions for client layer
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +95,7 @@ public class CoinGeckoClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Error fetching market data from CoinGecko API: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Failed to retrieve cryptocurrency market data", e);
+            throw new RuntimeException("Failed to retrieve cryptocurrency market data", e);
         }
     }
     
@@ -142,7 +142,7 @@ public class CoinGeckoClient {
             return coins.subList(0, Math.min(coins.size(), 10));
         } catch (RestClientException e) {
             log.error("Error searching cryptocurrencies from CoinGecko API: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Failed to search cryptocurrencies", e);
+            throw new RuntimeException("Failed to search cryptocurrencies", e);
         }
     }
     
@@ -193,7 +193,7 @@ public class CoinGeckoClient {
             return body;
         } catch (RestClientException e) {
             log.error("Error fetching top cryptocurrencies from CoinGecko API: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Failed to retrieve top cryptocurrencies", e);
+            throw new RuntimeException("Failed to retrieve top cryptocurrencies", e);
         }
     }
     
@@ -245,7 +245,7 @@ public class CoinGeckoClient {
             }
         } catch (RestClientException e) {
             log.error("Error fetching global market data from CoinGecko API: {}", e.getMessage(), e);
-            throw new ApplicationClientException("Failed to retrieve global cryptocurrency market data", e);
+            throw new RuntimeException("Failed to retrieve global cryptocurrency market data", e);
         }
     }
 }

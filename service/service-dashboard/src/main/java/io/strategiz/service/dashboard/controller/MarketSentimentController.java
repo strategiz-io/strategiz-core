@@ -1,14 +1,11 @@
 package io.strategiz.service.dashboard.controller;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.strategiz.service.base.controller.BaseApiController;
-import io.strategiz.service.base.model.ApiResponseWrapper;
 import io.strategiz.service.dashboard.MarketSentimentService;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 
@@ -20,14 +17,15 @@ import java.util.Map;
 
 /**
  * Controller for market sentiment data.
- * Provides endpoints for retrieving market sentiment and trend information.
+ * Provides endpoints for retrieving market sentiment and trends information.
+ * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/api/dashboard/market")
-public class MarketSentimentController extends BaseApiController {
+public class MarketSentimentController {
     
     private static final Logger log = LoggerFactory.getLogger(MarketSentimentController.class);
-    
+
     private final MarketSentimentService marketSentimentService;
     
     public MarketSentimentController(MarketSentimentService marketSentimentService) {
@@ -35,72 +33,64 @@ public class MarketSentimentController extends BaseApiController {
     }
     
     /**
-     * Get market sentiment data for a user.
+     * Get market sentiment data.
      * 
      * @param userId The user ID to get data for
-     * @return ResponseEntity with market sentiment data
+     * @return Clean market sentiment data - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/sentiment")
-    public ResponseEntity<ApiResponseWrapper<Map<String, Object>>> getMarketSentiment(@RequestParam(required = false) String userId) {
-        try {
-            // Use a default user ID if not provided
-            if (userId == null || userId.isEmpty()) {
-                userId = "test-user";
-            }
-            
-            log.info("Retrieving market sentiment for user: {}", userId);
-            
-            // Get market sentiment data from service
-            MarketSentimentResponse marketSentimentData = marketSentimentService.getMarketSentiment(userId);
-            
-            // Create response
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("marketSentiment", marketSentimentData);
-            
-            // Return successful response
-            return success(responseData);
-                
-        } catch (Exception e) {
-            log.error("Error retrieving market sentiment data", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, 
-                "MARKET_SENTIMENT_ERROR", 
-                "Error retrieving market sentiment data: " + e.getMessage());
+    public ResponseEntity<Map<String, Object>> getMarketSentiment(@RequestParam(required = false) String userId) {
+        // Use a default user ID if not provided
+        if (userId == null || userId.isEmpty()) {
+            userId = "test-user";
         }
+        
+        log.info("Retrieving market sentiment for user: {}", userId);
+        
+        // Get data from service - let exceptions bubble up
+        MarketSentimentResponse sentimentData = marketSentimentService.getMarketSentiment(userId);
+        
+        // Check if data exists
+        if (sentimentData == null) {
+            throw new RuntimeException("Market sentiment not found for user: " + userId);
+        }
+        
+        // Create response
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("marketSentiment", sentimentData);
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(responseData);
     }
     
     /**
-     * Get market trends data for a user.
+     * Get market trends data.
      * 
      * @param userId The user ID to get data for
-     * @return ResponseEntity with market trends data
+     * @return Clean market trends data - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @GetMapping("/trends") 
-    public ResponseEntity<ApiResponseWrapper<Map<String, Object>>> getMarketTrends(@RequestParam(required = false) String userId) {
-        try {
-            // Use a default user ID if not provided
-            if (userId == null || userId.isEmpty()) {
-                userId = "test-user";
-            }
-            
-            log.info("Retrieving market trends for user: {}", userId);
-            
-            // Get market trends data from service
-            // Note: If getMarketTrends doesn't exist in the service, you'll need to implement it
-            // or modify this code to use a different method
-            Map<String, Object> marketTrendsData = new HashMap<>(); // Placeholder for real data
-            
-            // Create response
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("marketTrends", marketTrendsData);
-            
-            // Return successful response
-            return success(responseData);
-                
-        } catch (Exception e) {
-            log.error("Error retrieving market trends data", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, 
-                "MARKET_TRENDS_ERROR", 
-                "Error retrieving market trends data: " + e.getMessage());
+    @GetMapping("/trends")
+    public ResponseEntity<Map<String, Object>> getMarketTrends(@RequestParam(required = false) String userId) {
+        // Use a default user ID if not provided
+        if (userId == null || userId.isEmpty()) {
+            userId = "test-user";
         }
+        
+        log.info("Retrieving market trends for user: {}", userId);
+        
+        // Get data from service and extract trends - let exceptions bubble up
+        MarketSentimentResponse sentimentData = marketSentimentService.getMarketSentiment(userId);
+        
+        // Check if data exists
+        if (sentimentData == null || sentimentData.getMarketTrends() == null) {
+            throw new RuntimeException("Market trends not found for user: " + userId);
+        }
+        
+        // Create response with just trends
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("marketTrends", sentimentData.getMarketTrends());
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(responseData);
     }
 }

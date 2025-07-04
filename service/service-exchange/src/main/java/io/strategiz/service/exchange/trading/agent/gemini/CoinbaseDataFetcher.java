@@ -1,7 +1,7 @@
 package io.strategiz.service.exchange.trading.agent.gemini;
 
 import io.strategiz.client.coinbase.CoinbaseClient;
-import io.strategiz.client.coinbase.exception.CoinbaseApiException;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ public class CoinbaseDataFetcher {
             log.info("Successfully fetched {} historical BTC price points from Coinbase", priceData.size());
             return priceData;
             
-        } catch (CoinbaseApiException e) {
+        } catch (StrategizException e) {
             log.error("Error fetching historical BTC data from Coinbase: {}", e.getMessage(), e);
             throw e;
         }

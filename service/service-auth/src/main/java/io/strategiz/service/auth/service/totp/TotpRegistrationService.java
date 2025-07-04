@@ -4,6 +4,8 @@ import io.strategiz.data.user.model.TotpAuthenticationMethod;
 import io.strategiz.data.user.model.User;
 import io.strategiz.data.user.model.AuthenticationMethod;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ public class TotpRegistrationService extends BaseTotpService {
     public String generateTotpSecret(String username) {
         Optional<User> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found: " + username);
+            throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
         }
         User user = userOpt.get();
         

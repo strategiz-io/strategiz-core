@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Property definitions -->
+    <springProfile name="!local,!dev">
+        <property name="LOG_LEVEL" value="INFO"/>
+        <property name="LOG_FORMAT" value="JSON"/>
+    </springProfile>
+    
+    <springProfile name="local,dev">
+        <property name="LOG_LEVEL" value="DEBUG"/>
+        <property name="LOG_FORMAT" value="CONSOLE"/>
+    </springProfile>
+    
+    <!-- Console appender for development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) [%X{requestId:-}] [%X{userId:-}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- JSON console appender for production -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <version/>
+                <logLevel/>
+                <message/>
+                <mdc/>
+                <loggerName/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "application": "strategiz-core",
+                            "environment": "${SPRING_PROFILES_ACTIVE:-unknown}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+    
+    <!-- File appender with JSON format -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH:-logs}/application.log</file>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp><timeZone>UTC</timeZone></timestamp>
+                <version/>
+                <logLevel/>
+                <message/>
+                <mdc/>
+                <loggerName/>
+                <stackTrace/>
+            </providers>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH:-logs}/application.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+    
+    <!-- Performance log appender -->
+    <appender name="PERFORMANCE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH:-logs}/performance.log</file>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel/>
+                <message/>
+                <mdc/>
+                <loggerName/>
+                <pattern>
+                    <pattern>
+                        {
+                            "application": "strategiz-core",
+                            "logType": "performance"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH:-logs}/performance.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>7</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <expression>return mdc != null &amp;&amp; "performance".equals(mdc.get("category"));</expression>
+            </evaluator>
+            <onMismatch>DENY</onMismatch>
+            <onMatch>ACCEPT</onMatch>
+        </filter>
+    </appender>
+    
+    <!-- Security log appender -->
+    <appender name="SECURITY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH:-logs}/security.log</file>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel/>
+                <message/>
+                <mdc/>
+                <loggerName/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "application": "strategiz-core",
+                            "logType": "security"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH:-logs}/security.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator>
+                <expression>return mdc != null &amp;&amp; "security".equals(mdc.get("category"));</expression>
+            </evaluator>
+            <onMismatch>DENY</onMismatch>
+            <onMatch>ACCEPT</onMatch>
+        </filter>
+    </appender>
+    
+    <!-- Async wrapper for performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="FILE"/>
+    </appender>
+    
+    <appender name="ASYNC_PERFORMANCE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="PERFORMANCE_FILE"/>
+    </appender>
+    
+    <appender name="ASYNC_SECURITY" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="SECURITY_FILE"/>
+    </appender>
+    
+    <!-- Logger configurations -->
+    
+    <!-- Strategiz application loggers -->
+    <logger name="io.strategiz" level="INFO" additivity="false">
+        <springProfile name="local,dev">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!dev">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </springProfile>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="ASYNC_PERFORMANCE"/>
+        <appender-ref ref="ASYNC_SECURITY"/>
+    </logger>
+    
+    <!-- Spring Boot loggers -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.springframework.web" level="DEBUG"/>
+    <logger name="org.springframework.security" level="DEBUG"/>
+    
+    <!-- Database loggers -->
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    
+    <!-- HTTP client loggers -->
+    <logger name="org.apache.http" level="INFO"/>
+    <logger name="org.springframework.web.client" level="DEBUG"/>
+    
+    <!-- Reduce noise from common libraries -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="reactor.netty" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.coyote" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
+    
+    <!-- Root logger -->
+    <root level="INFO">
+        <springProfile name="local,dev">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!dev">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </springProfile>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+    
+    <!-- Graceful shutdown -->
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+</configuration> 

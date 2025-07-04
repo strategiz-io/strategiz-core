@@ -1,132 +1,158 @@
 package io.strategiz.framework.exception;
 
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.context.request.WebRequest;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.UUID;
 
 /**
- * Global exception handler for all Spring controllers.
- * Converts exceptions into standardized API responses.
+ * Global exception handler for clean API responses.
+ * Returns the standard 4-field error format with proper HTTP status codes.
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handle Strategiz exceptions
+     * Handle Strategiz business exceptions with enum error codes
      */
     @ExceptionHandler(StrategizException.class)
-    public ResponseEntity<ApiResponse<Void>> handleStrategizException(StrategizException ex) {
-        // Log with domain context
-        log.error("Domain: {}, Error: {} ({}), Message: {}, Context: {}", 
-                  ex.getDomain(), 
-                  ex.getErrorDefinition().name(),
-                  ex.getErrorId(),
-                  ex.getMessage(), 
-                  ex.getContext());
+    public ResponseEntity<StandardErrorResponse> handleStrategizException(
+            StrategizException ex, HttpServletRequest request) {
         
-        // Create response
-        HttpStatus status = HttpStatus.valueOf(ex.getErrorCode().getHttpStatus());
-        ApiResponse<Void> response = ApiResponse.error(ex.getMessage(), ex.getErrorId());
+        String traceId = generateTraceId();
         
-        // Add context as metadata if available
-        if (!ex.getContext().isEmpty()) {
-            response.setMetadata(ex.getContext());
-        }
+        // Log the business exception with context
+        log.warn("Business exception [{}]: {} - {}", 
+            traceId, ex.getErrorCode(), ex.getMessage());
         
-        return ResponseEntity.status(status).body(response);
+        // Create clean 4-field error response
+        StandardErrorResponse errorResponse = new StandardErrorResponse(
+            ex.getErrorCode(),
+            ex.getMessage() != null ? ex.getMessage() : "An error occurred", 
+            ex.getMessage() != null ? ex.getMessage() : ex.getErrorCode(),
+            "https://docs.strategiz.io/errors/" + ex.getErrorCode().toLowerCase()
+        );
+        
+        // Add trace ID to MDC for response headers (StandardHeadersInterceptor will add it)
+        MDC.put("traceId", traceId);
+        
+        // Return appropriate HTTP status based on error code
+        HttpStatus status = mapErrorCodeToHttpStatus(ex.getErrorCode());
+        return ResponseEntity.status(status).body(errorResponse);
     }
 
     /**
-     * Handle validation exceptions from @Valid annotations
+     * Handle unexpected runtime exceptions
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<StandardErrorResponse> handleRuntimeException(
+            RuntimeException ex, HttpServletRequest request) {
         
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        String traceId = generateTraceId();
         
-        log.warn("Validation errors: {}", errors);
+        // Log the unexpected exception with full stack trace
+        log.error("Unexpected runtime exception [{}]: {}", traceId, ex.getMessage(), ex);
         
-        ApiResponse<Map<String, String>> response = ApiResponse.error(
-                "Validation failed. See 'data' for details.");
+        StandardErrorResponse errorResponse = new StandardErrorResponse(
+            "INTERNAL_ERROR",
+            "An unexpected error occurred. Please contact support with the trace ID from response headers.",
+            "Exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
+            "https://docs.strategiz.io/errors/server/internal-error"
+        );
         
-        return ResponseEntity.badRequest()
-                .body(response.setMetadata(Map.of("errors", errors)));
-    }
-    
-    /**
-     * Handle bind exceptions
-     */
-    @ExceptionHandler(BindException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ApiResponse<List<String>>> handleBindException(BindException ex) {
-        List<String> errors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.toList());
-        
-        log.warn("Binding errors: {}", errors);
-        
-        ApiResponse<List<String>> response = ApiResponse.error("Binding failed");
-        return ResponseEntity.badRequest()
-                .body(response.setMetadata(Map.of("errors", errors)));
-    }
-    
-    /**
-     * Handle type mismatch exceptions
-     */
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String error = ex.getName() + " should be of type " + ex.getRequiredType().getName();
-        
-        log.warn("Type mismatch: {}", error);
-        
-        ApiResponse<Void> response = ApiResponse.error(
-                "Type mismatch: " + error);
-                
-        return ResponseEntity.badRequest().body(response);
+        MDC.put("traceId", traceId);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
     /**
      * Handle all other exceptions
      */
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<ApiResponse<Void>> handleAllExceptions(Exception ex) {
-        // Generate an error ID for tracking
-        String errorId = UUID.randomUUID().toString();
+    public ResponseEntity<StandardErrorResponse> handleGenericException(
+            Exception ex, HttpServletRequest request) {
         
-        // Log the exception with stack trace
-        log.error("Unhandled exception (ID: {}): {}", errorId, ex.getMessage(), ex);
+        String traceId = generateTraceId();
         
-        ApiResponse<Void> response = ApiResponse.error(
-                "An unexpected error occurred. Please contact support with this error ID: " + errorId,
-                errorId);
-                
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(response);
+        // Log the unexpected exception with full stack trace
+        log.error("Unexpected exception [{}]: {}", traceId, ex.getMessage(), ex);
+        
+        StandardErrorResponse errorResponse = new StandardErrorResponse(
+            "INTERNAL_ERROR",
+            "An unexpected error occurred. Please contact support with the trace ID from response headers.",
+            "Exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
+            "https://docs.strategiz.io/errors/server/internal-error"
+        );
+        
+        MDC.put("traceId", traceId);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    /**
+     * Map error codes to appropriate HTTP status codes
+     */
+    private HttpStatus mapErrorCodeToHttpStatus(String errorCode) {
+        if (errorCode == null) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        
+        // Authentication/Authorization errors
+        if (errorCode.contains("INVALID_CREDENTIALS") || 
+            errorCode.contains("AUTHENTICATION_FAILED") ||
+            errorCode.contains("INVALID_TOKEN") ||
+            errorCode.contains("TOKEN_REVOKED")) {
+            return HttpStatus.UNAUTHORIZED;
+        }
+        
+        if (errorCode.contains("ACCESS_DENIED") ||
+            errorCode.contains("FORBIDDEN")) {
+            return HttpStatus.FORBIDDEN;
+        }
+        
+        // Not found errors
+        if (errorCode.contains("NOT_FOUND") ||
+            errorCode.contains("USER_NOT_FOUND") ||
+            errorCode.contains("PROFILE_NOT_FOUND")) {
+            return HttpStatus.NOT_FOUND;
+        }
+        
+        // Validation errors
+        if (errorCode.contains("VALIDATION_FAILED") ||
+            errorCode.contains("INVALID_REQUEST") ||
+            errorCode.contains("INVALID_") ||
+            errorCode.contains("ALREADY_EXISTS")) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        
+        // Rate limiting
+        if (errorCode.contains("RATE_LIMITED") ||
+            errorCode.contains("TOO_MANY_REQUESTS")) {
+            return HttpStatus.TOO_MANY_REQUESTS;
+        }
+        
+        // External service errors
+        if (errorCode.contains("API_") ||
+            errorCode.contains("CONNECTION_FAILED") ||
+            errorCode.contains("SERVICE_UNAVAILABLE")) {
+            return HttpStatus.BAD_GATEWAY;
+        }
+        
+        // Default to 500 for unknown errors
+        return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
+
+    /**
+     * Generate a unique trace ID for error tracking
+     */
+    private String generateTraceId() {
+        return UUID.randomUUID().toString().substring(0, 8);
     }
 }

@@ -14,12 +14,6 @@
     <description>Base components for Strategiz client modules</description>
     
     <dependencies>
-        <!-- Framework Core for exceptions and logging -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>framework-core</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
         <!-- Spring dependencies -->
         <dependency>

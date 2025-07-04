@@ -1,7 +1,7 @@
 package io.strategiz.client.coinbase;
 
-import io.strategiz.client.coinbase.exception.CoinbaseApiException;
-import io.strategiz.client.coinbase.model.CoinbaseResponse;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.client.coinbase.CoinbaseErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.client.utils.URIBuilder;
@@ -80,7 +80,7 @@ public class CoinbaseClient {
         } catch (Exception e) {
             String errorDetails = extractErrorDetails(e);
             log.error("Error making public request to {}: {}", endpoint, errorDetails);
-            throw new CoinbaseApiException("Error making public request to Coinbase API", e, errorDetails);
+            throw new StrategizException(CoinbaseErrors.API_ERROR, errorDetails);
         }
     }
 
@@ -95,15 +95,14 @@ public class CoinbaseClient {
      * @return API response
      */
     public <T> T signedRequest(HttpMethod method, String endpoint, Map<String, String> params, 
-                              String apiKey, String privateKey, ParameterizedTypeReference<T> responseType) 
-            throws CoinbaseApiException {
+                              String apiKey, String privateKey, ParameterizedTypeReference<T> responseType) {
         try {
             // Validate inputs
             if (apiKey == null || apiKey.trim().isEmpty()) {
-                throw new CoinbaseApiException("API key cannot be null or empty", null, "API key validation error");
+                throw new StrategizException(CoinbaseErrors.INVALID_RESPONSE, "API key validation error");
             }
             if (privateKey == null || privateKey.trim().isEmpty()) {
-                throw new CoinbaseApiException("Private key cannot be null or empty", null, "Private key validation error");
+                throw new StrategizException(CoinbaseErrors.INVALID_RESPONSE, "Private key validation error");
             }
             
             // Format the private key properly before using it
@@ -173,10 +172,10 @@ public class CoinbaseClient {
             
             // Build a detailed error message
             String detailedError = String.format("Coinbase API returned HTTP %d: %s", statusCode, responseBody);
-            throw new CoinbaseApiException(detailedError, e, responseBody);
+            throw new StrategizException(CoinbaseErrors.API_ERROR, detailedError);
         } catch (Exception e) {
             log.error("Error making signed request to Coinbase API: {}", e.getMessage(), e);
-            throw new CoinbaseApiException("Error making signed request to Coinbase API", e);
+            throw new StrategizException(CoinbaseErrors.API_ERROR, e.getMessage());
         }
     }
     

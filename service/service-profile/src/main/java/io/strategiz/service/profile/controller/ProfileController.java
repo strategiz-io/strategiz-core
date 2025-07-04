@@ -1,205 +1,175 @@
 package io.strategiz.service.profile.controller;
 
-import io.strategiz.data.user.model.User;
-import io.strategiz.service.base.controller.BaseApiController;
-import io.strategiz.service.base.model.ApiResponseWrapper;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+
 import io.strategiz.service.profile.ProfileService;
-import io.strategiz.service.profile.model.ProfileRequest;
-import io.strategiz.service.profile.model.ProfileResponse;
-import jakarta.validation.Valid;
+import io.strategiz.service.profile.model.UpdateProfileRequest;
+import io.strategiz.service.profile.model.ReadProfileResponse;
+import io.strategiz.service.profile.model.UpdateProfileVerificationRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
+import java.security.Principal;
+
+import jakarta.validation.Valid;
 
 /**
- * REST controller for user profile management
+ * Controller for user profile management.
+ * Provides endpoints for creating, reading, updating profile information.
+ * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/api/profile")
-public class ProfileController extends BaseApiController {
+@Validated
+public class ProfileController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProfileController.class);
+    private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
+
     private final ProfileService profileService;
-    
+
     public ProfileController(ProfileService profileService) {
         this.profileService = profileService;
     }
-    
+
     /**
      * Create a new user profile
      * 
-     * @param request Profile creation request with name, email, etc.
-     * @return Created profile data
+     * @param request Profile creation request
+     * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping
-    public ResponseEntity<ApiResponseWrapper<ProfileResponse>> createProfile(@Valid @RequestBody ProfileRequest request) {
-        try {
-            User user = profileService.createProfile(request.getName(), request.getEmail());
-            ProfileResponse response = mapUserToProfileResponse(user);
-            
-            return success(response, "Profile created successfully");
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid profile creation request: {}", e.getMessage());
-            return badRequest(e.getMessage());
-        } catch (Exception e) {
-            logger.error("Error creating profile", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, "PROFILE_CREATE_ERROR", "Failed to create profile: " + e.getMessage());
-        }
+    public ResponseEntity<ReadProfileResponse> createProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        log.info("Creating profile for user: {}", request.getEmail());
+        
+        // Create profile - let exceptions bubble up
+        ReadProfileResponse profile = profileService.createProfile(request);
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.status(HttpStatus.CREATED).body(profile);
     }
-    
+
     /**
-     * Get current user's profile
+     * Get the current user's profile
      * 
-     * @param userDetails Current authenticated user
-     * @return User's profile data
+     * @param principal The authenticated user principal
+     * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/me")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponseWrapper<ProfileResponse>> getMyProfile(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            String userId = userDetails.getUsername(); // Assuming UserDetails username is the user ID
-            Optional<User> userOpt = profileService.getProfileById(userId);
-            
-            if (userOpt.isPresent()) {
-                ProfileResponse response = mapUserToProfileResponse(userOpt.get());
-                return success(response);
-            } else {
-                return notFound("User profile", userId);
-            }
-        } catch (Exception e) {
-            logger.error("Error retrieving profile", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, "PROFILE_RETRIEVE_ERROR", "Failed to retrieve profile: " + e.getMessage());
+    public ResponseEntity<ReadProfileResponse> getMyProfile(Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("Authentication required");
         }
+        
+        String userId = principal.getName();
+        log.info("Retrieving profile for user: {}", userId);
+        
+        // Get profile - let exceptions bubble up
+        ReadProfileResponse profile = profileService.getProfile(userId);
+        
+        if (profile == null) {
+            throw new RuntimeException("Profile not found for user: " + userId);
+        }
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(profile);
     }
-    
+
     /**
-     * Get a user profile by ID (admin only)
+     * Get profile by user ID
      * 
-     * @param userId ID of the user to retrieve
-     * @return User's profile data
+     * @param userId The user ID to get profile for
+     * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponseWrapper<ProfileResponse>> getProfileById(@PathVariable String userId) {
-        try {
-            Optional<User> userOpt = profileService.getProfileById(userId);
-            
-            if (userOpt.isPresent()) {
-                ProfileResponse response = mapUserToProfileResponse(userOpt.get());
-                return success(response);
-            } else {
-                return notFound("User profile", userId);
-            }
-        } catch (Exception e) {
-            logger.error("Error retrieving profile", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, "PROFILE_RETRIEVE_ERROR", "Failed to retrieve profile: " + e.getMessage());
+    public ResponseEntity<ReadProfileResponse> getProfileById(@PathVariable String userId) {
+        log.info("Retrieving profile for user ID: {}", userId);
+        
+        // Get profile - let exceptions bubble up
+        ReadProfileResponse profile = profileService.getProfile(userId);
+        
+        if (profile == null) {
+            throw new RuntimeException("Profile not found for user: " + userId);
         }
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(profile);
     }
-    
+
     /**
-     * Update current user's profile
+     * Update the current user's profile
      * 
      * @param request Profile update request
-     * @param userDetails Current authenticated user
-     * @return Updated profile data
+     * @param principal The authenticated user principal
+     * @return Clean updated profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PutMapping("/me")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponseWrapper<ProfileResponse>> updateMyProfile(
-            @Valid @RequestBody ProfileRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            String userId = userDetails.getUsername(); // Assuming UserDetails username is the user ID
-            User user = profileService.updateProfile(userId, 
-                    request.getName(), 
-                    request.getEmail(),
-                    request.getPhotoURL(), 
-                    request.getSubscriptionTier(), 
-                    request.getTradingMode());
-            
-            ProfileResponse response = mapUserToProfileResponse(user);
-            return success(response, "Profile updated successfully");
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid profile update request: {}", e.getMessage());
-            return badRequest(e.getMessage());
-        } catch (Exception e) {
-            logger.error("Error updating profile", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, "PROFILE_UPDATE_ERROR", "Failed to update profile: " + e.getMessage());
+    public ResponseEntity<ReadProfileResponse> updateMyProfile(
+            @Valid @RequestBody UpdateProfileRequest request,
+            Principal principal) {
+        
+        if (principal == null) {
+            throw new RuntimeException("Authentication required");
         }
+        
+        String userId = principal.getName();
+        log.info("Updating profile for user: {}", userId);
+        
+        // Update profile - let exceptions bubble up
+        ReadProfileResponse updatedProfile = profileService.updateProfile(userId, request);
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(updatedProfile);
     }
-    
+
     /**
-     * Verify email for current user
+     * Verify user's email address
      * 
-     * @param userDetails Current authenticated user
-     * @return Updated profile data
+     * @param request Verification request containing verification code
+     * @param principal The authenticated user principal
+     * @return Clean verified profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/me/verify-email")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponseWrapper<ProfileResponse>> verifyEmail(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            String userId = userDetails.getUsername(); // Assuming UserDetails username is the user ID
-            User user = profileService.verifyEmail(userId);
-            
-            ProfileResponse response = mapUserToProfileResponse(user);
-            return success(response, "Email verified successfully");
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid email verification request: {}", e.getMessage());
-            return badRequest(e.getMessage());
-        } catch (Exception e) {
-            logger.error("Error verifying email", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_VERIFY_ERROR", "Failed to verify email: " + e.getMessage());
+    @PostMapping("/verify-email")
+    public ResponseEntity<ReadProfileResponse> verifyEmail(
+            @Valid @RequestBody UpdateProfileVerificationRequest request,
+            Principal principal) {
+        
+        if (principal == null) {
+            throw new RuntimeException("Authentication required");
         }
+        
+        String userId = principal.getName();
+        log.info("Verifying email for user: {}", userId);
+        
+        // Verify email - let exceptions bubble up
+        ReadProfileResponse verifiedProfile = profileService.verifyEmail(userId, request.getVerificationCode());
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(verifiedProfile);
     }
-    
+
     /**
-     * Deactivate current user's profile
+     * Deactivate the current user's profile
      * 
-     * @param userDetails Current authenticated user
-     * @return Response with status
+     * @param principal The authenticated user principal
+     * @return Empty response indicating successful deactivation
      */
-    @PostMapping("/me/deactivate")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponseWrapper<Void>> deactivateProfile(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        try {
-            String userId = userDetails.getUsername(); // Assuming UserDetails username is the user ID
-            profileService.deactivateProfile(userId);
-            
-            return success(null, "Profile deactivated successfully");
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid profile deactivation request: {}", e.getMessage());
-            return badRequest(e.getMessage());
-        } catch (Exception e) {
-            logger.error("Error deactivating profile", e);
-            return error(HttpStatus.INTERNAL_SERVER_ERROR, "PROFILE_DEACTIVATE_ERROR", "Failed to deactivate profile: " + e.getMessage());
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deactivateProfile(Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("Authentication required");
         }
-    }
-    
-    /**
-     * Helper method to map User entity to ProfileResponse DTO
-     */
-    private ProfileResponse mapUserToProfileResponse(User user) {
-        return new ProfileResponse(
-            user.getUserId(),
-            user.getProfile().getName(),
-            user.getProfile().getEmail(),
-            user.getProfile().getPhotoURL(),
-            user.getProfile().getVerifiedEmail(),
-            user.getProfile().getSubscriptionTier(),
-            user.getProfile().getTradingMode(),
-            user.getProfile().getIsActive(),
-            user.getCreatedAt() != null ? user.getCreatedAt().getTime() : 0,
-            user.getModifiedAt() != null ? user.getModifiedAt().getTime() : 0
-        );
+        
+        String userId = principal.getName();
+        log.info("Deactivating profile for user: {}", userId);
+        
+        // Deactivate profile - let exceptions bubble up
+        profileService.deactivateProfile(userId);
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.noContent().build();
     }
 }

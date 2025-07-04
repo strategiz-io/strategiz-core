@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'Strategiz Dashboards'
+    orgId: 1
+    folder: 'Strategiz'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards 

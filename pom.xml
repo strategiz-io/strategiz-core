@@ -20,8 +20,10 @@
 
     <modules>
         <!-- Framework Modules (Build First) -->
-        <module>framework/framework-core</module>
         <module>framework/framework-api-docs</module>
+        <module>framework/framework-exception</module>
+        <module>framework/framework-logging</module>
+        <module>framework/framework-secrets</module>
 
         
         <!-- Data Modules (Build Second) -->
@@ -42,6 +44,8 @@
         <module>client/client-coinbase</module>
         <module>client/client-coingecko</module>
         <module>client/client-kraken</module>
+        <module>client/client-facebook</module>
+        <module>client/client-google</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -202,7 +206,22 @@
             <!-- Framework Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>framework-core</artifactId>
+                <artifactId>framework-api-docs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>framework-exception</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>framework-logging</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>framework-secrets</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -288,11 +307,6 @@
                 <groupId>com.google.api</groupId>
                 <artifactId>gax-httpjson</artifactId>
                 <version>${google.api.gax.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.api-client</groupId>
-                <artifactId>google-api-client</artifactId>
-                <version>${google.api.client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.http-client</groupId>

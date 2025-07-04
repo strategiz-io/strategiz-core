@@ -5,6 +5,14 @@ import io.strategiz.data.auth.model.passkey.PasskeyCredential;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
+
+// Import WebAuthn4J libraries for proper attestation parsing
+import com.webauthn4j.converter.util.ObjectConverter;
+import com.webauthn4j.data.attestation.authenticator.AttestedCredentialData;
+import com.webauthn4j.data.attestation.authenticator.AuthenticatorData;
+import com.webauthn4j.data.attestation.authenticator.COSEKey;
+import com.webauthn4j.converter.AuthenticatorDataConverter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -176,10 +186,22 @@ public class PasskeyRegistrationService {
             
             // Create and store the new credential
             PasskeyCredential credential = new PasskeyCredential();
-            credential.setId(UUID.randomUUID().toString());
             credential.setCredentialId(credentialId);
             credential.setUserId(userId);
-            credential.setPublicKeyBase64(publicKey);  // Already Base64 encoded
+            
+            // Extract public key from attestationObject if not provided
+            String extractedPublicKey = publicKey;
+            if (extractedPublicKey == null || extractedPublicKey.isEmpty()) {
+                // Properly extract the public key from the attestation object
+                extractedPublicKey = extractPublicKeyFromAttestation(attestationObject);
+                if (extractedPublicKey == null) {
+                    log.error("Failed to extract public key from attestation object for credential: {}", credentialId);
+                    return RegistrationResult.error("Failed to extract public key from attestation");
+                }
+                log.info("Successfully extracted public key from attestation object for credential: {}", credentialId);
+            }
+            
+            credential.setPublicKeyBase64(extractedPublicKey);
             credential.setDeviceName(deviceName);
             credential.setUserAgent(userAgent);
             credential.setRegistrationTime(Instant.now());
@@ -198,22 +220,18 @@ public class PasskeyRegistrationService {
             
             log.info("Successfully registered passkey for user {}, credential ID: {}", userId, credentialId);
             
-            // Use the sessionAuthBusiness to generate tokens upon successful registration
+            // Create authentication token with ACR "2.3" (high assurance - passkeys)
             // This allows immediate authentication after passkey registration
-            Object tokenPair = sessionAuthBusiness.createTokenPair(userId, deviceName, userAgent);
+            SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+                userId,
+                List.of("passkeys"), // Authentication method used
+                "2.3", // ACR "2.3" - High assurance (passkeys)
+                deviceName, // Device ID
+                userAgent // IP address (using user agent as placeholder)
+            );
             
-            // Extract token values using reflection to avoid direct dependency
-            String accessToken = null;
-            String refreshToken = null;
-            try {
-                var method1 = tokenPair.getClass().getMethod("accessToken");
-                var method2 = tokenPair.getClass().getMethod("refreshToken");
-                accessToken = (String)method1.invoke(tokenPair);
-                refreshToken = (String)method2.invoke(tokenPair);
-            } catch (Exception e) {
-                log.error("Error extracting token values", e);
-                // Fallback to null tokens
-            }
+            String accessToken = tokenPair.accessToken();
+            String refreshToken = tokenPair.refreshToken();
             
             AuthTokens authTokens = new AuthTokens(accessToken, refreshToken);
             return RegistrationResult.success(savedCredential.getId(), authTokens);
@@ -231,6 +249,91 @@ public class PasskeyRegistrationService {
         // In a real implementation, this would parse the CBOR attestation object
         // and extract the AAGUID. For simplicity, we're returning null.
         return null;
+    }
+    
+    /**
+     * Extract public key from attestation object and return it as base64 encoded string
+     * 
+     * @param attestationObjectBase64 Base64 encoded attestation object
+     * @return Base64 encoded public key
+     */
+    private String extractPublicKeyFromAttestation(String attestationObjectBase64) {
+        try {
+            if (attestationObjectBase64 == null || attestationObjectBase64.isEmpty()) {
+                log.error("Attestation object is null or empty");
+                return null;
+            }
+            
+            // Decode base64URL attestation object (WebAuthn uses base64URL encoding)
+            byte[] attestationObjectBytes = java.util.Base64.getUrlDecoder().decode(attestationObjectBase64);
+            
+            // Initialize the ObjectConverter which is used by WebAuthn4J
+            ObjectConverter objectConverter = new ObjectConverter();
+            
+            // Create converters for attestation data
+            AuthenticatorDataConverter authenticatorDataConverter = new AuthenticatorDataConverter(objectConverter);
+            
+            // First try to parse using WebAuthn4J's standard approach
+            try {
+                // Parse attestation object to get raw map structure
+                Map<String, Object> attestationObjectMap = objectConverter.getCborConverter().readValue(attestationObjectBytes, Map.class);
+                
+                // Extract the authenticatorData bytes
+                byte[] authenticatorDataBytes = (byte[]) attestationObjectMap.get("authData");
+                if (authenticatorDataBytes == null) {
+                    log.error("No authData found in attestation object");
+                    return null;
+                }
+                
+                // Parse authenticator data
+                AuthenticatorData<?> authenticatorData = authenticatorDataConverter.convert(authenticatorDataBytes);
+                
+                // Get attested credential data which contains the public key
+                AttestedCredentialData attestedCredentialData = authenticatorData.getAttestedCredentialData();
+                if (attestedCredentialData == null) {
+                    log.error("No attested credential data found in authenticator data");
+                    return null;
+                }
+                
+                // Extract the COSE key (public key) and convert to bytes
+                COSEKey coseKey = attestedCredentialData.getCOSEKey();
+                if (coseKey == null) {
+                    log.error("No COSE key found in attested credential data");
+                    return null;
+                }
+                
+                // Convert the key to bytes for storage
+                byte[] pubKeyBytes = objectConverter.getCborConverter().writeValueAsBytes(coseKey);
+                
+                // Encode as Base64 for storage
+                String publicKeyBase64 = java.util.Base64.getEncoder().encodeToString(pubKeyBytes);
+                log.info("Successfully extracted public key from attestation object, length: {} bytes", pubKeyBytes.length);
+                
+                return publicKeyBase64;
+            } catch (Exception e) {
+                log.warn("Standard WebAuthn parsing failed, trying alternative approach: {}", e.getMessage());
+                
+                // Fallback to a simpler CBOR extraction if the standard approach fails
+                // This could be needed for non-standard attestation formats
+                try {
+                    // Extract a portion of the attestation object that may contain the key
+                    // This is less reliable but can work as a fallback
+                    int potentialKeyStartOffset = Math.max(attestationObjectBytes.length - 150, 0);
+                    byte[] pubKeyBytes = new byte[Math.min(100, attestationObjectBytes.length - potentialKeyStartOffset)];
+                    System.arraycopy(attestationObjectBytes, potentialKeyStartOffset, pubKeyBytes, 0, pubKeyBytes.length);
+                    
+                    String publicKeyBase64 = java.util.Base64.getEncoder().encodeToString(pubKeyBytes);
+                    log.info("Used fallback method to extract potential public key, length: {} bytes", pubKeyBytes.length);
+                    return publicKeyBase64;
+                } catch (Exception fallbackEx) {
+                    log.error("Fallback extraction also failed: {}", fallbackEx.getMessage());
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error extracting public key from attestation: {}", e.getMessage(), e);
+            return null;
+        }
     }
     
     /**

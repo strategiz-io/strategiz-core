@@ -84,3 +84,106 @@ Exchange API credentials are handled with the utmost security:
 If you discover a security vulnerability in Strategiz Core, please report it by sending an email to security@strategiz.io. 
 
 Please do not disclose security vulnerabilities publicly until they have been addressed by the team.
+
+# Strategiz Security Architecture
+
+## Overview
+
+Strategiz implements a **progressive authentication system** with **risk-based access control** using **PASETO v4.public tokens** and **OIDC-compliant claims**.
+
+## 🏗️ Architecture Components
+
+### **Core Modules**
+- **`business-token-auth`** - Token creation, claims population, session management
+- **`service-auth`** - Authentication endpoints, signup flow, passkey registration  
+- **`service-base`** - Shared CRUD operation constants
+- **Individual Services** - Resource-specific access control
+
+### **Authentication Flow**
+```
+1. Profile Creation    → ACR "1" (Partial Authentication)
+2. Auth Method Setup   → ACR "2.x" (Full Authentication + Assurance Level)
+3. Provider Integration → OAuth consent flow or demo mode
+```
+
+## 🎫 Token Technology
+
+### **PASETO v4.public**
+- **Public key cryptography** with Ed25519 signatures
+- **Stateless** - all information in token
+- **Tamper-proof** - cryptographically signed
+- **No encryption** - claims are readable but verified
+
+### **HTTP-Only Cookies**
+```http
+Set-Cookie: strategiz_session=v4.public.eyJ...; 
+           HttpOnly; Secure; SameSite=Strict; 
+           Path=/; Max-Age=86400; Domain=strategiz.io
+```
+
+## 🔐 Security Model
+
+### **Progressive Authentication**
+- **Step 1**: Profile creation (limited access)
+- **Step 2**: Authentication method setup (full access based on strength)
+- **Step 3**: Provider integration (extended capabilities)
+
+### **Risk-Based Access Control**
+- **ACR Levels**: Authentication completion + assurance strength
+- **Dynamic Scopes**: Permissions calculated based on authentication strength
+- **Operation Limits**: Financial limits based on assurance level
+
+### **Assurance Levels**
+- **Basic (2.1)**: Single-factor authentication
+- **Substantial (2.2)**: Multi-factor authentication  
+- **High (2.3)**: Hardware cryptographic authentication
+
+## 🛡️ Security Features
+
+### **Token Security**
+- ✅ **Obfuscated Claims** - Numeric mappings for auth methods and assurance
+- ✅ **Short Expiry** - 24-hour access tokens
+- ✅ **Unique IDs** - JTI for token revocation
+- ✅ **Audience Validation** - Tokens bound to specific services
+
+### **Authentication Security**
+- ✅ **Passkeys (FIDO2/WebAuthn)** - Phishing-resistant authentication
+- ✅ **TOTP** - Time-based one-time passwords
+- ✅ **SMS OTP** - Secondary verification channel
+- ✅ **Device Fingerprinting** - Additional security layer
+
+### **Access Control**
+- ✅ **Least Privilege** - Minimal scopes granted
+- ✅ **Operation-Level Control** - Granular permissions
+- ✅ **Resource Isolation** - Each service owns its resources
+- ✅ **Step-up Authentication** - Higher assurance for sensitive operations
+
+## 📊 Compliance
+
+### **Standards Alignment**
+- **OIDC** - OpenID Connect claims and flows
+- **OAuth2** - Scope-based authorization
+- **NIST SP 800-63** - Digital identity guidelines (AAL1/AAL2/AAL3)
+- **FIDO2** - Modern authentication standards
+
+### **Security Considerations**
+- **XSS Protection** - HTTP-only cookies
+- **CSRF Protection** - SameSite cookies
+- **Token Leakage** - No sensitive data in tokens
+- **Audit Trail** - Authentication method tracking
+
+## 🔗 Related Documentation
+
+- [`business-token-auth/README.md`](../business/business-token-auth/README.md) - Complete token specification
+- [`service-auth/README.md`](../service/service-auth/README.md) - Authentication endpoints
+- [API_ENDPOINTS.md](./API_ENDPOINTS.md) - Service endpoint documentation
+
+## 🚀 Quick Start
+
+For developers implementing authentication:
+
+1. **Token Validation**: Check `acr` claim for required assurance level
+2. **Scope Checking**: Use `@PreAuthorize("hasScope('operation:resource')")`
+3. **Claims Access**: Extract user info from `sub`, track methods via `amr`
+
+See detailed implementation examples in [`business-token-auth` documentation](../business/business-token-auth/README.md).

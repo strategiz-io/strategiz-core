@@ -25,8 +25,12 @@
         <module>framework/framework-logging</module>
         <module>framework/framework-secrets</module>
 
+        <!-- Business Modules (Build Second) -->
+        <module>business/business-base</module>
+        <module>business/business-token-auth</module>
+        <module>business/business-portfolio</module>
         
-        <!-- Data Modules (Build Second) -->
+        <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
         <module>data/data-base</module>
         <module>data/data-exchange</module>
@@ -37,7 +41,7 @@
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->
         
-        <!-- Client Modules (Build Third) -->
+        <!-- Client Modules (Build Fourth) -->
         <module>client/client-base</module>
         <module>client/client-alphavantage</module>
         <module>client/client-binanceus</module>
@@ -49,7 +53,7 @@
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
-        <!-- Service Modules (Build Fourth) -->
+        <!-- Service Modules (Build Fifth) -->
         <module>service/service-base</module>
         <module>service/service-strategy</module>
         <module>service/service-portfolio</module>
@@ -61,7 +65,7 @@
         <module>service/service-dashboard</module>
         <module>service/service-profile</module>
         
-        <!-- API Modules (Build Fifth) -->
+        <!-- API Modules (Build Sixth) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->
         <!-- Removed api-dashboard module as it was consolidated into service-dashboard -->
         <!-- Removed api-profile module as it was consolidated into service-profile -->
@@ -125,6 +129,23 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>data-user</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Business Modules -->
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-token-auth</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-portfolio</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -254,6 +275,16 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>client-kraken</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-facebook</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-google</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

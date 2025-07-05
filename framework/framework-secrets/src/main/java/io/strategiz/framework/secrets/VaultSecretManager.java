@@ -39,9 +39,38 @@ public class VaultSecretManager implements SecretManager {
     
     @Override
     public String getSecret(String key) {
-        // Implementation details would go here
-        // For now, throwing exception as not implemented
-        throw new StrategizException(SecretsErrors.CONFIGURATION_ERROR, "Vault integration not implemented");
+        // Check cache first
+        CachedSecret cached = secretCache.get(key);
+        if (cached != null && !cached.isExpired()) {
+            log.debug("Retrieved secret from cache: {}", key);
+            return cached.getValue();
+        }
+        
+        try {
+            String vaultPath = buildVaultPath(key);
+            String secretField = getSecretField(key);
+            
+            log.debug("Fetching secret from Vault: path={}, field={}", vaultPath, secretField);
+            VaultResponse response = vaultTemplate.read(vaultPath);
+            
+            if (response == null || response.getData() == null) {
+                throw new StrategizException(SecretsErrors.SECRET_NOT_FOUND, "Secret not found: " + key);
+            }
+            
+            Object value = response.getData().get(secretField);
+            if (value == null) {
+                throw new StrategizException(SecretsErrors.SECRET_NOT_FOUND, "Secret field not found: " + key);
+            }
+            
+            String secretValue = value.toString();
+            cacheSecretIfEnabled(key, secretValue);
+            
+            return secretValue;
+            
+        } catch (Exception e) {
+            log.error("Failed to retrieve secret: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to retrieve secret: " + e.getMessage());
+        }
     }
     
     @Override
@@ -49,6 +78,7 @@ public class VaultSecretManager implements SecretManager {
         try {
             return getSecret(key);
         } catch (StrategizException e) {
+            log.debug("Secret not found, using default value: {}", key);
             return defaultValue;
         }
     }
@@ -82,14 +112,29 @@ public class VaultSecretManager implements SecretManager {
             String vaultPath = buildVaultPath(key);
             String secretField = getSecretField(key);
             
+            // Read existing data first to preserve other fields
             Map<String, Object> data = new HashMap<>();
+            try {
+                VaultResponse existing = vaultTemplate.read(vaultPath);
+                if (existing != null && existing.getData() != null) {
+                    data.putAll(existing.getData());
+                }
+            } catch (Exception e) {
+                log.debug("No existing data at path: {}", vaultPath);
+            }
+            
+            // Add/update the specific field
             data.put(secretField, value);
             
             vaultTemplate.write(vaultPath, data);
             cacheSecretIfEnabled(key, value);
+            
+            log.info("Successfully stored secret: {}", key);
             return true;
+            
         } catch (Exception e) {
-            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, e.getMessage());
+            log.error("Failed to store secret: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to store secret: " + e.getMessage());
         }
     }
     
@@ -97,9 +142,30 @@ public class VaultSecretManager implements SecretManager {
     public boolean removeSecret(String key) {
         try {
             String vaultPath = buildVaultPath(key);
-            vaultTemplate.delete(vaultPath);
+            String secretField = getSecretField(key);
+            
+            // Read existing data first
+            VaultResponse existing = vaultTemplate.read(vaultPath);
+            if (existing == null || existing.getData() == null) {
+                log.debug("Secret not found for removal: {}", key);
+                return false;
+            }
+            
+            Map<String, Object> data = new HashMap<>(existing.getData());
+            data.remove(secretField);
+            
+            if (data.isEmpty()) {
+                // If no fields left, delete the entire path
+                vaultTemplate.delete(vaultPath);
+            } else {
+                // Otherwise, write back the remaining fields
+                vaultTemplate.write(vaultPath, data);
+            }
+            
             secretCache.remove(key);
+            log.info("Successfully removed secret: {}", key);
             return true;
+            
         } catch (Exception e) {
             log.error("Failed to remove secret: {}", key, e);
             return false;
@@ -108,9 +174,9 @@ public class VaultSecretManager implements SecretManager {
     
     /**
      * Convert a property key to a Vault path
+     * Example: "auth.google.client-id" -> "secret/strategiz/auth/google"
      */
     private String buildVaultPath(String key) {
-        // Example: Convert "auth.facebook.client-id" to "secret/strategiz/auth/facebook"
         String[] parts = key.split("\\.");
         
         if (parts.length <= 1) {
@@ -128,9 +194,9 @@ public class VaultSecretManager implements SecretManager {
     
     /**
      * Extract the secret field name from the key
+     * Example: Get "client-id" from "auth.google.client-id"
      */
     private String getSecretField(String key) {
-        // Example: Get "client-id" from "auth.facebook.client-id"
         String[] parts = key.split("\\.");
         return parts.length > 0 ? parts[parts.length - 1] : key;
     }
@@ -141,6 +207,7 @@ public class VaultSecretManager implements SecretManager {
     private void cacheSecretIfEnabled(String key, String value) {
         if (properties.getCacheTimeoutMs() > 0) {
             secretCache.put(key, new CachedSecret(value, System.currentTimeMillis() + properties.getCacheTimeoutMs()));
+            log.debug("Cached secret: {}", key);
         }
     }
     

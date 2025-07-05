@@ -60,6 +60,11 @@
             <artifactId>framework-exception</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Facebook OAuth client -->
         <dependency>
             <groupId>io.strategiz</groupId>

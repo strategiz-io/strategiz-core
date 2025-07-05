@@ -1,0 +1,29 @@
+# Multi-stage build for testing
+FROM maven:3.9-openjdk-21-slim AS builder
+WORKDIR /app
+
+# Copy pom.xml files and source code
+COPY pom.xml .
+COPY framework/ framework/
+COPY data/ data/
+COPY client/ client/
+COPY business/ business/
+COPY service/ service/
+COPY application/ application/
+
+# Build the application
+RUN mvn clean install -DskipTests
+
+# Runtime image
+FROM openjdk:21-slim
+WORKDIR /app
+
+# Copy the built JAR file from the builder stage
+COPY --from=builder /app/application/target/application-1.0-SNAPSHOT.jar app.jar
+
+# Environment variables
+ENV PORT=8080
+ENV SPRING_PROFILES_ACTIVE=prod
+
+# Run the application
+CMD ["java", "-jar", "app.jar"] 

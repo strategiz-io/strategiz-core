@@ -7,9 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.vault.core.VaultTemplate;
-import org.springframework.vault.support.VaultResponse;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,13 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * HashiCorp Vault implementation of the SecretManager interface.
+ * Uses direct HTTP calls to Vault API instead of Spring Cloud Vault.
  */
 @Service
 public class VaultSecretManager implements SecretManager {
     
     private static final Logger log = LoggerFactory.getLogger(VaultSecretManager.class);
     
-    private final VaultTemplate vaultTemplate;
+    private final RestTemplate restTemplate;
     private final VaultProperties properties;
     private final Environment environment;
     
@@ -31,8 +33,8 @@ public class VaultSecretManager implements SecretManager {
     private final Map<String, CachedSecret> secretCache = new ConcurrentHashMap<>();
     
     @Autowired
-    public VaultSecretManager(VaultTemplate vaultTemplate, VaultProperties properties, Environment environment) {
-        this.vaultTemplate = vaultTemplate;
+    public VaultSecretManager(VaultProperties properties, Environment environment) {
+        this.restTemplate = new RestTemplate();
         this.properties = properties;
         this.environment = environment;
     }
@@ -51,13 +53,13 @@ public class VaultSecretManager implements SecretManager {
             String secretField = getSecretField(key);
             
             log.debug("Fetching secret from Vault: path={}, field={}", vaultPath, secretField);
-            VaultResponse response = vaultTemplate.read(vaultPath);
+            Map<String, Object> data = readFromVault(vaultPath);
             
-            if (response == null || response.getData() == null) {
+            if (data == null || data.isEmpty()) {
                 throw new StrategizException(SecretsErrors.SECRET_NOT_FOUND, "Secret not found: " + key);
             }
             
-            Object value = response.getData().get(secretField);
+            Object value = data.get(secretField);
             if (value == null) {
                 throw new StrategizException(SecretsErrors.SECRET_NOT_FOUND, "Secret field not found: " + key);
             }
@@ -115,9 +117,9 @@ public class VaultSecretManager implements SecretManager {
             // Read existing data first to preserve other fields
             Map<String, Object> data = new HashMap<>();
             try {
-                VaultResponse existing = vaultTemplate.read(vaultPath);
-                if (existing != null && existing.getData() != null) {
-                    data.putAll(existing.getData());
+                Map<String, Object> existing = readFromVault(vaultPath);
+                if (existing != null) {
+                    data.putAll(existing);
                 }
             } catch (Exception e) {
                 log.debug("No existing data at path: {}", vaultPath);
@@ -126,7 +128,7 @@ public class VaultSecretManager implements SecretManager {
             // Add/update the specific field
             data.put(secretField, value);
             
-            vaultTemplate.write(vaultPath, data);
+            writeToVault(vaultPath, data);
             cacheSecretIfEnabled(key, value);
             
             log.info("Successfully stored secret: {}", key);
@@ -145,21 +147,21 @@ public class VaultSecretManager implements SecretManager {
             String secretField = getSecretField(key);
             
             // Read existing data first
-            VaultResponse existing = vaultTemplate.read(vaultPath);
-            if (existing == null || existing.getData() == null) {
+            Map<String, Object> existing = readFromVault(vaultPath);
+            if (existing == null || existing.isEmpty()) {
                 log.debug("Secret not found for removal: {}", key);
                 return false;
             }
             
-            Map<String, Object> data = new HashMap<>(existing.getData());
+            Map<String, Object> data = new HashMap<>(existing);
             data.remove(secretField);
             
             if (data.isEmpty()) {
                 // If no fields left, delete the entire path
-                vaultTemplate.delete(vaultPath);
+                deleteFromVault(vaultPath);
             } else {
                 // Otherwise, write back the remaining fields
-                vaultTemplate.write(vaultPath, data);
+                writeToVault(vaultPath, data);
             }
             
             secretCache.remove(key);
@@ -173,18 +175,91 @@ public class VaultSecretManager implements SecretManager {
     }
     
     /**
+     * Read data from Vault using HTTP API
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readFromVault(String path) {
+        try {
+            String url = properties.getAddress() + "/v1/" + path;
+            HttpHeaders headers = createHeaders();
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> responseBody = response.getBody();
+                Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+                if (data != null && data.containsKey("data")) {
+                    // KV v2 format
+                    return (Map<String, Object>) data.get("data");
+                } else {
+                    // KV v1 format or direct data
+                    return data;
+                }
+            }
+            
+            return null;
+            
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return null;
+            }
+            throw e;
+        }
+    }
+    
+    /**
+     * Write data to Vault using HTTP API
+     */
+    private void writeToVault(String path, Map<String, Object> data) {
+        String url = properties.getAddress() + "/v1/" + path;
+        HttpHeaders headers = createHeaders();
+        
+        // For KV v2, wrap data in "data" field
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("data", data);
+        
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+        restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+    }
+    
+    /**
+     * Delete data from Vault using HTTP API
+     */
+    private void deleteFromVault(String path) {
+        String url = properties.getAddress() + "/v1/" + path;
+        HttpHeaders headers = createHeaders();
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        
+        restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+    }
+    
+    /**
+     * Create HTTP headers with Vault token
+     */
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        String token = environment.getProperty("VAULT_TOKEN", "root-token");
+        headers.set("X-Vault-Token", token);
+        
+        return headers;
+    }
+    
+    /**
      * Convert a property key to a Vault path
-     * Example: "auth.google.client-id" -> "secret/strategiz/auth/google"
+     * Example: "auth.google.client-id" -> "secret/data/strategiz/auth/google"
      */
     private String buildVaultPath(String key) {
         String[] parts = key.split("\\.");
         
         if (parts.length <= 1) {
-            return properties.getSecretsPath() + "/" + key;
+            return properties.getSecretsPath() + "/data/" + key;
         }
         
         // Skip the last part which will be the field name
-        StringBuilder path = new StringBuilder(properties.getSecretsPath());
+        StringBuilder path = new StringBuilder(properties.getSecretsPath() + "/data");
         for (int i = 0; i < parts.length - 1; i++) {
             path.append("/").append(parts[i]);
         }

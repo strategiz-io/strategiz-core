@@ -28,6 +28,7 @@ public class AuthOAuthConfig {
     private static final Logger logger = LoggerFactory.getLogger(AuthOAuthConfig.class);
 
     private Map<String, AuthOAuthSettings> providers;
+    private String frontendUrl;
     
     @Autowired(required = false)
     private SecretManager secretManager;
@@ -38,6 +39,14 @@ public class AuthOAuthConfig {
 
     public void setProviders(Map<String, AuthOAuthSettings> providers) {
         this.providers = providers;
+    }
+
+    public String getFrontendUrl() {
+        return frontendUrl;
+    }
+
+    public void setFrontendUrl(String frontendUrl) {
+        this.frontendUrl = frontendUrl;
     }
 
     public AuthOAuthSettings getGoogle() {

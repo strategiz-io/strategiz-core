@@ -2,6 +2,7 @@ package io.strategiz.service.auth.service.passkey;
 
 import io.strategiz.data.auth.model.passkey.PasskeyCredential;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
+import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,13 +30,16 @@ import java.util.stream.Collectors;
  * </pre>
  */
 @Service
-public class PasskeyManagementService {
+public class PasskeyManagementService extends BaseService {
     private static final Logger logger = LoggerFactory.getLogger(PasskeyManagementService.class);
     
     private final PasskeyCredentialRepository credentialRepository;
     
     public PasskeyManagementService(PasskeyCredentialRepository credentialRepository) {
         this.credentialRepository = credentialRepository;
+        
+        // Ensure we're using real passkey management, not mock data
+        ensureRealApiData("PasskeyManagementService");
     }
     
     /**

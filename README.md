@@ -1,299 +1,194 @@
-# Strategiz Core Platform
+# 📖 Strategiz Documentation
 
-Strategiz is a comprehensive financial platform for portfolio management, strategy development, and multi-exchange trading.
+Welcome to the Strategiz platform documentation! This comprehensive guide covers all aspects of the platform, from architecture and development to deployment and security.
 
-## 🚀 Quick Start
+## 📋 **Quick Navigation**
 
-### Local Development
-```bash
-# Backend
-cd scripts/local
-./build-and-deploy.sh    # Linux/Mac
-build-and-deploy.bat     # Windows
+### 🎯 **Getting Started**
+- [Developer Guide](development/developer-guide.md) - Complete guide for new developers
+- [Architecture Overview](architecture/overview.md) - High-level system architecture
+- [API Overview](api/overview.md) - API endpoints and usage
 
-# Frontend
-cd strategiz-ui
-npm install && npm start
-```
+### 🛠️ **Local Development Setup**
+Get up and running quickly with the Strategiz platform:
 
-### Production Deployment
-```bash
-# Set OAuth credentials first
-cd deployment
-./deploy-to-cloud-run.ps1
-```
-
-## 📁 Project Structure
-
-```
-strategiz-core/
-├── deployment/              # 🚀 All deployment configs
-│   ├── deploy-to-cloud-run.ps1
-│   ├── cloudbuild*.yaml
-│   ├── firebase.json
-│   └── README.md           # Deployment guide
-├── scripts/local/          # 🛠️ Local development
-├── docs/                   # 📚 All documentation
-├── observability/          # 📊 Monitoring configs
-├── application/            # 🎯 Main Spring Boot app
-├── service/               # 🔧 Microservices
-├── business/              # 💼 Business logic
-├── data/                  # 📄 Data layer
-├── client/                # 🌐 External API clients
-├── framework/             # 🏗️ Common frameworks
-└── strategiz-ui/          # 💻 React frontend
-```
-
-## 🔧 Core Features
-
-### Authentication
-- **Passkey Authentication** - Passwordless login with WebAuthn
-- **OAuth Integration** - Google, Facebook login
-- **Multi-Factor Authentication** - TOTP, SMS, Email OTP
-
-### Portfolio Management
-- **Multi-Exchange Support** - Coinbase, Kraken, Binance.US
-- **Real-time Market Data** - Live prices and portfolio tracking
-- **Strategy Development** - Custom trading strategies
-
-### Architecture
-- **Microservices** - Modular service architecture
-- **Spring Boot** - Java 21 backend
-- **React** - TypeScript frontend
-- **Firebase** - Firestore database
-- **Google Cloud** - Cloud Run deployment
-
-## 📖 Documentation
-
-- **[Deployment Guide](deployment/README.md)** - All deployment options
-- **[Architecture](docs/ARCHITECTURE.md)** - System architecture
-- **[API Documentation](docs/API_ENDPOINTS.md)** - REST API reference
-- **[Security](docs/SECURITY.md)** - Security implementation
-- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Development setup
-
-## 🛠️ Development
-
-### Backend Requirements
-- Java 21
-- Maven 3.8+
-- Docker (for deployment)
-
-### Frontend Requirements
-- Node.js 18+
-- npm or yarn
-
-### Environment Setup
-```bash
-# Required OAuth credentials
-export AUTH_GOOGLE_CLIENT_ID="your-google-client-id"
-export AUTH_GOOGLE_CLIENT_SECRET="your-google-client-secret"
-export AUTH_FACEBOOK_CLIENT_ID="your-facebook-client-id"
-export AUTH_FACEBOOK_CLIENT_SECRET="your-facebook-client-secret"
-```
-
-## 🚀 Deployment
-
-### Local Development
-```bash
-cd scripts/local && ./build-and-deploy.sh
-```
-
-### Production (Google Cloud Run)
-```bash
-cd deployment && ./deploy-to-cloud-run.ps1
-```
-
-### CI/CD Pipeline
-```bash
-gcloud builds submit --config deployment/cloudbuild.yaml
-```
-
-## 📊 Monitoring
-
-- **Prometheus** - Metrics collection
-- **Grafana** - Visualization dashboards
-- **Cloud Monitoring** - Google Cloud metrics
-- **Actuator** - Spring Boot health checks
-
-## 🔐 Security
-
-- **OAuth 2.0** - Secure authentication
-- **PASETO Tokens** - Secure stateless tokens
-- **WebAuthn** - Passwordless authentication
-- **CORS Configuration** - Cross-origin security
-- **Environment Variables** - Secure configuration
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and ensure they pass
-5. Submit a pull request
-
-## 📝 License
-
-This project is proprietary software. All rights reserved.
-
-## 🆘 Support
-
-For issues and questions:
-- Check the [documentation](docs/)
-- Review [troubleshooting](deployment/README.md#troubleshooting)
-- Contact the development team
-
-# Strategiz Documentation
-
-[![Deploy to GitHub Pages](https://github.com/strategiz-io/strategiz-docs/actions/workflows/sync-and-deploy.yml/badge.svg)](https://github.com/strategiz-io/strategiz-docs/actions/workflows/sync-and-deploy.yml)
-
-Welcome to the **Strategiz Documentation** repository! This site provides comprehensive documentation for the Strategiz trading platform, built with [Docusaurus](https://docusaurus.io/) and automatically synced from the main [strategiz-core](https://github.com/strategiz-io/strategiz-core) repository.
-
-## 📖 Live Documentation
-
-Visit the live documentation site: **[https://strategiz-io.github.io/strategiz-docs/](https://strategiz-io.github.io/strategiz-docs/)**
-
-## 🏗️ Architecture
-
-This documentation site follows a **hybrid approach**:
-
-- **📝 Source of Truth**: Documentation files remain in the main `strategiz-core` repository alongside the code
-- **🔄 Automatic Sync**: GitHub Actions automatically pulls and processes documentation files
-- **🌐 Beautiful Presentation**: Docusaurus provides a professional, searchable documentation website
-
-## 🚀 Quick Start
-
-### Local Development
-
-1. **Install Dependencies**
+1. **Install Prerequisites:**
    ```bash
-   npm install
+   # Install HashiCorp Vault
+   brew tap hashicorp/tap
+   brew install hashicorp/tap/vault
    ```
 
-2. **Sync Documentation**
+2. **Start Vault and Build:**
    ```bash
-   npm run sync-docs
+   # Start Vault in development mode
+   ./scripts/local/start-vault-local.sh
+   
+   # Build the project
+   ./scripts/local/build.sh
+   
+   # Run the application
+   cd application && mvn spring-boot:run
    ```
 
-3. **Start Local Development Server**
-   ```bash
-   npm start
-   ```
+3. **Access the Application:**
+   - Backend: http://localhost:8080
+   - Frontend: http://localhost:3000 (after running `npm start` in strategiz-ui/)
+   - Vault UI: http://localhost:8200 (token: `strategiz-local-token`)
 
-4. **Build for Production**
-   ```bash
-   npm run build
-   ```
+**For complete setup instructions, see the [Developer Guide](development/developer-guide.md#local-development-setup)**
 
-### Automatic Deployment
+### 🏗️ **Architecture & Design**
+- [Detailed Architecture](architecture/detailed.md) - In-depth architectural documentation
+- [System Diagram](architecture/diagram.html) - Interactive architecture diagram
+- [Base Classes Standards](development/base-classes-standards.md) - Development standards for controllers and services
 
-The documentation is automatically deployed to GitHub Pages when:
-- Changes are pushed to the `main` branch
-- Daily at 6 AM UTC (to catch updates from the main repo)
-- Manually triggered via GitHub Actions
+### 🔧 **Development**
+- [Developer Guide](development/developer-guide.md) - Complete development setup and workflow
+- [Base Classes Standards](development/base-classes-standards.md) - BaseController and BaseService usage
+- [Naming Conventions](development/naming-conventions.md) - Code and file naming standards
+- [Scripts](development/scripts.md) - Available build and utility scripts
 
-## 📁 Documentation Structure
+### 🚀 **Deployment**
+- [Deployment Overview](deployment/overview.md) - Deployment strategy and environments
+- [Deployment Guide](deployment/guide.md) - Detailed deployment instructions
+- [Deploy Scripts](deployment/deploy.md) - Automated deployment scripts and commands
 
-The documentation is organized into the following sections:
+### 🔒 **Security**
+- [Security Overview](security/overview.md) - Security architecture and best practices
+- [Secrets Management](security/secrets-management.md) - HashiCorp Vault integration and secret handling
 
-### 🏛️ Architecture
-- **Overview**: High-level system architecture
-- **Microservices**: Service boundaries and communication
-- **Database**: Data models and relationships
+### 🔌 **Integrations**
+- [Exchange Integrations](integrations/exchanges.md) - Cryptocurrency exchange integrations
 
-### 🔐 Authentication
-- **TOTP**: Time-based One-Time Password implementation
-- **OAuth**: Social login integration
-- **SMS**: SMS-based authentication
-- **Email OTP**: Email-based verification
-- **Passkey**: WebAuthn/FIDO2 implementation
-
-### 🔌 API Reference
-- **Endpoints**: Complete API documentation
-- **Authentication**: API authentication methods
-- **Services**: Individual service APIs
-
-### 🚀 Deployment
-- **Docker**: Container deployment
-- **Kubernetes**: Orchestration setup
-- **Cloud**: Cloud provider configurations
-
-## 🔄 Synchronization Process
-
-The sync process works as follows:
-
-1. **GitHub Actions Trigger**: On schedule, push, or manual trigger
-2. **Document Fetching**: Pulls latest markdown files from `strategiz-core`
-3. **Processing**: Adds Docusaurus frontmatter and fixes links
-4. **Site Building**: Generates static site with Docusaurus
-5. **Deployment**: Deploys to GitHub Pages
-6. **Commit**: Commits synced docs back to repository
-
-## 📋 Mapped Documentation Files
-
-The following files are automatically synced:
-
-| Source (strategiz-core) | Destination (strategiz-docs) |
-|-------------------------|------------------------------|
-| `docs/ARCHITECTURE.md` | `docs/architecture/overview.md` |
-| `docs/API_ENDPOINTS.md` | `docs/api/endpoints.md` |
-| `docs/DEPLOY.md` | `docs/deployment/overview.md` |
-| `service/service-auth/docs/TOTP.md` | `docs/auth/totp.md` |
-| `service/service-auth/docs/OAuth.md` | `docs/auth/oauth.md` |
-| `README.md` | `docs/intro.md` |
-| *...and more* | *See scripts/sync-docs.js* |
-
-## 🛠️ Configuration
-
-### Adding New Documentation
-
-To add new documentation files to the sync process:
-
-1. Add the mapping to `scripts/sync-docs.js` in the `DOC_MAPPINGS` object
-2. Update the sidebar configuration in `sidebars.js`
-3. The next sync will automatically include the new files
-
-### Customizing the Site
-
-- **Branding**: Update `docusaurus.config.js` for site metadata
-- **Styling**: Modify `src/css/custom.css` for custom styles
-- **Homepage**: Edit `src/pages/index.js` for homepage content
-- **Navigation**: Update `sidebars.js` for documentation structure
-
-## 🤝 Contributing
-
-This repository primarily serves as a documentation presentation layer. For content changes:
-
-1. **Documentation Content**: Edit files in the main `strategiz-core` repository
-2. **Site Configuration**: Submit PRs to this repository for presentation changes
-3. **New Documentation**: Add new files to the main repo and update sync configuration
-
-## 📝 Scripts
-
-- `npm start`: Start local development server
-- `npm run build`: Build for production
-- `npm run sync-docs`: Manually sync documentation from main repo
-- `npm run clear`: Clear Docusaurus cache
-
-## 📊 Features
-
-- **📱 Responsive Design**: Works on all devices
-- **🔍 Search**: Built-in search functionality
-- **🌙 Dark Mode**: Light/dark theme toggle
-- **📖 Versioning**: Support for documentation versions
-- **🔗 Link Validation**: Automatic broken link detection
-- **📈 Analytics**: Google Analytics integration ready
-
-## 🆘 Support
-
-For issues with:
-- **Documentation Content**: Create issues in [strategiz-core](https://github.com/strategiz-io/strategiz-core/issues)
-- **Site Functionality**: Create issues in this repository
-- **Questions**: Use [GitHub Discussions](https://github.com/strategiz-io/strategiz-core/discussions)
-
-## 📄 License
-
-This project is licensed under the same terms as the main Strategiz platform.
+### 📡 **API Documentation**
+- [API Overview](api/overview.md) - Complete API endpoint documentation
+- [API Endpoints](api/endpoints.md) - Detailed endpoint specifications
 
 ---
 
-**🎯 Maintained by the Strategiz Team** | **📧 Contact**: [team@strategiz.io](mailto:team@strategiz.io)
+## 🏗️ **Documentation Structure**
+
+```
+docs/
+├── api/              # API documentation
+│   ├── overview.md   # API overview and authentication
+│   └── endpoints.md  # Detailed endpoint specifications
+├── architecture/     # System architecture
+│   ├── overview.md   # High-level architecture overview
+│   ├── detailed.md   # Detailed architecture documentation
+│   └── diagram.html  # Interactive architecture diagram
+├── development/      # Development guides & standards
+│   ├── developer-guide.md        # Complete development guide
+│   ├── base-classes-standards.md # BaseController & BaseService standards
+│   ├── naming-conventions.md     # Code and file naming standards
+│   └── scripts.md               # Build and utility scripts
+├── deployment/       # Deployment guides
+│   ├── overview.md   # Deployment strategy overview
+│   ├── guide.md      # Detailed deployment instructions
+│   └── deploy.md     # Deployment scripts and commands
+├── security/         # Security documentation
+│   ├── overview.md           # Security architecture overview
+│   └── secrets-management.md # Vault integration and secrets
+└── integrations/     # Third-party integrations
+    └── exchanges.md  # Cryptocurrency exchange integrations
+```
+
+---
+
+## 🎯 **Documentation Standards**
+
+### **File Naming Convention**
+- **Lowercase with hyphens** for multi-word files: `base-classes-standards.md`
+- **Descriptive names** that clearly indicate content
+- **Consistent extensions** (.md for markdown, .html for HTML)
+
+### **Folder Organization**
+- **Logical grouping** by functionality/topic
+- **Consistent folder names** (lowercase, descriptive)
+- **Clear hierarchy** with main topics as top-level folders
+
+### **Content Standards**
+- **Clear headings** with emoji indicators for easy scanning
+- **Comprehensive examples** for all code snippets
+- **Cross-references** between related documents
+- **Regular updates** to keep content current
+
+---
+
+## 🚀 **Popular Documentation Paths**
+
+### **For New Developers**
+1. [Developer Guide](development/developer-guide.md) - Start here
+2. [Base Classes Standards](development/base-classes-standards.md) - Learn the patterns
+3. [Architecture Overview](architecture/overview.md) - Understand the system
+4. [API Overview](api/overview.md) - API basics
+
+### **For DevOps/Deployment**
+1. [Deployment Overview](deployment/overview.md) - Deployment strategy
+2. [Security Overview](security/overview.md) - Security considerations
+3. [Secrets Management](security/secrets-management.md) - Vault setup
+4. [Deployment Guide](deployment/guide.md) - Step-by-step deployment
+
+### **For Frontend Developers**
+1. [API Overview](api/overview.md) - API authentication and usage
+2. [API Endpoints](api/endpoints.md) - Available endpoints
+3. [Architecture Overview](architecture/overview.md) - System understanding
+
+### **For Integration Work**
+1. [Exchange Integrations](integrations/exchanges.md) - Third-party integrations
+2. [API Endpoints](api/endpoints.md) - Integration endpoints
+3. [Security Overview](security/overview.md) - Integration security
+
+---
+
+## 📝 **Contributing to Documentation**
+
+### **Adding New Documentation**
+1. **Choose appropriate folder** based on content type
+2. **Follow naming conventions** (lowercase-with-hyphens.md)
+3. **Include in this README** under relevant sections
+4. **Cross-reference** from related documents
+
+### **Updating Existing Documentation**
+1. **Keep content current** with code changes
+2. **Update cross-references** when moving/renaming files
+3. **Test all code examples** before committing
+4. **Maintain consistent formatting** and style
+
+### **Documentation Review Process**
+1. **Technical accuracy** - Code examples must work
+2. **Clarity** - Easy to understand for target audience
+3. **Completeness** - Cover all necessary aspects
+4. **Consistency** - Follow established patterns and style
+
+---
+
+## 🔍 **Quick Reference**
+
+### **Development**
+- [Base Classes Standards](development/base-classes-standards.md#quick-reference) - Controller & Service patterns
+- [Naming Conventions](development/naming-conventions.md) - Code naming standards
+- [Developer Guide](development/developer-guide.md) - Complete development workflow
+
+### **Deployment**
+- [Deployment Commands](deployment/deploy.md) - Common deployment commands
+- [Environment Setup](deployment/guide.md) - Environment configuration
+- [Secrets Setup](security/secrets-management.md) - Vault configuration
+
+### **API**
+- [Authentication](api/overview.md#authentication) - API authentication methods
+- [Endpoints](api/endpoints.md) - Complete endpoint list
+- [Error Codes](development/base-classes-standards.md#error-handling-standards) - Standard error responses
+
+---
+
+## 🎉 **Happy Building!**
+
+This documentation is your comprehensive guide to the Strategiz platform. Whether you're developing, deploying, or integrating, you'll find everything you need here.
+
+**Questions or suggestions?** Feel free to improve this documentation by following our [contribution guidelines](#contributing-to-documentation) above.
+
+---
+
+*Last updated: $(date)*

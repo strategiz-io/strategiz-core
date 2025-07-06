@@ -6,6 +6,7 @@ import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.service.auth.model.passkey.*;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
+import io.strategiz.service.base.controller.BaseController;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -23,9 +24,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/auth/passkey/authentication")
-public class PasskeyAuthenticationController {
-
-    private static final Logger logger = LoggerFactory.getLogger(PasskeyAuthenticationController.class);
+public class PasskeyAuthenticationController extends BaseController {
 
     @Autowired
     private PasskeyChallengeService challengeService;
@@ -40,7 +39,7 @@ public class PasskeyAuthenticationController {
      */
     @PostMapping("/begin")
     public ResponseEntity<PasskeyAuthenticationService.AuthenticationChallenge> beginAuthentication() {
-        logger.info("Beginning passkey authentication");
+        logRequest("beginAuthentication", "anonymous");
         
         // Clean expired challenges
         challengeService.cleanExpiredChallenges();
@@ -48,8 +47,9 @@ public class PasskeyAuthenticationController {
         // Generate challenge - let exceptions bubble up
         PasskeyAuthenticationService.AuthenticationChallenge response = authenticationService.beginAuthentication();
         
+        logRequestSuccess("beginAuthentication", "anonymous", response);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
+        return createCleanResponse(response);
     }
     
     /**
@@ -64,7 +64,7 @@ public class PasskeyAuthenticationController {
             @RequestBody @Valid PasskeyAuthenticationCompletionRequest request,
             HttpServletRequest servletRequest) {
         
-        logger.info("Completing passkey authentication for credential: {}", request.credentialId());
+        logRequest("completeAuthentication", request.credentialId());
         
         // Extract client IP address
         String ipAddress = servletRequest.getRemoteAddr();
@@ -84,7 +84,7 @@ public class PasskeyAuthenticationController {
         PasskeyAuthenticationService.AuthenticationResult result = authenticationService.completeAuthentication(completion);
         
         if (!result.success()) {
-            logger.warn("Passkey authentication failed: {}", result.errorMessage());
+            log.warn("Passkey authentication failed: {}", result.errorMessage());
             String message = result.errorMessage();
             
             if (message != null && message.contains("not found")) {
@@ -98,26 +98,26 @@ public class PasskeyAuthenticationController {
         
         // Check token generation success
         if (result.accessToken() == null || result.refreshToken() == null) {
-            logger.error("Token generation failed - missing tokens in successful result");
             throw new StrategizException(AuthErrors.VERIFICATION_FAILED, request.credentialId());
         }
         
-        logger.info("Passkey authentication successful for credential ID: {}", request.credentialId());
-        
+        // Create response with tokens
         ApiTokenResponse tokenResponse = new ApiTokenResponse(
-            result.accessToken(), 
-            result.refreshToken(), 
-            "Bearer"
+            result.accessToken(),
+            result.refreshToken(),
+            request.userHandle() // userId from request
         );
         
+        logRequestSuccess("completeAuthentication", request.userHandle(), tokenResponse);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(tokenResponse);
+        return createCleanResponse(tokenResponse);
     }
     
     /**
-     * Finish passkey sign-in process
-     *
-     * @param request Sign-in request with credential data
+     * Alternative endpoint for backwards compatibility
+     * 
+     * @param request Completion request with credential data
+     * @param httpRequest HTTP request to extract client IP
      * @return Clean authentication result - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/signin/finish")
@@ -125,7 +125,7 @@ public class PasskeyAuthenticationController {
             @Valid @RequestBody PasskeyAuthenticationCompletionRequest request,
             HttpServletRequest httpRequest) {
         
-        logger.info("Finishing passkey sign-in for credential: {}", request.credentialId());
+        logRequest("finishSignIn", request.credentialId());
         
         // Extract client IP address
         String ipAddress = httpRequest.getRemoteAddr();
@@ -154,7 +154,8 @@ public class PasskeyAuthenticationController {
             "refreshToken", result.refreshToken()
         );
         
+        logRequestSuccess("finishSignIn", request.userHandle(), responseBody);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(responseBody);
+        return createCleanResponse(responseBody);
     }
 }

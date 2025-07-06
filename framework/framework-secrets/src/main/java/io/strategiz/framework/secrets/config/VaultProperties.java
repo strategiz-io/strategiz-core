@@ -15,6 +15,11 @@ public class VaultProperties {
     private boolean enabled = true;
 
     /**
+     * Vault server address
+     */
+    private String address = "http://localhost:8200";
+
+    /**
      * Default path where secrets are stored in vault
      */
     private String secretsPath = "secret/strategiz";
@@ -41,6 +46,14 @@ public class VaultProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public String getSecretsPath() {

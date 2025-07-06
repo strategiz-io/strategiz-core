@@ -11,14 +11,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.vault.authentication.ClientAuthentication;
-import org.springframework.vault.authentication.TokenAuthentication;
-import org.springframework.vault.client.VaultEndpoint;
-import org.springframework.vault.config.AbstractVaultConfiguration;
-import org.springframework.vault.core.VaultTemplate;
+import org.springframework.core.env.Environment;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,40 +22,25 @@ import java.util.Map;
  */
 @Configuration
 @EnableConfigurationProperties(VaultProperties.class)
-public class SecretManagerAutoConfig extends AbstractVaultConfiguration {
+public class SecretManagerAutoConfig {
     
     private static final Logger log = LoggerFactory.getLogger(SecretManagerAutoConfig.class);
     
     private final VaultProperties vaultProperties;
+    private final Environment environment;
     
-    public SecretManagerAutoConfig(VaultProperties vaultProperties) {
+    public SecretManagerAutoConfig(VaultProperties vaultProperties, Environment environment) {
         this.vaultProperties = vaultProperties;
+        this.environment = environment;
         log.info("Initializing SecretManager auto-configuration");
-    }
-    
-    @Override
-    public VaultEndpoint vaultEndpoint() {
-        String vaultUri = getEnvironment().getProperty("spring.cloud.vault.uri", "http://localhost:8200");
-        try {
-            return VaultEndpoint.from(new URI(vaultUri));
-        } catch (URISyntaxException e) {
-            log.error("Invalid Vault URI: {}", vaultUri, e);
-            throw new IllegalArgumentException("Invalid Vault URI: " + vaultUri, e);
-        }
-    }
-    
-    @Override
-    public ClientAuthentication clientAuthentication() {
-        String token = getEnvironment().getProperty("spring.cloud.vault.token", "00000000-0000-0000-0000-000000000000");
-        return new TokenAuthentication(token);
     }
     
     @Bean
     @Primary
     @ConditionalOnProperty(name = "strategiz.vault.enabled", havingValue = "true", matchIfMissing = true)
-    public SecretManager vaultSecretManager(VaultTemplate vaultTemplate) {
-        log.info("Creating Vault SecretManager bean");
-        return new VaultSecretManager(vaultTemplate, vaultProperties, getEnvironment());
+    public SecretManager vaultSecretManager() {
+        log.info("Creating Vault SecretManager bean with HTTP API");
+        return new VaultSecretManager(vaultProperties, environment);
     }
     
     @Bean
@@ -69,7 +48,7 @@ public class SecretManagerAutoConfig extends AbstractVaultConfiguration {
     @ConditionalOnProperty(name = "strategiz.vault.enabled", havingValue = "false")
     public SecretManager propertySecretManager() {
         log.info("Creating Property-based SecretManager fallback bean (Vault disabled)");
-        return new PropertySecretManager(getEnvironment());
+        return new PropertySecretManager(environment);
     }
     
     /**
@@ -78,9 +57,9 @@ public class SecretManagerAutoConfig extends AbstractVaultConfiguration {
      */
     private static class PropertySecretManager implements SecretManager {
         
-        private final org.springframework.core.env.Environment environment;
+        private final Environment environment;
         
-        public PropertySecretManager(org.springframework.core.env.Environment environment) {
+        public PropertySecretManager(Environment environment) {
             this.environment = environment;
         }
         

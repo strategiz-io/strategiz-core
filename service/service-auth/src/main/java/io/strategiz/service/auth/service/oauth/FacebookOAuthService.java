@@ -4,11 +4,12 @@ import io.strategiz.client.facebook.FacebookClient;
 import io.strategiz.client.facebook.model.FacebookTokenResponse;
 import io.strategiz.client.facebook.model.FacebookUserInfo;
 import io.strategiz.data.user.model.User;
-import io.strategiz.service.auth.builder.OAuthResponseBuilder;
 import io.strategiz.service.auth.config.AuthOAuthConfig;
 import io.strategiz.service.auth.manager.OAuthAuthenticationManager;
 import io.strategiz.service.auth.manager.OAuthUserManager;
 import io.strategiz.service.auth.model.signup.SignupResponse;
+import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +18,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class FacebookOAuthService {
     private final FacebookClient facebookClient;
     private final OAuthUserManager oauthUserManager;
     private final OAuthAuthenticationManager oauthAuthenticationManager;
-    private final OAuthResponseBuilder oauthResponseBuilder;
+    private final SessionAuthBusiness sessionAuthBusiness;
     private final AuthOAuthConfig oauthConfig;
 
     @Value("${application.frontend-url}")
@@ -45,12 +45,12 @@ public class FacebookOAuthService {
             FacebookClient facebookClient,
             OAuthUserManager oauthUserManager,
             OAuthAuthenticationManager oauthAuthenticationManager,
-            OAuthResponseBuilder oauthResponseBuilder,
+            SessionAuthBusiness sessionAuthBusiness,
             AuthOAuthConfig oauthConfig) {
         this.facebookClient = facebookClient;
         this.oauthUserManager = oauthUserManager;
         this.oauthAuthenticationManager = oauthAuthenticationManager;
-        this.oauthResponseBuilder = oauthResponseBuilder;
+        this.sessionAuthBusiness = sessionAuthBusiness;
         this.oauthConfig = oauthConfig;
     }
 
@@ -101,30 +101,24 @@ public class FacebookOAuthService {
      * @param code Authorization code from Facebook
      * @param state State parameter for verification
      * @param deviceId Optional device ID for fingerprinting
-     * @return Map containing user, tokens, and success status
+     * @return Clean response object based on the operation result
      */
-    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
-        try {
-            if (!isValidAuthorizationCode(code)) {
-                return oauthResponseBuilder.buildErrorResponse("Missing authorization code");
-            }
-            
-            FacebookTokenResponse tokenResponse = exchangeCodeForToken(code);
-            if (tokenResponse == null) {
-                return oauthResponseBuilder.buildErrorResponse("Failed to exchange authorization code for token");
-            }
-            
-            FacebookUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
-            if (userInfo == null) {
-                return oauthResponseBuilder.buildErrorResponse("Failed to get user info");
-            }
-            
-            return processUserAuthentication(userInfo, state);
-            
-        } catch (Exception e) {
-            logger.error("Unexpected error in Facebook OAuth callback", e);
-            return oauthResponseBuilder.buildErrorResponse(e.getMessage());
+    public Object handleOAuthCallback(String code, String state, String deviceId) {
+        if (!isValidAuthorizationCode(code)) {
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
+        
+        FacebookTokenResponse tokenResponse = exchangeCodeForToken(code);
+        if (tokenResponse == null) {
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
+        }
+        
+        FacebookUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
+        if (userInfo == null) {
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
+        }
+        
+        return processUserAuthentication(userInfo, state);
     }
 
     private boolean isValidAuthorizationCode(String code) {
@@ -154,12 +148,12 @@ public class FacebookOAuthService {
         return facebookClient.getUserInfo(accessToken).orElse(null);
     }
 
-    private Map<String, Object> processUserAuthentication(FacebookUserInfo userInfo, String state) {
+    private Object processUserAuthentication(FacebookUserInfo userInfo, String state) {
         boolean isSignup = oauthUserManager.isSignupFlow(state);
         Optional<User> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
         
         if (isSignup && existingUser.isPresent()) {
-            return oauthResponseBuilder.buildErrorResponse("email_already_exists");
+            throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
         }
         
         if (isSignup || !existingUser.isPresent()) {
@@ -169,28 +163,17 @@ public class FacebookOAuthService {
         }
     }
 
-    private Map<String, Object> handleSignupFlow(FacebookUserInfo userInfo) {
-        try {
-            SignupResponse signupResponse = oauthUserManager.createOAuthUser(
-                userInfo.getEmail(), 
-                userInfo.getName(), 
-                userInfo.getPictureUrl(), 
-                "facebook", 
-                userInfo.getFacebookId()
-            );
-            
-            return oauthResponseBuilder.buildSignupSuccessResponse(
-                signupResponse, 
-                userInfo.getEmail(), 
-                userInfo.getName()
-            );
-        } catch (Exception e) {
-            logger.error("Error during signup process", e);
-            return oauthResponseBuilder.buildErrorResponse("Signup failed: " + e.getMessage());
-        }
+    private SignupResponse handleSignupFlow(FacebookUserInfo userInfo) {
+        return oauthUserManager.createOAuthUser(
+            userInfo.getEmail(), 
+            userInfo.getName(), 
+            userInfo.getPictureUrl(), 
+            "facebook", 
+            userInfo.getFacebookId()
+        );
     }
 
-    private Map<String, Object> handleLoginFlow(User user, FacebookUserInfo userInfo) {
+    private ApiTokenResponse handleLoginFlow(User user, FacebookUserInfo userInfo) {
         oauthAuthenticationManager.ensureOAuthMethod(
             user, 
             "facebook", 
@@ -198,6 +181,19 @@ public class FacebookOAuthService {
             userInfo.getEmail()
         );
         
-        return oauthResponseBuilder.buildLoginSuccessResponse(user);
+        // Generate authentication tokens
+        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+            user.getUserId(),
+            List.of("facebook"), // Authentication method used
+            false, // Not partial auth - full authentication completed
+            null, // Device ID not available
+            null  // IP address not available
+        );
+        
+        return new ApiTokenResponse(
+            tokenPair.accessToken(),
+            tokenPair.refreshToken(),
+            user.getUserId()
+        );
     }
 }

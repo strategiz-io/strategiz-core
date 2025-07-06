@@ -29,6 +29,7 @@
         <module>business/business-base</module>
         <module>business/business-token-auth</module>
         <module>business/business-portfolio</module>
+        <module>business/business-provider-coinbase</module>
         
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -60,6 +61,8 @@
         <module>service/service-exchange</module>
         <module>service/service-auth</module>
         <module>service/service-marketplace</module>
+        <module>service/service-monitoring</module>
+        <module>service/service-provider</module>
         <!-- Temporarily commented out due to Firestore dependency issues -->
         <!-- <module>service/service-walletaddress</module> -->
         <module>service/service-dashboard</module>
@@ -148,6 +151,11 @@
                 <artifactId>business-portfolio</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-coinbase</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <!-- Internal Module Versions -->
             <!-- Data Modules -->
@@ -221,6 +229,16 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-profile</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-monitoring</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
             

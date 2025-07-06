@@ -67,7 +67,7 @@ public class FacebookOAuthController {
      * @return OAuth callback result - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/callback")
-    public ResponseEntity<Map<String, Object>> handleCallbackJson(
+    public ResponseEntity<Object> handleCallbackJson(
             @RequestBody Map<String, String> callbackRequest) {
         
         String code = callbackRequest.get("code");
@@ -76,7 +76,7 @@ public class FacebookOAuthController {
         logger.info("Received OAuth callback JSON with state: {}", state);
         
         // Clean architecture - let exceptions bubble up to GlobalExceptionHandler
-        Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, null);
+        Object result = facebookOAuthService.handleOAuthCallback(code, state, null);
         return ResponseEntity.ok(result);
     }
 
@@ -99,23 +99,15 @@ public class FacebookOAuthController {
         try {
             // Note: For redirects, we still need try-catch since we can't return StandardErrorResponse
             // GlobalExceptionHandler doesn't handle RedirectView returns
-            Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, deviceId);
+            Object result = facebookOAuthService.handleOAuthCallback(code, state, deviceId);
             
-            boolean success = (Boolean) result.getOrDefault("success", false);
-            
-            if (!success) {
-                String error = (String) result.getOrDefault("error", "Unknown error");
-                return new RedirectView(String.format("%s/auth/oauth/facebook/callback?error=%s", 
-                        facebookOAuthService.getFrontendUrl(), error));
-            }
-            
-            // Extract data for redirect to our frontend callback handler
-            return new RedirectView(String.format("%s/auth/oauth/facebook/callback?code=%s&state=%s", 
-                    facebookOAuthService.getFrontendUrl(), code, state));
+            // Just redirect to frontend - let frontend handle the actual result
+            return new RedirectView(String.format("http://localhost:3000/auth/oauth/facebook/callback?code=%s&state=%s", 
+                    code, state));
         } catch (Exception e) {
             logger.error("Error in Facebook OAuth callback", e);
-            return new RedirectView(String.format("%s/auth/oauth/facebook/callback?error=%s", 
-                    facebookOAuthService.getFrontendUrl(), e.getMessage()));
+            return new RedirectView(String.format("http://localhost:3000/auth/oauth/facebook/callback?error=%s", 
+                    e.getMessage()));
         }
     }
 }

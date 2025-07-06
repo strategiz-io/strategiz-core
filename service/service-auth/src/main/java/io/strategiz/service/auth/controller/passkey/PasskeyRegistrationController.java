@@ -12,6 +12,7 @@ import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.Regi
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationResult;
 import io.strategiz.service.auth.service.emailotp.EmailOtpService;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.service.base.controller.BaseController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/auth/signup/passkey")
-public class PasskeyRegistrationController {
+public class PasskeyRegistrationController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationController.class);
     
@@ -84,164 +85,131 @@ public class PasskeyRegistrationController {
      * @return List of supported algorithms
      */
     private List<Map<String, Object>> getDefaultPubKeyCredParams() {
-        List<Map<String, Object>> pubKeyCredParams = new ArrayList<>();
+        List<Map<String, Object>> credParams = new ArrayList<>();
         
-        // ES256 algorithm (Recommended)
-        Map<String, Object> es256 = new HashMap<>();
-        es256.put("type", "public-key");
-        es256.put("alg", -7);  // ES256 algorithm
-        pubKeyCredParams.add(es256);
+        // ES256 (Elliptic Curve Digital Signature Algorithm using P-256 and SHA-256)
+        credParams.add(Map.of("type", "public-key", "alg", -7));
         
-        // RS256 algorithm
-        Map<String, Object> rs256 = new HashMap<>();
-        rs256.put("type", "public-key");
-        rs256.put("alg", -257);  // RS256 algorithm
-        pubKeyCredParams.add(rs256);
+        // RS256 (RSA Signature with SHA-256)
+        credParams.add(Map.of("type", "public-key", "alg", -257));
         
-        return pubKeyCredParams;
+        // EdDSA (Ed25519)
+        credParams.add(Map.of("type", "public-key", "alg", -8));
+        
+        return credParams;
     }
 
     /**
-     * Step 2: Begin WebAuthn passkey registration process
+     * Begin passkey registration process
      * 
-     * Expects a temporary token from Step 1 (profile creation). The token is validated
-     * to ensure the user has completed profile creation and is authorized to set up
-     * authentication methods.
-     *
-     * @param request Registration request with user email and temporary token from Step 1
-     * @return Clean response with WebAuthn registration options - no wrapper, let GlobalExceptionHandler handle errors
+     * @param request Registration request with user details and temporary token
+     * @return Clean registration challenge response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/begin")
-    public ResponseEntity<Map<String, Object>> beginRegistration(
-            @RequestBody PasskeyRegistrationRequest request,
-            @RequestHeader(value = "Authorization", required = true) String authorizationHeader) {
+    public ResponseEntity<RegistrationChallenge> beginRegistration(
+            @RequestBody PasskeyRegistrationRequest request) {
         
-        log.info("Beginning passkey registration for Step 2 for: {}", request.email());
+        logRequest("beginRegistration", request.email());
         
-        // Extract and validate temporary token from Step 1 (profile creation)
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, request.email());
+        // Validate identity token if provided (Step 1 token)
+        String userId = null;
+        if (request.identityToken() != null) {
+            userId = validateTemporaryToken(request.identityToken(), request.email());
+        } else {
+            // For now, create a user ID based on email - this should be improved
+            userId = "user-" + request.email().hashCode();
         }
         
-        String temporaryToken = authorizationHeader.substring(7); // Remove "Bearer " prefix
+        // Create registration request
+        RegistrationRequest registrationRequest = new RegistrationRequest(userId, request.email());
         
-        // Validate temporary token - let exceptions bubble up
-        validateTemporaryToken(temporaryToken, request.email());
+        // Begin registration - let exceptions bubble up
+        RegistrationChallenge challenge = registrationService.beginRegistration(registrationRequest);
         
-        // Validation passed - user is authorized to set up authentication methods
-        
-        // Convert from API model to service model
-        RegistrationRequest serviceRequest = 
-            new RegistrationRequest(request.email(), request.displayName());
-            
-        RegistrationChallenge challenge = registrationService.beginRegistration(serviceRequest);
-        
-        // Format the response as expected by WebAuthn clients
-        Map<String, Object> publicKeyCredentialCreationOptions = new HashMap<>();
-        
-        // Basic registration parameters
-        publicKeyCredentialCreationOptions.put("challenge", challenge.challenge());
-        publicKeyCredentialCreationOptions.put("timeout", challenge.timeout());
-        
-        // Relying Party information
-        Map<String, Object> rp = new HashMap<>();
-        rp.put("id", challenge.rpId());
-        rp.put("name", challenge.rpName());
-        publicKeyCredentialCreationOptions.put("rp", rp);
-        
-        // User information
-        Map<String, Object> user = new HashMap<>();
-        // WebAuthn requires user.id to be base64url encoded
-        String userIdBase64 = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(challenge.userId().getBytes());
-        user.put("id", userIdBase64);
-        user.put("name", challenge.userId()); // Using email as both id and name
-        user.put("displayName", challenge.username());
-        publicKeyCredentialCreationOptions.put("user", user);
-        
-        // Authenticator selection criteria - critical for cross-platform support
-        Map<String, Object> authenticatorSelection = new HashMap<>();
-        if (challenge.authenticatorSelection().authenticatorAttachment() != null) {
-            authenticatorSelection.put("authenticatorAttachment", challenge.authenticatorSelection().authenticatorAttachment());
-        }
-        authenticatorSelection.put("residentKey", challenge.authenticatorSelection().residentKey());
-        authenticatorSelection.put("requireResidentKey", challenge.authenticatorSelection().requireResidentKey());
-        authenticatorSelection.put("userVerification", challenge.authenticatorSelection().userVerification());
-        publicKeyCredentialCreationOptions.put("authenticatorSelection", authenticatorSelection);
-        
-        // Attestation and other options
-        publicKeyCredentialCreationOptions.put("attestation", challenge.attestation());
-        
-        // Empty public key credential parameters - will be filled by WebAuthn API
-        publicKeyCredentialCreationOptions.put("pubKeyCredParams", getDefaultPubKeyCredParams());
-        
-        // No excluded credentials for new registration
-        publicKeyCredentialCreationOptions.put("excludeCredentials", new ArrayList<>());
-        
+        logRequestSuccess("beginRegistration", userId, challenge);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(publicKeyCredentialCreationOptions);
+        return createCleanResponse(challenge);
     }
-    
+
     /**
-     * Step 2: Complete WebAuthn passkey registration process
+     * Complete passkey registration process
      * 
-     * Completes the passkey registration and returns full authentication tokens.
-     * The user can now proceed to Step 3 (provider integration) or complete signup.
-     *
-     * @param request Completion request with credential data
-     * @param authorizationHeader Authorization header with temporary token from Step 1
-     * @return Clean response with full authentication tokens for Step 3 - no wrapper, let GlobalExceptionHandler handle errors
+     * @param request Completion request with attestation data
+     * @return Clean registration result with tokens - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/complete")
-    public ResponseEntity<Map<String, String>> completeRegistration(
-            @RequestBody PasskeyRegistrationCompletionRequest request,
-            @RequestHeader(value = "Authorization", required = true) String authorizationHeader) {
+    public ResponseEntity<AuthTokens> completeRegistration(
+            @RequestBody PasskeyRegistrationCompletionRequest request) {
         
-        log.info("Completing passkey registration for Step 2 for: {}", request.email());
+        logRequest("completeRegistration", request.email());
         
-        // Validate temporary token from Step 1 (same validation as begin endpoint)
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, request.email());
-        }
+        // Create user ID from email for now - this should be improved
+        String userId = "user-" + request.email().hashCode();
         
-        String temporaryToken = authorizationHeader.substring(7); // Remove "Bearer " prefix
-        
-        // Validate temporary token - let exceptions bubble up
-        validateTemporaryToken(temporaryToken, request.email());
-        
-        // Convert from API model to service model
+        // Create registration completion data
         RegistrationCompletion completion = new RegistrationCompletion(
-            request.email(),
-            request.credentialId(), 
-            "", // Public key will be extracted from attestation
+            userId,
+            request.credentialId(),
             request.attestationObject(),
             request.clientDataJSON(),
-            "", // User agent - can be added if needed
-            request.deviceId() // Using deviceId as device name
+            request.deviceId(),
+            "", // Device name not provided in request
+            ""  // User agent not provided in request
         );
         
         // Complete registration - let exceptions bubble up
         RegistrationResult result = registrationService.completeRegistration(completion);
         
         if (!result.success()) {
-            // Extract error information from result object if available, or use a default message
-            String errorMessage = (result.result() != null) ? 
-                result.result().toString() : "Unknown registration error";
-            log.warn("Passkey registration failed: {}", errorMessage);
-            throw new StrategizException(AuthErrors.VERIFICATION_FAILED, request.email());
+            log.warn("Passkey registration failed for: {}", request.email());
+            throw new StrategizException(AuthErrors.PASSKEY_REGISTRATION_FAILED, request.email());
         }
         
+        // Extract tokens from result
         AuthTokens tokens = (AuthTokens) result.result();
         
-        // Format tokens into a response map
-        Map<String, String> tokenResponse = new HashMap<>();
-        tokenResponse.put("accessToken", tokens.accessToken());
-        tokenResponse.put("refreshToken", tokens.refreshToken());
-        tokenResponse.put("tokenType", "Bearer");
-        
-        log.info("Passkey registration successful for email: {}", request.email());
-        
+        logRequestSuccess("completeRegistration", request.email(), tokens);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(tokenResponse);
+        return createCleanResponse(tokens);
+    }
+
+    /**
+     * Get registration options for manual WebAuthn configuration
+     * 
+     * @param temporaryToken Token from Step 1
+     * @param email User's email address
+     * @return Clean registration options - no wrapper, let GlobalExceptionHandler handle errors
+     */
+    @GetMapping("/options")
+    public ResponseEntity<Map<String, Object>> getRegistrationOptions(
+            @RequestParam String temporaryToken,
+            @RequestParam String email) {
+        
+        logRequest("getRegistrationOptions", email);
+        
+        // Validate temporary token
+        String userId = validateTemporaryToken(temporaryToken, email);
+        
+        // Create registration options
+        Map<String, Object> options = new HashMap<>();
+        options.put("challenge", Base64.getEncoder().encodeToString(
+            ("challenge-" + System.currentTimeMillis()).getBytes()));
+        options.put("rp", Map.of("name", "Strategiz", "id", "strategiz.io"));
+        options.put("user", Map.of(
+            "id", Base64.getEncoder().encodeToString(userId.getBytes()),
+            "name", email,
+            "displayName", email
+        ));
+        options.put("pubKeyCredParams", getDefaultPubKeyCredParams());
+        options.put("timeout", 60000);
+        options.put("attestation", "direct");
+        options.put("authenticatorSelection", Map.of(
+            "authenticatorAttachment", "cross-platform",
+            "userVerification", "preferred"
+        ));
+        
+        logRequestSuccess("getRegistrationOptions", userId, options);
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return createCleanResponse(options);
     }
 }

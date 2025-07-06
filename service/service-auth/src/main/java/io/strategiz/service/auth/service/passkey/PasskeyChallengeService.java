@@ -8,6 +8,7 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.data.user.model.User;
+import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +28,7 @@ import java.util.UUID;
  * Service for managing passkey challenges for WebAuthn registration and authentication flows
  */
 @Service
-public class PasskeyChallengeService {
+public class PasskeyChallengeService extends BaseService {
     
     private static final Logger log = LoggerFactory.getLogger(PasskeyChallengeService.class);
     
@@ -40,6 +41,9 @@ public class PasskeyChallengeService {
     public PasskeyChallengeService(PasskeyChallengeRepository passkeyChallengeRepository) {
         this.passkeyChallengeRepository = passkeyChallengeRepository;
         this.objectMapper = new ObjectMapper();
+        
+        // Ensure we're using real passkey challenge generation, not mock data
+        ensureRealApiData("PasskeyChallengeService");
     }
     
     /**

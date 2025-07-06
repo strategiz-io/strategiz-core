@@ -1,5 +1,5 @@
 # Multi-stage build - first stage builds the application
-FROM maven:3.9-eclipse-temurin-21-alpine AS builder
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 
 # Copy pom.xml files and source code
@@ -15,15 +15,16 @@ COPY application/ application/
 RUN mvn clean install -DskipTests
 
 # Second stage - runtime image
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 # Install necessary tools and Vault
-RUN apk update && apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     curl \
     bash \
     jq \
-    unzip
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download and install Vault
 RUN curl -fsSL https://releases.hashicorp.com/vault/1.15.2/vault_1.15.2_linux_amd64.zip -o vault.zip && \

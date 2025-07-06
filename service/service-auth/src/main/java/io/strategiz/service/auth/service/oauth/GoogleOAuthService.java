@@ -4,18 +4,21 @@ import io.strategiz.client.google.GoogleClient;
 import io.strategiz.client.google.model.GoogleTokenResponse;
 import io.strategiz.client.google.model.GoogleUserInfo;
 import io.strategiz.data.user.model.User;
-import io.strategiz.service.auth.builder.OAuthResponseBuilder;
 import io.strategiz.service.auth.config.AuthOAuthConfig;
 import io.strategiz.service.auth.manager.OAuthAuthenticationManager;
 import io.strategiz.service.auth.manager.OAuthUserManager;
 import io.strategiz.service.auth.model.signup.SignupResponse;
+import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,22 +34,19 @@ public class GoogleOAuthService {
     private final GoogleClient googleClient;
     private final OAuthUserManager oauthUserManager;
     private final OAuthAuthenticationManager oauthAuthenticationManager;
-    private final OAuthResponseBuilder oauthResponseBuilder;
+    private final SessionAuthBusiness sessionAuthBusiness;
     private final AuthOAuthConfig oauthConfig;
-
-    @Value("${application.frontend-url}")
-    private String frontendUrl;
 
     public GoogleOAuthService(
             GoogleClient googleClient,
             OAuthUserManager oauthUserManager,
             OAuthAuthenticationManager oauthAuthenticationManager,
-            OAuthResponseBuilder oauthResponseBuilder,
+            SessionAuthBusiness sessionAuthBusiness,
             AuthOAuthConfig oauthConfig) {
         this.googleClient = googleClient;
         this.oauthUserManager = oauthUserManager;
         this.oauthAuthenticationManager = oauthAuthenticationManager;
-        this.oauthResponseBuilder = oauthResponseBuilder;
+        this.sessionAuthBusiness = sessionAuthBusiness;
         this.oauthConfig = oauthConfig;
     }
 
@@ -63,13 +63,17 @@ public class GoogleOAuthService {
         }
         
         AuthOAuthConfig.AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
+        if (googleConfig == null) {
+            logger.error("Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
+        }
+        
         String authUrl = UriComponentsBuilder.fromUriString(googleConfig.getAuthUrl())
                 .queryParam("client_id", googleConfig.getClientId())
                 .queryParam("redirect_uri", googleConfig.getRedirectUri())
                 .queryParam("state", state)
                 .queryParam("response_type", "code")
-                .queryParam("scope", "email profile openid")
-                .queryParam("prompt", "select_account")
+                .queryParam("scope", "openid email profile")
                 .toUriString();
         
         Map<String, String> response = new HashMap<>();
@@ -80,43 +84,58 @@ public class GoogleOAuthService {
     }
     
     /**
-     * Get frontend URL
-     * @return The frontend URL
+     * Get the frontend URL for redirects
      */
     public String getFrontendUrl() {
-        return frontendUrl;
+        return oauthConfig.getFrontendUrl();
     }
-    
+
     /**
      * Handle OAuth callback from Google
      * 
      * @param code Authorization code from Google
      * @param state State parameter for verification
      * @param deviceId Optional device ID for fingerprinting
-     * @return Map containing user, tokens, and success status
+     * @return Clean response object based on the operation result
      */
     public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
-        try {
-            if (!isValidAuthorizationCode(code)) {
-                return oauthResponseBuilder.buildErrorResponse("Missing authorization code");
-            }
-            
-            GoogleTokenResponse tokenResponse = exchangeCodeForToken(code);
-            if (tokenResponse == null) {
-                return oauthResponseBuilder.buildErrorResponse("Failed to exchange authorization code for token");
-            }
-            
-            GoogleUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
-            if (userInfo == null) {
-                return oauthResponseBuilder.buildErrorResponse("Failed to get user info");
-            }
-            
-            return processUserAuthentication(userInfo, state);
-            
-        } catch (Exception e) {
-            logger.error("Unexpected error in Google OAuth callback", e);
-            return oauthResponseBuilder.buildErrorResponse(e.getMessage());
+        if (!isValidAuthorizationCode(code)) {
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
+        
+        GoogleTokenResponse tokenResponse = exchangeCodeForToken(code);
+        if (tokenResponse == null) {
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
+        }
+        
+        GoogleUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
+        if (userInfo == null) {
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
+        }
+        
+        Object result = processUserAuthentication(userInfo, state);
+        
+        // Convert result to Map<String, Object> for consistent JSON response
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        
+        if (result instanceof SignupResponse) {
+            SignupResponse signupResponse = (SignupResponse) result;
+            response.put("type", "signup");
+            response.put("userId", signupResponse.getUserId());
+            response.put("email", signupResponse.getEmail());
+            response.put("name", signupResponse.getName());
+            response.put("accessToken", signupResponse.getAccessToken());
+            response.put("refreshToken", signupResponse.getRefreshToken());
+        } else if (result instanceof ApiTokenResponse) {
+            ApiTokenResponse tokenResponse2 = (ApiTokenResponse) result;
+            response.put("type", "login");
+            response.put("accessToken", tokenResponse2.accessToken());
+            response.put("refreshToken", tokenResponse2.refreshToken());
+            response.put("tokenType", tokenResponse2.tokenType());
+        }
+        
+        return response;
     }
 
     private boolean isValidAuthorizationCode(String code) {
@@ -129,6 +148,11 @@ public class GoogleOAuthService {
 
     private GoogleTokenResponse exchangeCodeForToken(String code) {
         AuthOAuthConfig.AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
+        if (googleConfig == null) {
+            logger.error("Google OAuth configuration is not available during token exchange");
+            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
+        }
+        
         return googleClient.exchangeCodeForToken(
             code, 
             googleConfig.getClientId(), 
@@ -141,12 +165,12 @@ public class GoogleOAuthService {
         return googleClient.getUserInfo(accessToken).orElse(null);
     }
 
-    private Map<String, Object> processUserAuthentication(GoogleUserInfo userInfo, String state) {
+    private Object processUserAuthentication(GoogleUserInfo userInfo, String state) {
         boolean isSignup = oauthUserManager.isSignupFlow(state);
         Optional<User> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
         
         if (isSignup && existingUser.isPresent()) {
-            return oauthResponseBuilder.buildErrorResponse("email_already_exists");
+            throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
         }
         
         if (isSignup || !existingUser.isPresent()) {
@@ -156,28 +180,17 @@ public class GoogleOAuthService {
         }
     }
 
-    private Map<String, Object> handleSignupFlow(GoogleUserInfo userInfo) {
-        try {
-            SignupResponse signupResponse = oauthUserManager.createOAuthUser(
-                userInfo.getEmail(), 
-                userInfo.getName(), 
-                userInfo.getPictureUrl(), 
-                "google", 
-                userInfo.getGoogleId()
-            );
-            
-            return oauthResponseBuilder.buildSignupSuccessResponse(
-                signupResponse, 
-                userInfo.getEmail(), 
-                userInfo.getName()
-            );
-        } catch (Exception e) {
-            logger.error("Error during signup process", e);
-            return oauthResponseBuilder.buildErrorResponse("Signup failed: " + e.getMessage());
-        }
+    private SignupResponse handleSignupFlow(GoogleUserInfo userInfo) {
+        return oauthUserManager.createOAuthUser(
+            userInfo.getEmail(), 
+            userInfo.getName(), 
+            userInfo.getPictureUrl(), 
+            "google", 
+            userInfo.getGoogleId()
+        );
     }
 
-    private Map<String, Object> handleLoginFlow(User user, GoogleUserInfo userInfo) {
+    private ApiTokenResponse handleLoginFlow(User user, GoogleUserInfo userInfo) {
         oauthAuthenticationManager.ensureOAuthMethod(
             user, 
             "google", 
@@ -185,6 +198,19 @@ public class GoogleOAuthService {
             userInfo.getEmail()
         );
         
-        return oauthResponseBuilder.buildLoginSuccessResponse(user);
+        // Generate authentication tokens
+        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+            user.getUserId(),
+            List.of("google"), // Authentication method used
+            false, // Not partial auth - full authentication completed
+            null, // Device ID not available
+            null  // IP address not available
+        );
+        
+        return new ApiTokenResponse(
+            tokenPair.accessToken(),
+            tokenPair.refreshToken(),
+            "bearer"
+        );
     }
 } 

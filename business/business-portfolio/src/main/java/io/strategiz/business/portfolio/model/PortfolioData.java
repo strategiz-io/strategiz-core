@@ -1,15 +1,15 @@
 package io.strategiz.business.portfolio.model;
 
-import io.strategiz.framework.model.BaseModel;
-
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Business model for portfolio data following Synapse patterns.
+ * Model representing portfolio data and holdings
  */
-public class PortfolioData extends BaseModel {
+public class PortfolioData {
     
     /**
      * User ID associated with this portfolio data
@@ -95,7 +95,6 @@ public class PortfolioData extends BaseModel {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
         PortfolioData that = (PortfolioData) o;
         return Objects.equals(userId, that.userId) &&
                Objects.equals(totalValue, that.totalValue) &&
@@ -106,8 +105,7 @@ public class PortfolioData extends BaseModel {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), userId, totalValue, dailyChange, 
-                           dailyChangePercent, exchanges);
+        return Objects.hash(userId, totalValue, dailyChange, dailyChangePercent, exchanges);
     }
 
     @Override
@@ -118,7 +116,7 @@ public class PortfolioData extends BaseModel {
                ", dailyChange=" + dailyChange +
                ", dailyChangePercent=" + dailyChangePercent +
                ", exchanges=" + exchanges +
-               "} " + super.toString();
+               '}';
     }
     
     /**

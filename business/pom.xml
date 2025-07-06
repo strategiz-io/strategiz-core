@@ -18,5 +18,6 @@
         <module>business-base</module>
         <module>business-portfolio</module>
         <module>business-token-auth</module>
+        <module>business-provider-coinbase</module>
     </modules>
 </project>

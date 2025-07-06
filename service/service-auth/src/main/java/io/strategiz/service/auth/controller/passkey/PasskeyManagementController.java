@@ -2,6 +2,7 @@ package io.strategiz.service.auth.controller.passkey;
 
 import io.strategiz.service.auth.service.passkey.PasskeyManagementService;
 import io.strategiz.service.auth.service.passkey.PasskeyManagementService.PasskeyDetails;
+import io.strategiz.service.base.controller.BaseController;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/auth/passkey/manage")
-public class PasskeyManagementController {
+public class PasskeyManagementController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyManagementController.class);
     
@@ -37,13 +38,14 @@ public class PasskeyManagementController {
      */
     @GetMapping("/list/{userId}")
     public ResponseEntity<List<PasskeyDetails>> listPasskeys(@PathVariable String userId) {
-        log.info("Listing passkeys for user: {}", userId);
+        logRequest("listPasskeys", userId);
         
         // List passkeys - let exceptions bubble up
         List<PasskeyDetails> passkeys = passkeyManagementService.getPasskeysForUser(userId);
         
+        logRequestSuccess("listPasskeys", userId, passkeys);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(passkeys);
+        return createCleanResponse(passkeys);
     }
     
     /**
@@ -57,7 +59,7 @@ public class PasskeyManagementController {
         String userId = request.get("userId");
         String credentialId = request.get("credentialId");
         
-        log.info("Deleting passkey {} for user: {}", credentialId, userId);
+        logRequest("deletePasskey", userId);
         
         // Delete passkey - let exceptions bubble up
         boolean deleted = passkeyManagementService.deletePasskey(userId, credentialId);
@@ -68,8 +70,9 @@ public class PasskeyManagementController {
             "message", deleted ? "Passkey deleted successfully" : "Passkey not found or could not be deleted"
         );
         
+        logRequestSuccess("deletePasskey", userId, result);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(result);
+        return createCleanResponse(result);
     }
     
     /**
@@ -80,7 +83,7 @@ public class PasskeyManagementController {
      */
     @GetMapping("/stats/{userId}")
     public ResponseEntity<Map<String, Object>> getPasskeyStats(@PathVariable String userId) {
-        log.info("Getting passkey statistics for user: {}", userId);
+        logRequest("getPasskeyStats", userId);
         
         // Get passkey count and basic stats
         List<PasskeyDetails> passkeys = passkeyManagementService.getPasskeysForUser(userId);
@@ -91,7 +94,8 @@ public class PasskeyManagementController {
             "hasPasskeys", !passkeys.isEmpty()
         );
         
+        logRequestSuccess("getPasskeyStats", userId, stats);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(stats);
+        return createCleanResponse(stats);
     }
 }

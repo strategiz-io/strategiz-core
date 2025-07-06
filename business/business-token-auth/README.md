@@ -255,7 +255,7 @@ public class TokenCreationService {
     public String createToken(String userId, List<String> completedAuthMethods) {
         // Calculate ACR based on completed methods
         String acr = calculateAcr(userId, completedAuthMethods);
-        
+
         // Build token claims
         TokenClaims claims = TokenClaims.builder()
             .subject(generatePublicUserId(userId))

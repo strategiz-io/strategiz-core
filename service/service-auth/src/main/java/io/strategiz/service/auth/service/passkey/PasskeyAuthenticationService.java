@@ -6,6 +6,7 @@ import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRep
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
+import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
  * Service handling passkey authentication flows
  */
 @Service
-public class PasskeyAuthenticationService {
+public class PasskeyAuthenticationService extends BaseService {
     
     private static final Logger log = LoggerFactory.getLogger(PasskeyAuthenticationService.class);
     
@@ -41,6 +43,9 @@ public class PasskeyAuthenticationService {
         this.challengeService = challengeService;
         this.credentialRepository = credentialRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
+        
+        // Ensure we're using real passkey authentication, not mock data
+        ensureRealApiData("PasskeyAuthenticationService");
     }
     
     
@@ -72,43 +77,34 @@ public class PasskeyAuthenticationService {
      * @return Authentication challenge for the client
      */
     public AuthenticationChallenge beginAuthentication() {
-        // Generate a challenge for this authentication
-        // No user ID at this stage since we don't know which user is authenticating yet
-        // Using "id" as a placeholder to satisfy database NOT NULL constraint
-        String challenge = challengeService.createChallenge("id", PasskeyChallengeType.AUTHENTICATION);
+        log.info("Beginning passkey authentication");
         
-        // For discoverable credentials, we need to return all registered credentials
-        // so the browser can show available passkeys to the user
-        java.util.List<java.util.Map<String, Object>> allowCredentials;
-        try {
-            // Get all stored passkey credentials
-            java.util.List<PasskeyCredential> storedCredentials = credentialRepository.findAll();
-            log.info("Found {} stored passkey credentials for authentication", storedCredentials.size());
-            
-            // Convert to WebAuthn format
-            allowCredentials = storedCredentials.stream()
-                .map(credential -> java.util.Map.<String, Object>of(
-                    "id", credential.getCredentialId(),
-                    "type", "public-key"
-                ))
-                .collect(java.util.stream.Collectors.toList());
-                
-            log.debug("Converted {} credentials to allowCredentials format", allowCredentials.size());
-        } catch (Exception e) {
-            log.warn("Error retrieving stored credentials, falling back to empty allowCredentials", e);
-            allowCredentials = java.util.Collections.emptyList();
+        // Validate real API connection
+        if (!validateRealApiConnection("PasskeyAuthenticationService")) {
+            throw new IllegalStateException("Real API connection validation failed");
         }
         
-        // Create authentication options in proper WebAuthn format
-        var options = java.util.Map.of(
+        // Generate challenge
+        String challenge = challengeService.createChallenge(null, PasskeyChallengeType.AUTHENTICATION);
+        
+        // Create authentication options
+        Object publicKeyCredentialRequestOptions = createAuthenticationOptions(challenge);
+        
+        return new AuthenticationChallenge(publicKeyCredentialRequestOptions);
+    }
+    
+    /**
+     * Create authentication options for WebAuthn
+     */
+    private Object createAuthenticationOptions(String challenge) {
+        // Create basic authentication options
+        return Map.of(
             "challenge", challenge,
             "timeout", challengeTimeoutMs,
             "rpId", rpId,
-            "userVerification", "preferred",
-            "allowCredentials", allowCredentials // Return stored credentials for discovery
+            "allowCredentials", List.of(),
+            "userVerification", "preferred"
         );
-        
-        return new AuthenticationChallenge(options);
     }
     
     /**
@@ -125,6 +121,13 @@ public class PasskeyAuthenticationService {
         String clientDataJSON = completion.clientDataJSON();
         String ipAddress = completion.ipAddress();
         String deviceId = completion.deviceId();
+        
+        log.info("Completing passkey authentication for credential: {}", credentialId);
+        
+        // Validate real API connection
+        if (!validateRealApiConnection("PasskeyAuthenticationService")) {
+            return new AuthenticationResult(false, null, null, "Real API connection validation failed");
+        }
         
         // Extract and verify challenge
         String challenge = challengeService.extractChallengeFromClientData(clientDataJSON);

@@ -254,6 +254,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
+                    <skip>false</skip>
                     <mainClass>io.strategiz.application.Application</mainClass>
                     <excludes>
                         <exclude>
@@ -267,40 +268,6 @@
                         <goals>
                             <goal>repackage</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Maven JAR Plugin with explicit manifest configuration -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>io.strategiz.application.Application</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-            
-            <!-- Maven Dependency Plugin to copy dependencies -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.6.1</version>
-                <executions>
-                    <execution>
-                        <id>copy-dependencies</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>

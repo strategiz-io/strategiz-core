@@ -8,11 +8,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Business logic for Coinbase provider integration.
@@ -296,24 +306,41 @@ public class CoinbaseProviderBusiness {
     }
     
     private Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
-        // Implementation would use HTTP client to exchange code for tokens
-        // This is a placeholder for the actual OAuth token exchange
-        Map<String, String> params = new HashMap<>();
-        params.put("grant_type", "authorization_code");
-        params.put("code", authorizationCode);
-        params.put("client_id", clientId);
-        params.put("client_secret", clientSecret);
-        params.put("redirect_uri", redirectUri);
-        
-        // TODO: Implement actual token exchange using HTTP client
-        // For now, return mock data
-        Map<String, Object> result = new HashMap<>();
-        result.put("access_token", "mock_access_token_" + System.currentTimeMillis());
-        result.put("refresh_token", "mock_refresh_token_" + System.currentTimeMillis());
-        result.put("expires_in", 3600);
-        result.put("token_type", "Bearer");
-        
-        return result;
+        try {
+            // Build the token exchange request
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type", "authorization_code");
+            params.add("code", authorizationCode);
+            params.add("client_id", clientId);
+            params.add("client_secret", clientSecret);
+            params.add("redirect_uri", redirectUri);
+            
+            // Set up headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            
+            // Create the request entity
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            
+            // Make the token exchange request
+            String tokenUrl = "https://api.coinbase.com/oauth/token";
+            RestTemplate restTemplate = new RestTemplate();
+            
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            } else {
+                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                    "Token exchange failed with status: " + response.getStatusCode());
+            }
+            
+        } catch (RestClientException e) {
+            log.error("Failed to exchange authorization code for tokens: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Token exchange failed: " + e.getMessage());
+        }
     }
     
     private Map<String, Object> getUserAccountInfo(String accessToken) {
@@ -321,31 +348,112 @@ public class CoinbaseProviderBusiness {
     }
     
     private Map<String, Object> makeAuthenticatedRequest(String endpoint, String accessToken, Map<String, String> params) {
-        // TODO: Implement actual authenticated request using access token
-        // For now, return mock data
-        Map<String, Object> result = new HashMap<>();
-        result.put("data", Map.of(
-            "id", UUID.randomUUID().toString(),
-            "name", "Mock User",
-            "email", "user@example.com"
-        ));
-        
-        return result;
+        try {
+            // Build the URL with parameters
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromHttpUrl("https://api.coinbase.com/v2" + endpoint);
+            
+            if (params != null) {
+                for (Map.Entry<String, String> param : params.entrySet()) {
+                    uriBuilder.queryParam(param.getKey(), param.getValue());
+                }
+            }
+            
+            String url = uriBuilder.toUriString();
+            
+            // Set up headers with Bearer token
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.setBearerAuth(accessToken);
+            
+            // Create the request entity
+            HttpEntity<String> request = new HttpEntity<>(headers);
+            
+            // Make the authenticated request
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            } else {
+                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                    "Authenticated request failed with status: " + response.getStatusCode());
+            }
+            
+        } catch (RestClientException e) {
+            log.error("Failed to make authenticated request to {}: {}", endpoint, e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Authenticated request failed: " + e.getMessage());
+        }
     }
     
     private Map<String, Object> refreshTokens(String refreshToken) {
-        // TODO: Implement actual token refresh
-        Map<String, Object> result = new HashMap<>();
-        result.put("access_token", "refreshed_access_token_" + System.currentTimeMillis());
-        result.put("refresh_token", "refreshed_refresh_token_" + System.currentTimeMillis());
-        result.put("expires_in", 3600);
-        result.put("token_type", "Bearer");
-        
-        return result;
+        try {
+            // Build the token refresh request
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type", "refresh_token");
+            params.add("refresh_token", refreshToken);
+            params.add("client_id", clientId);
+            params.add("client_secret", clientSecret);
+            
+            // Set up headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            
+            // Create the request entity
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            
+            // Make the token refresh request
+            String tokenUrl = "https://api.coinbase.com/oauth/token";
+            RestTemplate restTemplate = new RestTemplate();
+            
+            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            } else {
+                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                    "Token refresh failed with status: " + response.getStatusCode());
+            }
+            
+        } catch (RestClientException e) {
+            log.error("Failed to refresh tokens: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Token refresh failed: " + e.getMessage());
+        }
     }
     
     private void revokeAccessToken(String accessToken) {
-        // TODO: Implement actual token revocation
-        log.debug("Revoking Coinbase access token");
+        try {
+            // Build the token revocation request
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("token", accessToken);
+            
+            // Set up headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            
+            // Create the request entity
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+            
+            // Make the token revocation request
+            String revokeUrl = "https://api.coinbase.com/oauth/revoke";
+            RestTemplate restTemplate = new RestTemplate();
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(revokeUrl, request, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Successfully revoked Coinbase access token");
+            } else {
+                log.warn("Token revocation returned status: {}", response.getStatusCode());
+            }
+            
+        } catch (RestClientException e) {
+            log.error("Failed to revoke access token: {}", e.getMessage());
+            // Don't throw exception for revocation failures - log and continue
+        }
     }
 } 

@@ -14,8 +14,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
 import java.net.URI;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Client for interacting with the Kraken exchange API

@@ -1,6 +1,5 @@
 package io.strategiz.service.base.service;
 
-import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +7,6 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.Map;
 
 /**
  * Base service for all authentication-related services.

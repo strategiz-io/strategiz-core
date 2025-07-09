@@ -1,4 +1,4 @@
-package io.strategiz.service.auth.passkey.model;
+package io.strategiz.service.auth.model.passkey;
 
 /**
  * Result of passkey authentication or registration

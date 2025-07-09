@@ -1,4 +1,4 @@
-package io.strategiz.marketplace.model;
+package io.strategiz.service.marketplace.model;
 
 import java.util.List;
 import java.util.Map;

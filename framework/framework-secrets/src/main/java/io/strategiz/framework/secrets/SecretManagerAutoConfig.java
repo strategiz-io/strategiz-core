@@ -1,7 +1,6 @@
 package io.strategiz.framework.secrets;
 
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.framework.secrets.SecretsErrors;
 import io.strategiz.framework.secrets.config.VaultProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

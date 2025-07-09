@@ -2,13 +2,43 @@ package io.strategiz.data.user.repository;
 
 import com.google.api.core.ApiFuture;
 import com.google.cloud.Timestamp;
-import com.google.cloud.firestore.*;
-import io.strategiz.data.user.model.*;
-import io.strategiz.data.user.model.watchlist.*;
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.FieldValue;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
+import com.google.cloud.firestore.SetOptions;
+import com.google.cloud.firestore.WriteBatch;
+import com.google.cloud.firestore.WriteResult;
+import io.strategiz.data.user.model.AuthenticationMethod;
+import io.strategiz.data.user.model.ConnectedProvider;
+import io.strategiz.data.user.model.Credentials;
+import io.strategiz.data.user.model.OAuthAuthenticationMethod;
+import io.strategiz.data.user.model.PasskeyAuthenticationMethod;
+import io.strategiz.data.user.model.Provider;
+import io.strategiz.data.user.model.SmsOtpAuthenticationMethod;
+import io.strategiz.data.user.model.TotpAuthenticationMethod;
+import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.model.UserProfile;
+import io.strategiz.data.user.model.watchlist.CreateWatchlistItemRequest;
+import io.strategiz.data.user.model.watchlist.DeleteWatchlistItemRequest;
+import io.strategiz.data.user.model.watchlist.MarketWatchlistItem;
+import io.strategiz.data.user.model.watchlist.ReadWatchlistItemResponse;
+import io.strategiz.data.user.model.watchlist.UpdateWatchlistItemRequest;
+import io.strategiz.data.user.model.watchlist.WatchlistCollectionResponse;
+import io.strategiz.data.user.model.watchlist.WatchlistOperationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 /**

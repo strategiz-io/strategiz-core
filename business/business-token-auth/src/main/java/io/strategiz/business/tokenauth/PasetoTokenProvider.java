@@ -14,8 +14,12 @@ import javax.crypto.SecretKey;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Provides PASETO token generation and validation functionality.

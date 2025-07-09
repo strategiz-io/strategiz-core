@@ -1,6 +1,5 @@
 package io.strategiz.framework.apidocs.controller;
 
-import io.strategiz.framework.apidocs.annotation.ApiDocumented;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 

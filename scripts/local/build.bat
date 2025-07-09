@@ -8,7 +8,15 @@ REM Record the start time
 set start_time=%time%
 
 echo Step 1/6: Building framework modules
-cd ..\framework\framework-core
+cd ..\framework\framework-exception
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+
+cd ..\framework-logging
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+
+cd ..\framework-secrets
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 
@@ -43,6 +51,16 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
+cd data\data-user
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd data\data-device
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
 echo Step 3/6: Building client modules
 cd client\client-base
 call mvn clean install -DskipTests
@@ -65,6 +83,21 @@ if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
 cd client\client-binanceus
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd client\client-coingecko
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd client\client-facebook
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd client\client-google
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
@@ -100,33 +133,53 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-echo Step 5/6: Building API modules
-cd api\api-base
+cd service\service-marketplace
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd api\api-dashboard
+cd service\service-monitoring
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd api\api-exchange
+cd service\service-provider
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd api\api-strategy
+cd service\service-profile
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd api\api-portfolio
+cd service\service-device
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd api\api-auth
+cd service\service-walletaddress
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+echo Step 5/6: Building business modules
+cd business\business-base
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd business\business-portfolio
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd business\business-token-auth
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd business\business-provider-coinbase
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..

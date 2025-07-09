@@ -1,7 +1,6 @@
 package io.strategiz.data.user.repository;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.strategiz.data.user.model.OAuthAuthenticationMethod;
 

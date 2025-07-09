@@ -1,12 +1,22 @@
 package io.strategiz.service.auth.controller.session;
 
 import io.strategiz.service.auth.service.session.SessionService;
-import io.strategiz.service.auth.model.session.*;
+import io.strategiz.service.auth.model.session.RefreshSessionRequest;
+import io.strategiz.service.auth.model.session.RefreshSessionResponse;
+import io.strategiz.service.auth.model.session.RevocationResponse;
+import io.strategiz.service.auth.model.session.RevokeAllResponse;
+import io.strategiz.service.auth.model.session.SessionRevocationRequest;
+import io.strategiz.service.auth.model.session.SessionValidationRequest;
+import io.strategiz.service.auth.model.session.SessionValidationResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 

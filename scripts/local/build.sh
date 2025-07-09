@@ -107,6 +107,10 @@ echo "Building business-token-auth"
 mvn -f business/business-token-auth/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in business-token-auth" && exit 1
 
+echo "Building business-provider-coinbase"
+mvn -f business/business-provider-coinbase/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in business-provider-coinbase" && exit 1
+
 echo "Step 5/6: Building service modules"
 echo "Building service-base"
 mvn -f service/service-base/pom.xml clean install -DskipTests

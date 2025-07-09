@@ -1,7 +1,6 @@
 package io.strategiz.client.coinbase;
 
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.client.coinbase.CoinbaseErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.client.utils.URIBuilder;
@@ -23,7 +22,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -165,7 +163,7 @@ public class CoinbaseClient {
             return response.getBody();
         } catch (RestClientResponseException e) {
             // Handle Spring's RestClientResponseException which contains HTTP status and response body
-            int statusCode = e.getRawStatusCode();
+            int statusCode = e.getStatusCode().value();
             String responseBody = e.getResponseBodyAsString();
             
             log.error("Coinbase API error - HTTP Status {}: {}", statusCode, responseBody);

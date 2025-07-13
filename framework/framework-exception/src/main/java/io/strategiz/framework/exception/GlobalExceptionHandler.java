@@ -12,8 +12,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
 
 /**
- * Global exception handler for clean API responses.
- * Returns the standard 4-field error format with proper HTTP status codes.
+ * Global exception handler for system-wide exceptions.
+ * 
+ * In the hybrid approach:
+ * - BaseController handles StrategizException (business exceptions)
+ * - GlobalExceptionHandler handles system exceptions (unexpected errors)
+ * 
+ * This provides a safety net for exceptions that fall through BaseController.
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -21,7 +26,8 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handle Strategiz business exceptions with enum error codes
+     * Handle StrategizException that falls through BaseController
+     * This should rarely be called - mainly for controllers that don't extend BaseController
      */
     @ExceptionHandler(StrategizException.class)
     public ResponseEntity<StandardErrorResponse> handleStrategizException(
@@ -29,28 +35,27 @@ public class GlobalExceptionHandler {
         
         String traceId = generateTraceId();
         
-        // Log the business exception with context
-        log.warn("Business exception [{}]: {} - {}", 
-            traceId, ex.getErrorCode(), ex.getMessage());
+        // Log warning that this should be handled by BaseController
+        log.warn("StrategizException handled by GlobalExceptionHandler [{}] - " +
+                 "Controller should extend BaseController. Module: {}, Error: {}", 
+                 traceId, ex.getModuleName(), ex.getErrorCode());
         
-        // Create clean 4-field error response
+        // Create basic error response since we don't have access to ErrorMessageService here
         StandardErrorResponse errorResponse = new StandardErrorResponse(
             ex.getErrorCode(),
-            ex.getMessage() != null ? ex.getMessage() : "An error occurred", 
-            ex.getMessage() != null ? ex.getMessage() : ex.getErrorCode(),
-            "https://docs.strategiz.io/errors/" + ex.getErrorCode().toLowerCase()
+            "An error occurred. Please try again.", 
+            "Error in module: " + ex.getModuleName() + " - " + ex.getErrorCode(),
+            "https://docs.strategiz.io/errors/general/error"
         );
         
-        // Add trace ID to MDC for response headers (StandardHeadersInterceptor will add it)
+        // Add trace ID to MDC for response headers
         MDC.put("traceId", traceId);
         
-        // Return appropriate HTTP status based on error code
-        HttpStatus status = mapErrorCodeToHttpStatus(ex.getErrorCode());
-        return ResponseEntity.status(status).body(errorResponse);
+        return ResponseEntity.status(ex.getHttpStatus()).body(errorResponse);
     }
 
     /**
-     * Handle unexpected runtime exceptions
+     * Handle unexpected runtime exceptions (system-level errors)
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<StandardErrorResponse> handleRuntimeException(
@@ -62,10 +67,10 @@ public class GlobalExceptionHandler {
         log.error("Unexpected runtime exception [{}]: {}", traceId, ex.getMessage(), ex);
         
         StandardErrorResponse errorResponse = new StandardErrorResponse(
-            "INTERNAL_ERROR",
-            "An unexpected error occurred. Please contact support with the trace ID from response headers.",
-            "Exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
-            "https://docs.strategiz.io/errors/server/internal-error"
+            "SYSTEM_RUNTIME_ERROR",
+            "A system error occurred. Please contact support.",
+            "Runtime exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
+            "https://docs.strategiz.io/errors/system/runtime-error"
         );
         
         MDC.put("traceId", traceId);
@@ -73,7 +78,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle all other exceptions
+     * Handle all other unexpected exceptions (system-level errors)
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<StandardErrorResponse> handleGenericException(
@@ -82,13 +87,13 @@ public class GlobalExceptionHandler {
         String traceId = generateTraceId();
         
         // Log the unexpected exception with full stack trace
-        log.error("Unexpected exception [{}]: {}", traceId, ex.getMessage(), ex);
+        log.error("Unexpected system exception [{}]: {}", traceId, ex.getMessage(), ex);
         
         StandardErrorResponse errorResponse = new StandardErrorResponse(
-            "INTERNAL_ERROR",
-            "An unexpected error occurred. Please contact support with the trace ID from response headers.",
-            "Exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
-            "https://docs.strategiz.io/errors/server/internal-error"
+            "SYSTEM_ERROR",
+            "A system error occurred. Please contact support.",
+            "System exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
+            "https://docs.strategiz.io/errors/system/error"
         );
         
         MDC.put("traceId", traceId);

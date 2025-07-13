@@ -1,5 +1,6 @@
 package io.strategiz.data.user.model.watchlist;
 
+import io.strategiz.data.base.entity.BaseEntity;
 import java.util.Date;
 import java.util.Objects;
 
@@ -7,44 +8,42 @@ import java.util.Objects;
  * Entity representing a market watchlist item.
  * Maps to Firestore document structure: users/{userId}/market_watchlist/{assetId}
  */
-public class MarketWatchlistItem {
+public class MarketWatchlistItem extends BaseEntity {
     
     private String id;
     private String symbol;
     private String name;
     private String type;
     private Date addedAt;
-    private Date createdAt;
-    private Date modifiedAt;
-    private String createdBy;
-    private String modifiedBy;
-    private Integer version;
-    private Boolean isActive;
 
     // Constructors
     public MarketWatchlistItem() {
         this.addedAt = new Date();
-        this.createdAt = new Date();
-        this.modifiedAt = new Date();
-        this.version = 1;
-        this.isActive = true;
     }
 
-    public MarketWatchlistItem(String symbol, String name, String type) {
-        this();
+    public MarketWatchlistItem(String symbol, String name, String type, String createdBy) {
+        super(createdBy);
         this.symbol = symbol;
         this.name = name;
         this.type = type;
+        this.addedAt = new Date();
         this.id = generateId(symbol, type);
     }
 
     // Getters and Setters
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getCollectionName() {
+        return "market_watchlist";
     }
 
     public String getSymbol() {
@@ -79,53 +78,24 @@ public class MarketWatchlistItem {
         this.addedAt = addedAt;
     }
 
+    /**
+     * Gets the creation date from audit fields
+     * @return Creation date or null if not available
+     */
     public Date getCreatedAt() {
-        return createdAt;
+        return getAuditFields() != null && getAuditFields().getCreatedDate() != null ?
+                getAuditFields().getCreatedDate().toDate() : null;
     }
 
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
+    /**
+     * Gets the modification date from audit fields
+     * @return Modification date or null if not available
+     */
     public Date getModifiedAt() {
-        return modifiedAt;
+        return getAuditFields() != null && getAuditFields().getModifiedDate() != null ?
+                getAuditFields().getModifiedDate().toDate() : null;
     }
 
-    public void setModifiedAt(Date modifiedAt) {
-        this.modifiedAt = modifiedAt;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public String getModifiedBy() {
-        return modifiedBy;
-    }
-
-    public void setModifiedBy(String modifiedBy) {
-        this.modifiedBy = modifiedBy;
-    }
-
-    public Integer getVersion() {
-        return version;
-    }
-
-    public void setVersion(Integer version) {
-        this.version = version;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
 
     /**
      * Generates a unique ID for the watchlist item.
@@ -138,31 +108,6 @@ public class MarketWatchlistItem {
         return String.format("%s_%s", symbol.toUpperCase(), type.toUpperCase());
     }
 
-    /**
-     * Performs a soft delete by setting isActive to false.
-     */
-    public void softDelete() {
-        this.isActive = false;
-        this.modifiedAt = new Date();
-        this.version++;
-    }
-
-    /**
-     * Updates the modification timestamp and version.
-     */
-    public void markAsModified() {
-        this.modifiedAt = new Date();
-        this.version++;
-    }
-
-    /**
-     * Updates the modification timestamp, version, and modified by user.
-     */
-    public void markAsModified(String modifiedBy) {
-        this.modifiedAt = new Date();
-        this.modifiedBy = modifiedBy;
-        this.version++;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -187,10 +132,7 @@ public class MarketWatchlistItem {
                ", name='" + name + '\'' +
                ", type='" + type + '\'' +
                ", addedAt=" + addedAt +
-               ", createdBy='" + createdBy + '\'' +
-               ", modifiedBy='" + modifiedBy + '\'' +
-               ", isActive=" + isActive +
-               ", version=" + version +
+               ", audit=" + getAuditFields() +
                '}';
     }
 } 

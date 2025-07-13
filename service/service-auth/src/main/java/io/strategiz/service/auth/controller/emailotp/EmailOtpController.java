@@ -3,6 +3,8 @@ package io.strategiz.service.auth.controller.emailotp;
 import io.strategiz.service.auth.service.emailotp.EmailOtpService;
 import io.strategiz.service.auth.model.emailotp.EmailOtpRequest;
 import io.strategiz.service.auth.model.emailotp.EmailOtpVerificationRequest;
+import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +45,7 @@ public class EmailOtpController {
         boolean sent = emailOtpService.sendOtp(request.email(), request.purpose());
         
         if (!sent) {
-            throw new RuntimeException("Failed to send OTP");
+            throw new StrategizException(AuthErrorDetails.EMAIL_SEND_FAILED, "service-auth", request.email(), "Unknown error");
         }
         
         // Return clean response - headers added by StandardHeadersInterceptor

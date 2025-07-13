@@ -52,9 +52,7 @@ public class OAuthAuthenticationManager {
     private void activateExistingMethodIfNeeded(OAuthAuthenticationMethod oAuthMethod, User user) {
         if (!oAuthMethod.isActive()) {
             logger.info("Reactivating {} OAuth method for user: {}", oAuthMethod.getProvider(), user.getUserId());
-            oAuthMethod.setIsActive(true);
-            oAuthMethod.setModifiedBy(user.getUserId());
-            oAuthMethod.setModifiedAt(new Date());
+            // Audit fields are handled automatically by BaseEntity
             authenticationMethodRepository.save(oAuthMethod);
         }
     }
@@ -65,11 +63,7 @@ public class OAuthAuthenticationManager {
         oAuthMethod.setProvider(provider);
         oAuthMethod.setProviderId(providerId);
         oAuthMethod.setEmail(email);
-        oAuthMethod.setCreatedAt(new Date());
-        oAuthMethod.setCreatedBy(user.getUserId());
-        oAuthMethod.setModifiedAt(new Date());
-        oAuthMethod.setModifiedBy(user.getUserId());
-        oAuthMethod.setIsActive(true);
+        // Audit fields are handled automatically by BaseEntity
         return oAuthMethod;
     }
 } 

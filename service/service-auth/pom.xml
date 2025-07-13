@@ -52,6 +52,11 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>business-session</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>service-base</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -82,7 +87,7 @@
         <dependency>
             <groupId>dev.paseto</groupId>
             <artifactId>jpaseto-bouncy-castle</artifactId>
-            <version>0.7.0</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- Spring dependencies -->
@@ -101,6 +106,10 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -127,60 +136,60 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.5</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.11.5</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.5</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- WebAuthn4j Support -->
         <dependency>
             <groupId>com.webauthn4j</groupId>
             <artifactId>webauthn4j-core</artifactId>
-            <version>0.21.1.RELEASE</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         <dependency>
             <groupId>com.webauthn4j</groupId>
             <artifactId>webauthn4j-util</artifactId>
-            <version>0.21.1.RELEASE</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- PASETO Support -->
         <dependency>
             <groupId>dev.paseto</groupId>
             <artifactId>jpaseto-api</artifactId>
-            <version>0.7.0</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         <dependency>
             <groupId>dev.paseto</groupId>
             <artifactId>jpaseto-impl</artifactId>
-            <version>0.7.0</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         <dependency>
             <groupId>dev.paseto</groupId>
             <artifactId>jpaseto-jackson</artifactId>
-            <version>0.7.0</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- TOTP Implementation for Authenticator Apps -->
         <dependency>
             <groupId>dev.samstevens.totp</groupId>
             <artifactId>totp</artifactId>
-            <version>1.7.1</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- Lombok for boilerplate reduction -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
+            <!-- Version managed by root parent pom -->
             <scope>provided</scope>
         </dependency>
         
@@ -188,32 +197,32 @@
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
-            <version>2.3.2</version>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.9.2</version>
+            <!-- Version managed by root parent pom -->
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.9.2</version>
+            <!-- Version managed by root parent pom -->
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.11.0</version>
+            <!-- Version managed by root parent pom -->
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.11.0</version>
+            <!-- Version managed by root parent pom -->
             <scope>test</scope>
         </dependency>
         <dependency>

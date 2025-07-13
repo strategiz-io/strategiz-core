@@ -7,6 +7,8 @@ import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryRes
 import io.strategiz.service.dashboard.model.portfoliosummary.Asset;
 import io.strategiz.service.dashboard.model.portfoliosummary.AssetData;
 import io.strategiz.service.dashboard.model.portfoliosummary.ExchangeData;
+import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,9 +136,12 @@ public class PortfolioSummaryService {
             }
             
             return response;
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
         } catch (Exception e) {
             log.error("Error getting portfolio summary for user: " + userId, e);
-            throw new RuntimeException("Failed to get portfolio summary", e);
+            throw new StrategizException(DashboardErrorDetails.PORTFOLIO_CALCULATION_FAILED, "service-dashboard", e, userId, "summary", e.getMessage());
         }
     }
 }

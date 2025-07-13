@@ -77,8 +77,9 @@ public class UpdateWatchlistItemRequest {
      * Applies this update to an existing MarketWatchlistItem entity.
      * 
      * @param entity The entity to update
+     * @param modifiedBy The user making the modification
      */
-    public void applyTo(MarketWatchlistItem entity) {
+    public void applyTo(MarketWatchlistItem entity, String modifiedBy) {
         if (symbol != null) {
             entity.setSymbol(symbol);
         }
@@ -88,7 +89,8 @@ public class UpdateWatchlistItemRequest {
         if (type != null) {
             entity.setType(type);
         }
-        entity.markAsModified();
+        // Use BaseEntity's update audit method
+        entity._updateAudit(modifiedBy);
     }
 
     @Override

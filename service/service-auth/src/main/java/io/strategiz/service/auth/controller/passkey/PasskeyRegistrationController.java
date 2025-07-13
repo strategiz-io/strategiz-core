@@ -63,7 +63,7 @@ public class PasskeyRegistrationController extends BaseController {
      */
     private String validateTemporaryToken(String temporaryToken, String expectedEmail) {
         // Validate the token format and extract user ID
-        Optional<String> userIdOpt = sessionAuthBusiness.validateAccessToken(temporaryToken);
+        Optional<String> userIdOpt = sessionAuthBusiness.validateSession(temporaryToken);
         if (userIdOpt.isEmpty()) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, expectedEmail);
         }

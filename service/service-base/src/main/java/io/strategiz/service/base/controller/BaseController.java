@@ -6,9 +6,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
+import io.strategiz.framework.exception.ErrorMessageService;
+import io.strategiz.framework.exception.StandardErrorResponse;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.servers.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -33,10 +41,28 @@ import java.util.regex.Pattern;
  * 
  * For authentication-specific functionality, extend BaseAuthenticationController instead.
  */
+@OpenAPIDefinition(
+    info = @Info(
+        title = "Strategiz Core API",
+        version = "1.0",
+        description = "Core backend API for Strategiz platform providing authentication, user management, and business logic services.",
+        contact = @Contact(
+            name = "Strategiz Development Team",
+            email = "dev@strategiz.io"
+        )
+    ),
+    servers = {
+        @Server(url = "http://localhost:8080", description = "Local Development Server"),
+        @Server(url = "https://api.strategiz.io", description = "Production Server")
+    }
+)
 public abstract class BaseController {
     
     protected final Logger log = LoggerFactory.getLogger(getClass());
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Autowired
+    protected ErrorMessageService errorMessageService;
     
     // Security patterns for input validation
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -372,12 +398,69 @@ public abstract class BaseController {
     }
     
     /**
-     * Default exception handler - should rarely be used since GlobalExceptionHandler handles most cases
+     * Handle StrategizException (business exceptions) in controllers
+     * This is the main exception handler for the hybrid approach
+     */
+    @ExceptionHandler(StrategizException.class)
+    public ResponseEntity<StandardErrorResponse> handleStrategizException(StrategizException ex) {
+        String traceId = generateTraceId();
+        
+        // Log the business exception with module context
+        log.warn("Business exception [{}] in module [{}]: {}", 
+            traceId, ex.getModuleName(), ex.getErrorCode());
+        
+        // Build standardized response using ErrorMessageService
+        StandardErrorResponse errorResponse = errorMessageService.buildErrorResponse(ex);
+        
+        // Add trace ID and module info to response headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Trace-Id", traceId);
+        headers.add("X-Error-Module", ex.getModuleName());
+        
+        // Add trace ID to MDC for any subsequent logging
+        MDC.put("traceId", traceId);
+        
+        return ResponseEntity.status(ex.getHttpStatus()).headers(headers).body(errorResponse);
+    }
+    
+    /**
+     * Build error response - can be overridden by subclasses for customization
+     */
+    protected ResponseEntity<StandardErrorResponse> buildErrorResponse(StrategizException ex) {
+        StandardErrorResponse response = errorMessageService.buildErrorResponse(ex);
+        return ResponseEntity.status(ex.getHttpStatus()).body(response);
+    }
+    
+    /**
+     * Generate a unique trace ID for error tracking
+     */
+    private String generateTraceId() {
+        return generateRequestId(); // Reuse the existing method
+    }
+    
+    /**
+     * Fallback exception handler for unexpected exceptions
+     * GlobalExceptionHandler should handle most cases, but this provides a safety net
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleUnexpectedException(Exception ex) {
-        log.error("Unexpected error in controller", ex);
-        // Return minimal error - GlobalExceptionHandler should handle this
-        return ResponseEntity.internalServerError().body("An unexpected error occurred");
+    public ResponseEntity<StandardErrorResponse> handleUnexpectedException(Exception ex) {
+        String traceId = generateTraceId();
+        
+        log.error("Unexpected error in controller [{}]: {}", traceId, ex.getMessage(), ex);
+        
+        StandardErrorResponse errorResponse = new StandardErrorResponse(
+            "INTERNAL_ERROR",
+            "An unexpected error occurred. Please contact support.",
+            "Unexpected exception: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
+            "https://docs.strategiz.io/errors/general/internal-error"
+        );
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Trace-Id", traceId);
+        headers.add("X-Error-Module", "unknown");
+        
+        MDC.put("traceId", traceId);
+        
+        return ResponseEntity.internalServerError().headers(headers).body(errorResponse);
     }
 }

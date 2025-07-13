@@ -51,18 +51,12 @@ public class StrategyServiceImpl implements StrategyService {
             throw new IllegalArgumentException("User ID cannot be null or empty");
         }
         
-        // Set timestamps
-        String now = new Date().toString();
-        
-        // For new strategies
+        // Log operation type
         if (strategy.getId() == null || strategy.getId().isEmpty()) {
-            strategy.setCreatedAt(now);
             log.info("Creating new strategy for user: {}", strategy.getUserId());
         } else {
             log.info("Updating strategy with id: {} for user: {}", strategy.getId(), strategy.getUserId());
         }
-        
-        strategy.setUpdatedAt(now);
         
         // Save to repository
         return strategyRepository.save(strategy);

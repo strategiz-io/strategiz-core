@@ -165,18 +165,30 @@ public class PasskeyAuthenticationService extends BaseService {
             credential.setLastUsedTime(Instant.now());
             credentialRepository.save(credential);
             
-            // Generate authentication tokens with proper ACR/AAL separation
-            // ACR "2" = Fully authenticated, AAL "3" = Hardware crypto (passkeys)
-            SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+            // Generate authentication tokens AND session using new unified approach
+            // Extract context from challenge (we should have user email etc.)
+            SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
                 userId,
+                null, // userEmail - could be extracted from user lookup
                 List.of("passkeys"), // Authentication method used
                 false, // Not partial auth - full authentication completed
                 deviceId,
-                ipAddress
+                deviceId, // Use deviceId as fingerprint for now
+                ipAddress,
+                "Passkey Client" // userAgent placeholder
             );
             
-            String accessToken = tokenPair.accessToken();
-            String refreshToken = tokenPair.refreshToken();
+            SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+            
+            String accessToken = authResult.accessToken();
+            String refreshToken = authResult.refreshToken();
+            
+            // Log session creation status
+            if (authResult.hasSession()) {
+                log.info("Created session {} along with tokens for passkey auth", authResult.getSessionId());
+            } else {
+                log.info("Created tokens without session (session management disabled)");
+            }
             
             log.info("Successfully authenticated user {} with passkey", userId);
             return new AuthenticationResult(true, accessToken, refreshToken, null);

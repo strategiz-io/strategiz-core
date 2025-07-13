@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.service.dashboard.PortfolioSummaryService;
 import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
+import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.controller.BaseController;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +25,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/dashboard/portfolio")
-public class PortfolioSummaryController {
-    
-    private static final Logger log = LoggerFactory.getLogger(PortfolioSummaryController.class);
+public class PortfolioSummaryController extends BaseController {
     
     private final PortfolioSummaryService portfolioSummaryService;
     
@@ -52,7 +53,7 @@ public class PortfolioSummaryController {
         
         // Check if portfolio exists
         if (portfolioSummary == null) {
-            throw new RuntimeException("Portfolio not found for user: " + userId);
+            throw new StrategizException(DashboardErrorDetails.PORTFOLIO_NOT_FOUND, "service-dashboard", userId);
         }
         
         // Create response

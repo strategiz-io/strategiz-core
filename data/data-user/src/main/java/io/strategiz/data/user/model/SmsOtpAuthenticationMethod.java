@@ -17,11 +17,7 @@ public class SmsOtpAuthenticationMethod extends AuthenticationMethod {
 
     // Custom constructor (preserved and updated)
     public SmsOtpAuthenticationMethod(String name, String phoneNumber, Boolean verified, String createdBy) {
-        super();
-        this.setType("SMS_OTP");
-        this.setName(name);
-        this.setCreatedBy(createdBy);
-        this.setModifiedBy(createdBy);
+        super(null, "SMS_OTP", name, null, createdBy);
         this.phoneNumber = phoneNumber;
         if (verified != null) { // Preserve original logic of allowing explicit set
             this.verified = verified;
@@ -30,8 +26,8 @@ public class SmsOtpAuthenticationMethod extends AuthenticationMethod {
     }
 
     // All-arguments constructor (including inherited fields)
-    public SmsOtpAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive, String phoneNumber, Boolean verified) {
-        super(id, type, name, lastVerifiedAt, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+    public SmsOtpAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, String phoneNumber, Boolean verified) {
+        super(id, type, name, lastVerifiedAt, createdBy);
         this.phoneNumber = phoneNumber;
         this.verified = verified != null ? verified : false; // Ensure 'verified' is not null
     }

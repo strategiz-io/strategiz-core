@@ -3,6 +3,8 @@ package io.strategiz.service.dashboard;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistAsset;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistResponse;
+import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 // import io.strategiz.service.dashboard.repository.WatchlistRepository;
 // import io.strategiz.service.dashboard.provider.MarketDataProvider;
 import org.slf4j.Logger;
@@ -45,26 +47,40 @@ public class WatchlistService {
     public WatchlistResponse getWatchlist(String userId) {
         log.info("Getting watchlist data for user: {}", userId);
         
-        // TODO: Implement when dependencies are available
-        WatchlistResponse response = new WatchlistResponse();
-        response.setWatchlistItems(Arrays.asList());
-        response.setAvailableCategories(Arrays.asList("All", "Crypto", "Stocks", "ETFs"));
-        return response;
+        // Validate input
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new StrategizException(DashboardErrorDetails.INVALID_PORTFOLIO_DATA, "service-dashboard", "userId", userId, "User ID cannot be null or empty");
+        }
         
-        /* try {
+        try {
+            // TODO: Implement when dependencies are available
+            WatchlistResponse response = new WatchlistResponse();
+            response.setWatchlistItems(Arrays.asList());
+            response.setAvailableCategories(Arrays.asList("All", "Crypto", "Stocks", "ETFs"));
+            return response;
+            
+            /* 
             // Get user's watchlist assets
             List<WatchlistAsset> userAssets = watchlistRepository.getUserWatchlist(userId);
+            
+            if (userAssets == null) {
+                throw new StrategizException(DashboardErrorDetails.WATCHLIST_NOT_FOUND, "service-dashboard", userId);
+            }
             
             // Enrich assets with market data
             List<WatchlistItem> enrichedItems = enrichWithMarketData(userAssets);
             
             // Build and return response
             return buildWatchlistResponse(enrichedItems);
+            */
             
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
         } catch (Exception e) {
-            log.error("Error getting watchlist for user: " + userId, e);
-            throw new RuntimeException("Failed to get watchlist", e);
-        } */
+            log.error("Error getting watchlist for user: {}", userId, e);
+            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
+        }
     }
 
     /**

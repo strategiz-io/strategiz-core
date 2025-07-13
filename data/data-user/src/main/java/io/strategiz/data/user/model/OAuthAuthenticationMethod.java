@@ -19,19 +19,15 @@ public class OAuthAuthenticationMethod extends AuthenticationMethod {
 
     // Custom constructor (preserved and updated)
     public OAuthAuthenticationMethod(String provider, String uid, String email, String createdBy) {
-        super();
-        this.setType("OAUTH_" + (provider != null ? provider.toUpperCase() : ""));
-        this.setName((provider != null ? provider : "") + " Account");
-        this.setCreatedBy(createdBy);
-        this.setModifiedBy(createdBy);
+        super(null, "OAUTH_" + (provider != null ? provider.toUpperCase() : ""), (provider != null ? provider : "") + " Account", null, createdBy);
         this.provider = provider;
         this.uid = uid;
         this.email = email;
     }
 
     // All-arguments constructor (including inherited fields)
-    public OAuthAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive, String provider, String uid, String email) {
-        super(id, type, name, lastVerifiedAt, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+    public OAuthAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, String provider, String uid, String email) {
+        super(id, type, name, lastVerifiedAt, createdBy);
         this.provider = provider;
         this.uid = uid;
         this.email = email;

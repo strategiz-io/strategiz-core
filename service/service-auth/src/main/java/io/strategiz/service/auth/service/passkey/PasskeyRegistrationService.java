@@ -6,6 +6,8 @@ import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRep
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.base.BaseService;
+import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 
 // Import WebAuthn4J libraries for proper attestation parsing
 import com.webauthn4j.converter.util.ObjectConverter;
@@ -23,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Service handling passkey registration flows
@@ -126,7 +127,7 @@ public class PasskeyRegistrationService extends BaseService {
         
         // Validate real API connection
         if (!validateRealApiConnection("PasskeyRegistrationService")) {
-            throw new IllegalStateException("Real API connection validation failed");
+            throw new StrategizException(AuthErrorDetails.EXTERNAL_SERVICE_ERROR, "service-auth", "PasskeyRegistrationService", "validateRealApiConnection");
         }
         
         // Generate a challenge for this registration
@@ -202,7 +203,7 @@ public class PasskeyRegistrationService extends BaseService {
             
             // Create and save credential
             PasskeyCredential credential = new PasskeyCredential();
-            credential.setId(UUID.randomUUID().toString());
+            // Don't set ID manually - let JPA generate it to avoid optimistic locking issues
             credential.setCredentialId(credentialId);
             credential.setUserId(userId);
             credential.setPublicKey(publicKeyBytes);
@@ -220,7 +221,7 @@ public class PasskeyRegistrationService extends BaseService {
             SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
                 userId,
                 List.of("passkeys"), // Authentication method used
-                false, // Not partial auth - full registration completed
+                "2.2", // ACR "2.2" - Strong assurance for passkeys
                 deviceId,
                 null // IP address not available in registration
             );

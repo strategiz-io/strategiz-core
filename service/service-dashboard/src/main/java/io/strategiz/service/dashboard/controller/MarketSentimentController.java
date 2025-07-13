@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.service.dashboard.MarketSentimentService;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
+import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.controller.BaseController;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +25,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/dashboard/market")
-public class MarketSentimentController {
-    
-    private static final Logger log = LoggerFactory.getLogger(MarketSentimentController.class);
+public class MarketSentimentController extends BaseController {
 
     private final MarketSentimentService marketSentimentService;
     
@@ -52,7 +53,7 @@ public class MarketSentimentController {
         
         // Check if data exists
         if (sentimentData == null) {
-            throw new RuntimeException("Market sentiment not found for user: " + userId);
+            throw new StrategizException(DashboardErrorDetails.MARKET_DATA_UNAVAILABLE, "service-dashboard", "sentiment", "Data not found");
         }
         
         // Create response
@@ -83,7 +84,7 @@ public class MarketSentimentController {
         
         // Check if data exists
         if (sentimentData == null || sentimentData.getMarketTrends() == null) {
-            throw new RuntimeException("Market trends not found for user: " + userId);
+            throw new StrategizException(DashboardErrorDetails.MARKET_DATA_UNAVAILABLE, "service-dashboard", "trends", "Data not found");
         }
         
         // Create response with just trends

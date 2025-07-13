@@ -185,7 +185,7 @@ public class FacebookOAuthService {
         SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
             user.getUserId(),
             List.of("facebook"), // Authentication method used
-            false, // Not partial auth - full authentication completed
+            "2.1", // ACR "2.1" - Basic assurance for OAuth
             null, // Device ID not available
             null  // IP address not available
         );

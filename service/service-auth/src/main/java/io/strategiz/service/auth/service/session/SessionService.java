@@ -1,157 +1,130 @@
 package io.strategiz.service.auth.service.session;
 
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.business.session.service.SessionBusiness;
+import io.strategiz.business.session.model.SessionValidationResult;
+import io.strategiz.data.session.entity.UserSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Service for session management that delegates to SessionAuthBusiness
- * This is a simplified proxy service to maintain compatibility during migration
- * from api-auth to service-auth.
+ * Service implementation for session management operations
+ * Orchestrates session-related business logic using SessionBusiness
  */
-@Service
+@Service("sessionService")
 public class SessionService {
 
     private static final Logger log = LoggerFactory.getLogger(SessionService.class);
-    private final SessionAuthBusiness sessionAuthBusiness;
-    
-    public SessionService(SessionAuthBusiness sessionAuthBusiness) {
-        this.sessionAuthBusiness = sessionAuthBusiness;
-        log.info("Using SessionAuthBusiness for token management");
-    }
-    
-    /**
-     * Create a new session for a user
-     * @param userId the user ID
-     * @param deviceId Optional device ID
-     * @param ipAddress Optional IP address
-     * @return the access token
-     */
-    public String createSession(String userId, String deviceId, String ipAddress) {
-        // Use ACR "2.1" (basic assurance) as default for generic session creation
-        // Assume basic authentication method since context is unknown
-        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
-            userId,
-            List.of("password"), // Default to password auth for generic sessions
-            "2.1", // ACR "2.1" - Basic assurance
-            deviceId,
-            ipAddress
-        );
-        return tokenPair.accessToken();
-    }
-    
-    /**
-     * Create a new session for a user with minimal info
-     * @param userId the user ID
-     * @return the access token
-     */
-    public String createSession(String userId) {
-        // Use ACR "2.1" (basic assurance) as default for generic session creation
-        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
-            userId,
-            List.of("password"), // Default to password auth for generic sessions
-            "2.1", // ACR "2.1" - Basic assurance
-            null, // No device ID
-            null  // No IP address
-        );
-        return tokenPair.accessToken();
+
+    private final SessionBusiness sessionBusiness;
+
+    @Autowired
+    public SessionService(SessionBusiness sessionBusiness) {
+        this.sessionBusiness = sessionBusiness;
+        log.info("SessionService initialized with business-session architecture");
     }
 
     /**
-     * Validate a session token
-     *
-     * @param token Session token
-     * @return true if token is valid, false otherwise
+     * Create a new user session after successful authentication
      */
-    public boolean validateSession(String token) {
-        if (token == null || token.isBlank()) {
-            log.warn("Token is null or empty");
-            return false;
-        }
-        log.debug("Validating session token");
-        
-        try {
-            return sessionAuthBusiness.validateSession(token).isPresent();
-        } catch (Exception e) {
-            log.warn("Error validating token: {}", e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Get user ID from token
-     *
-     * @param token Session token
-     * @return User ID if token is valid, empty otherwise
-     */
-    public Optional<String> getUserIdFromToken(String token) {
-        if (token == null || token.isBlank()) {
-            log.warn("Token is null or empty");
-            return Optional.empty();
-        }
-        
-        try {
-            return sessionAuthBusiness.validateSession(token);
-        } catch (Exception e) {
-            log.warn("Error extracting user ID from token: {}", e.getMessage());
-            return Optional.empty();
-        }
+    public UserSession createSession(String userId, String userEmail, 
+                                   HttpServletRequest request, 
+                                   String acr, String aal, List<String> amr) {
+        log.info("Creating session for user: {} with ACR: {}, AAL: {}", userId, acr, aal);
+        return sessionBusiness.createSession(userId, userEmail, request, acr, aal, amr);
     }
 
     /**
-     * Delete (revoke) a session
-     * @param token the session token
+     * Validate current session from HTTP request
      */
-    public void deleteSession(String token) {
-        try {
-            sessionAuthBusiness.deleteSession(token);
-            log.info("Session token revoked successfully");
-        } catch (Exception e) {
-            log.warn("Error revoking token: {}", e.getMessage());
-        }
-    }
-    
-    /**
-     * Delete all sessions for a user
-     * @param userId the user ID
-     * @return true if any sessions were deleted, false otherwise
-     */
-    public boolean deleteUserSessions(String userId) {
-        try {
-            boolean result = sessionAuthBusiness.deleteUserSessions(userId);
-            if (result) {
-                log.info("All sessions for user {} revoked successfully", userId);
-            } else {
-                log.info("No active sessions found for user {}", userId);
-            }
-            return result;
-        } catch (Exception e) {
-            log.warn("Error deleting user sessions for {}: {}", userId, e.getMessage());
-            return false;
-        }
+    public Optional<SessionValidationResult> validateSession(HttpServletRequest request) {
+        log.debug("Validating session from HTTP request");
+        return sessionBusiness.validateSession(request);
     }
 
     /**
-     * Refresh an access token
-     * @param refreshToken the refresh token
-     * @param ipAddress the IP address
-     * @return the new access token if successful, empty otherwise
+     * Validate session by session ID
      */
-    public Optional<String> refreshToken(String refreshToken, String ipAddress) {
-        return sessionAuthBusiness.refreshAccessToken(refreshToken, ipAddress);
+    public Optional<SessionValidationResult> validateSessionById(String sessionId) {
+        log.debug("Validating session by ID: {}", sessionId);
+        return sessionBusiness.validateSessionById(sessionId);
     }
 
     /**
-     * Clean up expired sessions
+     * Refresh current session's expiration time
      */
-    @Scheduled(fixedRate = 3600000) // Run every hour
-    public void cleanupExpiredSessions() {
-        log.info("Delegating cleanup of expired tokens to SessionAuthBusiness");
-        sessionAuthBusiness.cleanupExpiredTokens();
+    public boolean refreshSession(HttpServletRequest request) {
+        log.debug("Refreshing session from HTTP request");
+        return sessionBusiness.refreshSession(request);
+    }
+
+    /**
+     * Terminate current session (logout)
+     */
+    public boolean terminateSession(HttpServletRequest request, HttpServletResponse response) {
+        log.info("Terminating current session");
+        return sessionBusiness.terminateSession(request, response);
+    }
+
+    /**
+     * Terminate a specific session by ID
+     */
+    public boolean terminateSessionById(String sessionId, String reason) {
+        log.info("Terminating session {} for reason: {}", sessionId, reason);
+        return sessionBusiness.terminateSessionById(sessionId, reason);
+    }
+
+    /**
+     * Terminate all sessions for a user
+     */
+    public int terminateAllUserSessions(String userId, String reason) {
+        log.info("Terminating all sessions for user: {} for reason: {}", userId, reason);
+        return sessionBusiness.terminateAllUserSessions(userId, reason);
+    }
+
+    /**
+     * Get all active sessions for a user
+     */
+    public List<UserSession> getUserActiveSessions(String userId) {
+        log.debug("Getting active sessions for user: {}", userId);
+        return sessionBusiness.getUserActiveSessions(userId);
+    }
+
+    /**
+     * Count active sessions for a user
+     */
+    public long countUserActiveSessions(String userId) {
+        log.debug("Counting active sessions for user: {}", userId);
+        return sessionBusiness.countUserActiveSessions(userId);
+    }
+
+    /**
+     * Clean up expired sessions (system maintenance)
+     */
+    public int cleanupExpiredSessions() {
+        log.info("Starting cleanup of expired sessions");
+        return sessionBusiness.cleanupExpiredSessions();
+    }
+
+    /**
+     * Check for suspicious activity for a user
+     */
+    public boolean detectSuspiciousActivity(String userId) {
+        log.debug("Checking for suspicious activity for user: {}", userId);
+        return sessionBusiness.detectSuspiciousActivity(userId);
+    }
+
+    /**
+     * Validate session and enforce concurrent session limits
+     */
+    public boolean enforceConcurrentSessionLimit(String userId, int maxConcurrentSessions) {
+        log.debug("Enforcing concurrent session limit for user: {} (max: {})", userId, maxConcurrentSessions);
+        return sessionBusiness.enforceConcurrentSessionLimit(userId, maxConcurrentSessions);
     }
 }

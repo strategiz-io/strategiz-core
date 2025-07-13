@@ -37,8 +37,8 @@ public class ReadWatchlistItemResponse {
         response.setAddedAt(entity.getAddedAt());
         response.setCreatedAt(entity.getCreatedAt());
         response.setModifiedAt(entity.getModifiedAt());
-        response.setVersion(entity.getVersion());
-        response.setIsActive(entity.getIsActive());
+        response.setVersion(entity.getVersion() != null ? entity.getVersion().intValue() : null);
+        response.setIsActive(entity.isActive());
         return response;
     }
 

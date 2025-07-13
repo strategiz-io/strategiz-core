@@ -21,7 +21,7 @@ public class PasskeyChallenge {
     @GeneratedValue(generator = "uuid")
     @GenericGenerator(name = "uuid", strategy = "uuid2")
     private String id;
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String userId;
     @Column
     private String credentialId;

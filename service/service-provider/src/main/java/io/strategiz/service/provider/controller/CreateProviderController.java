@@ -3,7 +3,9 @@ package io.strategiz.service.provider.controller;
 import io.strategiz.service.provider.model.request.CreateProviderRequest;
 import io.strategiz.service.provider.model.response.CreateProviderResponse;
 import io.strategiz.service.provider.service.CreateProviderService;
-import io.strategiz.service.base.controller.ProviderBaseController;
+import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.controller.BaseController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +23,7 @@ import java.security.Principal;
  */
 @RestController
 @RequestMapping("/v1/providers")
-public class CreateProviderController extends ProviderBaseController {
+public class CreateProviderController extends BaseController {
     
     private final CreateProviderService createProviderService;
     
@@ -46,57 +48,28 @@ public class CreateProviderController extends ProviderBaseController {
             Principal principal) {
         
         // Extract user ID from authentication principal
-        String userId = extractUserId(principal);
+        String userId = principal != null ? principal.getName() : "anonymous";
         request.setUserId(userId);
         
-        providerLog.info("Creating provider connection for user: {}, provider: {}, type: {}", 
-                        userId, request.getProviderId(), request.getConnectionType());
+        log.info("Creating provider connection for user: {}, provider: {}, type: {}", 
+                userId, request.getProviderId(), request.getConnectionType());
         
-        try {
-            // Log the connection attempt
-            logProviderAttempt(userId, "CREATE_CONNECTION", false);
-            
-            CreateProviderResponse response = createProviderService.createProvider(request);
-            
-            // Log successful attempt
-            logProviderAttempt(userId, "CREATE_CONNECTION", true);
-            
-            providerLog.info("Provider connection created successfully for user: {}, provider: {}, status: {}", 
-                           userId, request.getProviderId(), response.getStatus());
-            
-            // Return 201 Created for successful provider creation
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
-        } catch (IllegalArgumentException e) {
-            providerLog.warn("Invalid provider creation request for user: {}: {}", userId, e.getMessage());
-            
-            CreateProviderResponse errorResponse = new CreateProviderResponse();
-            errorResponse.setProviderId(request.getProviderId());
-            errorResponse.setProviderName(getProviderName());
-            errorResponse.setStatus("failed");
-            errorResponse.setMessage("Invalid request: " + e.getMessage());
-            errorResponse.setOperationSuccess(false);
-            
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-            
-        } catch (Exception e) {
-            providerLog.error("Error creating provider connection for user: {}, provider: {}", 
-                            userId, request.getProviderId(), e);
-            
-            // Log failed attempt
-            logProviderAttempt(userId, "CREATE_CONNECTION", false);
-            
-            CreateProviderResponse errorResponse = new CreateProviderResponse();
-            errorResponse.setProviderId(request.getProviderId());
-            errorResponse.setProviderName(getProviderName());
-            errorResponse.setStatus("failed");
-            errorResponse.setMessage("Internal server error occurred");
-            errorResponse.setOperationSuccess(false);
-            errorResponse.setErrorCode("INTERNAL_ERROR");
-            errorResponse.setErrorMessage(e.getMessage());
-            
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        // Validate required fields
+        if (request.getProviderId() == null || request.getProviderId().isEmpty()) {
+            throw new StrategizException(ProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "providerId");
         }
+        
+        if (request.getConnectionType() == null || request.getConnectionType().isEmpty()) {
+            throw new StrategizException(ProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "connectionType");
+        }
+        
+        CreateProviderResponse response = createProviderService.createProvider(request);
+        
+        log.info("Provider connection created successfully for user: {}, provider: {}, status: {}", 
+                userId, request.getProviderId(), response.getStatus());
+        
+        // Return 201 Created for successful provider creation
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
     /**
@@ -109,23 +82,4 @@ public class CreateProviderController extends ProviderBaseController {
         return ResponseEntity.ok("CreateProviderController is healthy");
     }
     
-    /**
-     * Get the provider ID for this controller.
-     * 
-     * @return The provider ID
-     */
-    @Override
-    protected String getProviderId() {
-        return "provider"; // Generic provider controller
-    }
-    
-    /**
-     * Get the provider display name.
-     * 
-     * @return The provider display name
-     */
-    @Override
-    protected String getProviderName() {
-        return "Provider"; // Generic provider controller
-    }
 } 

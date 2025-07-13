@@ -15,10 +15,22 @@
     <description>Token authentication business logic for Strategiz</description>
     
     <dependencies>
-        <!-- Data layer dependency -->
+        <!-- Data layer dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-auth</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-session</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        
+        <!-- Business base dependency -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-base</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         
@@ -44,6 +56,7 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
         </dependency>
+        
         
         <!-- Logging -->
         <dependency>

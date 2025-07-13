@@ -17,6 +17,7 @@
 
     <modules>
         <module>data-base</module>
+        <module>data-session</module>
         <module>data-strategy</module>
         <module>data-exchange</module>
         <module>data-portfolio</module>

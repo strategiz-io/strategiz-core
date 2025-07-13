@@ -16,6 +16,16 @@
     <description>Portfolio business logic services</description>
     
     <dependencies>
+        <!-- Common service dependencies -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>

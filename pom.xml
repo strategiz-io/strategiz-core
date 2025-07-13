@@ -20,10 +20,7 @@
 
     <modules>
         <!-- Framework Modules (Build First) -->
-        <module>framework/framework-api-docs</module>
-        <module>framework/framework-exception</module>
-        <module>framework/framework-logging</module>
-        <module>framework/framework-secrets</module>
+        <module>framework</module>
 
         <!-- Business Modules (Build Second) -->
         <module>business/business-base</module>
@@ -34,6 +31,11 @@
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
         <module>data/data-base</module>
+        <module>data/data-session</module>
+        <module>data/data-watchlist</module>
+        <module>data/data-providers</module>
+        <module>data/data-devices</module>
+        <module>data/data-preferences</module>
         <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
@@ -83,7 +85,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <firebase.admin.version>9.1.1</firebase.admin.version>
+        <firebase.admin.version>9.4.1</firebase.admin.version>
         <google.api.client.version>2.2.0</google.api.client.version>
         <google.api.gax.version>2.66.0</google.api.gax.version>
         <google.http.client.version>1.42.1</google.http.client.version>
@@ -115,6 +117,15 @@
     <!-- Force specific versions of commonly used dependencies to avoid conflicts -->
     <dependencyManagement>
         <dependencies>
+
+            <!-- Google Cloud BOM for dependency version management -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.63.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <!-- New Auth Modules -->
             <dependency>
@@ -182,6 +193,26 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>data-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-watchlist</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-providers</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-devices</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-preferences</artifactId>
                 <version>${project.version}</version>
             </dependency>
             
@@ -312,36 +343,24 @@
             </dependency>
             
             <!-- API Modules -->
-            <!-- Removed api-auth dependency as it was consolidated into service-auth -->
-            <!-- Removed api-dashboard dependency as it was consolidated into service-dashboard -->
-            <!-- Removed api-profile dependency as it was consolidated into service-profile -->
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-exchange</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-monitoring</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-portfolio</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-strategy</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>api-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+            <!-- All API modules were consolidated into their respective service modules -->
+            <!-- api-auth -> service-auth -->
+            <!-- api-dashboard -> service-dashboard -->
+            <!-- api-profile -> service-profile -->
+            <!-- api-exchange -> service-exchange -->
+            <!-- api-monitoring -> service-monitoring -->
+            <!-- api-portfolio -> service-portfolio -->
+            <!-- api-strategy -> service-strategy -->
+            <!-- api-base -> service-base -->
             
             <!-- External Library Versions -->
+            <!-- OpenAPI Documentation -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>2.8.0</version>
+            </dependency>
+            
             <dependency>
                 <groupId>com.google.api</groupId>
                 <artifactId>gax</artifactId>
@@ -377,7 +396,7 @@
             <dependency>
                 <groupId>com.google.firebase</groupId>
                 <artifactId>firebase-admin</artifactId>
-                <version>9.2.0</version>
+                <version>9.4.1</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.google.auth</groupId>
@@ -388,8 +407,8 @@
                         <artifactId>google-api-client</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>com.google.http-client</groupId>
-                        <artifactId>google-http-client</artifactId>
+                        <groupId>com.google.oauth-client</groupId>
+                        <artifactId>google-oauth-client</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>com.google.http-client</groupId>
@@ -398,16 +417,23 @@
                 </exclusions>
             </dependency>
             
-            <!-- Google Auth Libraries - Use consistent versions -->
+            <!-- Google Auth Libraries - Use latest versions with SecureSessionAgent -->
             <dependency>
                 <groupId>com.google.auth</groupId>
                 <artifactId>google-auth-library-oauth2-http</artifactId>
-                <version>1.23.0</version>
+                <version>1.30.1</version>
             </dependency>
             <dependency>
                 <groupId>com.google.auth</groupId>
                 <artifactId>google-auth-library-credentials</artifactId>
-                <version>1.23.0</version>
+                <version>1.30.1</version>
+            </dependency>
+            
+            <!-- GRPC Auth library for SecureSessionAgent -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-auth</artifactId>
+                <version>1.62.2</version>
             </dependency>
             
             <!-- Google API Client Libraries for FirebaseConfig -->
@@ -433,6 +459,168 @@
                 <version>1.34.1</version>
             </dependency>
             
+            <!-- External Library Dependencies -->
+            <!-- PASETO Libraries -->
+            <dependency>
+                <groupId>dev.paseto</groupId>
+                <artifactId>jpaseto-api</artifactId>
+                <version>0.7.0</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.paseto</groupId>
+                <artifactId>jpaseto-impl</artifactId>
+                <version>0.7.0</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.paseto</groupId>
+                <artifactId>jpaseto-jackson</artifactId>
+                <version>0.7.0</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.paseto</groupId>
+                <artifactId>jpaseto-sodium</artifactId>
+                <version>0.7.0</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.paseto</groupId>
+                <artifactId>jpaseto-bouncy-castle</artifactId>
+                <version>0.7.0</version>
+            </dependency>
+            
+            <!-- TOTP Libraries -->
+            <dependency>
+                <groupId>dev.samstevens.totp</groupId>
+                <artifactId>totp</artifactId>
+                <version>1.7.1</version>
+            </dependency>
+            
+            <!-- QR Code Generation -->
+            <dependency>
+                <groupId>com.github.kenglxn.qrgen</groupId>
+                <artifactId>javase</artifactId>
+                <version>2.3.2</version>
+            </dependency>
+            
+            <!-- OSHI (System Info) -->
+            <dependency>
+                <groupId>com.github.oshi</groupId>
+                <artifactId>oshi-core</artifactId>
+                <version>6.4.8</version>
+            </dependency>
+            
+            <!-- Testing -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.9.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>5.9.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest</artifactId>
+                <version>2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest-core</artifactId>
+                <version>2.2</version>
+            </dependency>
+            
+            <!-- Spring Authorization Server -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-oauth2-authorization-server</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-oauth2-client</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-oauth2-jose</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+            
+            <!-- Spring Cloud -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-gateway</artifactId>
+                <version>0.21.1.RELEASE</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-gateway-webflux</artifactId>
+                <version>0.21.1.RELEASE</version>
+            </dependency>
+            
+            <!-- AWS SDK -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sts</artifactId>
+                <version>1.18.30</version>
+            </dependency>
+            
+            <!-- JWT Libraries -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+            
+            <!-- WebAuthn4j Support -->
+            <dependency>
+                <groupId>com.webauthn4j</groupId>
+                <artifactId>webauthn4j-core</artifactId>
+                <version>0.21.1.RELEASE</version>
+            </dependency>
+            <dependency>
+                <groupId>com.webauthn4j</groupId>
+                <artifactId>webauthn4j-util</artifactId>
+                <version>0.21.1.RELEASE</version>
+            </dependency>
+            
+            <!-- .env file support -->
+            <dependency>
+                <groupId>io.github.cdimascio</groupId>
+                <artifactId>dotenv-java</artifactId>
+                <version>2.3.2</version>
+            </dependency>
+            
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.30</version>
+            </dependency>
+            
+            <!-- Mockito -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>4.11.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>4.11.0</version>
+            </dependency>
+
             <!-- Let Firebase Admin SDK manage its own Google API dependencies -->
         </dependencies>
     </dependencyManagement>

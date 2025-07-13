@@ -1,6 +1,5 @@
 package io.strategiz.service.auth.service.signup;
 
-import java.util.Date;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -39,19 +38,12 @@ public class UserFactory {
         profile.setVerifiedEmail(false);
         profile.setSubscriptionTier("free"); // Default tier
         profile.setTradingMode("demo"); // Default mode
-        profile.setIsActive(true);
+        // isActive field is handled automatically by BaseEntity
         
         // Set the profile on the user
         user.setProfile(profile);
         
-        // Set audit fields
-        Date now = new Date();
-        user.setCreatedBy("signup_service");
-        user.setCreatedAt(now);
-        user.setModifiedBy("signup_service");
-        user.setModifiedAt(now);
-        user.setIsActive(true);
-        user.setVersion(1);
+        // Audit fields are handled automatically by BaseEntity
         
         return user;
     }

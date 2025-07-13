@@ -25,7 +25,7 @@ public class WatchlistCollectionResponse {
         this.items = items != null ? new ArrayList<>(items) : new ArrayList<>();
         this.totalCount = this.items.size();
         this.activeCount = (int) this.items.stream()
-                .filter(item -> item.getIsActive() != null && item.getIsActive())
+                .filter(item -> Boolean.TRUE.equals(item.getIsActive()))
                 .count();
         this.isEmpty = this.items.isEmpty();
     }
@@ -57,7 +57,7 @@ public class WatchlistCollectionResponse {
         this.items = items != null ? new ArrayList<>(items) : new ArrayList<>();
         this.totalCount = this.items.size();
         this.activeCount = (int) this.items.stream()
-                .filter(item -> item.getIsActive() != null && item.getIsActive())
+                .filter(item -> Boolean.TRUE.equals(item.getIsActive()))
                 .count();
         this.isEmpty = this.items.isEmpty();
     }
@@ -96,7 +96,7 @@ public class WatchlistCollectionResponse {
             this.items.add(item);
             this.totalCount = this.items.size();
             this.activeCount = (int) this.items.stream()
-                    .filter(i -> i.getIsActive() != null && i.getIsActive())
+                    .filter(i -> Boolean.TRUE.equals(i.getIsActive()))
                     .count();
             this.isEmpty = this.items.isEmpty();
         }

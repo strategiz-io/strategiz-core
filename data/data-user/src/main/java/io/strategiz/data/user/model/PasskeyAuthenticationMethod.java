@@ -18,19 +18,15 @@ public class PasskeyAuthenticationMethod extends AuthenticationMethod {
 
     // Custom constructor (preserved and updated)
     public PasskeyAuthenticationMethod(String name, String credentialId, String publicKey, String createdBy) {
-        super();
-        this.setType("PASSKEY");
-        this.setName(name);
-        this.setCreatedBy(createdBy);
-        this.setModifiedBy(createdBy);
+        super(null, "PASSKEY", name, null, createdBy);
         this.credentialId = credentialId;
         this.publicKey = publicKey;
         // counter will use its default value 0L unless set otherwise
     }
 
     // All-arguments constructor (including inherited fields)
-    public PasskeyAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive, String credentialId, String publicKey, Long counter) {
-        super(id, type, name, lastVerifiedAt, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+    public PasskeyAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, String credentialId, String publicKey, Long counter) {
+        super(id, type, name, lastVerifiedAt, createdBy);
         this.credentialId = credentialId;
         this.publicKey = publicKey;
         this.counter = counter;

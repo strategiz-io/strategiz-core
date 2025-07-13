@@ -19,20 +19,61 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         
+        <!-- Jackson for JSON serialization -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+        
+        <!-- Jakarta Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        
         <!-- Firebase Admin SDK and Google Auth dependencies -->
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
+            <!-- Version managed by root parent pom -->
         </dependency>
+        
+        
+        <!-- Google API Client dependencies required by Firebase -->
         <dependency>
-            <groupId>com.google.auth</groupId>
-            <artifactId>google-auth-library-oauth2-http</artifactId>
-            <version>1.23.0</version>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
         </dependency>
+        
+        <!-- Google Auth Library Credentials for SecureSessionAgent -->
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-credentials</artifactId>
-            <version>1.23.0</version>
+        </dependency>
+        
+        <!-- GAX GRPC library to fix SecureSessionAgent ClassNotFoundException -->
+        <dependency>
+            <groupId>com.google.api</groupId>
+            <artifactId>gax-grpc</artifactId>
+        </dependency>
+        
+        <!-- GRPC Auth library for SecureSessionAgent -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-auth</artifactId>
+        </dependency>
+        
+        <!-- Google HTTP Client -->
+        <dependency>
+            <groupId>com.google.http-client</groupId>
+            <artifactId>google-http-client</artifactId>
+        </dependency>
+        
+        <!-- Google OAuth2 HTTP -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <!-- Version managed by root parent pom -->
         </dependency>
         
         <!-- Spring dependencies -->
@@ -64,6 +105,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        
     </dependencies>
 
     <!-- Build configuration is now inherited from parent pom.xml -->

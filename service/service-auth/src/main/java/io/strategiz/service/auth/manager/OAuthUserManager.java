@@ -5,6 +5,8 @@ import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.service.auth.model.signup.SignupRequest;
 import io.strategiz.service.auth.model.signup.SignupResponse;
 import io.strategiz.service.auth.service.signup.SignupService;
+import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -53,7 +55,7 @@ public class OAuthUserManager {
             return signupService.processSignup(signupRequest);
         } catch (Exception e) {
             logger.error("Error during OAuth user creation", e);
-            throw new RuntimeException("Failed to create OAuth user: " + e.getMessage(), e);
+            throw new StrategizException(AuthErrorDetails.OAUTH_USER_INFO_FAILED, "service-auth", e, providerId, e.getMessage());
         }
     }
 

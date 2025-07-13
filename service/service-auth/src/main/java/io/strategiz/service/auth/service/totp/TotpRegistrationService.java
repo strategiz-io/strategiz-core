@@ -53,12 +53,6 @@ public class TotpRegistrationService extends BaseTotpService {
             totpAuth = new TotpAuthenticationMethod();
             totpAuth.setType("TOTP");
             totpAuth.setName("Authenticator App");
-            totpAuth.setCreatedBy(username);
-            totpAuth.setModifiedBy(username);
-            totpAuth.setCreatedAt(new Date());
-            totpAuth.setModifiedAt(new Date());
-            totpAuth.setIsActive(true);
-            totpAuth.setVersion(1);
             
             if (user.getAuthenticationMethods() == null) {
                 user.setAuthenticationMethods(new ArrayList<>());
@@ -105,8 +99,6 @@ public class TotpRegistrationService extends BaseTotpService {
         
         // Mark the TOTP as enabled by setting lastVerifiedAt
         totpAuth.setLastVerifiedAt(new Date());
-        totpAuth.setModifiedAt(new Date());
-        totpAuth.setModifiedBy(username);
         userRepository.save(user);
         
         log.info("TOTP enabled for user {} with session {}", username, sessionToken);

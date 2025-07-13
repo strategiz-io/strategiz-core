@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +38,6 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
         oauthMethod.setProvider("facebook");
         oauthMethod.setType("OAUTH_FACEBOOK");
         oauthMethod.setName("Facebook Account");
-        oauthMethod.setIsActive(true);
         
         // Set provider ID from user profile data if available
         // Since we can't determine exact User model structure, we'll use a default approach
@@ -48,12 +46,7 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
         oauthMethod.setProviderId(providerId);
         logger.info("Setting provider ID based on email for user: {}", user.getUserId());
         
-        // Set audit fields
-        Date now = new Date();
-        oauthMethod.setCreatedBy("facebook_oauth_strategy");
-        oauthMethod.setCreatedAt(now);
-        oauthMethod.setModifiedBy("facebook_oauth_strategy");
-        oauthMethod.setModifiedAt(now);
+        // Audit fields are handled automatically by BaseEntity
         
         // Add authentication method to user
         user.addAuthenticationMethod(oauthMethod);

@@ -37,13 +37,12 @@ public class SignOutService {
             
             if (revokeAllSessions) {
                 // Revoke all sessions for the user
-                boolean deleted = sessionService.deleteUserSessions(userId);
-                sessionsRevoked = deleted ? 1 : 0; // Simplified count
+                sessionsRevoked = sessionService.terminateAllUserSessions(userId, "User sign out");
                 log.info("Revoked all sessions for user: {}", userId);
             } else if (sessionId != null && !sessionId.isBlank()) {
                 // Revoke just the specific session
-                sessionService.deleteSession(sessionId);
-                sessionsRevoked = 1;
+                boolean terminated = sessionService.terminateSessionById(sessionId, "User sign out");
+                sessionsRevoked = terminated ? 1 : 0;
                 log.info("Revoked specific session for user: {}", userId);
             }
             

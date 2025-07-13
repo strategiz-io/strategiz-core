@@ -16,19 +16,13 @@ public class TotpAuthenticationMethod extends AuthenticationMethod {
 
     // Custom constructor (preserved and updated to call super constructor properly)
     public TotpAuthenticationMethod(String name, String secret, String createdBy) {
-        super(); // Call superclass's NoArgsConstructor
-        this.setType("TOTP");
-        this.setName(name);
-        this.setCreatedBy(createdBy);
-        this.setModifiedBy(createdBy); // Assuming modifiedBy should also be set
-        // Note: createdAt and modifiedAt would typically be set upon creation/modification
-        // For simplicity, we're keeping the original logic here.
+        super(null, "TOTP", name, null, createdBy);
         this.secret = secret;
     }
 
     // All-arguments constructor (including inherited fields)
-    public TotpAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive, String secret) {
-        super(id, type, name, lastVerifiedAt, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+    public TotpAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, String secret) {
+        super(id, type, name, lastVerifiedAt, createdBy);
         this.secret = secret;
     }
 

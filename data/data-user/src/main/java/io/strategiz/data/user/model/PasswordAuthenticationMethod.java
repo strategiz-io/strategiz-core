@@ -20,8 +20,8 @@ public class PasswordAuthenticationMethod extends AuthenticationMethod {
     }
 
     // All-arguments constructor (including inherited fields)
-    public PasswordAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, Date createdAt, String modifiedBy, Date modifiedAt, Integer version, Boolean isActive, String hash) {
-        super(id, type, name, lastVerifiedAt, createdBy, createdAt, modifiedBy, modifiedAt, version, isActive);
+    public PasswordAuthenticationMethod(String id, String type, String name, Date lastVerifiedAt, String createdBy, String hash) {
+        super(id, type, name, lastVerifiedAt, createdBy);
         this.hash = hash;
     }
 

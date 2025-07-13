@@ -1,6 +1,7 @@
 package io.strategiz.service.auth.controller.session;
 
 import io.strategiz.service.auth.service.session.SessionService;
+import io.strategiz.service.auth.service.session.TokenSessionService;
 import io.strategiz.service.auth.model.session.RefreshSessionRequest;
 import io.strategiz.service.auth.model.session.RefreshSessionResponse;
 import io.strategiz.service.auth.model.session.RevocationResponse;
@@ -8,6 +9,10 @@ import io.strategiz.service.auth.model.session.RevokeAllResponse;
 import io.strategiz.service.auth.model.session.SessionRevocationRequest;
 import io.strategiz.service.auth.model.session.SessionValidationRequest;
 import io.strategiz.service.auth.model.session.SessionValidationResponse;
+import io.strategiz.service.auth.model.session.CurrentUserResponse;
+import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.session.model.SessionValidationResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +37,11 @@ public class SessionController {
     private static final Logger log = LoggerFactory.getLogger(SessionController.class);
     
     private final SessionService sessionService;
+    private final TokenSessionService tokenSessionService;
     
-    public SessionController(SessionService sessionService) {
+    public SessionController(SessionService sessionService, TokenSessionService tokenSessionService) {
         this.sessionService = sessionService;
+        this.tokenSessionService = tokenSessionService;
     }
     
     /**
@@ -51,11 +58,11 @@ public class SessionController {
         // Extract IP address
         String ipAddress = getClientIp(httpRequest);
         
-        // Refresh session - let exceptions bubble up
-        java.util.Optional<String> newTokenOpt = sessionService.refreshToken(request.refreshToken(), ipAddress);
+        // Refresh session using token service - let exceptions bubble up
+        java.util.Optional<String> newTokenOpt = tokenSessionService.refreshToken(request.refreshToken(), ipAddress);
         
         if (newTokenOpt.isEmpty()) {
-            throw new RuntimeException("Failed to refresh session - invalid refresh token");
+            throw new StrategizException(AuthErrorDetails.REFRESH_TOKEN_INVALID, "service-auth", request.refreshToken());
         }
         
         RefreshSessionResponse response = new RefreshSessionResponse(
@@ -89,9 +96,9 @@ public class SessionController {
     public ResponseEntity<SessionValidationResponse> validateSession(@Valid @RequestBody SessionValidationRequest request) {
         log.info("Validating session token");
         
-        // Validate session - let exceptions bubble up
-        boolean isValid = sessionService.validateSession(request.accessToken());
-        java.util.Optional<String> userIdOpt = sessionService.getUserIdFromToken(request.accessToken());
+        // Validate session using token service - let exceptions bubble up
+        boolean isValid = tokenSessionService.validateSession(request.accessToken());
+        java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
         
         SessionValidationResponse response = new SessionValidationResponse(
             isValid,
@@ -102,6 +109,7 @@ public class SessionController {
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(response);
     }
+
     
     /**
      * Revoke a specific session
@@ -113,8 +121,8 @@ public class SessionController {
     public ResponseEntity<RevocationResponse> revokeSession(@Valid @RequestBody SessionRevocationRequest request) {
         log.info("Revoking session: {}", request.sessionId());
         
-        // Revoke session - let exceptions bubble up
-        sessionService.deleteSession(request.sessionId());
+        // Revoke session using token service - let exceptions bubble up
+        tokenSessionService.deleteSession(request.sessionId());
         
         RevocationResponse response = new RevocationResponse(
             true,
@@ -135,8 +143,8 @@ public class SessionController {
     public ResponseEntity<RevokeAllResponse> revokeAllSessions(@PathVariable String userId) {
         log.info("Revoking all sessions for user: {}", userId);
         
-        // Revoke all sessions - let exceptions bubble up
-        boolean deleted = sessionService.deleteUserSessions(userId);
+        // Revoke all sessions using token service - let exceptions bubble up
+        boolean deleted = tokenSessionService.deleteUserSessions(userId);
         
         RevokeAllResponse response = new RevokeAllResponse(
             deleted ? 1 : 0, // Simple count - in real implementation would return actual count
@@ -145,5 +153,151 @@ public class SessionController {
         
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get current user information from a valid session token
+     * 
+     * @param request Session validation request containing access token
+     * @return Clean user response - no wrapper, let GlobalExceptionHandler handle errors
+     */
+    @PostMapping("/current-user")
+    public ResponseEntity<CurrentUserResponse> getCurrentUser(@Valid @RequestBody SessionValidationRequest request) {
+        log.info("Getting current user from session token");
+        
+        // Validate session and extract user ID using token service
+        java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
+        
+        if (userIdOpt.isEmpty()) {
+            throw new StrategizException(AuthErrorDetails.INVALID_TOKEN, "service-auth", "Invalid or expired token");
+        }
+        
+        String userId = userIdOpt.get();
+        
+        // For now, return basic user info from token
+        // TODO: Integrate with user service to get full user profile
+        CurrentUserResponse response = new CurrentUserResponse(
+            userId,
+            userId + "@strategiz.io", // Temporary email format
+            "User " + userId.substring(0, Math.min(8, userId.length())), // Temporary name
+            System.currentTimeMillis() / 1000 // Current timestamp as created date
+        );
+        
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(response);
+    }
+
+    // === SERVER-SIDE SESSION MANAGEMENT ENDPOINTS (Firestore-based) ===
+
+    /**
+     * Validate server-side session using Firestore-based session management
+     * 
+     * @param httpRequest HTTP servlet request containing session
+     * @return Clean validation response with user information
+     */
+    @PostMapping("/validate-server")
+    public ResponseEntity<SessionValidationResponse> validateServerSession(jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.info("Validating Firestore-based server-side session");
+        
+        java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+        
+        if (validationOpt.isEmpty()) {
+            return ResponseEntity.ok(new SessionValidationResponse(false, null, 0L));
+        }
+        
+        SessionValidationResult validation = validationOpt.get();
+        SessionValidationResponse response = new SessionValidationResponse(
+            validation.isValid(),
+            validation.getUserId(),
+            validation.getExpiresAt().getEpochSecond()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get current user information from server-side session (new architecture)
+     * 
+     * @param httpRequest HTTP servlet request containing session
+     * @return Clean user response with session data
+     */
+    @PostMapping("/current-user-server")
+    public ResponseEntity<CurrentUserResponse> getCurrentUserFromSession(jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.info("Getting current user from server-side session");
+        
+        java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+        
+        if (validationOpt.isEmpty()) {
+            throw new StrategizException(AuthErrorDetails.INVALID_TOKEN, "service-auth", "No valid session found");
+        }
+        
+        SessionValidationResult validation = validationOpt.get();
+        CurrentUserResponse response = new CurrentUserResponse(
+            validation.getUserId(),
+            validation.getUserEmail(),
+            "User " + validation.getUserId().substring(0, Math.min(8, validation.getUserId().length())),
+            validation.getLastAccessedAt().getEpochSecond()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Terminate current server-side session (logout)
+     * 
+     * @param httpRequest HTTP servlet request containing session
+     * @param httpResponse HTTP servlet response for clearing cookies
+     * @return Clean response indicating success
+     */
+    @PostMapping("/logout-server")
+    public ResponseEntity<RevocationResponse> logoutServerSession(
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            jakarta.servlet.http.HttpServletResponse httpResponse) {
+        log.info("Terminating server-side session");
+        
+        boolean terminated = sessionService.terminateSession(httpRequest, httpResponse);
+        
+        RevocationResponse response = new RevocationResponse(
+            terminated,
+            terminated ? "Session terminated successfully" : "No session found"
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get active sessions for current user (new architecture)
+     * 
+     * @param httpRequest HTTP servlet request containing session
+     * @return List of active sessions for the user
+     */
+    @PostMapping("/user-sessions")
+    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getUserSessions(
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.info("Getting user active sessions");
+        
+        java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+        
+        if (validationOpt.isEmpty()) {
+            throw new StrategizException(AuthErrorDetails.INVALID_TOKEN, "service-auth", "No valid session found");
+        }
+        
+        String userId = validationOpt.get().getUserId();
+        java.util.List<io.strategiz.data.session.entity.UserSession> sessions = sessionService.getUserActiveSessions(userId);
+        
+        java.util.List<java.util.Map<String, Object>> sessionList = sessions.stream()
+            .map(session -> {
+                java.util.Map<String, Object> sessionMap = new java.util.HashMap<>();
+                sessionMap.put("sessionId", session.getSessionId());
+                sessionMap.put("ipAddress", session.getIpAddress() != null ? session.getIpAddress() : "unknown");
+                sessionMap.put("userAgent", session.getUserAgent() != null ? session.getUserAgent() : "unknown");
+                sessionMap.put("createdAt", session.getCreatedAt().getEpochSecond());
+                sessionMap.put("lastAccessedAt", session.getLastAccessedAt().getEpochSecond());
+                sessionMap.put("expiresAt", session.getExpiresAt().getEpochSecond());
+                return sessionMap;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        
+        return ResponseEntity.ok(sessionList);
     }
 }

@@ -7,6 +7,9 @@ import io.strategiz.data.user.model.watchlist.*;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.user.model.UserProfile;
 import io.strategiz.data.user.model.User;
+import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.controller.BaseController;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +27,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/dashboard/watchlist")
 @CrossOrigin(origins = "*")
-public class WatchlistController {
+public class WatchlistController extends BaseController {
     
     private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
 
@@ -57,6 +60,10 @@ public class WatchlistController {
             // Get real watchlist data from our data layer
             WatchlistCollectionResponse watchlist = userRepository.readUserWatchlist(userId);
             
+            if (watchlist == null) {
+                throw new StrategizException(DashboardErrorDetails.WATCHLIST_NOT_FOUND, "service-dashboard", userId);
+            }
+            
             // Create response with real data
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("userId", userId);
@@ -66,10 +73,12 @@ public class WatchlistController {
             
             return ResponseEntity.ok(responseData);
             
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
         } catch (Exception e) {
             log.error("Error retrieving watchlist for user: {}", userId, e);
-            return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Failed to retrieve watchlist: " + e.getMessage()));
+            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
         }
     }
     
@@ -83,7 +92,18 @@ public class WatchlistController {
         
         log.info("Creating watchlist item for user: {} - {}", userId, request.getSymbol());
         
+        // Validate input
+        if (request.getSymbol() == null || request.getSymbol().trim().isEmpty()) {
+            throw new StrategizException(DashboardErrorDetails.INVALID_SYMBOL, "service-dashboard", request.getSymbol());
+        }
+        
         try {
+            // Check if item already exists
+            boolean exists = userRepository.isAssetInWatchlist(userId, request.getSymbol());
+            if (exists) {
+                throw new StrategizException(DashboardErrorDetails.DUPLICATE_WATCHLIST_ITEM, "service-dashboard", userId, request.getSymbol());
+            }
+            
             WatchlistOperationResponse response = userRepository.createWatchlistItem(userId, request);
             
             if (response.getSuccess()) {
@@ -95,16 +115,14 @@ public class WatchlistController {
                     "message", response.getMessage()
                 ));
             } else {
-                return ResponseEntity.badRequest()
-                    .body(Map.of(
-                        "success", false,
-                        "error", response.getMessage()
-                    ));
+                throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "create_watchlist_item", response.getMessage());
             }
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
         } catch (Exception e) {
-            log.error("Error creating watchlist item", e);
-            return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Failed to create watchlist item: " + e.getMessage()));
+            log.error("Error creating watchlist item for user: {} - {}", userId, request.getSymbol(), e);
+            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "create_watchlist_item", e.getMessage());
         }
     }
     
@@ -118,6 +136,11 @@ public class WatchlistController {
         
         log.info("Deleting watchlist item: {} for user: {}", itemId, userId);
         
+        // Validate input
+        if (itemId == null || itemId.trim().isEmpty()) {
+            throw new StrategizException(DashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard", userId, itemId);
+        }
+        
         try {
             DeleteWatchlistItemRequest request = DeleteWatchlistItemRequest.forId(itemId);
             WatchlistOperationResponse response = userRepository.deleteWatchlistItem(userId, request);
@@ -129,16 +152,14 @@ public class WatchlistController {
                     "message", response.getMessage()
                 ));
             } else {
-                return ResponseEntity.badRequest()
-                    .body(Map.of(
-                        "success", false,
-                        "error", response.getMessage()
-                    ));
+                throw new StrategizException(DashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard", userId, itemId);
             }
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
         } catch (Exception e) {
-            log.error("Error deleting watchlist item", e);
-            return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Failed to delete watchlist item: " + e.getMessage()));
+            log.error("Error deleting watchlist item: {} for user: {}", itemId, userId, e);
+            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "delete_watchlist_item", e.getMessage());
         }
     }
     
@@ -150,16 +171,23 @@ public class WatchlistController {
             @RequestParam String userId,
             @PathVariable String symbol) {
         
+        // Validate input
+        if (symbol == null || symbol.trim().isEmpty()) {
+            throw new StrategizException(DashboardErrorDetails.INVALID_SYMBOL, "service-dashboard", symbol);
+        }
+        
         try {
             boolean inWatchlist = userRepository.isAssetInWatchlist(userId, symbol);
             return ResponseEntity.ok(Map.of(
                 "symbol", symbol,
                 "inWatchlist", inWatchlist
             ));
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
         } catch (Exception e) {
-            log.error("Error checking symbol in watchlist", e);
-            return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Failed to check symbol: " + e.getMessage()));
+            log.error("Error checking symbol in watchlist for user: {} - {}", userId, symbol, e);
+            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol", e.getMessage());
         }
     }
     

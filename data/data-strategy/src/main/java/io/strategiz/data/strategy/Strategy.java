@@ -1,12 +1,13 @@
 package io.strategiz.data.strategy;
 
+import io.strategiz.data.base.entity.BaseEntity;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Model class for user-created trading strategies
  */
-public class Strategy {
+public class Strategy extends BaseEntity {
     private String id;
     private String userId;
     private String name;
@@ -20,19 +21,31 @@ public class Strategy {
     private Map<String, Object> parameters;
     private Map<String, Object> deployment;
     private Map<String, Object> backtestResults;
-    private String createdAt;
-    private String updatedAt;
 
     // Default constructor for Firebase
     public Strategy() {}
 
+    public Strategy(String userId, String name, String description, String createdBy) {
+        super(createdBy);
+        this.userId = userId;
+        this.name = name;
+        this.description = description;
+    }
+
     // Getters and setters
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
+    }
+
+    @Override
+    public String getCollectionName() {
+        return "strategies";
     }
 
     public String getUserId() {
@@ -131,19 +144,4 @@ public class Strategy {
         this.backtestResults = backtestResults;
     }
 
-    public String getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public String getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(String updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }

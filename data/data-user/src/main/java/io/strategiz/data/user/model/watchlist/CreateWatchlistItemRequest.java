@@ -49,10 +49,11 @@ public class CreateWatchlistItemRequest {
     /**
      * Converts this request to a MarketWatchlistItem entity.
      * 
+     * @param createdBy The user creating this item
      * @return MarketWatchlistItem for persistence
      */
-    public MarketWatchlistItem toEntity() {
-        return new MarketWatchlistItem(symbol, name, type);
+    public MarketWatchlistItem toEntity(String createdBy) {
+        return new MarketWatchlistItem(symbol, name, type, createdBy);
     }
 
     @Override

@@ -95,12 +95,6 @@ public class TotpService {
             totpAuth = new TotpAuthenticationMethod();
             totpAuth.setType("TOTP");
             totpAuth.setName("Authenticator App");
-            totpAuth.setCreatedBy(username);
-            totpAuth.setModifiedBy(username);
-            totpAuth.setCreatedAt(new Date());
-            totpAuth.setModifiedAt(new Date());
-            totpAuth.setIsActive(true);
-            totpAuth.setVersion(1);
             
             if (user.getAuthenticationMethods() == null) {
                 user.setAuthenticationMethods(new ArrayList<>());

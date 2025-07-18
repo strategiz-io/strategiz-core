@@ -12,7 +12,7 @@ import io.strategiz.service.auth.model.session.SessionValidationResponse;
 import io.strategiz.service.auth.model.session.CurrentUserResponse;
 import io.strategiz.service.auth.exception.AuthErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.business.session.model.SessionValidationResult;
+import io.strategiz.business.tokenauth.model.SessionValidationResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

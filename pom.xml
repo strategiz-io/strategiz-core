@@ -53,6 +53,7 @@
         <module>client/client-kraken</module>
         <module>client/client-facebook</module>
         <module>client/client-google</module>
+        <module>client/client-yahoo-finance</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -69,6 +70,7 @@
         <!-- <module>service/service-walletaddress</module> -->
         <module>service/service-dashboard</module>
         <module>service/service-profile</module>
+        <module>service/service-marketing</module>
         
         <!-- API Modules (Build Sixth) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->
@@ -272,6 +274,11 @@
                 <artifactId>service-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-marketing</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             
             <!-- Framework Modules -->
             <dependency>
@@ -339,6 +346,11 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>client-walletaddress</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-yahoo-finance</artifactId>
                 <version>${project.version}</version>
             </dependency>
             

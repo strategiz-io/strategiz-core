@@ -3,6 +3,7 @@ package io.strategiz.service.auth.service.passkey;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.auth.model.passkey.PasskeyCredential;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
+import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.base.BaseService;
@@ -45,14 +46,17 @@ public class PasskeyRegistrationService extends BaseService {
     
     private final PasskeyChallengeService challengeService;
     private final PasskeyCredentialRepository credentialRepository;
+    private final PasskeyCredentialConverter credentialConverter;
     private final SessionAuthBusiness sessionAuthBusiness;
     
     public PasskeyRegistrationService(
             PasskeyChallengeService challengeService,
             PasskeyCredentialRepository credentialRepository,
+            PasskeyCredentialConverter credentialConverter,
             SessionAuthBusiness sessionAuthBusiness) {
         this.challengeService = challengeService;
         this.credentialRepository = credentialRepository;
+        this.credentialConverter = credentialConverter;
         this.sessionAuthBusiness = sessionAuthBusiness;
         
         // Ensure we're using real passkey registration, not mock data
@@ -215,7 +219,7 @@ public class PasskeyRegistrationService extends BaseService {
             credential.setUserAgent(userAgent);
             credential.setTrusted(true);
             
-            credentialRepository.save(credential);
+            credentialRepository.save(credentialConverter.toEntity(credential));
             
             // Generate authentication tokens
             SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(

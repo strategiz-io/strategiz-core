@@ -115,4 +115,44 @@ public class ReadProfileResponse {
     public void setModifiedAt(long modifiedAt) {
         this.modifiedAt = modifiedAt;
     }
+
+    @Override
+    public String toString() {
+        return "ReadProfileResponse{" +
+                "userId='" + userId + '\'' +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", photoURL='" + photoURL + '\'' +
+                ", verifiedEmail=" + verifiedEmail +
+                ", subscriptionTier='" + subscriptionTier + '\'' +
+                ", tradingMode='" + tradingMode + '\'' +
+                ", isActive=" + isActive +
+                ", createdAt=" + createdAt +
+                ", modifiedAt=" + modifiedAt +
+                '}';
+    }
+
+    /**
+     * Creates a ReadProfileResponse from a UserEntity
+     */
+    public static ReadProfileResponse fromEntity(io.strategiz.data.user.entity.UserEntity user) {
+        if (user == null || user.getProfile() == null) {
+            return null;
+        }
+        
+        io.strategiz.data.user.entity.UserProfileEntity profile = user.getProfile();
+        
+        return new ReadProfileResponse(
+                user.getId(),
+                profile.getName(),
+                profile.getEmail(),
+                profile.getPhotoURL(),
+                profile.getVerifiedEmail() != null ? profile.getVerifiedEmail() : false,
+                profile.getSubscriptionTier(),
+                profile.getTradingMode(),
+                profile.getIsActive() != null ? profile.getIsActive() : true,
+                System.currentTimeMillis(), // Default to current time
+                System.currentTimeMillis()  // Default to current time
+        );
+    }
 }

@@ -14,12 +14,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller for passkey management operations.
- * Handles listing and deleting passkeys.
+ * Controller for passkey management operations using resource-based REST endpoints
+ * 
+ * This controller handles passkey CRUD operations following REST best practices
+ * with proper resource naming and HTTP verbs.
+ * 
+ * Endpoints:
+ * - GET /auth/passkeys - List user's passkeys
+ * - DELETE /auth/passkeys/{id} - Delete specific passkey
+ * - GET /auth/passkeys/stats - Get passkey statistics
+ * 
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/passkey/manage")
+@RequestMapping("/auth/passkeys")
 public class PasskeyManagementController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyManagementController.class);
@@ -33,11 +41,13 @@ public class PasskeyManagementController extends BaseController {
     /**
      * List all passkeys for a user
      * 
+     * GET /auth/passkeys?userId={userId}
+     * 
      * @param userId The user ID to list passkeys for
      * @return Clean list of passkeys - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @GetMapping("/list/{userId}")
-    public ResponseEntity<List<PasskeyDetails>> listPasskeys(@PathVariable String userId) {
+    @GetMapping
+    public ResponseEntity<List<PasskeyDetails>> listPasskeys(@RequestParam String userId) {
         logRequest("listPasskeys", userId);
         
         // List passkeys - let exceptions bubble up
@@ -49,15 +59,18 @@ public class PasskeyManagementController extends BaseController {
     }
     
     /**
-     * Delete a passkey
+     * Delete a specific passkey
      * 
-     * @param request Request containing userId and credentialId
+     * DELETE /auth/passkeys/{id}?userId={userId}
+     * 
+     * @param credentialId The credential ID to delete
+     * @param userId The user ID for authorization
      * @return Clean delete response - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/delete")
-    public ResponseEntity<Map<String, Object>> deletePasskey(@Valid @RequestBody Map<String, String> request) {
-        String userId = request.get("userId");
-        String credentialId = request.get("credentialId");
+    @DeleteMapping("/{credentialId}")
+    public ResponseEntity<Map<String, Object>> deletePasskey(
+            @PathVariable String credentialId,
+            @RequestParam String userId) {
         
         logRequest("deletePasskey", userId);
         
@@ -78,11 +91,13 @@ public class PasskeyManagementController extends BaseController {
     /**
      * Get passkey statistics for a user
      * 
+     * GET /auth/passkeys/stats?userId={userId}
+     * 
      * @param userId The user ID to get statistics for
      * @return Clean statistics response - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @GetMapping("/stats/{userId}")
-    public ResponseEntity<Map<String, Object>> getPasskeyStats(@PathVariable String userId) {
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getPasskeyStats(@RequestParam String userId) {
         logRequest("getPasskeyStats", userId);
         
         // Get passkey count and basic stats

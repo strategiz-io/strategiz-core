@@ -1,6 +1,6 @@
 package io.strategiz.data.session.repository;
 
-import io.strategiz.data.session.entity.UserSession;
+import io.strategiz.data.session.entity.UserSessionEntity;
 import org.springframework.data.repository.Repository;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +13,7 @@ import java.util.Optional;
  * Uses Spring Data method naming conventions where possible
  */
 @Component
-public interface SessionRepository extends Repository<UserSession, String> {
+public interface SessionRepository extends Repository<UserSessionEntity, String> {
 
     /**
      * Save a session (create or update)
@@ -21,14 +21,14 @@ public interface SessionRepository extends Repository<UserSession, String> {
      * @param userId Who is saving it
      * @return The saved session
      */
-    UserSession save(UserSession session, String userId);
+    UserSessionEntity save(UserSessionEntity session, String userId);
 
     /**
      * Find a session by session ID
      * @param sessionId The session identifier
      * @return Optional containing the session if found
      */
-    Optional<UserSession> findById(String sessionId);
+    Optional<UserSessionEntity> findById(String sessionId);
 
     /**
      * Find all active sessions for a user - Spring Data naming convention
@@ -36,7 +36,7 @@ public interface SessionRepository extends Repository<UserSession, String> {
      * @param active Whether the session is active
      * @return List of active sessions for the user
      */
-    List<UserSession> findByUserIdAndActive(String userId, boolean active);
+    List<UserSessionEntity> findByUserIdAndActive(String userId, boolean active);
 
     /**
      * Find sessions by user ID and device fingerprint - Spring Data naming convention
@@ -44,21 +44,21 @@ public interface SessionRepository extends Repository<UserSession, String> {
      * @param deviceFingerprint The device fingerprint
      * @return List of sessions matching the criteria
      */
-    List<UserSession> findByUserIdAndDeviceFingerprint(String userId, String deviceFingerprint);
+    List<UserSessionEntity> findByUserIdAndDeviceFingerprint(String userId, String deviceFingerprint);
 
     /**
      * Find sessions by IP address - Spring Data naming convention
      * @param ipAddress The IP address
      * @return List of sessions from this IP
      */
-    List<UserSession> findByIpAddress(String ipAddress);
+    List<UserSessionEntity> findByIpAddress(String ipAddress);
 
     /**
      * Find sessions that expire before a certain time - Spring Data naming convention
      * @param expiresAt Sessions that expire before this time
      * @return List of expired sessions
      */
-    List<UserSession> findByExpiresAtBefore(Instant expiresAt);
+    List<UserSessionEntity> findByExpiresAtBefore(Instant expiresAt);
 
     /**
      * Count active sessions for a user - Spring Data naming convention
@@ -74,7 +74,7 @@ public interface SessionRepository extends Repository<UserSession, String> {
      * @param active Whether the session is active
      * @return Optional containing the session if found and active
      */
-    Optional<UserSession> findBySessionIdAndActive(String sessionId, boolean active);
+    Optional<UserSessionEntity> findBySessionIdAndActive(String sessionId, boolean active);
 
     /**
      * Delete a session by ID - Spring Data naming convention

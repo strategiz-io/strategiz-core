@@ -2,6 +2,7 @@ package io.strategiz.service.auth.config;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
+import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
 import io.strategiz.service.auth.service.passkey.PasskeyManagementService;
@@ -15,28 +16,35 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PasskeyServiceConfig {
 
+    @Bean
+    public PasskeyCredentialConverter passkeyCredentialConverter() {
+        return new PasskeyCredentialConverter();
+    }
 
     @Bean
     public PasskeyRegistrationService passkeyRegistrationService(
             PasskeyChallengeService challengeService,
             PasskeyCredentialRepository credentialRepository,
+            PasskeyCredentialConverter credentialConverter,
             SessionAuthBusiness sessionAuthBusiness) {
         return new PasskeyRegistrationService(
-            challengeService, credentialRepository, sessionAuthBusiness);
+            challengeService, credentialRepository, credentialConverter, sessionAuthBusiness);
     }
     
     @Bean
     public PasskeyAuthenticationService passkeyAuthenticationService(
             PasskeyChallengeService challengeService,
             PasskeyCredentialRepository credentialRepository,
+            PasskeyCredentialConverter credentialConverter,
             SessionAuthBusiness sessionAuthBusiness) {
         return new PasskeyAuthenticationService(
-            challengeService, credentialRepository, sessionAuthBusiness);
+            challengeService, credentialRepository, credentialConverter, sessionAuthBusiness);
     }
     
     @Bean
     public PasskeyManagementService passkeyManagementService(
-            PasskeyCredentialRepository credentialRepository) {
-        return new PasskeyManagementService(credentialRepository);
+            PasskeyCredentialRepository credentialRepository,
+            PasskeyCredentialConverter credentialConverter) {
+        return new PasskeyManagementService(credentialRepository, credentialConverter);
     }
 }

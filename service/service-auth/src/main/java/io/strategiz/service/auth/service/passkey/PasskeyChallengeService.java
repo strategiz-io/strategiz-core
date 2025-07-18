@@ -7,7 +7,7 @@ import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepos
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.exception.AuthErrors;
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +49,7 @@ public class PasskeyChallengeService extends BaseService {
     /**
      * Create a new WebAuthn challenge
      *
-     * @param userId User ID (optional for authentication challenges)
+     * @param userId UserEntity ID (optional for authentication challenges)
      * @param type Challenge type (authentication or registration)
      * @return The challenge string
      */
@@ -74,7 +74,7 @@ public class PasskeyChallengeService extends BaseService {
             
             // Let Hibernate generate the ID through the @GeneratedValue annotation
             // Save the challenge
-            passkeyChallengeRepository.saveAndFlush(challengeEntity);
+            challengeEntity = passkeyChallengeRepository.saveAndFlush(challengeEntity);
             log.debug("Created new {} challenge for user {}", type, userId);
             
             return challenge;
@@ -87,7 +87,7 @@ public class PasskeyChallengeService extends BaseService {
      * Verify and validate a challenge
      *
      * @param challenge The challenge string to verify
-     * @param userId User ID (optional for authentication challenges)
+     * @param userId UserEntity ID (optional for authentication challenges)
      * @param type Challenge type (authentication or registration)
      * @return True if the challenge is valid, false otherwise
      */
@@ -152,7 +152,7 @@ public class PasskeyChallengeService extends BaseService {
     
     /**
      * Find the most recent challenge for a user
-     * @param userId User ID
+     * @param userId UserEntity ID
      * @param type Challenge type
      * @return Optional containing the challenge if found
      */
@@ -185,9 +185,7 @@ public class PasskeyChallengeService extends BaseService {
         log.debug("Cleaning up expired challenges");
         Instant now = Instant.now();
         
-        List<PasskeyChallenge> expiredChallenges = passkeyChallengeRepository.findAll().stream()
-                .filter(c -> c.getExpiresAt().isBefore(now))
-                .toList();
+        List<PasskeyChallenge> expiredChallenges = passkeyChallengeRepository.findByExpiresAtBefore(now);
                 
         int count = expiredChallenges.size();
         if (count > 0) {

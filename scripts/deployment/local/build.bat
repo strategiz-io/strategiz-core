@@ -31,7 +31,32 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd data\data-strategy
+cd data\data-auth
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd data\data-session
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd data\data-watchlist
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd data\data-providers
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd data\data-devices
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd data\data-preferences
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
@@ -46,7 +71,7 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd data\data-auth
+cd data\data-strategy
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
@@ -97,6 +122,11 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
+cd client\client-firebase-sms
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
 cd client\client-google
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
@@ -139,6 +169,11 @@ if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
 cd service\service-monitoring
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd service\service-marketing
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..

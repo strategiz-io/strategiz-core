@@ -1,55 +1,62 @@
 package io.strategiz.data.auth.repository.passkey.credential;
 
-import io.strategiz.data.auth.model.passkey.PasskeyCredential;
-import org.springframework.data.jpa.repository.JpaRepository;
+import io.strategiz.data.auth.entity.passkey.PasskeyCredentialEntity;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * JPA Repository for PasskeyCredential entities
+ * Repository interface for managing passkey credentials
+ * Provides CRUD operations for passkey credentials
  */
 @Repository
-public interface PasskeyCredentialRepository extends JpaRepository<PasskeyCredential, String> {
+public interface PasskeyCredentialRepository extends CrudRepository<PasskeyCredentialEntity, String> {
     
     /**
-     * Find a credential by its credential ID
+     * Find credential by credential ID
      */
-    Optional<PasskeyCredential> findByCredentialId(String credentialId);
+    Optional<PasskeyCredentialEntity> findByCredentialId(String credentialId);
     
     /**
-     * Find a credential by credential ID and user ID
+     * Find all credentials for a user (this would typically be done through a user-credential relationship)
      */
-    Optional<PasskeyCredential> findByCredentialIdAndUserId(String credentialId, String userId);
+    List<PasskeyCredentialEntity> findByUserId(String userId);
     
     /**
-     * Find all credentials for a specific user
+     * Find credentials by device
      */
-    List<PasskeyCredential> findByUserId(String userId);
+    List<PasskeyCredentialEntity> findByDevice(String device);
     
     /**
-     * Alias for findByUserId to maintain compatibility with service layer
+     * Find verified credentials
      */
-    List<PasskeyCredential> findAllByUserId(String userId);
+    List<PasskeyCredentialEntity> findByVerifiedTrue();
     
     /**
-     * Delete credentials by credential ID
+     * Find credentials created before a certain time
      */
-    void deleteByCredentialId(String credentialId);
+    List<PasskeyCredentialEntity> findByCreatedAtBefore(Instant before);
     
     /**
-     * Delete all credentials for a specific user
+     * Find credentials last used before a certain time
      */
-    void deleteByUserId(String userId);
+    List<PasskeyCredentialEntity> findByLastUsedAtBefore(Instant before);
     
     /**
-     * Alias for deleteByUserId to maintain compatibility with service layer
+     * Count credentials by user
      */
-    void deleteAllByUserId(String userId);
+    long countByUserId(String userId);
     
     /**
-     * Check if a credential exists by credential ID
+     * Check if credential exists by credential ID
      */
     boolean existsByCredentialId(String credentialId);
+    
+    /**
+     * Delete credentials by user ID
+     */
+    void deleteByUserId(String userId);
 }

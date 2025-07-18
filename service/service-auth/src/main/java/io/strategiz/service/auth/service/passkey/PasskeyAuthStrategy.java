@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationChallenge;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationRequest;
@@ -23,7 +23,7 @@ public class PasskeyAuthStrategy implements AuthMethodStrategy {
     }
     
     @Override
-    public Object setupAuthentication(User user) {
+    public Object setupAuthentication(UserEntity user) {
         logger.info("Setting up passkey authentication for user: {}", user.getUserId());
         String email = user.getProfile().getEmail();
         

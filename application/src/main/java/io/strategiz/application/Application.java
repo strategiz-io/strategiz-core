@@ -2,24 +2,27 @@ package io.strategiz.application;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.Import;
+import io.strategiz.data.auth.config.DataAuthConfig;
+import io.strategiz.data.base.config.FirebaseConfig;
+import io.strategiz.data.device.config.DeviceConfig;
+import io.strategiz.data.user.config.DataUserConfig;
 
 /**
  * Main Application class for Strategiz Core
  */
 @SpringBootApplication
+@Import({FirebaseConfig.class, DataAuthConfig.class, DeviceConfig.class, DataUserConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"
 },
 excludeFilters = {
-    @ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "io.strategiz.client.binanceus.*"),
-    @ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "io.strategiz.data.base.config.FirebaseConfig")
+    @ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "io.strategiz.client.binanceus.*")
 })
 @PropertySource("classpath:application.properties")
-@EntityScan(basePackages = {"io.strategiz"})
 @ConfigurationPropertiesScan(basePackages = {"io.strategiz"})
 public class Application {
 

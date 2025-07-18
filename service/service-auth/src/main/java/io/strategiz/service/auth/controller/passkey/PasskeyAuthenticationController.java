@@ -19,11 +19,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Controller for passkey authentication endpoints.
+ * Controller for passkey authentication using resource-based REST endpoints
+ * 
+ * This controller handles passkey (WebAuthn) authentication operations following
+ * REST best practices with plural resource naming and proper HTTP verbs.
+ * 
+ * Endpoints:
+ * - POST /auth/passkeys/authentications - Begin authentication (create challenge)
+ * - PUT /auth/passkeys/authentications/{id} - Complete authentication (submit assertion)
+ * 
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/passkey/authentication")
+@RequestMapping("/auth/passkeys")
 public class PasskeyAuthenticationController extends BaseController {
 
     @Autowired
@@ -33,11 +41,13 @@ public class PasskeyAuthenticationController extends BaseController {
     private PasskeyAuthenticationService authenticationService;
 
     /**
-     * Begin WebAuthn authentication process
+     * Begin WebAuthn authentication process - Create authentication challenge
+     * 
+     * POST /auth/passkeys/authentications
      * 
      * @return Clean authentication challenge response - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/begin")
+    @PostMapping("/authentications")
     public ResponseEntity<PasskeyAuthenticationService.AuthenticationChallenge> beginAuthentication() {
         logRequest("beginAuthentication", "anonymous");
         
@@ -53,14 +63,18 @@ public class PasskeyAuthenticationController extends BaseController {
     }
     
     /**
-     * Complete WebAuthn authentication process
+     * Complete WebAuthn authentication process - Submit assertion data
      * 
+     * PUT /auth/passkeys/authentications/{id}
+     * 
+     * @param authenticationId The authentication challenge ID
      * @param request Completion request with credential data
      * @param servletRequest HTTP request to extract client IP
      * @return Clean authentication result with tokens - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/complete")
+    @PutMapping("/authentications/{authenticationId}")
     public ResponseEntity<ApiTokenResponse> completeAuthentication(
+            @PathVariable String authenticationId,
             @RequestBody @Valid PasskeyAuthenticationCompletionRequest request,
             HttpServletRequest servletRequest) {
         
@@ -116,11 +130,13 @@ public class PasskeyAuthenticationController extends BaseController {
     /**
      * Alternative endpoint for backwards compatibility
      * 
+     * @deprecated Use PUT /auth/passkeys/authentications/{id} instead
      * @param request Completion request with credential data
      * @param httpRequest HTTP request to extract client IP
      * @return Clean authentication result - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/signin/finish")
+    @Deprecated
+    @PostMapping("/authentications/legacy/signin")
     public ResponseEntity<Map<String, String>> finishSignIn(
             @Valid @RequestBody PasskeyAuthenticationCompletionRequest request,
             HttpServletRequest httpRequest) {

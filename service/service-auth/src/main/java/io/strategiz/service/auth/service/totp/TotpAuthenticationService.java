@@ -1,13 +1,19 @@
 package io.strategiz.service.auth.service.totp;
 
-import io.strategiz.data.user.model.TotpAuthenticationMethod;
-import io.strategiz.data.user.model.User;
+import java.time.Instant;
+import io.strategiz.data.auth.entity.totp.TotpAuthenticationMethodEntity;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.framework.exception.DomainService;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
+import io.strategiz.service.auth.service.totp.BaseTotpService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -20,56 +26,88 @@ import java.util.Optional;
 @Service
 @DomainService(domain = "auth")
 public class TotpAuthenticationService extends BaseTotpService {
+    
     private static final Logger log = LoggerFactory.getLogger(TotpAuthenticationService.class);
     
-    public TotpAuthenticationService(UserRepository userRepository) {
-        super(userRepository);
+    @Autowired
+    private SessionAuthBusiness sessionAuthBusiness;
+    
+    public TotpAuthenticationService(UserRepository userRepository, 
+                                     AuthenticationMethodRepository authMethodRepository) {
+        super(userRepository, authMethodRepository);
     }
     
     /**
-     * Override to make public for authentication purposes
-     * @throws StrategizException if the code verification fails
+     * Verify a TOTP code for a user
+     * @param userId the user ID
+     * @param code the TOTP code
+     * @return true if valid, false otherwise
      */
     @Override
-    public boolean verifyCode(String username, String code) {
-        boolean isVerified = super.verifyCode(username, code);
-        if (!isVerified) {
-            // Get remaining attempts - in a real system this would be stored and tracked
-            int attemptsRemaining = 3; // Example value
-            log.debug("TOTP verification failed for user: {}, attempts remaining: {}", username, attemptsRemaining);
-            throw new StrategizException(AuthErrors.TOTP_INVALID_CODE, username);
+    public boolean verifyCode(String userId, String code) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("User not found for TOTP verification: {}", userId);
+            return false;
         }
-        return true;
+        
+        UserEntity user = userOpt.get();
+        TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
+        
+        if (totpAuth == null || totpAuth.getSecret() == null) {
+            log.warn("TOTP not configured for user: {}", userId);
+            return false;
+        }
+        
+        return isCodeValid(code, totpAuth.getSecret());
     }
     
     /**
-     * Authenticate a user using TOTP
-     * @param username the username
+     * Authenticate a user using TOTP and create session with tokens
+     * @param userId the user ID
      * @param code the TOTP code
-     * @throws StrategizException if the user does not exist or TOTP verification fails
+     * @param ipAddress client IP address
+     * @param deviceId device identifier
+     * @return API token response with access and refresh tokens
+     * @throws StrategizException if authentication fails
      */
-    public void authenticateWithTotp(String username, String code) {
-        // verifyCode will throw an exception if code verification fails
-        verifyCode(username, code);
-        
-        // Update the last verification time
-        Optional<User> userOpt = userRepository.findById(username);
-        if (userOpt.isEmpty()) {
-            throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
+    public ApiTokenResponse authenticateWithTotp(String userId, String code, String ipAddress, String deviceId) {
+        if (!verifyCode(userId, code)) {
+            throw new StrategizException(AuthErrors.TOTP_VERIFICATION_FAILED, "Invalid TOTP code");
         }
+        
+        // Update last verified time
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            UserEntity user = userOpt.get();
+            TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
+            if (totpAuth != null) {
+                totpAuth.setLastAccessedAt(Instant.now());
+                totpAuth.markAsVerified();
+                authMethodRepository.save(totpAuth);
+            }
             
-        User user = userOpt.get();
-        TotpAuthenticationMethod totpAuth = findTotpAuthMethod(user);
-        if (totpAuth == null) {
-            log.error("User {} has no TOTP authentication method configured", username);
-            throw new StrategizException(AuthErrors.VALIDATION_FAILED, "TOTP is not enabled for this user");
+            // Create session and tokens using SessionAuthBusiness
+            SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
+                userId,                                                      // userId
+                user.getProfile().getEmail(),                                // userEmail
+                java.util.List.of("TOTP"),                                   // authenticationMethods  
+                false,                                                       // isPartialAuth
+                deviceId != null ? deviceId : "totp-auth-device",           // deviceId
+                null,                                                        // deviceFingerprint
+                ipAddress,                                                   // ipAddress
+                null                                                         // userAgent
+            );
+            SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+            
+            log.info("TOTP authentication successful for user: {}", userId);
+            return new ApiTokenResponse(
+                authResult.accessToken(),
+                authResult.refreshToken(),
+                userId
+            );
         }
         
-        totpAuth.setLastVerifiedAt(new Date());
-        userRepository.save(user);
-        
-        log.info("TOTP authentication successful for user: {}", username);
+        throw new StrategizException(AuthErrors.USER_NOT_FOUND, userId);
     }
-    
-
 }

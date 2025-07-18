@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
 
 /**
@@ -25,7 +25,7 @@ public class DevEmailOtpStrategy implements AuthMethodStrategy {
     private static final Random random = new Random();
     
     @Override
-    public Object setupAuthentication(User user) {
+    public Object setupAuthentication(UserEntity user) {
         // Generate a mock 6-digit code for development testing
         String mockCode = String.format("%06d", random.nextInt(1000000));
         

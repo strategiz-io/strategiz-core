@@ -3,6 +3,7 @@ package io.strategiz.service.auth.service.passkey;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.auth.model.passkey.PasskeyCredential;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
+import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
@@ -34,14 +35,17 @@ public class PasskeyAuthenticationService extends BaseService {
     
     private final PasskeyChallengeService challengeService;
     private final PasskeyCredentialRepository credentialRepository;
+    private final PasskeyCredentialConverter credentialConverter;
     private final SessionAuthBusiness sessionAuthBusiness;
     
     public PasskeyAuthenticationService(
             PasskeyChallengeService challengeService,
             PasskeyCredentialRepository credentialRepository,
+            PasskeyCredentialConverter credentialConverter,
             SessionAuthBusiness sessionAuthBusiness) {
         this.challengeService = challengeService;
         this.credentialRepository = credentialRepository;
+        this.credentialConverter = credentialConverter;
         this.sessionAuthBusiness = sessionAuthBusiness;
         
         // Ensure we're using real passkey authentication, not mock data
@@ -139,7 +143,9 @@ public class PasskeyAuthenticationService extends BaseService {
         }
         
         // Find credential by ID
-        Optional<PasskeyCredential> credentialOpt = credentialRepository.findByCredentialId(credentialId);
+        Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
+            credentialRepository.findByCredentialId(credentialId)
+        );
         if (credentialOpt.isEmpty()) {
             return new AuthenticationResult(false, null, null, "Credential not found");
         }
@@ -163,7 +169,7 @@ public class PasskeyAuthenticationService extends BaseService {
             
             // Update last used time
             credential.setLastUsedTime(Instant.now());
-            credentialRepository.save(credential);
+            credentialRepository.save(credentialConverter.toEntity(credential));
             
             // Generate authentication tokens AND session using new unified approach
             // Extract context from challenge (we should have user email etc.)
@@ -203,7 +209,7 @@ public class PasskeyAuthenticationService extends BaseService {
      * Find a passkey credential by its credentialId
      */
     public Optional<Passkey> getCredentialByCredentialId(String credentialId) {
-        return credentialRepository.findByCredentialId(credentialId)
+        return credentialConverter.toDomainModel(credentialRepository.findByCredentialId(credentialId))
                 .map(this::convertToPasskey);
     }
     
@@ -212,7 +218,7 @@ public class PasskeyAuthenticationService extends BaseService {
      */
     public boolean credentialExistsForUser(String credentialId, String userId) {
         // Simple implementation that doesn't require a special repository method
-        return credentialRepository.findByCredentialId(credentialId)
+        return credentialConverter.toDomainModel(credentialRepository.findByCredentialId(credentialId))
                 .map(credential -> userId.equals(credential.getUserId()))
                 .orElse(false);
     }

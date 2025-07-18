@@ -38,8 +38,8 @@ public class OAuthVaultConfig {
             Map<String, Object> vaultProperties = new HashMap<>();
             
             // Load Google OAuth credentials
-            String googleClientId = secretManager.getSecret("oauth/google.client-id");
-            String googleClientSecret = secretManager.getSecret("oauth/google.client-secret");
+            String googleClientId = secretManager.getSecret("oauth.google.client-id");
+            String googleClientSecret = secretManager.getSecret("oauth.google.client-secret");
             
             if (googleClientId != null && !googleClientId.isEmpty()) {
                 vaultProperties.put("oauth.providers.google.client-id", googleClientId);
@@ -52,8 +52,8 @@ public class OAuthVaultConfig {
             }
             
             // Load Facebook OAuth credentials
-            String facebookClientId = secretManager.getSecret("oauth/facebook.client-id");
-            String facebookClientSecret = secretManager.getSecret("oauth/facebook.client-secret");
+            String facebookClientId = secretManager.getSecret("oauth.facebook.client-id");
+            String facebookClientSecret = secretManager.getSecret("oauth.facebook.client-secret");
             
             if (facebookClientId != null && !facebookClientId.isEmpty()) {
                 vaultProperties.put("oauth.providers.facebook.client-id", facebookClientId);

@@ -4,6 +4,8 @@ import io.strategiz.data.base.audit.AuditFields;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Transient;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -19,12 +21,14 @@ import jakarta.validation.constraints.NotNull;
  * 
  * @author Strategiz Platform
  */
+@MappedSuperclass
 public abstract class BaseEntity {
 
     @PropertyName("auditFields")
     @JsonProperty("auditFields")
     @Valid
     @NotNull
+    @Transient  // Skip JPA persistence - this is for Firestore only
     private AuditFields auditFields;
 
     protected BaseEntity() {

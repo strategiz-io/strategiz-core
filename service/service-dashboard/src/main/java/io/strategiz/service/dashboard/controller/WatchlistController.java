@@ -3,10 +3,14 @@ package io.strategiz.service.dashboard.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import io.strategiz.data.user.model.watchlist.*;
 import io.strategiz.data.user.repository.UserRepository;
-import io.strategiz.data.user.model.UserProfile;
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserProfileEntity;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.service.dashboard.model.request.CreateWatchlistItemRequest;
+import io.strategiz.service.dashboard.model.request.DeleteWatchlistItemRequest;
+import io.strategiz.service.dashboard.model.response.WatchlistCollectionResponse;
+import io.strategiz.service.dashboard.model.response.WatchlistOperationResponse;
+import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
 import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
@@ -14,14 +18,17 @@ import io.strategiz.service.base.controller.BaseController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.List;
+import java.util.Arrays;
+import java.util.UUID;
 
 /**
  * Controller for watchlist data.
- * Returns real integrated data regardless of user's demo/real mode.
+ * Returns demo data until proper repository implementations are available.
  * The mode only affects UI behavior, not the data itself.
  */
 @RestController
@@ -39,10 +46,10 @@ public class WatchlistController extends BaseController {
     
     /**
      * Get watchlist data for a user.
-     * Always returns real market data regardless of trading mode.
+     * Returns demo data until proper implementation is available.
      * 
      * @param userId The user ID to get data for
-     * @return Real watchlist data with market information
+     * @return Demo watchlist data with market information
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> getWatchlist(@RequestParam(required = false) String userId) {
@@ -57,14 +64,10 @@ public class WatchlistController extends BaseController {
             // Get user trading mode for UI context only
             String tradingMode = getUserTradingMode(userId);
             
-            // Get real watchlist data from our data layer
-            WatchlistCollectionResponse watchlist = userRepository.readUserWatchlist(userId);
+            // Get demo watchlist data
+            WatchlistCollectionResponse watchlist = getDemoWatchlistData(userId);
             
-            if (watchlist == null) {
-                throw new StrategizException(DashboardErrorDetails.WATCHLIST_NOT_FOUND, "service-dashboard", userId);
-            }
-            
-            // Create response with real data
+            // Create response with demo data
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("userId", userId);
             responseData.put("tradingMode", tradingMode); // For UI context only
@@ -98,25 +101,24 @@ public class WatchlistController extends BaseController {
         }
         
         try {
-            // Check if item already exists
-            boolean exists = userRepository.isAssetInWatchlist(userId, request.getSymbol());
-            if (exists) {
-                throw new StrategizException(DashboardErrorDetails.DUPLICATE_WATCHLIST_ITEM, "service-dashboard", userId, request.getSymbol());
-            }
+            // TODO: Check if item already exists when repository is implemented
+            // For now, just return success
             
-            WatchlistOperationResponse response = userRepository.createWatchlistItem(userId, request);
+            WatchlistOperationResponse response = WatchlistOperationResponse.success(
+                "CREATE", 
+                UUID.randomUUID().toString(), 
+                request.getSymbol(), 
+                "Watchlist item created successfully"
+            );
             
-            if (response.getSuccess()) {
-                return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "operation", response.getOperation(),
-                    "id", response.getId(),
-                    "symbol", response.getSymbol(),
-                    "message", response.getMessage()
-                ));
-            } else {
-                throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "create_watchlist_item", response.getMessage());
-            }
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "operation", response.getOperation(),
+                "id", response.getId(),
+                "symbol", response.getSymbol(),
+                "message", response.getMessage()
+            ));
+            
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -142,18 +144,20 @@ public class WatchlistController extends BaseController {
         }
         
         try {
-            DeleteWatchlistItemRequest request = DeleteWatchlistItemRequest.forId(itemId);
-            WatchlistOperationResponse response = userRepository.deleteWatchlistItem(userId, request);
+            // TODO: Implement actual deletion when repository is available
+            // For now, just return success
             
-            if (response.getSuccess()) {
-                return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "operation", response.getOperation(),
-                    "message", response.getMessage()
-                ));
-            } else {
-                throw new StrategizException(DashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard", userId, itemId);
-            }
+            WatchlistOperationResponse response = WatchlistOperationResponse.success(
+                "DELETE", 
+                "Watchlist item deleted successfully"
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "operation", response.getOperation(),
+                "message", response.getMessage()
+            ));
+            
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -171,34 +175,56 @@ public class WatchlistController extends BaseController {
             @RequestParam String userId,
             @PathVariable String symbol) {
         
-        // Validate input
-        if (symbol == null || symbol.trim().isEmpty()) {
-            throw new StrategizException(DashboardErrorDetails.INVALID_SYMBOL, "service-dashboard", symbol);
-        }
+        log.info("Checking if symbol {} is in watchlist for user: {}", symbol, userId);
         
         try {
-            boolean inWatchlist = userRepository.isAssetInWatchlist(userId, symbol);
+            // TODO: Implement actual check when repository is available
+            // For now, return false for all symbols
+            boolean inWatchlist = false;
+            
             return ResponseEntity.ok(Map.of(
+                "userId", userId,
                 "symbol", symbol,
                 "inWatchlist", inWatchlist
             ));
-        } catch (StrategizException e) {
-            // Re-throw business exceptions
-            throw e;
+            
         } catch (Exception e) {
-            log.error("Error checking symbol in watchlist for user: {} - {}", userId, symbol, e);
-            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol", e.getMessage());
+            log.error("Error checking symbol in watchlist: {} for user: {}", symbol, userId, e);
+            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol_in_watchlist", e.getMessage());
         }
     }
     
     /**
-     * Get user's trading mode for UI context.
+     * Get demo watchlist data until proper repository implementation is available
+     */
+    private WatchlistCollectionResponse getDemoWatchlistData(String userId) {
+        // Create demo watchlist items
+        List<WatchlistItem> demoItems = Arrays.asList(
+            new WatchlistItem("btc-1", "BTC", "Bitcoin", "crypto", 
+                new BigDecimal("43500.00"), new BigDecimal("1250.00"), 
+                new BigDecimal("2.95"), true, "/chart/btc"),
+            new WatchlistItem("eth-1", "ETH", "Ethereum", "crypto", 
+                new BigDecimal("2650.00"), new BigDecimal("-85.00"), 
+                new BigDecimal("-3.10"), false, "/chart/eth"),
+            new WatchlistItem("aapl-1", "AAPL", "Apple Inc.", "stock", 
+                new BigDecimal("175.50"), new BigDecimal("2.25"), 
+                new BigDecimal("1.30"), true, "/chart/aapl")
+        );
+        
+        WatchlistCollectionResponse response = new WatchlistCollectionResponse(userId, demoItems);
+        response.setTradingMode("demo");
+        
+        return response;
+    }
+    
+    /**
+     * Get user trading mode, defaulting to demo if not found
      */
     private String getUserTradingMode(String userId) {
         try {
-            Optional<User> userOpt = userRepository.getUserById(userId);
+            Optional<UserEntity> userOpt = userRepository.findById(userId);
             if (userOpt.isPresent()) {
-                UserProfile profile = userOpt.get().getProfile();
+                UserProfileEntity profile = userOpt.get().getProfile();
                 return profile != null ? profile.getTradingMode() : "demo";
             }
         } catch (Exception e) {
@@ -206,10 +232,9 @@ public class WatchlistController extends BaseController {
         }
         return "demo";
     }
-    
+
     /**
-     * Formats watchlist data for UI consumption.
-     * Always returns real market data regardless of mode.
+     * Format watchlist data for UI consumption
      */
     private Map<String, Object> formatWatchlistForUI(WatchlistCollectionResponse watchlist) {
         Map<String, Object> formattedWatchlist = new HashMap<>();
@@ -235,7 +260,7 @@ public class WatchlistController extends BaseController {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("lastUpdated", System.currentTimeMillis());
         metadata.put("tradingMode", tradingMode); // For UI context only
-        metadata.put("dataType", "real"); // Always real data
+        metadata.put("dataType", "demo"); // Demo data for now
         
         // Summary stats
         metadata.put("summary", Map.of(

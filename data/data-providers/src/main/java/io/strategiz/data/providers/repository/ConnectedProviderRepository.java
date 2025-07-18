@@ -1,82 +1,76 @@
 package io.strategiz.data.providers.repository;
 
-import io.strategiz.data.providers.entity.ConnectedProvider;
+import io.strategiz.data.providers.entity.ConnectedProviderEntity;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for users/{userId}/providers subcollection
+ * Spring Data repository for users/{userId}/providers subcollection
  */
-public interface ConnectedProviderRepository {
+@Repository
+public interface ConnectedProviderRepository extends CrudRepository<ConnectedProviderEntity, String> {
+    
+    // ===============================
+    // Spring Data Query Methods
+    // ===============================
     
     /**
-     * Connect provider to user
+     * Find providers by name
      */
-    ConnectedProvider connectProvider(String userId, ConnectedProvider provider);
+    List<ConnectedProviderEntity> findByProviderName(String providerName);
     
     /**
-     * Get all connected providers for user
+     * Find providers by type
      */
-    List<ConnectedProvider> findByUserId(String userId);
+    List<ConnectedProviderEntity> findByProviderType(String providerType);
     
     /**
-     * Get providers by type
+     * Find providers by status
      */
-    List<ConnectedProvider> findByUserIdAndType(String userId, String providerType);
+    List<ConnectedProviderEntity> findByStatus(String status);
     
     /**
-     * Get specific connected provider
+     * Find providers by account type
      */
-    Optional<ConnectedProvider> findByUserIdAndProviderId(String userId, String providerId);
+    List<ConnectedProviderEntity> findByAccountType(String accountType);
     
     /**
-     * Find provider by name
+     * Find providers by name and type
      */
-    Optional<ConnectedProvider> findByUserIdAndProviderName(String userId, String providerName);
+    List<ConnectedProviderEntity> findByProviderNameAndProviderType(String providerName, String providerType);
     
     /**
-     * Update provider
+     * Find providers by status and type
      */
-    ConnectedProvider updateProvider(String userId, String providerId, ConnectedProvider provider);
+    List<ConnectedProviderEntity> findByStatusAndProviderType(String status, String providerType);
     
     /**
-     * Update provider status
+     * Find active providers (alias for findByStatus)
      */
-    void updateStatus(String userId, String providerId, String status);
+    default List<ConnectedProviderEntity> findActiveProviders() {
+        return findByStatus("ACTIVE");
+    }
     
     /**
-     * Mark provider sync
+     * Check if provider exists by name
      */
-    void markLastSync(String userId, String providerId);
+    boolean existsByProviderName(String providerName);
     
     /**
-     * Mark provider error
+     * Count providers by type
      */
-    void markError(String userId, String providerId, String errorMessage);
+    long countByProviderType(String providerType);
     
     /**
-     * Disconnect provider
+     * Count providers by status
      */
-    void disconnectProvider(String userId, String providerId);
+    long countByStatus(String status);
     
     /**
-     * Check if user has provider connected
+     * Find providers ordered by connected date
      */
-    boolean hasProviderConnected(String userId, String providerName);
-    
-    /**
-     * Count connected providers
-     */
-    long countByUserId(String userId);
-    
-    /**
-     * Get providers by status
-     */
-    List<ConnectedProvider> findByUserIdAndStatus(String userId, String status);
-    
-    /**
-     * Get trading providers
-     */
-    List<ConnectedProvider> findTradingProviders(String userId);
+    List<ConnectedProviderEntity> findAllByOrderByConnectedAtDesc();
 }

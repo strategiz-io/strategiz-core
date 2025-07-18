@@ -1,49 +1,43 @@
 package io.strategiz.service.auth.service.signup;
 
-import java.util.UUID;
-
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.entity.UserProfileEntity;
+import io.strategiz.service.auth.model.signup.OAuthSignupRequest;
 import org.springframework.stereotype.Component;
 
-import io.strategiz.data.user.model.User;
-import io.strategiz.data.user.model.UserProfile;
-import io.strategiz.service.auth.model.signup.SignupRequest;
+import java.util.UUID;
 
 /**
- * Factory class responsible for creating User objects from signup requests.
- * This follows the Single Responsibility Principle by separating user creation
- * from other business logic.
+ * Factory for creating UserEntity objects from OAuth signup requests
  */
 @Component
 public class UserFactory {
-    
+
     /**
-     * Creates a new User entity populated with data from a SignupRequest
+     * Creates a new UserEntity populated with data from OAuth signup
      * 
-     * @param request The signup request containing user data
-     * @return A fully populated User entity (not yet persisted)
+     * @param request OAuth signup request containing profile data
+     * @return UserEntity ready for persistence
      */
-    public User createUser(SignupRequest request) {
-        // Generate a unique user ID
+    public UserEntity createUser(OAuthSignupRequest request) {
+        // Generate unique user ID
         String userId = UUID.randomUUID().toString();
         
-        // Create and populate the user
-        User user = new User();
+        // Create user profile with OAuth data
+        UserProfileEntity profile = new UserProfileEntity(
+            request.getName(),
+            request.getEmail(),
+            request.getPhotoURL(),
+            true, // OAuth providers verify email
+            "free", // Default subscription tier
+            "demo", // Default trading mode
+            true // Active by default
+        );
+        
+        // Create user entity
+        UserEntity user = new UserEntity();
         user.setUserId(userId);
-        
-        // Create and populate the profile
-        UserProfile profile = new UserProfile();
-        profile.setName(request.getName());
-        profile.setEmail(request.getEmail());
-        profile.setPhotoURL(request.getPhotoURL());
-        profile.setVerifiedEmail(false);
-        profile.setSubscriptionTier("free"); // Default tier
-        profile.setTradingMode("demo"); // Default mode
-        // isActive field is handled automatically by BaseEntity
-        
-        // Set the profile on the user
         user.setProfile(profile);
-        
-        // Audit fields are handled automatically by BaseEntity
         
         return user;
     }

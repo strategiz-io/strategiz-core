@@ -1,91 +1,72 @@
 package io.strategiz.data.auth.model.passkey;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import java.time.Instant;
-import java.util.Base64;
-import org.hibernate.annotations.GenericGenerator;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Represents a passkey credential stored in the database
+ * Passkey credential domain model
+ * This is a business domain object for individual passkey credentials
  */
-@Entity
-@Table(name = "passkey_credentials")
 public class PasskeyCredential {
     
-    @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
     private String id;
-    
-    @Column(nullable = false, unique = true)
-    private String credentialId;
-    
-    @Column(nullable = false)
-    private String userId;
-    
-    @Column(nullable = false, length = 4000)
-    private String publicKeyBase64;
-    
-    @Column
-    private String authenticatorName;
-    
-    @Column(nullable = false)
-    private Instant registrationTime;
-    
-    @Column(nullable = false)
-    private Instant lastUsedTime;
-    
-    @Column
-    private String aaguid;
-    
-    @Column
-    private String deviceName;
-    
-    @Column
-    private String userAgent;
-    
-    @Column(length = 4000)
-    private String attestationObject;
-    
-    @Column(length = 4000)
+    private String userId; // The user this credential belongs to
+    private String credentialId; // Base64-encoded credential ID
+    private byte[] publicKey; // Binary public key
+    private String publicKeyBase64; // Base64-encoded public key for compatibility
+    private int signatureCount;
+    private String authenticatorData;
     private String clientDataJSON;
-    
-    @Column(nullable = false)
-    private boolean trusted = false;
-    
-    /**
-     * Default constructor for JPA
-     */
+    private String attestationObject;
+    private String name; // User-given name for the credential
+    private String authenticatorName; // Name of the authenticator device
+    private String deviceName; // Device identifier/name
+    private String device; // Legacy device field for compatibility
+    private String aaguid; // Authenticator Attestation GUID
+    private String userAgent; // User agent string from registration
+    private boolean verified = false;
+    private boolean trusted = false; // Whether this credential is trusted
+    private Instant createdAt;
+    private Instant registrationTime; // Alias for createdAt
+    private Instant lastUsedAt;
+    private Instant lastUsedTime; // Alias for lastUsedAt
+    private Map<String, Object> metadata;
+
+    // === CONSTRUCTORS ===
+
     public PasskeyCredential() {
-        // Empty constructor for JPA
+        this.createdAt = Instant.now();
+        this.metadata = new HashMap<>();
     }
 
-    /**
-     * Constructor with required fields
-     */
-    public PasskeyCredential(String credentialId, String userId, byte[] publicKey, String authenticatorName, 
-                           Instant registrationTime, String aaguid) {
+    public PasskeyCredential(String credentialId, String publicKeyBase64) {
+        this();
         this.credentialId = credentialId;
-        this.userId = userId;
-        this.publicKeyBase64 = publicKey != null ? Base64.getEncoder().encodeToString(publicKey) : null;
-        this.authenticatorName = authenticatorName;
-        this.registrationTime = registrationTime;
-        this.lastUsedTime = registrationTime; // Initially the same as registration time
-        this.aaguid = aaguid;
+        this.publicKeyBase64 = publicKeyBase64;
+        // Convert base64 to bytes if needed
+        if (publicKeyBase64 != null) {
+            this.publicKey = java.util.Base64.getDecoder().decode(publicKeyBase64);
+        }
     }
-    
 
-    
-    /**
-     * Convenience method to update the last used time
-     */
-    public void updateLastUsedTime() {
-        this.lastUsedTime = Instant.now();
+    // === CONVENIENCE METHODS ===
+
+    public boolean isVerified() {
+        return verified;
     }
+
+    public void markAsUsed() {
+        this.lastUsedAt = Instant.now();
+        this.signatureCount++;
+    }
+
+    public boolean isConfigured() {
+        return credentialId != null && !credentialId.trim().isEmpty() && 
+               publicKey != null && publicKey.length > 0;
+    }
+
+    // === GETTERS AND SETTERS ===
 
     public String getId() {
         return id;
@@ -103,12 +84,12 @@ public class PasskeyCredential {
         this.credentialId = credentialId;
     }
 
-    public String getUserId() {
-        return userId;
+    public byte[] getPublicKey() {
+        return publicKey;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setPublicKey(byte[] publicKey) {
+        this.publicKey = publicKey;
     }
 
     public String getPublicKeyBase64() {
@@ -119,73 +100,28 @@ public class PasskeyCredential {
         this.publicKeyBase64 = publicKeyBase64;
     }
 
-    /**
-     * Convenience method for storing a raw public key as Base64
-     */
-    public void setPublicKey(byte[] publicKey) {
-        if (publicKey != null) {
-            this.publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey);
-        } else {
-            this.publicKeyBase64 = null;
-        }
+    public int getSignatureCount() {
+        return signatureCount;
     }
 
-    /**
-     * Convenience method for retrieving the decoded public key
-     */
-    public byte[] getPublicKey() {
-        if (publicKeyBase64 != null) {
-            return Base64.getDecoder().decode(publicKeyBase64);
-        }
-        return null;
+    public void setSignatureCount(int signatureCount) {
+        this.signatureCount = signatureCount;
     }
 
-    public String getAuthenticatorName() {
-        return authenticatorName;
+    public String getAuthenticatorData() {
+        return authenticatorData;
     }
 
-    public void setAuthenticatorName(String authenticatorName) {
-        this.authenticatorName = authenticatorName;
+    public void setAuthenticatorData(String authenticatorData) {
+        this.authenticatorData = authenticatorData;
     }
 
-    public Instant getRegistrationTime() {
-        return registrationTime;
+    public String getClientDataJSON() {
+        return clientDataJSON;
     }
 
-    public void setRegistrationTime(Instant registrationTime) {
-        this.registrationTime = registrationTime;
-    }
-
-    public Instant getLastUsedTime() {
-        return lastUsedTime;
-    }
-
-    public void setLastUsedTime(Instant lastUsedTime) {
-        this.lastUsedTime = lastUsedTime;
-    }
-
-    public String getAaguid() {
-        return aaguid;
-    }
-
-    public void setAaguid(String aaguid) {
-        this.aaguid = aaguid;
-    }
-
-    public String getDeviceName() {
-        return deviceName;
-    }
-
-    public void setDeviceName(String deviceName) {
-        this.deviceName = deviceName;
-    }
-
-    public String getUserAgent() {
-        return userAgent;
-    }
-
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
+    public void setClientDataJSON(String clientDataJSON) {
+        this.clientDataJSON = clientDataJSON;
     }
 
     public String getAttestationObject() {
@@ -196,19 +132,120 @@ public class PasskeyCredential {
         this.attestationObject = attestationObject;
     }
 
-    public String getClientDataJSON() {
-        return clientDataJSON;
+    public String getName() {
+        return name;
     }
 
-    public void setClientDataJSON(String clientDataJSON) {
-        this.clientDataJSON = clientDataJSON;
+    public void setName(String name) {
+        this.name = name;
     }
+
+    public String getDevice() {
+        return device;
+    }
+
+    public void setDevice(String device) {
+        this.device = device;
+    }
+
+    public boolean getVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getLastUsedAt() {
+        return lastUsedAt;
+    }
+
+    public void setLastUsedAt(Instant lastUsedAt) {
+        this.lastUsedAt = lastUsedAt;
+    }
+
+    public Map<String, Object> getMetadata() {
+        if (metadata == null) {
+            metadata = new HashMap<>();
+        }
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    // Missing getter/setter methods for new fields
     
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getAuthenticatorName() {
+        return authenticatorName;
+    }
+
+    public void setAuthenticatorName(String authenticatorName) {
+        this.authenticatorName = authenticatorName;
+    }
+
+    public String getDeviceName() {
+        return deviceName;
+    }
+
+    public void setDeviceName(String deviceName) {
+        this.deviceName = deviceName;
+    }
+
+    public String getAaguid() {
+        return aaguid;
+    }
+
+    public void setAaguid(String aaguid) {
+        this.aaguid = aaguid;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
     public boolean isTrusted() {
         return trusted;
     }
-    
+
     public void setTrusted(boolean trusted) {
         this.trusted = trusted;
+    }
+
+    public Instant getRegistrationTime() {
+        return registrationTime != null ? registrationTime : createdAt;
+    }
+
+    public void setRegistrationTime(Instant registrationTime) {
+        this.registrationTime = registrationTime;
+    }
+
+    public Instant getLastUsedTime() {
+        return lastUsedTime != null ? lastUsedTime : lastUsedAt;
+    }
+
+    public void setLastUsedTime(Instant lastUsedTime) {
+        this.lastUsedTime = lastUsedTime;
     }
 }

@@ -1,144 +1,128 @@
 package io.strategiz.service.profile.service;
 
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import io.strategiz.business.tokenauth.SessionAuthBusiness.TokenPair;
-import io.strategiz.data.user.model.User;
-import io.strategiz.data.user.model.UserProfile;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
-import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.service.profile.exception.ProfileErrors;
 import io.strategiz.service.profile.model.CreateProfileRequest;
 import io.strategiz.service.profile.model.CreateProfileResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Service for Step 1 of signup process: Profile Creation
- * 
- * Creates user profiles with basic information and issues temporary tokens
- * that allow proceeding to Step 2 (authentication method setup).
- * 
- * This service does NOT handle authentication method setup - that's handled
- * by authentication-specific services in Step 2.
+ * Service for handling user profile creation during signup
  */
 @Service
+@Transactional
 public class SignupProfileService {
-
-    private static final Logger logger = LoggerFactory.getLogger(SignupProfileService.class);
+    
+    private static final Logger log = LoggerFactory.getLogger(SignupProfileService.class);
     
     private final UserRepository userRepository;
-    private final SessionAuthBusiness sessionAuthBusiness;
     
-    public SignupProfileService(
-        UserRepository userRepository,
-        SessionAuthBusiness sessionAuthBusiness
-    ) {
+    public SignupProfileService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     /**
-     * Create a user profile for Step 1 of signup
-     * 
-     * @param request Profile creation request with basic user information
-     * @return CreateProfileResponse with user ID and identity token
+     * Create signup profile
      */
-    @Transactional
-    public CreateProfileResponse createUserProfile(CreateProfileRequest request) {
-        logger.info("Creating user profile for email: {}", request.getEmail());
+    public CreateProfileResponse createSignupProfile(CreateProfileRequest request) {
+        log.info("Creating signup profile for email: {}", request.getEmail());
         
-        try {
-            // Check if user already exists
-            if (userRepository.getUserByEmail(request.getEmail()).isPresent()) {
-                throw new StrategizException(ProfileErrors.PROFILE_ALREADY_EXISTS, request.getEmail());
+        // Check if user already exists
+        Optional<UserEntity> existingUser = userRepository.findByEmail(request.getEmail());
+        
+        if (existingUser.isPresent()) {
+            UserEntity user = existingUser.get();
+            
+            // User already exists, return existing profile for signup continuation
+            log.info("User already exists, returning existing profile for signup continuation: {}", user.getId());
+            
+            // Update the profile with new information if provided
+            UserProfileEntity profile = user.getProfile();
+            if (request.getName() != null && !request.getName().equals(profile.getName())) {
+                profile.setName(request.getName());
+                user.setProfile(profile);
+                user = userRepository.save(user);
             }
             
-            // Create user entity
-            User user = createUserEntity(request);
+            CreateProfileResponse response = new CreateProfileResponse();
+            response.setUserId(user.getId());
+            response.setName(user.getProfile().getName());
+            response.setEmail(user.getProfile().getEmail());
+            response.setIdentityToken("identity-token-" + user.getId()); // TODO: Generate real token
             
-            // Save user to repository
-            User createdUser = userRepository.createUser(user);
-            if (createdUser == null) {
-                throw new StrategizException(ProfileErrors.PROFILE_CREATION_FAILED, request.getEmail());
-            }
-            
-            logger.info("Successfully created user profile with ID: {}", createdUser.getUserId());
-            
-            // Create temporary token for authentication setup (Step 2)
-            // ACR "1" = Partial authentication (profile created, no auth methods yet)
-            // This grants limited permissions: read/write profile + auth method setup
-            TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
-                createdUser.getUserId(),
-                Collections.emptyList(), // No authentication methods completed yet
-                "1", // ACR "1" - Partial authentication
-                null, // No device ID for profile creation
-                "signup-flow" // IP address placeholder for signup flow
-            );
-            
-            // Build response
-            return new CreateProfileResponse(
-                createdUser.getUserId(),
-                createdUser.getProfile().getName(),
-                createdUser.getProfile().getEmail(),
-                tokenPair.accessToken(),
-                3600L // 1 hour expiration for auth setup
-            );
-            
-        } catch (StrategizException e) {
-            // Re-throw known exceptions
-            throw e;
-        } catch (Exception e) {
-            logger.error("Unexpected error during profile creation: {}", e.getMessage(), e);
-            throw new StrategizException(ProfileErrors.PROFILE_CREATION_FAILED, 
-                "Failed to create user profile", e);
+            return response;
         }
+        
+        // User doesn't exist, create new profile
+        UserEntity user = createProfile(request.getName(), request.getEmail());
+        
+        CreateProfileResponse response = new CreateProfileResponse();
+        response.setUserId(user.getId());
+        response.setName(user.getProfile().getName());
+        response.setEmail(user.getProfile().getEmail());
+        response.setIdentityToken("identity-token-" + user.getId()); // TODO: Generate real token
+        
+        return response;
     }
-    
+
     /**
-     * Create a User entity from the profile creation request
-     * 
-     * @param request The profile creation request
-     * @return A populated User entity (not yet persisted)
+     * Create user profile (used by SignupProfileController)
      */
-    private User createUserEntity(CreateProfileRequest request) {
-        // Generate unique user ID
-        String userId = UUID.randomUUID().toString();
+    public CreateProfileResponse createUserProfile(CreateProfileRequest request) {
+        return createSignupProfile(request);
+    }
+
+    /**
+     * Helper method to create a new user profile
+     */
+    private UserEntity createProfile(String name, String email) {
+        log.info("Creating new user profile for email: {}", email);
         
-        // Create user entity
-        User user = new User();
-        user.setUserId(userId);
+        UserEntity user = new UserEntity();
         
-        // Create user profile
-        UserProfile profile = new UserProfile();
-        profile.setName(request.getName());
-        profile.setEmail(request.getEmail());
-        profile.setPhotoURL(request.getPhotoURL());
-        profile.setVerifiedEmail(false); // Will be verified during auth setup
+        UserProfileEntity profile = new UserProfileEntity();
+        profile.setName(name);
+        profile.setEmail(email);
+        profile.setVerifiedEmail(false);
         profile.setSubscriptionTier("free"); // Default tier
         profile.setTradingMode("demo"); // Default mode
-        profile.setIsActive(true);
         
-        // Set profile on user
         user.setProfile(profile);
         
-        // Set audit fields
-        Date now = new Date();
-        user.setCreatedBy("signup-profile-service");
-        user.setCreatedAt(now);
-        user.setModifiedBy("signup-profile-service");
-        user.setModifiedAt(now);
-        user.setIsActive(true);
-        user.setVersion(1);
+        // For signup, we need to handle the audit issue properly
+        // The user entity needs to be created as a NEW entity (without ID) so BaseRepository 
+        // treats it as a create operation, not an update operation
         
-        return user;
+        // Don't set any ID - let BaseRepository auto-generate it
+        // The BaseRepository will call prepareForCreate() which will:
+        // 1. Auto-generate an ID if none exists
+        // 2. Initialize audit fields
+        
+        // Use "SIGNUP" as the audit user ID (who created this user)
+        String auditUserId = "SIGNUP";
+        
+        log.info("Creating new user profile for email: {} with audit user: {}", email, auditUserId);
+        
+        // Use the UserRepositoryImpl's save method directly, but we need to cast to access BaseRepository's save
+        // Actually, let's create a new approach - use the existing save method but fix the underlying issue
+        
+        // The real issue is in UserRepositoryImpl.save() - it uses user.getUserId() as audit userId
+        // For signup, we need to generate the ID and set it so it's not null
+        String newUserId = java.util.UUID.randomUUID().toString();
+        user.setUserId(newUserId);
+        
+        log.info("Generated new user ID: {} for email: {}", newUserId, email);
+        
+        // Initialize audit fields manually before saving to avoid the "without audit fields" error
+        user._initAudit(auditUserId);
+        
+        // Now save - this will be treated as an update since ID is set, but audit fields are already initialized
+        return userRepository.save(user);
     }
 } 

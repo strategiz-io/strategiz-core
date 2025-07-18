@@ -7,7 +7,6 @@ import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.WriteResult;
-import io.strategiz.data.base.document.DocumentStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,18 +31,17 @@ public class FirestoreStrategyRepository implements StrategyRepository {
     private static final String COLLECTION_PATH = "users";
     private static final String SUBCOLLECTION_PATH = "strategies";
 
-    private final DocumentStorage documentStorage;
+    private final Firestore firestore;
 
     @Autowired
-    public FirestoreStrategyRepository(DocumentStorage documentStorage) {
-        this.documentStorage = documentStorage;
+    public FirestoreStrategyRepository(Firestore firestore) {
+        this.firestore = firestore;
     }
 
     @Override
     public List<Strategy> findAllByUserId(String userId) {
         try {
             List<Strategy> strategies = new ArrayList<>();
-            Firestore firestore = documentStorage.getDocumentDb();
             
             // Query strategies subcollection under the user document
             QuerySnapshot querySnapshot = firestore.collection(COLLECTION_PATH)
@@ -71,7 +69,6 @@ public class FirestoreStrategyRepository implements StrategyRepository {
     @Override
     public Optional<Strategy> findByIdAndUserId(String strategyId, String userId) {
         try {
-            Firestore firestore = documentStorage.getDocumentDb();
             DocumentSnapshot document = firestore.collection(COLLECTION_PATH)
                 .document(userId)
                 .collection(SUBCOLLECTION_PATH)
@@ -100,7 +97,6 @@ public class FirestoreStrategyRepository implements StrategyRepository {
     @Override
     public Strategy save(Strategy strategy) {
         try {
-            Firestore firestore = documentStorage.getDocumentDb();
             DocumentReference docRef;
             
             if (strategy.getId() != null && !strategy.getId().isEmpty()) {
@@ -133,7 +129,6 @@ public class FirestoreStrategyRepository implements StrategyRepository {
     @Override
     public boolean deleteByIdAndUserId(String strategyId, String userId) {
         try {
-            Firestore firestore = documentStorage.getDocumentDb();
             ApiFuture<WriteResult> result = firestore.collection(COLLECTION_PATH)
                 .document(userId)
                 .collection(SUBCOLLECTION_PATH)
@@ -152,7 +147,6 @@ public class FirestoreStrategyRepository implements StrategyRepository {
     @Override
     public boolean updateStatus(String strategyId, String userId, String status, Object deploymentInfo) {
         try {
-            Firestore firestore = documentStorage.getDocumentDb();
             DocumentReference docRef = firestore.collection(COLLECTION_PATH)
                 .document(userId)
                 .collection(SUBCOLLECTION_PATH)

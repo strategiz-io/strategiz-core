@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
 
 /**
@@ -21,21 +21,21 @@ public class EmailOtpStrategy implements AuthMethodStrategy {
     
     private static final Logger logger = LoggerFactory.getLogger(EmailOtpStrategy.class);
     
-    private final EmailOtpService emailOtpService;
+    private final EmailOtpAuthenticationService emailOtpAuthenticationService;
     
-    public EmailOtpStrategy(EmailOtpService emailOtpService) {
-        this.emailOtpService = emailOtpService;
+    public EmailOtpStrategy(EmailOtpAuthenticationService emailOtpAuthenticationService) {
+        this.emailOtpAuthenticationService = emailOtpAuthenticationService;
     }
     
     @Override
-    public Object setupAuthentication(User user) {
+    public Object setupAuthentication(UserEntity user) {
         String email = user.getProfile().getEmail();
         String name = user.getProfile().getName();
         
         logger.info("Sending signup verification OTP to email: {}", email);
         
         // Generate and send OTP via email
-        boolean otpSent = emailOtpService.sendOtp(
+        boolean otpSent = emailOtpAuthenticationService.sendOtp(
             email,
             "SIGNUP_VERIFICATION"
         );

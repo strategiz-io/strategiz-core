@@ -3,12 +3,13 @@ package io.strategiz.service.auth.service.oauth;
 import io.strategiz.client.google.GoogleClient;
 import io.strategiz.client.google.model.GoogleTokenResponse;
 import io.strategiz.client.google.model.GoogleUserInfo;
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.config.AuthOAuthConfig;
+import io.strategiz.service.auth.model.config.AuthOAuthSettings;
 import io.strategiz.service.auth.manager.OAuthAuthenticationManager;
 import io.strategiz.service.auth.manager.OAuthUserManager;
-import io.strategiz.service.auth.model.signup.SignupResponse;
 import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +63,7 @@ public class GoogleOAuthService {
             state = "signup:" + state;
         }
         
-        AuthOAuthConfig.AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
+        AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         if (googleConfig == null) {
             logger.error("Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
@@ -119,8 +120,8 @@ public class GoogleOAuthService {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         
-        if (result instanceof SignupResponse) {
-            SignupResponse signupResponse = (SignupResponse) result;
+        if (result instanceof OAuthSignupResponse) {
+            OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
             response.put("type", "signup");
             response.put("userId", signupResponse.getUserId());
             response.put("email", signupResponse.getEmail());
@@ -147,7 +148,7 @@ public class GoogleOAuthService {
     }
 
     private GoogleTokenResponse exchangeCodeForToken(String code) {
-        AuthOAuthConfig.AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
+        AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         if (googleConfig == null) {
             logger.error("Google OAuth configuration is not available during token exchange");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
@@ -167,7 +168,7 @@ public class GoogleOAuthService {
 
     private Object processUserAuthentication(GoogleUserInfo userInfo, String state) {
         boolean isSignup = oauthUserManager.isSignupFlow(state);
-        Optional<User> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
+        Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
         
         if (isSignup && existingUser.isPresent()) {
             throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
@@ -180,17 +181,19 @@ public class GoogleOAuthService {
         }
     }
 
-    private SignupResponse handleSignupFlow(GoogleUserInfo userInfo) {
+    private OAuthSignupResponse handleSignupFlow(GoogleUserInfo userInfo) {
         return oauthUserManager.createOAuthUser(
             userInfo.getEmail(), 
             userInfo.getName(), 
             userInfo.getPictureUrl(), 
             "google", 
-            userInfo.getGoogleId()
+            userInfo.getGoogleId(),
+            null, // deviceId not available
+            null  // ipAddress not available
         );
     }
 
-    private ApiTokenResponse handleLoginFlow(User user, GoogleUserInfo userInfo) {
+    private ApiTokenResponse handleLoginFlow(UserEntity user, GoogleUserInfo userInfo) {
         oauthAuthenticationManager.ensureOAuthMethod(
             user, 
             "google", 

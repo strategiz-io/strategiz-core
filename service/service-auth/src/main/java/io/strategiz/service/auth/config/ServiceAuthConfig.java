@@ -1,7 +1,6 @@
 package io.strategiz.service.auth.config;
 
 import io.strategiz.data.auth.config.DataAuthConfig;
-import io.strategiz.data.base.config.DataBaseConfig;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -12,7 +11,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.service.auth")
-@Import({DataBaseConfig.class, DataAuthConfig.class})
+@Import({DataAuthConfig.class})
 public class ServiceAuthConfig {
     // Service configuration goes here
 }

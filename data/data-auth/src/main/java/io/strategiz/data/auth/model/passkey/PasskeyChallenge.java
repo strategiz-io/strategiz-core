@@ -1,120 +1,169 @@
 package io.strategiz.data.auth.model.passkey;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
-import org.hibernate.annotations.GenericGenerator;
-
+import io.strategiz.data.base.entity.BaseEntity;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Model representing a passkey challenge for authentication
+ * Passkey challenge entity
+ * This is a database entity for WebAuthn challenges
  */
-@Entity
-@Table(name = "passkey_challenges")
-public class PasskeyChallenge {
+public class PasskeyChallenge extends BaseEntity {
     
-    @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
     private String id;
-    @Column(nullable = true)
-    private String userId;
-    @Column
-    private String credentialId;
-    @Column(nullable = false, length = 1000)
     private String challenge;
-    @Column(nullable = false)
+    private String userId;
+    private String sessionId;
+    private String credentialId; // Associated credential ID for authentication challenges
+    private String type; // "registration" or "authentication"
+    private boolean used = false;
     private Instant createdAt;
-    @Column(nullable = false)
     private Instant expiresAt;
-    @Column(nullable = false)
-    private boolean used;
-    @Column(nullable = false)
-    private String challengeType;
-    
-    @Version
-    private Long version;
-    
-    // Default constructor for deserialization
+    private Map<String, Object> metadata;
+
+    // === CONSTRUCTORS ===
+
     public PasskeyChallenge() {
-        // Empty constructor for deserialization
+        this.createdAt = Instant.now();
+        this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES); // 5 minute expiry
+        this.metadata = new HashMap<>();
+    }
+
+    public PasskeyChallenge(String challenge, String userId, String type) {
+        this();
+        this.challenge = challenge;
+        this.userId = userId;
+        this.type = type;
     }
     
-    public PasskeyChallenge(String userId, String challenge, Instant createdAt, 
-                          Instant expiresAt, String challengeType) {
+    public PasskeyChallenge(String userId, String challenge, Instant createdAt, Instant expiresAt, String type) {
+        this.id = null; // Will be set when saved
         this.userId = userId;
         this.challenge = challenge;
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
+        this.type = type;
         this.used = false;
-        this.challengeType = challengeType;
+        this.metadata = new HashMap<>();
     }
-    
+
+    // === CONVENIENCE METHODS ===
+
+    public boolean isExpired() {
+        return expiresAt != null && Instant.now().isAfter(expiresAt);
+    }
+
+    public boolean isValid() {
+        return !used && !isExpired();
+    }
+
+    public void markAsUsed() {
+        this.used = true;
+    }
+
+    // === STATIC FACTORY METHODS ===
+
+    public static PasskeyChallenge createRegistrationChallenge(String challenge, String userId) {
+        return new PasskeyChallenge(challenge, userId, "registration");
+    }
+
+    public static PasskeyChallenge createAuthenticationChallenge(String challenge, String userId) {
+        return new PasskeyChallenge(challenge, userId, "authentication");
+    }
+
+    // === GETTERS AND SETTERS ===
+
     public String getId() {
         return id;
     }
-    
+
     public void setId(String id) {
         this.id = id;
     }
-    
-    public String getUserId() {
-        return userId;
-    }
-    
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-    
-    public String getCredentialId() {
-        return credentialId;
-    }
-    
-    public void setCredentialId(String credentialId) {
-        this.credentialId = credentialId;
-    }
-    
+
     public String getChallenge() {
         return challenge;
     }
-    
+
     public void setChallenge(String challenge) {
         this.challenge = challenge;
     }
-    
-    public Instant getCreatedAt() {
-        return createdAt;
+
+    public String getUserId() {
+        return userId;
     }
-    
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
-    
-    public Instant getExpiresAt() {
-        return expiresAt;
+
+    public String getSessionId() {
+        return sessionId;
     }
-    
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
-    
-    public boolean isUsed() {
-        return used;
+
+    public String getCredentialId() {
+        return credentialId;
     }
-    
-    public void setUsed(boolean used) {
-        this.used = used;
+
+    public void setCredentialId(String credentialId) {
+        this.credentialId = credentialId;
+    }
+
+    public String getType() {
+        return type;
     }
     
     public String getChallengeType() {
-        return challengeType;
+        return type;
     }
-    
-    public void setChallengeType(String challengeType) {
-        this.challengeType = challengeType;
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public boolean isUsed() {
+        return used;
+    }
+
+    public void setUsed(boolean used) {
+        this.used = used;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+    public Map<String, Object> getMetadata() {
+        if (metadata == null) {
+            metadata = new HashMap<>();
+        }
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
+
+    @Override
+    public String getCollectionName() {
+        return "passkey_challenges";
     }
 }

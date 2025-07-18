@@ -87,7 +87,7 @@ public class TokenSessionService {
      * Get user ID from token
      *
      * @param token Session token
-     * @return User ID if token is valid, empty otherwise
+     * @return UserEntityEntity ID if token is valid, empty otherwise
      */
     public Optional<String> getUserIdFromToken(String token) {
         if (token == null || token.isBlank()) {

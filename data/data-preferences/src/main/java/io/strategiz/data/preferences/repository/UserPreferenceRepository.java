@@ -1,83 +1,84 @@
 package io.strategiz.data.preferences.repository;
 
-import io.strategiz.data.preferences.entity.UserPreference;
+import io.strategiz.data.preferences.entity.UserPreferenceEntity;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
- * Repository for users/{userId}/preferences subcollection
+ * Spring Data repository for users/{userId}/preferences subcollection
  */
-public interface UserPreferenceRepository {
+@Repository
+public interface UserPreferenceRepository extends CrudRepository<UserPreferenceEntity, String> {
+    
+    // ===============================
+    // Spring Data Query Methods
+    // ===============================
     
     /**
-     * Save user preference
+     * Find preferences by category
      */
-    UserPreference savePreference(String userId, UserPreference preference);
+    List<UserPreferenceEntity> findByCategory(String category);
     
     /**
-     * Get all preferences for user
+     * Find preference by category (single result)
      */
-    List<UserPreference> findByUserId(String userId);
+    Optional<UserPreferenceEntity> findFirstByCategory(String category);
     
     /**
-     * Get specific preference category
+     * Check if category exists
      */
-    Optional<UserPreference> findByUserIdAndCategory(String userId, String category);
+    boolean existsByCategory(String category);
     
     /**
-     * Update preference
+     * Count preferences by category
      */
-    UserPreference updatePreference(String userId, String category, UserPreference preference);
+    long countByCategory(String category);
     
     /**
-     * Update specific setting within a preference
+     * Delete by category
      */
-    void updateSetting(String userId, String category, String settingKey, Object settingValue);
+    void deleteByCategory(String category);
+    
+    // ===============================
+    // Category-Specific Convenience Methods
+    // ===============================
     
     /**
-     * Update multiple settings within a preference
+     * Find theme preference
      */
-    void updateSettings(String userId, String category, Map<String, Object> settings);
+    default Optional<UserPreferenceEntity> findThemePreference() {
+        return findFirstByCategory("theme");
+    }
     
     /**
-     * Delete preference category
+     * Find notification preference
      */
-    void deletePreference(String userId, String category);
+    default Optional<UserPreferenceEntity> findNotificationPreference() {
+        return findFirstByCategory("notifications");
+    }
     
     /**
-     * Check if preference exists
+     * Find trading preference
      */
-    boolean hasPreference(String userId, String category);
+    default Optional<UserPreferenceEntity> findTradingPreference() {
+        return findFirstByCategory("trading");
+    }
     
     /**
-     * Get theme preference
+     * Find display preference
      */
-    Optional<UserPreference> getThemePreference(String userId);
+    default Optional<UserPreferenceEntity> findDisplayPreference() {
+        return findFirstByCategory("display");
+    }
     
     /**
-     * Get notification preferences
+     * Find privacy preference
      */
-    Optional<UserPreference> getNotificationPreference(String userId);
-    
-    /**
-     * Get trading preferences
-     */
-    Optional<UserPreference> getTradingPreference(String userId);
-    
-    /**
-     * Set theme
-     */
-    void setTheme(String userId, String theme);
-    
-    /**
-     * Set notification setting
-     */
-    void setNotificationSetting(String userId, String notificationType, boolean enabled);
-    
-    /**
-     * Set trading mode
-     */
-    void setTradingMode(String userId, String tradingMode);
+    default Optional<UserPreferenceEntity> findPrivacyPreference() {
+        return findFirstByCategory("privacy");
+    }
 }

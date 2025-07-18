@@ -1,66 +1,79 @@
 package io.strategiz.data.device.model;
 
+import io.strategiz.data.base.entity.BaseEntity;
 import io.strategiz.data.device.constants.DeviceConstants;
+import com.google.cloud.firestore.annotation.DocumentId;
+import com.google.cloud.firestore.annotation.PropertyName;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.persistence.*;
 import java.time.Instant;
 
 /**
  * Entity representing a device identity
  */
-@Entity(name = "DeviceIdentity")
-@Table(name = DeviceConstants.Collections.DEVICE_IDENTITIES)
-public class DeviceIdentity {
+public class DeviceIdentity extends BaseEntity {
 
-    @Id
-    @Column(name = "id", nullable = false)
+    @DocumentId
     private String id;
 
-    @Column(name = "device_id")
+    @PropertyName("device_id")
+    @JsonProperty("device_id")
     private String deviceId;
 
-    @Column(name = "user_id")
+    @PropertyName("user_id")
+    @JsonProperty("user_id")
     private String userId;
 
-    @Column(name = "device_name")
+    @PropertyName("device_name")
+    @JsonProperty("device_name")
     private String deviceName;
 
-    @Column(name = "first_seen", columnDefinition = "TIMESTAMP")
+    @PropertyName("first_seen")
+    @JsonProperty("first_seen")
     private Instant firstSeen;
 
-    @Column(name = "last_seen", columnDefinition = "TIMESTAMP")
+    @PropertyName("last_seen")
+    @JsonProperty("last_seen")
     private Instant lastSeen;
 
-    // Platform properties as individual columns
-    @Column(name = "platform_brand")
+    // Platform properties as individual fields
+    @PropertyName("platform_brand")
+    @JsonProperty("platform_brand")
     private String platformBrand;
 
-    @Column(name = "platform_model")
+    @PropertyName("platform_model")
+    @JsonProperty("platform_model")
     private String platformModel;
 
-    @Column(name = "platform_os")
+    @PropertyName("platform_os")
+    @JsonProperty("platform_os")
     private String platformOs;
 
-    @Column(name = "platform_type")
+    @PropertyName("platform_type")
+    @JsonProperty("platform_type")
     private String platformType;
 
-    @Column(name = "user_agent")
+    @PropertyName("user_agent")
+    @JsonProperty("user_agent")
     private String userAgent;
 
-    @Column(name = "platform_version")
+    @PropertyName("platform_version")
+    @JsonProperty("platform_version")
     private String platformVersion;
 
-    @Column(name = "trusted")
+    @PropertyName("trusted")
+    @JsonProperty("trusted")
     private boolean trusted;
 
-    @Column(name = "public_key")
+    @PropertyName("public_key")
+    @JsonProperty("public_key")
     private String publicKey;
 
     /**
      * Default constructor
      */
     public DeviceIdentity() {
-        // Required by JPA
+        super();
     }
 
     /**
@@ -68,36 +81,31 @@ public class DeviceIdentity {
      *
      * @param deviceId Unique device identifier
      * @param deviceName User-friendly device name
+     * @param userId User ID who owns this device
      */
-    public DeviceIdentity(String deviceId, String deviceName) {
+    public DeviceIdentity(String deviceId, String deviceName, String userId) {
+        super(userId);
         this.deviceId = deviceId;
         this.deviceName = deviceName;
+        this.userId = userId;
         this.firstSeen = Instant.now();
         this.lastSeen = this.firstSeen;
         this.trusted = false;
     }
 
-    @PrePersist
-    protected void onCreate() {
-        if (firstSeen == null) {
-            firstSeen = Instant.now();
-        }
-        if (lastSeen == null) {
-            lastSeen = firstSeen;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        lastSeen = Instant.now();
+    @Override
+    public String getCollectionName() {
+        return DeviceConstants.Collections.DEVICE_IDENTITIES;
     }
 
     // Getters and setters
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }

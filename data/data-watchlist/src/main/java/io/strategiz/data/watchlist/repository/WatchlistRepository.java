@@ -1,77 +1,74 @@
 package io.strategiz.data.watchlist.repository;
 
-import io.strategiz.data.watchlist.entity.WatchlistItem;
+import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for users/{userId}/watchlist subcollection
+ * Spring Data repository for users/{userId}/watchlist subcollection
  */
-public interface WatchlistRepository {
+@Repository
+public interface WatchlistRepository extends CrudRepository<WatchlistItemEntity, String> {
+    
+    // ===============================
+    // Spring Data Query Methods
+    // ===============================
     
     /**
-     * Add item to user's watchlist
+     * Find items by symbol
      */
-    WatchlistItem addToWatchlist(String userId, WatchlistItem item);
+    List<WatchlistItemEntity> findBySymbol(String symbol);
     
     /**
-     * Get all watchlist items for user
+     * Find items by symbol (case insensitive)
      */
-    List<WatchlistItem> findByUserId(String userId);
+    List<WatchlistItemEntity> findBySymbolIgnoreCase(String symbol);
     
     /**
-     * Get watchlist items by type
+     * Find items by type
      */
-    List<WatchlistItem> findByUserIdAndType(String userId, String type);
+    List<WatchlistItemEntity> findByType(String type);
     
     /**
-     * Get specific watchlist item
+     * Find items by exchange
      */
-    Optional<WatchlistItem> findByUserIdAndItemId(String userId, String itemId);
+    List<WatchlistItemEntity> findByExchange(String exchange);
     
     /**
-     * Find item by symbol
+     * Find items by symbol and type
      */
-    Optional<WatchlistItem> findByUserIdAndSymbol(String userId, String symbol);
+    List<WatchlistItemEntity> findBySymbolAndType(String symbol, String type);
     
     /**
-     * Update watchlist item
+     * Check if symbol exists
      */
-    WatchlistItem updateItem(String userId, String itemId, WatchlistItem item);
+    boolean existsBySymbol(String symbol);
     
     /**
-     * Update item price data
+     * Check if symbol exists (case insensitive)
      */
-    void updatePriceData(String userId, String itemId, WatchlistItem priceData);
+    boolean existsBySymbolIgnoreCase(String symbol);
     
     /**
-     * Remove item from watchlist
+     * Count items by type
      */
-    void removeFromWatchlist(String userId, String itemId);
+    long countByType(String type);
     
     /**
-     * Check if user has symbol in watchlist
+     * Count items by exchange
      */
-    boolean hasSymbolInWatchlist(String userId, String symbol);
+    long countByExchange(String exchange);
     
     /**
-     * Count watchlist items
+     * Find items ordered by priority
      */
-    long countByUserId(String userId);
+    List<WatchlistItemEntity> findAllByOrderByPriorityAsc();
     
     /**
-     * Get items with alerts enabled
+     * Find items ordered by added date
      */
-    List<WatchlistItem> findByUserIdAndAlertsEnabled(String userId);
-    
-    /**
-     * Get items by exchange
-     */
-    List<WatchlistItem> findByUserIdAndExchange(String userId, String exchange);
-    
-    /**
-     * Reorder watchlist items
-     */
-    void reorderWatchlist(String userId, List<String> orderedItemIds);
+    List<WatchlistItemEntity> findAllByOrderByAddedAtDesc();
 }

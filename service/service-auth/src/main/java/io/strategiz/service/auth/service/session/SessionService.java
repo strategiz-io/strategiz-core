@@ -1,7 +1,7 @@
 package io.strategiz.service.auth.service.session;
 
-import io.strategiz.business.session.service.SessionBusiness;
-import io.strategiz.business.session.model.SessionValidationResult;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.data.session.entity.UserSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,24 +10,27 @@ import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 /**
  * Service implementation for session management operations
- * Orchestrates session-related business logic using SessionBusiness
+ * Adapts SessionAuthBusiness for HTTP session management
  */
 @Service("sessionService")
 public class SessionService {
 
     private static final Logger log = LoggerFactory.getLogger(SessionService.class);
+    private static final String AUTH_COOKIE_NAME = "strategiz-token";
 
-    private final SessionBusiness sessionBusiness;
+    private final SessionAuthBusiness sessionBusiness;
 
     @Autowired
-    public SessionService(SessionBusiness sessionBusiness) {
+    public SessionService(SessionAuthBusiness sessionBusiness) {
         this.sessionBusiness = sessionBusiness;
-        log.info("SessionService initialized with business-session architecture");
+        log.info("SessionService initialized with SessionAuthBusiness");
     }
 
     /**
@@ -37,7 +40,24 @@ public class SessionService {
                                    HttpServletRequest request, 
                                    String acr, String aal, List<String> amr) {
         log.info("Creating session for user: {} with ACR: {}, AAL: {}", userId, acr, aal);
-        return sessionBusiness.createSession(userId, userEmail, request, acr, aal, amr);
+        
+        // Get device and IP info from request
+        String deviceId = request.getHeader("X-Device-Id");
+        String ipAddress = request.getRemoteAddr();
+        
+        // Create token pair using SessionAuthBusiness
+        SessionAuthBusiness.TokenPair tokenPair = sessionBusiness.createAuthenticationTokenPair(
+            userId, amr, acr, deviceId, ipAddress
+        );
+        
+        // Create a UserSession object for compatibility
+        UserSession session = new UserSession();
+        session.setUserId(userId);
+        session.setDeviceId(deviceId);
+        session.setIpAddress(ipAddress);
+        // Note: We don't have access to session ID in the token-based approach
+        
+        return session;
     }
 
     /**
@@ -45,15 +65,33 @@ public class SessionService {
      */
     public Optional<SessionValidationResult> validateSession(HttpServletRequest request) {
         log.debug("Validating session from HTTP request");
-        return sessionBusiness.validateSession(request);
+        
+        // Extract token from request
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            return Optional.empty();
+        }
+        
+        // Validate token
+        Optional<String> userIdOpt = sessionBusiness.validateSession(token);
+        if (userIdOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        // Create validation result
+        SessionValidationResult result = new SessionValidationResult();
+        result.setValid(true);
+        result.setUserId(userIdOpt.get());
+        
+        return Optional.of(result);
     }
 
     /**
-     * Validate session by session ID
+     * Validate session by session ID - not supported in token-based approach
      */
     public Optional<SessionValidationResult> validateSessionById(String sessionId) {
-        log.debug("Validating session by ID: {}", sessionId);
-        return sessionBusiness.validateSessionById(sessionId);
+        log.debug("Validating session by ID: {} - not supported in token-based approach", sessionId);
+        return Optional.empty();
     }
 
     /**
@@ -61,7 +99,16 @@ public class SessionService {
      */
     public boolean refreshSession(HttpServletRequest request) {
         log.debug("Refreshing session from HTTP request");
-        return sessionBusiness.refreshSession(request);
+        
+        // Extract and validate token
+        String token = extractTokenFromRequest(request);
+        if (token == null) {
+            return false;
+        }
+        
+        // Token-based sessions don't support refresh in the current implementation
+        // Would need to issue a new token
+        return sessionBusiness.validateSession(token).isPresent();
     }
 
     /**
@@ -69,39 +116,46 @@ public class SessionService {
      */
     public boolean terminateSession(HttpServletRequest request, HttpServletResponse response) {
         log.info("Terminating current session");
-        return sessionBusiness.terminateSession(request, response);
+        
+        // For token-based sessions, we just clear the cookie
+        Cookie cookie = new Cookie(AUTH_COOKIE_NAME, "");
+        cookie.setMaxAge(0);
+        cookie.setPath("/");
+        response.addCookie(cookie);
+        
+        return true;
     }
 
     /**
-     * Terminate a specific session by ID
+     * Terminate a specific session by ID - not supported in token-based approach
      */
     public boolean terminateSessionById(String sessionId, String reason) {
-        log.info("Terminating session {} for reason: {}", sessionId, reason);
-        return sessionBusiness.terminateSessionById(sessionId, reason);
+        log.info("Terminating session {} for reason: {} - not supported in token-based approach", sessionId, reason);
+        return false;
     }
 
     /**
-     * Terminate all sessions for a user
+     * Terminate all sessions for a user - not supported in token-based approach
      */
     public int terminateAllUserSessions(String userId, String reason) {
-        log.info("Terminating all sessions for user: {} for reason: {}", userId, reason);
-        return sessionBusiness.terminateAllUserSessions(userId, reason);
+        log.info("Terminating all sessions for user: {} for reason: {} - not supported in token-based approach", userId, reason);
+        return 0;
     }
 
     /**
-     * Get all active sessions for a user
+     * Get all active sessions for a user - returns empty list for token-based approach
      */
     public List<UserSession> getUserActiveSessions(String userId) {
-        log.debug("Getting active sessions for user: {}", userId);
-        return sessionBusiness.getUserActiveSessions(userId);
+        log.debug("Getting active sessions for user: {} - not supported in token-based approach", userId);
+        return new ArrayList<>();
     }
 
     /**
      * Count active sessions for a user
      */
     public long countUserActiveSessions(String userId) {
-        log.debug("Counting active sessions for user: {}", userId);
-        return sessionBusiness.countUserActiveSessions(userId);
+        log.debug("Counting active sessions for user: {} - not supported in token-based approach", userId);
+        return 0;
     }
 
     /**
@@ -109,22 +163,45 @@ public class SessionService {
      */
     public int cleanupExpiredSessions() {
         log.info("Starting cleanup of expired sessions");
-        return sessionBusiness.cleanupExpiredSessions();
+        return sessionBusiness.cleanupExpiredTokens();
     }
 
     /**
      * Check for suspicious activity for a user
      */
     public boolean detectSuspiciousActivity(String userId) {
-        log.debug("Checking for suspicious activity for user: {}", userId);
-        return sessionBusiness.detectSuspiciousActivity(userId);
+        log.debug("Checking for suspicious activity for user: {} - not implemented", userId);
+        return false;
     }
 
     /**
      * Validate session and enforce concurrent session limits
      */
     public boolean enforceConcurrentSessionLimit(String userId, int maxConcurrentSessions) {
-        log.debug("Enforcing concurrent session limit for user: {} (max: {})", userId, maxConcurrentSessions);
-        return sessionBusiness.enforceConcurrentSessionLimit(userId, maxConcurrentSessions);
+        log.debug("Enforcing concurrent session limit for user: {} (max: {}) - not supported in token-based approach", userId, maxConcurrentSessions);
+        return true;
+    }
+    
+    /**
+     * Extract token from request (cookie or header)
+     */
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        // Check Authorization header first
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        
+        // Check cookies
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (AUTH_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        
+        return null;
     }
 }

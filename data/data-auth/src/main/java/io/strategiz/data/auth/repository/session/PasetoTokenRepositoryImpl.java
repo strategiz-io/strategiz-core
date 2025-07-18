@@ -1,239 +1,212 @@
 package io.strategiz.data.auth.repository.session;
 
-import com.google.cloud.firestore.CollectionReference;
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.QuerySnapshot;
-import io.strategiz.data.auth.model.session.PasetoToken;
-import io.strategiz.data.auth.repository.session.PasetoTokenRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.strategiz.data.auth.entity.session.PasetoTokenEntity;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-// No need to import Instant as we're using primitive longs for timestamps
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
- * Firestore implementation of PasetoTokenRepository.
+ * In-memory implementation of PasetoTokenRepository for development
+ * TODO: Replace with Firestore implementation
  */
 @Repository
 public class PasetoTokenRepositoryImpl implements PasetoTokenRepository {
-    private static final String TOKENS_COLLECTION = "paseto_tokens";
     
-    private final CollectionReference tokensCollection;
-    
-    @Autowired
-    public PasetoTokenRepositoryImpl(Firestore firestore) {
-        this.tokensCollection = firestore.collection(TOKENS_COLLECTION);
-    }
+    private final ConcurrentHashMap<String, PasetoTokenEntity> storage = new ConcurrentHashMap<>();
     
     @Override
-    public PasetoToken save(PasetoToken token) {
-        try {
-            // If no ID is provided, generate one
-            if (token.getId() == null || token.getId().isEmpty()) {
-                token.setId(UUID.randomUUID().toString());
-            }
-            
-            // Convert to map for Firestore
-            Map<String, Object> tokenMap = convertToMap(token);
-            
-            // Save to Firestore
-            tokensCollection.document(token.getId()).set(tokenMap).get();
-            
-            return token;
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to save token", e);
+    public <S extends PasetoTokenEntity> S save(S entity) {
+        if (entity.getTokenId() == null) {
+            entity.setTokenId("token_" + System.currentTimeMillis());
         }
+        storage.put(entity.getTokenId(), entity);
+        return entity;
     }
     
     @Override
-    public void delete(PasetoToken token) {
-        try {
-            tokensCollection.document(token.getId()).delete().get();
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to delete token", e);
+    public <S extends PasetoTokenEntity> Iterable<S> saveAll(Iterable<S> entities) {
+        List<S> saved = new ArrayList<>();
+        for (S entity : entities) {
+            saved.add(save(entity));
         }
+        return saved;
     }
     
     @Override
-    public Optional<PasetoToken> findByTokenValue(String tokenValue) {
-        try {
-            QuerySnapshot querySnapshot = tokensCollection
-                .whereEqualTo("tokenValue", tokenValue)
-                .get()
-                .get();
-            
-            if (querySnapshot.isEmpty()) {
-                return Optional.empty();
-            }
-            
-            DocumentSnapshot document = querySnapshot.getDocuments().get(0);
-            PasetoToken token = convertToToken(document);
-            return Optional.of(token);
-            
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find token by value", e);
+    public Optional<PasetoTokenEntity> findById(String id) {
+        return Optional.ofNullable(storage.get(id));
+    }
+    
+    @Override
+    public boolean existsById(String id) {
+        return storage.containsKey(id);
+    }
+    
+    @Override
+    public Iterable<PasetoTokenEntity> findAll() {
+        return new ArrayList<>(storage.values());
+    }
+    
+    @Override
+    public Iterable<PasetoTokenEntity> findAllById(Iterable<String> ids) {
+        List<PasetoTokenEntity> result = new ArrayList<>();
+        for (String id : ids) {
+            storage.computeIfPresent(id, (k, v) -> {
+                result.add(v);
+                return v;
+            });
         }
+        return result;
     }
     
     @Override
-    public List<PasetoToken> findAllByUserId(String userId) {
-        try {
-            QuerySnapshot querySnapshot = tokensCollection
-                .whereEqualTo("userId", userId)
-                .get()
-                .get();
-            
-            List<PasetoToken> tokens = new ArrayList<>();
-            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                tokens.add(convertToToken(document));
-            }
-            
-            return tokens;
-            
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find tokens by user ID", e);
+    public long count() {
+        return storage.size();
+    }
+    
+    @Override
+    public void deleteById(String id) {
+        storage.remove(id);
+    }
+    
+    @Override
+    public void delete(PasetoTokenEntity entity) {
+        if (entity != null && entity.getTokenId() != null) {
+            storage.remove(entity.getTokenId());
         }
     }
     
     @Override
-    public List<PasetoToken> findActiveTokensByUserId(String userId) {
-        try {
-            QuerySnapshot querySnapshot = tokensCollection
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("revoked", false)
-                .get()
-                .get();
-            
-            List<PasetoToken> tokens = new ArrayList<>();
-            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                PasetoToken token = convertToToken(document);
-                if (token.getExpiresAt() > System.currentTimeMillis() / 1000) {
-                    tokens.add(token);
-                }
-            }
-            
-            return tokens;
-            
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find active tokens by user ID", e);
+    public void deleteAllById(Iterable<? extends String> ids) {
+        for (String id : ids) {
+            storage.remove(id);
         }
     }
     
     @Override
-    public int deleteExpiredTokens(long timestamp) {
-        try {
-            QuerySnapshot querySnapshot = tokensCollection
-                .whereLessThan("expiresAt", timestamp)
-                .get()
-                .get();
-            
-            int count = querySnapshot.getDocuments().size();
-            
-            if (count == 0) {
-                return 0;
-            }
-            
-            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                document.getReference().delete().get();
-            }
-            
-            return count;
-            
-        } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to delete expired tokens", e);
+    public void deleteAll(Iterable<? extends PasetoTokenEntity> entities) {
+        for (PasetoTokenEntity entity : entities) {
+            delete(entity);
         }
     }
     
-    private Map<String, Object> convertToMap(PasetoToken token) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", token.getId());
-        map.put("userId", token.getUserId());
-        map.put("tokenValue", token.getTokenValue());
-        map.put("tokenType", token.getTokenType());
-        // Issue #5a143062: PasetoToken no longer has a createdAt field
-        map.put("issuedAt", token.getIssuedAt());
-        map.put("expiresAt", token.getExpiresAt());
-        map.put("revoked", token.isRevoked());
-        
-        // Optional fields
-        if (token.getDeviceId() != null) {
-            map.put("deviceId", token.getDeviceId());
-        }
-        if (token.getIssuedFrom() != null) {
-            map.put("issuedFrom", token.getIssuedFrom());
-        }
-        if (token.getRevokedAt() > 0) {
-            map.put("revokedAt", token.getRevokedAt());
-        }
-        if (token.getRevocationReason() != null) {
-            map.put("revocationReason", token.getRevocationReason());
-        }
-        if (token.getClaims() != null && !token.getClaims().isEmpty()) {
-            map.put("claims", token.getClaims());
-        }
-        return map;
+    @Override
+    public void deleteAll() {
+        storage.clear();
     }
     
-    private PasetoToken convertToToken(DocumentSnapshot document) {
-        Map<String, Object> data = document.getData();
-        if (data == null) {
-            return null;
-        }
-        
-        PasetoToken token = new PasetoToken();
-        token.setId(document.getId());
-        token.setUserId((String) data.get("userId"));
-        token.setTokenValue((String) data.get("tokenValue"));
-        token.setTokenType((String) data.get("tokenType"));
-        
-        // PasetoToken no longer has createdAt field
-        
-        if (data.get("issuedAt") != null) {
-            token.setIssuedAt((Long) data.get("issuedAt"));
-        }
-        
-        if (data.get("expiresAt") != null) {
-            token.setExpiresAt((Long) data.get("expiresAt"));
-        }
-        
-        token.setRevoked(Boolean.TRUE.equals(data.get("revoked")));
-        
-        // Optional fields
-        if (data.get("deviceId") != null) {
-            token.setDeviceId((String) data.get("deviceId"));
-        }
-        
-        if (data.get("issuedFrom") != null) {
-            token.setIssuedFrom((String) data.get("issuedFrom"));
-        }
-        
-        if (data.get("revokedAt") != null) {
-            token.setRevokedAt((Long) data.get("revokedAt"));
-        }
-        
-        if (data.get("revocationReason") != null) {
-            token.setRevocationReason((String) data.get("revocationReason"));
-        }
-        
-        if (data.get("claims") != null) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> claims = (Map<String, Object>) data.get("claims");
-            token.setClaims(claims);
-        }
-        
-        return token;
+    // Custom query methods
+    
+    @Override
+    public Optional<PasetoTokenEntity> findByTokenValue(String tokenValue) {
+        return storage.values().stream()
+                .filter(token -> tokenValue.equals(token.getTokenValue()))
+                .findFirst();
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByUserId(String userId) {
+        return storage.values().stream()
+                .filter(token -> userId.equals(token.getUserId()))
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByUserIdAndRevokedFalse(String userId) {
+        return storage.values().stream()
+                .filter(token -> userId.equals(token.getUserId()) && !token.isRevoked())
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByUserIdAndTokenTypeAndRevokedFalse(String userId, String tokenType) {
+        return storage.values().stream()
+                .filter(token -> userId.equals(token.getUserId()) 
+                        && tokenType.equals(token.getTokenType()) 
+                        && !token.isRevoked())
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByDeviceId(String deviceId) {
+        return storage.values().stream()
+                .filter(token -> deviceId.equals(token.getDeviceId()))
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByRevokedTrue() {
+        return storage.values().stream()
+                .filter(PasetoTokenEntity::isRevoked)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByExpiresAtBefore(Instant expiresBefore) {
+        return storage.values().stream()
+                .filter(token -> token.getExpiresAt() != null && token.getExpiresAt().isBefore(expiresBefore))
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<PasetoTokenEntity> findByExpiresAtBeforeOrRevokedTrue(Instant expiresBefore) {
+        return storage.values().stream()
+                .filter(token -> token.isRevoked() || 
+                        (token.getExpiresAt() != null && token.getExpiresAt().isBefore(expiresBefore)))
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public boolean existsByTokenValue(String tokenValue) {
+        return storage.values().stream()
+                .anyMatch(token -> tokenValue.equals(token.getTokenValue()));
+    }
+    
+    @Override
+    public long countByUserIdAndRevokedFalse(String userId) {
+        return storage.values().stream()
+                .filter(token -> userId.equals(token.getUserId()) && !token.isRevoked())
+                .count();
+    }
+    
+    @Override
+    public long countByUserIdAndTokenTypeAndRevokedFalse(String userId, String tokenType) {
+        return storage.values().stream()
+                .filter(token -> userId.equals(token.getUserId()) 
+                        && tokenType.equals(token.getTokenType()) 
+                        && !token.isRevoked())
+                .count();
+    }
+    
+    @Override
+    public void deleteByExpiresAtBefore(Instant expiresBefore) {
+        List<String> toDelete = storage.values().stream()
+                .filter(token -> token.getExpiresAt() != null && token.getExpiresAt().isBefore(expiresBefore))
+                .map(PasetoTokenEntity::getTokenId)
+                .collect(Collectors.toList());
+        toDelete.forEach(storage::remove);
+    }
+    
+    @Override
+    public void deleteByRevokedTrue() {
+        List<String> toDelete = storage.values().stream()
+                .filter(PasetoTokenEntity::isRevoked)
+                .map(PasetoTokenEntity::getTokenId)
+                .collect(Collectors.toList());
+        toDelete.forEach(storage::remove);
+    }
+    
+    @Override
+    public void deleteByUserId(String userId) {
+        List<String> toDelete = storage.values().stream()
+                .filter(token -> userId.equals(token.getUserId()))
+                .map(PasetoTokenEntity::getTokenId)
+                .collect(Collectors.toList());
+        toDelete.forEach(storage::remove);
     }
 }

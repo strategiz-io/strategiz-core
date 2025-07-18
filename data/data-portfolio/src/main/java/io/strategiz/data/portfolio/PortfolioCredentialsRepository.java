@@ -2,7 +2,7 @@ package io.strategiz.data.portfolio;
 
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
-import io.strategiz.data.base.document.DocumentStorage;
+import com.google.cloud.firestore.Firestore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +19,11 @@ public class PortfolioCredentialsRepository {
     
     private static final Logger log = LoggerFactory.getLogger(PortfolioCredentialsRepository.class);
     
-    private final DocumentStorage documentStorage;
+    private final Firestore firestore;
     
     @Autowired
-    public PortfolioCredentialsRepository(DocumentStorage documentStorage) {
-        this.documentStorage = documentStorage;
+    public PortfolioCredentialsRepository(Firestore firestore) {
+        this.firestore = firestore;
     }
     
     /**
@@ -37,7 +37,7 @@ public class PortfolioCredentialsRepository {
         try {
             log.info("Getting {} credentials for user: {}", provider, userId);
             
-            QuerySnapshot querySnapshot = documentStorage.getDocumentDb()
+            QuerySnapshot querySnapshot = firestore
                 .collection("users")
                 .document(userId)
                 .collection("api_credentials")

@@ -1,10 +1,16 @@
 package io.strategiz.service.auth.controller.totp;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.totp.TotpAuthenticationService;
 import io.strategiz.service.auth.model.totp.TotpAuthenticationRequest;
+import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.service.base.controller.BaseController;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,65 +18,87 @@ import jakarta.validation.Valid;
 import java.util.Map;
 
 /**
- * Controller for TOTP authentication operations.
- * Handles time-based one-time password authentication.
+ * Controller for TOTP authentication using resource-based REST endpoints
+ * 
+ * This controller handles TOTP (Time-based One-Time Password) authentication operations following
+ * REST best practices with plural resource naming and proper HTTP verbs.
+ * 
+ * Endpoints:
+ * - POST /auth/totp/authentications - Authenticate with TOTP code
+ * - POST /auth/totp/authentications/verify - Verify TOTP code (no session creation)
+ * 
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/auth/totp")
-public class TotpAuthenticationController {
+public class TotpAuthenticationController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(TotpAuthenticationController.class);
     
-    private final TotpAuthenticationService totpAuthService;
-    
-    public TotpAuthenticationController(TotpAuthenticationService totpAuthService) {
-        this.totpAuthService = totpAuthService;
-    }
+    @Autowired
+    private TotpAuthenticationService totpAuthService;
     
     /**
-     * Authenticate using TOTP code
+     * Authenticate using TOTP code - Create full authentication session
+     * 
+     * POST /auth/totp/authentications
      * 
      * @param request TOTP authentication request containing user ID and code
-     * @return Clean authentication response - no wrapper, let GlobalExceptionHandler handle errors
+     * @param servletRequest HTTP request to extract client IP
+     * @return Clean authentication response with access tokens
      */
-    @PostMapping("/authenticate")
-    public ResponseEntity<Map<String, Object>> authenticate(@Valid @RequestBody TotpAuthenticationRequest request) {
-        log.info("Processing TOTP authentication for user: {}", request.userId());
+    @PostMapping("/authentications")
+    public ResponseEntity<ApiTokenResponse> authenticate(
+            @Valid @RequestBody TotpAuthenticationRequest request,
+            HttpServletRequest servletRequest) {
         
-        // Authenticate with TOTP - let exceptions bubble up
-        totpAuthService.authenticateWithTotp(request.userId(), request.code());
+        logRequest("totpAuthentication", request.userId());
         
-        // If we reach here, authentication was successful
-        Map<String, Object> response = Map.of(
-            "success", true,
-            "message", "TOTP authentication successful",
-            "userId", request.userId()
+        // Extract client IP address
+        String ipAddress = servletRequest.getRemoteAddr();
+        
+        // Authenticate with TOTP and create session - let exceptions bubble up
+        ApiTokenResponse tokens = totpAuthService.authenticateWithTotp(
+            request.userId(), 
+            request.code(), 
+            ipAddress,
+            request.deviceId()
         );
         
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
+        if (tokens == null || tokens.accessToken() == null) {
+            throw new StrategizException(AuthErrors.TOTP_VERIFICATION_FAILED, request.userId());
+        }
+        
+        logRequestSuccess("totpAuthentication", request.userId(), tokens);
+        return createCleanResponse(tokens);
     }
     
     /**
      * Verify TOTP code without creating session (for MFA scenarios)
      * 
+     * POST /auth/totp/authentications/verify
+     * 
      * @param request TOTP verification request
      * @return Clean verification result - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/verify")
+    @PostMapping("/authentications/verify")
     public ResponseEntity<Map<String, Object>> verify(@Valid @RequestBody TotpAuthenticationRequest request) {
-        log.info("Verifying TOTP code for user: {}", request.userId());
+        logRequest("verifyTotpCode", request.userId());
         
         // Verify TOTP code - let exceptions bubble up
         boolean verified = totpAuthService.verifyCode(request.userId(), request.code());
         
+        if (!verified) {
+            throw new StrategizException(AuthErrors.TOTP_VERIFICATION_FAILED, request.userId());
+        }
+        
         Map<String, Object> result = Map.of(
-            "verified", verified,
-            "userId", request.userId()
+            "verified", true,
+            "userId", request.userId(),
+            "message", "TOTP code verified successfully"
         );
         
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(result);
+        logRequestSuccess("verifyTotpCode", request.userId(), result);
+        return createCleanResponse(result);
     }
 }

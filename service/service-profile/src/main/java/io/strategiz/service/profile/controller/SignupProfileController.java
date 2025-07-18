@@ -22,7 +22,7 @@ import jakarta.validation.Valid;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/api/signup/profile")
+@RequestMapping("/v1/signup/profile")
 public class SignupProfileController {
 
     private static final Logger log = LoggerFactory.getLogger(SignupProfileController.class);

@@ -74,8 +74,20 @@ public class AlphaVantageClient {
                     new ParameterizedTypeReference<Map<String, Object>>() {}
             );
             
-            if (response.getBody() == null || !response.getBody().containsKey("Global Quote")) {
-                log.error("Invalid response format from AlphaVantage API for symbol: {}", symbol);
+            if (response.getBody() == null) {
+                log.error("Empty response from AlphaVantage API for symbol: {}", symbol);
+                throw new RuntimeException("Empty response from AlphaVantage API");
+            }
+            
+            // Check for demo API key response
+            if (response.getBody().containsKey("Information")) {
+                String info = (String) response.getBody().get("Information");
+                log.error("AlphaVantage API returned information message for symbol {}: {}", symbol, info);
+                throw new RuntimeException("AlphaVantage API key issue: " + info);
+            }
+            
+            if (!response.getBody().containsKey("Global Quote")) {
+                log.error("Invalid response format from AlphaVantage API for symbol: {}. Response: {}", symbol, response.getBody());
                 throw new RuntimeException("Invalid response format from AlphaVantage API");
             }
             

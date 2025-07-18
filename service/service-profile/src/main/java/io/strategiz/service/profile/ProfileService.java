@@ -1,325 +1,325 @@
 package io.strategiz.service.profile;
 
-import io.strategiz.data.user.model.User;
-import io.strategiz.data.user.model.UserProfile;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
+import io.strategiz.service.profile.exception.ProfileErrors;
+import io.strategiz.service.profile.model.CreateProfileRequest;
+import io.strategiz.service.profile.model.ProfileResponse;
+import io.strategiz.service.profile.model.ReadProfileResponse;
+import io.strategiz.service.profile.model.UpdateProfileRequest;
+import io.strategiz.service.profile.model.UpdateProfileResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
 import java.util.Optional;
-import java.util.UUID;
-
-import io.strategiz.service.profile.model.UpdateProfileRequest;
-import io.strategiz.service.profile.model.ReadProfileResponse;
-import io.strategiz.service.profile.model.CreateProfileRequest;
-import io.strategiz.service.profile.model.CreateProfileResponse;
 
 /**
- * Service for managing user profile information
+ * Service for managing user profiles
  */
 @Service
-public class ProfileService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
-    
+@Transactional
+public class ProfileService extends BaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
+
     private final UserRepository userRepository;
-    
-    @Autowired
+
     public ProfileService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
-    
+
     /**
-     * Create a new user profile
-     * 
-     * @param name User's display name
-     * @param email User's email
-     * @return The created user with profile information
-     */
-    public User createProfile(String name, String email) {
-        logger.info("Creating profile for user with email: {}", email);
-        
-        // Check if user with this email already exists
-        Optional<User> existingUser = userRepository.getUserByEmail(email);
-        if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("User with email " + email + " already exists");
-        }
-        
-        String userId = UUID.randomUUID().toString();
-        User user = new User(userId, name, email, "system");
-        return userRepository.createUser(user);
-    }
-    
-    /**
-     * Get a user's profile by ID
-     * 
-     * @param userId User ID
-     * @return Optional containing the user if found
-     */
-    public Optional<User> getProfileById(String userId) {
-        logger.debug("Getting profile for user ID: {}", userId);
-        return userRepository.getUserById(userId);
-    }
-    
-    /**
-     * Find a user's profile by email address
-     * 
-     * @param email User email
-     * @return Optional containing the user if found
-     */
-    public Optional<User> getProfileByEmail(String email) {
-        logger.debug("Getting profile by email: {}", email);
-        return userRepository.getUserByEmail(email);
-    }
-    
-    /**
-     * Update a user's profile information
-     * 
-     * @param userId User ID
-     * @param name Updated name (null to keep current)
-     * @param email Updated email (null to keep current)
-     * @param photoURL Updated photo URL (null to keep current)
-     * @param subscriptionTier Updated subscription tier (null to keep current)
-     * @param tradingMode Updated trading mode (null to keep current)
-     * @return Updated user
-     */
-    public User updateProfile(String userId, String name, String email, 
-                             String photoURL, String subscriptionTier, String tradingMode) {
-        logger.info("Updating profile for user: {}", userId);
-        
-        Optional<User> existingUserOpt = userRepository.getUserById(userId);
-        if (existingUserOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
-        }
-        
-        User user = existingUserOpt.get();
-        UserProfile profile = user.getProfile();
-        
-        // Update only the fields that are not null
-        if (name != null) {
-            profile.setName(name);
-        }
-        
-        if (email != null) {
-            // If email is changing, check if the new email is already in use
-            if (!email.equals(profile.getEmail())) {
-                Optional<User> userWithEmail = userRepository.getUserByEmail(email);
-                if (userWithEmail.isPresent() && !userWithEmail.get().getUserId().equals(userId)) {
-                    throw new IllegalArgumentException("Email " + email + " is already in use");
-                }
-                profile.setEmail(email);
-                profile.setVerifiedEmail(false); // Reset verification when email changes
-            }
-        }
-        
-        if (photoURL != null) {
-            profile.setPhotoURL(photoURL);
-        }
-        
-        if (subscriptionTier != null) {
-            profile.setSubscriptionTier(subscriptionTier);
-        }
-        
-        if (tradingMode != null) {
-            profile.setTradingMode(tradingMode);
-        }
-        
-        user.setProfile(profile);
-        user.setModifiedAt(new Date());
-        user.setModifiedBy(userId);
-        user.setVersion(user.getVersion() + 1);
-        
-        return userRepository.updateUser(user);
-    }
-    
-    /**
-     * Verify a user's email address
-     * 
-     * @param userId User ID
-     * @return Updated user
-     */
-    public User verifyEmail(String userId) {
-        logger.info("Verifying email for user: {}", userId);
-        
-        Optional<User> existingUser = userRepository.getUserById(userId);
-        if (existingUser.isEmpty()) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
-        }
-        
-        User user = existingUser.get();
-        UserProfile profile = user.getProfile();
-        profile.setVerifiedEmail(true);
-        user.setProfile(profile);
-        user.setModifiedAt(new Date());
-        user.setModifiedBy(userId);
-        user.setVersion(user.getVersion() + 1);
-        
-        return userRepository.updateUser(user);
-    }
-    
-    /**
-     * Deactivate a user's profile
-     * 
-     * @param userId User ID
-     * @return Updated user
-     */
-    public User deactivateProfile(String userId) {
-        logger.info("Deactivating profile for user: {}", userId);
-        
-        Optional<User> existingUser = userRepository.getUserById(userId);
-        if (existingUser.isEmpty()) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
-        }
-        
-        User user = existingUser.get();
-        UserProfile profile = user.getProfile();
-        profile.setIsActive(false);
-        user.setProfile(profile);
-        user.setIsActive(false); // Also deactivate the user
-        user.setModifiedAt(new Date());
-        user.setModifiedBy("system");
-        user.setVersion(user.getVersion() + 1);
-        
-        return userRepository.updateUser(user);
-    }
-    
-    /**
-     * Reactivate a user's profile
-     * 
-     * @param userId User ID
-     * @return Updated user
-     */
-    public User reactivateProfile(String userId) {
-        logger.info("Reactivating profile for user: {}", userId);
-        
-        Optional<User> existingUser = userRepository.getUserById(userId);
-        if (existingUser.isEmpty()) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
-        }
-        
-        User user = existingUser.get();
-        UserProfile profile = user.getProfile();
-        profile.setIsActive(true);
-        user.setProfile(profile);
-        user.setIsActive(true); // Also reactivate the user
-        user.setModifiedAt(new Date());
-        user.setModifiedBy("system");
-        user.setVersion(user.getVersion() + 1);
-        
-        return userRepository.updateUser(user);
-    }
-    
-    /**
-     * Create profile from UpdateProfileRequest (adapter for controller)
+     * Creates a new user profile (used by regular ProfileController)
      */
     public ReadProfileResponse createProfile(UpdateProfileRequest request) {
-        User user = createProfile(request.getName(), request.getEmail());
-        return mapToReadProfileResponse(user);
-    }
-    
-    /**
-     * Get profile and return as ReadProfileResponse (adapter for controller)
-     */
-    public ReadProfileResponse getProfile(String userId) {
-        Optional<User> userOpt = getProfileById(userId);
-        if (userOpt.isEmpty()) {
-            return null;
-        }
-        return mapToReadProfileResponse(userOpt.get());
-    }
-    
-    /**
-     * Update profile from UpdateProfileRequest (adapter for controller)
-     */
-    public ReadProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
-        User user = updateProfile(userId, request.getName(), request.getEmail(), 
-                                request.getPhotoURL(), request.getSubscriptionTier(), 
-                                request.getTradingMode());
-        return mapToReadProfileResponse(user);
-    }
-    
-    /**
-     * Verify email with verification code (adapter for controller)
-     */
-    public ReadProfileResponse verifyEmail(String userId, String verificationCode) {
-        // TODO: Implement verification code validation
-        // For now, just verify the email
-        User user = verifyEmail(userId);
-        return mapToReadProfileResponse(user);
-    }
-    
-    /**
-     * Create signup profile (for signup flow)
-     * 
-     * Handles existing users more gracefully - if user exists but hasn't completed signup,
-     * returns their profile for continuation. If user exists and is fully registered,
-     * throws appropriate error.
-     */
-    public CreateProfileResponse createSignupProfile(CreateProfileRequest request) {
-        logger.info("Creating signup profile for email: {}", request.getEmail());
+        log.debug("Creating profile for user with email: {}", request.getEmail());
         
         // Check if user already exists
-        Optional<User> existingUser = userRepository.getUserByEmail(request.getEmail());
-        
+        Optional<UserEntity> existingUser = userRepository.findByEmail(request.getEmail());
         if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            
-            // TODO: Check if user has completed signup (has authentication methods)
-            // For now, we'll assume if they exist, they can continue the signup flow
-            logger.info("User already exists, returning existing profile for signup continuation: {}", user.getUserId());
-            
-            // Update the profile with new information if provided
-            UserProfile profile = user.getProfile();
-            if (request.getName() != null && !request.getName().equals(profile.getName())) {
-                profile.setName(request.getName());
-                user.setProfile(profile);
-                user.setModifiedAt(new Date());
-                user.setModifiedBy("signup-profile-service");
-                user = userRepository.updateUser(user);
-            }
-            
-            CreateProfileResponse response = new CreateProfileResponse();
-            response.setUserId(user.getUserId());
-            response.setName(user.getProfile().getName());
-            response.setEmail(user.getProfile().getEmail());
-            response.setIdentityToken("identity-token-" + user.getUserId()); // TODO: Generate real token
-            
-            return response;
+            throw new StrategizException(ProfileErrors.PROFILE_ALREADY_EXISTS, "User already exists with email: " + request.getEmail());
         }
         
-        // User doesn't exist, create new profile
-        User user = createProfile(request.getName(), request.getEmail());
+        // Create new user with profile
+        UserEntity user = new UserEntity();
         
-        CreateProfileResponse response = new CreateProfileResponse();
-        response.setUserId(user.getUserId());
-        response.setName(user.getProfile().getName());
-        response.setEmail(user.getProfile().getEmail());
-        response.setIdentityToken("identity-token-" + user.getUserId()); // TODO: Generate real token
+        UserProfileEntity profile = new UserProfileEntity();
+        profile.setName(request.getName());
+        profile.setEmail(request.getEmail());
+        profile.setPhotoURL(request.getPhotoURL());
+        profile.setSubscriptionTier(request.getSubscriptionTier() != null ? request.getSubscriptionTier() : "free");
+        profile.setTradingMode(request.getTradingMode() != null ? request.getTradingMode() : "demo");
+        profile.setVerifiedEmail(false);
+        profile.setIsActive(true);
         
-        return response;
+        user.setProfile(profile);
+        
+        // Save the user (which will cascade to profile)
+        UserEntity savedUser = userRepository.save(user);
+        
+        log.info("Profile created successfully for user: {}", savedUser.getId());
+        return ReadProfileResponse.fromEntity(savedUser);
     }
-    
+
     /**
-     * Map User to ReadProfileResponse
+     * Gets a user profile by user ID
      */
-    private ReadProfileResponse mapToReadProfileResponse(User user) {
-        ReadProfileResponse response = new ReadProfileResponse();
-        UserProfile profile = user.getProfile();
+    public ReadProfileResponse getProfile(String userId) {
+        log.debug("Getting profile for user: {}", userId);
         
-        response.setUserId(user.getUserId());
-        response.setName(profile.getName());
-        response.setEmail(profile.getEmail());
-        response.setPhotoURL(profile.getPhotoURL());
-        response.setSubscriptionTier(profile.getSubscriptionTier());
-        response.setTradingMode(profile.getTradingMode());
-        response.setVerifiedEmail(profile.getVerifiedEmail() != null ? profile.getVerifiedEmail() : false);
-        response.setActive(profile.getIsActive() != null ? profile.getIsActive() : true);
-        response.setCreatedAt(user.getCreatedAt() != null ? user.getCreatedAt().getTime() : 0L);
-        response.setModifiedAt(user.getModifiedAt() != null ? user.getModifiedAt().getTime() : 0L);
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
         
-        return response;
+        UserEntity user = userOpt.get();
+        if (user.getProfile() == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+        }
+        
+        return ReadProfileResponse.fromEntity(user);
+    }
+
+    /**
+     * Gets a user profile by email
+     */
+    public Optional<ProfileResponse> getProfileByEmail(String email) {
+        log.debug("Getting profile by email: {}", email);
+        
+        Optional<UserEntity> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            log.warn("User not found by email: {}", email);
+            return Optional.empty();
+        }
+        
+        UserEntity user = userOpt.get();
+        if (user.getProfile() == null) {
+            log.warn("Profile not found for user with email: {}", email);
+            return Optional.empty();
+        }
+        
+        return Optional.of(ProfileResponse.fromEntity(user));
+    }
+
+    /**
+     * Updates a user profile
+     */
+    public ReadProfileResponse updateProfile(String userId, UpdateProfileRequest request) {
+        log.debug("Updating profile for user: {}", userId);
+        
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
+        
+        UserEntity user = userOpt.get();
+        UserProfileEntity profile = user.getProfile();
+        
+        if (profile == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+        }
+        
+        // Update profile fields
+        if (request.getName() != null) {
+            profile.setName(request.getName());
+        }
+        if (request.getPhotoURL() != null) {
+            profile.setPhotoURL(request.getPhotoURL());
+        }
+        if (request.getSubscriptionTier() != null) {
+            profile.setSubscriptionTier(request.getSubscriptionTier());
+        }
+        if (request.getTradingMode() != null) {
+            profile.setTradingMode(request.getTradingMode());
+        }
+        
+        // Save the user
+        UserEntity savedUser = userRepository.save(user);
+        
+        log.info("Profile updated successfully for user: {}", userId);
+        return ReadProfileResponse.fromEntity(savedUser);
+    }
+
+    /**
+     * Updates the subscription tier for a user
+     */
+    public UpdateProfileResponse updateSubscriptionTier(String userId, String subscriptionTier) {
+        log.debug("Updating subscription tier for user: {} to: {}", userId, subscriptionTier);
+        
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
+        
+        UserEntity user = userOpt.get();
+        UserProfileEntity profile = user.getProfile();
+        
+        if (profile == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+        }
+        
+        profile.setSubscriptionTier(subscriptionTier);
+        
+        // Save the user
+        UserEntity savedUser = userRepository.save(user);
+        
+        log.info("Subscription tier updated successfully for user: {} to: {}", userId, subscriptionTier);
+        return UpdateProfileResponse.success(userId, "Subscription tier updated successfully");
+    }
+
+    /**
+     * Updates the trading mode for a user
+     */
+    public UpdateProfileResponse updateTradingMode(String userId, String tradingMode) {
+        log.debug("Updating trading mode for user: {} to: {}", userId, tradingMode);
+        
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
+        
+        UserEntity user = userOpt.get();
+        UserProfileEntity profile = user.getProfile();
+        
+        if (profile == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+        }
+        
+        profile.setTradingMode(tradingMode);
+        
+        // Save the user
+        UserEntity savedUser = userRepository.save(user);
+        
+        log.info("Trading mode updated successfully for user: {} to: {}", userId, tradingMode);
+        return UpdateProfileResponse.success(userId, "Trading mode updated successfully");
+    }
+
+    /**
+     * Verifies user's email address
+     */
+    public ReadProfileResponse verifyEmail(String userId, String verificationCode) {
+        log.debug("Verifying email for user: {} with code: {}", userId, verificationCode);
+        
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
+        
+        UserEntity user = userOpt.get();
+        UserProfileEntity profile = user.getProfile();
+        
+        if (profile == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+        }
+        
+        // TODO: Implement actual verification logic
+        // For now, just mark as verified
+        profile.setVerifiedEmail(true);
+        
+        // Save the user
+        UserEntity savedUser = userRepository.save(user);
+        
+        log.info("Email verified successfully for user: {}", userId);
+        return ReadProfileResponse.fromEntity(savedUser);
+    }
+
+    /**
+     * Deactivates a user profile
+     */
+    public void deactivateProfile(String userId) {
+        log.debug("Deactivating profile for user: {}", userId);
+        
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
+        
+        UserEntity user = userOpt.get();
+        UserProfileEntity profile = user.getProfile();
+        
+        if (profile == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+        }
+        
+        profile.setIsActive(false);
+        userRepository.save(user);
+        
+        log.info("Profile deactivated successfully for user: {}", userId);
+    }
+
+    /**
+     * Deletes a user profile
+     */
+    public void deleteProfile(String userId) {
+        log.debug("Deleting profile for user: {}", userId);
+        
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("User not found: {}", userId);
+            return;
+        }
+        
+        UserEntity user = userOpt.get();
+        if (user.getProfile() != null) {
+            user.setProfile(null);
+            userRepository.save(user);
+            log.info("Profile deleted successfully for user: {}", userId);
+        } else {
+            log.warn("No profile found to delete for user: {}", userId);
+        }
+    }
+
+    /**
+     * Validates if a user exists
+     */
+    public boolean userExists(String userId) {
+        return userRepository.existsById(userId);
+    }
+
+    /**
+     * Validates if a user exists by email
+     */
+    public boolean userExistsByEmail(String email) {
+        return userRepository.findByEmail(email).isPresent();
+    }
+
+    /**
+     * Validates if a profile exists for a user
+     */
+    public boolean profileExists(String userId) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return false;
+        }
+        
+        UserEntity user = userOpt.get();
+        return user.getProfile() != null;
+    }
+
+    /**
+     * Helper method to validate user existence and get the user
+     */
+    private UserEntity validateAndGetUser(String userId) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+        }
+        return userOpt.get();
+    }
+
+    /**
+     * Helper method to validate profile existence and get the profile
+     */
+    private UserProfileEntity validateAndGetProfile(UserEntity user) {
+        UserProfileEntity profile = user.getProfile();
+        if (profile == null) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + user.getId());
+        }
+        return profile;
     }
 }

@@ -22,5 +22,5 @@ echo
 echo "Strategiz Core application stopped."
 
 # Return to scripts directory
-cd ../../../scripts
+# cd ../../../scripts # Removed to fix path error
 exit 0

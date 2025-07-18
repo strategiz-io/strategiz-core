@@ -1,396 +1,365 @@
-# Strategiz Data User Module
+# Data User Module
 
-This module provides data access for user profiles, authentication methods, and related data in the Strategiz platform.
+The data-user module provides repository interfaces and entity definitions for the main users collection in Firebase Firestore. This module handles CRUD operations for user documents and provides aggregation capabilities to fetch user data along with their subcollections.
 
-## Database Structure
+## Architecture
 
-The module interacts with the following Firestore collections and subcollections:
+This module follows the Strategiz data layer architecture:
+- **Entity Layer**: `entity/` package with `*Entity.java` naming convention
+- **Repository Layer**: Repository interfaces defining data access contracts  
+- **Base Entity**: All entities extend `BaseEntity` for consistent audit field management
 
-### `users` Collection
+## Collections Structure
 
-The primary collection for storing user information with a modern, scalable structure.
+### Primary Collection: `users`
+The users collection contains the main user documents with embedded profile information:
 
 ```
 users/
-  └── {userId}/
-      ├── profile: {
-      │   ├── name: string,
-      │   ├── email: string,
-      │   ├── photoURL: string,
-      │   ├── verifiedEmail: boolean,
-      │   ├── subscriptionTier: string ("premium", "basic", "free", etc.),
-      │   ├── tradingMode: string ("demo" or "real"),
-      │   └── isActive: boolean
-      │ }
-      ├── connectedProviders: [
-      │   {
-      │     ├── provider: string ("kraken", "binanceus", "charlesschwab"),
-      │     ├── accountType: string ("paper" or "real"),
-      │     └── connectedAt: timestamp
-      │   }
-      │ ]
-      │
-      ├── createdBy: string,
-      ├── createdAt: timestamp,
-      ├── modifiedBy: string,
-      ├── modifiedAt: timestamp,
-      ├── version: number,
-      ├── isActive: boolean,
-      │
-      ├── authentication_methods/
-      │   └── {authMethodId}/
-      │       ├── type: string ("TOTP", "SMS_OTP", "PASSKEY", "OAUTH_GOOGLE", etc.),
-      │       ├── name: string,
-      │       ├── [type-specific fields],
-      │       ├── createdBy: string,
-      │       ├── createdAt: timestamp,
-      │       ├── modifiedBy: string,
-      │       ├── modifiedAt: timestamp,
-      │       ├── version: number,
-      │       ├── isActive: boolean,
-      │       └── lastVerifiedAt: timestamp
-      │
-      ├── api_credentials/
-      │   └── {credentialId}/
-      │       ├── provider: string ("coinbase", "kraken", "binanceus", etc.),
-      │       ├── apiKey: string (encrypted),
-      │       ├── privateKey: string (encrypted),
-      │       ├── [provider-specific fields],
-      │       ├── createdBy: string,
-      │       ├── createdAt: timestamp,
-      │       ├── modifiedBy: string,
-      │       ├── modifiedAt: timestamp,
-      │       ├── version: number,
-      │       └── isActive: boolean
-      │
-      ├── devices/
-      │   └── {deviceId}/
-      │       ├── deviceName: string,
-      │       ├── agentId: string,
-      │       ├── platform: {
-      │       │   ├── userAgent: string,
-      │       │   ├── platform: string,
-      │       │   ├── type: string,
-      │       │   ├── brand: string,
-      │       │   ├── model: string,
-      │       │   └── version: string
-      │       │ },
-      │       ├── lastLoginAt: timestamp,
-      │       ├── createdBy: string,
-      │       ├── createdAt: timestamp,
-      │       ├── modifiedBy: string,
-      │       ├── modifiedAt: timestamp,
-      │       ├── version: number,
-      │       └── isActive: boolean
-      │
-      ├── preferences/
-      │   ├── theme/
-      │   │   ├── value: string ("light", "dark", "system"),
-      │   │   ├── createdBy: string,
-      │   │   ├── createdAt: timestamp,
-      │   │   ├── modifiedBy: string,
-      │   │   ├── modifiedAt: timestamp,
-      │   │   ├── version: number,
-      │   │   └── isActive: boolean
-      │   │
-      │   ├── notifications/
-      │   │   ├── settings: {
-      │   │   │   ├── sms: boolean,
-      │   │   │   ├── push: boolean,
-      │   │   │   ├── trades: boolean,
-      │   │   │   └── performance: boolean
-      │   │   │ },
-      │   │   ├── createdBy: string,
-      │   │   ├── createdAt: timestamp,
-      │   │   ├── modifiedBy: string,
-      │   │   ├── modifiedAt: timestamp,
-      │   │   ├── version: number,
-      │   │   └── isActive: boolean
-      │   │
-      │   └── ethereum/
-      │       ├── provider: string,
-      │       ├── address: string,
-      │       ├── network: string,
-      │       ├── createdBy: string,
-      │       ├── createdAt: timestamp,
-      │       ├── modifiedBy: string,
-      │       ├── modifiedAt: timestamp,
-      │       ├── version: number,
-      │       └── isActive: boolean
-      │
-      └── market_watchlist/
-          └── {assetId}/
-              ├── symbol: string ("BTC", "AAPL", etc.),
-              ├── name: string ("Bitcoin", "Apple Inc.", etc.),
-              ├── type: string ("crypto", "stock", etc.),
-              ├── addedAt: timestamp,
-              ├── createdBy: string,
-              ├── createdAt: timestamp,
-              ├── modifiedBy: string,
-              ├── modifiedAt: timestamp,
-              ├── version: number,
-              └── isActive: boolean
+├── {userId}/                          # Document ID (Firebase auto-generated)
+│   ├── profile/                       # Embedded UserProfileEntity
+│   └── subcollections/
+│       ├── watchlist/                 # User's market watchlist (data-watchlist module)
+│       ├── providers/                 # Connected trading providers (data-providers module)
+│       ├── devices/                   # Registered devices (data-devices module)
+│       └── preferences/               # User preferences (data-preferences module)
 ```
 
-## Fields Explanation
+**Note**: This module focuses solely on the main user document. Subcollections are handled by dedicated modules as shown above.
 
-### Main User Document
+## Entities
 
-**Profile Object**
-- `name`: User's display name
-- `email`: User's email address
-- `photoURL`: URL to the user's profile photo
-- `verifiedEmail`: Whether the user's email has been verified
-- `subscriptionTier`: Subscription tier (premium, basic, free, etc.)
-- `tradingMode`: Global trading mode setting ("demo" or "real")
-- `isActive`: Whether the account is active
+### UserEntity
+**File**: `entity/UserEntity.java`
+**Collection**: `users`
+**Purpose**: Root document representing a user account
 
-**Connected Providers Array**
-- List of financial providers connected to the user's account
-- Each connection includes provider name, account type, and connection timestamp
+#### Key Fields
+- `userId` (String): Unique user identifier (document ID)
+- `profile` (UserProfileEntity): Embedded user profile information
+- Inherits audit fields from BaseEntity: `createdAt`, `updatedAt`, `createdBy`, `updatedBy`
 
-**Audit Fields (Present in all documents)**
-- `createdBy`: User or system ID that created the record
-- `createdAt`: Timestamp when the record was created
-- `modifiedBy`: User or system ID that last modified the record
-- `modifiedAt`: Timestamp when the record was last modified
-- `version`: Numeric version, incremented with each update
-- `isActive`: Boolean flag for soft deletion
+#### Usage
+```java
+UserEntity user = new UserEntity();
+user.setUserId("user123");
+user.setProfile(new UserProfileEntity("John", "Doe", "john@example.com"));
+```
 
-### Authentication Methods Subcollection
+### UserProfileEntity
+**File**: `entity/UserProfileEntity.java` 
+**Purpose**: Embedded object within UserEntity containing profile information
 
-Stores all authentication methods associated with a user in separate documents.
+#### Key Fields
+- `firstName` (String): User's first name
+- `lastName` (String): User's last name  
+- `email` (String): User's email address
+- `phoneNumber` (String): User's phone number
+- `dateOfBirth` (LocalDate): User's date of birth
+- `timezone` (String): User's preferred timezone
+- `avatarUrl` (String): URL to user's profile picture
 
-**Common Fields**
-- `type`: Type of authentication method (TOTP, SMS_OTP, PASSKEY, OAUTH_GOOGLE, etc.)
-- `name`: User-friendly name for the authentication method
-- `lastVerifiedAt`: Timestamp when the method was last successfully used
+#### Validation
+- Email format validation using `@Email` annotation
+- Required fields marked with `@NotBlank`
+- Phone number format validation
 
-**Type-Specific Fields**
-- **TOTP**
-  - `secret`: Encrypted TOTP secret
-- **SMS_OTP**
-  - `phoneNumber`: Phone number for SMS verification
-  - `verified`: Whether the phone has been verified
-- **PASSKEY**
-  - `credentials`: Array of credential objects with IDs, public keys, etc.
-- **OAuth Providers (Google, Facebook)**
-  - `uid`: Provider-specific user ID
+#### Usage
+```java
+UserProfileEntity profile = new UserProfileEntity();
+profile.setFirstName("John");
+profile.setLastName("Doe");
+profile.setEmail("john@example.com");
+profile.setPhoneNumber("+1234567890");
+```
 
-### API Credentials Subcollection
+### UserAggregateData
+**File**: `dto/UserAggregateData.java`
+**Purpose**: Aggregate object containing user data and all subcollection data
 
-Stores API keys for various financial providers.
+#### Key Fields
+- `user` (UserEntity): Main user document
+- `watchlistItems` (List<WatchlistItemEntity>): User's watchlist
+- `connectedProviders` (List<ConnectedProviderEntity>): Connected providers
+- `devices` (List<UserDeviceEntity>): Registered devices  
+- `preferences` (List<UserPreferenceEntity>): User preferences
 
-- `provider`: Name of the provider (coinbase, kraken, binanceus, etc.)
-- `apiKey`: Encrypted API key
-- `privateKey`: Encrypted private key (or secret key)
-- Provider-specific fields as needed
+#### Usage
+```java
+UserAggregateData aggregateData = userRepository.getUserWithAllData("user123");
+UserEntity user = aggregateData.getUser();
+List<WatchlistItemEntity> watchlist = aggregateData.getWatchlistItems();
+```
 
-### Devices Subcollection
+## Repository Interface
 
-Tracks devices used to access the account.
+### UserRepository
+**File**: `repository/UserRepository.java`
+**Purpose**: Data access contract for user operations
 
-- `deviceName`: User-friendly device name
-- `agentId`: Unique identifier for the device agent
-- `platform`: Object containing device details (OS, browser, device model, etc.)
-- `lastLoginAt`: Timestamp of the last login from this device
+#### Core CRUD Operations
+```java
+// Create new user
+UserEntity createUser(UserEntity user);
 
-### Preferences Subcollection
+// Find user by ID
+Optional<UserEntity> findById(String userId);
 
-Stores user preferences organized by category.
+// Update user
+UserEntity updateUser(UserEntity user);
 
-- Separate documents for different preference categories (theme, notifications, etc.)
-- Each with specific settings relevant to that category
+// Delete user
+void deleteUser(String userId);
 
-### Market Watchlist Subcollection
+// Check if user exists
+boolean existsById(String userId);
+```
 
-Tracks financial assets the user is monitoring.
+#### Profile Operations
+```java
+// Update user profile
+UserEntity updateProfile(String userId, UserProfileEntity profile);
 
-- `symbol`: Trading symbol (BTC, AAPL, etc.)
-- `name`: Full name of the asset
-- `type`: Asset type (crypto, stock, etc.)
-- `addedAt`: When the asset was added to the watchlist
+// Get user profile only
+Optional<UserProfileEntity> getProfile(String userId);
+```
 
-## Data Integrity
+#### Aggregation Operations
+```java
+// Get user with all subcollection data
+UserAggregateData getUserWithAllData(String userId);
 
-This schema design ensures:
+// Get user with specific subcollections
+UserAggregateData getUserWithData(String userId, boolean includeWatchlist, 
+                                  boolean includeProviders, boolean includeDevices, 
+                                  boolean includePreferences);
+```
 
-1. Clear separation of concerns with subcollections for different data types
-2. Standardized audit fields across all documents and subcollections
-3. Consistent data structures for authentication methods, devices, and user preferences
-4. Support for multiple authentication methods per user
-5. Secure storage of sensitive information in appropriate subcollections
+#### Search Operations
+```java
+// Find users by email
+Optional<UserEntity> findByEmail(String email);
 
-## Sample Data
+// Find users by phone number
+Optional<UserEntity> findByPhoneNumber(String phoneNumber);
 
-Here's an example of a populated user document and its subcollections:
+// Search users by name
+List<UserEntity> searchByName(String nameQuery);
+```
 
-```json
-// Main user document: users/{userId}
-{
-  "profile": {
-    "name": "Jane Smith",
-    "email": "jane.smith@example.com",
-    "photoURL": "https://example.com/photos/jane-profile.jpg",
-    "verifiedEmail": true,
-    "subscriptionTier": "premium",
-    "tradingMode": "demo",
-    "isActive": true
-  },
-  "connectedProviders": [
-    {
-      "provider": "binanceus",
-      "accountType": "paper",
-      "connectedAt": "2025-05-15T14:32:10Z"
-    },
-    {
-      "provider": "kraken",
-      "accountType": "real",
-      "connectedAt": "2025-05-20T09:15:33Z"
-    }
-  ],
-  "createdBy": "system",
-  "createdAt": "2025-03-10T08:23:45Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-05-20T09:15:33Z",
-  "version": 4,
-  "isActive": true
-}
+#### Statistics Operations
+```java
+// Count total users
+long countUsers();
 
-// Authentication method: users/{userId}/authentication_methods/{authMethodId1}
-{
-  "type": "TOTP",
-  "name": "Google Authenticator",
-  "secret": "ENCRYPTED_TOTP_SECRET_HERE",
-  "lastVerifiedAt": "2025-06-01T18:22:10Z",
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-03-10T08:25:12Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-03-10T08:25:12Z",
-  "version": 1,
-  "isActive": true
-}
+// Count users created since date
+long countUsersCreatedSince(Instant since);
+```
 
-// Authentication method: users/{userId}/authentication_methods/{authMethodId2}
-{
-  "type": "OAUTH_GOOGLE",
-  "name": "Google Account",
-  "uid": "google-oauth2|104893341287346123456",
-  "lastVerifiedAt": "2025-06-02T10:15:30Z",
-  "createdBy": "system",
-  "createdAt": "2025-03-10T08:23:45Z",
-  "modifiedBy": "system",
-  "modifiedAt": "2025-03-10T08:23:45Z",
-  "version": 1,
-  "isActive": true
-}
+## Integration with Subcollections
 
-// Authentication method: users/{userId}/authentication_methods/{authMethodId3}
-{
-  "type": "SMS_OTP",
-  "name": "My iPhone",
-  "phoneNumber": "+12125551234",
-  "verified": true,
-  "lastVerifiedAt": "2025-05-28T12:33:45Z",
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-04-15T16:42:30Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-04-15T16:45:12Z",
-  "version": 1,
-  "isActive": true
-}
+The data-user module coordinates with other data modules to provide complete user data:
 
-// API credential: users/{userId}/api_credentials/{credentialId1}
-{
-  "provider": "binanceus",
-  "apiKey": "ENCRYPTED_API_KEY_HERE",
-  "privateKey": "ENCRYPTED_PRIVATE_KEY_HERE",
-  "permissions": ["read", "trade"],
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-05-15T14:32:10Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-05-15T14:32:10Z",
-  "version": 1,
-  "isActive": true
-}
+### Related Modules
+- **data-watchlist**: `users/{userId}/watchlist` subcollection
+- **data-providers**: `users/{userId}/providers` subcollection  
+- **data-devices**: `users/{userId}/devices` subcollection
+- **data-preferences**: `users/{userId}/preferences` subcollection
 
-// Device: users/{userId}/devices/{deviceId1}
-{
-  "deviceName": "iPhone 15 Pro",
-  "agentId": "agent_e7f8a234b9c12d345",
-  "platform": {
-    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
-    "platform": "iOS",
-    "type": "mobile",
-    "brand": "Apple",
-    "model": "iPhone 15 Pro",
-    "version": "18.0"
-  },
-  "lastLoginAt": "2025-06-02T21:45:10Z",
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-03-15T10:33:22Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-06-02T21:45:10Z",
-  "version": 3,
-  "isActive": true
-}
+### Aggregation Strategy
+The `getUserWithAllData()` method internally calls repositories from other modules to gather complete user information:
 
-// Preference: users/{userId}/preferences/theme
-{
-  "value": "dark",
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-03-10T08:30:15Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-05-01T11:22:33Z",
-  "version": 2,
-  "isActive": true
-}
-
-// Preference: users/{userId}/preferences/notifications
-{
-  "settings": {
-    "sms": true,
-    "push": true,
-    "trades": true,
-    "performance": false
-  },
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-03-10T08:30:20Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-04-22T15:12:45Z",
-  "version": 3,
-  "isActive": true
-}
-
-// Market watchlist item: users/{userId}/market_watchlist/{assetId1}
-{
-  "symbol": "BTC",
-  "name": "Bitcoin",
-  "type": "crypto",
-  "addedAt": "2025-03-12T09:15:30Z",
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-03-12T09:15:30Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-03-12T09:15:30Z",
-  "version": 1,
-  "isActive": true
-}
-
-// Market watchlist item: users/{userId}/market_watchlist/{assetId2}
-{
-  "symbol": "AAPL",
-  "name": "Apple Inc.",
-  "type": "stock",
-  "addedAt": "2025-04-05T14:22:10Z",
-  "createdBy": "jane.smith@example.com",
-  "createdAt": "2025-04-05T14:22:10Z",
-  "modifiedBy": "jane.smith@example.com",
-  "modifiedAt": "2025-04-05T14:22:10Z",
-  "version": 1,
-  "isActive": true
+```java
+UserAggregateData getUserWithAllData(String userId) {
+    // 1. Fetch main user document
+    UserEntity user = findById(userId);
+    
+    // 2. Fetch subcollection data
+    List<WatchlistItemEntity> watchlist = watchlistRepo.findByUserId(userId);
+    List<ConnectedProviderEntity> providers = providerRepo.findByUserId(userId);
+    List<UserDeviceEntity> devices = deviceRepo.findByUserId(userId);
+    List<UserPreferenceEntity> preferences = preferenceRepo.findByUserId(userId);
+    
+    // 3. Return aggregate object
+    return new UserAggregateData(user, watchlist, providers, devices, preferences);
 }
 ```
 
+## Usage Examples
 
+### Creating a New User
+```java
+@Autowired
+private UserRepository userRepository;
 
+// Create user profile
+UserProfileEntity profile = new UserProfileEntity();
+profile.setFirstName("John");
+profile.setLastName("Doe");
+profile.setEmail("john@example.com");
 
+// Create user entity
+UserEntity user = new UserEntity();
+user.setProfile(profile);
+
+// Save to database
+UserEntity savedUser = userRepository.createUser(user);
+String userId = savedUser.getUserId();
+```
+
+### Fetching Complete User Data
+```java
+// Get user with all subcollection data
+UserAggregateData userData = userRepository.getUserWithAllData("user123");
+
+// Access different data types
+UserEntity user = userData.getUser();
+String email = user.getProfile().getEmail();
+List<WatchlistItemEntity> watchlist = userData.getWatchlistItems();
+List<ConnectedProviderEntity> providers = userData.getConnectedProviders();
+```
+
+### Updating User Profile
+```java
+// Update profile information
+UserProfileEntity updatedProfile = new UserProfileEntity();
+updatedProfile.setFirstName("Jane");
+updatedProfile.setLastName("Smith");
+updatedProfile.setEmail("jane@example.com");
+
+UserEntity updatedUser = userRepository.updateProfile("user123", updatedProfile);
+```
+
+### Search Operations
+```java
+// Find user by email
+Optional<UserEntity> user = userRepository.findByEmail("john@example.com");
+
+// Search users by name
+List<UserEntity> users = userRepository.searchByName("John");
+```
+
+## Implementation Notes
+
+### Firebase Firestore Integration
+- Uses Firebase Admin SDK for server-side operations
+- Documents stored in `users` collection
+- Subcollections are handled by separate modules
+- Auto-generated document IDs used as `userId`
+
+### Audit Trail
+- All entities extend `BaseEntity` for automatic audit field management
+- `createdAt` and `updatedAt` timestamps automatically maintained
+- `createdBy` and `updatedBy` fields track user actions
+
+### Validation
+- Bean validation annotations used for input validation
+- Email format validation on profile entity
+- Required field validation enforced
+- Phone number format validation included
+
+### Error Handling
+- Repository methods return `Optional<T>` for single results
+- Null-safe operations throughout
+- Validation exceptions propagated to service layer
+
+## Dependencies
+
+### Maven Dependencies
+```xml
+<dependencies>
+    <!-- Framework modules -->
+    <dependency>
+        <groupId>io.strategiz</groupId>
+        <artifactId>framework-common</artifactId>
+    </dependency>
+    
+    <!-- Data modules -->
+    <dependency>
+        <groupId>io.strategiz</groupId>
+        <artifactId>data-base</artifactId>
+    </dependency>
+    
+    <!-- Firebase -->
+    <dependency>
+        <groupId>com.google.firebase</groupId>
+        <artifactId>firebase-admin</artifactId>
+    </dependency>
+    
+    <!-- Validation -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+</dependencies>
+```
+
+### Module Dependencies
+For aggregation operations, this module depends on:
+- `data-watchlist`
+- `data-providers` 
+- `data-devices`
+- `data-preferences`
+
+These dependencies are injected at runtime through the implementation layer.
+
+## Testing
+
+### Unit Tests
+Repository interface testing should focus on:
+- CRUD operation contracts
+- Validation behavior
+- Search functionality
+- Aggregation logic
+
+### Integration Tests
+Firebase integration testing should verify:
+- Document creation and retrieval
+- Subcollection aggregation
+- Transaction handling
+- Error scenarios
+
+## Security Considerations
+
+### Data Access
+- Repository operates with service account privileges
+- No user-level security at data layer
+- Security enforced at business/service layers
+
+### Data Privacy
+- Email and phone number fields contain PII
+- Profile information should be handled according to privacy policies
+- Audit trail maintains user action history
+
+### Validation
+- Input validation prevents malformed data
+- Email format validation prevents invalid addresses
+- Required field validation ensures data integrity
+
+## Performance Considerations
+
+### Firestore Operations
+- Single document reads are efficient
+- Aggregation operations require multiple subcollection queries
+- Consider caching for frequently accessed user data
+- Batch operations for bulk user operations
+
+### Indexing
+- Email field should be indexed for efficient lookups
+- Phone number field should be indexed if used for lookup
+- Consider composite indexes for complex queries
+
+## Future Enhancements
+
+### Potential Improvements
+- Implement soft delete functionality
+- Add user role and permission management
+- Implement user status tracking (active, suspended, etc.)
+- Add user activity logging
+- Implement data archival for inactive users
+
+### Scalability Considerations
+- Consider sharding strategy for large user bases
+- Implement caching layer for frequently accessed data
+- Monitor and optimize query performance
+- Consider read replicas for improved read performance

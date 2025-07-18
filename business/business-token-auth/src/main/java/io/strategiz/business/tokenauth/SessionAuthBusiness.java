@@ -2,9 +2,10 @@ package io.strategiz.business.tokenauth;
 
 import dev.paseto.jpaseto.PasetoException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
-import io.strategiz.data.auth.model.session.PasetoToken;
+import io.strategiz.data.auth.entity.session.PasetoTokenEntity;
 import io.strategiz.data.auth.repository.session.PasetoTokenRepository;
 import io.strategiz.data.session.entity.UserSession;
+import io.strategiz.data.session.entity.UserSessionEntity;
 import io.strategiz.data.session.repository.SessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,31 +124,29 @@ public class SessionAuthBusiness {
         accessTokenMetadata.put("auth_methods", String.join(",", authRequest.authenticationMethods()));
         accessTokenMetadata.put("scope", accessClaims.get("scope"));
         
-        PasetoToken accessTokenEntity = PasetoToken.builder()
-                .id(UUID.randomUUID().toString())
-                .userId(authRequest.userId())
-                .tokenType("ACCESS")
-                .tokenValue(accessToken)
-                .issuedAt(getClaimAsLong(accessClaims, "iat"))
-                .expiresAt(getClaimAsLong(accessClaims, "exp"))
-                .deviceId(authRequest.deviceId())
-                .issuedFrom(authRequest.ipAddress())
-                .revoked(false)
-                .claims(accessTokenMetadata)
-                .build();
+        PasetoTokenEntity accessTokenEntity = new PasetoTokenEntity();
+        accessTokenEntity.setTokenId(UUID.randomUUID().toString());
+        accessTokenEntity.setUserId(authRequest.userId());
+        accessTokenEntity.setTokenType("ACCESS");
+        accessTokenEntity.setTokenValue(accessToken);
+        accessTokenEntity.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(accessClaims, "iat")));
+        accessTokenEntity.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(accessClaims, "exp")));
+        accessTokenEntity.setDeviceId(authRequest.deviceId());
+        accessTokenEntity.setIssuedFrom(authRequest.ipAddress());
+        accessTokenEntity.setRevoked(false);
+        accessTokenEntity.setClaims(accessTokenMetadata);
         
-        PasetoToken refreshTokenEntity = PasetoToken.builder()
-                .id(UUID.randomUUID().toString())
-                .userId(authRequest.userId())
-                .tokenType("REFRESH")
-                .tokenValue(refreshToken)
-                .issuedAt(getClaimAsLong(refreshClaims, "iat"))
-                .expiresAt(getClaimAsLong(refreshClaims, "exp"))
-                .deviceId(authRequest.deviceId())
-                .issuedFrom(authRequest.ipAddress())
-                .revoked(false)
-                .claims(Map.of("associated_access_token", accessTokenEntity.getId()))
-                .build();
+        PasetoTokenEntity refreshTokenEntity = new PasetoTokenEntity();
+        refreshTokenEntity.setTokenId(UUID.randomUUID().toString());
+        refreshTokenEntity.setUserId(authRequest.userId());
+        refreshTokenEntity.setTokenType("REFRESH");
+        refreshTokenEntity.setTokenValue(refreshToken);
+        refreshTokenEntity.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(refreshClaims, "iat")));
+        refreshTokenEntity.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(refreshClaims, "exp")));
+        refreshTokenEntity.setDeviceId(authRequest.deviceId());
+        refreshTokenEntity.setIssuedFrom(authRequest.ipAddress());
+        refreshTokenEntity.setRevoked(false);
+        refreshTokenEntity.setClaims(Map.of("associated_access_token", accessTokenEntity.getTokenId()));
         
         tokenRepository.save(accessTokenEntity);
         tokenRepository.save(refreshTokenEntity);
@@ -161,23 +160,27 @@ public class SessionAuthBusiness {
         try {
             String sessionId = "sess_" + UUID.randomUUID().toString();
             
-            UserSession session = new UserSession(authRequest.userId());
-            session.setSessionId(sessionId);
-            session.setUserEmail(authRequest.userEmail() != null ? authRequest.userEmail() : "unknown@example.com");
+            UserSessionEntity sessionEntity = new UserSessionEntity(authRequest.userId());
+            sessionEntity.setSessionId(sessionId);
+            sessionEntity.setUserEmail(authRequest.userEmail() != null ? authRequest.userEmail() : "unknown@example.com");
             // Store access token reference in attributes
-            session.getAttributes().put("accessToken", accessToken);
-            session.setAcr(acr);
-            session.setAal(aal);
-            session.setAmr(authRequest.authenticationMethods());
-            session.setDeviceFingerprint(authRequest.deviceFingerprint() != null ? authRequest.deviceFingerprint() : "unknown");
-            session.setIpAddress(authRequest.ipAddress() != null ? authRequest.ipAddress() : "unknown");
-            session.setUserAgent(authRequest.userAgent() != null ? authRequest.userAgent() : "Unknown");
-            session.setActive(true);
-            session.setLastAccessedAt(Instant.now());
-            session.setExpiresAt(Instant.now().plusSeconds(sessionExpirySeconds));
+            if (sessionEntity.getAttributes() == null) {
+                sessionEntity.setAttributes(new HashMap<>());
+            }
+            sessionEntity.getAttributes().put("accessToken", accessToken);
+            sessionEntity.setAcr(acr);
+            sessionEntity.setAal(aal);
+            sessionEntity.setAmr(authRequest.authenticationMethods());
+            sessionEntity.setDeviceFingerprint(authRequest.deviceFingerprint() != null ? authRequest.deviceFingerprint() : "unknown");
+            sessionEntity.setIpAddress(authRequest.ipAddress() != null ? authRequest.ipAddress() : "unknown");
+            sessionEntity.setUserAgent(authRequest.userAgent() != null ? authRequest.userAgent() : "Unknown");
+            sessionEntity.setActive(true);
+            sessionEntity.setLastAccessedAt(Instant.now());
+            sessionEntity.setExpiresAt(Instant.now().plusSeconds(sessionExpirySeconds));
             
             // Delegate to data-session module for persistence
-            UserSession savedSession = sessionRepository.save(session, authRequest.userId());
+            UserSessionEntity savedSessionEntity = sessionRepository.save(sessionEntity, authRequest.userId());
+            UserSession savedSession = convertEntityToSession(savedSessionEntity);
             log.debug("Delegated UserSession creation {} for user {} to data layer", sessionId, authRequest.userId());
             
             return savedSession;
@@ -199,7 +202,7 @@ public class SessionAuthBusiness {
             }
             
             // Check if token exists and is not revoked
-            Optional<PasetoToken> storedToken = tokenRepository.findByTokenValue(accessToken);
+            Optional<PasetoTokenEntity> storedToken = tokenRepository.findByTokenValue(accessToken);
             if (storedToken.isEmpty() || !storedToken.get().isValid()) {
                 return Optional.empty();
             }
@@ -207,24 +210,26 @@ public class SessionAuthBusiness {
             String userId = storedToken.get().getUserId();
             
             // Find associated session by access token in attributes
-            List<UserSession> userSessions = sessionRepository.findByUserIdAndActive(userId, true);
-            Optional<UserSession> sessionOpt = userSessions.stream()
-                .filter(s -> accessToken.equals(s.getAttributes().get("accessToken")))
+            List<UserSessionEntity> userSessionEntities = sessionRepository.findByUserIdAndActive(userId, true);
+            Optional<UserSessionEntity> sessionEntityOpt = userSessionEntities.stream()
+                .filter(s -> accessToken.equals(s.getAttributes() != null ? s.getAttributes().get("accessToken") : null))
                 .findFirst();
                 
-            if (sessionOpt.isEmpty()) {
+            if (sessionEntityOpt.isEmpty()) {
                 log.debug("No session found for valid access token");
                 return createValidationResultFromToken(accessToken, userId);
             }
             
-            UserSession session = sessionOpt.get();
-            if (!session.isValid()) {
+            UserSessionEntity sessionEntity = sessionEntityOpt.get();
+            if (!sessionEntity.isValid()) {
                 return Optional.empty();
             }
             
             // Delegate session update to data layer
-            session.updateLastAccessed();
-            sessionRepository.save(session, userId);
+            sessionEntity.updateLastAccessed();
+            sessionRepository.save(sessionEntity, userId);
+            
+            UserSession session = convertEntityToSession(sessionEntity);
             
             return Optional.of(new SessionValidationResult(
                 session.getUserId(),
@@ -285,17 +290,17 @@ public class SessionAuthBusiness {
             boolean tokenRevoked = revokeToken(accessToken);
             
             // Terminate associated session  
-            Optional<PasetoToken> tokenOpt = tokenRepository.findByTokenValue(accessToken);
+            Optional<PasetoTokenEntity> tokenOpt = tokenRepository.findByTokenValue(accessToken);
             if (tokenOpt.isPresent()) {
                 String userId = tokenOpt.get().getUserId();
-                List<UserSession> userSessions = sessionRepository.findByUserIdAndActive(userId, true);
+                List<UserSessionEntity> userSessionEntities = sessionRepository.findByUserIdAndActive(userId, true);
                 // Delegate session termination to data layer
-                userSessions.stream()
-                    .filter(s -> accessToken.equals(s.getAttributes().get("accessToken")))
+                userSessionEntities.stream()
+                    .filter(s -> accessToken.equals(s.getAttributes() != null ? s.getAttributes().get("accessToken") : null))
                     .findFirst()
-                    .ifPresent(session -> {
-                        session.terminate("Token revoked");
-                        sessionRepository.save(session, userId);
+                    .ifPresent(sessionEntity -> {
+                        sessionEntity.terminate("Token revoked");
+                        sessionRepository.save(sessionEntity, userId);
                     });
             }
             
@@ -315,15 +320,15 @@ public class SessionAuthBusiness {
             int tokensRevoked = revokeAllUserTokens(userId);
             
             // Delegate session termination to data layer
-            List<UserSession> sessions = sessionRepository.findByUserIdAndActive(userId, true);
-            for (UserSession session : sessions) {
-                session.terminate(reason);
-                sessionRepository.save(session, userId);
+            List<UserSessionEntity> sessionEntities = sessionRepository.findByUserIdAndActive(userId, true);
+            for (UserSessionEntity sessionEntity : sessionEntities) {
+                sessionEntity.terminate(reason);
+                sessionRepository.save(sessionEntity, userId);
             }
             
             log.info("Revoked all authentication for user {}: {} tokens, {} sessions", 
-                    userId, tokensRevoked, sessions.size());
-            return Math.max(tokensRevoked, sessions.size());
+                    userId, tokensRevoked, sessionEntities.size());
+            return Math.max(tokensRevoked, sessionEntities.size());
         } catch (Exception e) {
             log.error("Error revoking all authentication for user {}: {}", userId, e.getMessage());
             return 0;
@@ -335,18 +340,18 @@ public class SessionAuthBusiness {
      */
     private boolean revokeToken(String token) {
         try {
-            Optional<PasetoToken> storedToken = tokenRepository.findByTokenValue(token);
+            Optional<PasetoTokenEntity> storedToken = tokenRepository.findByTokenValue(token);
             if (storedToken.isEmpty()) {
                 return false;
             }
             
-            PasetoToken tokenEntity = storedToken.get();
+            PasetoTokenEntity tokenEntity = storedToken.get();
             tokenEntity.setRevoked(true);
-            tokenEntity.setRevokedAt(Instant.now().getEpochSecond());
+            tokenEntity.setRevokedAt(Instant.now());
             tokenEntity.setRevocationReason("Manually revoked");
             
             tokenRepository.save(tokenEntity);
-            log.info("Revoked token: {}", tokenEntity.getId());
+            log.info("Revoked token: {}", tokenEntity.getTokenId());
             
             return true;
         } catch (Exception e) {
@@ -359,13 +364,13 @@ public class SessionAuthBusiness {
      * Revoke all tokens for a user
      */
     private int revokeAllUserTokens(String userId) {
-        List<PasetoToken> tokens = tokenRepository.findAllByUserId(userId);
+        List<PasetoTokenEntity> tokens = tokenRepository.findByUserId(userId);
         
         int count = 0;
-        for (PasetoToken token : tokens) {
+        for (PasetoTokenEntity token : tokens) {
             if (!token.isRevoked()) {
                 token.setRevoked(true);
-                token.setRevokedAt(Instant.now().getEpochSecond());
+                token.setRevokedAt(Instant.now());
                 token.setRevocationReason("All user tokens revoked");
                 
                 tokenRepository.save(token);
@@ -486,13 +491,41 @@ public class SessionAuthBusiness {
         log.info("Cleaning up expired tokens and sessions");
         
         // Clean up expired tokens
-        long now = Instant.now().getEpochSecond();
-        int expiredTokens = tokenRepository.deleteExpiredTokens(now);
+        Instant now = Instant.now();
+        List<PasetoTokenEntity> expiredTokens = tokenRepository.findByExpiresAtBefore(now);
+        for (PasetoTokenEntity token : expiredTokens) {
+            tokenRepository.delete(token);
+        }
+        int expiredTokenCount = expiredTokens.size();
         
         // Delegate session cleanup to data layer
         int expiredSessions = sessionRepository.cleanupExpiredSessions(Instant.now());
         
-        log.info("Business layer coordinated cleanup: {} expired tokens, {} expired sessions", expiredTokens, expiredSessions);
+        log.info("Business layer coordinated cleanup: {} expired tokens, {} expired sessions", expiredTokenCount, expiredSessions);
+    }
+    
+    /**
+     * Convert UserSessionEntity to UserSession domain model
+     */
+    private UserSession convertEntityToSession(UserSessionEntity entity) {
+        UserSession session = new UserSession();
+        session.setSessionId(entity.getSessionId());
+        session.setUserId(entity.getUserId());
+        session.setUserEmail(entity.getUserEmail());
+        session.setCreatedAt(entity.getCreatedAt());
+        session.setLastAccessedAt(entity.getLastAccessedAt());
+        session.setExpiresAt(entity.getExpiresAt());
+        session.setIpAddress(entity.getIpAddress());
+        session.setUserAgent(entity.getUserAgent());
+        session.setDeviceFingerprint(entity.getDeviceFingerprint());
+        session.setAcr(entity.getAcr());
+        session.setAal(entity.getAal());
+        session.setAmr(entity.getAmr());
+        session.setAuthorities(entity.getAuthorities());
+        session.setAttributes(entity.getAttributes());
+        session.setActive(entity.isActive());
+        session.setTerminationReason(entity.getTerminationReason());
+        return session;
     }
     
     /**

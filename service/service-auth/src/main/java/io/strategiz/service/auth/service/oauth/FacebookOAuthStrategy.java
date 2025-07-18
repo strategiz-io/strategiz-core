@@ -1,9 +1,10 @@
 package io.strategiz.service.auth.service.oauth;
 
-import io.strategiz.data.user.model.OAuthAuthenticationMethod;
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.auth.model.oauth.OAuthAuthenticationMethod;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.service.auth.config.AuthOAuthConfig;
+import io.strategiz.service.auth.model.config.AuthOAuthSettings;
 import io.strategiz.service.auth.service.common.AuthMethodStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,7 @@ import java.util.Map;
 /**
  * Strategy for handling Facebook OAuth authentication method
  */
-@Component
+// @Component // Disabled - needs update to use new entity architecture
 public class FacebookOAuthStrategy implements AuthMethodStrategy {
     
     private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthStrategy.class);
@@ -30,17 +31,16 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
     }
     
     @Override
-    public Object setupAuthentication(User user) {
+    public Object setupAuthentication(UserEntity user) {
         logger.info("Setting up Facebook OAuth authentication for user: {}", user.getUserId());
         
         // Create OAuth authentication method
         OAuthAuthenticationMethod oauthMethod = new OAuthAuthenticationMethod();
         oauthMethod.setProvider("facebook");
-        oauthMethod.setType("OAUTH_FACEBOOK");
         oauthMethod.setName("Facebook Account");
         
         // Set provider ID from user profile data if available
-        // Since we can't determine exact User model structure, we'll use a default approach
+        // Since we can't determine exact UserEntity model structure, we'll use a default approach
         String email = user.getProfile().getEmail();
         String providerId = email; // Default to email as provider ID for now
         oauthMethod.setProviderId(providerId);
@@ -48,12 +48,11 @@ public class FacebookOAuthStrategy implements AuthMethodStrategy {
         
         // Audit fields are handled automatically by BaseEntity
         
-        // Add authentication method to user
-        user.addAuthenticationMethod(oauthMethod);
-        userRepository.updateUser(user);
+        // Note: OAuth authentication method will be saved by the OAuth flow completion
+        // This method just returns the config for the client to initiate OAuth
         
         // Return OAuth config for client
-        AuthOAuthConfig.AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
+        AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         Map<String, String> authConfig = new HashMap<>();
         authConfig.put("clientId", facebookConfig.getClientId());
         authConfig.put("redirectUri", facebookConfig.getRedirectUri());

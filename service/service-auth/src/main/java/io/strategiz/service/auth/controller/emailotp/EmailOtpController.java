@@ -1,6 +1,7 @@
 package io.strategiz.service.auth.controller.emailotp;
 
-import io.strategiz.service.auth.service.emailotp.EmailOtpService;
+import io.strategiz.service.auth.service.emailotp.EmailOtpAuthenticationService;
+import io.strategiz.service.auth.service.emailotp.EmailOtpRegistrationService;
 import io.strategiz.service.auth.model.emailotp.EmailOtpRequest;
 import io.strategiz.service.auth.model.emailotp.EmailOtpVerificationRequest;
 import io.strategiz.service.auth.exception.AuthErrorDetails;
@@ -19,16 +20,20 @@ import java.util.Map;
  * Handles sending and verifying email-based one-time passwords.
  * Uses clean architecture - returns resources directly, no wrappers.
  */
-@RestController
-@RequestMapping("/auth/emailotp")
+// Temporarily disabled due to JPA entity issues
+// @RestController
+// @RequestMapping("/auth/emailotp")
 public class EmailOtpController {
 
     private static final Logger log = LoggerFactory.getLogger(EmailOtpController.class);
     
-    private final EmailOtpService emailOtpService;
+    private final EmailOtpAuthenticationService emailOtpAuthService;
+    private final EmailOtpRegistrationService emailOtpRegistrationService;
     
-    public EmailOtpController(EmailOtpService emailOtpService) {
-        this.emailOtpService = emailOtpService;
+    public EmailOtpController(EmailOtpAuthenticationService emailOtpAuthService, 
+                             EmailOtpRegistrationService emailOtpRegistrationService) {
+        this.emailOtpAuthService = emailOtpAuthService;
+        this.emailOtpRegistrationService = emailOtpRegistrationService;
     }
     
     /**
@@ -42,7 +47,7 @@ public class EmailOtpController {
         log.info("Sending OTP to email: {}", request.email());
         
         // Send OTP - let exceptions bubble up
-        boolean sent = emailOtpService.sendOtp(request.email(), request.purpose());
+        boolean sent = emailOtpAuthService.sendOtp(request.email(), request.purpose());
         
         if (!sent) {
             throw new StrategizException(AuthErrorDetails.EMAIL_SEND_FAILED, "service-auth", request.email(), "Unknown error");
@@ -63,7 +68,7 @@ public class EmailOtpController {
         log.info("Verifying OTP for email: {}", request.email());
         
         // Verify OTP - let exceptions bubble up
-        boolean verified = emailOtpService.verifyOtp(request.email(), request.purpose(), request.code());
+        boolean verified = emailOtpAuthService.verifyOtp(request.email(), request.purpose(), request.code());
         
         Map<String, Object> result = Map.of(
             "verified", verified,
@@ -87,7 +92,7 @@ public class EmailOtpController {
         log.info("Checking OTP status for email: {} and purpose: {}", email, purpose);
         
         // Check status - let exceptions bubble up
-        boolean hasPending = emailOtpService.hasPendingOtp(email, purpose);
+        boolean hasPending = emailOtpAuthService.hasPendingOtp(email, purpose);
         
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(hasPending);

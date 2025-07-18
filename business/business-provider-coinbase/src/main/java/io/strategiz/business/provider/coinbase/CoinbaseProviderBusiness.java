@@ -1,5 +1,8 @@
 package io.strategiz.business.provider.coinbase;
 
+import io.strategiz.business.provider.coinbase.model.CoinbaseConnectionResult;
+import io.strategiz.business.provider.coinbase.model.CoinbaseDisconnectionResult;
+import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;

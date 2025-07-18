@@ -1,88 +1,95 @@
 package io.strategiz.data.devices.repository;
 
-import io.strategiz.data.devices.entity.UserDevice;
+import io.strategiz.data.devices.entity.UserDeviceEntity;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for users/{userId}/devices subcollection
+ * Spring Data repository for users/{userId}/devices subcollection
  */
-public interface UserDeviceRepository {
+@Repository
+public interface UserDeviceRepository extends CrudRepository<UserDeviceEntity, String> {
+    
+    // ===============================
+    // Spring Data Query Methods
+    // ===============================
     
     /**
-     * Register device for user
+     * Find devices by agent ID
      */
-    UserDevice registerDevice(String userId, UserDevice device);
+    Optional<UserDeviceEntity> findByAgentId(String agentId);
     
     /**
-     * Get all devices for user
+     * Find devices by name
      */
-    List<UserDevice> findByUserId(String userId);
+    List<UserDeviceEntity> findByDeviceName(String deviceName);
     
     /**
-     * Get device by ID
+     * Find devices by name (case insensitive)
      */
-    Optional<UserDevice> findByUserIdAndDeviceId(String userId, String deviceId);
+    List<UserDeviceEntity> findByDeviceNameIgnoreCase(String deviceName);
     
     /**
-     * Find device by agent ID
+     * Find trusted devices
      */
-    Optional<UserDevice> findByUserIdAndAgentId(String userId, String agentId);
+    List<UserDeviceEntity> findByTrustedTrue();
     
     /**
-     * Update device
+     * Find untrusted devices
      */
-    UserDevice updateDevice(String userId, String deviceId, UserDevice device);
+    List<UserDeviceEntity> findByTrustedFalse();
     
     /**
-     * Update last login
+     * Find devices by platform type
      */
-    void updateLastLogin(String userId, String deviceId, Instant lastLoginAt);
+    List<UserDeviceEntity> findByPlatformType(String platformType);
     
     /**
-     * Update device location and IP
+     * Find devices by platform OS
      */
-    void updateLocationAndIp(String userId, String deviceId, String location, String ipAddress);
+    List<UserDeviceEntity> findByPlatformOs(String os);
     
     /**
-     * Mark device as trusted
+     * Find devices with push tokens
      */
-    void markAsTrusted(String userId, String deviceId);
+    List<UserDeviceEntity> findByPushTokenIsNotNull();
     
     /**
-     * Mark device as untrusted
+     * Find devices without push tokens
      */
-    void markAsUntrusted(String userId, String deviceId);
+    List<UserDeviceEntity> findByPushTokenIsNull();
     
     /**
-     * Update push token
+     * Find device by push token
      */
-    void updatePushToken(String userId, String deviceId, String pushToken);
+    Optional<UserDeviceEntity> findByPushToken(String pushToken);
     
     /**
-     * Remove device
+     * Check if agent ID exists
      */
-    void removeDevice(String userId, String deviceId);
+    boolean existsByAgentId(String agentId);
     
     /**
-     * Get trusted devices
+     * Count trusted devices
      */
-    List<UserDevice> findTrustedDevices(String userId);
+    long countByTrustedTrue();
     
     /**
-     * Get devices by platform type
+     * Count devices by platform type
      */
-    List<UserDevice> findByUserIdAndPlatformType(String userId, String platformType);
+    long countByPlatformType(String platformType);
     
     /**
-     * Count devices for user
+     * Find devices ordered by last login
      */
-    long countByUserId(String userId);
+    List<UserDeviceEntity> findAllByOrderByLastLoginAtDesc();
     
     /**
-     * Get recent devices (last 30 days)
+     * Find devices by last login after date
      */
-    List<UserDevice> findRecentDevices(String userId, Instant since);
+    List<UserDeviceEntity> findByLastLoginAtAfter(Instant since);
 }

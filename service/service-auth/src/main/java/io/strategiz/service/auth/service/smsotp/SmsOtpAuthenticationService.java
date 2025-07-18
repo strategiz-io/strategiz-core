@@ -1,0 +1,315 @@
+package io.strategiz.service.auth.service.smsotp;
+
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
+import io.strategiz.service.auth.config.SmsOtpConfig;
+import io.strategiz.client.firebasesms.FirebaseSmsClient;
+import io.strategiz.data.auth.model.smsotp.SmsOtpAuthenticationMethod;
+import io.strategiz.data.auth.model.smsotp.SmsOtpSession;
+import io.strategiz.data.auth.repository.smsotp.SmsOtpAuthenticationMethodRepository;
+import io.strategiz.data.auth.repository.smsotp.SmsOtpSessionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * SMS OTP Authentication Service
+ * 
+ * Handles SMS OTP authentication for user login/signin.
+ * This service sends OTP codes to verified phone numbers and verifies them for authentication.
+ * 
+ * Features:
+ * - Rate limiting (1 SMS per minute per phone number)
+ * - Attempt limiting (5 verification attempts per OTP)
+ * - Automatic expiration (5 minutes)
+ * - Security features (IP tracking, attempt counting)
+ * - Temporary session storage for OTP codes
+ * 
+ * Use this during user signin/authentication flows.
+ */
+@Service
+public class SmsOtpAuthenticationService {
+    
+    private static final Logger log = LoggerFactory.getLogger(SmsOtpAuthenticationService.class);
+    
+    @Autowired
+    private SmsOtpConfig smsOtpConfig;
+    
+    @Autowired
+    private FirebaseSmsClient firebaseSmsClient;
+    
+    @Autowired
+    private SmsOtpAuthenticationMethodRepository smsOtpAuthMethodRepository;
+    
+    @Autowired
+    private SmsOtpSessionRepository smsOtpSessionRepository;
+    
+    public boolean sendOtp(String phoneNumber, String ipAddress, String countryCode) {
+        log.info("Sending authentication SMS OTP to phone: {} from IP: {} country: {}", 
+                maskPhoneNumber(phoneNumber), ipAddress, countryCode);
+        
+        // Check if phone number is registered and verified
+        if (!smsOtpAuthMethodRepository.existsByPhoneNumberAndVerified(phoneNumber, true)) {
+            throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER, 
+                    "Phone number is not registered or not verified for authentication");
+        }
+        
+        // Check rate limiting
+        if (!canSendOtp(phoneNumber)) {
+            throw new StrategizException(AuthErrors.OTP_RATE_LIMITED, 
+                    "Too many SMS requests. Please wait before requesting another OTP.");
+        }
+        
+        // Check for existing active session
+        Optional<SmsOtpSession> existingSession = smsOtpSessionRepository
+                .findByPhoneNumberAndVerifiedFalse(phoneNumber)
+                .map(this::convertSessionEntityToModel);
+        
+        if (existingSession.isPresent() && existingSession.get().isValid()) {
+            throw new StrategizException(AuthErrors.OTP_RATE_LIMITED, 
+                    "An active OTP session already exists. Please use the existing OTP or wait for it to expire.");
+        }
+        
+        // Generate OTP code and session ID
+        String otpCode = generateOtpCode();
+        String sessionId = generateSessionId();
+        
+        // Create OTP session
+        SmsOtpSession otpSession = new SmsOtpSession(
+            sessionId, phoneNumber, otpCode, ipAddress, countryCode, 
+            smsOtpConfig.getOtpExpiryMinutes()
+        );
+        
+        // Send SMS via Firebase
+        boolean smsSent = firebaseSmsClient.sendSms(phoneNumber, otpCode, countryCode);
+        
+        if (!smsSent) {
+            throw new StrategizException(AuthErrors.SMS_SEND_FAILED, 
+                    "Failed to send SMS OTP. Please try again.");
+        }
+        
+        // Save OTP session
+        smsOtpSessionRepository.save(convertSessionModelToEntity(otpSession));
+        
+        log.info("Authentication SMS OTP sent successfully to phone: {}", maskPhoneNumber(phoneNumber));
+        return true;
+    }
+    
+    public boolean sendOtp(String phoneNumber, String ipAddress) {
+        String countryCode = detectCountryFromPhoneNumber(phoneNumber);
+        return sendOtp(phoneNumber, ipAddress, countryCode);
+    }
+    
+    public boolean verifyOtp(String phoneNumber, String otpCode) {
+        log.info("Verifying authentication SMS OTP for phone: {}", maskPhoneNumber(phoneNumber));
+        
+        // Find active OTP session
+        Optional<SmsOtpSession> sessionOpt = smsOtpSessionRepository
+                .findByPhoneNumberAndVerifiedFalse(phoneNumber)
+                .map(this::convertSessionEntityToModel);
+        
+        if (sessionOpt.isEmpty()) {
+            throw new StrategizException(AuthErrors.OTP_NOT_FOUND, 
+                    "No active OTP session found for this phone number.");
+        }
+        
+        SmsOtpSession session = sessionOpt.get();
+        
+        // Check if already verified
+        if (session.isVerified()) {
+            throw new StrategizException(AuthErrors.OTP_ALREADY_USED, 
+                    "OTP has already been verified.");
+        }
+        
+        // Check if expired
+        if (session.isExpired()) {
+            smsOtpSessionRepository.deleteById(session.getSessionId());
+            throw new StrategizException(AuthErrors.OTP_EXPIRED, 
+                    "OTP has expired. Please request a new one.");
+        }
+        
+        // Check max attempts
+        if (session.hasExceededMaxAttempts(smsOtpConfig.getMaxVerificationAttempts())) {
+            smsOtpSessionRepository.deleteById(session.getSessionId());
+            throw new StrategizException(AuthErrors.OTP_MAX_ATTEMPTS_EXCEEDED, 
+                    "Maximum verification attempts exceeded. Please request a new OTP.");
+        }
+        
+        // Increment attempt counter
+        session.incrementAttempts();
+        
+        // Verify OTP code
+        boolean isValid = otpCode.equals(session.getOtpCode());
+        
+        if (isValid) {
+            session.markVerified();
+            smsOtpSessionRepository.save(convertSessionModelToEntity(session));
+            log.info("Authentication SMS OTP verified successfully for phone: {}", maskPhoneNumber(phoneNumber));
+            return true;
+        } else {
+            // Save updated attempt count
+            smsOtpSessionRepository.save(convertSessionModelToEntity(session));
+            log.warn("Invalid SMS OTP attempt for phone: {} (attempt {}/{})", 
+                    maskPhoneNumber(phoneNumber), session.getVerificationAttempts(), 
+                    smsOtpConfig.getMaxVerificationAttempts());
+            return false;
+        }
+    }
+    
+    public String getOtpStatus(String phoneNumber) {
+        Optional<SmsOtpSession> sessionOpt = smsOtpSessionRepository
+                .findByPhoneNumberAndVerifiedFalse(phoneNumber)
+                .map(this::convertSessionEntityToModel);
+        
+        if (sessionOpt.isEmpty()) {
+            return "NOT_FOUND";
+        }
+        
+        SmsOtpSession session = sessionOpt.get();
+        
+        if (session.isVerified()) {
+            return "VERIFIED";
+        }
+        
+        if (session.isExpired()) {
+            smsOtpSessionRepository.deleteById(session.getSessionId());
+            return "EXPIRED";
+        }
+        
+        if (session.hasExceededMaxAttempts(smsOtpConfig.getMaxVerificationAttempts())) {
+            smsOtpSessionRepository.deleteById(session.getSessionId());
+            return "MAX_ATTEMPTS_EXCEEDED";
+        }
+        
+        return "PENDING";
+    }
+    
+    public boolean hasValidOtp(String phoneNumber) {
+        String status = getOtpStatus(phoneNumber);
+        return "PENDING".equals(status) || "VERIFIED".equals(status);
+    }
+    
+    public boolean invalidateOtp(String phoneNumber) {
+        Optional<SmsOtpSession> sessionOpt = smsOtpSessionRepository
+                .findByPhoneNumberAndVerifiedFalse(phoneNumber)
+                .map(this::convertSessionEntityToModel);
+        
+        if (sessionOpt.isPresent()) {
+            smsOtpSessionRepository.deleteById(sessionOpt.get().getSessionId());
+            return true;
+        }
+        return false;
+    }
+    
+    public int getRemainingAttempts(String phoneNumber) {
+        Optional<SmsOtpSession> sessionOpt = smsOtpSessionRepository
+                .findByPhoneNumberAndVerifiedFalse(phoneNumber)
+                .map(this::convertSessionEntityToModel);
+        
+        if (sessionOpt.isEmpty()) {
+            return 0;
+        }
+        
+        SmsOtpSession session = sessionOpt.get();
+        return session.getRemainingAttempts(smsOtpConfig.getMaxVerificationAttempts());
+    }
+    
+    public boolean canSendOtp(String phoneNumber) {
+        Instant rateLimitTime = Instant.now().minusSeconds(smsOtpConfig.getRateLimitMinutes() * 60L);
+        return !smsOtpSessionRepository.existsByPhoneNumberAndCreatedAtAfter(phoneNumber, rateLimitTime);
+    }
+    
+    /**
+     * Generate a random session ID for OTP session
+     */
+    private String generateSessionId() {
+        return UUID.randomUUID().toString();
+    }
+    
+    /**
+     * Generate a random OTP code with configured length
+     */
+    private String generateOtpCode() {
+        int otpLength = smsOtpConfig.getOtpLength();
+        int min = (int) Math.pow(10, otpLength - 1);
+        int max = (int) Math.pow(10, otpLength) - 1;
+        int otpCode = ThreadLocalRandom.current().nextInt(min, max + 1);
+        return String.valueOf(otpCode);
+    }
+    
+    /**
+     * Convert SMS OTP session entity to domain model
+     */
+    private SmsOtpSession convertSessionEntityToModel(io.strategiz.data.auth.entity.smsotp.SmsOtpSessionEntity entity) {
+        SmsOtpSession model = new SmsOtpSession();
+        model.setSessionId(entity.getSessionId());
+        model.setPhoneNumber(entity.getPhoneNumber());
+        model.setOtpCode(entity.getOtpCode());
+        model.setIpAddress(entity.getIpAddress());
+        model.setCountryCode(entity.getCountryCode());
+        model.setCreatedAt(entity.getCreatedAt());
+        model.setExpiresAt(entity.getExpiresAt());
+        model.setVerificationAttempts(entity.getVerificationAttempts());
+        model.setVerified(entity.isVerified());
+        model.setUserId(entity.getUserId());
+        return model;
+    }
+    
+    /**
+     * Convert SMS OTP session domain model to entity
+     */
+    private io.strategiz.data.auth.entity.smsotp.SmsOtpSessionEntity convertSessionModelToEntity(SmsOtpSession model) {
+        io.strategiz.data.auth.entity.smsotp.SmsOtpSessionEntity entity = 
+                new io.strategiz.data.auth.entity.smsotp.SmsOtpSessionEntity();
+        entity.setSessionId(model.getSessionId());
+        entity.setPhoneNumber(model.getPhoneNumber());
+        entity.setOtpCode(model.getOtpCode());
+        entity.setIpAddress(model.getIpAddress());
+        entity.setCountryCode(model.getCountryCode());
+        entity.setCreatedAt(model.getCreatedAt());
+        entity.setExpiresAt(model.getExpiresAt());
+        entity.setVerificationAttempts(model.getVerificationAttempts());
+        entity.setVerified(model.isVerified());
+        entity.setUserId(model.getUserId());
+        return entity;
+    }
+    
+    /**
+     * Detect country code from phone number prefix
+     */
+    private String detectCountryFromPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) return "US";
+        
+        if (phoneNumber.startsWith("+1")) return "US"; // US/Canada
+        if (phoneNumber.startsWith("+44")) return "GB"; // UK
+        if (phoneNumber.startsWith("+33")) return "FR"; // France
+        if (phoneNumber.startsWith("+49")) return "DE"; // Germany
+        if (phoneNumber.startsWith("+81")) return "JP"; // Japan
+        if (phoneNumber.startsWith("+86")) return "CN"; // China
+        if (phoneNumber.startsWith("+91")) return "IN"; // India
+        if (phoneNumber.startsWith("+61")) return "AU"; // Australia
+        if (phoneNumber.startsWith("+55")) return "BR"; // Brazil
+        
+        return "US"; // Default to US
+    }
+    
+    /**
+     * Mask phone number for security in logs
+     */
+    private String maskPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.length() < 8) {
+            return "***-***-****";
+        }
+        
+        String countryCode = phoneNumber.substring(0, phoneNumber.length() - 7);
+        String lastFour = phoneNumber.substring(phoneNumber.length() - 4);
+        return countryCode + "***" + lastFour;
+    }
+    
+}

@@ -57,7 +57,7 @@ public enum AuthErrorDetails implements ErrorDetails {
     EMAIL_SEND_FAILED(HttpStatus.BAD_GATEWAY, "email-send-failed"),
     OTP_SEND_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "otp-send-rate-limited"),
     
-    // User errors
+    // UserEntity errors
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "user-not-found"),
     USER_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "user-already-exists"),
     

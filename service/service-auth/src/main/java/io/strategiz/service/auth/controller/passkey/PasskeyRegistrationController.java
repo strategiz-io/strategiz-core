@@ -10,7 +10,7 @@ import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.Regi
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationCompletion;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationRequest;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationResult;
-import io.strategiz.service.auth.service.emailotp.EmailOtpService;
+import io.strategiz.service.auth.service.emailotp.EmailOtpAuthenticationService;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.base.controller.BaseController;
 import org.slf4j.Logger;
@@ -27,19 +27,19 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Controller for Step 2 of the signup process: Passkey Registration
+ * Controller for passkey registration using resource-based REST endpoints
  * 
- * This controller handles passkey (WebAuthn) authentication method setup.
- * It expects a temporary token from Step 1 (profile creation) and validates
- * the user's identity before proceeding with passkey registration.
+ * This controller handles passkey (WebAuthn) registration operations following
+ * REST best practices with plural resource naming and proper HTTP verbs.
  * 
- * After successful passkey setup, users can proceed to Step 3 (provider integration)
- * or complete the signup process.
+ * Endpoints:
+ * - POST /auth/passkeys/registrations - Begin registration (create challenge)
+ * - PUT /auth/passkeys/registrations/{id} - Complete registration (submit credential)
  * 
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/signup/passkey")
+@RequestMapping("/auth/passkeys")
 public class PasskeyRegistrationController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationController.class);
@@ -48,7 +48,7 @@ public class PasskeyRegistrationController extends BaseController {
     private PasskeyRegistrationService registrationService;
     
     @Autowired
-    private EmailOtpService emailOtpService;
+    private EmailOtpAuthenticationService emailOtpAuthenticationService;
     
     @Autowired
     private SessionAuthBusiness sessionAuthBusiness;
@@ -100,12 +100,14 @@ public class PasskeyRegistrationController extends BaseController {
     }
 
     /**
-     * Begin passkey registration process
+     * Begin passkey registration process - Create registration challenge
+     * 
+     * POST /auth/passkeys/registrations
      * 
      * @param request Registration request with user details and temporary token
      * @return Clean registration challenge response - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/begin")
+    @PostMapping("/registrations")
     public ResponseEntity<RegistrationChallenge> beginRegistration(
             @RequestBody PasskeyRegistrationRequest request) {
         
@@ -132,13 +134,17 @@ public class PasskeyRegistrationController extends BaseController {
     }
 
     /**
-     * Complete passkey registration process
+     * Complete passkey registration process - Submit credential data
      * 
+     * PUT /auth/passkeys/registrations/{id}
+     * 
+     * @param registrationId The registration challenge ID
      * @param request Completion request with attestation data
      * @return Clean registration result with tokens - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @PostMapping("/complete")
+    @PutMapping("/registrations/{registrationId}")
     public ResponseEntity<AuthTokens> completeRegistration(
+            @PathVariable String registrationId,
             @RequestBody PasskeyRegistrationCompletionRequest request) {
         
         logRequest("completeRegistration", request.email());
@@ -154,7 +160,7 @@ public class PasskeyRegistrationController extends BaseController {
             request.clientDataJSON(),
             request.deviceId(),
             "", // Device name not provided in request
-            ""  // User agent not provided in request
+            ""  // UserEntity agent not provided in request
         );
         
         // Complete registration - let exceptions bubble up
@@ -176,11 +182,13 @@ public class PasskeyRegistrationController extends BaseController {
     /**
      * Get registration options for manual WebAuthn configuration
      * 
+     * GET /auth/passkeys/registrations/options
+     * 
      * @param temporaryToken Token from Step 1
      * @param email User's email address
      * @return Clean registration options - no wrapper, let GlobalExceptionHandler handle errors
      */
-    @GetMapping("/options")
+    @GetMapping("/registrations/options")
     public ResponseEntity<Map<String, Object>> getRegistrationOptions(
             @RequestParam String temporaryToken,
             @RequestParam String email) {

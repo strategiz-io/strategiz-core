@@ -21,6 +21,7 @@
         <module>service-dashboard</module>
         <module>service-device</module>
         <module>service-exchange</module>
+        <module>service-marketing</module>
         <module>service-marketplace</module>
         <module>service-monitoring</module>
         <module>service-portfolio</module>

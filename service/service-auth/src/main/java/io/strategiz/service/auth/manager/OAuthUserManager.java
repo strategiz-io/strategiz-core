@@ -1,12 +1,10 @@
 package io.strategiz.service.auth.manager;
 
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
-import io.strategiz.service.auth.model.signup.SignupRequest;
-import io.strategiz.service.auth.model.signup.SignupResponse;
+import io.strategiz.service.auth.model.signup.OAuthSignupRequest;
+import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
 import io.strategiz.service.auth.service.signup.SignupService;
-import io.strategiz.service.auth.exception.AuthErrorDetails;
-import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -17,6 +15,7 @@ import java.util.Optional;
 
 /**
  * Manager for OAuth user operations (creation, lookup)
+ * Specifically handles OAuth signup flows
  */
 @Component
 public class OAuthUserManager {
@@ -34,7 +33,7 @@ public class OAuthUserManager {
     /**
      * Find existing user by email
      */
-    public Optional<User> findUserByEmail(String email) {
+    public Optional<UserEntity> findUserByEmail(String email) {
         return userRepository.getUserByEmail(email);
     }
 
@@ -46,22 +45,23 @@ public class OAuthUserManager {
     }
 
     /**
-     * Create new user through signup process
+     * Create new user through OAuth signup process
      */
-    public SignupResponse createOAuthUser(String email, String name, String pictureUrl, 
-                                          String authMethod, String providerId) {
+    public OAuthSignupResponse createOAuthUser(String email, String name, String pictureUrl, 
+                                          String authMethod, String providerId,
+                                          String deviceId, String ipAddress) {
         try {
-            SignupRequest signupRequest = buildSignupRequest(email, name, pictureUrl, authMethod, providerId);
-            return signupService.processSignup(signupRequest);
+            OAuthSignupRequest signupRequest = buildSignupRequest(email, name, pictureUrl, authMethod, providerId);
+            return signupService.processSignup(signupRequest, deviceId, ipAddress);
         } catch (Exception e) {
             logger.error("Error during OAuth user creation", e);
-            throw new StrategizException(AuthErrorDetails.OAUTH_USER_INFO_FAILED, "service-auth", e, providerId, e.getMessage());
+            throw e;
         }
     }
 
-    private SignupRequest buildSignupRequest(String email, String name, String pictureUrl, 
+    private OAuthSignupRequest buildSignupRequest(String email, String name, String pictureUrl, 
                                              String authMethod, String providerId) {
-        SignupRequest signupRequest = new SignupRequest();
+        OAuthSignupRequest signupRequest = new OAuthSignupRequest();
         signupRequest.setEmail(email);
         signupRequest.setName(name);
         signupRequest.setPhotoURL(pictureUrl);
@@ -74,4 +74,4 @@ public class OAuthUserManager {
         
         return signupRequest;
     }
-} 
+}

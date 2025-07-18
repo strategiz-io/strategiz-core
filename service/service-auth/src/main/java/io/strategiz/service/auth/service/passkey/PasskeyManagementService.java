@@ -2,6 +2,7 @@ package io.strategiz.service.auth.service.passkey;
 
 import io.strategiz.data.auth.model.passkey.PasskeyCredential;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
+import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
 import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +35,12 @@ public class PasskeyManagementService extends BaseService {
     private static final Logger logger = LoggerFactory.getLogger(PasskeyManagementService.class);
     
     private final PasskeyCredentialRepository credentialRepository;
+    private final PasskeyCredentialConverter credentialConverter;
     
-    public PasskeyManagementService(PasskeyCredentialRepository credentialRepository) {
+    public PasskeyManagementService(PasskeyCredentialRepository credentialRepository, 
+                                  PasskeyCredentialConverter credentialConverter) {
         this.credentialRepository = credentialRepository;
+        this.credentialConverter = credentialConverter;
         
         // Ensure we're using real passkey management, not mock data
         ensureRealApiData("PasskeyManagementService");
@@ -50,11 +54,13 @@ public class PasskeyManagementService extends BaseService {
      * The passkeys are returned with basic information about each credential including
      * its ID, name, registration time, and last used time.
      * 
-     * @param userId User ID to retrieve passkeys for
+     * @param userId UserEntity ID to retrieve passkeys for
      * @return List of passkey details for the user (empty list if none found)
      */
     public List<PasskeyDetails> getPasskeysForUser(String userId) {
-        List<PasskeyCredential> credentials = credentialRepository.findByUserId(userId);
+        List<PasskeyCredential> credentials = credentialConverter.toDomainModels(
+            credentialRepository.findByUserId(userId)
+        );
         return credentials.stream()
             .map(this::convertToDetails)
             .collect(Collectors.toList());
@@ -74,7 +80,7 @@ public class PasskeyManagementService extends BaseService {
      *   <li>Delete the credential if both checks pass</li>
      * </ol>
      * 
-     * @param userId User ID of the credential owner
+     * @param userId UserEntity ID of the credential owner
      * @param credentialId Credential ID to delete
      * @return true if credential was found and deleted, false if not found or not owned by user
      */
@@ -82,7 +88,9 @@ public class PasskeyManagementService extends BaseService {
     public boolean deletePasskey(String userId, String credentialId) {
         logger.debug("Attempting to delete passkey credential: {} for user: {}", credentialId, userId);
         
-        Optional<PasskeyCredential> credentialOpt = credentialRepository.findByCredentialId(credentialId);
+        Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
+            credentialRepository.findByCredentialId(credentialId)
+        );
         
         if (credentialOpt.isEmpty()) {
             logger.warn("Passkey deletion failed: Credential not found: {}", credentialId);
@@ -93,13 +101,13 @@ public class PasskeyManagementService extends BaseService {
         
         // Verify user owns the credential
         if (!credential.getUserId().equals(userId)) {
-            logger.warn("Passkey deletion failed: User {} attempted to delete credential {} belonging to user {}", 
+            logger.warn("Passkey deletion failed: UserEntity {} attempted to delete credential {} belonging to user {}", 
                     userId, credentialId, credential.getUserId());
             return false;
         }
         
         logger.info("Deleting passkey credential: {} for user: {}", credentialId, userId);
-        credentialRepository.delete(credential);
+        credentialRepository.delete(credentialConverter.toEntity(credential));
         return true;
     }
     

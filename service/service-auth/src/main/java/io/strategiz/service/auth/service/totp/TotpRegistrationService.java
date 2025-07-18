@@ -1,8 +1,10 @@
 package io.strategiz.service.auth.service.totp;
 
-import io.strategiz.data.user.model.TotpAuthenticationMethod;
-import io.strategiz.data.user.model.User;
-import io.strategiz.data.user.model.AuthenticationMethod;
+import java.time.Instant;
+import io.strategiz.data.auth.entity.totp.TotpAuthenticationMethodEntity;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
@@ -19,8 +21,13 @@ import java.util.Optional;
  */
 @Service
 public class TotpRegistrationService extends BaseTotpService {
-    public TotpRegistrationService(UserRepository userRepository) {
-        super(userRepository);
+    
+    private final AuthenticationMethodRepository authMethodRepository;
+    
+    public TotpRegistrationService(UserRepository userRepository, 
+                                   AuthenticationMethodRepository authMethodRepository) {
+        super(userRepository, authMethodRepository);
+        this.authMethodRepository = authMethodRepository;
     }
     
     /**
@@ -29,41 +36,37 @@ public class TotpRegistrationService extends BaseTotpService {
      * @return the generated QR code as a data URI
      */
     public String generateTotpSecret(String username) {
-        Optional<User> userOpt = userRepository.findById(username);
+        Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
             throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
         }
-        User user = userOpt.get();
+        UserEntity user = userOpt.get();
         
         // Generate a new TOTP secret
         String secret = secretGenerator.generate();
         
         // Find existing TOTP method or create a new one
-        TotpAuthenticationMethod totpAuth = null;
-        if (user.getAuthenticationMethods() != null) {
-            for (AuthenticationMethod method : user.getAuthenticationMethods()) {
-                if (method instanceof TotpAuthenticationMethod && "TOTP".equals(method.getType())) {
-                    totpAuth = (TotpAuthenticationMethod) method;
+        List<AuthenticationMethodEntity> authMethods = authMethodRepository.findByUserId(user.getId());
+        TotpAuthenticationMethodEntity totpAuth = null;
+        if (authMethods != null) {
+            for (AuthenticationMethodEntity method : authMethods) {
+                if (method instanceof TotpAuthenticationMethodEntity && "TOTP".equals(method.getAuthenticationMethodType())) {
+                    totpAuth = (TotpAuthenticationMethodEntity) method;
                     break;
                 }
             }
         }
         
         if (totpAuth == null) {
-            totpAuth = new TotpAuthenticationMethod();
-            totpAuth.setType("TOTP");
+            totpAuth = new TotpAuthenticationMethodEntity();
+            totpAuth.setUserId(user.getId());
             totpAuth.setName("Authenticator App");
-            
-            if (user.getAuthenticationMethods() == null) {
-                user.setAuthenticationMethods(new ArrayList<>());
-            }
-            user.addAuthenticationMethod(totpAuth);
         }
         
         // Mark as not verified yet
         totpAuth.setSecret(secret);
-        totpAuth.setLastVerifiedAt(null); // Not verified yet
-        userRepository.save(user);
+        totpAuth.setVerified(false);
+        authMethodRepository.save(totpAuth);
         
         // Generate the QR code
         return generateQrCodeUri(username, secret);
@@ -83,23 +86,23 @@ public class TotpRegistrationService extends BaseTotpService {
         }
         
         // Get the user and update the TOTP authentication method
-        Optional<User> userOpt = userRepository.findById(username);
+        Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
             log.warn("User not found: {}", username);
             return false;
         }
         
-        User user = userOpt.get();
-        TotpAuthenticationMethod totpAuth = findTotpAuthMethod(user);
+        UserEntity user = userOpt.get();
+        TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
         
         if (totpAuth == null) {
             log.warn("TOTP auth method not found for user: {}", username);
             return false;
         }
         
-        // Mark the TOTP as enabled by setting lastVerifiedAt
-        totpAuth.setLastVerifiedAt(new Date());
-        userRepository.save(user);
+        // Mark the TOTP as verified and enabled
+        totpAuth.markAsVerified();
+        authMethodRepository.save(totpAuth);
         
         log.info("TOTP enabled for user {} with session {}", username, sessionToken);
         return true;
@@ -110,25 +113,18 @@ public class TotpRegistrationService extends BaseTotpService {
      * @param username the username
      * @return true if TOTP is set up, false otherwise
      */
-
-    
-    /**
-     * Check if TOTP is set up for a user
-     * @param username the username
-     * @return true if TOTP is set up, false otherwise
-     */
     public boolean isTotpSetUp(String username) {
-        Optional<User> userOpt = userRepository.findById(username);
+        Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
             return false;
         }
-        User user = userOpt.get();
+        UserEntity user = userOpt.get();
         
         // Find TOTP authentication method
-        TotpAuthenticationMethod totpAuth = findTotpAuthMethod(user);
+        TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
         
-        // Consider verified if last verification time exists
-        return totpAuth != null && totpAuth.getLastVerifiedAt() != null;
+        // Check if TOTP is configured and verified
+        return totpAuth != null && totpAuth.isVerified();
     }
     
     /**
@@ -136,23 +132,22 @@ public class TotpRegistrationService extends BaseTotpService {
      * @param username the username
      */
     public void disableTotp(String username) {
-        Optional<User> userOpt = userRepository.findById(username);
+        Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
             log.warn("User not found: {}", username);
             return;
         }
-        User user = userOpt.get();
+        UserEntity user = userOpt.get();
         
         // Remove TOTP authentication
-        if (user.getAuthenticationMethods() != null) {
-            List<AuthenticationMethod> updatedMethods = new ArrayList<>();
-            for (AuthenticationMethod method : user.getAuthenticationMethods()) {
-                if (!(method instanceof TotpAuthenticationMethod && "TOTP".equals(method.getType()))) {
-                    updatedMethods.add(method);  // Keep all non-TOTP methods
+        List<AuthenticationMethodEntity> authMethods = authMethodRepository.findByUserId(user.getId());
+        if (authMethods != null) {
+            for (AuthenticationMethodEntity method : authMethods) {
+                if (method instanceof TotpAuthenticationMethodEntity && "TOTP".equals(method.getAuthenticationMethodType())) {
+                    authMethodRepository.delete(method);
+                    break;
                 }
             }
-            user.setAuthenticationMethods(updatedMethods);
-            userRepository.save(user);
             log.info("TOTP disabled for user {}", username);
         }
     }

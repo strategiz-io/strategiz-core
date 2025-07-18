@@ -245,7 +245,11 @@ public class VaultSecretManager implements SecretManager {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         
-        String token = environment.getProperty("VAULT_TOKEN", "root-token");
+        // Get token from environment or Spring Cloud Vault configuration
+        String token = environment.getProperty("VAULT_TOKEN");
+        if (token == null) {
+            token = environment.getProperty("spring.cloud.vault.token", "root-token");
+        }
         headers.set("X-Vault-Token", token);
         
         return headers;
@@ -259,11 +263,11 @@ public class VaultSecretManager implements SecretManager {
         String[] parts = key.split("\\.");
         
         if (parts.length <= 1) {
-            return properties.getSecretsPath() + "/data/" + key;
+            return properties.getSecretsPath() + "/data/strategiz/" + key;
         }
         
         // Skip the last part which will be the field name
-        StringBuilder path = new StringBuilder(properties.getSecretsPath() + "/data");
+        StringBuilder path = new StringBuilder(properties.getSecretsPath() + "/data/strategiz");
         for (int i = 0; i < parts.length - 1; i++) {
             path.append("/").append(parts[i]);
         }

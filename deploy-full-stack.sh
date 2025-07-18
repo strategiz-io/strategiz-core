@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# Full Stack Deployment Script for Strategiz
+# This script deploys both backend (to Cloud Run) and frontend (to Firebase)
+
+set -e  # Exit on error
+
+echo "===== Strategiz Full Stack Deployment ====="
+echo ""
+
+# Configuration
+PROJECT_ID="strategiz-io"
+REGION="us-central1"
+SERVICE_NAME="strategiz-api"
+IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
+FRONTEND_DIR="../strategiz-ui"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Step 1: Check prerequisites
+echo -e "${BLUE}[1/7] Checking prerequisites...${NC}"
+
+# Check if gcloud is installed
+if ! command -v gcloud &> /dev/null; then
+    echo -e "${RED}Error: gcloud CLI is not installed${NC}"
+    echo "Please install Google Cloud SDK: https://cloud.google.com/sdk/docs/install"
+    exit 1
+fi
+
+# Check if firebase is installed
+if ! command -v firebase &> /dev/null; then
+    echo -e "${RED}Error: firebase CLI is not installed${NC}"
+    echo "Please install Firebase CLI: npm install -g firebase-tools"
+    exit 1
+fi
+
+# Check if Docker is installed
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}Error: Docker is not installed${NC}"
+    echo "Please install Docker: https://docs.docker.com/get-docker/"
+    exit 1
+fi
+
+# Check if frontend directory exists
+if [ ! -d "$FRONTEND_DIR" ]; then
+    echo -e "${RED}Error: Frontend directory not found at $FRONTEND_DIR${NC}"
+    exit 1
+fi
+
+# Step 2: Build backend
+echo -e "${BLUE}[2/7] Building backend JAR...${NC}"
+mvn clean package -DskipTests
+
+# Step 3: Build Docker image
+echo -e "${BLUE}[3/7] Building Docker image...${NC}"
+docker build -t $IMAGE_NAME .
+
+# Step 4: Configure Docker for GCR
+echo -e "${BLUE}[4/7] Configuring Docker for Google Container Registry...${NC}"
+gcloud auth configure-docker -q
+
+# Step 5: Push Docker image
+echo -e "${BLUE}[5/7] Pushing Docker image to GCR...${NC}"
+docker push $IMAGE_NAME
+
+# Step 6: Deploy to Cloud Run
+echo -e "${BLUE}[6/7] Deploying backend to Cloud Run...${NC}"
+
+# Get Vault token if available
+VAULT_TOKEN=${VAULT_TOKEN:-""}
+VAULT_ADDR=${VAULT_ADDR:-"http://127.0.0.1:8200"}
+
+gcloud run deploy $SERVICE_NAME \
+    --image $IMAGE_NAME \
+    --platform managed \
+    --region $REGION \
+    --allow-unauthenticated \
+    --memory 1Gi \
+    --cpu 2 \
+    --min-instances 0 \
+    --max-instances 10 \
+    --port 8080 \
+    --set-env-vars "SPRING_PROFILES_ACTIVE=prod,VAULT_TOKEN=$VAULT_TOKEN,VAULT_ADDR=$VAULT_ADDR"
+
+# Get the backend URL
+BACKEND_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)')
+echo -e "${GREEN}Backend deployed to: $BACKEND_URL${NC}"
+
+# Step 7: Deploy frontend to Firebase
+echo -e "${BLUE}[7/7] Deploying frontend to Firebase...${NC}"
+
+# Navigate to frontend directory
+cd $FRONTEND_DIR
+
+# Build frontend with production API URL
+echo "Building frontend with API URL: $BACKEND_URL"
+REACT_APP_API_URL=$BACKEND_URL npm run build
+
+# Deploy to Firebase
+firebase deploy --only hosting --project $PROJECT_ID
+
+# Return to original directory
+cd -
+
+echo ""
+echo -e "${GREEN}===== Deployment Complete! =====${NC}"
+echo -e "Backend URL: ${YELLOW}$BACKEND_URL${NC}"
+echo -e "Frontend URL: ${YELLOW}https://$PROJECT_ID.web.app${NC}"
+echo ""
+echo -e "${YELLOW}Important Notes:${NC}"
+echo "1. Make sure Vault is configured with proper secrets in production"
+echo "2. Update CORS settings if needed for your production domain"
+echo "3. Monitor Cloud Run logs: gcloud logging read \"resource.type=cloud_run_revision\""
+echo "4. The first request may be slow due to cold start (min-instances=0)"

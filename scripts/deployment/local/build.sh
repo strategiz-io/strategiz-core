@@ -31,17 +31,29 @@ echo "Building data-base"
 mvn -f data/data-base/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in data-base" && exit 1
 
-echo "Building data-strategy"
-mvn -f data/data-strategy/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in data-strategy" && exit 1
-
-echo "Building data-user"
-mvn -f data/data-user/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in data-user" && exit 1
-
 echo "Building data-auth"
 mvn -f data/data-auth/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in data-auth" && exit 1
+
+echo "Building data-session"
+mvn -f data/data-session/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-session" && exit 1
+
+echo "Building data-watchlist"
+mvn -f data/data-watchlist/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-watchlist" && exit 1
+
+echo "Building data-providers"
+mvn -f data/data-providers/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-providers" && exit 1
+
+echo "Building data-devices"
+mvn -f data/data-devices/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-devices" && exit 1
+
+echo "Building data-preferences"
+mvn -f data/data-preferences/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-preferences" && exit 1
 
 echo "Building data-exchange"
 mvn -f data/data-exchange/pom.xml clean install -DskipTests
@@ -50,6 +62,14 @@ mvn -f data/data-exchange/pom.xml clean install -DskipTests
 echo "Building data-portfolio"
 mvn -f data/data-portfolio/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in data-portfolio" && exit 1
+
+echo "Building data-strategy"
+mvn -f data/data-strategy/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-strategy" && exit 1
+
+echo "Building data-user"
+mvn -f data/data-user/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-user" && exit 1
 
 echo "Building data-device"
 mvn -f data/data-device/pom.xml clean install -DskipTests
@@ -93,6 +113,10 @@ mvn -f client/client-google/pom.xml clean install -DskipTests
 echo "Building client-facebook"
 mvn -f client/client-facebook/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in client-facebook" && exit 1
+
+echo "Building client-firebase-sms"
+mvn -f client/client-firebase-sms/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in client-firebase-sms" && exit 1
 
 echo "Step 4/6: Building business modules"
 echo "Building business-base"
@@ -167,6 +191,10 @@ echo "Step 6/6: Building API modules"
 echo "Building service-monitoring"
 mvn -f service/service-monitoring/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in service-monitoring" && exit 1
+
+echo "Building service-marketing"
+mvn -f service/service-marketing/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in service-marketing" && exit 1
 
 # api-portfolio has been merged into service-portfolio - removed build step
 

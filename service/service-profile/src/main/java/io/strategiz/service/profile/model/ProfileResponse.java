@@ -1,0 +1,158 @@
+package io.strategiz.service.profile.model;
+
+/**
+ * Response DTO for user profile data - used as service return type
+ */
+public class ProfileResponse {
+    private String userId;
+    private String name;
+    private String email;
+    private String photoURL;
+    private boolean verifiedEmail;
+    private String subscriptionTier;
+    private String tradingMode;
+    private boolean isActive;
+    private long createdAt;
+    private long modifiedAt;
+
+    // Default constructor
+    public ProfileResponse() {
+    }
+
+    // Full constructor
+    public ProfileResponse(String userId, String name, String email, String photoURL,
+                          boolean verifiedEmail, String subscriptionTier, String tradingMode,
+                          boolean isActive, long createdAt, long modifiedAt) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.photoURL = photoURL;
+        this.verifiedEmail = verifiedEmail;
+        this.subscriptionTier = subscriptionTier;
+        this.tradingMode = tradingMode;
+        this.isActive = isActive;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+    }
+
+    // Getters and setters
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhotoURL() {
+        return photoURL;
+    }
+
+    public void setPhotoURL(String photoURL) {
+        this.photoURL = photoURL;
+    }
+
+    public boolean isVerifiedEmail() {
+        return verifiedEmail;
+    }
+
+    public void setVerifiedEmail(boolean verifiedEmail) {
+        this.verifiedEmail = verifiedEmail;
+    }
+
+    public String getSubscriptionTier() {
+        return subscriptionTier;
+    }
+
+    public void setSubscriptionTier(String subscriptionTier) {
+        this.subscriptionTier = subscriptionTier;
+    }
+
+    public String getTradingMode() {
+        return tradingMode;
+    }
+
+    public void setTradingMode(String tradingMode) {
+        this.tradingMode = tradingMode;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getModifiedAt() {
+        return modifiedAt;
+    }
+
+    public void setModifiedAt(long modifiedAt) {
+        this.modifiedAt = modifiedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "ProfileResponse{" +
+                "userId='" + userId + '\'' +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", photoURL='" + photoURL + '\'' +
+                ", verifiedEmail=" + verifiedEmail +
+                ", subscriptionTier='" + subscriptionTier + '\'' +
+                ", tradingMode='" + tradingMode + '\'' +
+                ", isActive=" + isActive +
+                ", createdAt=" + createdAt +
+                ", modifiedAt=" + modifiedAt +
+                '}';
+    }
+
+    /**
+     * Creates a ProfileResponse from a UserEntity
+     */
+    public static ProfileResponse fromEntity(io.strategiz.data.user.entity.UserEntity user) {
+        if (user == null || user.getProfile() == null) {
+            return null;
+        }
+        
+        io.strategiz.data.user.entity.UserProfileEntity profile = user.getProfile();
+        
+        return new ProfileResponse(
+                user.getId(),
+                profile.getName(),
+                profile.getEmail(),
+                profile.getPhotoURL(),
+                profile.getVerifiedEmail() != null ? profile.getVerifiedEmail() : false,
+                profile.getSubscriptionTier(),
+                profile.getTradingMode(),
+                profile.getIsActive() != null ? profile.getIsActive() : true,
+                System.currentTimeMillis(), // Default to current time
+                System.currentTimeMillis()  // Default to current time
+        );
+    }
+} 

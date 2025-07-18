@@ -24,7 +24,7 @@ public class ApplicationWebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(allowedOrigins)
+                .allowedOriginPatterns("http://localhost:[*]", "https://*.strategiz.io", "https://strategiz.io", "https://*.web.app", "https://*.firebaseapp.com", "https://*.run.app")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);

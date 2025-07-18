@@ -24,7 +24,7 @@ public class PasskeyChallenge {
     
     /**
      * Create a new challenge
-     * @param userId User ID (email or internal ID)
+     * @param userId UserEntity ID (email or internal ID)
      * @param challenge The challenge string
      * @param type Challenge type (registration or authentication)
      * @param expirationSeconds Expiration time in seconds

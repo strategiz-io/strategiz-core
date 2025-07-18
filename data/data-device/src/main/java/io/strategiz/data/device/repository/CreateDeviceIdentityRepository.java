@@ -43,7 +43,7 @@ public class CreateDeviceIdentityRepository {
             
             deviceIdentity.setLastSeen(Instant.now());
             
-            return repository.save(deviceIdentity);
+            return repository.save(deviceIdentity, deviceIdentity.getUserId() != null ? deviceIdentity.getUserId() : "anonymous");
         } catch (Exception e) {
             log.error("Error creating device identity: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to create device identity", e);

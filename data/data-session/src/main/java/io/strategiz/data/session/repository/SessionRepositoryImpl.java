@@ -1,6 +1,6 @@
 package io.strategiz.data.session.repository;
 
-import io.strategiz.data.session.entity.UserSession;
+import io.strategiz.data.session.entity.UserSessionEntity;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
@@ -19,29 +19,29 @@ import java.util.stream.Collectors;
  * Implements Spring Data method naming conventions
  */
 @Repository
-public class SessionRepositoryImpl extends BaseRepository<UserSession> implements SessionRepository {
+public class SessionRepositoryImpl extends BaseRepository<UserSessionEntity> implements SessionRepository {
 
     @Autowired
     public SessionRepositoryImpl(Firestore firestore) {
-        super(firestore, UserSession.class);
+        super(firestore, UserSessionEntity.class);
     }
 
     // Spring Data Repository methods
 
     @Override
-    public UserSession save(UserSession session, String userId) {
+    public UserSessionEntity save(UserSessionEntity session, String userId) {
         // Use the BaseRepository save method
         return super.save(session, userId);
     }
 
     @Override
-    public Optional<UserSession> findById(String sessionId) {
+    public Optional<UserSessionEntity> findById(String sessionId) {
         // Use the BaseRepository findById method
         return super.findById(sessionId);
     }
 
     @Override
-    public List<UserSession> findByUserIdAndActive(String userId, boolean active) {
+    public List<UserSessionEntity> findByUserIdAndActive(String userId, boolean active) {
         try {
             Query query = getCollection()
                 .whereEqualTo("userId", userId)
@@ -52,7 +52,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
             
             return docs.stream()
                 .map(doc -> {
-                    UserSession session = doc.toObject(UserSession.class);
+                    UserSessionEntity session = doc.toObject(UserSessionEntity.class);
                     session.setId(doc.getId());
                     return session;
                 })
@@ -64,10 +64,10 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
     }
 
     @Override
-    public Optional<UserSession> findBySessionIdAndActive(String sessionId, boolean active) {
-        Optional<UserSession> sessionOpt = findById(sessionId);
+    public Optional<UserSessionEntity> findBySessionIdAndActive(String sessionId, boolean active) {
+        Optional<UserSessionEntity> sessionOpt = findById(sessionId);
         if (sessionOpt.isPresent()) {
-            UserSession session = sessionOpt.get();
+            UserSessionEntity session = sessionOpt.get();
             if (session.isActive() == active && session.isValid()) {
                 return Optional.of(session);
             }
@@ -76,7 +76,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
     }
 
     @Override
-    public List<UserSession> findByUserIdAndDeviceFingerprint(String userId, String deviceFingerprint) {
+    public List<UserSessionEntity> findByUserIdAndDeviceFingerprint(String userId, String deviceFingerprint) {
         try {
             Query query = getCollection()
                 .whereEqualTo("userId", userId)
@@ -87,7 +87,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
             
             return docs.stream()
                 .map(doc -> {
-                    UserSession session = doc.toObject(UserSession.class);
+                    UserSessionEntity session = doc.toObject(UserSessionEntity.class);
                     session.setId(doc.getId());
                     return session;
                 })
@@ -99,7 +99,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
     }
 
     @Override
-    public List<UserSession> findByIpAddress(String ipAddress) {
+    public List<UserSessionEntity> findByIpAddress(String ipAddress) {
         try {
             Query query = getCollection()
                 .whereEqualTo("ipAddress", ipAddress)
@@ -109,7 +109,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
             
             return docs.stream()
                 .map(doc -> {
-                    UserSession session = doc.toObject(UserSession.class);
+                    UserSessionEntity session = doc.toObject(UserSessionEntity.class);
                     session.setId(doc.getId());
                     return session;
                 })
@@ -121,7 +121,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
     }
 
     @Override
-    public List<UserSession> findByExpiresAtBefore(Instant expiresAt) {
+    public List<UserSessionEntity> findByExpiresAtBefore(Instant expiresAt) {
         try {
             Query query = getCollection()
                 .whereLessThan("expiresAt", expiresAt)
@@ -131,7 +131,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
             
             return docs.stream()
                 .map(doc -> {
-                    UserSession session = doc.toObject(UserSession.class);
+                    UserSessionEntity session = doc.toObject(UserSessionEntity.class);
                     session.setId(doc.getId());
                     return session;
                 })
@@ -163,10 +163,10 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
 
     @Override
     public int terminateAllSessionsForUser(String userId, String reason) {
-        List<UserSession> activeSessions = findByUserIdAndActive(userId, true);
+        List<UserSessionEntity> activeSessions = findByUserIdAndActive(userId, true);
         int terminated = 0;
         
-        for (UserSession session : activeSessions) {
+        for (UserSessionEntity session : activeSessions) {
             session.terminate(reason);
             save(session, userId);
             terminated++;
@@ -177,10 +177,10 @@ public class SessionRepositoryImpl extends BaseRepository<UserSession> implement
 
     @Override
     public int cleanupExpiredSessions(Instant beforeTime) {
-        List<UserSession> expiredSessions = findByExpiresAtBefore(beforeTime);
+        List<UserSessionEntity> expiredSessions = findByExpiresAtBefore(beforeTime);
         int cleaned = 0;
         
-        for (UserSession session : expiredSessions) {
+        for (UserSessionEntity session : expiredSessions) {
             deleteById(session.getId());
             cleaned++;
         }

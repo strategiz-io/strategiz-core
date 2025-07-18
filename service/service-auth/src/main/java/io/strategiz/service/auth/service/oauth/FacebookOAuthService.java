@@ -3,11 +3,12 @@ package io.strategiz.service.auth.service.oauth;
 import io.strategiz.client.facebook.FacebookClient;
 import io.strategiz.client.facebook.model.FacebookTokenResponse;
 import io.strategiz.client.facebook.model.FacebookUserInfo;
-import io.strategiz.data.user.model.User;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.config.AuthOAuthConfig;
+import io.strategiz.service.auth.model.config.AuthOAuthSettings;
 import io.strategiz.service.auth.manager.OAuthAuthenticationManager;
 import io.strategiz.service.auth.manager.OAuthUserManager;
-import io.strategiz.service.auth.model.signup.SignupResponse;
+import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
 import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
@@ -66,7 +67,7 @@ public class FacebookOAuthService {
             state = "signup:" + state;
         }
         
-        AuthOAuthConfig.AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
+        AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         if (facebookConfig == null) {
             logger.error("Facebook OAuth configuration is not available. Check application.properties for oauth.providers.facebook settings.");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
@@ -103,7 +104,7 @@ public class FacebookOAuthService {
      * @param deviceId Optional device ID for fingerprinting
      * @return Clean response object based on the operation result
      */
-    public Object handleOAuthCallback(String code, String state, String deviceId) {
+    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
         if (!isValidAuthorizationCode(code)) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
@@ -118,7 +119,29 @@ public class FacebookOAuthService {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
         }
         
-        return processUserAuthentication(userInfo, state);
+        Object result = processUserAuthentication(userInfo, state);
+        
+        // Convert result to Map<String, Object> for consistent JSON response
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        
+        if (result instanceof OAuthSignupResponse) {
+            OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
+            response.put("type", "signup");
+            response.put("userId", signupResponse.getUserId());
+            response.put("email", signupResponse.getEmail());
+            response.put("name", signupResponse.getName());
+            response.put("accessToken", signupResponse.getAccessToken());
+            response.put("refreshToken", signupResponse.getRefreshToken());
+        } else if (result instanceof ApiTokenResponse) {
+            ApiTokenResponse loginTokenResponse = (ApiTokenResponse) result;
+            response.put("type", "login");
+            response.put("accessToken", loginTokenResponse.accessToken());
+            response.put("refreshToken", loginTokenResponse.refreshToken());
+            response.put("tokenType", loginTokenResponse.tokenType());
+        }
+        
+        return response;
     }
 
     private boolean isValidAuthorizationCode(String code) {
@@ -130,7 +153,7 @@ public class FacebookOAuthService {
     }
 
     private FacebookTokenResponse exchangeCodeForToken(String code) {
-        AuthOAuthConfig.AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
+        AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         if (facebookConfig == null) {
             logger.error("Facebook OAuth configuration is not available during token exchange");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
@@ -150,7 +173,7 @@ public class FacebookOAuthService {
 
     private Object processUserAuthentication(FacebookUserInfo userInfo, String state) {
         boolean isSignup = oauthUserManager.isSignupFlow(state);
-        Optional<User> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
+        Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
         
         if (isSignup && existingUser.isPresent()) {
             throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
@@ -163,17 +186,19 @@ public class FacebookOAuthService {
         }
     }
 
-    private SignupResponse handleSignupFlow(FacebookUserInfo userInfo) {
+    private OAuthSignupResponse handleSignupFlow(FacebookUserInfo userInfo) {
         return oauthUserManager.createOAuthUser(
             userInfo.getEmail(), 
             userInfo.getName(), 
             userInfo.getPictureUrl(), 
             "facebook", 
-            userInfo.getFacebookId()
+            userInfo.getFacebookId(),
+            null, // deviceId not available
+            null  // ipAddress not available
         );
     }
 
-    private ApiTokenResponse handleLoginFlow(User user, FacebookUserInfo userInfo) {
+    private ApiTokenResponse handleLoginFlow(UserEntity user, FacebookUserInfo userInfo) {
         oauthAuthenticationManager.ensureOAuthMethod(
             user, 
             "facebook", 

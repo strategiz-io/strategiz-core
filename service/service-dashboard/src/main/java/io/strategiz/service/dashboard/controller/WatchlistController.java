@@ -32,7 +32,7 @@ import java.util.UUID;
  * The mode only affects UI behavior, not the data itself.
  */
 @RestController
-@RequestMapping("/api/dashboard/watchlist")
+@RequestMapping("/v1/dashboard/watchlist")
 @CrossOrigin(origins = "*")
 public class WatchlistController extends BaseController {
     

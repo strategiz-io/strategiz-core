@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * Used for sign-in and sign-up flows
  */
 @RestController
-@RequestMapping("/api/v1/device/authenticated")
+@RequestMapping("/v1/device/authenticated")
 public class AuthenticatedDeviceController {
     
     private static final Logger log = LoggerFactory.getLogger(AuthenticatedDeviceController.class);

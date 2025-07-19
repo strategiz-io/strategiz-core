@@ -14,7 +14,7 @@ import java.util.Map;
  * Specifically for existing users logging in via Google
  */
 @RestController
-@RequestMapping("/auth/oauth/google/signin")
+@RequestMapping("/v1/auth/oauth/google/signin")
 public class GoogleOAuthSignInController {
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthSignInController.class);

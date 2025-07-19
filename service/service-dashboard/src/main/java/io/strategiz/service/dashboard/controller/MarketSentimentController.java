@@ -24,7 +24,7 @@ import java.util.Map;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/api/dashboard/market")
+@RequestMapping("/v1/dashboard/market")
 public class MarketSentimentController extends BaseController {
 
     private final MarketSentimentService marketSentimentService;

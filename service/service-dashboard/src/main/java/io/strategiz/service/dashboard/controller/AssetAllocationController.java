@@ -21,7 +21,7 @@ import java.util.Map;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/api/dashboard/allocation")
+@RequestMapping("/v1/dashboard/allocation")
 public class AssetAllocationController {
     
     private static final Logger log = LoggerFactory.getLogger(AssetAllocationController.class);

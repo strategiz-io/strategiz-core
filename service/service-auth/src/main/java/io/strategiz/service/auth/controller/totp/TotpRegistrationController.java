@@ -31,7 +31,7 @@ import java.util.Map;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/totp")
+@RequestMapping("/v1/auth/totp")
 public class TotpRegistrationController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(TotpRegistrationController.class);

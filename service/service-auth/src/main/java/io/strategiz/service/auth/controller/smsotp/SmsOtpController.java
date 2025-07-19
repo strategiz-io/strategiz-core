@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.*;
  * - Automatic OTP expiration (5 minutes)
  */
 @RestController
-@RequestMapping("/auth/smsotp")
+@RequestMapping("/v1/auth/smsotp")
 public class SmsOtpController extends BaseController {
     
     private static final Logger log = LoggerFactory.getLogger(SmsOtpController.class);

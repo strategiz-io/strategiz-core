@@ -19,7 +19,7 @@ import java.util.Optional;
  * Handles HTTP concerns only, delegates business logic to service layer
  */
 @RestController
-@RequestMapping("/api/strategies")
+@RequestMapping("/v1/strategies")
 @CrossOrigin(origins = "*")
 public class StrategyController {
 

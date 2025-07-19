@@ -21,7 +21,7 @@ import java.util.Map;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/api/dashboard/metrics")
+@RequestMapping("/v1/dashboard/metrics")
 public class PerformanceMetricsController {
     
     private static final Logger log = LoggerFactory.getLogger(PerformanceMetricsController.class);

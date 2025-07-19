@@ -17,7 +17,7 @@ import java.util.Map;
  * Handles operations related to creating, listing, purchasing, and applying strategies
  */
 @RestController
-@RequestMapping("/api/marketplace/strategies")
+@RequestMapping("/v1/marketplace/strategies")
 public class StrategyMarketplaceController {
 
     @Autowired

@@ -14,7 +14,7 @@ import java.util.Map;
  * Specifically for new users creating accounts via Facebook
  */
 @RestController
-@RequestMapping("/auth/oauth/facebook/signup")
+@RequestMapping("/v1/auth/oauth/facebook/signup")
 public class FacebookOAuthSignUpController {
 
     private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthSignUpController.class);

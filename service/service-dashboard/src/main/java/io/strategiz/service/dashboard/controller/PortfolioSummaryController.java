@@ -24,7 +24,7 @@ import java.util.Map;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/api/dashboard/portfolio")
+@RequestMapping("/v1/dashboard/portfolio")
 public class PortfolioSummaryController extends BaseController {
     
     private final PortfolioSummaryService portfolioSummaryService;

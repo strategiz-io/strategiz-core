@@ -257,8 +257,24 @@ public class SessionAuthBusiness {
             String acr = (String) claims.getOrDefault("acr", "1");
             String aal = (String) claims.getOrDefault("aal", "1");
             
-            // Decode AMR from token
-            int[] amrArray = (int[]) claims.get("amr");
+            // Decode AMR from token - handle both ArrayList and int[] cases
+            Object amrClaim = claims.get("amr");
+            int[] amrArray = null;
+            
+            if (amrClaim instanceof int[]) {
+                amrArray = (int[]) amrClaim;
+            } else if (amrClaim instanceof List<?>) {
+                // Handle ArrayList case - convert to int[]
+                List<?> amrList = (List<?>) amrClaim;
+                amrArray = new int[amrList.size()];
+                for (int i = 0; i < amrList.size(); i++) {
+                    Object value = amrList.get(i);
+                    if (value instanceof Number) {
+                        amrArray[i] = ((Number) value).intValue();
+                    }
+                }
+            }
+            
             List<String> amr = decodeAuthenticationMethods(amrArray);
             
             Instant issuedAt = Instant.ofEpochSecond(getClaimAsLong(claims, "iat"));

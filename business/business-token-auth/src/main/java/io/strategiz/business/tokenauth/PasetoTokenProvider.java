@@ -208,8 +208,24 @@ public class PasetoTokenProvider {
         Map<String, Object> currentClaims = parseToken(currentToken);
         String userId = (String) currentClaims.get("sub");
         
-        // Get current authentication methods from AMR
-        int[] currentAmr = (int[]) currentClaims.get("amr");
+        // Get current authentication methods from AMR - handle both ArrayList and int[] cases
+        Object amrClaim = currentClaims.get("amr");
+        int[] currentAmr = null;
+        
+        if (amrClaim instanceof int[]) {
+            currentAmr = (int[]) amrClaim;
+        } else if (amrClaim instanceof List<?>) {
+            // Handle ArrayList case - convert to int[]
+            List<?> amrList = (List<?>) amrClaim;
+            currentAmr = new int[amrList.size()];
+            for (int i = 0; i < amrList.size(); i++) {
+                Object value = amrList.get(i);
+                if (value instanceof Number) {
+                    currentAmr[i] = ((Number) value).intValue();
+                }
+            }
+        }
+        
         List<String> currentMethods = decodeAuthenticationMethods(currentAmr);
         
         // Combine current and additional methods

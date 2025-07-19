@@ -31,6 +31,7 @@
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
         <module>data/data-base</module>
+        <module>data/data-device</module>
         <module>data/data-session</module>
         <module>data/data-watchlist</module>
         <module>data/data-providers</module>
@@ -54,6 +55,7 @@
         <module>client/client-facebook</module>
         <module>client/client-google</module>
         <module>client/client-yahoo-finance</module>
+        <module>client/client-firebase-sms</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -71,6 +73,7 @@
         <module>service/service-dashboard</module>
         <module>service/service-profile</module>
         <module>service/service-marketing</module>
+        <module>service/service-device</module>
         
         <!-- API Modules (Build Sixth) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->

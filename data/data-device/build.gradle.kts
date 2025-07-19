@@ -1,8 +1,32 @@
-// Generated from pom.xml - please review and adjust as needed
-
 description = "Device identity and management data models and repositories"
 
 dependencies {
     implementation(project(":data:data-base"))
-    implementation("com.google.firebase:firebase-admin:9.3.0")
+    
+    // Spring dependencies - versions managed by parent
+    implementation("org.springframework.boot:spring-boot-starter")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework:spring-context")
+    implementation("org.springframework.security:spring-security-core")
+    implementation("org.springframework.data:spring-data-commons")
+    
+    // Jakarta Persistence API - version managed by Spring Boot BOM
+    implementation("jakarta.persistence:jakarta.persistence-api")
+    
+    // Spring Cloud GCP for Firestore - version managed by parent  
+    implementation("com.google.cloud:spring-cloud-gcp-starter-data-firestore")
+    
+    // Firebase and Google Cloud - versions managed by parent
+    implementation("com.google.firebase:firebase-admin")
+    implementation("com.google.cloud:google-cloud-firestore")
+    
+    // Jackson - version managed by Spring Boot BOM
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.core:jackson-annotations")
+    
+    // Logging - version managed by Spring Boot BOM
+    implementation("org.slf4j:slf4j-api")
+    
+    // Test dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

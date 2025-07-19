@@ -1,15 +1,25 @@
-// Generated from pom.xml - please review and adjust as needed
-
-description = "Exchange and brokerage business logic services"
+description = "Exchange integration service"
 
 dependencies {
     implementation(project(":service:service-base"))
-    implementation(project(":data:data-exchange"))
-    implementation(project(":data:data-base"))
     implementation(project(":framework:framework-exception"))
-    implementation(project(":client:client-kraken"))
-    implementation(project(":client:client-coinbase"))
-    implementation(project(":client:client-binanceus"))
-    implementation("com.google.firebase:firebase-admin:9.3.0")
+    
+    // Spring dependencies - versions managed by parent
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework:spring-context")
+    implementation("org.springframework:spring-beans")
+    
+    // Jackson - version managed by Spring Boot BOM
     implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.core:jackson-annotations")
+    
+    // Logging - version managed by Spring Boot BOM
+    implementation("org.slf4j:slf4j-api")
+    
+    // Data dependencies
+    implementation(project(":data:data-exchange"))
+    implementation(project(":data:data-portfolio"))
+    
+    // Test dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

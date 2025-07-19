@@ -4,6 +4,7 @@ description = "User aggregate service module"
 
 dependencies {
     implementation(project(":service:service-base"))
+    implementation(project(":service:service-dashboard"))
     implementation(project(":data:data-user"))
     implementation(project(":data:data-auth"))
     implementation(project(":data:data-session"))

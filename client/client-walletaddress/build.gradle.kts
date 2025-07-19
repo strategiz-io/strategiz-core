@@ -1,9 +1,26 @@
-// Generated from pom.xml - please review and adjust as needed
-
-description = "Wallet address client for Strategiz platform"
+description = "Wallet address client"
 
 dependencies {
+    implementation(project(":client:client-base"))
+    
+    // Spring dependencies - versions managed by parent
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework:spring-context")
+    implementation("org.springframework:spring-beans")
+    
+    // HTTP client - version managed by parent
+    implementation("org.apache.httpcomponents:httpclient")
+    
+    // JSON library - version managed by parent
+    implementation("org.json:json")
+    
+    // Jackson - version managed by Spring Boot BOM
     implementation("com.fasterxml.jackson.core:jackson-databind")
-    implementation("org.json:json:20210307")
+    implementation("com.fasterxml.jackson.core:jackson-annotations")
+    
+    // Logging - version managed by Spring Boot BOM
+    implementation("org.slf4j:slf4j-api")
+    
+    // Test dependencies
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

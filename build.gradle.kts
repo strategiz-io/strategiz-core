@@ -66,6 +66,7 @@ subprojects {
             dependency("io.jsonwebtoken:jjwt-api:${rootProject.extra["jjwtVersion"]}")
             dependency("io.jsonwebtoken:jjwt-impl:${rootProject.extra["jjwtVersion"]}")
             dependency("io.jsonwebtoken:jjwt-jackson:${rootProject.extra["jjwtVersion"]}")
+            dependency("org.json:json:20240303")
         }
     }
     

@@ -2,8 +2,8 @@ package io.strategiz.service.dashboard;
 
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
-import io.strategiz.client.alphavantage.AlphaVantageClient;
-import io.strategiz.client.coingecko.CoinGeckoClient;
+// import io.strategiz.client.alphavantage.AlphaVantageClient;
+// import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,8 +30,8 @@ public class MarketSentimentService {
     private static final Logger log = LoggerFactory.getLogger(MarketSentimentService.class);
 
     private final PortfolioManager portfolioManager;
-    private final CoinGeckoClient coinGeckoClient;
-    private final AlphaVantageClient alphaVantageClient;
+    // private final CoinGeckoClient coinGeckoClient;
+    // private final AlphaVantageClient alphaVantageClient;
     
     // Color mapping for sentiment visualization
     private static final Map<String, String> SENTIMENT_COLORS = new HashMap<>();
@@ -45,12 +45,13 @@ public class MarketSentimentService {
 
     @Autowired
     public MarketSentimentService(
-            PortfolioManager portfolioManager,
-            CoinGeckoClient coinGeckoClient,
-            AlphaVantageClient alphaVantageClient) {
+            PortfolioManager portfolioManager
+            // CoinGeckoClient coinGeckoClient,
+            // AlphaVantageClient alphaVantageClient
+            ) {
         this.portfolioManager = portfolioManager;
-        this.coinGeckoClient = coinGeckoClient;
-        this.alphaVantageClient = alphaVantageClient;
+        // this.coinGeckoClient = coinGeckoClient;
+        // this.alphaVantageClient = alphaVantageClient;
     }
 
     /**
@@ -232,6 +233,8 @@ public class MarketSentimentService {
         
         try {
             // Get market data from CoinGecko
+            // TODO: Uncomment when CoinGeckoClient is available
+            /*
             Map<String, Object> marketData = coinGeckoClient.getGlobalMarketData();
             if (marketData != null && marketData.containsKey("market_cap_change_percentage_24h_usd")) {
                 Double marketCapChange = (Double) marketData.get("market_cap_change_percentage_24h_usd");
@@ -246,6 +249,7 @@ public class MarketSentimentService {
                     return new BigDecimal(String.valueOf(sentimentValue)).setScale(2, RoundingMode.HALF_UP);
                 }
             }
+            */
         } catch (Exception e) {
             log.error("Error fetching market data from CoinGecko: {}", e.getMessage(), e);
         }

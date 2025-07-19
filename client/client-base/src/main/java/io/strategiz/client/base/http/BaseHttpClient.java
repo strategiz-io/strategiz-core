@@ -49,7 +49,6 @@ public abstract class BaseHttpClient {
                     log.debug("Making request to: {}", request.getURI());
                     return execution.execute(request, body);
                 })
-                .defaultStatusHandler(this::handleErrorResponse)
                 .build();
     }
     

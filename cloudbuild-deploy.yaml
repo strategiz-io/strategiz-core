@@ -1,0 +1,29 @@
+steps:
+# Build the Docker image using the pre-built JAR
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/strategiz-backend', '.']
+
+# Push the Docker image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-backend']
+
+# Deploy to Cloud Run with OAuth environment variables
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'strategiz-backend'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-backend'
+    - '--platform=managed'
+    - '--region=us-central1'
+    - '--allow-unauthenticated'
+    - '--memory=512Mi'
+    - '--cpu=1'
+    - '--port=8080'
+    - '--min-instances=0'
+    - '--max-instances=10'
+    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,AUTH_GOOGLE_CLIENT_ID=43628135674-coabudpnuacrbr8ub027qkfkijv0vk41.apps.googleusercontent.com,AUTH_GOOGLE_CLIENT_SECRET=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,AUTH_FACEBOOK_CLIENT_ID=1971747536646640,AUTH_FACEBOOK_CLIENT_SECRET=8182a709efbb400a26ba472246e762ee'
+
+images:
+- 'gcr.io/$PROJECT_ID/strategiz-backend'

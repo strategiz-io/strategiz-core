@@ -14,6 +14,7 @@ import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.time.Instant;
 
 /**
  * Service implementation for session management operations
@@ -53,8 +54,12 @@ public class SessionService {
         // Create a UserSession object for compatibility
         UserSession session = new UserSession();
         session.setUserId(userId);
-        session.setDeviceId(deviceId);
+        session.setUserEmail(userEmail);
         session.setIpAddress(ipAddress);
+        session.setDeviceFingerprint(deviceId);
+        session.setAcr(acr);
+        session.setAal(aal);
+        session.setAmr(amr);
         // Note: We don't have access to session ID in the token-based approach
         
         return session;
@@ -78,10 +83,18 @@ public class SessionService {
             return Optional.empty();
         }
         
-        // Create validation result
-        SessionValidationResult result = new SessionValidationResult();
-        result.setValid(true);
-        result.setUserId(userIdOpt.get());
+        // Create validation result with required parameters
+        SessionValidationResult result = new SessionValidationResult(
+            userIdOpt.get(),    // userId
+            null,               // userEmail - not available from token validation
+            null,               // sessionId - not available in token-based approach
+            "1",                // acr - default to basic
+            "1",                // aal - default to single factor
+            null,               // amr - not available from token validation
+            Instant.now(),      // lastAccessedAt
+            Instant.now().plusSeconds(3600), // expiresAt - assume 1 hour
+            true                // valid
+        );
         
         return Optional.of(result);
     }
@@ -163,7 +176,8 @@ public class SessionService {
      */
     public int cleanupExpiredSessions() {
         log.info("Starting cleanup of expired sessions");
-        return sessionBusiness.cleanupExpiredTokens();
+        sessionBusiness.cleanupExpiredTokens();
+        return 0; // cleanupExpiredTokens returns void, so return 0 for compatibility
     }
 
     /**

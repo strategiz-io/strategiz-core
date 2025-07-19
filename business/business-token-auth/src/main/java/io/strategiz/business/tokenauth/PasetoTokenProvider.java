@@ -20,6 +20,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Provides PASETO token generation and validation functionality.
@@ -150,7 +151,7 @@ public class PasetoTokenProvider {
         String publicUserId = generatePublicUserId(userId);
         
         // Convert auth methods to numeric AMR
-        int[] amr = encodeAuthenticationMethods(authenticationMethods);
+        List<Integer> amr = encodeAuthenticationMethods(authenticationMethods);
         
         // Calculate scopes based on ACR and AAL
         String scope = calculateScopesForAcr(acr, aal, userId);
@@ -208,24 +209,9 @@ public class PasetoTokenProvider {
         Map<String, Object> currentClaims = parseToken(currentToken);
         String userId = (String) currentClaims.get("sub");
         
-        // Get current authentication methods from AMR - handle both ArrayList and int[] cases
-        Object amrClaim = currentClaims.get("amr");
-        int[] currentAmr = null;
-        
-        if (amrClaim instanceof int[]) {
-            currentAmr = (int[]) amrClaim;
-        } else if (amrClaim instanceof List<?>) {
-            // Handle ArrayList case - convert to int[]
-            List<?> amrList = (List<?>) amrClaim;
-            currentAmr = new int[amrList.size()];
-            for (int i = 0; i < amrList.size(); i++) {
-                Object value = amrList.get(i);
-                if (value instanceof Number) {
-                    currentAmr[i] = ((Number) value).intValue();
-                }
-            }
-        }
-        
+        // Get current authentication methods from AMR
+        @SuppressWarnings("unchecked")
+        List<Integer> currentAmr = (List<Integer>) currentClaims.get("amr");
         List<String> currentMethods = decodeAuthenticationMethods(currentAmr);
         
         // Combine current and additional methods
@@ -242,11 +228,11 @@ public class PasetoTokenProvider {
     /**
      * Decodes numeric AMR back to authentication method names
      *
-     * @param amr array of numeric method identifiers
+     * @param amr list of numeric method identifiers
      * @return list of authentication method names
      */
-    private List<String> decodeAuthenticationMethods(int[] amr) {
-        if (amr == null || amr.length == 0) {
+    private List<String> decodeAuthenticationMethods(List<Integer> amr) {
+        if (amr == null || amr.isEmpty()) {
             return new ArrayList<>();
         }
         
@@ -260,14 +246,10 @@ public class PasetoTokenProvider {
             6, "backup_codes"
         );
         
-        List<String> methods = new ArrayList<>();
-        for (int methodId : amr) {
-            if (methodMap.containsKey(methodId)) {
-                methods.add(methodMap.get(methodId));
-            }
-        }
-        
-        return methods;
+        return amr.stream()
+                .filter(methodMap::containsKey)
+                .map(methodMap::get)
+                .collect(Collectors.toList());
     }
     
     /**
@@ -285,14 +267,14 @@ public class PasetoTokenProvider {
     }
     
     /**
-     * Encodes authentication methods to numeric array for obfuscation
+     * Encodes authentication methods to numeric list for obfuscation
      *
      * @param authMethods list of authentication method names
-     * @return array of numeric method identifiers
+     * @return list of numeric method identifiers
      */
-    private int[] encodeAuthenticationMethods(List<String> authMethods) {
+    private List<Integer> encodeAuthenticationMethods(List<String> authMethods) {
         if (authMethods == null || authMethods.isEmpty()) {
-            return new int[0];
+            return new ArrayList<>();
         }
         
         // Authentication method mapping
@@ -307,8 +289,8 @@ public class PasetoTokenProvider {
         
         return authMethods.stream()
                 .filter(methodMap::containsKey)
-                .mapToInt(methodMap::get)
-                .toArray();
+                .map(methodMap::get)
+                .collect(Collectors.toList());
     }
     
     /**

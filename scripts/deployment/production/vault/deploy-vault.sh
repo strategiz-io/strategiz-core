@@ -30,7 +30,7 @@ gcloud services enable storage-api.googleapis.com
 gcloud services enable secretmanager.googleapis.com
 
 echo -e "${BLUE}[3/6] Creating Cloud Storage bucket for Vault backend...${NC}"
-BUCKET_NAME="$PROJECT_ID-vault-storage"
+BUCKET_NAME="$PROJECT_ID-vault-storage-$(date +%s)"
 gsutil mb -p $PROJECT_ID -c STANDARD -l $REGION gs://$BUCKET_NAME || echo "Bucket already exists"
 
 echo -e "${BLUE}[4/6] Creating Vault configuration...${NC}"
@@ -77,7 +77,7 @@ EOF
 echo -e "${BLUE}[6/6] Building and deploying Vault to Cloud Run...${NC}"
 
 # Build the Vault container
-gcloud builds submit --tag gcr.io/$PROJECT_ID/vault:latest -f Dockerfile.vault .
+gcloud builds submit --tag gcr.io/$PROJECT_ID/vault:latest --file Dockerfile.vault .
 
 # Deploy to Cloud Run
 gcloud run deploy $VAULT_SERVICE_NAME \

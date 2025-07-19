@@ -1,0 +1,15 @@
+FROM hashicorp/vault:1.15
+
+# Copy configuration file
+COPY vault-config.hcl /vault/config/vault-config.hcl
+
+# Set environment variables
+ENV VAULT_CONFIG_PATH=/vault/config/vault-config.hcl
+ENV VAULT_API_ADDR=$VAULT_API_ADDR
+ENV VAULT_CLUSTER_ADDR=$VAULT_CLUSTER_ADDR
+
+# Expose port
+EXPOSE 8200
+
+# Run Vault
+CMD ["vault", "server", "-config=/vault/config/vault-config.hcl"]

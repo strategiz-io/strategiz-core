@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * Uses clean architecture - no wrapper dependencies.
  */
 @Controller("serviceDocumentationController")
-@RequestMapping("/api/docs")
+@RequestMapping("/v1/docs")
 public class DocumentationController {
     // Using specific bean name to avoid conflict with api-base DocumentationController
 

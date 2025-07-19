@@ -22,7 +22,7 @@ import java.util.Map;
  * Used primarily for landing page and initial device registration
  */
 @RestController
-@RequestMapping("/api/v1/device/anonymous")
+@RequestMapping("/v1/device/anonymous")
 public class AnonymousDeviceController {
     
     private static final Logger log = LoggerFactory.getLogger(AnonymousDeviceController.class);

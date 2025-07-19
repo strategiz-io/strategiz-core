@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/session")
+@RequestMapping("/v1/auth/session")
 public class SessionController {
 
     private static final Logger log = LoggerFactory.getLogger(SessionController.class);

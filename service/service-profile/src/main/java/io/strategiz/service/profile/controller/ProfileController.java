@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/api/profile")
+@RequestMapping("/v1/profile")
 @Validated
 public class ProfileController {
 

@@ -14,7 +14,7 @@ import java.util.Map;
  * Specifically for existing users logging in via Facebook
  */
 @RestController
-@RequestMapping("/auth/oauth/facebook/signin")
+@RequestMapping("/v1/auth/oauth/facebook/signin")
 public class FacebookOAuthSignInController {
 
     private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthSignInController.class);

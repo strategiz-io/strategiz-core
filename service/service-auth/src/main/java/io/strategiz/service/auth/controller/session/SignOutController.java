@@ -17,7 +17,7 @@ import jakarta.validation.Valid;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/signout")
+@RequestMapping("/v1/auth/signout")
 public class SignOutController {
 
     private static final Logger log = LoggerFactory.getLogger(SignOutController.class);

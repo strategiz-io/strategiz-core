@@ -14,7 +14,7 @@ import java.util.Map;
  * Specifically for new users creating accounts via Google
  */
 @RestController
-@RequestMapping("/auth/oauth/google/signup")
+@RequestMapping("/v1/auth/oauth/google/signup")
 public class GoogleOAuthSignUpController {
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthSignUpController.class);

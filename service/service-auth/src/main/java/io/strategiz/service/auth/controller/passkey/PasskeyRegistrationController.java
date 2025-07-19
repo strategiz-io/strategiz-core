@@ -39,7 +39,7 @@ import java.util.Optional;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/auth/passkeys")
+@RequestMapping("/v1/auth/passkeys")
 public class PasskeyRegistrationController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationController.class);

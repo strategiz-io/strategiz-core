@@ -14,7 +14,7 @@ import java.util.Map;
  * REST controller for portfolio management operations across all brokerages
  */
 @RestController
-@RequestMapping("/api/portfolio")
+@RequestMapping("/v1/portfolio")
 @CrossOrigin(origins = "*")
 public class PortfolioController {
 

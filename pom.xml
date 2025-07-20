@@ -57,6 +57,7 @@
         <module>client/client-google</module>
         <module>client/client-yahoo-finance</module>
         <module>client/client-firebase-sms</module>
+        <module>client/client-firebase</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         

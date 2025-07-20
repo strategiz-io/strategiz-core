@@ -22,18 +22,34 @@ public class CorsFilter implements Filter {
         // Get the origin from the request
         String origin = request.getHeader("Origin");
         
-        // Allow specific origins
-        if (origin != null && (origin.equals("http://localhost:3000") || 
-                              origin.equals("http://localhost:3001") || 
-                              origin.equals("https://strategiz.io"))) {
-            response.setHeader("Access-Control-Allow-Origin", origin);
+        // Allow specific origins or patterns
+        if (origin != null) {
+            // Check exact matches first
+            if (origin.equals("http://localhost:3000") || 
+                origin.equals("http://localhost:3001") || 
+                origin.equals("https://strategiz.io") ||
+                origin.equals("https://strategiz-io.web.app") ||
+                origin.equals("https://strategiz-io.firebaseapp.com")) {
+                response.setHeader("Access-Control-Allow-Origin", origin);
+                response.setHeader("Access-Control-Allow-Credentials", "true");
+            }
+            // Check patterns
+            else if (origin.matches("http://localhost:\\d+") || 
+                     origin.matches("https://.*\\.strategiz\\.io") ||
+                     origin.matches("https://.*\\.web\\.app") ||
+                     origin.matches("https://.*\\.firebaseapp\\.com") ||
+                     origin.matches("https://.*\\.run\\.app")) {
+                response.setHeader("Access-Control-Allow-Origin", origin);
+                response.setHeader("Access-Control-Allow-Credentials", "true");
+            }
+            // If origin doesn't match, don't set Access-Control-Allow-Origin header
+            // This prevents the wildcard issue with credentials
         }
         
-        // Set other CORS headers
-        response.setHeader("Access-Control-Allow-Credentials", "true");
+        // Set other CORS headers (always set these for preflight)
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
         response.setHeader("Access-Control-Max-Age", "3600");
-        response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, *");
+        response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept, origin");
 
         // Handle preflight requests
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {

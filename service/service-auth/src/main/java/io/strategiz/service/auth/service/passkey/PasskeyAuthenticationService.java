@@ -8,6 +8,7 @@ import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
 import io.strategiz.service.base.BaseService;
+import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -93,8 +94,8 @@ public class PasskeyAuthenticationService extends BaseService {
             throw new IllegalStateException("Real API connection validation failed");
         }
         
-        // Generate challenge
-        String challenge = challengeService.createChallenge(null, PasskeyChallengeType.AUTHENTICATION);
+        // Generate challenge using SYSTEM user for authentication flows
+        String challenge = challengeService.createChallenge(ModuleConstants.SYSTEM_USER_ID, PasskeyChallengeType.AUTHENTICATION);
         
         // Create authentication options
         Object publicKeyCredentialRequestOptions = createAuthenticationOptions(challenge);

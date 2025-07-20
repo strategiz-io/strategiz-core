@@ -56,12 +56,12 @@ public class PasskeyChallenge extends BaseEntity {
 
     // === CONVENIENCE METHODS ===
 
-    public boolean isExpired() {
+    public boolean hasExpired() {
         return expiresAt != null && Instant.now().isAfter(expiresAt);
     }
 
     public boolean isValid() {
-        return !used && !isExpired();
+        return !used && !hasExpired();
     }
 
     public void markAsUsed() {
@@ -125,10 +125,6 @@ public class PasskeyChallenge extends BaseEntity {
     public String getType() {
         return type;
     }
-    
-    public String getChallengeType() {
-        return type;
-    }
 
     public void setType(String type) {
         this.type = type;
@@ -172,5 +168,16 @@ public class PasskeyChallenge extends BaseEntity {
     @Override
     public String getCollectionName() {
         return "passkey_challenges";
+    }
+
+    // === ADDITIONAL GETTERS/SETTERS FOR FIRESTORE MAPPING ===
+    
+    // Firestore expects these field names based on what's stored in the database
+    public String getChallengeType() {
+        return type;
+    }
+    
+    public void setChallengeType(String challengeType) {
+        this.type = challengeType;
     }
 }

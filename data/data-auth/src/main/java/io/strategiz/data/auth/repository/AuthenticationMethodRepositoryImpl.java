@@ -1,8 +1,7 @@
-package io.strategiz.client.firebase.repository.auth;
+package io.strategiz.data.auth.repository;
 
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
-import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.base.repository.SubcollectionRepository;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;

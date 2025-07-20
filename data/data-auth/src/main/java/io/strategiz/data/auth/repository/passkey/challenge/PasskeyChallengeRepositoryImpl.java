@@ -19,6 +19,7 @@ import java.util.Optional;
 public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChallenge> implements PasskeyChallengeRepository {
     
     private static final Logger log = LoggerFactory.getLogger(PasskeyChallengeRepositoryImpl.class);
+    private static final String SYSTEM_USER_ID = "SYSTEM";
     
     @Autowired
     public PasskeyChallengeRepositoryImpl(Firestore firestore) {
@@ -101,26 +102,26 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
     @Override
     public void deleteByExpiresAtBefore(Instant now) {
         List<PasskeyChallenge> expired = findByExpiresAtBefore(now);
-        expired.forEach(c -> delete(c.getId(), "system"));
+        expired.forEach(c -> delete(c.getId(), SYSTEM_USER_ID));
     }
 
     @Override
     public void deleteByUsedTrue() {
         List<PasskeyChallenge> used = findByUsedTrue();
-        used.forEach(c -> delete(c.getId(), "system"));
+        used.forEach(c -> delete(c.getId(), SYSTEM_USER_ID));
     }
 
     @Override
     public void deleteByUserId(String userId) {
         List<PasskeyChallenge> userChallenges = findByUserId(userId);
-        userChallenges.forEach(c -> delete(c.getId(), "system"));
+        userChallenges.forEach(c -> delete(c.getId(), SYSTEM_USER_ID));
     }
 
     // Repository method implementations
     @Override
     public PasskeyChallenge save(PasskeyChallenge challenge) {
-        // If challenge has a userId, use it; otherwise use "system"
-        String userId = challenge.getUserId() != null ? challenge.getUserId() : "system";
+        // If challenge has a userId, use it; otherwise use SYSTEM user constant
+        String userId = challenge.getUserId() != null ? challenge.getUserId() : SYSTEM_USER_ID;
         return save(challenge, userId);
     }
 
@@ -131,7 +132,7 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
 
     @Override
     public void delete(PasskeyChallenge challenge) {
-        delete(challenge.getId(), "system");
+        delete(challenge.getId(), SYSTEM_USER_ID);
     }
 
     @Override

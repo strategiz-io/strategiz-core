@@ -18,16 +18,14 @@ public class ApplicationWebConfig implements WebMvcConfigurer {
 
     /**
      * Configure CORS globally for all endpoints
+     * NOTE: Disabled in favor of CorsFilter to avoid conflicts
      * 
      * @param registry CORS registry
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns("http://localhost:[*]", "https://*.strategiz.io", "https://strategiz.io", "https://*.web.app", "https://*.firebaseapp.com", "https://*.run.app")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+        // Disabled - CORS is handled by CorsFilter
+        // This prevents conflicts between multiple CORS configurations
     }
 
     /**

@@ -1,4 +1,4 @@
-package io.strategiz.client.firebase.repository.auth;
+package io.strategiz.data.providers.repository;
 
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;

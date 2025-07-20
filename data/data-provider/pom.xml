@@ -11,8 +11,8 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>data-providers</artifactId>
-    <name>data-providers</name>
+    <artifactId>data-provider</artifactId>
+    <name>data-provider</name>
     <description>Data layer for connected providers subcollection</description>
 
     <dependencies>

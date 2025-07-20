@@ -1,4 +1,4 @@
-package io.strategiz.data.providers.entity;
+package io.strategiz.data.provider.entity;
 
 import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;

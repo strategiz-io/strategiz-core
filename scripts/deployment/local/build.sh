@@ -43,9 +43,9 @@ echo "Building data-watchlist"
 mvn -f data/data-watchlist/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in data-watchlist" && exit 1
 
-echo "Building data-providers"
-mvn -f data/data-providers/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in data-providers" && exit 1
+echo "Building data-provider"
+mvn -f data/data-provider/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in data-provider" && exit 1
 
 
 echo "Building data-preferences"

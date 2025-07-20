@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Passkey Registration</title>
+    <script>
+        async function testPasskeyRegistration() {
+            const email = 'test10@gmail.com';
+            const token = prompt('Enter your temporary token from signup:');
+            
+            if (!token) {
+                console.error('Token is required');
+                return;
+            }
+            
+            try {
+                // Step 1: Begin registration
+                console.log('Starting passkey registration...');
+                const beginResponse = await fetch('http://localhost:8080/v1/auth/passkeys/registrations/ZDdlMGQ2Y2UtODJlZi00MWVhLTk0MDEtOWNlMjY3YjQzYWQ1/begin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                if (!beginResponse.ok) {
+                    throw new Error(`Begin registration failed: ${beginResponse.status}`);
+                }
+                
+                const challengeData = await beginResponse.json();
+                console.log('Challenge received:', challengeData);
+                
+                // Step 2: Create credential using WebAuthn API
+                const publicKeyCredentialCreationOptions = {
+                    challenge: Uint8Array.from(atob(challengeData.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+                    rp: {
+                        name: challengeData.rpName,
+                        id: challengeData.rpId
+                    },
+                    user: {
+                        id: Uint8Array.from(atob(challengeData.userId), c => c.charCodeAt(0)),
+                        name: challengeData.username,
+                        displayName: challengeData.username
+                    },
+                    pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                    authenticatorSelection: challengeData.authenticatorSelection,
+                    timeout: challengeData.challengeTimeoutMs,
+                    attestation: challengeData.attestation || 'none'
+                };
+                
+                console.log('Creating credential with options:', publicKeyCredentialCreationOptions);
+                const credential = await navigator.credentials.create({
+                    publicKey: publicKeyCredentialCreationOptions
+                });
+                
+                console.log('Credential created:', credential);
+                
+                // Step 3: Complete registration
+                const completeData = {
+                    credentialId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+                    clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+                    attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
+                    email: email,
+                    deviceId: 'test-device',
+                    identityToken: token
+                };
+                
+                console.log('Completing registration with data:', completeData);
+                
+                const completeResponse = await fetch('http://localhost:8080/v1/auth/passkeys/registrations/ZDdlMGQ2Y2UtODJlZi00MWVhLTk0MDEtOWNlMjY3YjQzYWQ1/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(completeData)
+                });
+                
+                const result = await completeResponse.json();
+                console.log('Registration result:', result);
+                
+                if (completeResponse.ok && result.success) {
+                    alert('Passkey registration successful!');
+                } else {
+                    alert('Passkey registration failed: ' + (result.message || 'Unknown error'));
+                }
+                
+            } catch (error) {
+                console.error('Error during passkey registration:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Test Passkey Registration</h1>
+    <button onclick="testPasskeyRegistration()">Test Registration</button>
+    <p>Open the browser console to see detailed logs</p>
+</body>
+</html>

@@ -14,7 +14,8 @@ import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
-import io.strategiz.data.auth.entity.totp.TotpAuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
@@ -99,14 +100,20 @@ public abstract class BaseTotpService {
         }
         
         UserEntity user = userOpt.get();
-        TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
+        AuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
         
-        if (totpAuth == null || totpAuth.getSecret() == null) {
+        if (totpAuth == null || !totpAuth.isConfigured()) {
             log.warn("TOTP not configured for user: {}", username);
             return false;
         }
         
-        return isCodeValid(code, totpAuth.getSecret());
+        String secret = totpAuth.getMetadataAsString(AuthenticationMethodMetadata.TotpMetadata.SECRET_KEY);
+        if (secret == null) {
+            log.warn("TOTP secret not found for user: {}", username);
+            return false;
+        }
+        
+        return isCodeValid(code, secret);
     }
     
     /**
@@ -125,15 +132,15 @@ public abstract class BaseTotpService {
      * @param user the user
      * @return the TOTP authentication method, or null if not found
      */
-    protected TotpAuthenticationMethodEntity findTotpAuthMethod(UserEntity user) {
-        List<AuthenticationMethodEntity> authMethods = authMethodRepository.findByUserId(user.getId());
-        if (authMethods != null) {
-            for (AuthenticationMethodEntity method : authMethods) {
-                if (method instanceof TotpAuthenticationMethodEntity && "TOTP".equals(method.getAuthenticationMethodType())) {
-                    return (TotpAuthenticationMethodEntity) method;
-                }
-            }
-        }
-        return null;
+    protected AuthenticationMethodEntity findTotpAuthMethod(UserEntity user) {
+        List<AuthenticationMethodEntity> authMethods = authMethodRepository.findByUserIdAndType(
+            user.getId(), AuthenticationMethodType.TOTP
+        );
+        
+        // Return the first enabled TOTP method
+        return authMethods.stream()
+            .filter(AuthenticationMethodEntity::isEnabled)
+            .findFirst()
+            .orElse(null);
     }
 }

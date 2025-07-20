@@ -95,7 +95,17 @@ public class DeviceIdentity extends BaseEntity {
 
     @Override
     public String getCollectionName() {
-        return DeviceConstants.Collections.DEVICE_IDENTITIES;
+        // For authenticated devices, this would be overridden by the repository
+        // to return the subcollection path. Default to anonymous devices collection.
+        return DeviceConstants.Collections.ANONYMOUS_DEVICES;
+    }
+    
+    /**
+     * Check if this device is authenticated (has a userId)
+     * @return true if this device belongs to a user
+     */
+    public boolean isAuthenticated() {
+        return userId != null && !userId.isEmpty() && !"anonymous".equals(userId);
     }
 
     // Getters and setters

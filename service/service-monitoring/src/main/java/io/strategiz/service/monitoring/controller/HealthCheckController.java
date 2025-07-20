@@ -1,6 +1,8 @@
 package io.strategiz.service.monitoring.controller;
 
 import io.strategiz.service.monitoring.model.StatusResponse;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,12 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api")
-public class HealthCheckController {
+public class HealthCheckController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.MONITORING_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(HealthCheckController.class);
     

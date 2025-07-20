@@ -17,6 +17,11 @@
     <dependencies>
         <!-- Common service dependencies -->
         <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
         </dependency>

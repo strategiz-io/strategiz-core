@@ -31,6 +31,11 @@ public class PerformanceMetricsService extends BaseService {
         this.portfolioManager = portfolioManager;
     }
 
+    @Override
+    protected String getModuleName() {
+        return "service-dashboard";
+    }
+
     /**
      * Gets performance metrics for the user's portfolio
      * 

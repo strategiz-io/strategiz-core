@@ -19,6 +19,11 @@
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>data-strategy</artifactId>
             <version>${project.version}</version>
         </dependency>

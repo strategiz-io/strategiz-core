@@ -2,6 +2,8 @@ package io.strategiz.service.strategy.controller;
 
 import io.strategiz.data.strategy.Strategy;
 import io.strategiz.service.strategy.StrategyService;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +23,12 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/v1/strategies")
 @CrossOrigin(origins = "*")
-public class StrategyController {
+public class StrategyController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.STRATEGY_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(StrategyController.class);
 

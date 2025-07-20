@@ -14,6 +14,7 @@ import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
 import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,11 @@ import java.util.UUID;
 @RequestMapping("/v1/dashboard/watchlist")
 @CrossOrigin(origins = "*")
 public class WatchlistController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.DASHBOARD_MODULE;
+    }
     
     private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
 

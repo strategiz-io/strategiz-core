@@ -9,54 +9,87 @@ import java.util.Map;
 public interface SecretManager {
 
     /**
-     * Get a secret by key
+     * Create a secret
      *
      * @param key The secret key
-     * @return The secret value
+     * @param value The secret value as a string
+     * @throws UnsupportedOperationException if write operations are not supported
      */
-    String getSecret(String key);
+    void createSecret(String key, String value);
     
     /**
-     * Retrieve a secret value by its key with a default fallback value
+     * Create a secret with complex data
      *
-     * @param key the identifier for the secret
-     * @param defaultValue value to return if the secret is not found
-     * @return the secret value or the default if not found
+     * @param key The secret key
+     * @param data The secret data as a map
+     * @throws UnsupportedOperationException if write operations are not supported
      */
-    String getSecret(String key, String defaultValue);
+    void createSecret(String key, Map<String, Object> data);
     
     /**
-     * Retrieve multiple secrets by their keys
+     * Read a secret by key
      *
-     * @param keys array of keys to retrieve
+     * @param key The secret key
+     * @return The secret value, or null if not found
+     */
+    String readSecret(String key);
+    
+    /**
+     * Read a secret with a default value
+     *
+     * @param key The secret key
+     * @param defaultValue Value to return if the secret is not found
+     * @return The secret value or the default if not found
+     */
+    String readSecret(String key, String defaultValue);
+    
+    /**
+     * Read a secret as a map
+     *
+     * @param key The secret key
+     * @return The secret data as a map, or null if not found
+     */
+    Map<String, Object> readSecretAsMap(String key);
+    
+    /**
+     * Read multiple secrets by their keys
+     *
+     * @param keys Array of keys to retrieve
      * @return Map of key-value pairs with the secret values
      */
-    Map<String, String> getSecrets(String... keys);
+    Map<String, String> readSecrets(String... keys);
+    
+    /**
+     * Update an existing secret
+     *
+     * @param key The secret key
+     * @param value The new secret value
+     * @throws UnsupportedOperationException if write operations are not supported
+     */
+    void updateSecret(String key, String value);
+    
+    /**
+     * Update an existing secret with complex data
+     *
+     * @param key The secret key
+     * @param data The new secret data as a map
+     * @throws UnsupportedOperationException if write operations are not supported
+     */
+    void updateSecret(String key, Map<String, Object> data);
+    
+    /**
+     * Delete a secret
+     *
+     * @param key The secret key
+     * @throws UnsupportedOperationException if delete operations are not supported
+     */
+    void deleteSecret(String key);
     
     /**
      * Check if a secret exists
      *
-     * @param key the identifier for the secret
+     * @param key The secret key
      * @return true if the secret exists, false otherwise
      */
-    boolean hasSecret(String key);
-    
-    /**
-     * Store a secret (if the implementation supports write operations)
-     *
-     * @param key the identifier for the secret
-     * @param value the secret value to store
-     * @return true if stored successfully, false otherwise
-     * @throws UnsupportedOperationException if write operations are not supported
-     */
-    boolean storeSecret(String key, String value);
-    
-    /**
-     * Remove a secret (if the implementation supports delete operations)
-     *
-     * @param key the identifier for the secret
-     * @return true if removed successfully, false otherwise
-     * @throws UnsupportedOperationException if delete operations are not supported
-     */
-    boolean removeSecret(String key);
+    boolean secretExists(String key);
 }

@@ -6,8 +6,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
+import io.strategiz.framework.exception.ErrorDetails;
 import io.strategiz.framework.exception.ErrorMessageService;
 import io.strategiz.framework.exception.StandardErrorResponse;
+import io.strategiz.service.base.exception.BaseErrorDetails;
+import io.strategiz.service.base.constants.ModuleConstants;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.Contact;
@@ -58,11 +61,56 @@ import java.util.regex.Pattern;
 )
 public abstract class BaseController {
     
+    /**
+     * Get the module name for this controller.
+     * Each controller must implement this to identify its module.
+     * 
+     * @return Module name from ModuleConstants
+     */
+    protected abstract String getModuleName();
+    
     protected final Logger log = LoggerFactory.getLogger(getClass());
     private static final ObjectMapper objectMapper = new ObjectMapper();
     
     @Autowired
     protected ErrorMessageService errorMessageService;
+    
+    /**
+     * Throw a StrategizException with module context automatically included.
+     * 
+     * @param errorDetails The error details enum
+     * @param args Arguments for error message formatting
+     * @throws StrategizException Always throws
+     */
+    protected void throwModuleException(ErrorDetails errorDetails, Object... args) {
+        throw new StrategizException(errorDetails, getModuleName(), args);
+    }
+    
+    /**
+     * Throw a StrategizException with module context and cause.
+     * 
+     * @param errorDetails The error details enum
+     * @param cause The underlying cause
+     * @param args Arguments for error message formatting
+     * @throws StrategizException Always throws
+     */
+    protected void throwModuleException(ErrorDetails errorDetails, Throwable cause, Object... args) {
+        throw new StrategizException(errorDetails, getModuleName(), cause, args);
+    }
+    
+    /**
+     * Validate a business rule and throw module-aware exception if validation fails.
+     * 
+     * @param condition The condition to validate
+     * @param errorDetails The error to throw if condition is false
+     * @param args Arguments for error message formatting
+     * @throws StrategizException if condition is false
+     */
+    protected void validateModuleRule(boolean condition, ErrorDetails errorDetails, Object... args) {
+        if (!condition) {
+            throwModuleException(errorDetails, args);
+        }
+    }
     
     // Security patterns for input validation
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -184,8 +232,7 @@ public abstract class BaseController {
      */
     protected void validateEmail(String email, String fieldName) {
         if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {
-            throw new StrategizException(ErrorCode.VALIDATION_ERROR, 
-                "Invalid email format for field: " + fieldName);
+            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, fieldName, "Invalid email format");
         }
     }
     
@@ -195,8 +242,7 @@ public abstract class BaseController {
      */
     protected void validatePhoneNumber(String phone, String fieldName) {
         if (phone == null || !PHONE_PATTERN.matcher(phone).matches()) {
-            throw new StrategizException(ErrorCode.VALIDATION_ERROR, 
-                "Invalid phone number format for field: " + fieldName);
+            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, fieldName, "Invalid phone number format");
         }
     }
     
@@ -206,8 +252,7 @@ public abstract class BaseController {
      */
     protected void validateAlphanumeric(String input, String fieldName) {
         if (input == null || !ALPHANUMERIC_PATTERN.matcher(input).matches()) {
-            throw new StrategizException(ErrorCode.VALIDATION_ERROR, 
-                "Field " + fieldName + " must contain only letters and numbers");
+            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, fieldName, "Must contain only letters and numbers");
         }
     }
     
@@ -217,13 +262,11 @@ public abstract class BaseController {
      */
     protected void validateRequiredParam(String paramName, Object paramValue) {
         if (paramValue == null) {
-            throw new StrategizException(ErrorCode.VALIDATION_ERROR, 
-                "Required parameter '" + paramName + "' is missing");
+            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, paramName, "Required parameter is missing");
         }
         
         if (paramValue instanceof String && ((String) paramValue).trim().isEmpty()) {
-            throw new StrategizException(ErrorCode.VALIDATION_ERROR, 
-                "Required parameter '" + paramName + "' cannot be empty");
+            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, paramName, "Required parameter cannot be empty");
         }
     }
     
@@ -241,9 +284,9 @@ public abstract class BaseController {
      * Business rule validation helper
      * @throws StrategizException if condition is false
      */
-    protected void validateBusinessRule(boolean condition, Enum<?> errorCode, String errorMessage) {
+    protected void validateBusinessRule(boolean condition, ErrorDetails errorDetails, Object... args) {
         if (!condition) {
-            throw new StrategizException(errorCode, errorMessage);
+            throwModuleException(errorDetails, args);
         }
     }
     
@@ -254,7 +297,7 @@ public abstract class BaseController {
     protected void checkRateLimit(String userId, String operation) {
         // Default implementation - override in subclasses with actual rate limiting
         log.debug("Rate limit check for user: {}, operation: {}", userId, operation);
-        // Example: throw new StrategizException(ErrorCode.TOO_MANY_REQUESTS, "Too many requests for operation: " + operation);
+        // Example: throwModuleException(BaseErrorDetails.TOO_MANY_REQUESTS, operation);
     }
     
     /**
@@ -262,7 +305,7 @@ public abstract class BaseController {
      */
     protected <T> ResponseEntity<T> createCleanResponse(T data) {
         if (data == null) {
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, "Response data cannot be null");
+            throwModuleException(BaseErrorDetails.INTERNAL_ERROR, "Response data cannot be null");
         }
         
         // Filter out null and empty fields
@@ -277,7 +320,7 @@ public abstract class BaseController {
      */
     protected <T> ResponseEntity<T> createCleanResponse(T data, int statusCode) {
         if (data == null) {
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, "Response data cannot be null");
+            throwModuleException(BaseErrorDetails.INTERNAL_ERROR, "Response data cannot be null");
         }
         
         // Filter out null and empty fields
@@ -352,37 +395,37 @@ public abstract class BaseController {
      * Log successful request completion
      */
     protected void logRequestSuccess(String operation, String userId, Object result) {
-        log.info("SUCCESS - Operation: {}, User: {}, Result: {}", 
-            operation, userId, result.getClass().getSimpleName());
+        log.info("[{}] SUCCESS - Operation: {}, User: {}, Result: {}", 
+            getModuleName(), operation, userId, result.getClass().getSimpleName());
     }
     
     /**
      * Log successful request completion with additional context
      */
     protected void logRequestSuccess(String operation, String userId, Object result, String context) {
-        log.info("SUCCESS - Operation: {}, User: {}, Result: {}, Context: {}", 
-            operation, userId, result.getClass().getSimpleName(), context);
+        log.info("[{}] SUCCESS - Operation: {}, User: {}, Result: {}, Context: {}", 
+            getModuleName(), operation, userId, result.getClass().getSimpleName(), context);
     }
     
     /**
      * Log request with user context
      */
     protected void logRequest(String operation, String userId) {
-        log.info("REQUEST - Operation: {}, User: {}", operation, userId);
+        log.info("[{}] REQUEST - Operation: {}, User: {}", getModuleName(), operation, userId);
     }
     
     /**
      * Log request with user context and additional parameters
      */
     protected void logRequest(String operation, String userId, String context) {
-        log.info("REQUEST - Operation: {}, User: {}, Context: {}", operation, userId, context);
+        log.info("[{}] REQUEST - Operation: {}, User: {}, Context: {}", getModuleName(), operation, userId, context);
     }
     
     /**
      * Log request with user context and request parameters
      */
     protected void logRequest(String operation, String userId, Map<String, Object> params) {
-        log.info("REQUEST - Operation: {}, User: {}, Params: {}", operation, userId, params);
+        log.info("[{}] REQUEST - Operation: {}, User: {}, Params: {}", getModuleName(), operation, userId, params);
     }
     
     /**

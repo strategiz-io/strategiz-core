@@ -4,8 +4,14 @@ import io.strategiz.business.provider.coinbase.model.CoinbaseConnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseDisconnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
+import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
+import io.strategiz.data.auth.repository.ProviderIntegrationRepository;
+import io.strategiz.data.auth.model.provider.CreateProviderIntegrationRequest;
+import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
+import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
+import io.strategiz.framework.secrets.SecretManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,22 +27,31 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Business logic for Coinbase provider integration.
  * Handles OAuth flows, API interactions, and business rules specific to Coinbase.
  */
 @Component
-public class CoinbaseProviderBusiness {
+public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     
     private static final Logger log = LoggerFactory.getLogger(CoinbaseProviderBusiness.class);
     
+    private static final String PROVIDER_ID = "coinbase";
+    private static final String PROVIDER_NAME = "Coinbase";
+    private static final String PROVIDER_TYPE = "exchange";
+    
     private final CoinbaseClient coinbaseClient;
+    private final ProviderIntegrationRepository providerIntegrationRepository;
+    private final SecretManager secretManager;
     
     // OAuth Configuration
     @Value("${oauth.providers.coinbase.client-id}")
@@ -55,8 +70,13 @@ public class CoinbaseProviderBusiness {
     private String scope;
 
     @Autowired
-    public CoinbaseProviderBusiness(CoinbaseClient coinbaseClient) {
+    public CoinbaseProviderBusiness(
+            CoinbaseClient coinbaseClient,
+            ProviderIntegrationRepository providerIntegrationRepository,
+            SecretManager secretManager) {
         this.coinbaseClient = coinbaseClient;
+        this.providerIntegrationRepository = providerIntegrationRepository;
+        this.secretManager = secretManager;
     }
 
     /**
@@ -458,5 +478,130 @@ public class CoinbaseProviderBusiness {
             log.error("Failed to revoke access token: {}", e.getMessage());
             // Don't throw exception for revocation failures - log and continue
         }
+    }
+    
+    // ProviderIntegrationHandler interface implementation
+    
+    @Override
+    public boolean testConnection(CreateProviderIntegrationRequest request, String userId) {
+        log.info("Testing Coinbase connection for user: {}", userId);
+        
+        // Coinbase uses OAuth, so we can't test with API keys
+        // Return true to indicate OAuth flow should be initiated
+        log.info("Coinbase requires OAuth flow - cannot test with API keys");
+        return true;
+    }
+    
+    @Override
+    public ProviderIntegrationResult createIntegration(CreateProviderIntegrationRequest request, String userId) {
+        log.info("Creating Coinbase integration for user: {}", userId);
+        
+        // For OAuth providers, we don't store credentials during signup
+        // Instead, we'll initiate the OAuth flow
+        try {
+            // Create provider integration entity for Firestore
+            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
+                PROVIDER_ID, PROVIDER_NAME, PROVIDER_TYPE);
+            
+            entity.setStatus("pending_oauth");
+            entity.setEnabled(false); // Will be enabled after OAuth completion
+            entity.setSupportsTrading(true);
+            entity.setPermissions(Arrays.asList("read", "trade"));
+            entity.putMetadata("oauthRequired", true);
+            entity.putMetadata("authMethod", "oauth2");
+            entity.putMetadata("scope", scope);
+            
+            // Save to Firestore user subcollection
+            ProviderIntegrationEntity savedEntity = providerIntegrationRepository.saveForUser(userId, entity);
+            log.info("Created pending Coinbase provider integration for user: {}", userId);
+            
+            // Generate OAuth URL for the response
+            String state = generateSecureState(userId);
+            String authUrl = generateAuthorizationUrl(userId, state);
+            
+            // Build result with OAuth URL
+            Map<String, Object> metadata = new HashMap<>(savedEntity.getMetadata());
+            metadata.put("oauthUrl", authUrl);
+            metadata.put("state", state);
+            
+            return ProviderIntegrationResult.builder()
+                .providerName(PROVIDER_NAME)
+                .providerType(PROVIDER_TYPE)
+                .supportsTrading(true)
+                .permissions(Arrays.asList("read", "trade"))
+                .metadata(metadata)
+                .build();
+                
+        } catch (Exception e) {
+            log.error("Error creating Coinbase integration for user: {}", userId, e);
+            throw new RuntimeException("Failed to create Coinbase integration", e);
+        }
+    }
+    
+    @Override
+    public String getProviderId() {
+        return PROVIDER_ID;
+    }
+    
+    /**
+     * Complete OAuth flow and store tokens using dual storage
+     */
+    public void completeOAuthFlow(String userId, String authorizationCode, String state) {
+        log.info("Completing Coinbase OAuth flow for user: {}", userId);
+        
+        try {
+            // Handle OAuth callback
+            CoinbaseConnectionResult result = handleOAuthCallback(userId, authorizationCode, state);
+            
+            // Store tokens in Vault
+            storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
+            
+            // Update provider integration in Firestore
+            var existingIntegration = providerIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            if (existingIntegration.isPresent()) {
+                ProviderIntegrationEntity entity = existingIntegration.get();
+                entity.setStatus("connected");
+                entity.setEnabled(true);
+                entity.setConnectedAt(result.getConnectedAt());
+                entity.setLastTestedAt(Instant.now());
+                entity.putMetadata("accountInfo", result.getAccountInfo());
+                entity.putMetadata("oauthCompleted", true);
+                
+                providerIntegrationRepository.saveForUser(userId, entity);
+                log.info("Updated Coinbase integration status to connected for user: {}", userId);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error completing Coinbase OAuth flow for user: {}", userId, e);
+            throw new RuntimeException("Failed to complete OAuth flow", e);
+        }
+    }
+    
+    private void storeTokensInVault(String userId, String accessToken, String refreshToken, Instant expiresAt) {
+        try {
+            String secretPath = "secret/strategiz/users/" + userId + "/providers/coinbase";
+            
+            Map<String, Object> secretData = new HashMap<>();
+            secretData.put("accessToken", accessToken);
+            secretData.put("refreshToken", refreshToken);
+            secretData.put("expiresAt", expiresAt.toString());
+            secretData.put("provider", PROVIDER_ID);
+            secretData.put("storedAt", Instant.now().toString());
+            
+            // Convert map to JSON string for storage
+            ObjectMapper objectMapper = new ObjectMapper();
+            String secretJson = objectMapper.writeValueAsString(secretData);
+            secretManager.createSecret(secretPath, secretJson);
+            log.debug("Stored Coinbase OAuth tokens in Vault for user: {}", userId);
+            
+        } catch (Exception e) {
+            log.error("Failed to store Coinbase tokens for user: {}", userId, e);
+            throw new RuntimeException("Failed to store tokens", e);
+        }
+    }
+    
+    private String generateSecureState(String userId) {
+        // Generate a secure random state parameter
+        return userId + "-" + UUID.randomUUID().toString();
     }
 } 

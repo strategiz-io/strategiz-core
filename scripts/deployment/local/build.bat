@@ -51,10 +51,6 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd data\data-devices
-call mvn clean install -DskipTests
-if %ERRORLEVEL% neq 0 goto :error
-cd ..\..
 
 cd data\data-preferences
 call mvn clean install -DskipTests
@@ -128,6 +124,11 @@ if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
 cd client\client-google
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd client\client-yahoo-finance
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
@@ -215,6 +216,16 @@ if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
 cd business\business-provider-coinbase
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd business\business-provider-kraken
+call mvn clean install -DskipTests
+if %ERRORLEVEL% neq 0 goto :error
+cd ..\..
+
+cd business\business-provider-binanceus
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..

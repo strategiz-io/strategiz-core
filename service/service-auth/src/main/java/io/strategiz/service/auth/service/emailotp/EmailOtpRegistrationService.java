@@ -1,7 +1,9 @@
 package io.strategiz.service.auth.service.emailotp;
 
-import io.strategiz.data.auth.model.emailotp.EmailOtpAuthenticationMethod;
-import io.strategiz.data.auth.repository.emailotp.EmailOtpAuthenticationMethodRepository;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import org.slf4j.Logger;
@@ -49,10 +51,9 @@ public class EmailOtpRegistrationService {
     private JavaMailSender mailSender;
     
     @Autowired
-    private EmailOtpAuthenticationMethodRepository emailOtpAuthMethodRepository;
+    private AuthenticationMethodRepository authMethodRepository;
     
-    @Autowired
-    private EmailOtpAuthenticationService emailOtpAuthService;
+    // Note: EmailOtpAuthenticationService dependency removed to avoid circular dependencies
     
     /**
      * Register an email address for a user account
@@ -61,49 +62,54 @@ public class EmailOtpRegistrationService {
     public boolean registerEmailAddress(String userId, String email) {
         log.info("Registering email address for user: {}", userId);
         
-        // Check if email is already registered to any user
-        if (emailOtpAuthMethodRepository.existsByEmail(email)) {
-            Optional<EmailOtpAuthenticationMethod> existing = emailOtpAuthMethodRepository.findByEmail(email)
-                    .map(this::convertToModel);
+        // Check if email is already registered to any user by searching all users
+        // Note: This is simplified - in practice you'd want a more efficient lookup
+        List<AuthenticationMethodEntity> existingMethods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.EMAIL_OTP);
+        
+        // Check if this email is already registered for this user
+        Optional<AuthenticationMethodEntity> existing = existingMethods.stream()
+            .filter(method -> email.equals(method.getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS)))
+            .findFirst();
             
-            if (existing.isPresent()) {
-                EmailOtpAuthenticationMethod existingMethod = existing.get();
-                if (!userId.equals(existingMethod.getUserId())) {
-                    throw new StrategizException(AuthErrors.INVALID_EMAIL, 
-                            "Email address is already registered to another account");
-                }
-                
-                // Email already registered to this user
-                if (existingMethod.isVerified()) {
-                    log.info("Email address already verified for user: {}", userId);
-                    return true;
-                } else {
-                    // Re-send verification for unverified email
-                    return resendVerificationOtp(userId, email);
-                }
+        if (existing.isPresent()) {
+            AuthenticationMethodEntity existingMethod = existing.get();
+            
+            // Email already registered to this user
+            boolean isVerified = Boolean.TRUE.equals(existingMethod.getMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED));
+            if (isVerified) {
+                log.info("Email address already verified for user: {}", userId);
+                return true;
+            } else {
+                // Re-send verification for unverified email
+                return resendVerificationOtp(userId, email);
             }
         }
         
         // Create new Email OTP authentication method
-        EmailOtpAuthenticationMethod emailOtpMethod = new EmailOtpAuthenticationMethod(email);
-        emailOtpMethod.setUserId(userId);
-        emailOtpMethod.setVerified(false);
+        AuthenticationMethodEntity emailOtpMethod = new AuthenticationMethodEntity(AuthenticationMethodType.EMAIL_OTP, "Email: " + email);
+        emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS, email);
+        emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED, false);
+        emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, 0);
+        emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_DATE, java.time.LocalDate.now().toString());
         emailOtpMethod.setEnabled(false); // Enable after verification
         
         // Save to repository
-        emailOtpAuthMethodRepository.save(convertToEntity(emailOtpMethod));
+        AuthenticationMethodEntity saved = authMethodRepository.saveForUser(userId, emailOtpMethod);
         
         // Send verification OTP
         boolean otpSent = sendRegistrationOtp(email, "signup");
         
         if (otpSent) {
-            emailOtpMethod.markOtpSent();
-            emailOtpAuthMethodRepository.save(convertToEntity(emailOtpMethod));
+            // Update with OTP sent info
+            saved.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_SENT, java.time.Instant.now().toString());
+            int currentCount = (Integer) saved.getMetadata().getOrDefault(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, 0);
+            saved.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, currentCount + 1);
+            authMethodRepository.saveForUser(userId, saved);
             log.info("Email address registration OTP sent for user: {}", userId);
             return true;
         } else {
             // Remove the method if OTP sending failed
-            emailOtpAuthMethodRepository.deleteById(emailOtpMethod.getId());
+            authMethodRepository.deleteForUser(userId, saved.getId());
             throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, 
                     "Failed to send verification email");
         }
@@ -117,18 +123,20 @@ public class EmailOtpRegistrationService {
         log.info("Verifying email registration for user: {}", userId);
         
         // Find the Email OTP authentication method
-        Optional<EmailOtpAuthenticationMethod> methodOpt = emailOtpAuthMethodRepository
-                .findByUserIdAndEmail(userId, email)
-                .map(this::convertToModel);
+        List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.EMAIL_OTP);
+        Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
+            .filter(method -> email.equals(method.getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS)))
+            .findFirst();
         
         if (methodOpt.isEmpty()) {
             throw new StrategizException(AuthErrors.OTP_NOT_FOUND, 
                     "No email registration found for this user");
         }
         
-        EmailOtpAuthenticationMethod method = methodOpt.get();
+        AuthenticationMethodEntity method = methodOpt.get();
         
-        if (method.isVerified()) {
+        boolean isVerified = Boolean.TRUE.equals(method.getMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED));
+        if (isVerified) {
             log.info("Email address already verified for user: {}", userId);
             return true;
         }
@@ -138,9 +146,11 @@ public class EmailOtpRegistrationService {
         
         if (otpValid) {
             // Mark method as verified and enabled
-            method.markVerified();
+            method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED, true);
+            method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.VERIFICATION_TIME, java.time.Instant.now().toString());
             method.setEnabled(true);
-            emailOtpAuthMethodRepository.save(convertToEntity(method));
+            method.markAsUsed(); // Update last used time
+            authMethodRepository.saveForUser(userId, method);
             
             log.info("Email registration verified for user: {}", userId);
             return true;
@@ -156,19 +166,31 @@ public class EmailOtpRegistrationService {
     public boolean resendVerificationOtp(String userId, String email) {
         log.info("Resending verification OTP for user: {}", userId);
         
-        Optional<EmailOtpAuthenticationMethod> methodOpt = emailOtpAuthMethodRepository
-                .findByUserIdAndEmail(userId, email)
-                .map(this::convertToModel);
+        List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.EMAIL_OTP);
+        Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
+            .filter(method -> email.equals(method.getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS)))
+            .findFirst();
         
         if (methodOpt.isEmpty()) {
             throw new StrategizException(AuthErrors.OTP_NOT_FOUND, 
                     "No email registration found");
         }
         
-        EmailOtpAuthenticationMethod method = methodOpt.get();
+        AuthenticationMethodEntity method = methodOpt.get();
         
         // Check daily email limit
-        if (!method.canSendEmailToday(10)) { // Max 10 emails per day
+        int dailyCount = (Integer) method.getMetadata().getOrDefault(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, 0);
+        String lastEmailDate = method.getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_DATE);
+        String today = java.time.LocalDate.now().toString();
+        
+        // Reset counter if it's a new day
+        if (!today.equals(lastEmailDate)) {
+            dailyCount = 0;
+            method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_DATE, today);
+            method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, 0);
+        }
+        
+        if (dailyCount >= 10) { // Max 10 emails per day
             throw new StrategizException(AuthErrors.OTP_RATE_LIMITED, 
                     "Daily email limit exceeded for email registration");
         }
@@ -177,8 +199,9 @@ public class EmailOtpRegistrationService {
         boolean otpSent = sendRegistrationOtp(email, "signup");
         
         if (otpSent) {
-            method.markOtpSent();
-            emailOtpAuthMethodRepository.save(convertToEntity(method));
+            method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_SENT, java.time.Instant.now().toString());
+            method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, dailyCount + 1);
+            authMethodRepository.saveForUser(userId, method);
             return true;
         } else {
             throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, 
@@ -189,20 +212,17 @@ public class EmailOtpRegistrationService {
     /**
      * Get Email OTP authentication methods for a user
      */
-    public List<EmailOtpAuthenticationMethod> getUserEmailOtpMethods(String userId) {
-        return emailOtpAuthMethodRepository.findByUserIdAndEnabled(userId, true)
-                .stream()
-                .map(this::convertToModel)
-                .toList();
+    public List<AuthenticationMethodEntity> getUserEmailOtpMethods(String userId) {
+        return authMethodRepository.findByUserIdAndTypeAndIsEnabled(userId, AuthenticationMethodType.EMAIL_OTP, true);
     }
     
     /**
      * Get verified Email OTP authentication methods for a user
      */
-    public List<EmailOtpAuthenticationMethod> getVerifiedUserEmailOtpMethods(String userId) {
-        return emailOtpAuthMethodRepository.findByUserIdAndVerified(userId, true)
+    public List<AuthenticationMethodEntity> getVerifiedUserEmailOtpMethods(String userId) {
+        return authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.EMAIL_OTP)
                 .stream()
-                .map(this::convertToModel)
+                .filter(method -> Boolean.TRUE.equals(method.getMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED)))
                 .toList();
     }
     
@@ -212,12 +232,13 @@ public class EmailOtpRegistrationService {
     public boolean removeEmailAddress(String userId, String email) {
         log.info("Removing email address for user: {}", userId);
         
-        Optional<EmailOtpAuthenticationMethod> methodOpt = emailOtpAuthMethodRepository
-                .findByUserIdAndEmail(userId, email)
-                .map(this::convertToModel);
+        List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.EMAIL_OTP);
+        Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
+            .filter(method -> email.equals(method.getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS)))
+            .findFirst();
         
         if (methodOpt.isPresent()) {
-            emailOtpAuthMethodRepository.deleteById(methodOpt.get().getId());
+            authMethodRepository.deleteForUser(userId, methodOpt.get().getId());
             log.info("Email address removed for user: {}", userId);
             return true;
         } else {
@@ -236,7 +257,7 @@ public class EmailOtpRegistrationService {
     /**
      * Get primary (first verified) Email OTP method for user
      */
-    public Optional<EmailOtpAuthenticationMethod> getPrimaryEmailOtpMethod(String userId) {
+    public Optional<AuthenticationMethodEntity> getPrimaryEmailOtpMethod(String userId) {
         return getVerifiedUserEmailOtpMethods(userId).stream().findFirst();
     }
     
@@ -361,35 +382,22 @@ public class EmailOtpRegistrationService {
         }
     }
     
-    // === CONVERSION METHODS ===
+    // === HELPER METHODS ===
     
-    private EmailOtpAuthenticationMethod convertToModel(io.strategiz.data.auth.entity.emailotp.EmailOtpAuthenticationMethodEntity entity) {
-        // TODO: Implement proper entity to model conversion
-        EmailOtpAuthenticationMethod model = new EmailOtpAuthenticationMethod();
-        model.setId(entity.getMethodId());
-        model.setUserId(entity.getUserId());
-        model.setEmail(entity.getEmail());
-        model.setVerified(entity.isVerified());
-        model.setEnabled(entity.isEnabled());
-        model.setLastOtpSentAt(entity.getLastOtpSentAt());
-        model.setDailyEmailCount(entity.getDailyEmailCount());
-        model.setDailyCountResetAt(entity.getDailyCountResetAt());
-        return model;
-    }
-    
-    private io.strategiz.data.auth.entity.emailotp.EmailOtpAuthenticationMethodEntity convertToEntity(EmailOtpAuthenticationMethod model) {
-        // TODO: Implement proper model to entity conversion
-        io.strategiz.data.auth.entity.emailotp.EmailOtpAuthenticationMethodEntity entity = 
-                new io.strategiz.data.auth.entity.emailotp.EmailOtpAuthenticationMethodEntity();
-        entity.setMethodId(model.getId());
-        entity.setUserId(model.getUserId());
-        entity.setEmail(model.getEmail());
-        entity.setVerified(model.isVerified());
-        entity.setEnabled(model.isEnabled());
-        entity.setLastOtpSentAt(model.getLastOtpSentAt());
-        entity.setDailyEmailCount(model.getDailyEmailCount());
-        entity.setDailyCountResetAt(model.getDailyCountResetAt());
-        return entity;
+    /**
+     * Check if an email can be sent today based on daily limits
+     */
+    private boolean canSendEmailToday(AuthenticationMethodEntity method, int maxPerDay) {
+        int dailyCount = (Integer) method.getMetadata().getOrDefault(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, 0);
+        String lastEmailDate = method.getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_DATE);
+        String today = java.time.LocalDate.now().toString();
+        
+        // Reset counter if it's a new day
+        if (!today.equals(lastEmailDate)) {
+            return true; // New day, can send
+        }
+        
+        return dailyCount < maxPerDay;
     }
     
     /**

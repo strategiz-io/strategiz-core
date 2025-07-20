@@ -1,10 +1,7 @@
 package io.strategiz.service.device;
 
 import io.strategiz.data.device.model.DeviceIdentity;
-import io.strategiz.data.device.repository.CreateDeviceIdentityRepository;
-import io.strategiz.data.device.repository.DeleteDeviceIdentityRepository;
-import io.strategiz.data.device.repository.ReadDeviceIdentityRepository;
-import io.strategiz.data.device.repository.UpdateDeviceIdentityRepository;
+import io.strategiz.data.device.repository.DeviceIdentityRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,21 +22,11 @@ public class DeviceIdentityService {
     
     private static final Logger log = LoggerFactory.getLogger(DeviceIdentityService.class);
     
-    private final CreateDeviceIdentityRepository createRepo;
-    private final ReadDeviceIdentityRepository readRepo;
-    private final UpdateDeviceIdentityRepository updateRepo;
-    private final DeleteDeviceIdentityRepository deleteRepo;
+    private final DeviceIdentityRepository deviceRepository;
     
     @Autowired
-    public DeviceIdentityService(
-            CreateDeviceIdentityRepository createRepo,
-            ReadDeviceIdentityRepository readRepo,
-            UpdateDeviceIdentityRepository updateRepo,
-            DeleteDeviceIdentityRepository deleteRepo) {
-        this.createRepo = createRepo;
-        this.readRepo = readRepo;
-        this.updateRepo = updateRepo;
-        this.deleteRepo = deleteRepo;
+    public DeviceIdentityService(DeviceIdentityRepository deviceRepository) {
+        this.deviceRepository = deviceRepository;
     }
     
     /**
@@ -79,7 +66,7 @@ public class DeviceIdentityService {
             }
         }
         
-        return createRepo.create(device);
+        return deviceRepository.saveAnonymousDevice(device);
     }
     
     /**
@@ -100,39 +87,9 @@ public class DeviceIdentityService {
             Map<String, Object> deviceInfo,
             String userAgent) {
         
-        // Check if device already exists
-        if (deviceId != null && !deviceId.isEmpty()) {
-            Optional<DeviceIdentity> existingDevice = readRepo.findByDeviceId(deviceId);
-            if (existingDevice.isPresent()) {
-                // Update existing device with user ID
-                DeviceIdentity device = existingDevice.get();
-                device.setUserId(userId);
-                device.setDeviceName(deviceName);
-                device.setUserAgent(userAgent);
-                device.setTrusted(true);
-                
-                // Extract platform information from device info if available
-                if (deviceInfo != null) {
-                    if (deviceInfo.containsKey("platformOs")) {
-                        device.setPlatformOs((String) deviceInfo.get("platformOs"));
-                    }
-                    if (deviceInfo.containsKey("platformType")) {
-                        device.setPlatformType((String) deviceInfo.get("platformType"));
-                    }
-                    if (deviceInfo.containsKey("platformBrand")) {
-                        device.setPlatformBrand((String) deviceInfo.get("platformBrand"));
-                    }
-                    if (deviceInfo.containsKey("platformModel")) {
-                        device.setPlatformModel((String) deviceInfo.get("platformModel"));
-                    }
-                    if (deviceInfo.containsKey("platformVersion")) {
-                        device.setPlatformVersion((String) deviceInfo.get("platformVersion"));
-                    }
-                }
-                
-                return updateRepo.update(device);
-            }
-        }
+        // For authenticated devices, we always create in the user's subcollection
+        // If an anonymous device exists with this ID, it will remain in the anonymous collection
+        // This allows tracking device history across authentication states
         
         // If no device ID provided or device not found, create a new one
         deviceId = deviceId != null && !deviceId.isEmpty() ? deviceId : generateDeviceId();
@@ -164,7 +121,7 @@ public class DeviceIdentityService {
             }
         }
         
-        return createRepo.create(device);
+        return deviceRepository.saveAuthenticatedDevice(device, userId);
     }
     
     /**
@@ -174,7 +131,19 @@ public class DeviceIdentityService {
      * @return Optional containing the device if found
      */
     public Optional<DeviceIdentity> findDeviceById(String deviceId) {
-        return readRepo.findByDeviceId(deviceId);
+        // First try to find in anonymous devices
+        return deviceRepository.findAnonymousDevice(deviceId);
+    }
+    
+    /**
+     * Find a device by ID for a specific user
+     * 
+     * @param userId The user ID
+     * @param deviceId The device ID to search for
+     * @return Optional containing the device if found
+     */
+    public Optional<DeviceIdentity> findUserDevice(String userId, String deviceId) {
+        return deviceRepository.findAuthenticatedDevice(userId, deviceId);
     }
     
     /**
@@ -184,7 +153,7 @@ public class DeviceIdentityService {
      * @return List of devices associated with the user
      */
     public List<DeviceIdentity> getUserDevices(String userId) {
-        return readRepo.findByUserId(userId);
+        return deviceRepository.findByUserId(userId);
     }
     
     /**
@@ -194,7 +163,7 @@ public class DeviceIdentityService {
      * @return List of trusted devices associated with the user
      */
     public List<DeviceIdentity> getTrustedUserDevices(String userId) {
-        return readRepo.findTrustedDevicesByUserId(userId);
+        return deviceRepository.findByUserIdAndTrustedTrue(userId);
     }
     
     /**
@@ -205,7 +174,9 @@ public class DeviceIdentityService {
      * @return Optional containing the updated device if found and updated
      */
     public Optional<DeviceIdentity> updateDeviceInfo(String deviceId, Map<String, Object> deviceInfo) {
-        Optional<DeviceIdentity> deviceOpt = readRepo.findByDeviceId(deviceId);
+        // This method would need userId to properly update authenticated devices
+        // For now, we'll only update anonymous devices
+        Optional<DeviceIdentity> deviceOpt = deviceRepository.findAnonymousDevice(deviceId);
         
         if (deviceOpt.isPresent() && deviceInfo != null) {
             DeviceIdentity device = deviceOpt.get();
@@ -227,7 +198,7 @@ public class DeviceIdentityService {
                 device.setPlatformVersion((String) deviceInfo.get("platformVersion"));
             }
             
-            return Optional.of(updateRepo.update(device));
+            return Optional.of(deviceRepository.saveAnonymousDevice(device));
         }
         
         return Optional.empty();
@@ -240,8 +211,22 @@ public class DeviceIdentityService {
      * @param trusted The trusted status to set
      * @return Optional containing the updated device if found and updated
      */
-    public Optional<DeviceIdentity> updateDeviceTrustedStatus(String deviceId, boolean trusted) {
-        return updateRepo.updateTrustedStatus(deviceId, trusted);
+    /**
+     * Update device trusted status for a user's device
+     * 
+     * @param userId The user ID
+     * @param deviceId The device ID to update
+     * @param trusted The trusted status to set
+     * @return Optional containing the updated device if found and updated
+     */
+    public Optional<DeviceIdentity> updateDeviceTrustedStatus(String userId, String deviceId, boolean trusted) {
+        Optional<DeviceIdentity> deviceOpt = deviceRepository.findAuthenticatedDevice(userId, deviceId);
+        if (deviceOpt.isPresent()) {
+            DeviceIdentity device = deviceOpt.get();
+            device.setTrusted(trusted);
+            return Optional.of(deviceRepository.saveAuthenticatedDevice(device, userId));
+        }
+        return Optional.empty();
     }
     
     /**
@@ -250,8 +235,25 @@ public class DeviceIdentityService {
      * @param deviceId The device ID to delete
      * @return true if deleted, false if not found
      */
-    public boolean deleteDevice(String deviceId) {
-        return deleteRepo.deleteByDeviceId(deviceId);
+    /**
+     * Delete an anonymous device
+     * 
+     * @param deviceId The device ID to delete
+     * @return true if deleted, false if not found
+     */
+    public boolean deleteAnonymousDevice(String deviceId) {
+        return deviceRepository.deleteAnonymousDevice(deviceId);
+    }
+    
+    /**
+     * Delete a user's device
+     * 
+     * @param userId The user ID
+     * @param deviceId The device ID to delete
+     * @return true if deleted, false if not found
+     */
+    public boolean deleteUserDevice(String userId, String deviceId) {
+        return deviceRepository.deleteAuthenticatedDevice(userId, deviceId);
     }
     
     /**
@@ -261,7 +263,14 @@ public class DeviceIdentityService {
      * @return The number of devices deleted
      */
     public int deleteUserDevices(String userId) {
-        return deleteRepo.deleteAllByUserId(userId);
+        List<DeviceIdentity> devices = deviceRepository.findByUserId(userId);
+        int count = 0;
+        for (DeviceIdentity device : devices) {
+            if (deviceRepository.deleteAuthenticatedDevice(userId, device.getDeviceId())) {
+                count++;
+            }
+        }
+        return count;
     }
     
     /**

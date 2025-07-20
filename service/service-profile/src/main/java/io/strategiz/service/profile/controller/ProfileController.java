@@ -9,6 +9,8 @@ import io.strategiz.service.profile.ProfileService;
 import io.strategiz.service.profile.model.UpdateProfileRequest;
 import io.strategiz.service.profile.model.ReadProfileResponse;
 import io.strategiz.service.profile.model.UpdateProfileVerificationRequest;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,12 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/v1/profile")
 @Validated
-public class ProfileController {
+public class ProfileController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PROFILE_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
 

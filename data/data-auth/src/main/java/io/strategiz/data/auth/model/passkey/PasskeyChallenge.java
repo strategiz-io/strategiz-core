@@ -26,19 +26,24 @@ public class PasskeyChallenge extends BaseEntity {
     // === CONSTRUCTORS ===
 
     public PasskeyChallenge() {
+        super(); // Initialize BaseEntity
         this.createdAt = Instant.now();
         this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES); // 5 minute expiry
         this.metadata = new HashMap<>();
     }
 
     public PasskeyChallenge(String challenge, String userId, String type) {
-        this();
+        super(userId); // Initialize BaseEntity with userId for audit fields
         this.challenge = challenge;
         this.userId = userId;
         this.type = type;
+        this.createdAt = Instant.now();
+        this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);
+        this.metadata = new HashMap<>();
     }
     
     public PasskeyChallenge(String userId, String challenge, Instant createdAt, Instant expiresAt, String type) {
+        super(userId); // Initialize BaseEntity with userId for audit fields
         this.id = null; // Will be set when saved
         this.userId = userId;
         this.challenge = challenge;
@@ -75,10 +80,12 @@ public class PasskeyChallenge extends BaseEntity {
 
     // === GETTERS AND SETTERS ===
 
+    @Override
     public String getId() {
         return id;
     }
 
+    @Override
     public void setId(String id) {
         this.id = id;
     }

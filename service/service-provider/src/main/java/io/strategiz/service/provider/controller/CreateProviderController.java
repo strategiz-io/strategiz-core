@@ -6,6 +6,7 @@ import io.strategiz.service.provider.service.CreateProviderService;
 import io.strategiz.service.provider.exception.ProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +22,14 @@ import java.security.Principal;
  * @author Strategiz Team
  * @version 1.0
  */
-@RestController
+@RestController("providerCreateProviderController")
 @RequestMapping("/v1/providers")
 public class CreateProviderController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PROVIDER_MODULE;
+    }
     
     private final CreateProviderService createProviderService;
     

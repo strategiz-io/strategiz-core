@@ -42,6 +42,11 @@ public class AssetAllocationService extends BaseService {
         this.portfolioManager = portfolioManager;
     }
 
+    @Override
+    protected String getModuleName() {
+        return "service-dashboard";
+    }
+
     /**
      * Gets asset allocation data for the user's portfolio
      * 

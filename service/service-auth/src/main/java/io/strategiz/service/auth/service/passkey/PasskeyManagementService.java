@@ -32,6 +32,11 @@ import java.util.stream.Collectors;
  */
 @Service
 public class PasskeyManagementService extends BaseService {
+    
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
     private static final Logger logger = LoggerFactory.getLogger(PasskeyManagementService.class);
     
     private final PasskeyCredentialRepository credentialRepository;

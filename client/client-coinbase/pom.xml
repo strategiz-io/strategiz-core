@@ -43,6 +43,13 @@
             <version>${apache.httpclient.version}</version>
         </dependency>
 
+        <!-- Client Base -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Framework Exception -->
         <dependency>
             <groupId>io.strategiz</groupId>

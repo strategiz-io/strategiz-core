@@ -1,6 +1,8 @@
 package io.strategiz.service.auth.controller.oauth;
 
 import io.strategiz.service.auth.service.oauth.GoogleOAuthService;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,12 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/auth/oauth/google/signin")
-public class GoogleOAuthSignInController {
+public class GoogleOAuthSignInController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.AUTH_MODULE;
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthSignInController.class);
     

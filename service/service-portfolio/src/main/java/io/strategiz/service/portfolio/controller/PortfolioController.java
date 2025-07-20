@@ -1,6 +1,8 @@
 package io.strategiz.service.portfolio.controller;
 
 import io.strategiz.service.portfolio.PortfolioService;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +18,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/portfolio")
 @CrossOrigin(origins = "*")
-public class PortfolioController {
+public class PortfolioController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PORTFOLIO_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioController.class);
 

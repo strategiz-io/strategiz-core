@@ -6,6 +6,7 @@ import com.google.cloud.firestore.Firestore;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +36,67 @@ public class DeviceIdentityRepositoryImpl extends BaseRepository<DeviceIdentity>
                 .collect(Collectors.toList());
     }
     
+    @Override
+    public DeviceIdentity saveAuthenticatedDevice(DeviceIdentity entity, String userId) {
+        // For now, save to main collection and mark it as authenticated
+        entity.setUserId(userId);
+        return save(entity, userId);
+    }
+    
+    @Override
+    public DeviceIdentity saveAnonymousDevice(DeviceIdentity entity) {
+        // Save to root devices collection as anonymous
+        entity.setUserId("anonymous");
+        return save(entity, "anonymous");
+    }
+    
+    @Override
+    public Optional<DeviceIdentity> findAuthenticatedDevice(String userId, String deviceId) {
+        // Find by device ID and verify user ID matches
+        Optional<DeviceIdentity> device = findById(deviceId);
+        if (device.isPresent() && userId.equals(device.get().getUserId())) {
+            return device;
+        }
+        return Optional.empty();
+    }
+    
+    @Override
+    public Optional<DeviceIdentity> findAnonymousDevice(String deviceId) {
+        // Find by device ID and verify it's anonymous
+        Optional<DeviceIdentity> device = findById(deviceId);
+        if (device.isPresent() && "anonymous".equals(device.get().getUserId())) {
+            return device;
+        }
+        return Optional.empty();
+    }
+    
+    @Override
+    public boolean deleteAuthenticatedDevice(String userId, String deviceId) {
+        // Verify device belongs to user before deleting
+        Optional<DeviceIdentity> device = findById(deviceId);
+        if (device.isPresent() && userId.equals(device.get().getUserId())) {
+            return delete(deviceId, userId);
+        }
+        return false;
+    }
+    
+    @Override
+    public boolean deleteAnonymousDevice(String deviceId) {
+        // Verify device is anonymous before deleting
+        Optional<DeviceIdentity> device = findById(deviceId);
+        if (device.isPresent() && "anonymous".equals(device.get().getUserId())) {
+            return delete(deviceId, "system");
+        }
+        return false;
+    }
+    
+    @Override
+    public List<DeviceIdentity> findAllAnonymousDevices() {
+        // Return all devices from root collection
+        return findAll();
+    }
+    
+    // Legacy method implementations
     @Override
     public List<DeviceIdentity> findAll() {
         return super.findAll();

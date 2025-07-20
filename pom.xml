@@ -27,6 +27,8 @@
         <module>business/business-token-auth</module>
         <module>business/business-portfolio</module>
         <module>business/business-provider-coinbase</module>
+        <module>business/business-provider-kraken</module>
+        <module>business/business-provider-binanceus</module>
         
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -35,7 +37,6 @@
         <module>data/data-session</module>
         <module>data/data-watchlist</module>
         <module>data/data-providers</module>
-        <module>data/data-devices</module>
         <module>data/data-preferences</module>
         <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
@@ -208,11 +209,6 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>data-providers</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>data-devices</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -617,13 +613,6 @@
                 <version>2.3.2</version>
             </dependency>
             
-            <!-- Lombok -->
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>1.18.30</version>
-            </dependency>
-            
             <!-- Mockito -->
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -668,10 +657,6 @@
                     <skip>true</skip>
                     <mainClass>io.strategiz.application.Application</mainClass>
                     <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
                     </excludes>
                 </configuration>
                 <executions>

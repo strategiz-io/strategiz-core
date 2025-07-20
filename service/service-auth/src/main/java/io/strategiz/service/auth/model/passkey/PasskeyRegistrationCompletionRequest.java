@@ -9,5 +9,6 @@ public record PasskeyRegistrationCompletionRequest(
     String clientDataJSON,
     String attestationObject,
     String email,
-    String deviceId
+    String deviceId,
+    String identityToken
 ) {}

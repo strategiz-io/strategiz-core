@@ -15,6 +15,7 @@ import io.strategiz.service.marketing.model.response.TickerItem;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.marketing.exception.MarketingErrorDetails;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/v1/market/tickers")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
 public class MarketTickerController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.MARKETING_MODULE;
+    }
     
     private static final Logger log = LoggerFactory.getLogger(MarketTickerController.class);
     

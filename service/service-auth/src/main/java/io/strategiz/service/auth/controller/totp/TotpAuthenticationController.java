@@ -6,6 +6,7 @@ import io.strategiz.service.auth.service.totp.TotpAuthenticationService;
 import io.strategiz.service.auth.model.totp.TotpAuthenticationRequest;
 import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
@@ -32,6 +33,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/auth/totp")
 public class TotpAuthenticationController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.AUTH_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(TotpAuthenticationController.class);
     

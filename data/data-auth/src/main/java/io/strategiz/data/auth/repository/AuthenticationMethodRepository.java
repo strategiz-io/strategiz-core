@@ -1,92 +1,73 @@
 package io.strategiz.data.auth.repository;
 
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
-import io.strategiz.data.auth.entity.totp.TotpAuthenticationMethodEntity;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.stereotype.Repository;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.base.repository.BaseRepository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Spring Data repository for managing authentication methods
- * Provides CRUD operations for all authentication method types in users/{userId}/authentication_methods subcollection
+ * Repository for managing authentication methods in users/{userId}/authentication_methods subcollection
+ * Provides CRUD operations for all authentication method types (TOTP, OAuth, Passkey, SMS OTP, etc.)
+ * 
+ * This is an interface that defines subcollection-specific operations.
+ * Implementation should extend SubcollectionRepository.
  */
-@Repository
-public interface AuthenticationMethodRepository extends CrudRepository<AuthenticationMethodEntity, String> {
-    
-    // ===============================
-    // Spring Data Query Methods  
-    // ===============================
+public interface AuthenticationMethodRepository {
     
     /**
-     * Find authentication methods by type
-     */
-    List<AuthenticationMethodEntity> findByType(String type);
-    
-    /**
-     * Find authentication methods by name
-     */
-    List<AuthenticationMethodEntity> findByName(String name);
-    
-    /**
-     * Find authentication methods by name (case insensitive)
-     */
-    List<AuthenticationMethodEntity> findByNameIgnoreCase(String name);
-    
-    /**
-     * Check if method exists by type
-     */
-    boolean existsByType(String type);
-    
-    /**
-     * Check if method exists by name
-     */
-    boolean existsByName(String name);
-    
-    /**
-     * Count authentication methods by type
-     */
-    long countByType(String type);
-    
-    /**
-     * Delete authentication methods by type
-     */
-    void deleteByType(String type);
-    
-    /**
-     * Find methods ordered by last verified date
-     */
-    List<AuthenticationMethodEntity> findAllByOrderByLastVerifiedAtDesc();
-    
-    /**
-     * Find authentication methods by user ID
+     * Find all authentication methods for a specific user
      */
     List<AuthenticationMethodEntity> findByUserId(String userId);
     
     /**
-     * Find authentication method by user ID and provider and provider ID (for OAuth)
-     */
-    Optional<AuthenticationMethodEntity> findByUserIdAndProviderAndProviderId(String userId, String provider, String providerId);
-    
-    /**
      * Find authentication methods by user ID and type
      */
-    List<AuthenticationMethodEntity> findByUserIdAndType(String userId, String type);
+    List<AuthenticationMethodEntity> findByUserIdAndType(String userId, AuthenticationMethodType type);
+    
+    /**
+     * Find a specific authentication method by user ID and method ID
+     */
+    Optional<AuthenticationMethodEntity> findByUserIdAndId(String userId, String methodId);
+    
+    /**
+     * Find enabled authentication methods for a user
+     */
+    List<AuthenticationMethodEntity> findByUserIdAndIsEnabled(String userId, boolean isEnabled);
+    
+    /**
+     * Find enabled authentication methods by user ID and type
+     */
+    List<AuthenticationMethodEntity> findByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled);
     
     /**
      * Check if user has authentication method of given type
      */
-    boolean existsByUserIdAndType(String userId, String type);
+    boolean existsByUserIdAndType(String userId, AuthenticationMethodType type);
+    
+    /**
+     * Check if user has enabled authentication method of given type
+     */
+    boolean existsByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled);
+    
+    /**
+     * Count authentication methods by user ID and type
+     */
+    long countByUserIdAndType(String userId, AuthenticationMethodType type);
     
     /**
      * Delete authentication methods by user ID and type
      */
-    void deleteByUserIdAndType(String userId, String type);
+    void deleteByUserIdAndType(String userId, AuthenticationMethodType type);
     
     /**
-     * Find TOTP authentication methods by user ID
-     * Spring Data query derivation method
+     * Save authentication method for a specific user (subcollection)
      */
-    List<TotpAuthenticationMethodEntity> findTotpByUserId(String userId);
+    AuthenticationMethodEntity saveForUser(String userId, AuthenticationMethodEntity entity);
+    
+    /**
+     * Delete authentication method for a specific user
+     */
+    void deleteForUser(String userId, String methodId);
 } 

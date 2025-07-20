@@ -3,6 +3,8 @@ package io.strategiz.data.auth.repository.passkey.challenge;
 import io.strategiz.data.auth.model.passkey.PasskeyChallenge;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.Firestore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -16,6 +18,8 @@ import java.util.Optional;
 @Repository
 public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChallenge> implements PasskeyChallengeRepository {
     
+    private static final Logger log = LoggerFactory.getLogger(PasskeyChallengeRepositoryImpl.class);
+    
     @Autowired
     public PasskeyChallengeRepositoryImpl(Firestore firestore) {
         super(firestore, PasskeyChallenge.class);
@@ -23,27 +27,51 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
 
     @Override
     public Optional<PasskeyChallenge> findByChallenge(String challenge) {
-        return findByField("challenge", challenge).stream().findFirst();
+        // Use direct query without isActive filter for PasskeyChallenge
+        return findByFieldWithoutActiveFilter("challenge", challenge).stream().findFirst();
+    }
+    
+    // Custom method to query without isActive filter since PasskeyChallenge doesn't use soft deletes
+    private List<PasskeyChallenge> findByFieldWithoutActiveFilter(String fieldName, Object value) {
+        try {
+            log.debug("Querying {} = {} without isActive filter", fieldName, value);
+            var query = getCollection().whereEqualTo(fieldName, value);
+            var docs = query.get().get().getDocuments();
+            log.debug("Query found {} documents", docs.size());
+            
+            return docs.stream()
+                .map(doc -> {
+                    PasskeyChallenge challenge = doc.toObject(PasskeyChallenge.class);
+                    challenge.setId(doc.getId());
+                    log.debug("Found challenge: ID={}, challenge={}, userId={}", 
+                        challenge.getId(), challenge.getChallenge(), challenge.getUserId());
+                    return challenge;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error in findByFieldWithoutActiveFilter", e);
+            return java.util.Collections.emptyList();
+        }
     }
 
     @Override
     public List<PasskeyChallenge> findByUserId(String userId) {
-        return findByField("userId", userId);
+        return findByFieldWithoutActiveFilter("userId", userId);
     }
 
     @Override
     public List<PasskeyChallenge> findBySessionId(String sessionId) {
-        return findByField("sessionId", sessionId);
+        return findByFieldWithoutActiveFilter("sessionId", sessionId);
     }
 
     @Override
     public List<PasskeyChallenge> findByChallengeType(String type) {
-        return findByField("type", type);
+        return findByFieldWithoutActiveFilter("type", type);
     }
 
     @Override
     public List<PasskeyChallenge> findByType(String type) {
-        return findByField("type", type);
+        return findByFieldWithoutActiveFilter("type", type);
     }
 
     @Override
@@ -67,7 +95,7 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
 
     @Override
     public boolean existsByChallenge(String challenge) {
-        return existsByField("challenge", challenge);
+        return !findByFieldWithoutActiveFilter("challenge", challenge).isEmpty();
     }
 
     @Override
@@ -91,12 +119,14 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
     // Repository method implementations
     @Override
     public PasskeyChallenge save(PasskeyChallenge challenge) {
-        return save(challenge, "system");
+        // If challenge has a userId, use it; otherwise use "system"
+        String userId = challenge.getUserId() != null ? challenge.getUserId() : "system";
+        return save(challenge, userId);
     }
 
     @Override
     public PasskeyChallenge saveAndFlush(PasskeyChallenge challenge) {
-        return save(challenge, "system");
+        return save(challenge);
     }
 
     @Override
@@ -107,5 +137,34 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
     @Override
     public void deleteAll(Iterable<? extends PasskeyChallenge> challenges) {
         challenges.forEach(this::delete);
+    }
+    
+    // Debug method to inspect what's actually in Firestore
+    public void debugFirestoreContents() {
+        try {
+            log.debug("=== DEBUG: Raw Firestore Contents ===");
+            var allDocs = getCollection().get().get().getDocuments();
+            log.debug("Total documents in collection: {}", allDocs.size());
+            
+            for (var doc : allDocs) {
+                log.debug("Document ID: {}", doc.getId());
+                log.debug("Document data: {}", doc.getData());
+                
+                // Try to convert to object
+                try {
+                    PasskeyChallenge challenge = doc.toObject(PasskeyChallenge.class);
+                    if (challenge != null) {
+                        challenge.setId(doc.getId());
+                        log.debug("Converted object - challenge: {}, userId: {}, isActive: {}", 
+                            challenge.getChallenge(), challenge.getUserId(), challenge.isActive());
+                    }
+                } catch (Exception e) {
+                    log.debug("Failed to convert document to PasskeyChallenge: {}", e.getMessage());
+                }
+            }
+            log.debug("=== END DEBUG ===");
+        } catch (Exception e) {
+            log.error("Error in debugFirestoreContents", e);
+        }
     }
 }

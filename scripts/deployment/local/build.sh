@@ -47,9 +47,6 @@ echo "Building data-providers"
 mvn -f data/data-providers/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in data-providers" && exit 1
 
-echo "Building data-devices"
-mvn -f data/data-devices/pom.xml clean install -DskipTests
-[ $? -ne 0 ] && echo "Build failed in data-devices" && exit 1
 
 echo "Building data-preferences"
 mvn -f data/data-preferences/pom.xml clean install -DskipTests
@@ -118,6 +115,10 @@ echo "Building client-firebase-sms"
 mvn -f client/client-firebase-sms/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in client-firebase-sms" && exit 1
 
+echo "Building client-yahoo-finance"
+mvn -f client/client-yahoo-finance/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in client-yahoo-finance" && exit 1
+
 echo "Step 4/6: Building business modules"
 echo "Building business-base"
 mvn -f business/business-base/pom.xml clean install -DskipTests
@@ -134,6 +135,14 @@ mvn -f business/business-token-auth/pom.xml clean install -DskipTests
 echo "Building business-provider-coinbase"
 mvn -f business/business-provider-coinbase/pom.xml clean install -DskipTests
 [ $? -ne 0 ] && echo "Build failed in business-provider-coinbase" && exit 1
+
+echo "Building business-provider-kraken"
+mvn -f business/business-provider-kraken/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in business-provider-kraken" && exit 1
+
+echo "Building business-provider-binanceus"
+mvn -f business/business-provider-binanceus/pom.xml clean install -DskipTests
+[ $? -ne 0 ] && echo "Build failed in business-provider-binanceus" && exit 1
 
 echo "Step 5/6: Building service modules"
 echo "Building service-base"

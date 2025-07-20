@@ -72,6 +72,11 @@ public class BinanceUSService extends BaseService {
         log.info("Initialized Binance US service with Spring RestTemplate");
     }
     
+    @Override
+    protected String getModuleName() {
+        return "service-exchange";
+    }
+    
     /**
      * Validate that a real API connection is available before making requests.
      * Strategiz ONLY uses real API data - never mock data or simulated responses.

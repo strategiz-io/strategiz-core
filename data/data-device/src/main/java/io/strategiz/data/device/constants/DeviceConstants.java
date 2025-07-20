@@ -18,8 +18,27 @@ public final class DeviceConstants {
         }
         
         /**
-         * Device identities collection
+         * Anonymous devices collection (root level)
+         * Path: /devices
          */
+        public static final String ANONYMOUS_DEVICES = "devices";
+        
+        /**
+         * Authenticated devices subcollection (under users)
+         * Path: /users/{userId}/devices
+         */
+        public static final String USER_DEVICES_SUBCOLLECTION = "devices";
+        
+        /**
+         * Users collection (parent of authenticated devices)
+         */
+        public static final String USERS = "users";
+        
+        /**
+         * Legacy device identities collection
+         * @deprecated Use ANONYMOUS_DEVICES or USER_DEVICES_SUBCOLLECTION instead
+         */
+        @Deprecated
         public static final String DEVICE_IDENTITIES = "device_identities";
     }
     

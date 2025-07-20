@@ -25,6 +25,11 @@ import java.util.Optional;
 @Transactional
 public class ProfileService extends BaseService {
 
+    @Override
+    protected String getModuleName() {
+        return "service-profile";
+    }
+
     private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
     private final UserRepository userRepository;

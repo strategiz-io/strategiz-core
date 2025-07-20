@@ -8,23 +8,43 @@ import java.util.Optional;
 /**
  * Repository interface for DeviceIdentity entities
  * Implementation provided by client-firebase module
+ * 
+ * Supports both authenticated devices (stored as subcollection under users)
+ * and anonymous devices (stored in root collection)
  */
 public interface DeviceIdentityRepository {
     
     /**
-     * Save device identity (create or update)
+     * Save authenticated device identity as subcollection under user
+     * Stores at: /users/{userId}/devices/{deviceId}
      * @param entity The device identity to save
-     * @param userId Who is saving it
+     * @param userId The user ID (required for authenticated devices)
      * @return The saved device identity
      */
-    DeviceIdentity save(DeviceIdentity entity, String userId);
+    DeviceIdentity saveAuthenticatedDevice(DeviceIdentity entity, String userId);
     
     /**
-     * Find device identity by ID
-     * @param id Device identity ID
+     * Save anonymous device identity at root collection
+     * Stores at: /devices/{deviceId}
+     * @param entity The device identity to save
+     * @return The saved device identity
+     */
+    DeviceIdentity saveAnonymousDevice(DeviceIdentity entity);
+    
+    /**
+     * Find authenticated device by ID under a specific user
+     * @param userId The user ID
+     * @param deviceId Device identity ID
      * @return Optional device identity
      */
-    Optional<DeviceIdentity> findById(String id);
+    Optional<DeviceIdentity> findAuthenticatedDevice(String userId, String deviceId);
+    
+    /**
+     * Find anonymous device by ID from root collection
+     * @param deviceId Device identity ID
+     * @return Optional device identity
+     */
+    Optional<DeviceIdentity> findAnonymousDevice(String deviceId);
     
     /**
      * Find devices by their unique device ID
@@ -51,42 +71,97 @@ public interface DeviceIdentityRepository {
     List<DeviceIdentity> findByUserIdAndTrustedTrue(String userId);
     
     /**
-     * Delete device identity
-     * @param id Device identity ID to delete
-     * @param userId Who is deleting it
+     * Delete authenticated device from user's subcollection
+     * @param userId The user ID
+     * @param deviceId Device identity ID to delete
      * @return True if device was found and deleted
      */
-    boolean delete(String id, String userId);
+    boolean deleteAuthenticatedDevice(String userId, String deviceId);
     
     /**
-     * Find all device identities
-     * @return List of all device identities
+     * Delete anonymous device from root collection
+     * @param deviceId Device identity ID to delete
+     * @return True if device was found and deleted
      */
-    List<DeviceIdentity> findAll();
+    boolean deleteAnonymousDevice(String deviceId);
     
     /**
-     * Save a device identity without userId (for legacy compatibility)
-     * @param entity The device identity to save
-     * @return The saved device identity
+     * Find all anonymous devices (from root collection)
+     * @return List of all anonymous device identities
      */
-    DeviceIdentity save(DeviceIdentity entity);
+    List<DeviceIdentity> findAllAnonymousDevices();
+    
+    // Legacy compatibility methods (will use anonymous device operations)
     
     /**
-     * Check if a device identity exists by ID
-     * @param id The device identity ID
-     * @return True if exists
+     * @deprecated Use saveAnonymousDevice or saveAuthenticatedDevice instead
      */
-    boolean existsById(String id);
+    @Deprecated
+    default DeviceIdentity save(DeviceIdentity entity, String userId) {
+        if (userId != null && !userId.isEmpty() && !"anonymous".equals(userId)) {
+            return saveAuthenticatedDevice(entity, userId);
+        }
+        return saveAnonymousDevice(entity);
+    }
     
     /**
-     * Delete a device identity by ID
-     * @param id The device identity ID
+     * @deprecated Use saveAnonymousDevice instead
      */
-    void deleteById(String id);
+    @Deprecated
+    default DeviceIdentity save(DeviceIdentity entity) {
+        return saveAnonymousDevice(entity);
+    }
     
     /**
-     * Delete a device identity entity
-     * @param entity The device identity to delete
+     * @deprecated Use findAnonymousDevice or findAuthenticatedDevice instead
      */
-    void delete(DeviceIdentity entity);
+    @Deprecated
+    default Optional<DeviceIdentity> findById(String id) {
+        return findAnonymousDevice(id);
+    }
+    
+    /**
+     * @deprecated Use deleteAnonymousDevice or deleteAuthenticatedDevice instead
+     */
+    @Deprecated
+    default boolean delete(String id, String userId) {
+        if (userId != null && !userId.isEmpty() && !"anonymous".equals(userId)) {
+            return deleteAuthenticatedDevice(userId, id);
+        }
+        return deleteAnonymousDevice(id);
+    }
+    
+    /**
+     * @deprecated Use deleteAnonymousDevice instead
+     */
+    @Deprecated
+    default void deleteById(String id) {
+        deleteAnonymousDevice(id);
+    }
+    
+    /**
+     * @deprecated Use deleteAnonymousDevice instead
+     */
+    @Deprecated
+    default void delete(DeviceIdentity entity) {
+        if (entity != null && entity.getId() != null) {
+            deleteAnonymousDevice(entity.getId());
+        }
+    }
+    
+    /**
+     * @deprecated Use findAnonymousDevice instead
+     */
+    @Deprecated
+    default boolean existsById(String id) {
+        return findAnonymousDevice(id).isPresent();
+    }
+    
+    /**
+     * @deprecated Use findAllAnonymousDevices instead
+     */
+    @Deprecated
+    default List<DeviceIdentity> findAll() {
+        return findAllAnonymousDevices();
+    }
 }

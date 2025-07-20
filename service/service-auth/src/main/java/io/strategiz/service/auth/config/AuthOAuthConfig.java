@@ -55,8 +55,8 @@ public class AuthOAuthConfig {
         if (googleConfig != null && secretManager != null) {
             // Try to load secrets from Vault
             try {
-                String vaultClientId = secretManager.getSecret("oauth.google.client-id", googleConfig.getClientId());
-                String vaultClientSecret = secretManager.getSecret("oauth.google.client-secret", googleConfig.getClientSecret());
+                String vaultClientId = secretManager.readSecret("oauth.google.client-id", googleConfig.getClientId());
+                String vaultClientSecret = secretManager.readSecret("oauth.google.client-secret", googleConfig.getClientSecret());
                 
                 if (!vaultClientId.equals(googleConfig.getClientId()) || !vaultClientSecret.equals(googleConfig.getClientSecret())) {
                     logger.info("Loading Google OAuth credentials from Vault");
@@ -83,8 +83,8 @@ public class AuthOAuthConfig {
         if (facebookConfig != null && secretManager != null) {
             // Try to load secrets from Vault
             try {
-                String vaultClientId = secretManager.getSecret("oauth.facebook.client-id", facebookConfig.getClientId());
-                String vaultClientSecret = secretManager.getSecret("oauth.facebook.client-secret", facebookConfig.getClientSecret());
+                String vaultClientId = secretManager.readSecret("oauth.facebook.client-id", facebookConfig.getClientId());
+                String vaultClientSecret = secretManager.readSecret("oauth.facebook.client-secret", facebookConfig.getClientSecret());
                 
                 if (!vaultClientId.equals(facebookConfig.getClientId()) || !vaultClientSecret.equals(facebookConfig.getClientSecret())) {
                     logger.info("Loading Facebook OAuth credentials from Vault");

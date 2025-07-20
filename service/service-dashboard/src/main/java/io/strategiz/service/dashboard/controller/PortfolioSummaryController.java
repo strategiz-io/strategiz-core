@@ -11,6 +11,7 @@ import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryRes
 import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/dashboard/portfolio")
 public class PortfolioSummaryController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.DASHBOARD_MODULE;
+    }
     
     private final PortfolioSummaryService portfolioSummaryService;
     

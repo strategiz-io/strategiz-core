@@ -16,6 +16,11 @@ import java.util.Map;
  */
 public abstract class ProviderBaseService extends BaseService {
     
+    @Override
+    protected String getModuleName() {
+        return "service-provider";
+    }
+    
     protected final Logger providerLog = LoggerFactory.getLogger("PROVIDER." + getClass().getSimpleName());
     
     /**

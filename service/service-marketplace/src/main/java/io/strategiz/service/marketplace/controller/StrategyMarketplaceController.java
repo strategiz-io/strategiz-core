@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.strategiz.service.marketplace.service.StrategyMarketplaceService;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +20,12 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/marketplace/strategies")
-public class StrategyMarketplaceController {
+public class StrategyMarketplaceController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.MARKETPLACE_MODULE;
+    }
 
     @Autowired
     private StrategyMarketplaceService strategyService;

@@ -1,7 +1,9 @@
 package io.strategiz.service.auth.service.totp;
 
 import java.time.Instant;
-import io.strategiz.data.auth.entity.totp.TotpAuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
@@ -52,14 +54,14 @@ public class TotpAuthenticationService extends BaseTotpService {
         }
         
         UserEntity user = userOpt.get();
-        TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
+        AuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
         
-        if (totpAuth == null || totpAuth.getSecret() == null) {
+        if (totpAuth == null || totpAuth.getMetadataAsString(AuthenticationMethodMetadata.TotpMetadata.SECRET_KEY) == null) {
             log.warn("TOTP not configured for user: {}", userId);
             return false;
         }
         
-        return isCodeValid(code, totpAuth.getSecret());
+        return isCodeValid(code, totpAuth.getMetadataAsString(AuthenticationMethodMetadata.TotpMetadata.SECRET_KEY));
     }
     
     /**
@@ -80,11 +82,13 @@ public class TotpAuthenticationService extends BaseTotpService {
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isPresent()) {
             UserEntity user = userOpt.get();
-            TotpAuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
+            AuthenticationMethodEntity totpAuth = findTotpAuthMethod(user);
             if (totpAuth != null) {
-                totpAuth.setLastAccessedAt(Instant.now());
-                totpAuth.markAsVerified();
-                authMethodRepository.save(totpAuth);
+                totpAuth.setLastUsedAt(Instant.now());
+                totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFIED, true);
+                totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.LAST_USED_TIME, Instant.now().toString());
+                totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFICATION_TIME, Instant.now().toString());
+                authMethodRepository.saveForUser(userId, totpAuth);
             }
             
             // Create session and tokens using SessionAuthBusiness

@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.data.auth.model.passkey.PasskeyChallenge;
 import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepository;
-import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
-import io.strategiz.service.auth.exception.AuthErrors;
-import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.service.auth.exception.AuthErrorDetails;
 import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Comparator;
@@ -29,6 +26,11 @@ import java.util.UUID;
  */
 @Service
 public class PasskeyChallengeService extends BaseService {
+    
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
     
     private static final Logger log = LoggerFactory.getLogger(PasskeyChallengeService.class);
     
@@ -72,14 +74,78 @@ public class PasskeyChallengeService extends BaseService {
                 type.name()
             );
             
-            // Let Hibernate generate the ID through the @GeneratedValue annotation
-            // Save the challenge
-            challengeEntity = passkeyChallengeRepository.saveAndFlush(challengeEntity);
-            log.debug("Created new {} challenge for user {}", type, userId);
+            // Save the challenge (repository will handle ID generation and audit fields)
+            // The repository implementation will use the userId from the entity
+            log.debug("About to save challenge - entity before save: ID={}, userId={}, challenge={}, type={}", 
+                challengeEntity.getId(), challengeEntity.getUserId(), challengeEntity.getChallenge(), challengeEntity.getType());
+            
+            challengeEntity = passkeyChallengeRepository.save(challengeEntity);
+            
+            log.debug("Challenge saved successfully - entity after save: ID={}, userId={}, challenge={}, type={}, isActive={}, hasAudit={}", 
+                challengeEntity.getId(), challengeEntity.getUserId(), challengeEntity.getChallenge(), challengeEntity.getType(),
+                challengeEntity.isActive(), challengeEntity._hasAudit());
+            
+            // Add a small delay to ensure Firestore consistency
+            try {
+                Thread.sleep(100); // 100ms delay
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            
+            // Try multiple verification approaches
+            log.debug("=== VERIFICATION PHASE ===");
+            
+            // 1. Direct challenge lookup
+            Optional<PasskeyChallenge> savedChallenge = passkeyChallengeRepository.findByChallenge(challenge);
+            log.debug("1. Direct challenge lookup - found: {}", savedChallenge.isPresent());
+            if (savedChallenge.isPresent()) {
+                PasskeyChallenge found = savedChallenge.get();
+                log.debug("   Found challenge details - ID: {}, userId: {}, type: {}, challenge: {}", 
+                    found.getId(), found.getUserId(), found.getChallengeType(), found.getChallenge());
+            }
+            
+            // 2. User challenges lookup
+            List<PasskeyChallenge> userChallenges = passkeyChallengeRepository.findByUserId(userId);
+            log.debug("2. User challenges lookup - total for user {}: {}", userId, userChallenges.size());
+            for (PasskeyChallenge c : userChallenges) {
+                log.debug("   User challenge: ID={}, challenge={}, type={}, matches={}", 
+                    c.getId(), c.getChallenge(), c.getChallengeType(), challenge.equals(c.getChallenge()));
+            }
+            
+            // 3. All challenges lookup
+            List<PasskeyChallenge> allChallenges = passkeyChallengeRepository.findAll();
+            log.debug("3. All challenges lookup - total in database: {}", allChallenges.size());
+            for (PasskeyChallenge c : allChallenges) {
+                if (challenge.equals(c.getChallenge())) {
+                    log.debug("   FOUND MATCHING CHALLENGE: ID={}, userId={}, type={}", 
+                        c.getId(), c.getUserId(), c.getChallengeType());
+                }
+            }
+            
+            // 4. Exists check
+            boolean exists = passkeyChallengeRepository.existsByChallenge(challenge);
+            log.debug("4. Exists check - challenge exists: {}", exists);
+            
+            // 5. Raw Firestore debug - try to access the collection directly
+            try {
+                log.debug("5. Direct Firestore access attempt...");
+                // Try to get the collection reference and query directly
+                if (passkeyChallengeRepository instanceof io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepositoryImpl) {
+                    log.debug("Repository is correct type, attempting direct debug");
+                    ((io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepositoryImpl) passkeyChallengeRepository).debugFirestoreContents();
+                } else {
+                    log.debug("Repository type: {}", passkeyChallengeRepository.getClass().getName());
+                }
+            } catch (Exception e) {
+                log.debug("Error in direct Firestore access", e);
+            }
+            
+            log.debug("=== END VERIFICATION ===");
             
             return challenge;
         } catch (Exception e) {
-            throw new StrategizException(AuthErrors.PASSKEY_REGISTRATION_FAILED, e.getMessage());
+            throwModuleException(AuthErrorDetails.PASSKEY_REGISTRATION_FAILED, e, e.getMessage());
+            return null; // This line is unreachable but required for compilation
         }
     }
     
@@ -95,18 +161,22 @@ public class PasskeyChallengeService extends BaseService {
     public boolean verifyChallenge(String challenge, String userId, PasskeyChallengeType type) {
         Instant now = Instant.now();
         
-        // Find challenges matching the criteria
-        Optional<PasskeyChallenge> challengeOpt = passkeyChallengeRepository.findByChallenge(challenge)
-                .stream()
+        log.debug("Verifying challenge: {} for user: {} with type: {}", challenge, userId, type);
+        
+        // Find challenge matching the challenge string
+        Optional<PasskeyChallenge> foundChallenge = passkeyChallengeRepository.findByChallenge(challenge);
+        log.debug("Challenge found: {}", foundChallenge.isPresent());
+        
+        Optional<PasskeyChallenge> challengeOpt = foundChallenge
                 .filter(c -> type.name().equals(c.getChallengeType()))
                 // For authentication challenges, userId may be null initially
                 .filter(c -> type == PasskeyChallengeType.AUTHENTICATION 
                         ? true 
                         : (userId != null && userId.equals(c.getUserId())))
-                .filter(c -> c.getExpiresAt().isAfter(now))
-                .findFirst();
+                .filter(c -> c.getExpiresAt().isAfter(now));
                 
         if (challengeOpt.isPresent()) {
+            log.debug("Challenge verified successfully for user: {}", userId);
             // Challenge is valid, delete it to prevent replay attacks
             passkeyChallengeRepository.delete(challengeOpt.get());
             
@@ -119,6 +189,7 @@ public class PasskeyChallengeService extends BaseService {
             return true;
         }
         
+        log.debug("Challenge verification failed. No matching valid challenge found.");
         return false;
     }
     
@@ -134,6 +205,8 @@ public class PasskeyChallengeService extends BaseService {
             byte[] clientDataBytes = Base64.getUrlDecoder().decode(clientDataJSON);
             String clientData = new String(clientDataBytes);
             
+            log.debug("Decoded clientDataJSON: {}", clientData);
+            
             // Parse the JSON
             JsonNode clientDataNode = objectMapper.readTree(clientData);
             String challenge = clientDataNode.path("challenge").asText("");
@@ -143,9 +216,11 @@ public class PasskeyChallengeService extends BaseService {
                 return "";
             }
             
+            log.debug("Extracted challenge from clientDataJSON: {}", challenge);
+            
             return challenge;
-        } catch (IOException e) {
-            log.error("Error extracting challenge from client data", e);
+        } catch (Exception e) {
+            log.error("Error extracting challenge from client data. clientDataJSON: {}", clientDataJSON, e);
             return "";
         }
     }

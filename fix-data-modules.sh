@@ -84,7 +84,7 @@ EOF
 }
 
 # Fix simple data modules
-fix_simple_data_module "data/data-devices" "User devices data models and repositories"
+# data-devices module has been removed - functionality moved to data-device
 fix_simple_data_module "data/data-exchange" "Exchange credentials data models and repositories"
 fix_simple_data_module "data/data-portfolio" "Portfolio data models and repositories"
 fix_simple_data_module "data/data-preferences" "User preferences data models and repositories"

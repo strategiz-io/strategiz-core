@@ -16,6 +16,13 @@
     <description>Kraken API client for Strategiz platform</description>
 
     <dependencies>
+        <!-- Framework Secrets for Vault -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        
         <!-- Spring Framework -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -41,6 +48,24 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${apache.httpclient.version}</version>
+        </dependency>
+
+        <!-- Spring WebFlux for reactive client -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        
+        <!-- Apache Commons Codec for Base64 and HMAC -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
+        
+        <!-- Bean Validation -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
         <!-- Logging -->

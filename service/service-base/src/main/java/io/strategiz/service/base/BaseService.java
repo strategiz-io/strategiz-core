@@ -2,6 +2,7 @@ package io.strategiz.service.base;
 
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
+import io.strategiz.framework.exception.ErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -35,8 +36,17 @@ import java.util.function.Supplier;
  * - Use provided utility methods for consistent error handling
  * - Override template methods for specific implementations
  * - Use logging and metrics tracking patterns
+ * - Implement getModuleName() to identify their module for error handling
  */
 public abstract class BaseService implements ApplicationEventPublisherAware {
+    
+    /**
+     * Get the module name for this service.
+     * Each service must implement this to identify its module.
+     * 
+     * @return Module name from ModuleConstants
+     */
+    protected abstract String getModuleName();
     
     protected final Logger log = LoggerFactory.getLogger(getClass());
     
@@ -318,8 +328,8 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
      * Log business operation for audit trail
      */
     protected void logBusinessOperation(String userId, String operation, String entityType, String entityId, String details) {
-        log.info("BUSINESS_OP - User: {}, Operation: {}, Entity: {}:{}, Details: {}", 
-            userId, operation, entityType, entityId, details);
+        log.info("[{}] BUSINESS_OP - User: {}, Operation: {}, Entity: {}:{}, Details: {}", 
+            getModuleName(), userId, operation, entityType, entityId, details);
     }
     
     /**
@@ -468,31 +478,31 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
      * Log service operation start
      */
     protected void logServiceOperation(String operation, String context) {
-        log.info("SERVICE_OP - Operation: {}, Context: {}", operation, context);
+        log.info("[{}] SERVICE_OP - Operation: {}, Context: {}", getModuleName(), operation, context);
     }
     
     /**
      * Log service operation success
      */
     protected void logServiceOperationSuccess(String operation, String context, Object result) {
-        log.info("SERVICE_SUCCESS - Operation: {}, Context: {}, Result: {}", 
-            operation, context, result != null ? result.getClass().getSimpleName() : "null");
+        log.info("[{}] SERVICE_SUCCESS - Operation: {}, Context: {}, Result: {}", 
+            getModuleName(), operation, context, result != null ? result.getClass().getSimpleName() : "null");
     }
     
     /**
      * Log service operation failure
      */
     protected void logServiceOperationFailure(String operation, String context, Exception error) {
-        log.error("SERVICE_FAILURE - Operation: {}, Context: {}, Error: {}", 
-            operation, context, error.getMessage(), error);
+        log.error("[{}] SERVICE_FAILURE - Operation: {}, Context: {}, Error: {}", 
+            getModuleName(), operation, context, error.getMessage(), error);
     }
     
     /**
      * Log service operation with timing
      */
     protected void logServiceOperationTiming(String operation, String context, long durationMs) {
-        log.info("SERVICE_TIMING - Operation: {}, Context: {}, Duration: {}ms", 
-            operation, context, durationMs);
+        log.info("[{}] SERVICE_TIMING - Operation: {}, Context: {}, Duration: {}ms", 
+            getModuleName(), operation, context, durationMs);
     }
     
     /**
@@ -525,6 +535,46 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
         return "test".equalsIgnoreCase(environment);
     }
     
+    // === MODULE-AWARE EXCEPTION HANDLING ===
+    
+    /**
+     * Throw a StrategizException with module context automatically included.
+     * 
+     * @param errorDetails The error details enum
+     * @param args Arguments for error message formatting
+     * @throws StrategizException Always throws
+     */
+    protected void throwModuleException(ErrorDetails errorDetails, Object... args) {
+        throw new StrategizException(errorDetails, getModuleName(), args);
+    }
+    
+    /**
+     * Throw a StrategizException with module context and cause.
+     * 
+     * @param errorDetails The error details enum
+     * @param cause The underlying cause
+     * @param args Arguments for error message formatting
+     * @throws StrategizException Always throws
+     */
+    protected void throwModuleException(ErrorDetails errorDetails, Throwable cause, Object... args) {
+        throw new StrategizException(errorDetails, getModuleName(), cause, args);
+    }
+    
+    /**
+     * Validate a business rule and throw module-aware exception if validation fails.
+     * 
+     * @param condition The condition to validate
+     * @param errorDetails The error to throw if condition is false
+     * @param args Arguments for error message formatting
+     * @throws StrategizException if condition is false
+     */
+    protected void validateModuleRule(boolean condition, ErrorDetails errorDetails, Object... args) {
+        if (!condition) {
+            throwModuleException(errorDetails, args);
+        }
+    }
+    
+
     /**
      * Functional interface for service operations
      */

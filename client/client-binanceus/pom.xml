@@ -23,12 +23,29 @@
             <version>${project.version}</version>
         </dependency>
         
-
+        <!-- Framework Secrets for Vault integration -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot Web for RestClient -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- Spring WebFlux for reactive web client -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        
+        <!-- Apache Commons Codec for HMAC -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
         </dependency>
         
         <!-- Jackson for JSON processing -->

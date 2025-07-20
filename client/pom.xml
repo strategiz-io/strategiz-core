@@ -28,6 +28,7 @@
         <module>client-facebook</module>
         <module>client-google</module>
         <module>client-firebase-sms</module>
+        <module>client-firebase</module>
     </modules>
     
     <dependencies>

@@ -94,5 +94,10 @@ public interface PasskeyChallengeRepository {
      * Delete multiple entities
      */
     void deleteAll(Iterable<? extends PasskeyChallenge> challenges);
+    
+    /**
+     * Find all challenges
+     */
+    List<PasskeyChallenge> findAll();
 }
 

@@ -4,8 +4,10 @@ import io.strategiz.service.provider.model.request.CreateProviderRequest;
 import io.strategiz.service.provider.model.response.CreateProviderResponse;
 import io.strategiz.service.provider.exception.ProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -20,14 +22,17 @@ import java.util.UUID;
  * @author Strategiz Team
  * @version 1.0
  */
-@Service
+@Service("providerCreateProviderService")
 public class CreateProviderService {
     
     private static final Logger log = LoggerFactory.getLogger(CreateProviderService.class);
     
-    // TODO: Replace with actual business logic integration
-    private static final String COINBASE_OAUTH_URL = "https://www.coinbase.com/oauth/authorize";
-    private static final String COINBASE_CLIENT_ID = "your_coinbase_client_id"; // TODO: From config
+    private final CoinbaseProviderBusiness coinbaseProviderBusiness;
+    
+    @Autowired
+    public CreateProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness) {
+        this.coinbaseProviderBusiness = coinbaseProviderBusiness;
+    }
     
     /**
      * Creates a new provider connection.
@@ -88,24 +93,31 @@ public class CreateProviderService {
                 request.getUserId(), request.getProviderId());
         
         try {
-            // Generate state parameter for OAuth security
             String state = generateState(request.getUserId(), "create_provider");
+            String oauthUrl = null;
             
-            // Generate OAuth URL based on provider
-            String oauthUrl = buildOAuthUrl(request.getProviderId(), state);
+            // Use provider-specific business logic for OAuth URL generation
+            switch (request.getProviderId().toLowerCase()) {
+                case "coinbase":
+                    oauthUrl = coinbaseProviderBusiness.generateAuthorizationUrl(request.getUserId(), state);
+                    break;
+                default:
+                    // For other providers, use the legacy buildOAuthUrl method
+                    oauthUrl = buildOAuthUrl(request.getProviderId(), state);
+                    break;
+            }
             
             // Set response data
             response.setStatus("pending");
             response.setMessage("OAuth authorization URL generated. Please complete authorization.");
             response.setOperationSuccess(true);
             
-            // Set OAuth specific data (add to existing data structures)
+            // Set OAuth specific data
             Map<String, Object> oauthData = new HashMap<>();
             oauthData.put("authorizationUrl", oauthUrl);
             oauthData.put("state", state);
             oauthData.put("expiresAt", Instant.now().plusSeconds(3600).toString()); // 1 hour expiry
             
-            // Store OAuth data in connection data (since setOauthData doesn't exist)
             response.setConnectionData(oauthData);
             
         } catch (Exception e) {
@@ -207,9 +219,6 @@ public class CreateProviderService {
         try {
             // TODO: Replace with actual provider-specific OAuth URL building
             switch (providerId.toLowerCase()) {
-                case "coinbase":
-                    return COINBASE_OAUTH_URL + "?client_id=" + COINBASE_CLIENT_ID + 
-                           "&redirect_uri=https://app.strategiz.io/auth/callback&response_type=code&state=" + state;
                 case "binance":
                     return "https://accounts.binance.com/oauth/authorize?client_id=your_binance_client_id&redirect_uri=https://app.strategiz.io/auth/callback&response_type=code&state=" + state;
                 case "kraken":

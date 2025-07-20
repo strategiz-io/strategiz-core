@@ -1,6 +1,8 @@
 package io.strategiz.service.device.controller;
 
 import io.strategiz.data.device.model.DeviceIdentity;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.device.DeviceIdentityService;
 import io.strategiz.service.device.model.CreateDeviceRequest;
 import io.strategiz.service.device.model.CreateDeviceResponse;
@@ -23,7 +25,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/device/anonymous")
-public class AnonymousDeviceController {
+public class AnonymousDeviceController extends BaseController {
     
     private static final Logger log = LoggerFactory.getLogger(AnonymousDeviceController.class);
     
@@ -36,6 +38,11 @@ public class AnonymousDeviceController {
             DeviceFingerprintUtil fingerprintUtil) {
         this.deviceService = deviceService;
         this.fingerprintUtil = fingerprintUtil;
+    }
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.DEVICE_MODULE;
     }
     
     /**

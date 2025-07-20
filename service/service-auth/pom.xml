@@ -52,6 +52,21 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-kraken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-binanceus</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-coinbase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>service-base</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -81,6 +96,24 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-firebase-sms</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Firebase client for repository implementations -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-firebase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Coinbase OAuth client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-coinbase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Kraken client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-kraken</artifactId>
             <version>${project.version}</version>
         </dependency>
         
@@ -186,14 +219,6 @@
             <!-- Version managed by root parent pom -->
         </dependency>
         
-        <!-- Lombok for boilerplate reduction -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <!-- Version managed by root parent pom -->
-            <scope>provided</scope>
-        </dependency>
-        
         <!-- .env file support -->
         <dependency>
             <groupId>io.github.cdimascio</groupId>
@@ -229,6 +254,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -25,6 +25,11 @@ import java.util.Optional;
 @Service
 public class PasskeyAuthenticationService extends BaseService {
     
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+    
     private static final Logger log = LoggerFactory.getLogger(PasskeyAuthenticationService.class);
     
     @Value("${passkey.rpId:localhost}")

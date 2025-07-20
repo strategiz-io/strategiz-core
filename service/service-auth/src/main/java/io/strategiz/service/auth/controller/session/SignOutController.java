@@ -3,6 +3,8 @@ package io.strategiz.service.auth.controller.session;
 import io.strategiz.service.auth.service.session.SignOutService;
 import io.strategiz.service.auth.model.session.SignOutRequest;
 import io.strategiz.service.auth.model.session.SignOutResponse;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,12 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/v1/auth/signout")
-public class SignOutController {
+public class SignOutController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.AUTH_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(SignOutController.class);
     
@@ -46,7 +53,7 @@ public class SignOutController {
             request.revokeAllSessions()
         );
         
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
+        // Return clean response using BaseController method
+        return createCleanResponse(response);
     }
 }

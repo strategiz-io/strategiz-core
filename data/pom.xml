@@ -21,7 +21,6 @@
         <module>data-session</module>
         <module>data-watchlist</module>
         <module>data-providers</module>
-        <module>data-devices</module>
         <module>data-preferences</module>
         <module>data-exchange</module>
         <module>data-portfolio</module>

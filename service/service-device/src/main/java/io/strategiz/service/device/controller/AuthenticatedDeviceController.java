@@ -1,6 +1,8 @@
 package io.strategiz.service.device.controller;
 
 import io.strategiz.data.device.model.DeviceIdentity;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.device.DeviceIdentityService;
 import io.strategiz.service.device.model.CreateDeviceRequest;
 import io.strategiz.service.device.model.CreateDeviceResponse;
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/v1/device/authenticated")
-public class AuthenticatedDeviceController {
+public class AuthenticatedDeviceController extends BaseController {
     
     private static final Logger log = LoggerFactory.getLogger(AuthenticatedDeviceController.class);
     
@@ -38,6 +40,11 @@ public class AuthenticatedDeviceController {
             DeviceFingerprintUtil fingerprintUtil) {
         this.deviceService = deviceService;
         this.fingerprintUtil = fingerprintUtil;
+    }
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.DEVICE_MODULE;
     }
     
     /**
@@ -148,7 +155,7 @@ public class AuthenticatedDeviceController {
             return ResponseEntity.notFound().build();
         }
         
-        boolean deleted = deviceService.deleteDevice(deviceId);
+        boolean deleted = deviceService.deleteUserDevice(userId, deviceId);
         
         Map<String, Object> response = Map.of(
                 "success", deleted,
@@ -183,7 +190,7 @@ public class AuthenticatedDeviceController {
             return ResponseEntity.notFound().build();
         }
         
-        Optional<DeviceIdentity> updatedDevice = deviceService.updateDeviceTrustedStatus(deviceId, trusted);
+        Optional<DeviceIdentity> updatedDevice = deviceService.updateDeviceTrustedStatus(userId, deviceId, trusted);
         
         if (updatedDevice.isPresent()) {
             Map<String, Object> response = Map.of(

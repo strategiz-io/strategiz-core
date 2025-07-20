@@ -87,13 +87,6 @@
             <artifactId>google-cloud-firestore</artifactId>
         </dependency>
         
-        <!-- Lombok for boilerplate reduction -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-        
         <!-- SLF4J for logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

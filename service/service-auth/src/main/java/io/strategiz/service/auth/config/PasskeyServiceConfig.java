@@ -1,6 +1,7 @@
 package io.strategiz.service.auth.config;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
 import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
@@ -24,11 +25,10 @@ public class PasskeyServiceConfig {
     @Bean
     public PasskeyRegistrationService passkeyRegistrationService(
             PasskeyChallengeService challengeService,
-            PasskeyCredentialRepository credentialRepository,
-            PasskeyCredentialConverter credentialConverter,
+            AuthenticationMethodRepository authMethodRepository,
             SessionAuthBusiness sessionAuthBusiness) {
         return new PasskeyRegistrationService(
-            challengeService, credentialRepository, credentialConverter, sessionAuthBusiness);
+            challengeService, authMethodRepository, sessionAuthBusiness);
     }
     
     @Bean

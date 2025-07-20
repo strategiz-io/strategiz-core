@@ -29,6 +29,11 @@
         <!-- Internal Dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>service-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>data-device</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -52,13 +57,6 @@
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
-        </dependency>
-        
-        <!-- Lombok for boilerplate reduction -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
         </dependency>
         
         <!-- JSON Processing -->

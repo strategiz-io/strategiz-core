@@ -7,6 +7,7 @@ import io.strategiz.service.auth.model.passkey.*;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -33,6 +34,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/auth/passkeys")
 public class PasskeyAuthenticationController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.AUTH_MODULE;
+    }
 
     @Autowired
     private PasskeyChallengeService challengeService;

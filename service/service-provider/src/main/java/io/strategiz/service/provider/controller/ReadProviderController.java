@@ -3,6 +3,7 @@ package io.strategiz.service.provider.controller;
 import io.strategiz.service.provider.model.response.ReadProviderResponse;
 import io.strategiz.service.provider.service.ReadProviderService;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,11 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/v1/providers")
 public class ReadProviderController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PROVIDER_MODULE;
+    }
     
     private final ReadProviderService readProviderService;
     

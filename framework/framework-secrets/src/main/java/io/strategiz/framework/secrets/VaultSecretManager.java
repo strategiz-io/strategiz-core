@@ -44,7 +44,7 @@ public class VaultSecretManager implements SecretManager {
     }
     
     @Override
-    public String getSecret(String key) {
+    public String readSecret(String key) {
         // Check cache first
         CachedSecret cached = secretCache.get(key);
         if (cached != null && !cached.isExpired()) {
@@ -80,9 +80,9 @@ public class VaultSecretManager implements SecretManager {
     }
     
     @Override
-    public String getSecret(String key, String defaultValue) {
+    public String readSecret(String key, String defaultValue) {
         try {
-            return getSecret(key);
+            return readSecret(key);
         } catch (StrategizException e) {
             log.debug("Secret not found, using default value: {}", key);
             return defaultValue;
@@ -90,11 +90,11 @@ public class VaultSecretManager implements SecretManager {
     }
     
     @Override
-    public Map<String, String> getSecrets(String... keys) {
+    public Map<String, String> readSecrets(String... keys) {
         Map<String, String> result = new HashMap<>();
         for (String key : keys) {
             try {
-                result.put(key, getSecret(key));
+                result.put(key, readSecret(key));
             } catch (StrategizException e) {
                 log.debug("Secret not found: {}", key);
             }
@@ -103,9 +103,9 @@ public class VaultSecretManager implements SecretManager {
     }
     
     @Override
-    public boolean hasSecret(String key) {
+    public boolean secretExists(String key) {
         try {
-            getSecret(key);
+            readSecret(key);
             return true;
         } catch (StrategizException e) {
             return false;
@@ -113,7 +113,7 @@ public class VaultSecretManager implements SecretManager {
     }
     
     @Override
-    public boolean storeSecret(String key, String value) {
+    public void createSecret(String key, String value) {
         try {
             String vaultPath = buildVaultPath(key);
             String secretField = getSecretField(key);
@@ -135,17 +135,91 @@ public class VaultSecretManager implements SecretManager {
             writeToVault(vaultPath, data);
             cacheSecretIfEnabled(key, value);
             
-            log.info("Successfully stored secret: {}", key);
-            return true;
+            log.info("Successfully created secret: {}", key);
             
         } catch (Exception e) {
-            log.error("Failed to store secret: {}", key, e);
-            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to store secret: " + e.getMessage());
+            log.error("Failed to create secret: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to create secret: " + e.getMessage());
         }
     }
     
     @Override
-    public boolean removeSecret(String key) {
+    public void createSecret(String key, Map<String, Object> data) {
+        try {
+            String vaultPath = buildVaultPath(key);
+            writeToVault(vaultPath, data);
+            log.info("Successfully created secret with complex data: {}", key);
+            
+        } catch (Exception e) {
+            log.error("Failed to create secret with complex data: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to create secret: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public Map<String, Object> readSecretAsMap(String key) {
+        try {
+            String vaultPath = buildVaultPath(key);
+            Map<String, Object> data = readFromVault(vaultPath);
+            
+            if (data == null || data.isEmpty()) {
+                return null;
+            }
+            
+            return data;
+            
+        } catch (Exception e) {
+            log.error("Failed to retrieve secret as map: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to retrieve secret: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void updateSecret(String key, String value) {
+        try {
+            String vaultPath = buildVaultPath(key);
+            String secretField = getSecretField(key);
+            
+            // Read existing data first to preserve other fields
+            Map<String, Object> data = new HashMap<>();
+            try {
+                Map<String, Object> existing = readFromVault(vaultPath);
+                if (existing != null) {
+                    data.putAll(existing);
+                }
+            } catch (Exception e) {
+                log.debug("No existing data at path: {}", vaultPath);
+            }
+            
+            // Update the specific field
+            data.put(secretField, value);
+            
+            writeToVault(vaultPath, data);
+            cacheSecretIfEnabled(key, value);
+            
+            log.info("Successfully updated secret: {}", key);
+            
+        } catch (Exception e) {
+            log.error("Failed to update secret: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to update secret: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void updateSecret(String key, Map<String, Object> data) {
+        try {
+            String vaultPath = buildVaultPath(key);
+            writeToVault(vaultPath, data);
+            log.info("Successfully updated secret with complex data: {}", key);
+            
+        } catch (Exception e) {
+            log.error("Failed to update secret with complex data: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to update secret: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void deleteSecret(String key) {
         try {
             String vaultPath = buildVaultPath(key);
             String secretField = getSecretField(key);
@@ -153,8 +227,8 @@ public class VaultSecretManager implements SecretManager {
             // Read existing data first
             Map<String, Object> existing = readFromVault(vaultPath);
             if (existing == null || existing.isEmpty()) {
-                log.debug("Secret not found for removal: {}", key);
-                return false;
+                log.debug("Secret not found for deletion: {}", key);
+                return;
             }
             
             Map<String, Object> data = new HashMap<>(existing);
@@ -169,12 +243,11 @@ public class VaultSecretManager implements SecretManager {
             }
             
             secretCache.remove(key);
-            log.info("Successfully removed secret: {}", key);
-            return true;
+            log.info("Successfully deleted secret: {}", key);
             
         } catch (Exception e) {
-            log.error("Failed to remove secret: {}", key, e);
-            return false;
+            log.error("Failed to delete secret: {}", key, e);
+            throw new StrategizException(SecretsErrors.VAULT_CONNECTION_FAILED, "Failed to delete secret: " + e.getMessage());
         }
     }
     

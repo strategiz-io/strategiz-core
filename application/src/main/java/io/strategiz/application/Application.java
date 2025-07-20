@@ -18,9 +18,6 @@ import io.strategiz.data.user.config.DataUserConfig;
 @Import({FirebaseConfig.class, DataAuthConfig.class, DeviceConfig.class, DataUserConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"
-},
-excludeFilters = {
-    @ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "io.strategiz.client.binanceus.*")
 })
 @PropertySource("classpath:application.properties")
 @ConfigurationPropertiesScan(basePackages = {"io.strategiz"})

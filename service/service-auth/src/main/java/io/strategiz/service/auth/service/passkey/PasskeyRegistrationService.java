@@ -1,14 +1,13 @@
 package io.strategiz.service.auth.service.passkey;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import io.strategiz.data.auth.model.passkey.PasskeyCredential;
-import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
-import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
-import io.strategiz.service.auth.model.passkey.Passkey;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.auth.exception.AuthErrorDetails;
-import io.strategiz.framework.exception.StrategizException;
 
 // Import WebAuthn4J libraries for proper attestation parsing
 import com.webauthn4j.converter.util.ObjectConverter;
@@ -33,6 +32,11 @@ import java.util.Map;
 @Service
 public class PasskeyRegistrationService extends BaseService {
     
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+    
     private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationService.class);
     
     @Value("${passkey.rpId:localhost}")
@@ -45,18 +49,15 @@ public class PasskeyRegistrationService extends BaseService {
     private int challengeTimeoutMs;
     
     private final PasskeyChallengeService challengeService;
-    private final PasskeyCredentialRepository credentialRepository;
-    private final PasskeyCredentialConverter credentialConverter;
+    private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
     
     public PasskeyRegistrationService(
             PasskeyChallengeService challengeService,
-            PasskeyCredentialRepository credentialRepository,
-            PasskeyCredentialConverter credentialConverter,
+            AuthenticationMethodRepository authMethodRepository,
             SessionAuthBusiness sessionAuthBusiness) {
         this.challengeService = challengeService;
-        this.credentialRepository = credentialRepository;
-        this.credentialConverter = credentialConverter;
+        this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
         
         // Ensure we're using real passkey registration, not mock data
@@ -131,7 +132,7 @@ public class PasskeyRegistrationService extends BaseService {
         
         // Validate real API connection
         if (!validateRealApiConnection("PasskeyRegistrationService")) {
-            throw new StrategizException(AuthErrorDetails.EXTERNAL_SERVICE_ERROR, "service-auth", "PasskeyRegistrationService", "validateRealApiConnection");
+            throwModuleException(AuthErrorDetails.EXTERNAL_SERVICE_ERROR, "PasskeyRegistrationService", "validateRealApiConnection");
         }
         
         // Generate a challenge for this registration
@@ -192,8 +193,12 @@ public class PasskeyRegistrationService extends BaseService {
                 return new RegistrationResult(false, credentialId, "Invalid challenge");
             }
             
-            // Check if credential already exists
-            if (credentialRepository.findByCredentialId(credentialId).isPresent()) {
+            // Check if credential already exists for this user
+            List<AuthenticationMethodEntity> existingMethods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.PASSKEY);
+            boolean credentialExists = existingMethods.stream()
+                .anyMatch(method -> credentialId.equals(method.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID)));
+                
+            if (credentialExists) {
                 log.warn("Credential already exists: {}", credentialId);
                 return new RegistrationResult(false, credentialId, "Credential already exists");
             }
@@ -205,21 +210,34 @@ public class PasskeyRegistrationService extends BaseService {
                 return new RegistrationResult(false, credentialId, "Could not extract public key");
             }
             
-            // Create and save credential
-            PasskeyCredential credential = new PasskeyCredential();
-            // Don't set ID manually - let JPA generate it to avoid optimistic locking issues
-            credential.setCredentialId(credentialId);
-            credential.setUserId(userId);
-            credential.setPublicKey(publicKeyBytes);
-            credential.setAuthenticatorName(deviceName != null ? deviceName : "Unknown Device");
-            credential.setRegistrationTime(Instant.now());
-            credential.setLastUsedTime(Instant.now());
-            credential.setAaguid(""); // Could be extracted from attestation
-            credential.setDeviceName(deviceName);
-            credential.setUserAgent(userAgent);
-            credential.setTrusted(true);
+            // Create and save authentication method
+            AuthenticationMethodEntity authMethod = new AuthenticationMethodEntity(
+                AuthenticationMethodType.PASSKEY, 
+                deviceName != null ? deviceName : "Unknown Device"
+            );
             
-            credentialRepository.save(credentialConverter.toEntity(credential));
+            // Store passkey-specific data in metadata using constants
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID, credentialId);
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64, 
+                java.util.Base64.getEncoder().encodeToString(publicKeyBytes));
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.SIGNATURE_COUNT, 0);
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.AAGUID, ""); // Could be extracted from attestation
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.DEVICE_NAME, deviceName);
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.USER_AGENT, userAgent);
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.AUTHENTICATOR_NAME, 
+                deviceName != null ? deviceName : "Unknown Device");
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.TRUSTED, true);
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.VERIFIED, true);
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.REGISTRATION_TIME, Instant.now().toString());
+            
+            // Additional WebAuthn metadata
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.ATTESTATION_TYPE, "none");
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.TRANSPORT, "internal"); // Could be detected
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.RESIDENT_KEY, true);
+            
+            authMethod.markAsUsed();
+            
+            authMethodRepository.saveForUser(userId, authMethod);
             
             // Generate authentication tokens
             SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
@@ -232,7 +250,7 @@ public class PasskeyRegistrationService extends BaseService {
             
             AuthTokens tokens = new AuthTokens(tokenPair.accessToken(), tokenPair.refreshToken());
             
-            log.info("Successfully registered passkey for user: {}", userId);
+            log.info("Successfully registered passkey for user: {} with credential: {}", userId, credentialId);
             return new RegistrationResult(true, credentialId, tokens);
             
         } catch (Exception e) {
@@ -281,30 +299,6 @@ public class PasskeyRegistrationService extends BaseService {
             log.warn("Error extracting public key from attestation", e);
             return null;
         }
-    }
-    
-    /**
-     * Convert entity to model
-     */
-    private Passkey convertToPasskey(PasskeyCredential entity) {
-        if (entity == null) {
-            return null;
-        }
-        
-        Passkey model = new Passkey();
-        model.setId(entity.getId());
-        model.setCredentialId(entity.getCredentialId());
-        model.setUserId(entity.getUserId());
-        model.setAuthenticatorName(entity.getAuthenticatorName());
-        model.setRegistrationTime(entity.getRegistrationTime());
-        model.setLastUsedTime(entity.getLastUsedTime());
-        model.setAaguid(entity.getAaguid());
-        model.setPublicKey(entity.getPublicKey());
-        model.setDeviceName(entity.getDeviceName());
-        model.setUserAgent(entity.getUserAgent());
-        model.setTrusted(entity.isTrusted());
-        
-        return model;
     }
 }
 

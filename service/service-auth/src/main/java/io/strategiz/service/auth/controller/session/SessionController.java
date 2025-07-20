@@ -13,6 +13,8 @@ import io.strategiz.service.auth.model.session.CurrentUserResponse;
 import io.strategiz.service.auth.exception.AuthErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +34,12 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/v1/auth/session")
-public class SessionController {
+public class SessionController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.AUTH_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(SessionController.class);
     
@@ -62,7 +69,7 @@ public class SessionController {
         java.util.Optional<String> newTokenOpt = tokenSessionService.refreshToken(request.refreshToken(), ipAddress);
         
         if (newTokenOpt.isEmpty()) {
-            throw new StrategizException(AuthErrorDetails.REFRESH_TOKEN_INVALID, "service-auth", request.refreshToken());
+            throwModuleException(AuthErrorDetails.REFRESH_TOKEN_INVALID, request.refreshToken());
         }
         
         RefreshSessionResponse response = new RefreshSessionResponse(
@@ -169,7 +176,7 @@ public class SessionController {
         java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
         
         if (userIdOpt.isEmpty()) {
-            throw new StrategizException(AuthErrorDetails.INVALID_TOKEN, "service-auth", "Invalid or expired token");
+            throwModuleException(AuthErrorDetails.INVALID_TOKEN, "Invalid or expired token");
         }
         
         String userId = userIdOpt.get();
@@ -228,7 +235,7 @@ public class SessionController {
         java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
         
         if (validationOpt.isEmpty()) {
-            throw new StrategizException(AuthErrorDetails.INVALID_TOKEN, "service-auth", "No valid session found");
+            throwModuleException(AuthErrorDetails.INVALID_TOKEN, "No valid session found");
         }
         
         SessionValidationResult validation = validationOpt.get();
@@ -279,7 +286,7 @@ public class SessionController {
         java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
         
         if (validationOpt.isEmpty()) {
-            throw new StrategizException(AuthErrorDetails.INVALID_TOKEN, "service-auth", "No valid session found");
+            throwModuleException(AuthErrorDetails.INVALID_TOKEN, "No valid session found");
         }
         
         String userId = validationOpt.get().getUserId();

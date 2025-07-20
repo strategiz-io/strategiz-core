@@ -20,6 +20,7 @@ public enum ProviderErrorDetails implements ErrorDetails {
     
     // OAuth Errors
     OAUTH_STATE_INVALID(HttpStatus.BAD_REQUEST, "oauth-state-invalid"),
+    INVALID_OAUTH_STATE(HttpStatus.BAD_REQUEST, "invalid-oauth-state"), // Alias for consistency
     OAUTH_CODE_INVALID(HttpStatus.BAD_REQUEST, "oauth-code-invalid"),
     OAUTH_TOKEN_EXCHANGE_FAILED(HttpStatus.BAD_GATEWAY, "oauth-token-exchange-failed"),
     OAUTH_TOKEN_REFRESH_FAILED(HttpStatus.BAD_GATEWAY, "oauth-token-refresh-failed"),
@@ -40,6 +41,7 @@ public enum ProviderErrorDetails implements ErrorDetails {
     INVALID_PROVIDER_TYPE(HttpStatus.BAD_REQUEST, "invalid-provider-type"),
     INVALID_PROVIDER_CONFIG(HttpStatus.BAD_REQUEST, "invalid-provider-config"),
     MISSING_REQUIRED_FIELD(HttpStatus.BAD_REQUEST, "missing-required-field"),
+    PROVIDER_NOT_SUPPORTED(HttpStatus.NOT_IMPLEMENTED, "provider-not-supported"),
     
     // Provider Specific Errors
     COINBASE_API_ERROR(HttpStatus.BAD_GATEWAY, "coinbase-api-error"),

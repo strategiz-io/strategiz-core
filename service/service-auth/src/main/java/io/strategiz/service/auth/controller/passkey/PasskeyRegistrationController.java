@@ -1,7 +1,7 @@
 package io.strategiz.service.auth.controller.passkey;
 
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.service.auth.exception.AuthErrors;
+import io.strategiz.service.auth.exception.AuthErrorDetails;
 import io.strategiz.service.auth.model.passkey.PasskeyRegistrationCompletionRequest;
 import io.strategiz.service.auth.model.passkey.PasskeyRegistrationRequest;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService;
@@ -13,6 +13,7 @@ import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.Regi
 import io.strategiz.service.auth.service.emailotp.EmailOtpAuthenticationService;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,11 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/v1/auth/passkeys")
 public class PasskeyRegistrationController extends BaseController {
+    
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.AUTH_MODULE;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationController.class);
     
@@ -65,7 +71,7 @@ public class PasskeyRegistrationController extends BaseController {
         // Validate the token format and extract user ID
         Optional<String> userIdOpt = sessionAuthBusiness.validateSession(temporaryToken);
         if (userIdOpt.isEmpty()) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, expectedEmail);
+            throwModuleException(AuthErrorDetails.INVALID_TOKEN, expectedEmail);
         }
         
         String userId = userIdOpt.get();
@@ -149,8 +155,14 @@ public class PasskeyRegistrationController extends BaseController {
         
         logRequest("completeRegistration", request.email());
         
-        // Create user ID from email for now - this should be improved
-        String userId = "user-" + request.email().hashCode();
+        // Validate identity token to get the same user ID used in beginRegistration
+        String userId = null;
+        if (request.identityToken() != null) {
+            userId = validateTemporaryToken(request.identityToken(), request.email());
+        } else {
+            // Fallback for backward compatibility
+            userId = "user-" + request.email().hashCode();
+        }
         
         // Create registration completion data
         RegistrationCompletion completion = new RegistrationCompletion(
@@ -168,7 +180,7 @@ public class PasskeyRegistrationController extends BaseController {
         
         if (!result.success()) {
             log.warn("Passkey registration failed for: {}", request.email());
-            throw new StrategizException(AuthErrors.PASSKEY_REGISTRATION_FAILED, request.email());
+            throwModuleException(AuthErrorDetails.PASSKEY_REGISTRATION_FAILED, request.email());
         }
         
         // Extract tokens from result

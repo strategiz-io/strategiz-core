@@ -35,6 +35,11 @@ public class RiskAnalysisService extends BaseService {
         this.portfolioManager = portfolioManager;
     }
 
+    @Override
+    protected String getModuleName() {
+        return "service-dashboard";
+    }
+
     /**
      * Gets risk analysis data for the user's portfolio
      * 

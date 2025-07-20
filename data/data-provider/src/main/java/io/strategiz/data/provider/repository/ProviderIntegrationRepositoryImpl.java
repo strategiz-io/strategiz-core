@@ -1,4 +1,4 @@
-package io.strategiz.data.providers.repository;
+package io.strategiz.data.provider.repository;
 
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;

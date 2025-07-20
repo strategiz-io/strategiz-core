@@ -46,7 +46,7 @@ call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..
 
-cd data\data-providers
+cd data\data-provider
 call mvn clean install -DskipTests
 if %ERRORLEVEL% neq 0 goto :error
 cd ..\..

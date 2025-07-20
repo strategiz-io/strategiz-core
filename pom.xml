@@ -36,7 +36,7 @@
         <module>data/data-device</module>
         <module>data/data-session</module>
         <module>data/data-watchlist</module>
-        <module>data/data-providers</module>
+        <module>data/data-provider</module>
         <module>data/data-preferences</module>
         <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
@@ -208,7 +208,7 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>data-providers</artifactId>
+                <artifactId>data-provider</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

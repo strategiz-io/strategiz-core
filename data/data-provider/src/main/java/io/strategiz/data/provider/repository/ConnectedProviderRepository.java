@@ -1,6 +1,6 @@
-package io.strategiz.data.providers.repository;
+package io.strategiz.data.provider.repository;
 
-import io.strategiz.data.providers.entity.ConnectedProviderEntity;
+import io.strategiz.data.provider.entity.ConnectedProviderEntity;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

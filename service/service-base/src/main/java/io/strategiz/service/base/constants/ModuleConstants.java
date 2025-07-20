@@ -63,4 +63,9 @@ public final class ModuleConstants {
     
     // Default for unknown modules
     public static final String UNKNOWN_MODULE = "Unknown Module";
+    
+    // System user constants for non-user-driven operations
+    public static final String SYSTEM_USER_ID = "SYSTEM";
+    public static final String SYSTEM_USER_EMAIL = "system@strategiz.io";
+    public static final String SYSTEM_USER_NAME = "System Process";
 }

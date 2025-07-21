@@ -1,9 +1,10 @@
 package io.strategiz.client.kraken.auth.service;
 
 import io.strategiz.client.kraken.auth.model.KrakenApiCredentials;
-import io.strategiz.framework.secrets.SecretManager;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,7 +24,7 @@ public class KrakenCredentialService {
     
     private final SecretManager secretManager;
     
-    public KrakenCredentialService(SecretManager secretManager) {
+    public KrakenCredentialService(@Qualifier("vaultSecretService") SecretManager secretManager) {
         this.secretManager = secretManager;
     }
     

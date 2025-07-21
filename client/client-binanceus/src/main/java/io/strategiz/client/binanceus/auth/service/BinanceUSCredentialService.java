@@ -1,9 +1,10 @@
 package io.strategiz.client.binanceus.auth.service;
 
 import io.strategiz.client.binanceus.auth.model.BinanceUSApiCredentials;
-import io.strategiz.framework.secrets.SecretManager;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,7 +24,7 @@ public class BinanceUSCredentialService {
     
     private final SecretManager secretManager;
     
-    public BinanceUSCredentialService(SecretManager secretManager) {
+    public BinanceUSCredentialService(@Qualifier("vaultSecretService") SecretManager secretManager) {
         this.secretManager = secretManager;
     }
     

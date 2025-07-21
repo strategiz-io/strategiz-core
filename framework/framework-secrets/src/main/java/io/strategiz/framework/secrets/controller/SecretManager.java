@@ -1,4 +1,4 @@
-package io.strategiz.framework.secrets;
+package io.strategiz.framework.secrets.controller;
 
 import java.util.Map;
 

@@ -1,10 +1,11 @@
 package io.strategiz.service.auth.config;
 
-import io.strategiz.framework.secrets.SecretManager;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import io.strategiz.service.auth.model.config.AuthOAuthSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

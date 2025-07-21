@@ -1,9 +1,10 @@
 package io.strategiz.service.auth.config;
 
-import io.strategiz.framework.secrets.SecretManager;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -25,7 +26,7 @@ public class OAuthVaultConfig {
     private final ConfigurableEnvironment environment;
     
     @Autowired
-    public OAuthVaultConfig(SecretManager secretManager, ConfigurableEnvironment environment) {
+    public OAuthVaultConfig(@Qualifier("vaultSecretService") SecretManager secretManager, ConfigurableEnvironment environment) {
         this.secretManager = secretManager;
         this.environment = environment;
         loadOAuthPropertiesFromVault();

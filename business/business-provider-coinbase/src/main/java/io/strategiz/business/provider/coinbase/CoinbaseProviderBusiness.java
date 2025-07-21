@@ -11,10 +11,11 @@ import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
-import io.strategiz.framework.secrets.SecretManager;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.http.HttpEntity;
@@ -73,7 +74,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     public CoinbaseProviderBusiness(
             CoinbaseClient coinbaseClient,
             ProviderIntegrationRepository providerIntegrationRepository,
-            SecretManager secretManager) {
+            @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.coinbaseClient = coinbaseClient;
         this.providerIntegrationRepository = providerIntegrationRepository;
         this.secretManager = secretManager;

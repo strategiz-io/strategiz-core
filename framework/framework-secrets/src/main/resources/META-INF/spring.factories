@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-io.strategiz.framework.secrets.SecretManagerAutoConfig
+io.strategiz.framework.secrets.config.SecretManagerAutoConfig

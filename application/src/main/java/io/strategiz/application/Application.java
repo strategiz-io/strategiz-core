@@ -10,12 +10,13 @@ import io.strategiz.data.auth.config.DataAuthConfig;
 import io.strategiz.data.base.config.FirebaseConfig;
 import io.strategiz.data.device.config.DeviceConfig;
 import io.strategiz.data.user.config.DataUserConfig;
+import io.strategiz.data.provider.config.DataProviderConfig;
 
 /**
  * Main Application class for Strategiz Core
  */
 @SpringBootApplication
-@Import({FirebaseConfig.class, DataAuthConfig.class, DeviceConfig.class, DataUserConfig.class})
+@Import({FirebaseConfig.class, DataAuthConfig.class, DeviceConfig.class, DataUserConfig.class, DataProviderConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"
 })

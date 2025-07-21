@@ -1,4 +1,4 @@
-package io.strategiz.framework.secrets;
+package io.strategiz.framework.secrets.exception;
 
 /**
  * Error codes for secrets framework operations

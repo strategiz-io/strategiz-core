@@ -98,12 +98,6 @@
             <artifactId>client-firebase-sms</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Firebase client for repository implementations -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-firebase</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <!-- Coinbase OAuth client -->
         <dependency>
             <groupId>io.strategiz</groupId>

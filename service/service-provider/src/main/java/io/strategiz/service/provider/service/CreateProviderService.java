@@ -5,6 +5,10 @@ import io.strategiz.service.provider.model.response.CreateProviderResponse;
 import io.strategiz.service.provider.exception.ProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
+import io.strategiz.business.provider.kraken.KrakenProviderBusiness;
+import io.strategiz.business.provider.binanceus.BinanceUSProviderBusiness;
+import io.strategiz.data.auth.model.provider.CreateProviderIntegrationRequest;
+import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +32,16 @@ public class CreateProviderService {
     private static final Logger log = LoggerFactory.getLogger(CreateProviderService.class);
     
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
+    private final KrakenProviderBusiness krakenProviderBusiness;
+    private final BinanceUSProviderBusiness binanceUSProviderBusiness;
     
     @Autowired
-    public CreateProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness) {
+    public CreateProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
+                                KrakenProviderBusiness krakenProviderBusiness,
+                                BinanceUSProviderBusiness binanceUSProviderBusiness) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
+        this.krakenProviderBusiness = krakenProviderBusiness;
+        this.binanceUSProviderBusiness = binanceUSProviderBusiness;
     }
     
     /**
@@ -140,10 +150,47 @@ public class CreateProviderService {
                 request.getUserId(), request.getProviderId());
         
         try {
-            // Validate API credentials
-            boolean isValid = validateApiCredentials(request);
+            // Create integration request
+            CreateProviderIntegrationRequest integrationRequest = new CreateProviderIntegrationRequest();
+            integrationRequest.setProviderId(request.getProviderId());
             
-            if (!isValid) {
+            // Build credentials object
+            CreateProviderIntegrationRequest.ProviderCredentials credentials = new CreateProviderIntegrationRequest.ProviderCredentials();
+            if (request.getCredentials() != null) {
+                Object apiKeyObj = request.getCredentials().get("apiKey");
+                Object apiSecretObj = request.getCredentials().get("apiSecret");
+                Object otpObj = request.getCredentials().get("otp");
+                
+                credentials.setApiKey(apiKeyObj != null ? apiKeyObj.toString() : null);
+                credentials.setApiSecret(apiSecretObj != null ? apiSecretObj.toString() : null);
+                credentials.setOtp(otpObj != null ? otpObj.toString() : null);
+            }
+            integrationRequest.setCredentials(credentials);
+            
+            // Use provider-specific business logic
+            ProviderIntegrationResult result = null;
+            boolean testPassed = false;
+            
+            switch (request.getProviderId().toLowerCase()) {
+                case "kraken":
+                    testPassed = krakenProviderBusiness.testConnection(integrationRequest, request.getUserId());
+                    if (testPassed) {
+                        result = krakenProviderBusiness.createIntegration(integrationRequest, request.getUserId());
+                    }
+                    break;
+                case "binance":
+                case "binanceus":
+                    testPassed = binanceUSProviderBusiness.testConnection(integrationRequest, request.getUserId());
+                    if (testPassed) {
+                        result = binanceUSProviderBusiness.createIntegration(integrationRequest, request.getUserId());
+                    }
+                    break;
+                default:
+                    throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", 
+                        request.getProviderId());
+            }
+            
+            if (!testPassed) {
                 throw new StrategizException(ProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, "service-provider", 
                     request.getUserId(), request.getProviderId());
             }
@@ -158,6 +205,11 @@ public class CreateProviderService {
             connectionData.put("connectionId", UUID.randomUUID().toString());
             connectionData.put("connectedAt", Instant.now().toString());
             connectionData.put("verified", true);
+            if (result != null) {
+                connectionData.put("supportsTrading", result.isSupportsTrading());
+                connectionData.put("permissions", result.getPermissions());
+                connectionData.put("metadata", result.getMetadata());
+            }
             response.setConnectionData(connectionData);
             
         } catch (StrategizException e) {
@@ -267,7 +319,7 @@ public class CreateProviderService {
         }
         
         String provider = providerId.toLowerCase();
-        return "coinbase".equals(provider) || "binance".equals(provider) || "kraken".equals(provider);
+        return "coinbase".equals(provider) || "binance".equals(provider) || "binanceus".equals(provider) || "kraken".equals(provider);
     }
     
     /**
@@ -296,7 +348,8 @@ public class CreateProviderService {
             case "coinbase":
                 return "Coinbase";
             case "binance":
-                return "Binance";
+            case "binanceus":
+                return "Binance.US";
             case "kraken":
                 return "Kraken";
             default:

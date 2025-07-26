@@ -3,6 +3,7 @@ package io.strategiz.service.provider.model.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Map;
 
@@ -16,7 +17,6 @@ public class CreateProviderRequest {
     @Pattern(regexp = "^[a-z0-9_-]+$", message = "Provider ID must contain only lowercase letters, numbers, hyphens, and underscores")
     private String providerId;
     
-    @NotBlank(message = "User ID is required")
     private String userId;
     
     @NotBlank(message = "Connection type is required")
@@ -38,6 +38,10 @@ public class CreateProviderRequest {
     
     // Optional: Additional provider-specific configuration
     private Map<String, Object> additionalConfig;
+    
+    // Optional: API key data from frontend (nested structure)
+    @JsonProperty("apiKeyData")
+    private Map<String, String> apiKeyData;
     
     // Optional: User preferences
     private boolean enableNotifications = true;
@@ -148,6 +152,27 @@ public class CreateProviderRequest {
     public void setEnableAutoRefresh(boolean enableAutoRefresh) {
         this.enableAutoRefresh = enableAutoRefresh;
     }
+    
+    public Map<String, String> getApiKeyData() {
+        return apiKeyData;
+    }
+    
+    public void setApiKeyData(Map<String, String> apiKeyData) {
+        this.apiKeyData = apiKeyData;
+        // If apiKeyData is provided, extract values to individual fields
+        if (apiKeyData != null) {
+            this.apiKey = apiKeyData.get("apiKey");
+            this.apiSecret = apiKeyData.get("apiSecret");
+            // Handle OTP through additionalConfig
+            String otp = apiKeyData.get("otp");
+            if (otp != null && !otp.trim().isEmpty()) {
+                if (this.additionalConfig == null) {
+                    this.additionalConfig = new java.util.HashMap<>();
+                }
+                this.additionalConfig.put("otp", otp);
+            }
+        }
+    }
 
     // Helper methods
     public boolean isOAuthConnection() {
@@ -165,9 +190,13 @@ public class CreateProviderRequest {
 
     public Map<String, Object> getCredentials() {
         Map<String, Object> credentials = new java.util.HashMap<>();
-        if (apiKey != null) credentials.put("api_key", apiKey);
-        if (apiSecret != null) credentials.put("api_secret", apiSecret);
+        if (apiKey != null) credentials.put("apiKey", apiKey);
+        if (apiSecret != null) credentials.put("apiSecret", apiSecret);
         if (passphrase != null) credentials.put("passphrase", passphrase);
+        // Support for OTP if provided in additionalConfig
+        if (additionalConfig != null && additionalConfig.containsKey("otp")) {
+            credentials.put("otp", additionalConfig.get("otp"));
+        }
         return credentials;
     }
 

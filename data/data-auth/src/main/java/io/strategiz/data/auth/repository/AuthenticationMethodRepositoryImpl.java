@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -134,6 +135,46 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
         // Use soft delete from base class
         if (!deleteInSubcollection(userId, methodId, userId)) {
             log.warn("Authentication method {} not found for user {}", methodId, userId);
+        }
+    }
+    
+    @Override
+    public Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId) {
+        try {
+            // Use collection group query to search across all authentication_methods subcollections
+            Query query = firestore.collectionGroup("authentication_methods")
+                    .whereEqualTo("type", AuthenticationMethodType.PASSKEY.name())
+                    .whereEqualTo("metadata.credentialId", credentialId)
+                    .limit(1);
+            
+            ApiFuture<QuerySnapshot> querySnapshot = query.get();
+            QuerySnapshot snapshot = querySnapshot.get();
+            
+            if (snapshot.isEmpty()) {
+                log.debug("No passkey found with credential ID: {}", credentialId);
+                return Optional.empty();
+            }
+            
+            // Convert the first (and only) document to entity
+            com.google.cloud.firestore.DocumentSnapshot doc = snapshot.getDocuments().get(0);
+            AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+            entity.setId(doc.getId());
+            
+            // Extract userId from the document path and store it in metadata
+            // Path format: users/{userId}/authentication_methods/{methodId}
+            String path = doc.getReference().getPath();
+            String[] pathParts = path.split("/");
+            if (pathParts.length >= 2) {
+                String userId = pathParts[1]; // users/{userId}/...
+                entity.putMetadata("userId", userId);
+                log.debug("Found passkey for user {} with credential ID: {}", userId, credentialId);
+                log.debug("Entity has audit fields: {}, isActive: {}", entity._hasAudit(), entity.isActive());
+            }
+            
+            return Optional.of(entity);
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
+            throw new RuntimeException("Failed to find authentication method by credential ID", e);
         }
     }
 }

@@ -21,5 +21,6 @@
         <module>business-provider-coinbase</module>
         <module>business-provider-kraken</module>
         <module>business-provider-binanceus</module>
+        <module>business-provider-alpaca</module>
     </modules>
 </project>

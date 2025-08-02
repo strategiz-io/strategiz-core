@@ -102,15 +102,24 @@ public abstract class BaseEntity {
         this.auditFields.validate();
     }
 
-    // === PROTECTED FOR SUBCLASSES ===
-
-    protected AuditFields getAuditFields() {
+    // === GETTERS/SETTERS FOR FIRESTORE ===
+    
+    /**
+     * Get audit fields - made public for Firestore deserialization
+     * Application code should use the convenience methods like isActive(), getCreatedBy(), etc.
+     */
+    public AuditFields getAuditFields() {
         return auditFields;
     }
 
-    protected void setAuditFields(AuditFields auditFields) {
+    /**
+     * Set audit fields - made public for Firestore deserialization
+     * DO NOT use this in application code - let the repository layer handle it
+     */
+    public void setAuditFields(AuditFields auditFields) {
         this.auditFields = auditFields;
     }
+    
 
     // === ABSTRACT METHODS (must implement) ===
 

@@ -38,7 +38,7 @@ cat > vault-config.hcl << EOF
 ui = true
 
 listener "tcp" {
-  address = "0.0.0.0:8200"
+  address = "0.0.0.0:${PORT:-8200}"
   tls_disable = "true"
 }
 
@@ -56,11 +56,26 @@ max_lease_ttl = "720h"
 EOF
 
 echo -e "${BLUE}[5/6] Creating Vault Dockerfile...${NC}"
-cat > Dockerfile.vault << EOF
+
+# Create entrypoint script
+cat > docker-entrypoint.sh << 'EOF'
+#!/bin/sh
+# Replace PORT in config if set by Cloud Run
+if [ ! -z "$PORT" ]; then
+  sed -i "s/\${PORT:-8200}/$PORT/g" /vault/config/vault-config.hcl
+fi
+exec vault server -config=/vault/config/vault-config.hcl
+EOF
+
+cat > Dockerfile << EOF
 FROM hashicorp/vault:1.15
 
-# Copy configuration file
+# Copy configuration file and entrypoint
 COPY vault-config.hcl /vault/config/vault-config.hcl
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+# Make entrypoint executable
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set environment variables
 ENV VAULT_CONFIG_PATH=/vault/config/vault-config.hcl
@@ -68,16 +83,16 @@ ENV VAULT_API_ADDR=\$VAULT_API_ADDR
 ENV VAULT_CLUSTER_ADDR=\$VAULT_CLUSTER_ADDR
 
 # Expose port
-EXPOSE 8200
+EXPOSE 8080
 
 # Run Vault
-CMD ["vault", "server", "-config=/vault/config/vault-config.hcl"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 EOF
 
 echo -e "${BLUE}[6/6] Building and deploying Vault to Cloud Run...${NC}"
 
 # Build the Vault container
-gcloud builds submit --tag gcr.io/$PROJECT_ID/vault:latest --file Dockerfile.vault .
+gcloud builds submit --tag gcr.io/$PROJECT_ID/vault:latest .
 
 # Deploy to Cloud Run
 gcloud run deploy $VAULT_SERVICE_NAME \
@@ -119,4 +134,4 @@ echo ""
 echo -e "${GREEN}Configuration saved to vault-production-config.env${NC}"
 
 # Clean up temporary files
-rm -f vault-config.hcl Dockerfile.vault
+rm -f vault-config.hcl Dockerfile docker-entrypoint.sh

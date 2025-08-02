@@ -180,4 +180,40 @@ public class PasskeyChallenge extends BaseEntity {
     public void setChallengeType(String challengeType) {
         this.type = challengeType;
     }
+    
+    // === FIRESTORE COMPATIBILITY METHODS ===
+    // These methods exist to prevent warnings when Firestore tries to map fields
+    // that exist in the database but are handled by BaseEntity's audit system
+    
+    public void setActive(boolean active) {
+        // Handled by BaseEntity audit fields
+    }
+    
+    public void setVersion(Long version) {
+        // Handled by BaseEntity audit fields
+    }
+    
+    public void setCollectionName(String collectionName) {
+        // Static value, ignore setter
+    }
+    
+    public void setValid(boolean valid) {
+        // Computed property, ignore setter
+    }
+    
+    public void setDeleted(boolean deleted) {
+        // Handled by BaseEntity audit fields
+    }
+    
+    public void setCreatedBy(String createdBy) {
+        // Handled by BaseEntity audit fields
+    }
+    
+    public void setModifiedBy(String modifiedBy) {
+        // Handled by BaseEntity audit fields
+    }
+    
+    public void setExpired(boolean expired) {
+        // Computed property based on expiresAt
+    }
 }

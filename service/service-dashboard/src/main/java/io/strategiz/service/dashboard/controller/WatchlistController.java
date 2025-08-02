@@ -96,8 +96,13 @@ public class WatchlistController extends BaseController {
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createWatchlistItem(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
             @RequestBody CreateWatchlistItemRequest request) {
+        
+        // Use a default user ID if not provided
+        if (userId == null || userId.isEmpty()) {
+            userId = "test-user";
+        }
         
         log.info("Creating watchlist item for user: {} - {}", userId, request.getSymbol());
         
@@ -139,8 +144,13 @@ public class WatchlistController extends BaseController {
      */
     @DeleteMapping("/{itemId}")
     public ResponseEntity<Map<String, Object>> deleteWatchlistItem(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
             @PathVariable String itemId) {
+        
+        // Use a default user ID if not provided
+        if (userId == null || userId.isEmpty()) {
+            userId = "test-user";
+        }
         
         log.info("Deleting watchlist item: {} for user: {}", itemId, userId);
         
@@ -178,8 +188,13 @@ public class WatchlistController extends BaseController {
      */
     @GetMapping("/check/{symbol}")
     public ResponseEntity<Map<String, Object>> checkSymbolInWatchlist(
-            @RequestParam String userId,
+            @RequestParam(required = false) String userId,
             @PathVariable String symbol) {
+        
+        // Use a default user ID if not provided
+        if (userId == null || userId.isEmpty()) {
+            userId = "test-user";
+        }
         
         log.info("Checking if symbol {} is in watchlist for user: {}", symbol, userId);
         
@@ -204,17 +219,34 @@ public class WatchlistController extends BaseController {
      * Get demo watchlist data until proper repository implementation is available
      */
     private WatchlistCollectionResponse getDemoWatchlistData(String userId) {
-        // Create demo watchlist items
+        // Create more realistic demo watchlist items
         List<WatchlistItem> demoItems = Arrays.asList(
+            // Cryptocurrencies
             new WatchlistItem("btc-1", "BTC", "Bitcoin", "crypto", 
-                new BigDecimal("43500.00"), new BigDecimal("1250.00"), 
-                new BigDecimal("2.95"), true, "/chart/btc"),
+                new BigDecimal("56241.92"), new BigDecimal("1542.34"), 
+                new BigDecimal("2.82"), true, "/chart/btc"),
             new WatchlistItem("eth-1", "ETH", "Ethereum", "crypto", 
-                new BigDecimal("2650.00"), new BigDecimal("-85.00"), 
-                new BigDecimal("-3.10"), false, "/chart/eth"),
+                new BigDecimal("3025.18"), new BigDecimal("87.52"), 
+                new BigDecimal("2.98"), true, "/chart/eth"),
+            
+            // Stocks
             new WatchlistItem("aapl-1", "AAPL", "Apple Inc.", "stock", 
-                new BigDecimal("175.50"), new BigDecimal("2.25"), 
-                new BigDecimal("1.30"), true, "/chart/aapl")
+                new BigDecimal("182.52"), new BigDecimal("1.23"), 
+                new BigDecimal("0.68"), true, "/chart/aapl"),
+            new WatchlistItem("msft-1", "MSFT", "Microsoft Corporation", "stock", 
+                new BigDecimal("338.12"), new BigDecimal("-0.87"), 
+                new BigDecimal("-0.26"), false, "/chart/msft"),
+            new WatchlistItem("googl-1", "GOOGL", "Alphabet Inc.", "stock", 
+                new BigDecimal("137.14"), new BigDecimal("0.54"), 
+                new BigDecimal("0.40"), true, "/chart/googl"),
+            new WatchlistItem("amzn-1", "AMZN", "Amazon.com Inc.", "stock", 
+                new BigDecimal("178.22"), new BigDecimal("-1.12"), 
+                new BigDecimal("-0.62"), false, "/chart/amzn"),
+            
+            // ETF
+            new WatchlistItem("spy-1", "SPY", "SPDR S&P 500 ETF", "etf", 
+                new BigDecimal("504.12"), new BigDecimal("2.34"), 
+                new BigDecimal("0.47"), true, "/chart/spy")
         );
         
         WatchlistCollectionResponse response = new WatchlistCollectionResponse(userId, demoItems);

@@ -56,6 +56,11 @@ public class ProviderCallbackController extends BaseController {
             @RequestParam(required = false) String error,
             @RequestParam(name = "error_description", required = false) String errorDescription) {
         
+        // Map "cb" to "coinbase" to avoid Coinbase's redirect URI restriction
+        if ("cb".equals(provider)) {
+            provider = "coinbase";
+        }
+        
         log.info("Received OAuth callback from provider: {}, state: {}, error: {}", 
                 provider, state, error);
         
@@ -103,6 +108,11 @@ public class ProviderCallbackController extends BaseController {
             @PathVariable String provider,
             @RequestBody Map<String, String> callbackData,
             Principal principal) {
+        
+        // Map "cb" to "coinbase" to avoid Coinbase's redirect URI restriction
+        if ("cb".equals(provider)) {
+            provider = "coinbase";
+        }
         
         String code = callbackData.get("code");
         String state = callbackData.get("state");

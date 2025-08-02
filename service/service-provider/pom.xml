@@ -27,13 +27,26 @@
             <artifactId>service-base</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- TODO: Re-enable when business-provider-coinbase is implemented
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-provider-coinbase</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-kraken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-binanceus</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-alpaca</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-kraken</artifactId>

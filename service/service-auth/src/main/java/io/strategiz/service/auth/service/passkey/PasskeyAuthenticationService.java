@@ -1,9 +1,9 @@
 package io.strategiz.service.auth.service.passkey;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import io.strategiz.data.auth.model.passkey.PasskeyCredential;
-import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
-import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
@@ -40,18 +40,15 @@ public class PasskeyAuthenticationService extends BaseService {
     private int challengeTimeoutMs;
     
     private final PasskeyChallengeService challengeService;
-    private final PasskeyCredentialRepository credentialRepository;
-    private final PasskeyCredentialConverter credentialConverter;
+    private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
     
     public PasskeyAuthenticationService(
             PasskeyChallengeService challengeService,
-            PasskeyCredentialRepository credentialRepository,
-            PasskeyCredentialConverter credentialConverter,
+            AuthenticationMethodRepository authMethodRepository,
             SessionAuthBusiness sessionAuthBusiness) {
         this.challengeService = challengeService;
-        this.credentialRepository = credentialRepository;
-        this.credentialConverter = credentialConverter;
+        this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
         
         // Ensure we're using real passkey authentication, not mock data
@@ -148,21 +145,23 @@ public class PasskeyAuthenticationService extends BaseService {
             return new AuthenticationResult(false, null, null, "Invalid challenge");
         }
         
-        // Find credential by ID
-        Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
-            credentialRepository.findByCredentialId(credentialId)
-        );
-        if (credentialOpt.isEmpty()) {
+        // Find credential by ID using collection group query
+        Optional<AuthenticationMethodEntity> authMethodOpt = authMethodRepository.findByPasskeyCredentialId(credentialId);
+        if (authMethodOpt.isEmpty()) {
             return new AuthenticationResult(false, null, null, "Credential not found");
         }
         
-        PasskeyCredential credential = credentialOpt.get();
-        String userId = credential.getUserId();
+        AuthenticationMethodEntity authMethod = authMethodOpt.get();
+        String publicKeyBase64 = authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64);
+        
+        // Extract userId from the authentication method's path
+        // The authentication method repository should have set this, but we can also extract from path
+        String userId = extractUserIdFromAuthMethod(authMethod);
         
         try {
             // Verify signature using the utility
             boolean signatureValid = PasskeySignatureVerifier.verifySignature(
-                    credential.getPublicKeyBase64(),
+                    publicKeyBase64,
                     authenticatorData,
                     clientDataJSON,
                     signature
@@ -173,9 +172,9 @@ public class PasskeyAuthenticationService extends BaseService {
                 return new AuthenticationResult(false, null, null, "Invalid signature");
             }
             
-            // Update last used time
-            credential.setLastUsedTime(Instant.now());
-            credentialRepository.save(credentialConverter.toEntity(credential));
+            // Update last used time in authentication method
+            authMethod.markAsUsed();
+            authMethodRepository.saveForUser(userId, authMethod);
             
             // Generate authentication tokens AND session using new unified approach
             // Extract context from challenge (we should have user email etc.)
@@ -215,40 +214,69 @@ public class PasskeyAuthenticationService extends BaseService {
      * Find a passkey credential by its credentialId
      */
     public Optional<Passkey> getCredentialByCredentialId(String credentialId) {
-        return credentialConverter.toDomainModel(credentialRepository.findByCredentialId(credentialId))
-                .map(this::convertToPasskey);
+        return authMethodRepository.findByPasskeyCredentialId(credentialId)
+                .map(this::convertAuthMethodToPasskey);
     }
     
     /**
      * Check if a credential exists for the given credentialId and userId
      */
     public boolean credentialExistsForUser(String credentialId, String userId) {
-        // Simple implementation that doesn't require a special repository method
-        return credentialConverter.toDomainModel(credentialRepository.findByCredentialId(credentialId))
-                .map(credential -> userId.equals(credential.getUserId()))
+        // Use collection group query to find authentication method
+        return authMethodRepository.findByPasskeyCredentialId(credentialId)
+                .map(authMethod -> {
+                    String methodUserId = extractUserIdFromAuthMethod(authMethod);
+                    return userId.equals(methodUserId);
+                })
                 .orElse(false);
     }
     
     /**
      * Convert entity to model
      */
-    private Passkey convertToPasskey(PasskeyCredential entity) {
-        if (entity == null) {
+    /**
+     * Extract userId from authentication method
+     * The method should contain userId info or we extract from document path
+     */
+    private String extractUserIdFromAuthMethod(AuthenticationMethodEntity authMethod) {
+        // First check if we have it in metadata (some implementations might store it)
+        String userId = authMethod.getMetadataAsString("userId");
+        if (userId != null && !userId.isEmpty()) {
+            return userId;
+        }
+        
+        // Otherwise, we need to extract from the repository implementation
+        // The repository should handle this in the findByPasskeyCredentialId method
+        // For now, throw exception as this should be handled by repository
+        throw new IllegalStateException("Unable to extract userId from authentication method. Repository implementation should handle this.");
+    }
+    
+    /**
+     * Convert AuthenticationMethodEntity to Passkey model
+     */
+    private Passkey convertAuthMethodToPasskey(AuthenticationMethodEntity authMethod) {
+        if (authMethod == null) {
             return null;
         }
         
         Passkey model = new Passkey();
-        model.setId(entity.getId());
-        model.setCredentialId(entity.getCredentialId());
-        model.setUserId(entity.getUserId());
-        model.setAuthenticatorName(entity.getAuthenticatorName());
-        model.setRegistrationTime(entity.getRegistrationTime());
-        model.setLastUsedTime(entity.getLastUsedTime());
-        model.setAaguid(entity.getAaguid());
-        model.setPublicKey(entity.getPublicKey());
-        model.setDeviceName(entity.getDeviceName());
-        model.setUserAgent(entity.getUserAgent());
-        model.setTrusted(entity.isTrusted());
+        model.setId(authMethod.getId());
+        model.setCredentialId(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID));
+        model.setUserId(extractUserIdFromAuthMethod(authMethod));
+        model.setAuthenticatorName(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.AUTHENTICATOR_NAME));
+        model.setRegistrationTime(Instant.parse(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.REGISTRATION_TIME)));
+        model.setLastUsedTime(authMethod.getLastUsedAt());
+        model.setAaguid(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.AAGUID));
+        
+        // Decode public key from base64
+        String publicKeyBase64 = authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64);
+        if (publicKeyBase64 != null) {
+            model.setPublicKey(java.util.Base64.getDecoder().decode(publicKeyBase64));
+        }
+        
+        model.setDeviceName(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.DEVICE_NAME));
+        model.setUserAgent(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.USER_AGENT));
+        model.setTrusted(Boolean.parseBoolean(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.TRUSTED)));
         
         return model;
     }

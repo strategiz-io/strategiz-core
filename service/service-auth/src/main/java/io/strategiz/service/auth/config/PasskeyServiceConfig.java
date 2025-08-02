@@ -34,11 +34,10 @@ public class PasskeyServiceConfig {
     @Bean
     public PasskeyAuthenticationService passkeyAuthenticationService(
             PasskeyChallengeService challengeService,
-            PasskeyCredentialRepository credentialRepository,
-            PasskeyCredentialConverter credentialConverter,
+            AuthenticationMethodRepository authMethodRepository,
             SessionAuthBusiness sessionAuthBusiness) {
         return new PasskeyAuthenticationService(
-            challengeService, credentialRepository, credentialConverter, sessionAuthBusiness);
+            challengeService, authMethodRepository, sessionAuthBusiness);
     }
     
     @Bean

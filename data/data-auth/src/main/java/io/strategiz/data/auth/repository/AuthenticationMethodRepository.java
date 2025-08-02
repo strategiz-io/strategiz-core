@@ -70,4 +70,11 @@ public interface AuthenticationMethodRepository {
      * Delete authentication method for a specific user
      */
     void deleteForUser(String userId, String methodId);
+    
+    /**
+     * Find authentication method by credential ID across all users
+     * Uses collection group query to search all authentication_methods subcollections
+     * Specifically for passkey authentication where we need to find user by credential ID
+     */
+    Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId);
 } 

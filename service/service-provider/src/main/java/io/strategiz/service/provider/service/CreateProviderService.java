@@ -7,6 +7,7 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.kraken.KrakenProviderBusiness;
 import io.strategiz.business.provider.binanceus.BinanceUSProviderBusiness;
+import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.data.auth.model.provider.CreateProviderIntegrationRequest;
 import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
 import org.slf4j.Logger;
@@ -34,14 +35,17 @@ public class CreateProviderService {
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
     private final BinanceUSProviderBusiness binanceUSProviderBusiness;
+    private final AlpacaProviderBusiness alpacaProviderBusiness;
     
     @Autowired
     public CreateProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
                                 KrakenProviderBusiness krakenProviderBusiness,
-                                BinanceUSProviderBusiness binanceUSProviderBusiness) {
+                                BinanceUSProviderBusiness binanceUSProviderBusiness,
+                                AlpacaProviderBusiness alpacaProviderBusiness) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
         this.binanceUSProviderBusiness = binanceUSProviderBusiness;
+        this.alpacaProviderBusiness = alpacaProviderBusiness;
     }
     
     /**
@@ -110,6 +114,9 @@ public class CreateProviderService {
             switch (request.getProviderId().toLowerCase()) {
                 case "coinbase":
                     oauthUrl = coinbaseProviderBusiness.generateAuthorizationUrl(request.getUserId(), state);
+                    break;
+                case "alpaca":
+                    oauthUrl = alpacaProviderBusiness.generateAuthorizationUrl(request.getUserId(), state);
                     break;
                 default:
                     // For other providers, use the legacy buildOAuthUrl method
@@ -319,7 +326,7 @@ public class CreateProviderService {
         }
         
         String provider = providerId.toLowerCase();
-        return "coinbase".equals(provider) || "binance".equals(provider) || "binanceus".equals(provider) || "kraken".equals(provider);
+        return "coinbase".equals(provider) || "binance".equals(provider) || "binanceus".equals(provider) || "kraken".equals(provider) || "alpaca".equals(provider);
     }
     
     /**
@@ -352,6 +359,8 @@ public class CreateProviderService {
                 return "Binance.US";
             case "kraken":
                 return "Kraken";
+            case "alpaca":
+                return "Alpaca";
             default:
                 return "Unknown Provider";
         }

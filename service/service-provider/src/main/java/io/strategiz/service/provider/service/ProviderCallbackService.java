@@ -4,6 +4,7 @@ import io.strategiz.service.provider.model.response.ProviderCallbackResponse;
 import io.strategiz.service.provider.exception.ProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
+import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,13 +28,16 @@ public class ProviderCallbackService {
     private static final Logger log = LoggerFactory.getLogger(ProviderCallbackService.class);
     
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
+    private final AlpacaProviderBusiness alpacaProviderBusiness;
     
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
     
     @Autowired
-    public ProviderCallbackService(CoinbaseProviderBusiness coinbaseProviderBusiness) {
+    public ProviderCallbackService(CoinbaseProviderBusiness coinbaseProviderBusiness,
+                                   AlpacaProviderBusiness alpacaProviderBusiness) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
+        this.alpacaProviderBusiness = alpacaProviderBusiness;
     }
     
     /**
@@ -67,6 +71,10 @@ public class ProviderCallbackService {
             switch (provider.toLowerCase()) {
                 case "coinbase":
                     processCoinbaseCallback(userId, code, state, response);
+                    break;
+                    
+                case "alpaca":
+                    processAlpacaCallback(userId, code, state, response);
                     break;
                     
                 case "kraken":
@@ -132,6 +140,39 @@ public class ProviderCallbackService {
     }
     
     /**
+     * Process Alpaca OAuth callback.
+     * 
+     * @param userId The user ID
+     * @param code The authorization code
+     * @param state The state parameter
+     * @param response The response to populate
+     */
+    private void processAlpacaCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+        log.info("Processing Alpaca OAuth callback for user: {}", userId);
+        
+        try {
+            // Complete OAuth flow using Alpaca business module
+            alpacaProviderBusiness.completeOAuthFlow(userId, code, state);
+            
+            response.setStatus("connected");
+            response.setMessage("Successfully connected Alpaca account");
+            response.setConnectedAt(Instant.now());
+            
+            // Add connection metadata
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("provider", "alpaca");
+            metadata.put("connectionType", "oauth");
+            metadata.put("userId", userId);
+            response.setConnectionData(metadata);
+            
+        } catch (Exception e) {
+            log.error("Failed to complete Alpaca OAuth flow for user: {}", userId, e);
+            throw new StrategizException(ProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
+                userId, "alpaca", e.getMessage());
+        }
+    }
+    
+    /**
      * Get success redirect URL for frontend.
      * 
      * @param provider The provider name
@@ -186,7 +227,7 @@ public class ProviderCallbackService {
         }
         
         String p = provider.toLowerCase();
-        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p);
+        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p);
     }
     
     /**
@@ -207,6 +248,8 @@ public class ProviderCallbackService {
                 return "Kraken";
             case "binance":
                 return "Binance";
+            case "alpaca":
+                return "Alpaca";
             default:
                 return provider;
         }

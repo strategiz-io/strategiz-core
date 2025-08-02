@@ -10,6 +10,7 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 /**
  * Controller for passkey authentication using resource-based REST endpoints
@@ -34,6 +34,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1/auth/passkeys")
 public class PasskeyAuthenticationController extends BaseController {
+    
+    private static final Logger log = LoggerFactory.getLogger(PasskeyAuthenticationController.class);
 
     @Override
     protected String getModuleName() {
@@ -45,6 +47,19 @@ public class PasskeyAuthenticationController extends BaseController {
     
     @Autowired
     private PasskeyAuthenticationService authenticationService;
+    
+    // Constructor to log controller initialization
+    public PasskeyAuthenticationController() {
+        log.info("PasskeyAuthenticationController constructor called - endpoints will be registered at /v1/auth/passkeys/*");
+    }
+    
+    @PostConstruct
+    public void init() {
+        log.info("PasskeyAuthenticationController @PostConstruct - Controller fully initialized");
+        log.info("Registered endpoints:");
+        log.info("  - POST /v1/auth/passkeys/authentications (beginAuthentication)");
+        log.info("  - PUT /v1/auth/passkeys/authentications/{authenticationId} (completeAuthentication)");
+    }
 
     /**
      * Begin WebAuthn authentication process - Create authentication challenge
@@ -133,51 +148,4 @@ public class PasskeyAuthenticationController extends BaseController {
         return createCleanResponse(tokenResponse);
     }
     
-    /**
-     * Alternative endpoint for backwards compatibility
-     * 
-     * @deprecated Use PUT /auth/passkeys/authentications/{id} instead
-     * @param request Completion request with credential data
-     * @param httpRequest HTTP request to extract client IP
-     * @return Clean authentication result - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @Deprecated
-    @PostMapping("/authentications/legacy/signin")
-    public ResponseEntity<Map<String, String>> finishSignIn(
-            @Valid @RequestBody PasskeyAuthenticationCompletionRequest request,
-            HttpServletRequest httpRequest) {
-        
-        logRequest("finishSignIn", request.credentialId());
-        
-        // Extract client IP address
-        String ipAddress = httpRequest.getRemoteAddr();
-        
-        // Convert from API model to service model
-        PasskeyAuthenticationService.AuthenticationCompletion completion = new PasskeyAuthenticationService.AuthenticationCompletion(
-            request.credentialId(),
-            request.authenticatorData(),
-            request.clientDataJSON(),
-            request.signature(),
-            request.userHandle(),
-            ipAddress,
-            request.deviceId()
-        );
-        
-        // Complete authentication - let exceptions bubble up
-        PasskeyAuthenticationService.AuthenticationResult result = authenticationService.completeAuthentication(completion);
-        
-        if (!result.success() || result.accessToken() == null || result.refreshToken() == null) {
-            throw new StrategizException(AuthErrors.VERIFICATION_FAILED, request.credentialId());
-        }
-
-        Map<String, String> responseBody = Map.of(
-            "userId", request.userHandle(),
-            "accessToken", result.accessToken(),
-            "refreshToken", result.refreshToken()
-        );
-        
-        logRequestSuccess("finishSignIn", request.userHandle(), responseBody);
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return createCleanResponse(responseBody);
-    }
 }

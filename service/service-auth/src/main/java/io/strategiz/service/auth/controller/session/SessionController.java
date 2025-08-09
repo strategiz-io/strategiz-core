@@ -10,7 +10,7 @@ import io.strategiz.service.auth.model.session.SessionRevocationRequest;
 import io.strategiz.service.auth.model.session.SessionValidationRequest;
 import io.strategiz.service.auth.model.session.SessionValidationResponse;
 import io.strategiz.service.auth.model.session.CurrentUserResponse;
-import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.service.base.controller.BaseController;
@@ -69,7 +69,7 @@ public class SessionController extends BaseController {
         java.util.Optional<String> newTokenOpt = tokenSessionService.refreshToken(request.refreshToken(), ipAddress);
         
         if (newTokenOpt.isEmpty()) {
-            throwModuleException(AuthErrorDetails.REFRESH_TOKEN_INVALID, request.refreshToken());
+            throwModuleException(ServiceAuthErrorDetails.REFRESH_TOKEN_INVALID, request.refreshToken());
         }
         
         RefreshSessionResponse response = new RefreshSessionResponse(
@@ -176,7 +176,7 @@ public class SessionController extends BaseController {
         java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
         
         if (userIdOpt.isEmpty()) {
-            throwModuleException(AuthErrorDetails.INVALID_TOKEN, "Invalid or expired token");
+            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "Invalid or expired token");
         }
         
         String userId = userIdOpt.get();
@@ -235,7 +235,7 @@ public class SessionController extends BaseController {
         java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
         
         if (validationOpt.isEmpty()) {
-            throwModuleException(AuthErrorDetails.INVALID_TOKEN, "No valid session found");
+            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
         }
         
         SessionValidationResult validation = validationOpt.get();
@@ -286,7 +286,7 @@ public class SessionController extends BaseController {
         java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
         
         if (validationOpt.isEmpty()) {
-            throwModuleException(AuthErrorDetails.INVALID_TOKEN, "No valid session found");
+            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
         }
         
         String userId = validationOpt.get().getUserId();

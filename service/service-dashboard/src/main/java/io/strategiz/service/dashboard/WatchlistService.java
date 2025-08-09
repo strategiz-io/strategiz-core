@@ -3,7 +3,7 @@ package io.strategiz.service.dashboard;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistAsset;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistResponse;
-import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 // import io.strategiz.service.dashboard.repository.WatchlistRepository;
 // import io.strategiz.service.dashboard.provider.MarketDataProvider;
@@ -49,7 +49,7 @@ public class WatchlistService {
         
         // Validate input
         if (userId == null || userId.trim().isEmpty()) {
-            throw new StrategizException(DashboardErrorDetails.INVALID_PORTFOLIO_DATA, "service-dashboard", "userId", userId, "User ID cannot be null or empty");
+            throw new StrategizException(ServiceDashboardErrorDetails.INVALID_PORTFOLIO_DATA, "service-dashboard", "userId", userId, "User ID cannot be null or empty");
         }
         
         try {
@@ -64,7 +64,7 @@ public class WatchlistService {
             List<WatchlistAsset> userAssets = watchlistRepository.getUserWatchlist(userId);
             
             if (userAssets == null) {
-                throw new StrategizException(DashboardErrorDetails.WATCHLIST_NOT_FOUND, "service-dashboard", userId);
+                throw new StrategizException(ServiceDashboardErrorDetails.WATCHLIST_NOT_FOUND, "service-dashboard", userId);
             }
             
             // Enrich assets with market data
@@ -79,7 +79,7 @@ public class WatchlistService {
             throw e;
         } catch (Exception e) {
             log.error("Error getting watchlist for user: {}", userId, e);
-            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
+            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
         }
     }
 

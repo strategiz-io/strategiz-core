@@ -3,7 +3,7 @@ package io.strategiz.service.provider.controller;
 import io.strategiz.service.provider.model.request.CreateProviderRequest;
 import io.strategiz.service.provider.model.response.CreateProviderResponse;
 import io.strategiz.service.provider.service.CreateProviderService;
-import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,7 +118,7 @@ class CreateProviderControllerTest {
             createProviderController.createProvider(validRequest, principal);
         });
         
-        assertEquals(ProviderErrorDetails.MISSING_REQUIRED_FIELD, 
+        assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, 
                     exception.getErrorDetails());
         assertTrue(exception.getMessage().contains("providerId"));
     }
@@ -134,7 +134,7 @@ class CreateProviderControllerTest {
             createProviderController.createProvider(validRequest, principal);
         });
         
-        assertEquals(ProviderErrorDetails.MISSING_REQUIRED_FIELD, 
+        assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, 
                     exception.getErrorDetails());
     }
     
@@ -149,7 +149,7 @@ class CreateProviderControllerTest {
             createProviderController.createProvider(validRequest, principal);
         });
         
-        assertEquals(ProviderErrorDetails.MISSING_REQUIRED_FIELD, 
+        assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, 
                     exception.getErrorDetails());
         assertTrue(exception.getMessage().contains("connectionType"));
     }

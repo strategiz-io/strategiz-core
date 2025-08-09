@@ -4,7 +4,7 @@ import io.strategiz.service.auth.service.emailotp.EmailOtpAuthenticationService;
 import io.strategiz.service.auth.service.emailotp.EmailOtpRegistrationService;
 import io.strategiz.service.auth.model.emailotp.EmailOtpRequest;
 import io.strategiz.service.auth.model.emailotp.EmailOtpVerificationRequest;
-import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
@@ -50,7 +50,7 @@ public class EmailOtpController {
         boolean sent = emailOtpAuthService.sendOtp(request.email(), request.purpose());
         
         if (!sent) {
-            throw new StrategizException(AuthErrorDetails.EMAIL_SEND_FAILED, "service-auth", request.email(), "Unknown error");
+            throw new StrategizException(ServiceAuthErrorDetails.EMAIL_SEND_FAILED, "service-auth", request.email(), "Unknown error");
         }
         
         // Return clean response - headers added by StandardHeadersInterceptor

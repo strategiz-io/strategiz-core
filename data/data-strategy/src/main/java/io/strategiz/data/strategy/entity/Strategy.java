@@ -10,6 +10,9 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Strategy extends BaseEntity {
     
+    @JsonProperty("id")
+    private String id;
+    
     @JsonProperty("name")
     private String name;
     
@@ -49,6 +52,21 @@ public class Strategy extends BaseEntity {
     // Constructors
     public Strategy() {
         super();
+    }
+    
+    @Override
+    public String getId() {
+        return id;
+    }
+    
+    @Override
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    @Override
+    public String getCollectionName() {
+        return "strategies";
     }
     
     // Getters and Setters

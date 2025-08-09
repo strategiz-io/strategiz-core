@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.service.dashboard.PortfolioSummaryService;
 import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
-import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -59,7 +59,7 @@ public class PortfolioSummaryController extends BaseController {
         
         // Check if portfolio exists
         if (portfolioSummary == null) {
-            throw new StrategizException(DashboardErrorDetails.PORTFOLIO_NOT_FOUND, "service-dashboard", userId);
+            throw new StrategizException(ServiceDashboardErrorDetails.PORTFOLIO_NOT_FOUND, "service-dashboard", userId);
         }
         
         // Create response

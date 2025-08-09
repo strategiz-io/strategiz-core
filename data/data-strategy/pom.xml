@@ -23,6 +23,12 @@
             <version>${project.version}</version>
         </dependency>
         
+        <!-- Firebase Admin SDK -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+        </dependency>
+        
         <!-- External dependencies -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

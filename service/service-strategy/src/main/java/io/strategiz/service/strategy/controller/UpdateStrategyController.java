@@ -1,23 +1,38 @@
 package io.strategiz.service.strategy.controller;
 
+import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.strategy.constants.StrategyConstants;
 import io.strategiz.service.strategy.model.CreateStrategyRequest;
 import io.strategiz.service.strategy.model.StrategyResponse;
+import io.strategiz.service.strategy.service.UpdateStrategyService;
+import io.strategiz.service.strategy.service.ReadStrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/strategies")
+@RequestMapping("/v1/strategies")
 @Tag(name = "Strategy Update", description = "Update existing trading strategies")
 public class UpdateStrategyController extends BaseController {
     
     private static final Logger logger = LoggerFactory.getLogger(UpdateStrategyController.class);
+    
+    private final UpdateStrategyService updateStrategyService;
+    private final ReadStrategyService readStrategyService;
+    
+    @Autowired
+    public UpdateStrategyController(UpdateStrategyService updateStrategyService,
+                                  ReadStrategyService readStrategyService) {
+        this.updateStrategyService = updateStrategyService;
+        this.readStrategyService = readStrategyService;
+    }
     
     @PutMapping("/{strategyId}")
     @Operation(summary = "Update a strategy", description = "Updates an existing trading strategy")
@@ -26,24 +41,21 @@ public class UpdateStrategyController extends BaseController {
             @Valid @RequestBody CreateStrategyRequest request,
             Authentication authentication) {
         
-        logger.info("Updating strategy: {} for user: {}", strategyId, authentication.getName());
+        String userId = authentication.getName();
+        logger.info("Updating strategy: {} for user: {}", strategyId, userId);
         
-        // TODO: Implement service layer
-        // For now, return a mock response
-        StrategyResponse response = new StrategyResponse();
-        response.setId(strategyId);
-        response.setName(request.getName());
-        response.setDescription(request.getDescription());
-        response.setCode(request.getCode());
-        response.setLanguage(request.getLanguage());
-        response.setType(request.getType());
-        response.setStatus("active");
-        response.setTags(request.getTags());
-        response.setUserId(authentication.getName());
-        response.setPublic(request.isPublic());
-        response.setParameters(request.getParameters());
-        
-        return ResponseEntity.ok(response);
+        try {
+            // Update strategy using service
+            Strategy updated = updateStrategyService.updateStrategy(strategyId, userId, request);
+            
+            // Convert to response
+            StrategyResponse response = convertToResponse(updated);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Failed to update strategy", e);
+            throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
+        }
     }
     
     @PatchMapping("/{strategyId}/status")
@@ -53,14 +65,51 @@ public class UpdateStrategyController extends BaseController {
             @RequestParam String status,
             Authentication authentication) {
         
+        String userId = authentication.getName();
         logger.info("Updating strategy {} status to: {} for user: {}", 
-            strategyId, status, authentication.getName());
+            strategyId, status, userId);
         
-        // TODO: Implement service layer
+        try {
+            // Update status using service
+            boolean updated = updateStrategyService.updateStrategyStatus(strategyId, userId, status);
+            
+            if (!updated) {
+                throw new RuntimeException("Strategy not found or access denied");
+            }
+            
+            // Fetch updated strategy to return
+            Strategy strategy = readStrategyService.getStrategyById(strategyId, userId)
+                .orElseThrow(() -> new RuntimeException("Strategy not found"));
+            
+            return ResponseEntity.ok(convertToResponse(strategy));
+        } catch (Exception e) {
+            logger.error("Failed to update strategy status", e);
+            throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
+        }
+    }
+    
+    private StrategyResponse convertToResponse(Strategy strategy) {
         StrategyResponse response = new StrategyResponse();
-        response.setId(strategyId);
-        response.setStatus(status);
-        
-        return ResponseEntity.ok(response);
+        response.setId(strategy.getId());
+        response.setName(strategy.getName());
+        response.setDescription(strategy.getDescription());
+        response.setCode(strategy.getCode());
+        response.setLanguage(strategy.getLanguage());
+        response.setType(strategy.getType());
+        response.setStatus(strategy.getStatus());
+        response.setTags(strategy.getTags());
+        response.setUserId(strategy.getUserId());
+        response.setPublic(strategy.isPublic());
+        response.setParameters(strategy.getParameters());
+        response.setBacktestResults(strategy.getBacktestResults());
+        response.setPerformance(strategy.getPerformance());
+        // Convert string dates to Date objects if needed
+        // For now, leave them null as they'll be set by the repository
+        return response;
+    }
+    
+    @Override
+    protected String getModuleName() {
+        return "strategy";
     }
 }

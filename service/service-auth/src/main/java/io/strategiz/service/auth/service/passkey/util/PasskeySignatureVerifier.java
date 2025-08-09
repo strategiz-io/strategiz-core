@@ -3,7 +3,7 @@ package io.strategiz.service.auth.service.passkey.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 
 import com.webauthn4j.converter.util.ObjectConverter;
@@ -283,7 +283,7 @@ public class PasskeySignatureVerifier {
             return digest.digest(clientDataJSON.getBytes(StandardCharsets.UTF_8));
         } catch (NoSuchAlgorithmException e) {
             log.error("Failed to hash client data", e);
-            throw new StrategizException(AuthErrorDetails.CONFIGURATION_ERROR, "service-auth", e, "SHA-256 algorithm not available");
+            throw new StrategizException(ServiceAuthErrorDetails.CONFIGURATION_ERROR, "service-auth", e, "SHA-256 algorithm not available");
         }
     }
     

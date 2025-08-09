@@ -1,24 +1,35 @@
 package io.strategiz.service.strategy.controller;
 
+import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.strategy.constants.StrategyConstants;
 import io.strategiz.service.strategy.model.CreateStrategyRequest;
 import io.strategiz.service.strategy.model.StrategyResponse;
+import io.strategiz.service.strategy.service.CreateStrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/strategies")
+@RequestMapping("/v1/strategies")
 @Tag(name = "Strategy Creation", description = "Create new trading strategies")
 public class CreateStrategyController extends BaseController {
     
     private static final Logger logger = LoggerFactory.getLogger(CreateStrategyController.class);
+    
+    private final CreateStrategyService createStrategyService;
+    
+    @Autowired
+    public CreateStrategyController(CreateStrategyService createStrategyService) {
+        this.createStrategyService = createStrategyService;
+    }
     
     @PostMapping
     @Operation(summary = "Create a new strategy", description = "Creates a new trading strategy for the authenticated user")
@@ -26,23 +37,45 @@ public class CreateStrategyController extends BaseController {
             @Valid @RequestBody CreateStrategyRequest request,
             Authentication authentication) {
         
-        logger.info("Creating new strategy: {} for user: {}", request.getName(), authentication.getName());
+        String userId = authentication.getName();
+        logger.info("Creating new strategy: {} for user: {}", request.getName(), userId);
         
-        // TODO: Implement service layer
-        // For now, return a mock response
+        try {
+            // Create strategy using service
+            Strategy created = createStrategyService.createStrategy(request, userId);
+            
+            // Convert to response
+            StrategyResponse response = convertToResponse(created);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            logger.error("Failed to create strategy", e);
+            throw handleException(e, StrategyConstants.ERROR_STRATEGY_CREATION_FAILED);
+        }
+    }
+    
+    private StrategyResponse convertToResponse(Strategy strategy) {
         StrategyResponse response = new StrategyResponse();
-        response.setId("mock-strategy-id");
-        response.setName(request.getName());
-        response.setDescription(request.getDescription());
-        response.setCode(request.getCode());
-        response.setLanguage(request.getLanguage());
-        response.setType(request.getType());
-        response.setStatus("active");
-        response.setTags(request.getTags());
-        response.setUserId(authentication.getName());
-        response.setPublic(request.isPublic());
-        response.setParameters(request.getParameters());
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        response.setId(strategy.getId());
+        response.setName(strategy.getName());
+        response.setDescription(strategy.getDescription());
+        response.setCode(strategy.getCode());
+        response.setLanguage(strategy.getLanguage());
+        response.setType(strategy.getType());
+        response.setStatus(strategy.getStatus());
+        response.setTags(strategy.getTags());
+        response.setUserId(strategy.getUserId());
+        response.setPublic(strategy.isPublic());
+        response.setParameters(strategy.getParameters());
+        response.setBacktestResults(strategy.getBacktestResults());
+        response.setPerformance(strategy.getPerformance());
+        // Convert string dates to Date objects if needed
+        // For now, leave them null as they'll be set by the repository
+        return response;
+    }
+    
+    @Override
+    protected String getModuleName() {
+        return "strategy";
     }
 }

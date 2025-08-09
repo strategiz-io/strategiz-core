@@ -8,7 +8,7 @@ import io.strategiz.client.alphavantage.AlphaVantageClient;
 import io.strategiz.client.coinbase.model.TickerPrice;
 import io.strategiz.client.alphavantage.model.StockData;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.service.marketing.exception.MarketingErrorDetails;
+import io.strategiz.service.marketing.exception.ServiceMarketingErrorDetails;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

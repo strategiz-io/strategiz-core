@@ -29,6 +29,8 @@
         <module>business/business-provider-coinbase</module>
         <module>business/business-provider-kraken</module>
         <module>business/business-provider-binanceus</module>
+        <module>business/business-provider-alpaca</module>
+        <module>business/business-strategy-execution</module>
         
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -171,6 +173,21 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>business-provider-coinbase</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-kraken</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-binanceus</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-alpaca</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

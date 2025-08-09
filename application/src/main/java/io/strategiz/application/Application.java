@@ -8,15 +8,16 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Import;
 import io.strategiz.data.auth.config.DataAuthConfig;
 import io.strategiz.data.base.config.FirebaseConfig;
-import io.strategiz.data.device.config.DeviceConfig;
+import io.strategiz.data.device.config.DataDeviceConfig;
 import io.strategiz.data.user.config.DataUserConfig;
 import io.strategiz.data.provider.config.DataProviderConfig;
+import io.strategiz.data.strategy.config.DataStrategyConfig;
 
 /**
  * Main Application class for Strategiz Core
  */
 @SpringBootApplication
-@Import({FirebaseConfig.class, DataAuthConfig.class, DeviceConfig.class, DataUserConfig.class, DataProviderConfig.class})
+@Import({FirebaseConfig.class, DataAuthConfig.class, DataDeviceConfig.class, DataUserConfig.class, DataProviderConfig.class, DataStrategyConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"
 })

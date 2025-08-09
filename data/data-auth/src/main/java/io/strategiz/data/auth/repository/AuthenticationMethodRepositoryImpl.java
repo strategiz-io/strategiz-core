@@ -65,7 +65,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     public List<AuthenticationMethodEntity> findByUserIdAndType(String userId, AuthenticationMethodType type) {
         try {
             return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.getType() == type && entity.isEnabled())
+                    .filter(entity -> entity.getType() == type)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {} and type: {}", userId, type, e);

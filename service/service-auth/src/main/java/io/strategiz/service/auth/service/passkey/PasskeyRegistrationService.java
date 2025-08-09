@@ -7,7 +7,7 @@ import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.base.BaseService;
-import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 
 // Import WebAuthn4J libraries for proper attestation parsing
 import com.webauthn4j.converter.util.ObjectConverter;
@@ -132,7 +132,7 @@ public class PasskeyRegistrationService extends BaseService {
         
         // Validate real API connection
         if (!validateRealApiConnection("PasskeyRegistrationService")) {
-            throwModuleException(AuthErrorDetails.EXTERNAL_SERVICE_ERROR, "PasskeyRegistrationService", "validateRealApiConnection");
+            throwModuleException(ServiceAuthErrorDetails.EXTERNAL_SERVICE_ERROR, "PasskeyRegistrationService", "validateRealApiConnection");
         }
         
         // Generate a challenge for this registration

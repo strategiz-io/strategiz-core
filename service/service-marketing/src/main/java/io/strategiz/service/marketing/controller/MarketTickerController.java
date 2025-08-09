@@ -13,7 +13,7 @@ import io.strategiz.client.yahoofinance.model.YahooStockData;
 import io.strategiz.service.marketing.model.response.MarketTickerResponse;
 import io.strategiz.service.marketing.model.response.TickerItem;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.service.marketing.exception.MarketingErrorDetails;
+import io.strategiz.service.marketing.exception.ServiceMarketingErrorDetails;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 

@@ -9,7 +9,7 @@ import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.framework.exception.ErrorDetails;
 import io.strategiz.framework.exception.ErrorMessageService;
 import io.strategiz.framework.exception.StandardErrorResponse;
-import io.strategiz.service.base.exception.BaseErrorDetails;
+import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -232,7 +233,7 @@ public abstract class BaseController {
      */
     protected void validateEmail(String email, String fieldName) {
         if (email == null || !EMAIL_PATTERN.matcher(email).matches()) {
-            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, fieldName, "Invalid email format");
+            throwModuleException(ServiceBaseErrorDetails.VALIDATION_ERROR, fieldName, "Invalid email format");
         }
     }
     
@@ -242,7 +243,7 @@ public abstract class BaseController {
      */
     protected void validatePhoneNumber(String phone, String fieldName) {
         if (phone == null || !PHONE_PATTERN.matcher(phone).matches()) {
-            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, fieldName, "Invalid phone number format");
+            throwModuleException(ServiceBaseErrorDetails.VALIDATION_ERROR, fieldName, "Invalid phone number format");
         }
     }
     
@@ -252,7 +253,7 @@ public abstract class BaseController {
      */
     protected void validateAlphanumeric(String input, String fieldName) {
         if (input == null || !ALPHANUMERIC_PATTERN.matcher(input).matches()) {
-            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, fieldName, "Must contain only letters and numbers");
+            throwModuleException(ServiceBaseErrorDetails.VALIDATION_ERROR, fieldName, "Must contain only letters and numbers");
         }
     }
     
@@ -262,11 +263,11 @@ public abstract class BaseController {
      */
     protected void validateRequiredParam(String paramName, Object paramValue) {
         if (paramValue == null) {
-            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, paramName, "Required parameter is missing");
+            throwModuleException(ServiceBaseErrorDetails.VALIDATION_ERROR, paramName, "Required parameter is missing");
         }
         
         if (paramValue instanceof String && ((String) paramValue).trim().isEmpty()) {
-            throwModuleException(BaseErrorDetails.VALIDATION_ERROR, paramName, "Required parameter cannot be empty");
+            throwModuleException(ServiceBaseErrorDetails.VALIDATION_ERROR, paramName, "Required parameter cannot be empty");
         }
     }
     
@@ -297,7 +298,7 @@ public abstract class BaseController {
     protected void checkRateLimit(String userId, String operation) {
         // Default implementation - override in subclasses with actual rate limiting
         log.debug("Rate limit check for user: {}, operation: {}", userId, operation);
-        // Example: throwModuleException(BaseErrorDetails.TOO_MANY_REQUESTS, operation);
+        // Example: throwModuleException(ServiceBaseErrorDetails.TOO_MANY_REQUESTS, operation);
     }
     
     /**
@@ -305,7 +306,7 @@ public abstract class BaseController {
      */
     protected <T> ResponseEntity<T> createCleanResponse(T data) {
         if (data == null) {
-            throwModuleException(BaseErrorDetails.INTERNAL_ERROR, "Response data cannot be null");
+            throwModuleException(ServiceBaseErrorDetails.INTERNAL_ERROR, "Response data cannot be null");
         }
         
         // Filter out null and empty fields
@@ -320,7 +321,7 @@ public abstract class BaseController {
      */
     protected <T> ResponseEntity<T> createCleanResponse(T data, int statusCode) {
         if (data == null) {
-            throwModuleException(BaseErrorDetails.INTERNAL_ERROR, "Response data cannot be null");
+            throwModuleException(ServiceBaseErrorDetails.INTERNAL_ERROR, "Response data cannot be null");
         }
         
         // Filter out null and empty fields
@@ -479,6 +480,52 @@ public abstract class BaseController {
      */
     private String generateTraceId() {
         return generateRequestId(); // Reuse the existing method
+    }
+    
+    /**
+     * Handle exceptions and convert to StrategizException with proper error code lookup
+     * This method is used by controllers to convert generic exceptions to business exceptions
+     * 
+     * @param e The exception to handle
+     * @param errorKey The error key to look up in the properties file
+     * @return Never returns, always throws StrategizException
+     */
+    protected StrategizException handleException(Exception e, String errorKey) {
+        // If it's already a StrategizException, just rethrow it
+        if (e instanceof StrategizException) {
+            throw (StrategizException) e;
+        }
+        
+        // Create a simple error details implementation for dynamic errors
+        ErrorDetails errorDetails = new ErrorDetails() {
+            @Override
+            public String getCode() {
+                return errorKey;
+            }
+            
+            @Override
+            public String getPropertyKey() {
+                return errorKey;
+            }
+            
+            @Override
+            public HttpStatus getHttpStatus() {
+                // Map common error keys to appropriate HTTP status
+                if (errorKey.contains("not-found")) {
+                    return HttpStatus.NOT_FOUND;
+                } else if (errorKey.contains("validation") || errorKey.contains("invalid")) {
+                    return HttpStatus.BAD_REQUEST;
+                } else if (errorKey.contains("access-denied") || errorKey.contains("unauthorized")) {
+                    return HttpStatus.FORBIDDEN;
+                } else if (errorKey.contains("creation-failed") || errorKey.contains("update-failed") || errorKey.contains("deletion-failed")) {
+                    return HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+                return HttpStatus.INTERNAL_SERVER_ERROR;
+            }
+        };
+        
+        // Create and throw new StrategizException with module context
+        throw new StrategizException(errorDetails, getModuleName(), e);
     }
     
     /**

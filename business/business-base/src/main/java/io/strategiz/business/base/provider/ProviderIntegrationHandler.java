@@ -1,7 +1,7 @@
 package io.strategiz.business.base.provider;
 
-import io.strategiz.data.auth.model.provider.CreateProviderIntegrationRequest;
-import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
+import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
+import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 
 /**
  * Interface for provider integration handlers

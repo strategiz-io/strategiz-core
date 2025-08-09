@@ -6,15 +6,54 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Repository interface for updating strategy entities
+ * Following Single Responsibility Principle - focused only on update operations
+ */
 public interface UpdateStrategyRepository {
     
-    Optional<Strategy> update(String id, Strategy strategy);
+    /**
+     * Update a strategy
+     */
+    Strategy update(String id, String userId, Strategy strategy);
     
-    Optional<Strategy> updateStatus(String id, String status);
+    /**
+     * Update strategy status
+     */
+    boolean updateStatus(String id, String userId, String status);
     
-    Optional<Strategy> updateCode(String id, String code);
+    /**
+     * Update strategy code
+     */
+    Optional<Strategy> updateCode(String id, String userId, String code);
     
-    Optional<Strategy> updateTags(String id, List<String> tags);
+    /**
+     * Update strategy tags
+     */
+    Optional<Strategy> updateTags(String id, String userId, List<String> tags);
     
-    Optional<Strategy> updatePerformance(String id, Map<String, Object> performance);
+    /**
+     * Update strategy performance metrics
+     */
+    Optional<Strategy> updatePerformance(String id, String userId, Map<String, Object> performance);
+    
+    /**
+     * Update strategy backtest results
+     */
+    Optional<Strategy> updateBacktestResults(String id, String userId, Map<String, Object> backtestResults);
+    
+    /**
+     * Update strategy visibility (public/private)
+     */
+    Optional<Strategy> updateVisibility(String id, String userId, boolean isPublic);
+    
+    /**
+     * Update strategy parameters
+     */
+    Optional<Strategy> updateParameters(String id, String userId, Map<String, Object> parameters);
+    
+    /**
+     * Update strategy description
+     */
+    Optional<Strategy> updateDescription(String id, String userId, String description);
 }

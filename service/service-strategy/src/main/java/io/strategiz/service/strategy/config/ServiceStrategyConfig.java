@@ -1,19 +1,34 @@
 package io.strategiz.service.strategy.config;
 
+import io.strategiz.business.strategy.execution.config.BusinessStrategyExecutionConfig;
+import io.strategiz.data.strategy.config.DataStrategyConfig;
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.support.ResourceBundleMessageSource;
 
 /**
- * Configuration class for the strategy service module
- * This configuration defines component scanning for strategy-related packages.
- * CORS and other web configurations are handled by the global WebConfig in the application module.
+ * Service Strategy Configuration
+ * 
+ * Configures MessageSource to load error messages from service-strategy-errors.properties
+ * for use by the ErrorMessageService.
  */
 @Configuration
-@ComponentScan(basePackages = {
-    "io.strategiz.service.strategy",
-    "io.strategiz.data.strategy"
-})
+@ComponentScan(basePackages = "io.strategiz.service.strategy")
+@Import({DataStrategyConfig.class, BusinessStrategyExecutionConfig.class})
 public class ServiceStrategyConfig {
-    // Configuration is limited to component scanning
-    // CORS and other web configurations are handled by the global WebConfig
+    
+    /**
+     * Configure MessageSource to load strategy error messages
+     */
+    @Bean
+    public MessageSource messageSource() {
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasenames("messages/service-strategy-errors");
+        messageSource.setDefaultEncoding("UTF-8");
+        messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not found
+        return messageSource;
+    }
 }

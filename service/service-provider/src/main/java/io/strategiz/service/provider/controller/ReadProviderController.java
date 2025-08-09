@@ -4,7 +4,7 @@ import io.strategiz.service.provider.model.response.ReadProviderResponse;
 import io.strategiz.service.provider.service.ReadProviderService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
-import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -61,7 +61,7 @@ public class ReadProviderController extends BaseController {
         } catch (Exception e) {
             log.error("Error retrieving providers for user: {}", userId, e);
             
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_SERVICE_UNAVAILABLE, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_SERVICE_UNAVAILABLE, "service-provider", 
                 userId, e.getMessage());
         }
     }
@@ -93,7 +93,7 @@ public class ReadProviderController extends BaseController {
         } catch (Exception e) {
             log.error("Error retrieving provider {} for user: {}", providerId, userId, e);
             
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
                 userId, providerId);
         }
     }
@@ -125,7 +125,7 @@ public class ReadProviderController extends BaseController {
         } catch (Exception e) {
             log.error("Error checking status for provider {} for user: {}", providerId, userId, e);
             
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
                 userId, providerId);
         }
     }
@@ -159,7 +159,7 @@ public class ReadProviderController extends BaseController {
         } catch (Exception e) {
             log.error("Error retrieving {} data for provider {} for user: {}", dataType, providerId, userId, e);
             
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_DATA_UNAVAILABLE, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_DATA_UNAVAILABLE, "service-provider", 
                 userId, providerId, dataType);
         }
     }

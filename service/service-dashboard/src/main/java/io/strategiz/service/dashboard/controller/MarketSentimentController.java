@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.service.dashboard.MarketSentimentService;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
-import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -59,7 +59,7 @@ public class MarketSentimentController extends BaseController {
         
         // Check if data exists
         if (sentimentData == null) {
-            throw new StrategizException(DashboardErrorDetails.MARKET_DATA_UNAVAILABLE, "service-dashboard", "sentiment", "Data not found");
+            throw new StrategizException(ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE, "service-dashboard", "sentiment", "Data not found");
         }
         
         // Create response
@@ -90,7 +90,7 @@ public class MarketSentimentController extends BaseController {
         
         // Check if data exists
         if (sentimentData == null || sentimentData.getMarketTrends() == null) {
-            throw new StrategizException(DashboardErrorDetails.MARKET_DATA_UNAVAILABLE, "service-dashboard", "trends", "Data not found");
+            throw new StrategizException(ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE, "service-dashboard", "trends", "Data not found");
         }
         
         // Create response with just trends

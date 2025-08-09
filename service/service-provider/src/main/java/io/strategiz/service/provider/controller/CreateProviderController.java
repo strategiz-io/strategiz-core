@@ -3,7 +3,7 @@ package io.strategiz.service.provider.controller;
 import io.strategiz.service.provider.model.request.CreateProviderRequest;
 import io.strategiz.service.provider.model.response.CreateProviderResponse;
 import io.strategiz.service.provider.service.CreateProviderService;
-import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -62,11 +62,11 @@ public class CreateProviderController extends BaseController {
         
         // Validate required fields
         if (request.getProviderId() == null || request.getProviderId().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "providerId");
+            throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "providerId");
         }
         
         if (request.getConnectionType() == null || request.getConnectionType().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "connectionType");
+            throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "connectionType");
         }
         
         CreateProviderResponse response = createProviderService.createProvider(request);

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.data.auth.model.passkey.PasskeyChallenge;
 import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepository;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
-import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.service.base.BaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,7 +144,7 @@ public class PasskeyChallengeService extends BaseService {
             
             return challenge;
         } catch (Exception e) {
-            throwModuleException(AuthErrorDetails.PASSKEY_REGISTRATION_FAILED, e, e.getMessage());
+            throwModuleException(ServiceAuthErrorDetails.PASSKEY_REGISTRATION_FAILED, e, e.getMessage());
             return null; // This line is unreachable but required for compilation
         }
     }

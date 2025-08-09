@@ -1,7 +1,7 @@
 package io.strategiz.service.auth.controller.passkey;
 
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.service.auth.exception.AuthErrorDetails;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.service.auth.model.passkey.PasskeyRegistrationCompletionRequest;
 import io.strategiz.service.auth.model.passkey.PasskeyRegistrationRequest;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService;
@@ -71,7 +71,7 @@ public class PasskeyRegistrationController extends BaseController {
         // Validate the token format and extract user ID
         Optional<String> userIdOpt = sessionAuthBusiness.validateSession(temporaryToken);
         if (userIdOpt.isEmpty()) {
-            throwModuleException(AuthErrorDetails.INVALID_TOKEN, expectedEmail);
+            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, expectedEmail);
         }
         
         String userId = userIdOpt.get();
@@ -180,7 +180,7 @@ public class PasskeyRegistrationController extends BaseController {
         
         if (!result.success()) {
             log.warn("Passkey registration failed for: {}", request.email());
-            throwModuleException(AuthErrorDetails.PASSKEY_REGISTRATION_FAILED, request.email());
+            throwModuleException(ServiceAuthErrorDetails.PASSKEY_REGISTRATION_FAILED, request.email());
         }
         
         // Extract tokens from result

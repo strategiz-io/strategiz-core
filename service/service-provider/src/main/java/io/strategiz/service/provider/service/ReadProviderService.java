@@ -1,7 +1,7 @@
 package io.strategiz.service.provider.service;
 
 import io.strategiz.service.provider.model.response.ReadProviderResponse;
-import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ public class ReadProviderService {
         log.info("Getting providers for user: {}", userId);
         
         if (userId == null || userId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "userId", userId, "User ID cannot be null or empty");
         }
         
@@ -53,7 +53,7 @@ public class ReadProviderService {
             throw e;
         } catch (Exception e) {
             log.error("Error getting providers for user: {}", userId, e);
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_SERVICE_UNAVAILABLE, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_SERVICE_UNAVAILABLE, "service-provider", 
                 userId, e.getMessage());
         }
     }
@@ -69,12 +69,12 @@ public class ReadProviderService {
         log.info("Getting provider {} for user: {}", providerId, userId);
         
         if (userId == null || userId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "userId", userId, "User ID cannot be null or empty");
         }
         
         if (providerId == null || providerId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "providerId", providerId, "Provider ID cannot be null or empty");
         }
         
@@ -94,7 +94,7 @@ public class ReadProviderService {
             throw e;
         } catch (Exception e) {
             log.error("Error getting provider {} for user: {}", providerId, userId, e);
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
                 userId, providerId);
         }
     }
@@ -110,12 +110,12 @@ public class ReadProviderService {
         log.info("Getting status for provider {} for user: {}", providerId, userId);
         
         if (userId == null || userId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "userId", userId, "User ID cannot be null or empty");
         }
         
         if (providerId == null || providerId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "providerId", providerId, "Provider ID cannot be null or empty");
         }
         
@@ -134,7 +134,7 @@ public class ReadProviderService {
             throw e;
         } catch (Exception e) {
             log.error("Error getting status for provider {} for user: {}", providerId, userId, e);
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_FOUND, "service-provider", 
                 userId, providerId);
         }
     }
@@ -151,12 +151,12 @@ public class ReadProviderService {
         log.info("Getting {} data for provider {} for user: {}", dataType, providerId, userId);
         
         if (userId == null || userId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "userId", userId, "User ID cannot be null or empty");
         }
         
         if (providerId == null || providerId.trim().isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
                 "providerId", providerId, "Provider ID cannot be null or empty");
         }
         
@@ -186,7 +186,7 @@ public class ReadProviderService {
             throw e;
         } catch (Exception e) {
             log.error("Error getting {} data for provider {} for user: {}", dataType, providerId, userId, e);
-            throw new StrategizException(ProviderErrorDetails.PROVIDER_DATA_UNAVAILABLE, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_DATA_UNAVAILABLE, "service-provider", 
                 userId, providerId, dataType);
         }
     }

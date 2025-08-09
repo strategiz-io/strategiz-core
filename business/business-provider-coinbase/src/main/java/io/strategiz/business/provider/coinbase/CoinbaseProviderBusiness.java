@@ -4,10 +4,12 @@ import io.strategiz.business.provider.coinbase.model.CoinbaseConnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseDisconnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
-import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
-import io.strategiz.data.auth.repository.ProviderIntegrationRepository;
-import io.strategiz.data.auth.model.provider.CreateProviderIntegrationRequest;
-import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
+import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
+import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
+import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
+import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
@@ -35,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -51,7 +54,9 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_TYPE = "exchange";
     
     private final CoinbaseClient coinbaseClient;
-    private final ProviderIntegrationRepository providerIntegrationRepository;
+    private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
+    private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
+    private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
     private final SecretManager secretManager;
     
     // OAuth Configuration
@@ -73,10 +78,14 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     @Autowired
     public CoinbaseProviderBusiness(
             CoinbaseClient coinbaseClient,
-            ProviderIntegrationRepository providerIntegrationRepository,
+            CreateProviderIntegrationRepository createProviderIntegrationRepository,
+            ReadProviderIntegrationRepository readProviderIntegrationRepository,
+            UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.coinbaseClient = coinbaseClient;
-        this.providerIntegrationRepository = providerIntegrationRepository;
+        this.createProviderIntegrationRepository = createProviderIntegrationRepository;
+        this.readProviderIntegrationRepository = readProviderIntegrationRepository;
+        this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
         this.secretManager = secretManager;
     }
 
@@ -501,19 +510,20 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
         // Instead, we'll initiate the OAuth flow
         try {
             // Create provider integration entity for Firestore
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
-                PROVIDER_ID, PROVIDER_NAME, PROVIDER_TYPE);
-            
+            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_TYPE, PROVIDER_ID, PROVIDER_NAME, "oauth2");
+            entity.setUserId(userId);
             entity.setStatus("pending_oauth");
-            entity.setEnabled(false); // Will be enabled after OAuth completion
-            entity.setSupportsTrading(true);
-            entity.setPermissions(Arrays.asList("read", "trade"));
-            entity.putMetadata("oauthRequired", true);
-            entity.putMetadata("authMethod", "oauth2");
-            entity.putMetadata("scope", scope);
+            entity.setCapabilities(new String[]{"READ", "TRADE"});
             
-            // Save to Firestore user subcollection
-            ProviderIntegrationEntity savedEntity = providerIntegrationRepository.saveForUser(userId, entity);
+            Map<String, Object> entityMetadata = new HashMap<>();
+            entityMetadata.put("oauthRequired", true);
+            entityMetadata.put("authMethod", "oauth2");
+            entityMetadata.put("scope", scope);
+            entityMetadata.put("supportsTrading", true);
+            entity.setMetadata(entityMetadata);
+            
+            // Save to Firestore
+            ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
             log.info("Created pending Coinbase provider integration for user: {}", userId);
             
             // Generate OAuth URL for the response
@@ -521,17 +531,18 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             String authUrl = generateAuthorizationUrl(userId, state);
             
             // Build result with OAuth URL
-            Map<String, Object> metadata = new HashMap<>(savedEntity.getMetadata());
+            Map<String, Object> metadata = new HashMap<>();
             metadata.put("oauthUrl", authUrl);
             metadata.put("state", state);
+            metadata.put("oauthRequired", true);
+            metadata.put("authMethod", "oauth2");
+            metadata.put("scope", scope);
             
-            return ProviderIntegrationResult.builder()
-                .providerName(PROVIDER_NAME)
-                .providerType(PROVIDER_TYPE)
-                .supportsTrading(true)
-                .permissions(Arrays.asList("read", "trade"))
-                .metadata(metadata)
-                .build();
+            ProviderIntegrationResult result = new ProviderIntegrationResult();
+            result.setSuccess(true);
+            result.setMessage("OAuth URL generated successfully");
+            result.setMetadata(metadata);
+            return result;
                 
         } catch (Exception e) {
             log.error("Error creating Coinbase integration for user: {}", userId, e);
@@ -558,17 +569,21 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
             
             // Update provider integration in Firestore
-            var existingIntegration = providerIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            Optional<ProviderIntegrationEntity> existingIntegration = readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
             if (existingIntegration.isPresent()) {
                 ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.setStatus("connected");
-                entity.setEnabled(true);
-                entity.setConnectedAt(result.getConnectedAt());
-                entity.setLastTestedAt(Instant.now());
-                entity.putMetadata("accountInfo", result.getAccountInfo());
-                entity.putMetadata("oauthCompleted", true);
+                entity.markAsConnected();
                 
-                providerIntegrationRepository.saveForUser(userId, entity);
+                Map<String, Object> metadata = entity.getMetadata();
+                if (metadata == null) {
+                    metadata = new HashMap<>();
+                }
+                metadata.put("accountInfo", result.getAccountInfo());
+                metadata.put("oauthCompleted", true);
+                metadata.put("connectedAt", result.getConnectedAt());
+                entity.setMetadata(metadata);
+                
+                updateProviderIntegrationRepository.updateWithUserId(entity, userId);
                 log.info("Updated Coinbase integration status to connected for user: {}", userId);
             }
             

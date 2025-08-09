@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -59,12 +60,13 @@ public class TotpRegistrationController extends BaseController {
         
         logRequest("beginTotpRegistration", request.userId());
         
-        // Generate TOTP secret and QR code - let exceptions bubble up
-        String qrCodeUri = totpRegistrationService.generateTotpSecret(request.userId());
+        // Generate TOTP secret and QR code with details - let exceptions bubble up
+        var totpResult = totpRegistrationService.generateTotpSecretWithDetails(request.userId());
         
         Map<String, Object> response = Map.of(
             "success", true,
-            "qrCodeUri", qrCodeUri,
+            "secret", totpResult.getSecret(),
+            "qrCodeUri", totpResult.getQrCodeUri(),
             "userId", request.userId(),
             "registrationId", "totp-" + System.currentTimeMillis(),
             "message", "TOTP setup initialized successfully"
@@ -90,25 +92,35 @@ public class TotpRegistrationController extends BaseController {
         
         logRequest("completeTotpRegistration", request.userId());
         
-        // Complete TOTP registration - let exceptions bubble up
-        boolean completed = totpRegistrationService.enableTotp(
+        // Complete TOTP registration and get updated tokens
+        Map<String, Object> authResult = totpRegistrationService.enableTotpWithTokenUpdate(
             request.userId(), 
             request.sessionToken(), 
             request.totpCode()
         );
         
-        if (!completed) {
+        if (authResult == null) {
             log.warn("TOTP registration failed for user: {}", request.userId());
             throw new StrategizException(AuthErrors.TOTP_VERIFICATION_FAILED, request.userId());
         }
         
-        // Create success response
-        Map<String, Object> response = Map.of(
-            "success", true,
-            "registrationId", registrationId,
-            "userId", request.userId(),
-            "message", "TOTP registration completed successfully"
-        );
+        // Create success response with updated tokens
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("registrationId", registrationId);
+        response.put("userId", request.userId());
+        response.put("message", "TOTP registration completed successfully");
+        
+        // Add the authentication tokens from the business layer
+        if (authResult.containsKey("accessToken")) {
+            response.put("accessToken", authResult.get("accessToken"));
+        }
+        if (authResult.containsKey("refreshToken")) {
+            response.put("refreshToken", authResult.get("refreshToken"));
+        }
+        if (authResult.containsKey("identityToken")) {
+            response.put("identityToken", authResult.get("identityToken"));
+        }
         
         logRequestSuccess("completeTotpRegistration", request.userId(), response);
         return createCleanResponse(response);

@@ -2,7 +2,7 @@ package io.strategiz.service.provider.controller;
 
 import io.strategiz.service.provider.service.ProviderCallbackService;
 import io.strategiz.service.provider.model.response.ProviderCallbackResponse;
-import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -126,17 +126,17 @@ public class ProviderCallbackController extends BaseController {
             // Handle OAuth errors
             if (error != null) {
                 log.error("OAuth error from {}: {} - {}", provider, error, errorDescription);
-                throw new StrategizException(ProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
+                throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
                     principal != null ? principal.getName() : "unknown", provider, error);
             }
             
             // Validate required parameters
             if (code == null || code.isEmpty()) {
-                throw new StrategizException(ProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "code");
+                throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "code");
             }
             
             if (state == null || state.isEmpty()) {
-                throw new StrategizException(ProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "state");
+                throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "state");
             }
             
             // Process the OAuth callback
@@ -148,7 +148,7 @@ public class ProviderCallbackController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error processing OAuth callback POST for provider: {}", provider, e);
-            throw new StrategizException(ProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
                 principal != null ? principal.getName() : "unknown", provider, e.getMessage());
         }
     }

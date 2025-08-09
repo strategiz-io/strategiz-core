@@ -1,7 +1,7 @@
 package io.strategiz.service.provider.service;
 
 import io.strategiz.service.provider.model.response.ProviderCallbackResponse;
-import io.strategiz.service.provider.exception.ProviderErrorDetails;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
@@ -53,13 +53,13 @@ public class ProviderCallbackService {
         
         // Validate provider
         if (!isValidProvider(provider)) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
         }
         
         // Extract user ID from state parameter
         String userId = extractUserIdFromState(state);
         if (userId == null || userId.isEmpty()) {
-            throw new StrategizException(ProviderErrorDetails.INVALID_OAUTH_STATE, "service-provider", state);
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_OAUTH_STATE, "service-provider", state);
         }
         
         try {
@@ -79,14 +79,14 @@ public class ProviderCallbackService {
                     
                 case "kraken":
                     // TODO: Implement Kraken OAuth callback processing
-                    throw new StrategizException(ProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider", provider);
+                    throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider", provider);
                     
                 case "binance":
                     // TODO: Implement Binance OAuth callback processing
-                    throw new StrategizException(ProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider", provider);
+                    throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider", provider);
                     
                 default:
-                    throw new StrategizException(ProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
+                    throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
             }
             
             // Set success redirect URL
@@ -101,7 +101,7 @@ public class ProviderCallbackService {
             throw e;
         } catch (Exception e) {
             log.error("Error processing OAuth callback for provider: {}, user: {}", provider, userId, e);
-            throw new StrategizException(ProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
                 userId, provider, e.getMessage());
         }
     }
@@ -134,7 +134,7 @@ public class ProviderCallbackService {
             
         } catch (Exception e) {
             log.error("Failed to complete Coinbase OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
                 userId, "coinbase", e.getMessage());
         }
     }
@@ -167,7 +167,7 @@ public class ProviderCallbackService {
             
         } catch (Exception e) {
             log.error("Failed to complete Alpaca OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
+            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
                 userId, "alpaca", e.getMessage());
         }
     }

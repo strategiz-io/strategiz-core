@@ -1,9 +1,12 @@
 package io.strategiz.service.auth.config;
 
 import io.strategiz.data.auth.config.DataAuthConfig;
+import org.springframework.context.MessageSource;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.support.ResourceBundleMessageSource;
 
 /**
  * Configuration for service-auth module.
@@ -13,5 +16,16 @@ import org.springframework.context.annotation.Import;
 @ComponentScan(basePackages = "io.strategiz.service.auth")
 @Import({DataAuthConfig.class})
 public class ServiceAuthConfig {
-    // Service configuration goes here
+    
+    /**
+     * Configure MessageSource to load auth error messages
+     */
+    @Bean
+    public MessageSource messageSource() {
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasenames("messages/auth-errors");
+        messageSource.setDefaultEncoding("UTF-8");
+        messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not found
+        return messageSource;
+    }
 }

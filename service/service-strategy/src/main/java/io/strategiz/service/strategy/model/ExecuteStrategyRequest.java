@@ -34,6 +34,9 @@ public class ExecuteStrategyRequest {
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
     
+    @JsonProperty("providerId")
+    private String providerId;
+    
     // Getters and Setters
     public String getTicker() {
         return ticker;
@@ -97,5 +100,18 @@ public class ExecuteStrategyRequest {
     
     public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
+    }
+    
+    // Alias for ticker
+    public String getSymbol() {
+        return ticker;
+    }
+    
+    public String getProviderId() {
+        return providerId;
+    }
+    
+    public void setProviderId(String providerId) {
+        this.providerId = providerId;
     }
 }

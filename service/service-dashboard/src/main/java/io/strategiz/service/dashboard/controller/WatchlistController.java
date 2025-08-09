@@ -11,7 +11,7 @@ import io.strategiz.service.dashboard.model.request.DeleteWatchlistItemRequest;
 import io.strategiz.service.dashboard.model.response.WatchlistCollectionResponse;
 import io.strategiz.service.dashboard.model.response.WatchlistOperationResponse;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
-import io.strategiz.service.dashboard.exception.DashboardErrorDetails;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -87,7 +87,7 @@ public class WatchlistController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error retrieving watchlist for user: {}", userId, e);
-            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
+            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
         }
     }
     
@@ -108,7 +108,7 @@ public class WatchlistController extends BaseController {
         
         // Validate input
         if (request.getSymbol() == null || request.getSymbol().trim().isEmpty()) {
-            throw new StrategizException(DashboardErrorDetails.INVALID_SYMBOL, "service-dashboard", request.getSymbol());
+            throw new StrategizException(ServiceDashboardErrorDetails.INVALID_SYMBOL, "service-dashboard", request.getSymbol());
         }
         
         try {
@@ -135,7 +135,7 @@ public class WatchlistController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error creating watchlist item for user: {} - {}", userId, request.getSymbol(), e);
-            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "create_watchlist_item", e.getMessage());
+            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "create_watchlist_item", e.getMessage());
         }
     }
     
@@ -156,7 +156,7 @@ public class WatchlistController extends BaseController {
         
         // Validate input
         if (itemId == null || itemId.trim().isEmpty()) {
-            throw new StrategizException(DashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard", userId, itemId);
+            throw new StrategizException(ServiceDashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard", userId, itemId);
         }
         
         try {
@@ -179,7 +179,7 @@ public class WatchlistController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error deleting watchlist item: {} for user: {}", itemId, userId, e);
-            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "delete_watchlist_item", e.getMessage());
+            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "delete_watchlist_item", e.getMessage());
         }
     }
     
@@ -211,7 +211,7 @@ public class WatchlistController extends BaseController {
             
         } catch (Exception e) {
             log.error("Error checking symbol in watchlist: {} for user: {}", symbol, userId, e);
-            throw new StrategizException(DashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol_in_watchlist", e.getMessage());
+            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol_in_watchlist", e.getMessage());
         }
     }
     

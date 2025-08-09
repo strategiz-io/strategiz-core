@@ -3,10 +3,10 @@ package io.strategiz.business.provider.alpaca;
 import io.strategiz.business.provider.alpaca.model.AlpacaConnectionResult;
 import io.strategiz.business.provider.alpaca.model.AlpacaDisconnectionResult;
 import io.strategiz.business.provider.alpaca.model.AlpacaTokenRefreshResult;
-import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
-import io.strategiz.data.auth.repository.ProviderIntegrationRepository;
-import io.strategiz.data.auth.model.provider.CreateProviderIntegrationRequest;
-import io.strategiz.data.auth.model.provider.ProviderIntegrationResult;
+// import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
+// import io.strategiz.data.auth.repository.ProviderIntegrationRepository;
+import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
+import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
@@ -49,7 +49,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_NAME = "Alpaca";
     private static final String PROVIDER_TYPE = "broker";
     
-    private final ProviderIntegrationRepository providerIntegrationRepository;
+    // private final ProviderIntegrationRepository providerIntegrationRepository;
     private final SecretManager secretManager;
     
     // OAuth Configuration
@@ -76,9 +76,9 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
 
     @Autowired
     public AlpacaProviderBusiness(
-            ProviderIntegrationRepository providerIntegrationRepository,
+            // ProviderIntegrationRepository providerIntegrationRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
-        this.providerIntegrationRepository = providerIntegrationRepository;
+        // this.providerIntegrationRepository = providerIntegrationRepository;
         this.secretManager = secretManager;
     }
 
@@ -491,37 +491,38 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
         // Instead, we'll initiate the OAuth flow
         try {
             // Create provider integration entity for Firestore
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
-                PROVIDER_ID, PROVIDER_NAME, PROVIDER_TYPE);
-            
-            entity.setStatus("pending_oauth");
-            entity.setEnabled(false); // Will be enabled after OAuth completion
-            entity.setSupportsTrading(true);
-            entity.setPermissions(Arrays.asList("read", "trade"));
-            entity.putMetadata("oauthRequired", true);
-            entity.putMetadata("authMethod", "oauth2");
-            entity.putMetadata("scope", scope);
-            
-            // Save to Firestore user subcollection
-            ProviderIntegrationEntity savedEntity = providerIntegrationRepository.saveForUser(userId, entity);
-            log.info("Created pending Alpaca provider integration for user: {}", userId);
+            // ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
+            //     PROVIDER_ID, PROVIDER_NAME, PROVIDER_TYPE);
+            // 
+            // entity.setStatus("pending_oauth");
+            // entity.setEnabled(false); // Will be enabled after OAuth completion
+            // entity.setSupportsTrading(true);
+            // entity.setPermissions(Arrays.asList("read", "trade"));
+            // entity.putMetadata("oauthRequired", true);
+            // entity.putMetadata("authMethod", "oauth2");
+            // entity.putMetadata("scope", scope);
+            // 
+            // // Save to Firestore user subcollection
+            // ProviderIntegrationEntity savedEntity = providerIntegrationRepository.saveForUser(userId, entity);
+            // log.info("Created pending Alpaca provider integration for user: {}", userId);
             
             // Generate OAuth URL for the response
             String state = generateSecureState(userId);
             String authUrl = generateAuthorizationUrl(userId, state);
             
             // Build result with OAuth URL
-            Map<String, Object> metadata = new HashMap<>(savedEntity.getMetadata());
+            Map<String, Object> metadata = new HashMap<>(); // new HashMap<>(savedEntity.getMetadata());
             metadata.put("oauthUrl", authUrl);
             metadata.put("state", state);
+            metadata.put("oauthRequired", true);
+            metadata.put("authMethod", "oauth2");
+            metadata.put("scope", scope);
             
-            return ProviderIntegrationResult.builder()
-                .providerName(PROVIDER_NAME)
-                .providerType(PROVIDER_TYPE)
-                .supportsTrading(true)
-                .permissions(Arrays.asList("read", "trade"))
-                .metadata(metadata)
-                .build();
+            ProviderIntegrationResult result = new ProviderIntegrationResult();
+            result.setSuccess(true);
+            result.setMessage("OAuth authorization required");
+            result.setMetadata(metadata);
+            return result;
                 
         } catch (Exception e) {
             log.error("Error creating Alpaca integration for user: {}", userId, e);
@@ -548,20 +549,20 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
             
             // Update provider integration in Firestore
-            var existingIntegration = providerIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
-            if (existingIntegration.isPresent()) {
-                ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.setStatus("connected");
-                entity.setEnabled(true);
-                entity.setConnectedAt(result.getConnectedAt());
-                entity.setLastTestedAt(Instant.now());
-                entity.putMetadata("accountInfo", result.getAccountInfo());
-                entity.putMetadata("environment", result.getEnvironment());
-                entity.putMetadata("oauthCompleted", true);
-                
-                providerIntegrationRepository.saveForUser(userId, entity);
-                log.info("Updated Alpaca integration status to connected for user: {}", userId);
-            }
+            // var existingIntegration = providerIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            // if (existingIntegration.isPresent()) {
+            //     ProviderIntegrationEntity entity = existingIntegration.get();
+            //     entity.setStatus("connected");
+            //     entity.setEnabled(true);
+            //     entity.setConnectedAt(result.getConnectedAt());
+            //     entity.setLastTestedAt(Instant.now());
+            //     entity.putMetadata("accountInfo", result.getAccountInfo());
+            //     entity.putMetadata("environment", result.getEnvironment());
+            //     entity.putMetadata("oauthCompleted", true);
+            //     
+            //     providerIntegrationRepository.saveForUser(userId, entity);
+            //     log.info("Updated Alpaca integration status to connected for user: {}", userId);
+            // }
             
         } catch (Exception e) {
             log.error("Error completing Alpaca OAuth flow for user: {}", userId, e);

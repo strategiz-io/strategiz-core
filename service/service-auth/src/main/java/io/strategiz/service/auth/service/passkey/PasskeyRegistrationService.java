@@ -77,9 +77,7 @@ public class PasskeyRegistrationService extends BaseService {
             String credentialId,
             String attestationObject,
             String clientDataJSON,
-            String deviceId,
-            String deviceName,
-            String userAgent) {}
+            String deviceId) {}
     
     /**
      * Authenticator selection criteria
@@ -173,8 +171,6 @@ public class PasskeyRegistrationService extends BaseService {
         String attestationObject = completion.attestationObject();
         String clientDataJSON = completion.clientDataJSON();
         String deviceId = completion.deviceId();
-        String deviceName = completion.deviceName();
-        String userAgent = completion.userAgent();
         
         log.info("Completing passkey registration for user: {}", userId);
         
@@ -213,42 +209,36 @@ public class PasskeyRegistrationService extends BaseService {
             // Create and save authentication method
             AuthenticationMethodEntity authMethod = new AuthenticationMethodEntity(
                 AuthenticationMethodType.PASSKEY, 
-                deviceName != null ? deviceName : "Unknown Device"
+                "Passkey"
             );
             
-            // Store passkey-specific data in metadata using constants
+            // Store only essential passkey data in metadata
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID, credentialId);
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64, 
                 java.util.Base64.getEncoder().encodeToString(publicKeyBytes));
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.SIGNATURE_COUNT, 0);
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.AAGUID, ""); // Could be extracted from attestation
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.DEVICE_NAME, deviceName);
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.USER_AGENT, userAgent);
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.AUTHENTICATOR_NAME, 
-                deviceName != null ? deviceName : "Unknown Device");
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.TRUSTED, true);
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.VERIFIED, true);
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.REGISTRATION_TIME, Instant.now().toString());
-            
-            // Additional WebAuthn metadata
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.ATTESTATION_TYPE, "none");
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.TRANSPORT, "internal"); // Could be detected
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.RESIDENT_KEY, true);
             
             authMethod.markAsUsed();
             
             authMethodRepository.saveForUser(userId, authMethod);
             
-            // Generate authentication tokens
-            SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+            // Generate authentication tokens using unified approach
+            SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
                 userId,
+                null, // userEmail - could be retrieved if needed
                 List.of("passkeys"), // Authentication method used
-                "2.2", // ACR "2.2" - Strong assurance for passkeys
+                false, // Not partial auth - passkey provides full authentication
                 deviceId,
-                null // IP address not available in registration
+                deviceId, // Use deviceId as fingerprint
+                null, // IP address not available in registration
+                "Passkey Registration"
             );
             
-            AuthTokens tokens = new AuthTokens(tokenPair.accessToken(), tokenPair.refreshToken());
+            SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+            
+            AuthTokens tokens = new AuthTokens(authResult.accessToken(), authResult.refreshToken());
             
             log.info("Successfully registered passkey for user: {} with credential: {}", userId, credentialId);
             return new RegistrationResult(true, credentialId, tokens);

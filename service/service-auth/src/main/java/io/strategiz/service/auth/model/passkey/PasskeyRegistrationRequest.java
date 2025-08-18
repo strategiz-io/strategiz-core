@@ -12,9 +12,6 @@ public record PasskeyRegistrationRequest(
     @Email(message = "Email must be valid")
     String email,
     
-    @NotBlank(message = "Display name is required")
-    String displayName,
-    
     // Either verification code or identity token must be provided, but not both
     // For direct verification with code
     String verificationCode,

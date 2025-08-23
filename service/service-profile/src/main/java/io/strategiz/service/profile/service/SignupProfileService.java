@@ -6,6 +6,7 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness.AuthResult;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.service.profile.constants.ProfileConstants;
 import io.strategiz.service.profile.model.CreateProfileRequest;
 import io.strategiz.service.profile.model.CreateProfileResponse;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ public class SignupProfileService {
      * Create signup profile
      */
     public CreateProfileResponse createSignupProfile(CreateProfileRequest request) {
-        log.info("Creating signup profile for email: {}", request.getEmail());
+        log.info(ProfileConstants.LogMessages.CREATING_SIGNUP_PROFILE + "{}", request.getEmail());
         
         // Check if user already exists
         Optional<UserEntity> existingUser = userRepository.findByEmail(request.getEmail());
@@ -46,7 +47,7 @@ public class SignupProfileService {
             UserEntity user = existingUser.get();
             
             // User already exists, return existing profile for signup continuation
-            log.info("User already exists, returning existing profile for signup continuation: {}", user.getId());
+            log.info(ProfileConstants.LogMessages.USER_EXISTS_CONTINUE + "{}", user.getId());
             
             // Update the profile with new information if provided
             UserProfileEntity profile = user.getProfile();
@@ -94,16 +95,16 @@ public class SignupProfileService {
      * Helper method to create a new user profile
      */
     private UserEntity createProfile(String name, String email) {
-        log.info("Creating new user profile for email: {}", email);
+        log.info(ProfileConstants.LogMessages.CREATING_PROFILE + "{}", email);
         
         UserEntity user = new UserEntity();
         
         UserProfileEntity profile = new UserProfileEntity();
         profile.setName(name);
         profile.setEmail(email);
-        profile.setVerifiedEmail(false);
-        profile.setSubscriptionTier("free"); // Default tier
-        profile.setTradingMode("demo"); // Default mode
+        profile.setIsEmailVerified(ProfileConstants.Defaults.EMAIL_VERIFIED);
+        profile.setSubscriptionTier(ProfileConstants.Defaults.SUBSCRIPTION_TIER);
+        profile.setTradingMode(ProfileConstants.Defaults.TRADING_MODE);
         
         user.setProfile(profile);
         
@@ -111,30 +112,22 @@ public class SignupProfileService {
         // The user entity needs to be created as a NEW entity (without ID) so BaseRepository 
         // treats it as a create operation, not an update operation
         
-        // Don't set any ID - let BaseRepository auto-generate it
+        // IMPORTANT: Don't set entity.id (the document ID) - let BaseRepository auto-generate it
         // The BaseRepository will call prepareForCreate() which will:
-        // 1. Auto-generate an ID if none exists
+        // 1. Auto-generate a document ID if none exists
         // 2. Initialize audit fields
         
-        // Use "SIGNUP" as the audit user ID (who created this user)
-        String auditUserId = "SIGNUP";
-        
-        log.info("Creating new user profile for email: {} with audit user: {}", email, auditUserId);
-        
-        // Use the UserRepositoryImpl's save method directly, but we need to cast to access BaseRepository's save
-        // Actually, let's create a new approach - use the existing save method but fix the underlying issue
-        
-        // The real issue is in UserRepositoryImpl.save() - it uses user.getUserId() as audit userId
-        // For signup, we need to generate the ID and set it so it's not null
+        // Generate a new user ID (this is the business ID, not the document ID)
         String newUserId = java.util.UUID.randomUUID().toString();
         user.setUserId(newUserId);
         
-        log.info("Generated new user ID: {} for email: {}", newUserId, email);
+        // Ensure the document ID is NOT set so it's treated as a CREATE
+        user.setId(null);
         
-        // Initialize audit fields manually before saving to avoid the "without audit fields" error
-        user._initAudit(auditUserId);
+        log.info(ProfileConstants.LogMessages.GENERATED_USER_ID, newUserId, email);
         
-        // Now save - this will be treated as an update since ID is set, but audit fields are already initialized
+        // Save the user - this will be a CREATE operation since id is null
+        // The UserRepository.save() method will automatically use the email as createdBy for audit fields
         return userRepository.save(user);
     }
     
@@ -144,7 +137,7 @@ public class SignupProfileService {
      * during the multi-step signup process
      */
     private String generatePartialAuthToken(String userId, String email) {
-        log.info("Generating partial auth token for user: {} during signup", userId);
+        log.info(ProfileConstants.LogMessages.GENERATING_TOKEN, userId);
         
         // Create auth request for partial authentication
         // No auth methods yet - this is just identity verification
@@ -152,11 +145,12 @@ public class SignupProfileService {
             userId,
             email,
             Collections.emptyList(), // No auth methods yet
-            true, // isPartialAuth = true for signup flow
-            "signup-device", // Temporary device ID for signup
+            ProfileConstants.Defaults.IS_PARTIAL_AUTH, // isPartialAuth = true for signup flow
+            ProfileConstants.Auth.SIGNUP_DEVICE_ID, // Temporary device ID for signup
             "signup-fingerprint", // Temporary fingerprint
             "0.0.0.0", // IP will be set by the controller
-            "SignupFlow/1.0" // User agent identifier
+            "SignupFlow/1.0", // User agent identifier
+            "demo" // tradingMode - default to demo for new signups
         );
         
         // Generate the authentication tokens

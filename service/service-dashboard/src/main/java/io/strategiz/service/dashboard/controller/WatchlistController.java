@@ -15,17 +15,26 @@ import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.client.coingecko.CoinGeckoClient;
+import io.strategiz.client.coingecko.model.CryptoCurrency;
+import io.strategiz.client.yahoofinance.YahooFinanceClient;
+import io.strategiz.client.yahoofinance.model.YahooStockData;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.List;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Controller for watchlist data.
@@ -33,7 +42,7 @@ import java.util.UUID;
  * The mode only affects UI behavior, not the data itself.
  */
 @RestController
-@RequestMapping("/v1/dashboard/watchlist")
+@RequestMapping("/v1/dashboard/watchlists")
 @CrossOrigin(origins = "*")
 public class WatchlistController extends BaseController {
     
@@ -45,17 +54,29 @@ public class WatchlistController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
 
     private final UserRepository userRepository;
+    private final CoinGeckoClient coinGeckoClient;
+    private final YahooFinanceClient yahooFinanceClient;
     
-    public WatchlistController(UserRepository userRepository) {
+    // Default symbols for watchlist
+    private static final List<String> DEFAULT_CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH");
+    private static final List<String> DEFAULT_STOCK_SYMBOLS = Arrays.asList("AAPL", "MSFT", "GOOGL", "AMZN");
+    private static final List<String> DEFAULT_ETF_SYMBOLS = Arrays.asList("SPY");
+    
+    @Autowired
+    public WatchlistController(UserRepository userRepository,
+                              CoinGeckoClient coinGeckoClient,
+                              YahooFinanceClient yahooFinanceClient) {
         this.userRepository = userRepository;
+        this.coinGeckoClient = coinGeckoClient;
+        this.yahooFinanceClient = yahooFinanceClient;
     }
     
     /**
      * Get watchlist data for a user.
-     * Returns demo data until proper implementation is available.
+     * Returns REAL market data from CoinGecko and Yahoo Finance.
      * 
      * @param userId The user ID to get data for
-     * @return Demo watchlist data with market information
+     * @return Real-time watchlist data with market information
      */
     @GetMapping
     public ResponseEntity<Map<String, Object>> getWatchlist(@RequestParam(required = false) String userId) {
@@ -64,21 +85,21 @@ public class WatchlistController extends BaseController {
             userId = "test-user";
         }
         
-        log.info("Retrieving watchlist data for user: {}", userId);
+        log.info("Retrieving REAL watchlist data for user: {}", userId);
         
         try {
             // Get user trading mode for UI context only
             String tradingMode = getUserTradingMode(userId);
             
-            // Get demo watchlist data
-            WatchlistCollectionResponse watchlist = getDemoWatchlistData(userId);
+            // Get REAL market data instead of demo data
+            WatchlistCollectionResponse watchlist = getRealWatchlistData(userId);
             
-            // Create response with demo data
+            // Create response with real data
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("userId", userId);
             responseData.put("tradingMode", tradingMode); // For UI context only
             responseData.put("watchlist", formatWatchlistForUI(watchlist));
-            responseData.put("metadata", createMetadata(watchlist, tradingMode));
+            responseData.put("metadata", createMetadata(watchlist, "real")); // Mark as real data
             
             return ResponseEntity.ok(responseData);
             
@@ -87,7 +108,15 @@ public class WatchlistController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error retrieving watchlist for user: {}", userId, e);
-            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
+            // Fall back to demo data if real data fails
+            log.warn("Falling back to demo data due to error");
+            WatchlistCollectionResponse watchlist = getDemoWatchlistData(userId);
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("userId", userId);
+            responseData.put("tradingMode", "demo");
+            responseData.put("watchlist", formatWatchlistForUI(watchlist));
+            responseData.put("metadata", createMetadata(watchlist, "demo"));
+            return ResponseEntity.ok(responseData);
         }
     }
     
@@ -216,6 +245,118 @@ public class WatchlistController extends BaseController {
     }
     
     /**
+     * Get REAL watchlist data from market APIs
+     */
+    private WatchlistCollectionResponse getRealWatchlistData(String userId) {
+        log.info("Fetching real market data for watchlist");
+        List<WatchlistItem> items = new ArrayList<>();
+        
+        try {
+            // Fetch crypto data in parallel
+            CompletableFuture<List<WatchlistItem>> cryptoFuture = CompletableFuture.supplyAsync(() -> {
+                log.info("Fetching real crypto data from CoinGecko");
+                try {
+                    // Convert symbol list to coin IDs for CoinGecko
+                    Map<String, String> symbolToId = new HashMap<>();
+                    symbolToId.put("BTC", "bitcoin");
+                    symbolToId.put("ETH", "ethereum");
+                    
+                    List<String> coinIds = DEFAULT_CRYPTO_SYMBOLS.stream()
+                        .map(symbol -> symbolToId.getOrDefault(symbol, symbol.toLowerCase()))
+                        .collect(Collectors.toList());
+                    
+                    List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
+                    return cryptoData.stream().map(crypto -> {
+                        BigDecimal price = crypto.getCurrentPrice();
+                        BigDecimal change = crypto.getPriceChange24h();
+                        BigDecimal changePercent = crypto.getPriceChangePercentage24h();
+                        
+                        return new WatchlistItem(
+                            crypto.getSymbol().toLowerCase() + "-1",
+                            crypto.getSymbol().toUpperCase(),
+                            crypto.getName(),
+                            "crypto",
+                            price,
+                            change,
+                            changePercent,
+                            change != null && change.compareTo(BigDecimal.ZERO) > 0,
+                            "/chart/" + crypto.getSymbol().toLowerCase()
+                        );
+                    }).collect(Collectors.toList());
+                } catch (Exception e) {
+                    log.error("Error fetching crypto data", e);
+                    return new ArrayList<>();
+                }
+            });
+            
+            // Fetch stock data in parallel
+            CompletableFuture<List<WatchlistItem>> stockFuture = CompletableFuture.supplyAsync(() -> {
+                log.info("Fetching real stock data from Yahoo Finance");
+                try {
+                    List<String> allSymbols = new ArrayList<>();
+                    allSymbols.addAll(DEFAULT_STOCK_SYMBOLS);
+                    allSymbols.addAll(DEFAULT_ETF_SYMBOLS);
+                    
+                    Map<String, YahooStockData> stockData = yahooFinanceClient.getBatchStockQuotes(allSymbols);
+                    
+                    return stockData.entrySet().stream().map(entry -> {
+                        String symbol = entry.getKey();
+                        YahooStockData data = entry.getValue();
+                        
+                        // Determine type based on symbol
+                        String type = DEFAULT_ETF_SYMBOLS.contains(symbol) ? "etf" : "stock";
+                        
+                        BigDecimal price = data.getCurrentPrice();
+                        BigDecimal change = data.getChange();
+                        BigDecimal changePercent = data.getChangePercent();
+                        
+                        return new WatchlistItem(
+                            symbol.toLowerCase() + "-1",
+                            symbol,
+                            data.getName() != null ? data.getName() : symbol,
+                            type,
+                            price,
+                            change,
+                            changePercent,
+                            change != null && change.compareTo(BigDecimal.ZERO) > 0,
+                            "/chart/" + symbol.toLowerCase()
+                        );
+                    }).collect(Collectors.toList());
+                } catch (Exception e) {
+                    log.error("Error fetching stock data", e);
+                    return new ArrayList<>();
+                }
+            });
+            
+            // Wait for both futures to complete
+            List<WatchlistItem> cryptoItems = cryptoFuture.get();
+            List<WatchlistItem> stockItems = stockFuture.get();
+            
+            // Combine results
+            items.addAll(cryptoItems);
+            items.addAll(stockItems);
+            
+            log.info("Successfully fetched {} crypto items and {} stock items", cryptoItems.size(), stockItems.size());
+            
+        } catch (Exception e) {
+            log.error("Error fetching real market data", e);
+            // If real data fails, return empty list (will be handled by caller)
+            throw new RuntimeException("Failed to fetch real market data", e);
+        }
+        
+        // Create response
+        WatchlistCollectionResponse response = new WatchlistCollectionResponse();
+        response.setItems(items);
+        response.setTotalCount(items.size());
+        response.setActiveCount(items.size());
+        response.setIsEmpty(items.isEmpty());
+        // Note: setDescription and setAvailableCategories methods don't exist in the response class
+        // These are set in the constructor or through other means
+        
+        return response;
+    }
+    
+    /**
      * Get demo watchlist data until proper repository implementation is available
      */
     private WatchlistCollectionResponse getDemoWatchlistData(String userId) {
@@ -294,11 +435,11 @@ public class WatchlistController extends BaseController {
     /**
      * Creates metadata about the watchlist.
      */
-    private Map<String, Object> createMetadata(WatchlistCollectionResponse watchlist, String tradingMode) {
+    private Map<String, Object> createMetadata(WatchlistCollectionResponse watchlist, String dataType) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("lastUpdated", System.currentTimeMillis());
-        metadata.put("tradingMode", tradingMode); // For UI context only
-        metadata.put("dataType", "demo"); // Demo data for now
+        metadata.put("tradingMode", "real"); // Always real mode
+        metadata.put("dataType", dataType); // "real" for real data, "demo" only as fallback
         
         // Summary stats
         metadata.put("summary", Map.of(

@@ -57,6 +57,17 @@ public interface ReadDeviceRepository {
      */
     List<DeviceIdentity> searchUserDevices(String userId, Map<String, Object> filters);
     
+    /**
+     * Get an authenticated device (convenience method)
+     * 
+     * @param deviceId The device ID
+     * @param userId The user ID  
+     * @return The device or null if not found
+     */
+    default DeviceIdentity getAuthenticatedDevice(String deviceId, String userId) {
+        return findAuthenticatedDevice(userId, deviceId).orElse(null);
+    }
+    
     // ========== Anonymous Device Reads ==========
     
     /**
@@ -115,6 +126,16 @@ public interface ReadDeviceRepository {
      * @return List of recent devices
      */
     List<DeviceIdentity> findRecentAnonymousDevices(int hoursAgo);
+    
+    /**
+     * Get an anonymous device (convenience method)
+     * 
+     * @param deviceId The device ID
+     * @return The device or null if not found
+     */
+    default DeviceIdentity getAnonymousDevice(String deviceId) {
+        return findAnonymousDevice(deviceId).orElse(null);
+    }
     
     // ========== Cross-collection Reads ==========
     

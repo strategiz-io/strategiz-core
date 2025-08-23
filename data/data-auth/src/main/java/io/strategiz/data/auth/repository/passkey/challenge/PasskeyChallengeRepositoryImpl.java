@@ -102,19 +102,19 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
     @Override
     public void deleteByExpiresAtBefore(Instant now) {
         List<PasskeyChallenge> expired = findByExpiresAtBefore(now);
-        expired.forEach(c -> delete(c.getId(), SYSTEM_USER_ID));
+        expired.forEach(this::delete);  // Use the hard delete method
     }
 
     @Override
     public void deleteByUsedTrue() {
         List<PasskeyChallenge> used = findByUsedTrue();
-        used.forEach(c -> delete(c.getId(), SYSTEM_USER_ID));
+        used.forEach(this::delete);  // Use the hard delete method
     }
 
     @Override
     public void deleteByUserId(String userId) {
         List<PasskeyChallenge> userChallenges = findByUserId(userId);
-        userChallenges.forEach(c -> delete(c.getId(), SYSTEM_USER_ID));
+        userChallenges.forEach(this::delete);  // Use the hard delete method
     }
 
     // Repository method implementations
@@ -132,7 +132,17 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
 
     @Override
     public void delete(PasskeyChallenge challenge) {
-        delete(challenge.getId(), SYSTEM_USER_ID);
+        // For PasskeyChallenge, we do hard delete since they're temporary
+        // and don't need audit trail
+        if (challenge.getId() != null) {
+            try {
+                getCollection().document(challenge.getId()).delete().get();
+                log.debug("Hard deleted PasskeyChallenge with ID: {}", challenge.getId());
+            } catch (Exception e) {
+                log.error("Failed to delete PasskeyChallenge: {}", challenge.getId(), e);
+                throw new RuntimeException("Failed to delete PasskeyChallenge", e);
+            }
+        }
     }
 
     @Override
@@ -157,7 +167,7 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
                     if (challenge != null) {
                         challenge.setId(doc.getId());
                         log.debug("Converted object - challenge: {}, userId: {}, isActive: {}", 
-                            challenge.getChallenge(), challenge.getUserId(), challenge.isActive());
+                            challenge.getChallenge(), challenge.getUserId(), challenge.getIsActive());
                     }
                 } catch (Exception e) {
                     log.debug("Failed to convert document to PasskeyChallenge: {}", e.getMessage());

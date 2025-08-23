@@ -8,6 +8,7 @@ import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.kraken.KrakenProviderBusiness;
 import io.strategiz.business.provider.binanceus.BinanceUSProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
+import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -38,7 +39,8 @@ public class CreateProviderService {
             CoinbaseProviderBusiness coinbaseProviderBusiness,
             KrakenProviderBusiness krakenProviderBusiness,
             BinanceUSProviderBusiness binanceUSProviderBusiness,
-            AlpacaProviderBusiness alpacaProviderBusiness) {
+            AlpacaProviderBusiness alpacaProviderBusiness,
+            SchwabProviderBusiness schwabProviderBusiness) {
         
         // Initialize provider handler map
         this.providerHandlers = new HashMap<>();
@@ -47,6 +49,7 @@ public class CreateProviderService {
         this.providerHandlers.put("binance", binanceUSProviderBusiness);
         this.providerHandlers.put("binanceus", binanceUSProviderBusiness);
         this.providerHandlers.put("alpaca", alpacaProviderBusiness);
+        this.providerHandlers.put("schwab", schwabProviderBusiness);
     }
     
     /**
@@ -208,15 +211,31 @@ public class CreateProviderService {
         response.setOperationSuccess(result.isSuccess());
         response.setMessage(result.getMessage());
         
-        // Determine status based on result
-        if (result.isSuccess()) {
-            response.setStatus("connected");
-        } else {
-            response.setStatus("failed");
-        }
-        
         // Pass through all metadata from the business layer
         response.setConnectionData(result.getMetadata());
+        
+        // Check if this is an OAuth flow by looking for OAuth URL in metadata
+        if (result.getMetadata() != null && result.getMetadata().containsKey("oauthUrl")) {
+            // OAuth flow - set status to pending and extract OAuth URL
+            response.setStatus("pending");
+            response.setAuthorizationUrl(result.getMetadata().get("oauthUrl").toString());
+            response.setFlowType("oauth");
+            
+            // Also set state if available
+            if (result.getMetadata().containsKey("state")) {
+                response.setState(result.getMetadata().get("state").toString());
+            }
+            
+            log.info("OAuth flow initiated for provider: {}, URL: {}", 
+                    request.getProviderId(), response.getAuthorizationUrl());
+        } else {
+            // Non-OAuth flow or completed flow
+            if (result.isSuccess()) {
+                response.setStatus("connected");
+            } else {
+                response.setStatus("failed");
+            }
+        }
         
         return response;
     }
@@ -242,6 +261,8 @@ public class CreateProviderService {
                 return "Kraken";
             case "alpaca":
                 return "Alpaca";
+            case "schwab":
+                return "Charles Schwab";
             default:
                 return providerId;
         }

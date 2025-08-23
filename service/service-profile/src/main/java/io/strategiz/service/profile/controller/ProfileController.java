@@ -5,10 +5,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
 
-import io.strategiz.service.profile.ProfileService;
+import io.strategiz.service.profile.service.ProfileService;
 import io.strategiz.service.profile.model.UpdateProfileRequest;
 import io.strategiz.service.profile.model.ReadProfileResponse;
 import io.strategiz.service.profile.model.UpdateProfileVerificationRequest;
+import io.strategiz.service.profile.model.UpdateTradingModeRequest;
+import io.strategiz.service.profile.model.UpdateTradingModeResponse;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 
@@ -25,7 +27,7 @@ import jakarta.validation.Valid;
  * Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
-@RequestMapping("/v1/profile")
+@RequestMapping("/v1/users/profiles")
 @Validated
 public class ProfileController extends BaseController {
 
@@ -156,6 +158,38 @@ public class ProfileController extends BaseController {
         
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(verifiedProfile);
+    }
+
+    /**
+     * Update the current user's trading mode
+     * 
+     * @param userId The user ID to update trading mode for  
+     * @param request Trading mode update request
+     * @return Response with new JWT tokens containing updated trading mode
+     */
+    @PutMapping("/{userId}/trading-mode")
+    public ResponseEntity<UpdateTradingModeResponse> updateTradingMode(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateTradingModeRequest request,
+            Principal principal) {
+        
+        if (principal == null) {
+            throw new RuntimeException("Authentication required");
+        }
+        
+        // Ensure user can only update their own trading mode
+        String authenticatedUserId = principal.getName();
+        if (!authenticatedUserId.equals(userId)) {
+            throw new RuntimeException("Unauthorized: Can only update your own trading mode");
+        }
+        
+        log.info("Updating trading mode for user: {} to: {}", userId, request.getMode());
+        
+        // Update trading mode and get new tokens
+        UpdateTradingModeResponse response = profileService.updateTradingMode(userId, request.getMode());
+        
+        // Return response with new tokens
+        return ResponseEntity.ok(response);
     }
 
     /**

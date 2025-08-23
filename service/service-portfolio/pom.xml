@@ -43,6 +43,30 @@
             <artifactId>client-kraken</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-coinbase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Data module dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-user</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Business module dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-token-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- Google Cloud Firestore -->
         <dependency>

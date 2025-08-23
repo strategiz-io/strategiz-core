@@ -7,6 +7,7 @@ import io.strategiz.data.base.entity.BaseEntity;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,7 +57,7 @@ public class ProviderIntegrationEntity extends BaseEntity {
 
     @PropertyName("capabilities")
     @JsonProperty("capabilities")
-    private String[] capabilities; // READ, TRADE, PORTFOLIO, etc.
+    private List<String> capabilities; // READ, TRADE, PORTFOLIO, etc.
 
     @PropertyName("metadata")
     @JsonProperty("metadata")
@@ -165,11 +166,11 @@ public class ProviderIntegrationEntity extends BaseEntity {
         this.errorMessage = errorMessage;
     }
 
-    public String[] getCapabilities() {
+    public List<String> getCapabilities() {
         return capabilities;
     }
 
-    public void setCapabilities(String[] capabilities) {
+    public void setCapabilities(List<String> capabilities) {
         this.capabilities = capabilities;
     }
 

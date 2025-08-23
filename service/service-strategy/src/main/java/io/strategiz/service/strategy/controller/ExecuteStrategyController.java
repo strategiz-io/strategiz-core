@@ -47,6 +47,11 @@ public class ExecuteStrategyController extends BaseController {
             @Valid @RequestBody ExecuteStrategyRequest request,
             Authentication authentication) {
         
+        if (authentication == null) {
+            logger.error("Authentication is null for executeStrategy request");
+            throw new IllegalStateException("Authentication required");
+        }
+        
         String userId = authentication.getName();
         logger.info("Executing strategy: {} for user: {} with symbol: {}", 
             strategyId, userId, request.getSymbol());
@@ -81,6 +86,11 @@ public class ExecuteStrategyController extends BaseController {
     public ResponseEntity<ExecuteStrategyResponse> executeCode(
             @Valid @RequestBody ExecuteStrategyRequest request,
             Authentication authentication) {
+        
+        if (authentication == null) {
+            logger.error("Authentication is null for executeCode request");
+            throw new IllegalStateException("Authentication required");
+        }
         
         String userId = authentication.getName();
         logger.info("Executing code for user: {} with language: {} and symbol: {}", 

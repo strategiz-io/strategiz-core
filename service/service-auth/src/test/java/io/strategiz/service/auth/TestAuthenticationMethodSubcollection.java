@@ -101,7 +101,7 @@ public class TestAuthenticationMethodSubcollection {
         // Verify the data structure
         assertEquals(AuthenticationMethodType.TOTP.getValue(), doc.getString("type"));
         assertNotNull(doc.get("metadata"), "Metadata should not be null");
-        assertFalse(doc.getBoolean("isEnabled"), "Should not be enabled until verified");
+        assertFalse(doc.getBoolean("isActive"), "Should not be active until verified");
     }
     
     @Test

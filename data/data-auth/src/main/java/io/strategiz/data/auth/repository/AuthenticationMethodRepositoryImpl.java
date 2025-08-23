@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 /**
  * Firebase implementation of AuthenticationMethodRepository
- * Manages authentication methods in users/{userId}/authentication_methods subcollection
+ * Manages authentication methods in users/{userId}/security subcollection
  */
 @Repository
 public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<AuthenticationMethodEntity> 
@@ -42,7 +42,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
 
     @Override
     protected String getSubcollectionName() {
-        return "authentication_methods";
+        return "security";
     }
 
     // ===============================
@@ -53,7 +53,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     public List<AuthenticationMethodEntity> findByUserId(String userId) {
         try {
             return findAllInSubcollection(userId).stream()
-                    .filter(AuthenticationMethodEntity::isEnabled)
+                    .filter(entity -> Boolean.TRUE.equals(entity.getIsActive()))
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {}", userId, e);
@@ -82,7 +82,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     public List<AuthenticationMethodEntity> findByUserIdAndIsEnabled(String userId, boolean isEnabled) {
         try {
             return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.isEnabled() == isEnabled)
+                    .filter(entity -> Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {} with enabled: {}", userId, isEnabled, e);
@@ -94,7 +94,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     public List<AuthenticationMethodEntity> findByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled) {
         try {
             return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.getType() == type && entity.isEnabled() == isEnabled)
+                    .filter(entity -> entity.getType() == type && Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {}, type: {}, enabled: {}", userId, type, isEnabled, e);
@@ -141,17 +141,20 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     @Override
     public Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId) {
         try {
-            // Use collection group query to search across all authentication_methods subcollections
-            Query query = firestore.collectionGroup("authentication_methods")
-                    .whereEqualTo("type", AuthenticationMethodType.PASSKEY.name())
+            // For passkey authentication, we need to search across all users
+            // This requires a collection group query on the security subcollection
+            // Note: This requires a composite index in Firestore
+            Query query = firestore.collectionGroup("security")
+                    .whereEqualTo("authentication_method", AuthenticationMethodType.PASSKEY.name())
                     .whereEqualTo("metadata.credentialId", credentialId)
+                    .whereEqualTo("isActive", true)
                     .limit(1);
             
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
             QuerySnapshot snapshot = querySnapshot.get();
             
             if (snapshot.isEmpty()) {
-                log.debug("No passkey found with credential ID: {}", credentialId);
+                log.debug("No active passkey found with credential ID: {}", credentialId);
                 return Optional.empty();
             }
             
@@ -161,14 +164,14 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
             entity.setId(doc.getId());
             
             // Extract userId from the document path and store it in metadata
-            // Path format: users/{userId}/authentication_methods/{methodId}
+            // Path format: users/{userId}/security/{methodId}
             String path = doc.getReference().getPath();
             String[] pathParts = path.split("/");
             if (pathParts.length >= 2) {
                 String userId = pathParts[1]; // users/{userId}/...
                 entity.putMetadata("userId", userId);
                 log.debug("Found passkey for user {} with credential ID: {}", userId, credentialId);
-                log.debug("Entity has audit fields: {}, isActive: {}", entity._hasAudit(), entity.isActive());
+                log.debug("Entity has audit fields: {}, isActive: {}", entity._hasAudit(), entity.getIsActive());
             }
             
             return Optional.of(entity);

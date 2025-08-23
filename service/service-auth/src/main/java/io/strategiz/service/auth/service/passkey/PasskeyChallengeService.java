@@ -83,7 +83,7 @@ public class PasskeyChallengeService extends BaseService {
             
             log.debug("Challenge saved successfully - entity after save: ID={}, userId={}, challenge={}, type={}, isActive={}, hasAudit={}", 
                 challengeEntity.getId(), challengeEntity.getUserId(), challengeEntity.getChallenge(), challengeEntity.getType(),
-                challengeEntity.isActive(), challengeEntity._hasAudit());
+                challengeEntity.getIsActive(), challengeEntity._hasAudit());
             
             // Add a small delay to ensure Firestore consistency
             try {
@@ -260,12 +260,20 @@ public class PasskeyChallengeService extends BaseService {
         log.debug("Cleaning up expired challenges");
         Instant now = Instant.now();
         
+        // Use the repository method that handles deletion properly
         List<PasskeyChallenge> expiredChallenges = passkeyChallengeRepository.findByExpiresAtBefore(now);
                 
         int count = expiredChallenges.size();
         if (count > 0) {
             log.info("Deleting {} expired challenges", count);
-            passkeyChallengeRepository.deleteAll(expiredChallenges);
+            // Delete each challenge individually to ensure proper hard delete
+            for (PasskeyChallenge challenge : expiredChallenges) {
+                try {
+                    passkeyChallengeRepository.delete(challenge);
+                } catch (Exception e) {
+                    log.error("Failed to delete expired challenge: {}", challenge.getId(), e);
+                }
+            }
         }
         
         return count;

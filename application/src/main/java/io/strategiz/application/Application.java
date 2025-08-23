@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Import;
+import io.strategiz.application.config.VaultOAuthInitializer;
 import io.strategiz.data.auth.config.DataAuthConfig;
 import io.strategiz.data.base.config.FirebaseConfig;
 import io.strategiz.data.device.config.DataDeviceConfig;
@@ -40,7 +41,17 @@ public class Application {
             System.out.println(ANSI_PURPLE + "   Loading modules: Portfolio • Exchange • Market Data • Analytics" + ANSI_RESET);
             
             SpringApplication app = new SpringApplication(Application.class);
-            app.setAdditionalProfiles("default", "dev");
+            
+            // Add Vault OAuth initializer (works the same in all environments)
+            app.addInitializers(new VaultOAuthInitializer());
+            
+            // Check for required Vault configuration
+            String vaultToken = System.getenv("VAULT_TOKEN");
+            if (vaultToken == null || vaultToken.isEmpty()) {
+                System.out.println(ANSI_YELLOW + "   ⚠️  VAULT_TOKEN not set - OAuth features may not work properly" + ANSI_RESET);
+                System.out.println(ANSI_YELLOW + "   Run: export VAULT_TOKEN=<your-token>" + ANSI_RESET);
+            }
+            
             app.run(args);
             
             // Success message with deployment info

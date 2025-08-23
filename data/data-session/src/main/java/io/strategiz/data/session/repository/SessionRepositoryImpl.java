@@ -68,7 +68,7 @@ public class SessionRepositoryImpl extends BaseRepository<UserSessionEntity> imp
         Optional<UserSessionEntity> sessionOpt = findById(sessionId);
         if (sessionOpt.isPresent()) {
             UserSessionEntity session = sessionOpt.get();
-            if (session.isActive() == active && session.isValid()) {
+            if (Boolean.TRUE.equals(session.getIsActive()) == active && session.isValid()) {
                 return Optional.of(session);
             }
         }

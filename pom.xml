@@ -30,6 +30,7 @@
         <module>business/business-provider-kraken</module>
         <module>business/business-provider-binanceus</module>
         <module>business/business-provider-alpaca</module>
+        <module>business/business-provider-schwab</module>
         <module>business/business-strategy-execution</module>
         
         <!-- Data Modules (Build Third) -->
@@ -59,6 +60,7 @@
         <module>client/client-google</module>
         <module>client/client-yahoo-finance</module>
         <module>client/client-firebase-sms</module>
+        <module>client/client-schwab</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -76,7 +78,7 @@
         <module>service/service-dashboard</module>
         <module>service/service-profile</module>
         <module>service/service-marketing</module>
-        <module>service/service-device</module>
+        <!-- <module>service/service-device</module> Needs more work on method signatures -->
         
         <!-- API Modules (Build Sixth) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->
@@ -188,6 +190,16 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>business-provider-alpaca</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-schwab</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-schwab</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

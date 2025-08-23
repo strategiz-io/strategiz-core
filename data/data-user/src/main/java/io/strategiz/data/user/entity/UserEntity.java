@@ -72,22 +72,6 @@ public class UserEntity extends BaseEntity {
         this.profile = profile;
     }
 
-    // Convenience methods
-    public String getName() {
-        return profile != null ? profile.getName() : null;
-    }
-
-    public String getEmail() {
-        return profile != null ? profile.getEmail() : null;
-    }
-
-    public boolean isEmailVerified() {
-        return profile != null && Boolean.TRUE.equals(profile.getVerifiedEmail());
-    }
-
-    public boolean isProfileActive() {
-        return profile != null && Boolean.TRUE.equals(profile.getIsActive());
-    }
 
     @Override
     public String getId() {
@@ -124,7 +108,7 @@ public class UserEntity extends BaseEntity {
         return "UserEntity{" +
                "userId='" + userId + '\'' +
                ", profile=" + profile +
-               ", isActive=" + getAuditFields().getIsActive() +
+               ", isActive=" + getIsActive() +
                '}';
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.strategiz.service.dashboard.PortfolioSummaryService;
+import io.strategiz.service.dashboard.service.PortfolioSummaryService;
 import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;

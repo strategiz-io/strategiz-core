@@ -91,7 +91,7 @@ public class EmailOtpRegistrationService {
         emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED, false);
         emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.DAILY_EMAIL_COUNT, 0);
         emailOtpMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.LAST_EMAIL_DATE, java.time.LocalDate.now().toString());
-        emailOtpMethod.setEnabled(false); // Enable after verification
+        emailOtpMethod.setIsActive(false); // Enable after verification
         
         // Save to repository
         AuthenticationMethodEntity saved = authMethodRepository.saveForUser(userId, emailOtpMethod);
@@ -148,7 +148,7 @@ public class EmailOtpRegistrationService {
             // Mark method as verified and enabled
             method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED, true);
             method.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.VERIFICATION_TIME, java.time.Instant.now().toString());
-            method.setEnabled(true);
+            method.setIsActive(true);
             method.markAsUsed(); // Update last used time
             authMethodRepository.saveForUser(userId, method);
             

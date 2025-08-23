@@ -1,5 +1,7 @@
 package io.strategiz.service.profile.model;
 
+import io.strategiz.service.profile.constants.ProfileConstants;
+
 /**
  * Response DTO for user profile data
  */
@@ -8,7 +10,7 @@ public class ReadProfileResponse {
     private String name;
     private String email;
     private String photoURL;
-    private boolean verifiedEmail;
+    private boolean isEmailVerified;
     private String subscriptionTier;
     private String tradingMode;
     private boolean isActive;
@@ -21,13 +23,13 @@ public class ReadProfileResponse {
 
     // Full constructor
     public ReadProfileResponse(String userId, String name, String email, String photoURL,
-                          boolean verifiedEmail, String subscriptionTier, String tradingMode,
+                          boolean isEmailVerified, String subscriptionTier, String tradingMode,
                           boolean isActive, long createdAt, long modifiedAt) {
         this.userId = userId;
         this.name = name;
         this.email = email;
         this.photoURL = photoURL;
-        this.verifiedEmail = verifiedEmail;
+        this.isEmailVerified = isEmailVerified;
         this.subscriptionTier = subscriptionTier;
         this.tradingMode = tradingMode;
         this.isActive = isActive;
@@ -68,12 +70,12 @@ public class ReadProfileResponse {
         this.photoURL = photoURL;
     }
 
-    public boolean isVerifiedEmail() {
-        return verifiedEmail;
+    public boolean isEmailVerified() {
+        return isEmailVerified;
     }
 
-    public void setVerifiedEmail(boolean verifiedEmail) {
-        this.verifiedEmail = verifiedEmail;
+    public void setEmailVerified(boolean isEmailVerified) {
+        this.isEmailVerified = isEmailVerified;
     }
 
     public String getSubscriptionTier() {
@@ -123,7 +125,7 @@ public class ReadProfileResponse {
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", photoURL='" + photoURL + '\'' +
-                ", verifiedEmail=" + verifiedEmail +
+                ", isEmailVerified=" + isEmailVerified +
                 ", subscriptionTier='" + subscriptionTier + '\'' +
                 ", tradingMode='" + tradingMode + '\'' +
                 ", isActive=" + isActive +
@@ -147,10 +149,10 @@ public class ReadProfileResponse {
                 profile.getName(),
                 profile.getEmail(),
                 profile.getPhotoURL(),
-                profile.getVerifiedEmail() != null ? profile.getVerifiedEmail() : false,
+                profile.getIsEmailVerified() != null ? profile.getIsEmailVerified() : ProfileConstants.Defaults.EMAIL_VERIFIED,
                 profile.getSubscriptionTier(),
                 profile.getTradingMode(),
-                profile.getIsActive() != null ? profile.getIsActive() : true,
+                user.getIsActive() != null ? user.getIsActive() : ProfileConstants.Defaults.IS_ACTIVE,
                 System.currentTimeMillis(), // Default to current time
                 System.currentTimeMillis()  // Default to current time
         );

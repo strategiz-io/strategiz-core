@@ -157,8 +157,8 @@ public class PasskeyCredentialEntity extends BaseEntity {
     }
 
     public Instant getCreatedAt() {
-        if (getAuditFields() != null && getAuditFields().getCreatedDate() != null) {
-            return getAuditFields().getCreatedDate().toDate().toInstant();
+        if (getCreatedDate() != null) {
+            return getCreatedDate().toDate().toInstant();
         }
         return registrationTime;
     }

@@ -3,6 +3,9 @@ package io.strategiz.service.auth.controller.passkey;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.service.auth.model.AuthenticationResponse;
+import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.model.passkey.*;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
@@ -47,6 +50,9 @@ public class PasskeyAuthenticationController extends BaseController {
     
     @Autowired
     private PasskeyAuthenticationService authenticationService;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     // Constructor to log controller initialization
     public PasskeyAuthenticationController() {
@@ -94,7 +100,7 @@ public class PasskeyAuthenticationController extends BaseController {
      * @return Clean authentication result with tokens - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PutMapping("/authentications/{authenticationId}")
-    public ResponseEntity<ApiTokenResponse> completeAuthentication(
+    public ResponseEntity<AuthenticationResponse> completeAuthentication(
             @PathVariable String authenticationId,
             @RequestBody @Valid PasskeyAuthenticationCompletionRequest request,
             HttpServletRequest servletRequest) {
@@ -136,16 +142,35 @@ public class PasskeyAuthenticationController extends BaseController {
             throw new StrategizException(AuthErrors.VERIFICATION_FAILED, request.credentialId());
         }
         
-        // Create response with tokens
-        ApiTokenResponse tokenResponse = new ApiTokenResponse(
+        // Fetch user data to include in response
+        AuthenticationResponse.UserInfo userInfo = null;
+        if (result.userId() != null) {
+            try {
+                UserEntity user = userRepository.findById(result.userId()).orElse(null);
+                if (user != null && user.getProfile() != null) {
+                    userInfo = new AuthenticationResponse.UserInfo(
+                        user.getId(),
+                        user.getProfile().getEmail(),
+                        user.getProfile().getName(),  // Just use the single name field
+                        Boolean.TRUE.equals(user.getProfile().getIsEmailVerified())
+                    );
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch user data for response: {}", e.getMessage());
+                // Continue without user data - tokens are more important
+            }
+        }
+        
+        // Create response with tokens and user data
+        AuthenticationResponse response = AuthenticationResponse.create(
             result.accessToken(),
             result.refreshToken(),
-            request.userHandle() // userId from request
+            userInfo
         );
         
-        logRequestSuccess("completeAuthentication", request.userHandle(), tokenResponse);
+        logRequestSuccess("completeAuthentication", result.userId(), response);
         // Return clean response - headers added by StandardHeadersInterceptor
-        return createCleanResponse(tokenResponse);
+        return createCleanResponse(response);
     }
     
 }

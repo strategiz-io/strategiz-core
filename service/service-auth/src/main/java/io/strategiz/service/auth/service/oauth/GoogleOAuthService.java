@@ -201,18 +201,24 @@ public class GoogleOAuthService {
             userInfo.getEmail()
         );
         
-        // Generate authentication tokens
-        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+        // Generate authentication tokens using unified approach
+        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
             user.getUserId(),
+            userInfo.getEmail(),
             List.of("google"), // Authentication method used
-            "2.1", // ACR "2.1" - Basic assurance for OAuth
-            null, // Device ID not available
-            null  // IP address not available
+            false, // Not partial auth - OAuth provides full authentication
+            null, // Device ID not available in OAuth flow
+            null, // Device fingerprint not available
+            null, // IP address not available in OAuth flow
+            "Google OAuth",
+            "live" // tradingMode
         );
         
+        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+        
         return new ApiTokenResponse(
-            tokenPair.accessToken(),
-            tokenPair.refreshToken(),
+            authResult.accessToken(),
+            authResult.refreshToken(),
             "bearer"
         );
     }

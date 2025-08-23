@@ -83,14 +83,14 @@ public class SessionService {
             return Optional.empty();
         }
         
-        // Create validation result with required parameters
+        // Create validation result with required parameters (AAL removed)
         SessionValidationResult result = new SessionValidationResult(
             userIdOpt.get(),    // userId
             null,               // userEmail - not available from token validation
             null,               // sessionId - not available in token-based approach
-            "1",                // acr - default to basic
-            "1",                // aal - default to single factor
+            "1",                // acr - default to basic authentication
             null,               // amr - not available from token validation
+            "live",             // tradingMode - default to live
             Instant.now(),      // lastAccessedAt
             Instant.now().plusSeconds(3600), // expiresAt - assume 1 hour
             true                // valid

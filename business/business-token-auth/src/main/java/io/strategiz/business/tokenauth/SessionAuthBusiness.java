@@ -78,10 +78,9 @@ public class SessionAuthBusiness {
      */
     public AuthResult createAuthentication(AuthRequest authRequest) {
         String acr = tokenProvider.calculateAcr(authRequest.authenticationMethods(), authRequest.isPartialAuth());
-        String aal = tokenProvider.calculateAal(authRequest.authenticationMethods());
         
-        log.info("Creating unified auth for user: {} with ACR: {} AAL: {} and methods: {}", 
-                authRequest.userId(), acr, aal, authRequest.authenticationMethods());
+        log.info("Creating unified auth for user: {} with ACR: {} and methods: {}", 
+                authRequest.userId(), acr, authRequest.authenticationMethods());
         
         // 1. Create PASETO tokens
         Duration accessValidity = Duration.ofHours(24);
@@ -89,8 +88,8 @@ public class SessionAuthBusiness {
             authRequest.userId(), 
             authRequest.authenticationMethods(), 
             acr, 
-            aal, 
-            accessValidity
+            accessValidity,
+            authRequest.tradingMode()
         );
         String refreshToken = tokenProvider.createRefreshToken(authRequest.userId());
         
@@ -100,7 +99,7 @@ public class SessionAuthBusiness {
         // 3. Delegate session creation to data-session module if enabled
         UserSession session = null;
         if (sessionManagementEnabled) {
-            session = delegateSessionCreation(authRequest, accessToken, acr, aal);
+            session = delegateSessionCreation(authRequest, accessToken, acr);
         }
         
         log.info("Successfully created unified auth for user: {} with {} methods (session: {})", 
@@ -120,9 +119,9 @@ public class SessionAuthBusiness {
         Map<String, Object> accessTokenMetadata = new HashMap<>();
         accessTokenMetadata.put("amr", accessClaims.get("amr"));
         accessTokenMetadata.put("acr", accessClaims.get("acr"));
-        accessTokenMetadata.put("aal", accessClaims.get("aal"));
         accessTokenMetadata.put("auth_methods", String.join(",", authRequest.authenticationMethods()));
         accessTokenMetadata.put("scope", accessClaims.get("scope"));
+        accessTokenMetadata.put("tradingMode", authRequest.tradingMode());
         
         PasetoTokenEntity accessTokenEntity = new PasetoTokenEntity();
         accessTokenEntity.setTokenId(UUID.randomUUID().toString());
@@ -156,7 +155,7 @@ public class SessionAuthBusiness {
      * Delegate session creation to data-session module
      * Business layer builds the session data, data layer handles persistence
      */
-    private UserSession delegateSessionCreation(AuthRequest authRequest, String accessToken, String acr, String aal) {
+    private UserSession delegateSessionCreation(AuthRequest authRequest, String accessToken, String acr) {
         try {
             String sessionId = "sess_" + UUID.randomUUID().toString();
             
@@ -169,7 +168,6 @@ public class SessionAuthBusiness {
             }
             sessionEntity.getAttributes().put("accessToken", accessToken);
             sessionEntity.setAcr(acr);
-            sessionEntity.setAal(aal);
             sessionEntity.setAmr(authRequest.authenticationMethods());
             sessionEntity.setDeviceFingerprint(authRequest.deviceFingerprint() != null ? authRequest.deviceFingerprint() : "unknown");
             sessionEntity.setIpAddress(authRequest.ipAddress() != null ? authRequest.ipAddress() : "unknown");
@@ -231,13 +229,17 @@ public class SessionAuthBusiness {
             
             UserSession session = convertEntityToSession(sessionEntity);
             
+            // Extract trading mode from token claims
+            Map<String, Object> tokenClaims = tokenProvider.parseToken(accessToken);
+            String tradingMode = (String) tokenClaims.getOrDefault("tradingMode", "demo");
+            
             return Optional.of(new SessionValidationResult(
                 session.getUserId(),
                 session.getUserEmail(),
                 session.getSessionId(),
                 session.getAcr(),
-                session.getAal(),
                 session.getAmr(),
+                tradingMode,
                 session.getLastAccessedAt(),
                 session.getExpiresAt(),
                 true
@@ -255,7 +257,6 @@ public class SessionAuthBusiness {
         try {
             Map<String, Object> claims = tokenProvider.parseToken(accessToken);
             String acr = (String) claims.getOrDefault("acr", "1");
-            String aal = (String) claims.getOrDefault("aal", "1");
             
             // Decode AMR from token
             @SuppressWarnings("unchecked")
@@ -264,14 +265,15 @@ public class SessionAuthBusiness {
             
             Instant issuedAt = Instant.ofEpochSecond(getClaimAsLong(claims, "iat"));
             Instant expiresAt = Instant.ofEpochSecond(getClaimAsLong(claims, "exp"));
+            String tradingMode = (String) claims.getOrDefault("tradingMode", "demo");
             
             return Optional.of(new SessionValidationResult(
                 userId,
                 "unknown@example.com",
                 "token_" + accessToken.substring(0, 8),
                 acr,
-                aal,
                 amr,
+                tradingMode,
                 issuedAt,
                 expiresAt,
                 true
@@ -440,7 +442,7 @@ public class SessionAuthBusiness {
      * Creates authentication token pair using the new unified approach
      */
     public TokenPair createAuthenticationTokenPair(String userId, List<String> authMethods, String acr, String deviceId, String ipAddress) {
-        AuthRequest authRequest = new AuthRequest(userId, null, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client");
+        AuthRequest authRequest = new AuthRequest(userId, null, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client", "live");
         AuthResult result = createAuthentication(authRequest);
         return new TokenPair(result.accessToken(), result.refreshToken());
     }
@@ -469,12 +471,172 @@ public class SessionAuthBusiness {
     }
     
     /**
-     * Legacy method for compatibility - refresh access token
+     * Refresh access token using refresh token
+     * Maintains the same ACR, AAL, and AMR from the original session
      */
     public Optional<String> refreshAccessToken(String refreshToken, String ipAddress) {
-        // For now, return empty - this would need implementation
-        log.warn("refreshAccessToken not yet implemented in unified approach");
-        return Optional.empty();
+        try {
+            // Find the refresh token entity
+            Optional<PasetoTokenEntity> refreshTokenOpt = tokenRepository.findByTokenValue(refreshToken);
+            
+            if (refreshTokenOpt.isEmpty()) {
+                log.warn("Refresh token not found");
+                return Optional.empty();
+            }
+            
+            PasetoTokenEntity refreshTokenEntity = refreshTokenOpt.get();
+            
+            // Check if refresh token is valid
+            if (!refreshTokenEntity.isValid()) {
+                log.warn("Refresh token is expired or revoked");
+                return Optional.empty();
+            }
+            
+            String userId = refreshTokenEntity.getUserId();
+            
+            // Find the associated access token to get auth context
+            String associatedAccessTokenId = (String) refreshTokenEntity.getClaims().get("associated_access_token");
+            if (associatedAccessTokenId == null) {
+                log.warn("No associated access token found for refresh token");
+                return Optional.empty();
+            }
+            
+            // Get the original access token to extract auth methods and context
+            List<PasetoTokenEntity> userTokens = tokenRepository.findByUserId(userId);
+            Optional<PasetoTokenEntity> originalAccessTokenOpt = userTokens.stream()
+                .filter(t -> t.getTokenId().equals(associatedAccessTokenId))
+                .findFirst();
+            
+            if (originalAccessTokenOpt.isEmpty()) {
+                log.warn("Original access token not found");
+                return Optional.empty();
+            }
+            
+            PasetoTokenEntity originalAccessToken = originalAccessTokenOpt.get();
+            Map<String, Object> originalClaims = originalAccessToken.getClaims();
+            
+            // Extract authentication context from original token
+            String acr = (String) originalClaims.getOrDefault("acr", "1");
+            String authMethodsStr = (String) originalClaims.getOrDefault("auth_methods", "password");
+            List<String> authMethods = List.of(authMethodsStr.split(","));
+            String tradingMode = (String) originalClaims.getOrDefault("tradingMode", "demo");
+            
+            // Generate new access token with same auth context
+            Duration accessValidity = Duration.ofHours(24);
+            String newAccessToken = tokenProvider.createAuthenticationToken(
+                userId,
+                authMethods,
+                acr,
+                accessValidity,
+                tradingMode
+            );
+            
+            // Store the new access token
+            Map<String, Object> newAccessClaims = tokenProvider.parseToken(newAccessToken);
+            
+            Map<String, Object> accessTokenMetadata = new HashMap<>();
+            accessTokenMetadata.put("amr", newAccessClaims.get("amr"));
+            accessTokenMetadata.put("acr", acr);
+            accessTokenMetadata.put("auth_methods", authMethodsStr);
+            accessTokenMetadata.put("scope", newAccessClaims.get("scope"));
+            accessTokenMetadata.put("tradingMode", tradingMode);
+            
+            PasetoTokenEntity newAccessTokenEntity = new PasetoTokenEntity();
+            newAccessTokenEntity.setTokenId(UUID.randomUUID().toString());
+            newAccessTokenEntity.setUserId(userId);
+            newAccessTokenEntity.setTokenType("ACCESS");
+            newAccessTokenEntity.setTokenValue(newAccessToken);
+            newAccessTokenEntity.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(newAccessClaims, "iat")));
+            newAccessTokenEntity.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(newAccessClaims, "exp")));
+            newAccessTokenEntity.setDeviceId(refreshTokenEntity.getDeviceId());
+            newAccessTokenEntity.setIssuedFrom(ipAddress != null ? ipAddress : refreshTokenEntity.getIssuedFrom());
+            newAccessTokenEntity.setRevoked(false);
+            newAccessTokenEntity.setClaims(accessTokenMetadata);
+            
+            tokenRepository.save(newAccessTokenEntity);
+            
+            // Update the refresh token to point to the new access token
+            refreshTokenEntity.getClaims().put("associated_access_token", newAccessTokenEntity.getTokenId());
+            tokenRepository.save(refreshTokenEntity);
+            
+            log.info("Successfully refreshed access token for user {}", userId);
+            return Optional.of(newAccessToken);
+            
+        } catch (Exception e) {
+            log.error("Error refreshing access token: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+    
+    /**
+     * Add an authentication method to an existing session and update tokens
+     * Used when adding 2FA during an active session (e.g., TOTP registration)
+     * 
+     * @param sessionToken Current session token
+     * @param authMethod New authentication method to add
+     * @param newAcrLevel New ACR level after adding the method
+     * @return Map with updated tokens
+     */
+    public Map<String, Object> addAuthenticationMethod(String sessionToken, String authMethod, int newAcrLevel) {
+        try {
+            // Parse the current token to get user and existing methods
+            Map<String, Object> currentClaims = tokenProvider.parseToken(sessionToken);
+            String userId = tokenProvider.getUserIdFromToken(sessionToken);
+            
+            // Decode existing AMR
+            @SuppressWarnings("unchecked")
+            List<Integer> amrList = (List<Integer>) currentClaims.get("amr");
+            List<String> existingMethods = decodeAuthenticationMethods(amrList);
+            
+            // Add the new method
+            List<String> updatedMethods = new ArrayList<>(existingMethods);
+            if (!updatedMethods.contains(authMethod)) {
+                updatedMethods.add(authMethod);
+            }
+            
+            // Preserve trading mode from current token
+            String tradingMode = (String) currentClaims.getOrDefault("tradingMode", "demo");
+            
+            // Create new tokens with updated authentication context
+            Duration accessValidity = Duration.ofHours(24);
+            String newAccessToken = tokenProvider.createAuthenticationToken(
+                userId,
+                updatedMethods,
+                String.valueOf(newAcrLevel),
+                accessValidity,
+                tradingMode
+            );
+            String newRefreshToken = tokenProvider.createRefreshToken(userId);
+            
+            // Store the new tokens
+            AuthRequest authRequest = new AuthRequest(
+                userId,
+                null,
+                updatedMethods,
+                false,
+                null,
+                null,
+                null,
+                null,
+                tradingMode  // Preserve trading mode
+            );
+            storePasetoTokens(newAccessToken, newRefreshToken, authRequest);
+            
+            // Return the updated tokens
+            Map<String, Object> result = new HashMap<>();
+            result.put("accessToken", newAccessToken);
+            result.put("refreshToken", newRefreshToken);
+            result.put("identityToken", newAccessToken); // For backward compatibility
+            result.put("success", true);
+            
+            log.info("Added authentication method '{}' for user {} with new ACR level {}", 
+                     authMethod, userId, newAcrLevel);
+            
+            return result;
+        } catch (PasetoException e) {
+            log.error("Failed to add authentication method: {}", e.getMessage());
+            return null;
+        }
     }
     
     /**
@@ -520,11 +682,10 @@ public class SessionAuthBusiness {
         session.setUserAgent(entity.getUserAgent());
         session.setDeviceFingerprint(entity.getDeviceFingerprint());
         session.setAcr(entity.getAcr());
-        session.setAal(entity.getAal());
         session.setAmr(entity.getAmr());
         session.setAuthorities(entity.getAuthorities());
         session.setAttributes(entity.getAttributes());
-        session.setActive(entity.isActive());
+        session.setActive(Boolean.TRUE.equals(entity.getIsActive()));
         session.setTerminationReason(entity.getTerminationReason());
         return session;
     }
@@ -545,7 +706,8 @@ public class SessionAuthBusiness {
         String deviceId,
         String deviceFingerprint,
         String ipAddress,
-        String userAgent
+        String userAgent,
+        String tradingMode  // "demo" or "live"
     ) {}
     
     /**

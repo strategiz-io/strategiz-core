@@ -38,6 +38,8 @@ public class CoinbaseClient {
     private static final String COINBASE_API_URL = "https://api.coinbase.com/v2";
     private static final String HMAC_SHA256 = "HmacSHA256";
     private static final String COINBASE_API_VERSION = "2021-04-29";
+    private static final int MAX_RETRIES = 3;
+    private static final long INITIAL_RETRY_DELAY_MS = 1000; // 1 second
 
     private final RestTemplate restTemplate;
 
@@ -46,6 +48,126 @@ public class CoinbaseClient {
         log.info("CoinbaseClient initialized with API URL: {}", COINBASE_API_URL);
     }
 
+    /**
+     * Make an OAuth authenticated request to Coinbase API
+     * @param method HTTP method
+     * @param endpoint API endpoint (e.g., "/accounts")
+     * @param accessToken OAuth access token
+     * @param params Request parameters
+     * @param responseType Expected response type
+     * @return API response
+     */
+    public <T> T oauthRequest(HttpMethod method, String endpoint, String accessToken,
+                             Map<String, String> params, ParameterizedTypeReference<T> responseType) {
+        try {
+            // Validate access token
+            if (accessToken == null || accessToken.trim().isEmpty()) {
+                throw new StrategizException(CoinbaseErrors.INVALID_RESPONSE, "Access token is required");
+            }
+            
+            // Build the URL
+            URIBuilder uriBuilder = new URIBuilder(COINBASE_API_URL + endpoint);
+            if (params != null) {
+                params.forEach(uriBuilder::addParameter);
+            }
+            
+            URI uri = uriBuilder.build();
+            
+            // Create headers with OAuth Bearer token
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + accessToken);
+            headers.set("CB-VERSION", COINBASE_API_VERSION);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            
+            log.debug("Making OAuth request to Coinbase API: {} {}", method, uri);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            ResponseEntity<T> response = restTemplate.exchange(
+                uri,
+                method,
+                entity,
+                responseType
+            );
+            
+            return response.getBody();
+            
+        } catch (RestClientResponseException e) {
+            int statusCode = e.getStatusCode().value();
+            String responseBody = e.getResponseBodyAsString();
+            
+            log.error("Coinbase OAuth API request error - HTTP Status {}: {}", statusCode, responseBody);
+            
+            // Handle token expiration
+            if (statusCode == 401) {
+                throw new StrategizException(CoinbaseErrors.AUTHENTICATION_ERROR, 
+                    "Access token expired or invalid. Please reconnect your Coinbase account.");
+            }
+            
+            CoinbaseErrors errorCode = determineErrorCode(statusCode, responseBody);
+            String detailedError = buildErrorMessage(statusCode, responseBody);
+            throw new StrategizException(errorCode, detailedError);
+            
+        } catch (Exception e) {
+            String errorDetails = extractErrorDetails(e);
+            log.error("Error making OAuth request to {}: {}", endpoint, errorDetails);
+            throw new StrategizException(CoinbaseErrors.API_ERROR, errorDetails);
+        }
+    }
+    
+    /**
+     * Get user information using OAuth token
+     */
+    public Map<String, Object> getCurrentUser(String accessToken) {
+        return oauthRequest(
+            HttpMethod.GET,
+            "/user",
+            accessToken,
+            null,
+            new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+    }
+    
+    /**
+     * Get all accounts using OAuth token
+     */
+    public Map<String, Object> getAccounts(String accessToken) {
+        return oauthRequest(
+            HttpMethod.GET,
+            "/accounts",
+            accessToken,
+            null,
+            new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+    }
+    
+    /**
+     * Get specific account using OAuth token
+     */
+    public Map<String, Object> getAccount(String accessToken, String accountId) {
+        return oauthRequest(
+            HttpMethod.GET,
+            "/accounts/" + accountId,
+            accessToken,
+            null,
+            new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+    }
+    
+    /**
+     * Get account transactions using OAuth token
+     */
+    public Map<String, Object> getTransactions(String accessToken, String accountId, Map<String, String> params) {
+        return oauthRequest(
+            HttpMethod.GET,
+            "/accounts/" + accountId + "/transactions",
+            accessToken,
+            params,
+            new ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+    }
+    
     /**
      * Make a public request to Coinbase API (no authentication required)
      * @param method HTTP method
@@ -75,6 +197,19 @@ public class CoinbaseClient {
             );
             
             return response.getBody();
+        } catch (RestClientResponseException e) {
+            // Handle Spring's RestClientResponseException which contains HTTP status and response body
+            int statusCode = e.getStatusCode().value();
+            String responseBody = e.getResponseBodyAsString();
+            
+            log.error("Coinbase API public request error - HTTP Status {}: {}", statusCode, responseBody);
+            
+            // Determine appropriate error code based on HTTP status
+            CoinbaseErrors errorCode = determineErrorCode(statusCode, responseBody);
+            
+            // Build a detailed error message with user-friendly text
+            String detailedError = buildErrorMessage(statusCode, responseBody);
+            throw new StrategizException(errorCode, detailedError);
         } catch (Exception e) {
             String errorDetails = extractErrorDetails(e);
             log.error("Error making public request to {}: {}", endpoint, errorDetails);
@@ -168,9 +303,12 @@ public class CoinbaseClient {
             
             log.error("Coinbase API error - HTTP Status {}: {}", statusCode, responseBody);
             
-            // Build a detailed error message
-            String detailedError = String.format("Coinbase API returned HTTP %d: %s", statusCode, responseBody);
-            throw new StrategizException(CoinbaseErrors.API_ERROR, detailedError);
+            // Determine appropriate error code based on HTTP status
+            CoinbaseErrors errorCode = determineErrorCode(statusCode, responseBody);
+            
+            // Build a detailed error message with user-friendly text
+            String detailedError = buildErrorMessage(statusCode, responseBody);
+            throw new StrategizException(errorCode, detailedError);
         } catch (Exception e) {
             log.error("Error making signed request to Coinbase API: {}", e.getMessage(), e);
             throw new StrategizException(CoinbaseErrors.API_ERROR, e.getMessage());
@@ -233,6 +371,122 @@ public class CoinbaseClient {
     }
     
     /**
+     * Determine the appropriate CoinbaseErrors enum based on HTTP status and response
+     * 
+     * @param statusCode HTTP status code
+     * @param responseBody Response body from API
+     * @return Appropriate CoinbaseErrors enum
+     */
+    private CoinbaseErrors determineErrorCode(int statusCode, String responseBody) {
+        switch (statusCode) {
+            case 400:
+                if (responseBody != null && responseBody.toLowerCase().contains("invalid_request")) {
+                    return CoinbaseErrors.INVALID_CREDENTIALS;
+                }
+                return CoinbaseErrors.INVALID_RESPONSE;
+            case 401:
+            case 403:
+                return CoinbaseErrors.API_AUTHENTICATION_FAILED;
+            case 429:
+                return CoinbaseErrors.API_RATE_LIMITED;
+            case 500:
+            case 502:
+            case 503:
+            case 504:
+                return CoinbaseErrors.SERVICE_UNAVAILABLE;
+            case 404:
+                return CoinbaseErrors.ACCOUNT_NOT_FOUND;
+            default:
+                return CoinbaseErrors.API_ERROR;
+        }
+    }
+    
+    /**
+     * Build a user-friendly error message based on HTTP status and response
+     * 
+     * @param statusCode HTTP status code
+     * @param responseBody Response body from API
+     * @return User-friendly error message
+     */
+    private String buildErrorMessage(int statusCode, String responseBody) {
+        switch (statusCode) {
+            case 400:
+                return "Bad request to Coinbase API. Please check your request parameters.";
+            case 401:
+                return "Coinbase API authentication failed. Please check your credentials.";
+            case 403:
+                return "Access forbidden. Your Coinbase API key may not have sufficient permissions.";
+            case 404:
+                return "Requested Coinbase resource not found.";
+            case 429:
+                return "Coinbase API rate limit exceeded. Please try again later.";
+            case 500:
+                if (responseBody != null && responseBody.contains("Coinbase is temporarily unavailable")) {
+                    return "Coinbase is temporarily unavailable. Their servers are busy and they expect normal service to return soon. Your funds are safe.";
+                }
+                return "Coinbase API server error. Please try again in a few minutes.";
+            case 502:
+            case 503:
+            case 504:
+                return "Coinbase API is temporarily unavailable. Please try again in a few minutes.";
+            default:
+                return String.format("Coinbase API returned HTTP %d: %s", statusCode, 
+                                   responseBody != null ? responseBody : "Unknown error");
+        }
+    }
+    
+    /**
+     * Execute a request with retry logic for temporary failures
+     * 
+     * @param operation Operation to execute
+     * @param operationName Name of the operation for logging
+     * @return Result from operation
+     */
+    private <T> T executeWithRetry(java.util.function.Supplier<T> operation, String operationName) {
+        int attempt = 0;
+        Exception lastException = null;
+        
+        while (attempt < MAX_RETRIES) {
+            try {
+                return operation.get();
+            } catch (StrategizException e) {
+                lastException = e;
+                
+                // Only retry for service unavailable errors
+                if (CoinbaseErrors.SERVICE_UNAVAILABLE.name().equals(e.getErrorCode()) && attempt < MAX_RETRIES - 1) {
+                    long delayMs = INITIAL_RETRY_DELAY_MS * (long) Math.pow(2, attempt);
+                    log.warn("Coinbase API temporarily unavailable, retrying {} in {} ms (attempt {}/{})", 
+                             operationName, delayMs, attempt + 1, MAX_RETRIES);
+                    
+                    try {
+                        Thread.sleep(delayMs);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new StrategizException(CoinbaseErrors.API_ERROR, 
+                                                   "Request interrupted during retry");
+                    }
+                    
+                    attempt++;
+                } else {
+                    // Not retryable or max retries reached
+                    throw e;
+                }
+            } catch (Exception e) {
+                lastException = e;
+                throw e;
+            }
+        }
+        
+        // This should not be reached, but just in case
+        if (lastException instanceof StrategizException) {
+            throw (StrategizException) lastException;
+        } else {
+            throw new StrategizException(CoinbaseErrors.API_ERROR, 
+                                       "Max retries exceeded: " + lastException.getMessage());
+        }
+    }
+    
+    /**
      * Test connection to Coinbase API
      * 
      * @param apiKey API key
@@ -241,21 +495,23 @@ public class CoinbaseClient {
      */
     public boolean testConnection(String apiKey, String privateKey) {
         try {
-            // Make a simple request to test the connection
-            Map<String, String> params = new HashMap<>();
-            ParameterizedTypeReference<Map<String, Object>> responseType = 
-                new ParameterizedTypeReference<Map<String, Object>>() {};
-            
-            Map<String, Object> response = signedRequest(
-                HttpMethod.GET,
-                "/user",
-                params,
-                apiKey,
-                privateKey,
-                responseType
-            );
-            
-            return response != null && response.containsKey("data");
+            return executeWithRetry(() -> {
+                // Make a simple request to test the connection
+                Map<String, String> params = new HashMap<>();
+                ParameterizedTypeReference<Map<String, Object>> responseType = 
+                    new ParameterizedTypeReference<Map<String, Object>>() {};
+                
+                Map<String, Object> response = signedRequest(
+                    HttpMethod.GET,
+                    "/user",
+                    params,
+                    apiKey,
+                    privateKey,
+                    responseType
+                );
+                
+                return response != null && response.containsKey("data");
+            }, "connection test");
         } catch (Exception e) {
             log.error("Error testing Coinbase API connection", e);
             return false;

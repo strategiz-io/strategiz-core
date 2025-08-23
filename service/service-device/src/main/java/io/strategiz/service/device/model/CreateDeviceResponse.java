@@ -15,6 +15,7 @@ public class CreateDeviceResponse {
     private Integer trustScore;
     private String trustLevel;
     private Boolean requiresVerification;
+    private String message;
     
     // Default constructor
     public CreateDeviceResponse() {
@@ -107,5 +108,13 @@ public class CreateDeviceResponse {
     
     public void setRequiresVerification(Boolean requiresVerification) {
         this.requiresVerification = requiresVerification;
+    }
+    
+    public String getMessage() {
+        return message;
+    }
+    
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

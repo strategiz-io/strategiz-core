@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.strategiz.service.dashboard.PerformanceMetricsService;
+import io.strategiz.service.dashboard.service.PerformanceMetricsService;
 import io.strategiz.service.dashboard.model.performancemetrics.PerformanceMetricsData;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;

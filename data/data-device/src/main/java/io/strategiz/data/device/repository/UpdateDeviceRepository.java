@@ -23,6 +23,17 @@ public interface UpdateDeviceRepository {
     Optional<DeviceIdentity> updateAuthenticatedDevice(String userId, DeviceIdentity device);
     
     /**
+     * Update an authenticated device (returns non-optional)
+     * 
+     * @param device The device entity with updates
+     * @param userId The user ID
+     * @return The updated device
+     */
+    default DeviceIdentity updateAuthenticatedDevice(DeviceIdentity device, String userId) {
+        return updateAuthenticatedDevice(userId, device).orElse(device);
+    }
+    
+    /**
      * Update device trust status
      * 
      * @param userId The user ID

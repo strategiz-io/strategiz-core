@@ -25,7 +25,7 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     public Strategy update(String id, String userId, Strategy strategy) {
         // Verify ownership
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !existing.get().isActive()) {
+        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             throw new RuntimeException("Strategy not found or unauthorized");
         }
         
@@ -39,7 +39,7 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     @Override
     public boolean updateStatus(String id, String userId, String status) {
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !existing.get().isActive()) {
+        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return false;
         }
         
@@ -87,7 +87,7 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     
     private Optional<Strategy> updateField(String id, String userId, java.util.function.Consumer<Strategy> updater) {
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !existing.get().isActive()) {
+        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return Optional.empty();
         }
         

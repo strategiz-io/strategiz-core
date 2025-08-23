@@ -2,223 +2,155 @@ package io.strategiz.service.device.service.authenticated;
 
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.data.device.repository.CreateDeviceRepository;
-import io.strategiz.service.device.model.DeviceRequest;
-import io.strategiz.service.device.model.CreateDeviceResponse;
-import io.strategiz.service.device.service.shared.DeviceEnrichmentService;
-import io.strategiz.service.device.service.shared.DeviceFingerprintValidationService;
-import io.strategiz.service.device.service.shared.DeviceTrustCalculationService;
+import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.model.authenticated.CreateAuthenticatedDeviceRequest;
+import io.strategiz.service.device.model.authenticated.CreateAuthenticatedDeviceResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Service exclusively for creating/registering authenticated devices
- * Handles comprehensive device fingerprinting and registration
- * Single Responsibility: Device creation logic for authenticated users
- */
 @Service
-public class CreateAuthenticatedDeviceService {
+public class CreateAuthenticatedDeviceService extends BaseService {
     
     private static final Logger log = LoggerFactory.getLogger(CreateAuthenticatedDeviceService.class);
     
     private final CreateDeviceRepository createRepository;
-    private final DeviceEnrichmentService enrichmentService;
-    private final DeviceFingerprintValidationService validationService;
-    private final DeviceTrustCalculationService trustService;
     
     @Autowired
-    public CreateAuthenticatedDeviceService(
-            CreateDeviceRepository createRepository,
-            DeviceEnrichmentService enrichmentService,
-            DeviceFingerprintValidationService validationService,
-            DeviceTrustCalculationService trustService) {
+    public CreateAuthenticatedDeviceService(CreateDeviceRepository createRepository) {
         this.createRepository = createRepository;
-        this.enrichmentService = enrichmentService;
-        this.validationService = validationService;
-        this.trustService = trustService;
     }
     
-    /**
-     * Register a new device with comprehensive fingerprinting
-     * 
-     * @param userId The authenticated user ID
-     * @param deviceRequest Comprehensive device fingerprint from client
-     * @param ipAddress Client IP address
-     * @param userAgent User agent string
-     * @return Response with registration details
-     */
-    @Transactional
-    public CreateDeviceResponse registerDevice(
-            String userId,
-            DeviceRequest deviceRequest,
-            String ipAddress,
-            String userAgent) {
+    public CreateAuthenticatedDeviceResponse createAuthenticatedDevice(
+            String userId, CreateAuthenticatedDeviceRequest request) {
+        
+        log.debug("Creating authenticated device for user: {}", userId);
         
         try {
-            // Validate fingerprint data
-            if (!validationService.validateFingerprint(deviceRequest)) {
-                log.warn("Invalid fingerprint data for user {}", userId);
-                return CreateDeviceResponse.error("Invalid device fingerprint data");
-            }
-            
-            // Create device entity from request
-            DeviceIdentity device = mapRequestToEntity(deviceRequest);
-            
-            // Set core fields
+            // Create device entity
+            DeviceIdentity device = new DeviceIdentity();
+            device.setDeviceId(UUID.randomUUID().toString());
             device.setUserId(userId);
-            device.setDeviceId(deviceRequest.getDeviceId() != null ? 
-                deviceRequest.getDeviceId() : generateDeviceId());
-            device.setFirstSeen(Instant.now());
-            device.setLastSeen(device.getFirstSeen());
-            
-            // Set server-side data
-            device.setIpAddress(ipAddress);
-            device.setUserAgent(userAgent);
-            
-            // Enrich with server-side data (IP location, VPN detection, etc.)
-            enrichmentService.enrichDeviceData(device, ipAddress);
-            
-            // Calculate trust score
-            int trustScore = trustService.calculateTrustScore(device);
-            device.setTrustLevel(trustService.getTrustLevel(trustScore));
-            
-            // For authenticated users, default to trusted unless suspicious
-            device.setTrusted(trustScore >= 50);
+            device.setDeviceName(request.getDeviceName());
+            device.setFingerprint(request.getFingerprint());
+            device.setVisitorId(request.getVisitorId());
+            device.setPlatform(request.getPlatform());
+            device.setBrowserName(request.getBrowser());
+            device.setUserAgent(request.getUserAgent());
+            device.setIpAddress(request.getIpAddress());
+            device.setScreenResolution(request.getScreenResolution());
+            device.setTimezone(request.getTimezone());
+            device.setLanguage(request.getLanguage());
+            device.setOsName(request.getOsName());
+            device.setOsVersion(request.getOsVersion());
+            device.setAnonymous(false);
+            device.setTrusted(request.isTrusted());
+            device.setTrustScore(calculateInitialTrustScore(request));
+            device.setTrustLevel(determineTrustLevel(device.getTrustScore()));
+            device.setCreatedAt(Instant.now());
+            device.setLastSeen(Instant.now());
             
             // Save to repository
-            DeviceIdentity savedDevice = createRepository.createAuthenticatedDevice(device, userId);
+            DeviceIdentity savedDevice = createRepository.createAuthenticatedDevice(userId, device);
             
-            log.info("Registered device {} for user {} with trust score {}", 
-                savedDevice.getDeviceId(), userId, trustScore);
+            // Create response
+            CreateAuthenticatedDeviceResponse response = new CreateAuthenticatedDeviceResponse();
+            response.setDeviceId(savedDevice.getDeviceId());
+            response.setUserId(savedDevice.getUserId());
+            response.setDeviceName(savedDevice.getDeviceName());
+            response.setFingerprint(savedDevice.getFingerprint());
+            response.setTrusted(savedDevice.getTrusted());
+            response.setTrustScore(savedDevice.getTrustScore());
+            response.setTrustLevel(savedDevice.getTrustLevel());
+            response.setCreatedAt(savedDevice.getCreatedAt());
             
-            // Build response
-            return CreateDeviceResponse.success(
-                savedDevice.getDeviceId(),
-                savedDevice.getFirstSeen(),
-                trustScore
-            );
+            log.info("Successfully created authenticated device {} for user {}", 
+                savedDevice.getDeviceId(), userId);
+            return response;
             
         } catch (Exception e) {
-            log.error("Error registering device for user {}: {}", userId, e.getMessage(), e);
-            return CreateDeviceResponse.error("Failed to register device");
+            log.error("Error creating authenticated device for user {}: {}", 
+                userId, e.getMessage(), e);
+            throw new RuntimeException("Failed to create authenticated device", e);
         }
     }
     
-    /**
-     * Map DeviceRequest to DeviceIdentity entity
-     */
-    private DeviceIdentity mapRequestToEntity(DeviceRequest request) {
-        DeviceIdentity device = new DeviceIdentity();
+    public CreateAuthenticatedDeviceResponse registerDevice(
+            String userId, String deviceName, String fingerprint) {
         
-        // Map fingerprint data
-        if (request.getFingerprint() != null) {
-            device.setVisitorId(request.getFingerprint().getVisitorId());
-            device.setFingerprintConfidence(request.getFingerprint().getConfidence());
-        }
+        log.debug("Registering device {} for user {}", deviceName, userId);
         
-        // Map browser info
-        if (request.getBrowser() != null) {
-            device.setBrowserName(request.getBrowser().getName());
-            device.setBrowserVersion(request.getBrowser().getVersion());
-            device.setBrowserVendor(request.getBrowser().getVendor());
-            device.setCookiesEnabled(request.getBrowser().getCookiesEnabled());
-            device.setDoNotTrack(request.getBrowser().getDoNotTrack());
-            device.setLanguage(request.getBrowser().getLanguage());
-            device.setLanguages(request.getBrowser().getLanguages());
-        }
+        CreateAuthenticatedDeviceRequest request = new CreateAuthenticatedDeviceRequest();
+        request.setDeviceName(deviceName);
+        request.setFingerprint(fingerprint);
+        request.setTrusted(false); // New devices start as untrusted
         
-        // Map OS info
-        if (request.getOs() != null) {
-            device.setOsName(request.getOs().getName());
-            device.setOsVersion(request.getOs().getVersion());
-            device.setPlatform(request.getOs().getPlatform());
-            device.setArchitecture(request.getOs().getArchitecture());
-        }
-        
-        // Map hardware info
-        if (request.getHardware() != null) {
-            device.setScreenResolution(request.getHardware().getScreenResolution());
-            device.setAvailableScreenResolution(request.getHardware().getAvailableScreenResolution());
-            device.setColorDepth(request.getHardware().getColorDepth());
-            device.setPixelRatio(request.getHardware().getPixelRatio());
-            device.setHardwareConcurrency(request.getHardware().getHardwareConcurrency());
-            device.setDeviceMemory(request.getHardware().getDeviceMemory());
-            device.setMaxTouchPoints(request.getHardware().getMaxTouchPoints());
-        }
-        
-        // Map rendering info
-        if (request.getRendering() != null) {
-            device.setCanvasFingerprint(request.getRendering().getCanvas());
-            if (request.getRendering().getWebgl() != null) {
-                device.setWebglVendor(request.getRendering().getWebgl().getVendor());
-                device.setWebglRenderer(request.getRendering().getWebgl().getRenderer());
-                device.setWebglUnmaskedVendor(request.getRendering().getWebgl().getUnmaskedVendor());
-                device.setWebglUnmaskedRenderer(request.getRendering().getWebgl().getUnmaskedRenderer());
-            }
-            device.setFonts(request.getRendering().getFonts());
-        }
-        
-        // Map network info
-        if (request.getNetwork() != null) {
-            device.setTimezone(request.getNetwork().getTimezone());
-            device.setTimezoneOffset(request.getNetwork().getTimezoneOffset());
-        }
-        
-        // Map media capabilities
-        if (request.getMedia() != null) {
-            device.setAudioFingerprint(request.getMedia().getAudioContext());
-            device.setAudioCodecs(request.getMedia().getAudioCodecs());
-            device.setVideoCodecs(request.getMedia().getVideoCodecs());
-            if (request.getMedia().getMediaDevices() != null) {
-                device.setSpeakerCount(request.getMedia().getMediaDevices().getSpeakers());
-                device.setMicrophoneCount(request.getMedia().getMediaDevices().getMicrophones());
-                device.setWebcamCount(request.getMedia().getMediaDevices().getWebcams());
-            }
-        }
-        
-        // Map browser features
-        if (request.getFeatures() != null) {
-            device.setHasLocalStorage(request.getFeatures().getLocalStorage());
-            device.setHasSessionStorage(request.getFeatures().getSessionStorage());
-            device.setHasIndexedDB(request.getFeatures().getIndexedDB());
-            device.setHasWebRTC(request.getFeatures().getWebRTC());
-            device.setHasWebAssembly(request.getFeatures().getWebAssembly());
-            device.setHasServiceWorker(request.getFeatures().getServiceWorker());
-            device.setHasPushNotifications(request.getFeatures().getPushNotifications());
-        }
-        
-        // Map trust indicators
-        if (request.getTrust() != null) {
-            device.setIncognitoMode(request.getTrust().getIncognito());
-            device.setAdBlockEnabled(request.getTrust().getAdBlock());
-            device.setTamperingDetected(request.getTrust().getTampering());
-            device.setHasLiedLanguages(request.getTrust().getHasLiedLanguages());
-            device.setHasLiedResolution(request.getTrust().getHasLiedResolution());
-            device.setHasLiedOs(request.getTrust().getHasLiedOs());
-            device.setHasLiedBrowser(request.getTrust().getHasLiedBrowser());
-        }
-        
-        // Map metadata
-        if (request.getMetadata() != null) {
-            device.setDeviceName(request.getMetadata().getDeviceName());
-            device.setRegistrationType(request.getMetadata().getRegistrationType());
-        }
-        
-        // Set public key
-        device.setPublicKey(request.getPublicKey());
-        
-        return device;
+        return createAuthenticatedDevice(userId, request);
     }
     
-    /**
-     * Generate a unique device ID
-     */
-    private String generateDeviceId() {
-        return "dev_" + UUID.randomUUID().toString();
+    public CreateAuthenticatedDeviceResponse linkAnonymousDevice(
+            String userId, String anonymousDeviceId, String deviceName) {
+        
+        log.debug("Linking anonymous device {} to user {}", anonymousDeviceId, userId);
+        
+        try {
+            DeviceIdentity linkedDevice = createRepository.linkAnonymousDeviceToUser(
+                anonymousDeviceId, userId, deviceName);
+            
+            CreateAuthenticatedDeviceResponse response = new CreateAuthenticatedDeviceResponse();
+            response.setDeviceId(linkedDevice.getDeviceId());
+            response.setUserId(linkedDevice.getUserId());
+            response.setDeviceName(linkedDevice.getDeviceName());
+            response.setFingerprint(linkedDevice.getFingerprint());
+            response.setTrusted(linkedDevice.getTrusted());
+            response.setTrustScore(linkedDevice.getTrustScore());
+            response.setTrustLevel(linkedDevice.getTrustLevel());
+            response.setCreatedAt(linkedDevice.getCreatedAt());
+            
+            log.info("Successfully linked anonymous device {} to user {}", 
+                anonymousDeviceId, userId);
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Error linking anonymous device {} to user {}: {}", 
+                anonymousDeviceId, userId, e.getMessage(), e);
+            throw new RuntimeException("Failed to link anonymous device", e);
+        }
+    }
+    
+    private Double calculateInitialTrustScore(CreateAuthenticatedDeviceRequest request) {
+        double score = 0.6; // Base score for authenticated devices
+        
+        // Adjust based on available information
+        if (request.getFingerprint() != null && !request.getFingerprint().isEmpty()) {
+            score += 0.1;
+        }
+        if (request.getVisitorId() != null && !request.getVisitorId().isEmpty()) {
+            score += 0.1;
+        }
+        if (request.getUserAgent() != null && !request.getUserAgent().isEmpty()) {
+            score += 0.05;
+        }
+        if (request.getScreenResolution() != null && !request.getScreenResolution().isEmpty()) {
+            score += 0.05;
+        }
+        if (request.isTrusted()) {
+            score += 0.2;
+        }
+        
+        // Cap at 1.0
+        return Math.min(score, 1.0);
+    }
+    
+    private String determineTrustLevel(Double trustScore) {
+        if (trustScore == null) return "UNKNOWN";
+        if (trustScore >= 0.8) return "HIGH";
+        if (trustScore >= 0.5) return "MEDIUM";
+        if (trustScore >= 0.3) return "LOW";
+        return "VERY_LOW";
     }
 }

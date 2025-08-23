@@ -37,7 +37,7 @@ public class SimpleSubcollectionTest {
         AuthenticationMethodEntity testMethod = new AuthenticationMethodEntity();
         testMethod.setType(AuthenticationMethodType.PASSKEY);
         testMethod.putMetadata("testKey", "testValue");
-        testMethod.setEnabled(true);
+        testMethod.setIsActive(true);
         
         // Save using repository
         AuthenticationMethodEntity saved = authMethodRepository.saveForUser(testUserId, testMethod);

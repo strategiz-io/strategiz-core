@@ -138,13 +138,13 @@ public class PasetoTokenProvider {
      *
      * @param userId the internal user ID
      * @param authenticationMethods list of authentication methods used
-     * @param acr authentication context class ("0", "1", "2")
-     * @param aal authenticator assurance level ("1", "2", "3")
+     * @param acr authentication context reference ("0", "1", "2", "3")
      * @param validity how long the token should be valid
+     * @param tradingMode the user's trading mode ("demo" or "live")
      * @return the token string
      */
     public String createAuthenticationToken(String userId, List<String> authenticationMethods, 
-                                          String acr, String aal, Duration validity) {
+                                          String acr, Duration validity, String tradingMode) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();
@@ -153,8 +153,8 @@ public class PasetoTokenProvider {
         // Convert auth methods to numeric AMR
         List<Integer> amr = encodeAuthenticationMethods(authenticationMethods);
         
-        // Calculate scopes based on ACR and AAL
-        String scope = calculateScopesForAcr(acr, aal, userId);
+        // Calculate scopes based on user entitlements, not ACR
+        String scope = calculateUserScopes(userId);
         
         // Build the token with full claims structure
         var builder = Pasetos.V2.LOCAL.builder()
@@ -167,35 +167,34 @@ public class PasetoTokenProvider {
                 .setKeyId(tokenId);
                 
         // Add Strategiz-specific claims
-        builder.claim("amr", amr);              // Authentication Methods (numeric)
-        builder.claim("acr", acr);              // Authentication Context Class ("0", "1", "2")
-        builder.claim("aal", aal);              // Authenticator Assurance Level ("1", "2", "3")
+        builder.claim("amr", amr);              // Authentication Methods (numeric array)
+        builder.claim("acr", acr);              // Authentication Context Reference ("0", "1", "2", "3")
         builder.claim("auth_time", now.getEpochSecond()); // When user authenticated
-        builder.claim("scope", scope);          // Calculated permissions
+        builder.claim("scope", scope);          // User permissions/entitlements
         builder.claim("type", "ACCESS");        // Token type
+        builder.claim("tradingMode", tradingMode != null ? tradingMode : "demo"); // Trading mode (default to demo)
                 
         return builder.compact();
     }
     
     /**
-     * Creates a token with automatic ACR/AAL calculation based on authentication methods
+     * Creates a token with automatic ACR calculation based on authentication methods
      *
      * @param userId the internal user ID
      * @param authenticationMethods list of authentication methods used
-     * @param isPartialAuth whether this is partial authentication (2FA mandatory but incomplete)
+     * @param isPartialAuth whether this is partial authentication (signup incomplete)
      * @param validity how long the token should be valid
      * @return the token string
      */
     public String createAuthenticationToken(String userId, List<String> authenticationMethods, 
                                           boolean isPartialAuth, Duration validity) {
         String acr = calculateAcr(authenticationMethods, isPartialAuth);
-        String aal = calculateAal(authenticationMethods);
-        return createAuthenticationToken(userId, authenticationMethods, acr, aal, validity);
+        return createAuthenticationToken(userId, authenticationMethods, acr, validity, "demo");
     }
     
     /**
      * Updates token claims when new authenticator is added during session
-     * This creates a new token with updated ACR/AAL based on additional authentication
+     * This creates a new token with updated ACR based on additional authentication
      *
      * @param currentToken the current token
      * @param additionalAuthMethods new authentication methods completed
@@ -218,11 +217,13 @@ public class PasetoTokenProvider {
         List<String> combinedMethods = new ArrayList<>(currentMethods);
         combinedMethods.addAll(additionalAuthMethods);
         
-        // Calculate new ACR/AAL - assume full authentication now
+        // Calculate new ACR - assume full authentication now
         String newAcr = calculateAcr(combinedMethods, false);
-        String newAal = calculateAal(combinedMethods);
         
-        return createAuthenticationToken(userId, combinedMethods, newAcr, newAal, validity);
+        // Preserve trading mode from current token
+        String tradingMode = (String) currentClaims.getOrDefault("tradingMode", "demo");
+        
+        return createAuthenticationToken(userId, combinedMethods, newAcr, validity, tradingMode);
     }
     
     /**
@@ -300,123 +301,61 @@ public class PasetoTokenProvider {
      * @param isPartialAuth whether this is partial authentication (2FA mandatory but incomplete)
      * @return ACR value ("0", "1", "2")
      */
-    public String calculateAcr(List<String> authenticationMethods, boolean isPartialAuth) {
-        if (authenticationMethods == null || authenticationMethods.isEmpty()) {
-            return "0"; // Unauthenticated
-        }
-        
-        if (isPartialAuth) {
-            return "1"; // Partially authenticated (2FA mandatory but only 1 factor completed)
-        }
-        
-        return "2"; // Fully authenticated
-    }
-    
     /**
-     * Calculates Authenticator Assurance Level (AAL) based on authentication methods
+     * Calculates Authentication Context Reference (ACR) based on authentication methods
+     * ACR values:
+     * - "0": No authentication (partial/signup in progress)
+     * - "1": Single-factor authentication
+     * - "2": Multi-factor authentication (standard MFA)
+     * - "3": Strong multi-factor (hardware key + another factor)
      * 
      * @param authenticationMethods list of authentication methods completed
-     * @return AAL value ("1", "2", "3")
+     * @param isPartialAuth whether this is partial authentication (signup incomplete)
+     * @return ACR value as string
      */
-    public String calculateAal(List<String> authenticationMethods) {
-        if (authenticationMethods == null || authenticationMethods.isEmpty()) {
-            return "1"; // Default to basic assurance
+    public String calculateAcr(List<String> authenticationMethods, boolean isPartialAuth) {
+        if (isPartialAuth || authenticationMethods == null || authenticationMethods.isEmpty()) {
+            return "0"; // No/partial authentication
         }
         
-        // AAL 3 - Hardware crypto (passkeys)
-        if (authenticationMethods.contains("passkeys")) {
-            return "3";
+        // Hardware-based MFA (highest level)
+        if (authenticationMethods.contains("passkeys") && authenticationMethods.size() > 1) {
+            return "3"; // Strong MFA with hardware authenticator
         }
         
-        // AAL 2 - Multi-factor (password + something else)
-        if (authenticationMethods.size() > 1 && 
-            authenticationMethods.contains("password") && 
-            (authenticationMethods.contains("totp") || authenticationMethods.contains("sms_otp"))) {
-            return "2";
+        // Standard MFA or passkey alone (passkeys are inherently strong)
+        if (authenticationMethods.size() >= 2 || authenticationMethods.contains("passkeys")) {
+            return "2"; // Multi-factor or strong single factor
         }
         
-        // AAL 1 - Single factor
-        return "1";
+        // Single factor authentication
+        return "1"; // Basic authentication
     }
     
+    
     /**
-     * Calculates scopes based on Authentication Context Class (ACR) and Authenticator Assurance Level (AAL)
+     * Calculates user scopes based on entitlements and permissions
+     * This should be determined by user roles/permissions, not authentication strength
      *
-     * @param acr the authentication context class ("0", "1", "2")
-     * @param aal the authenticator assurance level ("1", "2", "3")
-     * @param userId the user ID (for future user-specific permissions)
+     * @param userId the user ID for fetching permissions
      * @return space-separated scope string
      */
-    private String calculateScopesForAcr(String acr, String aal, String userId) {
-        List<String> scopes = new ArrayList<>();
-        
-        switch (acr) {
-            case "0":
-                // No authentication - no scopes
-                break;
-                
-            case "1":
-                // Partial authentication - profile and auth method management only
-                scopes.addAll(Arrays.asList(
-                    "read:profile", "write:profile",
-                    "read:auth_methods", "write:auth_methods"
-                ));
-                break;
-                
-            case "2":
-                // Fully authenticated - permissions based on AAL
-                scopes.addAll(Arrays.asList(
-                    "read:profile", "write:profile",
-                    "read:portfolio", "read:positions", "read:market_data",
-                    "read:watchlists", "write:watchlists"
-                ));
-                
-                // AAL 2+ gets trading operations
-                if ("2".equals(aal) || "3".equals(aal)) {
-                    scopes.addAll(Arrays.asList(
-                        "write:portfolio", "write:positions",
-                        "read:trades", "write:trades",
-                        "read:strategies", "write:strategies",
-                        "read:settings", "write:settings"
-                    ));
-                }
-                
-                // AAL 3 gets sensitive operations
-                if ("3".equals(aal)) {
-                    scopes.addAll(Arrays.asList(
-                        "delete:profile", "admin:portfolio",
-                        "delete:positions", "delete:trades",
-                        "admin:strategies", "admin:settings",
-                        "read:auth_methods", "write:auth_methods",
-                        "read:sessions", "write:sessions"
-                    ));
-                }
-                break;
-                
-            default:
-                // Unknown ACR - minimal scopes
-                scopes.addAll(Arrays.asList("read:profile"));
-                break;
-        }
+    private String calculateUserScopes(String userId) {
+        // TODO: Fetch actual user permissions from database/service
+        // For now, return standard user scopes
+        List<String> scopes = Arrays.asList(
+            "read:profile", "write:profile",
+            "read:portfolio", "write:portfolio",
+            "read:positions", "write:positions",
+            "read:market_data",
+            "read:watchlists", "write:watchlists",
+            "read:trades", "write:trades",
+            "read:strategies", "write:strategies",
+            "read:settings", "write:settings",
+            "read:auth_methods", "write:auth_methods"
+        );
         
         return String.join(" ", scopes);
-    }
-    
-    /**
-     * Legacy method for backward compatibility - calculates ACR/AAL internally
-     */
-    private String calculateScopesForAcr(String acr, String userId) {
-        // Extract AAL from legacy ACR format if needed
-        String aal = "1"; // Default
-        if (acr.contains(".")) {
-            String[] parts = acr.split("\\.");
-            if (parts.length == 2) {
-                aal = parts[1];
-                acr = parts[0];
-            }
-        }
-        
-        return calculateScopesForAcr(acr, aal, userId);
     }
     
     /**

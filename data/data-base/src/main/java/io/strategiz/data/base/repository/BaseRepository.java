@@ -70,7 +70,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
             DocumentSnapshot doc = getCollection().document(id).get().get();
             if (doc.exists()) {
                 T entity = doc.toObject(entityClass);
-                if (entity != null && entity.isActive()) {
+                if (entity != null && Boolean.TRUE.equals(entity.getIsActive())) {
                     entity.setId(doc.getId());
                     return Optional.of(entity);
                 }
@@ -291,7 +291,8 @@ public abstract class BaseRepository<T extends BaseEntity> {
 
     private void prepareForCreate(T entity, String userId) {
         if (entity.getId() == null || entity.getId().isEmpty()) {
-            entity.setId(getCollection().document().getId());
+            // Generate UUID v4 format ID instead of Firestore's default format
+            entity.setId(java.util.UUID.randomUUID().toString());
         }
         
         if (!entity._hasAudit()) {
@@ -324,7 +325,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
             DocumentSnapshot doc = getCollection().document(id).get().get();
             if (doc.exists()) {
                 T entity = doc.toObject(entityClass);
-                if (entity != null && entity.isDeleted()) {
+                if (entity != null && !Boolean.TRUE.equals(entity.getIsActive())) {
                     entity.setId(doc.getId());
                     return Optional.of(entity);
                 }
@@ -342,6 +343,22 @@ public abstract class BaseRepository<T extends BaseEntity> {
             return firestore.collection(instance.getCollectionName());
         } catch (Exception e) {
             throw new RuntimeException("Failed to get collection for " + entityClass.getSimpleName(), e);
+        }
+    }
+    
+    /**
+     * Get collection reference for user-scoped entities (subcollections under users)
+     * @param userId The user ID for the subcollection
+     * @return CollectionReference for the user's subcollection
+     */
+    protected CollectionReference getUserScopedCollection(String userId) {
+        try {
+            T instance = entityClass.getDeclaredConstructor().newInstance();
+            String collectionName = instance.getCollectionName();
+            // For user-scoped collections, create under users/{userId}/collection_name
+            return firestore.collection("users").document(userId).collection(collectionName);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get user-scoped collection for " + entityClass.getSimpleName(), e);
         }
     }
 }

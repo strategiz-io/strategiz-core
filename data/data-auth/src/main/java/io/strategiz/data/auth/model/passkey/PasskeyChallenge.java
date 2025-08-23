@@ -185,12 +185,16 @@ public class PasskeyChallenge extends BaseEntity {
     // These methods exist to prevent warnings when Firestore tries to map fields
     // that exist in the database but are handled by BaseEntity's audit system
     
+    public void setIsActive(Boolean isActive) {
+        super.setIsActive(isActive);
+    }
+    
     public void setActive(boolean active) {
-        // Handled by BaseEntity audit fields
+        super.setIsActive(active);
     }
     
     public void setVersion(Long version) {
-        // Handled by BaseEntity audit fields
+        super.setVersion(version);
     }
     
     public void setCollectionName(String collectionName) {
@@ -202,15 +206,23 @@ public class PasskeyChallenge extends BaseEntity {
     }
     
     public void setDeleted(boolean deleted) {
-        // Handled by BaseEntity audit fields
+        super.setIsActive(!deleted);
     }
     
     public void setCreatedBy(String createdBy) {
-        // Handled by BaseEntity audit fields
+        super.setCreatedBy(createdBy);
     }
     
     public void setModifiedBy(String modifiedBy) {
-        // Handled by BaseEntity audit fields
+        super.setModifiedBy(modifiedBy);
+    }
+    
+    public void setCreatedDate(com.google.cloud.Timestamp createdDate) {
+        super.setCreatedDate(createdDate);
+    }
+    
+    public void setModifiedDate(com.google.cloud.Timestamp modifiedDate) {
+        super.setModifiedDate(modifiedDate);
     }
     
     public void setExpired(boolean expired) {

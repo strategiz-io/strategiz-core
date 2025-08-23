@@ -9,7 +9,6 @@ import io.strategiz.framework.secrets.exception.SecretsErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -22,7 +21,6 @@ import java.util.Optional;
  * Uses direct HTTP calls to Vault API instead of Spring Cloud Vault.
  */
 @Service
-@Primary
 public class VaultSecretService implements SecretManager {
     
     private static final Logger log = LoggerFactory.getLogger(VaultSecretService.class);

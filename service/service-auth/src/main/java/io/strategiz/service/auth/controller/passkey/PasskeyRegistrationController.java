@@ -170,9 +170,7 @@ public class PasskeyRegistrationController extends BaseController {
             request.credentialId(),
             request.attestationObject(),
             request.clientDataJSON(),
-            request.deviceId(),
-            "", // Device name not provided in request
-            ""  // UserEntity agent not provided in request
+            request.deviceId()
         );
         
         // Complete registration - let exceptions bubble up
@@ -217,8 +215,7 @@ public class PasskeyRegistrationController extends BaseController {
         options.put("rp", Map.of("name", "Strategiz", "id", "strategiz.io"));
         options.put("user", Map.of(
             "id", Base64.getEncoder().encodeToString(userId.getBytes()),
-            "name", email,
-            "displayName", email
+            "name", email
         ));
         options.put("pubKeyCredParams", getDefaultPubKeyCredParams());
         options.put("timeout", 60000);

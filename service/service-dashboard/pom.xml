@@ -69,6 +69,11 @@
             <artifactId>client-coinbase</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-yahoo-finance</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- Spring Dependencies -->
         <dependency>

@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow users to manage their own security subcollection
+      match /security/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Allow users to manage their own subcollections
+      match /{subcollection=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+    
+    // Allow reading passkey challenges for authentication
+    match /passkey_challenges/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Sessions collection - authenticated users can manage their sessions
+    match /sessions/{sessionId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Temporary: Allow all for development
+    // TODO: Remove this in production and implement proper security rules
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

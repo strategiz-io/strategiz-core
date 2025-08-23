@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.strategiz.service.dashboard.RiskAnalysisService;
+import io.strategiz.service.dashboard.service.RiskAnalysisService;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;

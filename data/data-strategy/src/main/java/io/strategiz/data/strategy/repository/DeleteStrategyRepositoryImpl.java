@@ -23,7 +23,7 @@ public class DeleteStrategyRepositoryImpl implements DeleteStrategyRepository {
     @Override
     public boolean deleteByIdAndUserId(String id, String userId) {
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !existing.get().isActive()) {
+        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return false;
         }
         
@@ -37,7 +37,7 @@ public class DeleteStrategyRepositoryImpl implements DeleteStrategyRepository {
         int deletedCount = 0;
         
         for (Strategy strategy : strategies) {
-            if (strategy.isActive()) {
+            if (Boolean.TRUE.equals(strategy.getIsActive())) {
                 if (baseRepository.delete(strategy.getId(), userId)) {
                     deletedCount++;
                 }

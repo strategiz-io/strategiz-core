@@ -90,7 +90,7 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
             var doc = getSubcollection(parentId).document(entityId).get().get();
             if (doc.exists()) {
                 T entity = doc.toObject(entityClass);
-                if (entity != null && entity.isActive()) {
+                if (entity != null && Boolean.TRUE.equals(entity.getIsActive())) {
                     entity.setId(doc.getId());
                     return Optional.of(entity);
                 }

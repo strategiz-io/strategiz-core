@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -68,6 +69,10 @@ public class PasskeyManagementService extends BaseService {
         );
         return credentials.stream()
             .map(this::convertToDetails)
+            // Sort by registeredAt in ascending order (oldest first)
+            // Using Comparator.nullsLast to handle potential nulls gracefully
+            .sorted(Comparator.comparing(PasskeyDetails::registeredAt, 
+                    Comparator.nullsLast(Comparator.naturalOrder())))
             .collect(Collectors.toList());
     }
     

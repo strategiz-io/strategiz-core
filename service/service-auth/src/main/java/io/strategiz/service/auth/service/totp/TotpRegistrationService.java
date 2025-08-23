@@ -10,10 +10,33 @@ import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import dev.samstevens.totp.code.CodeVerifier;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.code.HashingAlgorithm;
+import dev.samstevens.totp.secret.DefaultSecretGenerator;
+import dev.samstevens.totp.secret.SecretGenerator;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,17 +46,44 @@ import java.util.Optional;
  * Manages the generation of TOTP secrets, QR codes, and TOTP setup/disabling
  */
 @Service
-public class TotpRegistrationService extends BaseTotpService {
+public class TotpRegistrationService {
     
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TotpRegistrationService.class);
+    
+    // TOTP configuration constants
+    private static final int DEFAULT_TOTP_CODE_DIGITS = 6;
+    private static final int DEFAULT_PERIOD_SECONDS = 30;
+    private static final String TOTP_ALGORITHM = "SHA1"; // Most compatible with authenticator apps
+    private static final String ISSUER = "Strategiz";
+    
+    // QR code configuration
+    private static final int QR_SIZE = 300;
+    private static final int LOGO_SIZE = 60;
+    private static final int BORDER_SIZE = 0; // Minimal border
+    private static final Color QR_COLOR = Color.BLACK;
+    private static final Color BACKGROUND_COLOR = Color.WHITE;
+    private static final String LOGO_PATH = "assets/strategiz-logo.png";
+    
+    private final UserRepository userRepository;
     private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
+    private final SecretGenerator secretGenerator;
+    private final CodeVerifier codeVerifier;
     
     public TotpRegistrationService(UserRepository userRepository, 
                                    AuthenticationMethodRepository authMethodRepository,
                                    SessionAuthBusiness sessionAuthBusiness) {
-        super(userRepository, authMethodRepository);
+        this.userRepository = userRepository;
         this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
+        this.secretGenerator = new DefaultSecretGenerator();
+        
+        // Configure code verifier with timing window
+        TimeProvider timeProvider = new SystemTimeProvider();
+        this.codeVerifier = new DefaultCodeVerifier(
+            new DefaultCodeGenerator(HashingAlgorithm.SHA1),
+            timeProvider
+        );
     }
     
     /**
@@ -104,7 +154,7 @@ public class TotpRegistrationService extends BaseTotpService {
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.PERIOD, 30); // 30-second time step
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.ISSUER, "Strategiz");
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.ACCOUNT_NAME, userEmail); // Store email for user-friendly display
-        totpAuth.setEnabled(false); // Not enabled until verified
+        totpAuth.setIsActive(false); // Not enabled until verified
         
         log.info("Saving TOTP auth method for user ID: {} (email: {}) with secret: {}", user.getId(), userEmail, secret.substring(0, 4) + "...");
         authMethodRepository.saveForUser(user.getId(), totpAuth);
@@ -121,6 +171,160 @@ public class TotpRegistrationService extends BaseTotpService {
         // Generate the QR code using the email for display
         String qrCodeUri = generateQrCodeUri(userEmail, secret);
         return new TotpGenerationResult(secret, qrCodeUri);
+    }
+    
+    /**
+     * Generate a QR code URI for TOTP setup with embedded Strategiz logo
+     * @param username the username
+     * @param secret the TOTP secret
+     * @return the QR code as a data URI string
+     */
+    private String generateQrCodeUri(String username, String secret) {
+        try {
+            // Build TOTP URL
+            String totpUrl = String.format("otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=%s&digits=%d&period=%d",
+                    ISSUER, username, secret, ISSUER, TOTP_ALGORITHM, DEFAULT_TOTP_CODE_DIGITS, DEFAULT_PERIOD_SECONDS);
+            
+            return generateQrCodeWithLogo(totpUrl);
+        } catch (Exception e) {
+            log.error("Error generating QR code for user {}: {}", username, e.getMessage());
+            throw new StrategizException(AuthErrors.QR_GENERATION_FAILED, e.getMessage());
+        }
+    }
+    
+    /**
+     * Generate QR code with embedded logo
+     * @param data The data to encode (TOTP URL)
+     * @return Base64 encoded PNG image as data URI
+     */
+    private String generateQrCodeWithLogo(String data) {
+        try {
+            // Create QR code with high error correction
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // High error correction for logo embedding
+            hints.put(EncodeHintType.MARGIN, BORDER_SIZE); // Minimal margin
+            
+            QRCodeWriter qrWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrWriter.encode(data, BarcodeFormat.QR_CODE, QR_SIZE, QR_SIZE, hints);
+            
+            // Convert BitMatrix to BufferedImage
+            BufferedImage qrImage = createQrImage(bitMatrix);
+            
+            // Load and overlay logo
+            BufferedImage finalImage = embedLogo(qrImage);
+            
+            // Convert to base64 data URI
+            return convertToDataUri(finalImage);
+            
+        } catch (Exception e) {
+            log.error("Error generating QR code with logo: {}", e.getMessage());
+            // Fallback to simple QR code without logo
+            return generateSimpleQrCode(data);
+        }
+    }
+    
+    /**
+     * Convert BitMatrix to BufferedImage
+     */
+    private BufferedImage createQrImage(BitMatrix bitMatrix) {
+        int width = bitMatrix.getWidth();
+        int height = bitMatrix.getHeight();
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                image.setRGB(x, y, bitMatrix.get(x, y) ? QR_COLOR.getRGB() : BACKGROUND_COLOR.getRGB());
+            }
+        }
+        
+        return image;
+    }
+    
+    /**
+     * Embed logo in the center of QR code
+     */
+    private BufferedImage embedLogo(BufferedImage qrImage) {
+        try {
+            // Load logo from resources
+            ClassPathResource logoResource = new ClassPathResource(LOGO_PATH);
+            BufferedImage logo;
+            
+            try (InputStream logoStream = logoResource.getInputStream()) {
+                logo = ImageIO.read(logoStream);
+            }
+            
+            if (logo == null) {
+                log.warn("Logo not found, returning QR code without logo");
+                return qrImage;
+            }
+            
+            // Create final image
+            BufferedImage finalImage = new BufferedImage(qrImage.getWidth(), qrImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = finalImage.createGraphics();
+            
+            // Enable anti-aliasing for smooth rendering
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            
+            // Draw QR code
+            g2d.drawImage(qrImage, 0, 0, null);
+            
+            // Calculate logo position (center)
+            int logoX = (qrImage.getWidth() - LOGO_SIZE) / 2;
+            int logoY = (qrImage.getHeight() - LOGO_SIZE) / 2;
+            
+            // Create white background with rounded corners for logo
+            int padding = 8;
+            int backgroundSize = LOGO_SIZE + (padding * 2);
+            int backgroundX = logoX - padding;
+            int backgroundY = logoY - padding;
+            
+            g2d.setColor(BACKGROUND_COLOR);
+            g2d.fill(new RoundRectangle2D.Float(backgroundX, backgroundY, backgroundSize, backgroundSize, 15, 15));
+            
+            // Draw logo
+            Image scaledLogo = logo.getScaledInstance(LOGO_SIZE, LOGO_SIZE, Image.SCALE_SMOOTH);
+            g2d.drawImage(scaledLogo, logoX, logoY, null);
+            
+            g2d.dispose();
+            return finalImage;
+            
+        } catch (Exception e) {
+            log.error("Error embedding logo: {}", e.getMessage());
+            return qrImage;
+        }
+    }
+    
+    /**
+     * Convert BufferedImage to base64 data URI
+     */
+    private String convertToDataUri(BufferedImage image) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "PNG", baos);
+        byte[] imageBytes = baos.toByteArray();
+        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+        return "data:image/png;base64," + base64Image;
+    }
+    
+    /**
+     * Fallback: Generate simple QR code without logo
+     */
+    private String generateSimpleQrCode(String data) {
+        try {
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+            hints.put(EncodeHintType.MARGIN, BORDER_SIZE);
+            
+            QRCodeWriter qrWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrWriter.encode(data, BarcodeFormat.QR_CODE, QR_SIZE, QR_SIZE, hints);
+            
+            BufferedImage qrImage = createQrImage(bitMatrix);
+            return convertToDataUri(qrImage);
+            
+        } catch (Exception e) {
+            log.error("Error generating fallback QR code: {}", e.getMessage());
+            return "data:image/png;base64,"; // Empty data URI as last resort
+        }
     }
     
     /**
@@ -177,7 +381,7 @@ public class TotpRegistrationService extends BaseTotpService {
         }
         
         // Verify the code against the secret, regardless of configured status
-        boolean isValid = isCodeValid(code, secret);
+        boolean isValid = codeVerifier.isValidCode(secret, code);
         if (isValid) {
             log.info("TOTP registration code verified successfully for user: {}", username);
         } else {
@@ -220,7 +424,7 @@ public class TotpRegistrationService extends BaseTotpService {
         // Mark the TOTP as verified and enabled
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFIED, true);
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFICATION_TIME, Instant.now().toString());
-        totpAuth.setEnabled(true);
+        totpAuth.setIsActive(true);
         totpAuth.markAsUsed();
         authMethodRepository.saveForUser(user.getId(), totpAuth);
         
@@ -287,5 +491,22 @@ public class TotpRegistrationService extends BaseTotpService {
         // Remove TOTP authentication methods
         authMethodRepository.deleteByUserIdAndType(user.getId(), AuthenticationMethodType.TOTP);
         log.info("TOTP disabled for user {}", username);
+    }
+    
+    /**
+     * Helper method to find the TOTP authentication method for a user
+     * @param user the user
+     * @return the TOTP authentication method, or null if not found
+     */
+    private AuthenticationMethodEntity findTotpAuthMethod(UserEntity user) {
+        List<AuthenticationMethodEntity> authMethods = authMethodRepository.findByUserIdAndType(
+            user.getId(), AuthenticationMethodType.TOTP
+        );
+        
+        // Return the first enabled TOTP method
+        return authMethods.stream()
+            .filter(method -> Boolean.TRUE.equals(method.getIsActive()))
+            .findFirst()
+            .orElse(null);
     }
 }

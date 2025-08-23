@@ -25,8 +25,8 @@ public class UserProfileEntity {
     @JsonProperty("photoURL")
     private String photoURL;
     
-    @JsonProperty("verifiedEmail")
-    private Boolean verifiedEmail = false;
+    @JsonProperty("isEmailVerified")
+    private Boolean isEmailVerified = false;
     
     @NotBlank(message = "Subscription tier is required")
     @JsonProperty("subscriptionTier")
@@ -36,9 +36,6 @@ public class UserProfileEntity {
     @JsonProperty("tradingMode")
     private String tradingMode = "demo"; // demo, live
     
-    @NotNull(message = "Active status is required")
-    @JsonProperty("isActive")
-    private Boolean isActive = true;
 
     // Constructors
     public UserProfileEntity() {
@@ -47,20 +44,18 @@ public class UserProfileEntity {
     public UserProfileEntity(String name, String email) {
         this.name = name;
         this.email = email;
-        this.verifiedEmail = false;
+        this.isEmailVerified = false;
         this.subscriptionTier = "free";
         this.tradingMode = "demo";
-        this.isActive = true;
     }
 
-    public UserProfileEntity(String name, String email, String photoURL, Boolean verifiedEmail, String subscriptionTier, String tradingMode, Boolean isActive) {
+    public UserProfileEntity(String name, String email, String photoURL, Boolean isEmailVerified, String subscriptionTier, String tradingMode) {
         this.name = name;
         this.email = email;
         this.photoURL = photoURL;
-        this.verifiedEmail = verifiedEmail;
+        this.isEmailVerified = isEmailVerified;
         this.subscriptionTier = subscriptionTier;
         this.tradingMode = tradingMode;
-        this.isActive = isActive;
     }
 
     // Getters and Setters
@@ -88,12 +83,12 @@ public class UserProfileEntity {
         this.photoURL = photoURL;
     }
 
-    public Boolean getVerifiedEmail() {
-        return verifiedEmail;
+    public Boolean getIsEmailVerified() {
+        return isEmailVerified;
     }
 
-    public void setVerifiedEmail(Boolean verifiedEmail) {
-        this.verifiedEmail = verifiedEmail;
+    public void setIsEmailVerified(Boolean isEmailVerified) {
+        this.isEmailVerified = isEmailVerified;
     }
 
     public String getSubscriptionTier() {
@@ -112,13 +107,6 @@ public class UserProfileEntity {
         this.tradingMode = tradingMode;
     }
 
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean active) {
-        isActive = active;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -128,15 +116,14 @@ public class UserProfileEntity {
         return Objects.equals(name, that.name) &&
                Objects.equals(email, that.email) &&
                Objects.equals(photoURL, that.photoURL) &&
-               Objects.equals(verifiedEmail, that.verifiedEmail) &&
+               Objects.equals(isEmailVerified, that.isEmailVerified) &&
                Objects.equals(subscriptionTier, that.subscriptionTier) &&
-               Objects.equals(tradingMode, that.tradingMode) &&
-               Objects.equals(isActive, that.isActive);
+               Objects.equals(tradingMode, that.tradingMode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, email, photoURL, verifiedEmail, subscriptionTier, tradingMode, isActive);
+        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, tradingMode);
     }
 
     @Override
@@ -145,10 +132,9 @@ public class UserProfileEntity {
                "name='" + name + '\'' +
                ", email='" + email + '\'' +
                ", photoURL='" + photoURL + '\'' +
-               ", verifiedEmail=" + verifiedEmail +
+               ", isEmailVerified=" + isEmailVerified +
                ", subscriptionTier='" + subscriptionTier + '\'' +
                ", tradingMode='" + tradingMode + '\'' +
-               ", isActive=" + isActive +
                '}';
     }
 }

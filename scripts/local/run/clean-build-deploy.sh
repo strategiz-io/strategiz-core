@@ -60,11 +60,58 @@ if ! command -v java &> /dev/null; then
 fi
 print_success "Java found: $(java -version 2>&1 | head -n1)"
 
-# Check if Vault process is running (optional but recommended)
-if pgrep -f "vault server" > /dev/null; then
-    print_success "Vault server is running"
+# Vault Setup and Verification
+print_step "Vault Setup"
+
+# Check if Vault is installed
+if ! command -v vault &> /dev/null; then
+    print_error "Vault is not installed. Please install HashiCorp Vault first."
+    echo "   Visit: https://www.vaultproject.io/downloads"
+    exit 1
+fi
+
+# Check if Vault process is running
+if ! pgrep -f "vault server" > /dev/null; then
+    print_warning "Vault server not running. Starting in dev mode..."
+    vault server -dev > /tmp/vault-dev.log 2>&1 &
+    VAULT_PID=$!
+    sleep 2
+    
+    if ps -p $VAULT_PID > /dev/null; then
+        print_success "Vault server started in dev mode (PID: $VAULT_PID)"
+        echo "   Logs: /tmp/vault-dev.log"
+    else
+        print_error "Failed to start Vault server"
+        exit 1
+    fi
 else
-    print_warning "Vault server doesn't appear to be running. You may want to start it with: vault server -dev"
+    print_success "Vault server is already running"
+fi
+
+# Set Vault environment variables
+if [ -z "$VAULT_ADDR" ]; then
+    export VAULT_ADDR="http://localhost:8200"
+    print_success "Set VAULT_ADDR=$VAULT_ADDR"
+fi
+
+if [ -z "$VAULT_TOKEN" ]; then
+    export VAULT_TOKEN="root"
+    print_success "Set VAULT_TOKEN=root (dev mode)"
+fi
+
+# Verify Vault connectivity
+if vault status > /dev/null 2>&1; then
+    print_success "Vault is accessible and unsealed"
+    
+    # Check if OAuth secrets exist
+    if vault kv get secret/strategiz/oauth/coinbase > /dev/null 2>&1; then
+        print_success "Coinbase OAuth secrets found in Vault"
+    else
+        print_warning "Coinbase OAuth secrets not found. Continuing without setup..."
+    fi
+else
+    print_error "Cannot connect to Vault. Please check Vault status."
+    exit 1
 fi
 
 echo
@@ -113,24 +160,18 @@ done
 
 echo
 
-# Optional: Run quick smoke tests
-read -p "Do you want to run a quick smoke test before deployment? (y/N): " -n 1 -r
+# Skip smoke tests in automated mode
+print_step "Phase 3: Quick Smoke Test"
+print_warning "Skipping smoke test (automated mode)"
 echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    print_step "Phase 3: Quick Smoke Test"
-    mvn test -Dtest="**/HealthCheckTest" -q --batch-mode 2>/dev/null || true
-    print_success "Smoke test completed"
-    echo
-fi
 
 # Deploy the application
 print_step "Phase 4: Application Deployment"
 
-# Check for environment variables and provide guidance
-if [ -z "$VAULT_TOKEN" ]; then
-    print_warning "VAULT_TOKEN not set. Make sure to export it if using Vault"
-    echo "   Example: export VAULT_TOKEN=hvs.your-dev-token"
-fi
+# Vault environment is already set up from earlier steps
+print_success "Vault environment configured:"
+echo "   VAULT_ADDR: $VAULT_ADDR"
+echo "   VAULT_TOKEN: [CONFIGURED]"
 
 echo "Starting Strategiz Core application..."
 echo "Application will start with dev profile"

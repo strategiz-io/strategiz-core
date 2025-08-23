@@ -33,16 +33,21 @@ public class TokenSessionService {
      * @return the access token
      */
     public String createSession(String userId, String deviceId, String ipAddress) {
-        // Use ACR "2.1" (basic assurance) as default for generic session creation
-        // Assume basic authentication method since context is unknown
-        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+        // Use unified authentication approach with ACR "1" for basic single-factor
+        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
             userId,
+            null, // Email not available in this context
             List.of("password"), // Default to password auth for generic sessions
-            "2.1", // ACR "2.1" - Basic assurance
+            false, // Not partial auth
             deviceId,
-            ipAddress
+            deviceId, // Use as fingerprint
+            ipAddress,
+            "Token Session Service",
+            "live" // tradingMode
         );
-        return tokenPair.accessToken();
+        
+        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+        return authResult.accessToken();
     }
     
     /**
@@ -51,15 +56,21 @@ public class TokenSessionService {
      * @return the access token
      */
     public String createSession(String userId) {
-        // Use ACR "2.1" (basic assurance) as default for generic session creation
-        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+        // Use unified authentication approach with ACR "1" for basic single-factor
+        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
             userId,
+            null, // Email not available
             List.of("password"), // Default to password auth for generic sessions
-            "2.1", // ACR "2.1" - Basic assurance
+            false, // Not partial auth
             null, // No device ID
-            null  // No IP address
+            null, // No fingerprint
+            null, // No IP address
+            "Token Session Service",
+            "live" // tradingMode
         );
-        return tokenPair.accessToken();
+        
+        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+        return authResult.accessToken();
     }
 
     /**

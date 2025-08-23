@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for managing authentication methods in users/{userId}/authentication_methods subcollection
+ * Repository for managing authentication methods in users/{userId}/security subcollection
  * Provides CRUD operations for all authentication method types (TOTP, OAuth, Passkey, SMS OTP, etc.)
  * 
  * This is an interface that defines subcollection-specific operations.

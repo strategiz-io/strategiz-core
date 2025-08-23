@@ -21,10 +21,8 @@ public class CreateProviderIntegrationRepositoryImpl implements CreateProviderIn
     
     @Override
     public ProviderIntegrationEntity create(ProviderIntegrationEntity integration) {
-        // Generate ID if not provided
-        if (integration.getId() == null || integration.getId().isEmpty()) {
-            integration.setId(UUID.randomUUID().toString());
-        }
+        // DO NOT set ID here - let BaseRepository handle it as a create operation
+        // The BaseRepository will generate the ID when it detects a null ID
         
         // Set default status if not provided
         if (integration.getStatus() == null || integration.getStatus().isEmpty()) {
@@ -37,6 +35,7 @@ public class CreateProviderIntegrationRepositoryImpl implements CreateProviderIn
         }
         
         // Use BaseRepository's save method (requires userId)
+        // Since we're not setting an ID, BaseRepository will treat this as a create operation
         return baseRepository.save(integration, integration.getUserId());
     }
     

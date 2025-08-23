@@ -1,125 +1,180 @@
 package io.strategiz.data.base.entity;
 
-import io.strategiz.data.base.audit.AuditFields;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.Transient;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Base class for ALL platform entities.
+ * Base class for ALL platform entities with audit fields at root level.
  * 
  * Simple rules:
  * 1. Extend this class
  * 2. Implement getId(), setId(), getCollectionName()
  * 3. Use repository.save(entity, userId) - that's it!
  * 
- * The audit system handles everything else automatically.
- * 
  * @author Strategiz Platform
  */
 @MappedSuperclass
 public abstract class BaseEntity {
 
-    @PropertyName("auditFields")
-    @JsonProperty("auditFields")
-    @Valid
+    @PropertyName("createdBy")
+    @JsonProperty("createdBy")
     @NotNull
-    @Transient  // Skip JPA persistence - this is for Firestore only
-    private AuditFields auditFields;
+    private String createdBy;
+    
+    @PropertyName("modifiedBy") 
+    @JsonProperty("modifiedBy")
+    @NotNull
+    private String modifiedBy;
+    
+    @PropertyName("createdDate")
+    @JsonProperty("createdDate")
+    @NotNull
+    private Timestamp createdDate;
+    
+    @PropertyName("modifiedDate")
+    @JsonProperty("modifiedDate")
+    @NotNull
+    private Timestamp modifiedDate;
+    
+    @PropertyName("version")
+    @JsonProperty("version")
+    private Long version = 1L;
+    
+    @PropertyName("isActive")
+    @JsonProperty("isActive")
+    private Boolean isActive = true;
 
     protected BaseEntity() {
-        // Audit fields initialized by repository layer
+        // Fields initialized by repository layer
     }
 
     protected BaseEntity(String userId) {
-        this.auditFields = new AuditFields(userId);
+        Timestamp now = Timestamp.now();
+        this.createdBy = userId;
+        this.modifiedBy = userId;
+        this.createdDate = now;
+        this.modifiedDate = now;
+        this.version = 1L;
+        this.isActive = true;
     }
 
-    // === SIMPLE PUBLIC API ===
-
-    public boolean isActive() {
-        return auditFields != null && auditFields.isActive();
-    }
-
-    public boolean isDeleted() {
-        return !isActive();
-    }
-
-    public String getCreatedBy() {
-        return auditFields != null ? auditFields.getCreatedBy() : null;
-    }
-
-    public String getModifiedBy() {
-        return auditFields != null ? auditFields.getModifiedBy() : null;
-    }
-
-    public Long getVersion() {
-        return auditFields != null ? auditFields.getVersion() : null;
-    }
+    // === PUBLIC API ===
 
     // === INTERNAL API (used by repository layer) ===
 
     public void _initAudit(String userId) {
-        if (this.auditFields != null) {
+        if (this.createdBy != null) {
             throw new IllegalStateException("Entity already has audit fields");
         }
-        this.auditFields = new AuditFields(userId);
+        Timestamp now = Timestamp.now();
+        this.createdBy = userId;
+        this.modifiedBy = userId;
+        this.createdDate = now;
+        this.modifiedDate = now;
+        this.version = 1L;
+        this.isActive = true;
     }
 
     public void _updateAudit(String userId) {
-        if (this.auditFields == null) {
+        if (this.createdBy == null) {
             throw new IllegalStateException("Entity audit fields not initialized");
         }
-        this.auditFields.updateForModification(userId);
+        this.modifiedBy = userId;
+        this.modifiedDate = Timestamp.now();
+        this.version = this.version + 1;
     }
 
     public void _softDelete(String userId) {
-        if (this.auditFields == null) {
+        if (this.createdBy == null) {
             throw new IllegalStateException("Entity audit fields not initialized");
         }
-        this.auditFields.softDelete(userId);
+        this.isActive = false;
+        _updateAudit(userId);
     }
 
     public void _restore(String userId) {
-        if (this.auditFields == null) {
+        if (this.createdBy == null) {
             throw new IllegalStateException("Entity audit fields not initialized");
         }
-        this.auditFields.restore(userId);
+        this.isActive = true;
+        _updateAudit(userId);
     }
 
     public boolean _hasAudit() {
-        return this.auditFields != null;
+        return this.createdBy != null;
     }
 
     public void _validate() {
-        if (this.auditFields == null) {
-            throw new IllegalStateException("Entity missing audit fields");
+        if (this.createdBy == null || this.createdBy.trim().isEmpty()) {
+            throw new IllegalStateException("createdBy cannot be null or empty");
         }
-        this.auditFields.validate();
+        if (this.modifiedBy == null || this.modifiedBy.trim().isEmpty()) {
+            throw new IllegalStateException("modifiedBy cannot be null or empty");
+        }
+        if (this.createdDate == null) {
+            throw new IllegalStateException("createdDate cannot be null");
+        }
+        if (this.modifiedDate == null) {
+            throw new IllegalStateException("modifiedDate cannot be null");
+        }
+        if (this.version == null || this.version < 1) {
+            throw new IllegalStateException("version must be >= 1");
+        }
     }
 
-    // === GETTERS/SETTERS FOR FIRESTORE ===
+    // === GETTERS/SETTERS ===
     
-    /**
-     * Get audit fields - made public for Firestore deserialization
-     * Application code should use the convenience methods like isActive(), getCreatedBy(), etc.
-     */
-    public AuditFields getAuditFields() {
-        return auditFields;
+    public String getCreatedBy() {
+        return createdBy;
     }
 
-    /**
-     * Set audit fields - made public for Firestore deserialization
-     * DO NOT use this in application code - let the repository layer handle it
-     */
-    public void setAuditFields(AuditFields auditFields) {
-        this.auditFields = auditFields;
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
-    
+
+    public String getModifiedBy() {
+        return modifiedBy;
+    }
+
+    public void setModifiedBy(String modifiedBy) {
+        this.modifiedBy = modifiedBy;
+    }
+
+    public Timestamp getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(Timestamp createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public Timestamp getModifiedDate() {
+        return modifiedDate;
+    }
+
+    public void setModifiedDate(Timestamp modifiedDate) {
+        this.modifiedDate = modifiedDate;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
 
     // === ABSTRACT METHODS (must implement) ===
 

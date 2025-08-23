@@ -9,6 +9,7 @@ import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.data.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,14 +43,17 @@ public class PasskeyAuthenticationService extends BaseService {
     private final PasskeyChallengeService challengeService;
     private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
+    private final UserRepository userRepository;
     
     public PasskeyAuthenticationService(
             PasskeyChallengeService challengeService,
             AuthenticationMethodRepository authMethodRepository,
-            SessionAuthBusiness sessionAuthBusiness) {
+            SessionAuthBusiness sessionAuthBusiness,
+            UserRepository userRepository) {
         this.challengeService = challengeService;
         this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
+        this.userRepository = userRepository;
         
         // Ensure we're using real passkey authentication, not mock data
         ensureRealApiData("PasskeyAuthenticationService");
@@ -59,7 +63,17 @@ public class PasskeyAuthenticationService extends BaseService {
     /**
      * Authentication result with tokens or error information
      */
-    public record AuthenticationResult(boolean success, String accessToken, String refreshToken, String errorMessage) {}
+    public record AuthenticationResult(boolean success, String accessToken, String refreshToken, String userId, String errorMessage) {
+        // Convenience constructor for failure
+        public static AuthenticationResult failure(String errorMessage) {
+            return new AuthenticationResult(false, null, null, null, errorMessage);
+        }
+        
+        // Convenience constructor for success
+        public static AuthenticationResult success(String accessToken, String refreshToken, String userId) {
+            return new AuthenticationResult(true, accessToken, refreshToken, userId, null);
+        }
+    }
     
     /**
      * Challenge data for authentication with full WebAuthn options
@@ -133,7 +147,7 @@ public class PasskeyAuthenticationService extends BaseService {
         
         // Validate real API connection
         if (!validateRealApiConnection("PasskeyAuthenticationService")) {
-            return new AuthenticationResult(false, null, null, "Real API connection validation failed");
+            return AuthenticationResult.failure("Real API connection validation failed");
         }
         
         // Extract and verify challenge
@@ -142,13 +156,13 @@ public class PasskeyAuthenticationService extends BaseService {
         
         if (!challengeValid) {
             log.warn("Invalid challenge for passkey authentication: {}", challenge);
-            return new AuthenticationResult(false, null, null, "Invalid challenge");
+            return AuthenticationResult.failure("Invalid challenge");
         }
         
         // Find credential by ID using collection group query
         Optional<AuthenticationMethodEntity> authMethodOpt = authMethodRepository.findByPasskeyCredentialId(credentialId);
         if (authMethodOpt.isEmpty()) {
-            return new AuthenticationResult(false, null, null, "Credential not found");
+            return AuthenticationResult.failure("Credential not found");
         }
         
         AuthenticationMethodEntity authMethod = authMethodOpt.get();
@@ -169,12 +183,17 @@ public class PasskeyAuthenticationService extends BaseService {
             
             if (!signatureValid) {
                 log.warn("Invalid signature for credential ID: {}", credentialId);
-                return new AuthenticationResult(false, null, null, "Invalid signature");
+                return AuthenticationResult.failure("Invalid signature");
             }
             
             // Update last used time in authentication method
             authMethod.markAsUsed();
             authMethodRepository.saveForUser(userId, authMethod);
+            
+            // Get user's trading mode from profile
+            String tradingMode = userRepository.findById(userId)
+                .map(user -> user.getProfile() != null ? user.getProfile().getTradingMode() : "demo")
+                .orElse("demo");
             
             // Generate authentication tokens AND session using new unified approach
             // Extract context from challenge (we should have user email etc.)
@@ -186,7 +205,8 @@ public class PasskeyAuthenticationService extends BaseService {
                 deviceId,
                 deviceId, // Use deviceId as fingerprint for now
                 ipAddress,
-                "Passkey Client" // userAgent placeholder
+                "Passkey Client", // userAgent placeholder
+                tradingMode
             );
             
             SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
@@ -202,11 +222,11 @@ public class PasskeyAuthenticationService extends BaseService {
             }
             
             log.info("Successfully authenticated user {} with passkey", userId);
-            return new AuthenticationResult(true, accessToken, refreshToken, null);
+            return AuthenticationResult.success(accessToken, refreshToken, userId);
             
         } catch (Exception e) {
             log.error("Error verifying passkey assertion", e);
-            return new AuthenticationResult(false, null, null, e.getMessage());
+            return AuthenticationResult.failure(e.getMessage());
         }
     }
     

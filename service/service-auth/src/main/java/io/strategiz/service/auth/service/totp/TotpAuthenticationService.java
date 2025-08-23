@@ -12,13 +12,19 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.framework.exception.DomainService;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
-import io.strategiz.service.auth.service.totp.BaseTotpService;
+import dev.samstevens.totp.code.CodeVerifier;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeVerifier;
+import dev.samstevens.totp.code.HashingAlgorithm;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,16 +33,28 @@ import java.util.Optional;
  */
 @Service
 @DomainService(domain = "auth")
-public class TotpAuthenticationService extends BaseTotpService {
+public class TotpAuthenticationService {
     
     private static final Logger log = LoggerFactory.getLogger(TotpAuthenticationService.class);
+    
+    private final UserRepository userRepository;
+    private final AuthenticationMethodRepository authMethodRepository;
+    private final CodeVerifier codeVerifier;
     
     @Autowired
     private SessionAuthBusiness sessionAuthBusiness;
     
     public TotpAuthenticationService(UserRepository userRepository, 
                                      AuthenticationMethodRepository authMethodRepository) {
-        super(userRepository, authMethodRepository);
+        this.userRepository = userRepository;
+        this.authMethodRepository = authMethodRepository;
+        
+        // Configure code verifier
+        TimeProvider timeProvider = new SystemTimeProvider();
+        this.codeVerifier = new DefaultCodeVerifier(
+            new DefaultCodeGenerator(HashingAlgorithm.SHA1),
+            timeProvider
+        );
     }
     
     /**
@@ -45,7 +63,6 @@ public class TotpAuthenticationService extends BaseTotpService {
      * @param code the TOTP code
      * @return true if valid, false otherwise
      */
-    @Override
     public boolean verifyCode(String userId, String code) {
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -61,7 +78,8 @@ public class TotpAuthenticationService extends BaseTotpService {
             return false;
         }
         
-        return isCodeValid(code, totpAuth.getMetadataAsString(AuthenticationMethodMetadata.TotpMetadata.SECRET_KEY));
+        String secret = totpAuth.getMetadataAsString(AuthenticationMethodMetadata.TotpMetadata.SECRET_KEY);
+        return codeVerifier.isValidCode(secret, code);
     }
     
     /**
@@ -100,7 +118,8 @@ public class TotpAuthenticationService extends BaseTotpService {
                 deviceId != null ? deviceId : "totp-auth-device",           // deviceId
                 null,                                                        // deviceFingerprint
                 ipAddress,                                                   // ipAddress
-                null                                                         // userAgent
+                null,                                                        // userAgent
+                "live"                                                       // tradingMode
             );
             SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
             
@@ -113,5 +132,22 @@ public class TotpAuthenticationService extends BaseTotpService {
         }
         
         throw new StrategizException(AuthErrors.USER_NOT_FOUND, userId);
+    }
+    
+    /**
+     * Helper method to find the TOTP authentication method for a user
+     * @param user the user
+     * @return the TOTP authentication method, or null if not found
+     */
+    private AuthenticationMethodEntity findTotpAuthMethod(UserEntity user) {
+        List<AuthenticationMethodEntity> authMethods = authMethodRepository.findByUserIdAndType(
+            user.getId(), AuthenticationMethodType.TOTP
+        );
+        
+        // Return the first enabled TOTP method
+        return authMethods.stream()
+            .filter(method -> Boolean.TRUE.equals(method.getIsActive()))
+            .findFirst()
+            .orElse(null);
     }
 }

@@ -8,6 +8,7 @@ package io.strategiz.client.coinbase;
 public enum CoinbaseErrors {
     API_CONNECTION_FAILED,
     API_AUTHENTICATION_FAILED,
+    AUTHENTICATION_ERROR,  // Added for OAuth and token authentication errors
     API_RATE_LIMITED,
     API_ERROR,
     INVALID_RESPONSE,

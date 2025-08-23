@@ -4,6 +4,7 @@ import io.strategiz.business.provider.coinbase.model.CoinbaseConnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseDisconnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
+import io.strategiz.client.coinbase.CoinbaseOAuthClient;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
@@ -19,16 +20,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -54,16 +49,17 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_TYPE = "exchange";
     
     private final CoinbaseClient coinbaseClient;
+    private final CoinbaseOAuthClient coinbaseOAuthClient;
     private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
     private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
     private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
     private final SecretManager secretManager;
     
     // OAuth Configuration
-    @Value("${oauth.providers.coinbase.client-id}")
+    @Value("${oauth.providers.coinbase.client-id:}")
     private String clientId;
     
-    @Value("${oauth.providers.coinbase.client-secret}")
+    @Value("${oauth.providers.coinbase.client-secret:}")
     private String clientSecret;
     
     @Value("${oauth.providers.coinbase.redirect-uri}")
@@ -78,11 +74,13 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     @Autowired
     public CoinbaseProviderBusiness(
             CoinbaseClient coinbaseClient,
+            CoinbaseOAuthClient coinbaseOAuthClient,
             CreateProviderIntegrationRepository createProviderIntegrationRepository,
             ReadProviderIntegrationRepository readProviderIntegrationRepository,
             UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.coinbaseClient = coinbaseClient;
+        this.coinbaseOAuthClient = coinbaseOAuthClient;
         this.createProviderIntegrationRepository = createProviderIntegrationRepository;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;
         this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
@@ -153,6 +151,11 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             log.info("Successfully connected Coinbase for user: {}", userId);
             return result;
             
+        } catch (StrategizException e) {
+            log.error("Failed to handle Coinbase OAuth callback for user: {}: {}", userId, e.getMessage());
+            // Re-throw StrategizException with improved error message
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Failed to complete Coinbase OAuth: " + e.getMessage());
         } catch (Exception e) {
             log.error("Failed to handle Coinbase OAuth callback for user: {}", userId, e);
             throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
@@ -183,6 +186,11 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             log.info("Retrieved account balance for user: {}", userId);
             return balanceData;
             
+        } catch (StrategizException e) {
+            log.error("Failed to get account balance for user: {}: {}", userId, e.getMessage());
+            // Re-throw StrategizException with context
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Failed to get Coinbase account balance: " + e.getMessage());
         } catch (Exception e) {
             log.error("Failed to get account balance for user: {}", userId, e);
             throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
@@ -340,37 +348,16 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     
     private Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
         try {
-            // Build the token exchange request
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("grant_type", "authorization_code");
-            params.add("code", authorizationCode);
-            params.add("client_id", clientId);
-            params.add("client_secret", clientSecret);
-            params.add("redirect_uri", redirectUri);
-            
-            // Set up headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            
-            // Create the request entity
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            
-            // Make the token exchange request
-            String tokenUrl = "https://api.coinbase.com/oauth/token";
-            RestTemplate restTemplate = new RestTemplate();
-            
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
-            } else {
-                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
-                    "Token exchange failed with status: " + response.getStatusCode());
-            }
-            
-        } catch (RestClientException e) {
+            // Use the CoinbaseOAuthClient to exchange the code for tokens
+            log.info("Exchanging authorization code for tokens using CoinbaseOAuthClient");
+            return coinbaseOAuthClient.exchangeCodeForTokens(authorizationCode);
+        } catch (StrategizException e) {
+            // Re-throw StrategizException with additional context
             log.error("Failed to exchange authorization code for tokens: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Token exchange failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error during token exchange: {}", e.getMessage());
             throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
                 "Token exchange failed: " + e.getMessage());
         }
@@ -382,40 +369,35 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     
     private Map<String, Object> makeAuthenticatedRequest(String endpoint, String accessToken, Map<String, String> params) {
         try {
-            // Build the URL with parameters
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder
-                .fromHttpUrl("https://api.coinbase.com/v2" + endpoint);
+            // Use the CoinbaseClient to make authenticated requests
+            log.debug("Making authenticated request to endpoint: {}", endpoint);
             
-            if (params != null) {
-                for (Map.Entry<String, String> param : params.entrySet()) {
-                    uriBuilder.queryParam(param.getKey(), param.getValue());
-                }
-            }
-            
-            String url = uriBuilder.toUriString();
-            
-            // Set up headers with Bearer token
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.setBearerAuth(accessToken);
-            
-            // Create the request entity
-            HttpEntity<String> request = new HttpEntity<>(headers);
-            
-            // Make the authenticated request
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+            // Determine which client method to call based on the endpoint
+            if (endpoint.equals("/user")) {
+                return coinbaseClient.getCurrentUser(accessToken);
+            } else if (endpoint.equals("/accounts")) {
+                return coinbaseClient.getAccounts(accessToken);
+            } else if (endpoint.startsWith("/accounts/") && endpoint.contains("/transactions")) {
+                String accountId = endpoint.split("/")[2];
+                return coinbaseClient.getTransactions(accessToken, accountId, params);
+            } else if (endpoint.startsWith("/accounts/")) {
+                String accountId = endpoint.split("/")[2];
+                return coinbaseClient.getAccount(accessToken, accountId);
             } else {
-                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
-                    "Authenticated request failed with status: " + response.getStatusCode());
+                // For other endpoints, use the generic OAuth request method
+                return coinbaseClient.oauthRequest(
+                    HttpMethod.GET,
+                    endpoint,
+                    accessToken,
+                    params,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                );
             }
-            
-        } catch (RestClientException e) {
+        } catch (StrategizException e) {
             log.error("Failed to make authenticated request to {}: {}", endpoint, e.getMessage());
+            throw e; // Re-throw StrategizException as-is
+        } catch (Exception e) {
+            log.error("Unexpected error making authenticated request to {}: {}", endpoint, e.getMessage());
             throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
                 "Authenticated request failed: " + e.getMessage());
         }
@@ -423,36 +405,16 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     
     private Map<String, Object> refreshTokens(String refreshToken) {
         try {
-            // Build the token refresh request
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("grant_type", "refresh_token");
-            params.add("refresh_token", refreshToken);
-            params.add("client_id", clientId);
-            params.add("client_secret", clientSecret);
-            
-            // Set up headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            
-            // Create the request entity
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            
-            // Make the token refresh request
-            String tokenUrl = "https://api.coinbase.com/oauth/token";
-            RestTemplate restTemplate = new RestTemplate();
-            
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
-            } else {
-                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
-                    "Token refresh failed with status: " + response.getStatusCode());
-            }
-            
-        } catch (RestClientException e) {
-            log.error("Failed to refresh tokens: {}", e.getMessage());
+            // Use the CoinbaseOAuthClient to refresh the token
+            log.info("Refreshing access token using CoinbaseOAuthClient");
+            return coinbaseOAuthClient.refreshAccessToken(refreshToken);
+        } catch (StrategizException e) {
+            // Re-throw StrategizException with additional context
+            log.error("Failed to refresh access token: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+                "Token refresh failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error during token refresh: {}", e.getMessage());
             throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
                 "Token refresh failed: " + e.getMessage());
         }
@@ -460,31 +422,16 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     
     private void revokeAccessToken(String accessToken) {
         try {
-            // Build the token revocation request
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("token", accessToken);
+            // Use the CoinbaseOAuthClient to revoke the token
+            log.info("Revoking access token using CoinbaseOAuthClient");
+            boolean success = coinbaseOAuthClient.revokeAccessToken(accessToken);
             
-            // Set up headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            
-            // Create the request entity
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            
-            // Make the token revocation request
-            String revokeUrl = "https://api.coinbase.com/oauth/revoke";
-            RestTemplate restTemplate = new RestTemplate();
-            
-            ResponseEntity<String> response = restTemplate.postForEntity(revokeUrl, request, String.class);
-            
-            if (response.getStatusCode().is2xxSuccessful()) {
+            if (success) {
                 log.info("Successfully revoked Coinbase access token");
             } else {
-                log.warn("Token revocation returned status: {}", response.getStatusCode());
+                log.warn("Token revocation may have failed, but continuing anyway");
             }
-            
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             log.error("Failed to revoke access token: {}", e.getMessage());
             // Don't throw exception for revocation failures - log and continue
         }
@@ -505,15 +452,20 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     @Override
     public ProviderIntegrationResult createIntegration(CreateProviderIntegrationRequest request, String userId) {
         log.info("Creating Coinbase integration for user: {}", userId);
+        log.info("OAuth configuration - clientId: {}, redirectUri: {}", 
+                clientId != null ? "configured" : "null", 
+                redirectUri != null ? redirectUri : "null");
         
         // For OAuth providers, we don't store credentials during signup
         // Instead, we'll initiate the OAuth flow
         try {
             // Create provider integration entity for Firestore
+            // Constructor params: providerType, providerName, displayName, connectionType
             ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_TYPE, PROVIDER_ID, PROVIDER_NAME, "oauth2");
             entity.setUserId(userId);
+            // Don't set ID - let the repository generate it to avoid update vs create confusion
             entity.setStatus("pending_oauth");
-            entity.setCapabilities(new String[]{"READ", "TRADE"});
+            entity.setCapabilities(Arrays.asList("READ", "TRADE"));
             
             Map<String, Object> entityMetadata = new HashMap<>();
             entityMetadata.put("oauthRequired", true);
@@ -529,11 +481,13 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Generate OAuth URL for the response
             String state = generateSecureState(userId);
             String authUrl = generateAuthorizationUrl(userId, state);
+            log.info("Generated OAuth URL: {}", authUrl);
             
             // Build result with OAuth URL
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("oauthUrl", authUrl);
             metadata.put("state", state);
+            log.info("Returning metadata with oauthUrl: {}", metadata.get("oauthUrl"));
             metadata.put("oauthRequired", true);
             metadata.put("authMethod", "oauth2");
             metadata.put("scope", scope);
@@ -568,9 +522,11 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Store tokens in Vault
             storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
             
-            // Update provider integration in Firestore
+            // Create or update provider integration in Firestore
             Optional<ProviderIntegrationEntity> existingIntegration = readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            
             if (existingIntegration.isPresent()) {
+                // Update existing integration
                 ProviderIntegrationEntity entity = existingIntegration.get();
                 entity.markAsConnected();
                 
@@ -581,10 +537,36 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
                 metadata.put("accountInfo", result.getAccountInfo());
                 metadata.put("oauthCompleted", true);
                 metadata.put("connectedAt", result.getConnectedAt());
+                metadata.put("access_token", result.getAccessToken());
+                metadata.put("refresh_token", result.getRefreshToken());
+                metadata.put("expires_at", result.getExpiresAt().toString());
                 entity.setMetadata(metadata);
                 
                 updateProviderIntegrationRepository.updateWithUserId(entity, userId);
                 log.info("Updated Coinbase integration status to connected for user: {}", userId);
+            } else {
+                // Create new integration
+                ProviderIntegrationEntity entity = new ProviderIntegrationEntity();
+                entity.setProviderId(PROVIDER_ID);
+                entity.setProviderName(PROVIDER_NAME);
+                entity.setProviderType(PROVIDER_TYPE);
+                entity.setUserId(userId);
+                entity.markAsConnected();
+                
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("accountInfo", result.getAccountInfo());
+                metadata.put("oauthCompleted", true);
+                metadata.put("connectedAt", result.getConnectedAt());
+                metadata.put("access_token", result.getAccessToken());
+                metadata.put("refresh_token", result.getRefreshToken());
+                metadata.put("expires_at", result.getExpiresAt().toString());
+                entity.setMetadata(metadata);
+                
+                // Set capabilities
+                entity.setCapabilities(Arrays.asList("READ_ACCOUNTS", "READ_TRANSACTIONS", "READ_BALANCES"));
+                
+                ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
+                log.info("Created new Coinbase integration for user: {}", userId);
             }
             
         } catch (Exception e) {
@@ -620,4 +602,5 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
         // Generate a secure random state parameter
         return userId + "-" + UUID.randomUUID().toString();
     }
+    
 } 

@@ -23,7 +23,14 @@ public class ReadProviderIntegrationRepositoryImpl implements ReadProviderIntegr
     
     @Override
     public Optional<ProviderIntegrationEntity> findById(String id) {
-        return baseRepository.findById(id);
+        // For finding by ID without userId, we would need to search across all users
+        // This is not ideal, so we should update the interface to require userId
+        // For now, return empty as we can't search without userId
+        return Optional.empty();
+    }
+    
+    public Optional<ProviderIntegrationEntity> findById(String id, String userId) {
+        return baseRepository.findById(id, userId);
     }
     
     @Override

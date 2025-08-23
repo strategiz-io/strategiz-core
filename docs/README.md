@@ -16,9 +16,11 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 
 ### 🔧 **Development**
 - [Developer Guide](development/developer-guide.md) - Complete development setup and workflow
+- [Development Configuration](DEVELOPMENT-CONFIGURATION.md) - HTTP/HTTPS setup and environment configuration
 - [Base Classes Standards](development/base-classes-standards.md) - BaseController and BaseService usage
 - [Naming Conventions](development/naming-conventions.md) - Code and file naming standards
 - [Scripts](development/scripts.md) - Available build and utility scripts
+- [Gradle Migration](development/gradle-migration.md) - Maven to Gradle migration notes
 
 ### 🚀 **Deployment**
 - [Deployment Overview](deployment/overview.md) - Deployment strategy and environments
@@ -28,6 +30,9 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 ### 🔒 **Security**
 - [Security Overview](security/overview.md) - Security architecture and best practices
 - [Secrets Management](security/secrets-management.md) - HashiCorp Vault integration and secret handling
+- [Vault Setup](security/vault-setup.md) - Complete Vault setup guide
+- [Vault Token Storage](security/vault-token-storage.md) - Token management best practices
+- [Passkey Debug Info](security/passkey-debug-info.md) - WebAuthn/Passkey troubleshooting
 
 ### 🔌 **Integrations**
 - [Exchange Integrations](integrations/exchanges.md) - Cryptocurrency exchange integrations
@@ -35,6 +40,7 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 ### 📡 **API Documentation**
 - [API Overview](api/overview.md) - Complete API endpoint documentation
 - [API Endpoints](api/endpoints.md) - Detailed endpoint specifications
+- [Resource Paths](api/resource-paths.md) - Complete API resource path reference
 
 ---
 

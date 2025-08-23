@@ -36,7 +36,11 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
 
     @Override
     public UserEntity createUser(UserEntity user) {
-        return super.save(user, user.getUserId());
+        // Use email as createdBy for user entities (since user is creating their own account)
+        String createdBy = (user.getProfile() != null && user.getProfile().getEmail() != null) 
+            ? user.getProfile().getEmail() 
+            : user.getUserId();
+        return super.save(user, createdBy);
     }
 
     @Override
@@ -46,7 +50,11 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
 
     @Override
     public UserEntity updateUser(UserEntity user) {
-        return super.save(user, user.getUserId());
+        // Use email as modifiedBy for user entities
+        String modifiedBy = (user.getProfile() != null && user.getProfile().getEmail() != null) 
+            ? user.getProfile().getEmail() 
+            : user.getUserId();
+        return super.save(user, modifiedBy);
     }
 
     @Override
@@ -94,7 +102,11 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
 
     @Override
     public UserEntity save(UserEntity user) {
-        return super.save(user, user.getUserId());
+        // Use email as audit user for user entities
+        String auditUser = (user.getProfile() != null && user.getProfile().getEmail() != null) 
+            ? user.getProfile().getEmail() 
+            : user.getUserId();
+        return super.save(user, auditUser);
     }
 
     // ===============================

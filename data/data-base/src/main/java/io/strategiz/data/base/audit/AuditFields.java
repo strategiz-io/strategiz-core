@@ -1,8 +1,10 @@
 package io.strategiz.data.base.audit;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.Timestamp;
+import com.google.cloud.firestore.annotation.Exclude;
 import com.google.cloud.firestore.annotation.PropertyName;
 
 import java.time.Instant;
@@ -114,17 +116,21 @@ public class AuditFields {
     }
 
     /**
-     * Gets the created date as Java Instant
+     * Gets the created date as Java Instant (for internal Java use only)
      * @return Instant representation of creation date
      */
+    @JsonIgnore
+    @Exclude
     public Instant getCreatedInstant() {
         return createdDate != null ? createdDate.toDate().toInstant() : null;
     }
 
     /**
-     * Gets the modified date as Java Instant  
+     * Gets the modified date as Java Instant (for internal Java use only)
      * @return Instant representation of modification date
      */
+    @JsonIgnore
+    @Exclude
     public Instant getModifiedInstant() {
         return modifiedDate != null ? modifiedDate.toDate().toInstant() : null;
     }

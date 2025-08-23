@@ -1,5 +1,6 @@
 package io.strategiz.data.device.repository;
 
+import io.strategiz.data.device.model.DeviceIdentity;
 import java.time.Instant;
 import java.util.Map;
 
@@ -63,6 +64,15 @@ public interface DeleteDeviceRepository {
      */
     int deleteInactiveUserDevices(String userId, Instant lastSeenBefore);
     
+    /**
+     * Get an authenticated device before deletion
+     * 
+     * @param deviceId The device ID
+     * @param userId The user ID
+     * @return The device or null if not found
+     */
+    DeviceIdentity getAuthenticatedDevice(String deviceId, String userId);
+    
     // ========== Anonymous Device Deletes ==========
     
     /**
@@ -111,6 +121,14 @@ public interface DeleteDeviceRepository {
      * @return Number of devices deleted
      */
     int deleteAnonymousDevicesByIpAddress(String ipAddress);
+    
+    /**
+     * Get an anonymous device before deletion
+     * 
+     * @param deviceId The device ID
+     * @return The device or null if not found
+     */
+    DeviceIdentity getAnonymousDevice(String deviceId);
     
     /**
      * Purge all anonymous devices

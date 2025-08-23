@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.strategiz.service.dashboard.MarketSentimentService;
+import io.strategiz.service.dashboard.service.MarketSentimentService;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;

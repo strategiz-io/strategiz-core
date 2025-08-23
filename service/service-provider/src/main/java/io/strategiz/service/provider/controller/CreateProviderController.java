@@ -7,13 +7,14 @@ import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.security.Principal;
+import java.util.Optional;
 
 /**
  * Controller for creating provider connections and integrations.
@@ -32,10 +33,13 @@ public class CreateProviderController extends BaseController {
     }
     
     private final CreateProviderService createProviderService;
+    private final SessionAuthBusiness sessionAuthBusiness;
     
     @Autowired
-    public CreateProviderController(CreateProviderService createProviderService) {
+    public CreateProviderController(CreateProviderService createProviderService,
+                                   SessionAuthBusiness sessionAuthBusiness) {
         this.createProviderService = createProviderService;
+        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     /**
@@ -45,16 +49,20 @@ public class CreateProviderController extends BaseController {
      * For API key providers: Validates credentials and creates connection
      * 
      * @param request The provider connection request
-     * @param principal The authenticated user principal
+     * @param authHeader The authorization header containing the session token
      * @return CreateProviderResponse containing connection details or OAuth URL
      */
     @PostMapping
     public ResponseEntity<CreateProviderResponse> createProvider(
             @Valid @RequestBody CreateProviderRequest request,
-            Principal principal) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        // Extract user ID from authentication principal
-        String userId = principal != null ? principal.getName() : "anonymous";
+        // Extract user ID from the authorization token
+        String userId = extractUserIdFromToken(authHeader);
+        if (userId == null) {
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
+                "service-provider", "Authentication token is required");
+        }
         request.setUserId(userId);
         
         log.info("Creating provider connection for user: {}, provider: {}, type: {}", 
@@ -86,6 +94,19 @@ public class CreateProviderController extends BaseController {
     @GetMapping("/create/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("CreateProviderController is healthy");
+    }
+    
+    /**
+     * Extract user ID from the authorization token
+     */
+    private String extractUserIdFromToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        
+        String token = authHeader.substring(7);
+        Optional<String> userIdOpt = sessionAuthBusiness.validateSession(token);
+        return userIdOpt.orElse(null);
     }
     
 } 

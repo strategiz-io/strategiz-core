@@ -8,6 +8,7 @@ import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
+import io.strategiz.data.user.repository.UserRepository;
 
 // Import WebAuthn4J libraries for proper attestation parsing
 import com.webauthn4j.converter.util.ObjectConverter;
@@ -51,14 +52,17 @@ public class PasskeyRegistrationService extends BaseService {
     private final PasskeyChallengeService challengeService;
     private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
+    private final UserRepository userRepository;
     
     public PasskeyRegistrationService(
             PasskeyChallengeService challengeService,
             AuthenticationMethodRepository authMethodRepository,
-            SessionAuthBusiness sessionAuthBusiness) {
+            SessionAuthBusiness sessionAuthBusiness,
+            UserRepository userRepository) {
         this.challengeService = challengeService;
         this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
+        this.userRepository = userRepository;
         
         // Ensure we're using real passkey registration, not mock data
         ensureRealApiData("PasskeyRegistrationService");
@@ -224,6 +228,11 @@ public class PasskeyRegistrationService extends BaseService {
             
             authMethodRepository.saveForUser(userId, authMethod);
             
+            // Get user's trading mode from profile
+            String tradingMode = userRepository.findById(userId)
+                .map(user -> user.getProfile() != null ? user.getProfile().getTradingMode() : "demo")
+                .orElse("demo");
+            
             // Generate authentication tokens using unified approach
             SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
                 userId,
@@ -233,7 +242,8 @@ public class PasskeyRegistrationService extends BaseService {
                 deviceId,
                 deviceId, // Use deviceId as fingerprint
                 null, // IP address not available in registration
-                "Passkey Registration"
+                "Passkey Registration",
+                tradingMode
             );
             
             SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);

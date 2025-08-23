@@ -1,2 +1,6 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 io.strategiz.framework.secrets.config.SecretManagerAutoConfig
+
+# Environment Post Processors
+org.springframework.boot.env.EnvironmentPostProcessor=\
+io.strategiz.framework.secrets.config.VaultEnvironmentPostProcessor

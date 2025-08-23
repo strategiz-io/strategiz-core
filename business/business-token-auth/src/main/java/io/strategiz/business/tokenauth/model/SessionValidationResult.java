@@ -11,22 +11,22 @@ public class SessionValidationResult {
     private final String userId;
     private final String userEmail;
     private final String sessionId;
-    private final String acr; // Authentication Context Reference
-    private final String aal; // Authenticator Assurance Level  
+    private final String acr; // Authentication Context Reference (0-3)
     private final List<String> amr; // Authentication Methods References
+    private final String tradingMode; // Trading mode ("demo" or "live")
     private final Instant lastAccessedAt;
     private final Instant expiresAt;
     private final boolean valid;
 
     public SessionValidationResult(String userId, String userEmail, String sessionId,
-                                 String acr, String aal, List<String> amr,
+                                 String acr, List<String> amr, String tradingMode,
                                  Instant lastAccessedAt, Instant expiresAt, boolean valid) {
         this.userId = userId;
         this.userEmail = userEmail;
         this.sessionId = sessionId;
         this.acr = acr;
-        this.aal = aal;
         this.amr = amr;
+        this.tradingMode = tradingMode != null ? tradingMode : "demo";
         this.lastAccessedAt = lastAccessedAt;
         this.expiresAt = expiresAt;
         this.valid = valid;
@@ -49,12 +49,12 @@ public class SessionValidationResult {
         return acr;
     }
 
-    public String getAal() {
-        return aal;
-    }
-
     public List<String> getAmr() {
         return amr;
+    }
+
+    public String getTradingMode() {
+        return tradingMode;
     }
 
     public Instant getLastAccessedAt() {
@@ -71,23 +71,26 @@ public class SessionValidationResult {
 
     // Convenience methods for authentication level checks
     public boolean isFullyAuthenticated() {
-        return "2".equals(acr);
+        // ACR 1+ means at least basic authentication
+        return "1".equals(acr) || "2".equals(acr) || "3".equals(acr);
     }
 
     public boolean isPartiallyAuthenticated() {
-        return "1".equals(acr);
+        return "0".equals(acr);
     }
 
     public boolean isHighAssurance() {
-        return "3".equals(aal); // Hardware crypto (passkeys)
+        // ACR 3 indicates hardware-based MFA
+        return "3".equals(acr);
     }
 
     public boolean isMultiFactor() {
-        return "2".equals(aal) || "3".equals(aal);
+        // ACR 2+ indicates MFA
+        return "2".equals(acr) || "3".equals(acr);
     }
 
     public boolean hasPasskey() {
-        return amr != null && amr.contains("passkey");
+        return amr != null && amr.contains("passkeys");
     }
 
     public boolean hasTotp() {
@@ -101,7 +104,8 @@ public class SessionValidationResult {
                 ", userEmail='" + userEmail + '\'' +
                 ", sessionId='" + sessionId + '\'' +
                 ", acr='" + acr + '\'' +
-                ", aal='" + aal + '\'' +
+                ", amr=" + amr +
+                ", tradingMode='" + tradingMode + '\'' +
                 ", valid=" + valid +
                 '}';
     }

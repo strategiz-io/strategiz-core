@@ -8,8 +8,6 @@ import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.client.alphavantage.AlphaVantageClient;
-import io.strategiz.client.yahoofinance.YahooFinanceClient;
-import io.strategiz.client.yahoofinance.model.YahooStockData;
 import io.strategiz.service.marketing.model.response.MarketTickerResponse;
 import io.strategiz.service.marketing.model.response.TickerItem;
 import io.strategiz.framework.exception.StrategizException;
@@ -48,17 +46,14 @@ public class MarketTickerController extends BaseController {
     private final CoinbaseClient coinbaseClient;
     private final CoinGeckoClient coinGeckoClient;
     private final AlphaVantageClient alphaVantageClient; // Keep for backtesting
-    private final YahooFinanceClient yahooFinanceClient; // Use for landing page
     
     public MarketTickerController(
             CoinbaseClient coinbaseClient,
             CoinGeckoClient coinGeckoClient,
-            AlphaVantageClient alphaVantageClient,
-            YahooFinanceClient yahooFinanceClient) {
+            AlphaVantageClient alphaVantageClient) {
         this.coinbaseClient = coinbaseClient;
         this.coinGeckoClient = coinGeckoClient;
         this.alphaVantageClient = alphaVantageClient;
-        this.yahooFinanceClient = yahooFinanceClient;
     }
     
     /**
@@ -160,46 +155,16 @@ public class MarketTickerController extends BaseController {
     }
     
     /**
-     * Fetch stock data from Yahoo Finance (unlimited, real-time)
+     * Fetch stock data (using demo data temporarily until business service integration)
      */
     private List<TickerItem> fetchStockData() {
         List<TickerItem> items = new ArrayList<>();
-        
-        try {
-            log.info("Fetching real stock data from Yahoo Finance");
-            
-            // Use Yahoo Finance for landing page (unlimited calls)
-            Map<String, YahooStockData> stockDataMap = yahooFinanceClient.getBatchStockQuotes(STOCK_SYMBOLS);
-            
-            for (String symbol : STOCK_SYMBOLS) {
-                YahooStockData stockData = stockDataMap.get(symbol);
-                if (stockData != null && stockData.getCurrentPrice() != null) {
-                    items.add(new TickerItem(
-                        symbol,
-                        stockData.getName() != null ? stockData.getName() : symbol,
-                        "stock",
-                        stockData.getCurrentPrice(),
-                        stockData.getChange(),
-                        stockData.getChangePercent(),
-                        stockData.getChange() != null && stockData.getChange().compareTo(BigDecimal.ZERO) >= 0
-                    ));
-                } else {
-                    log.warn("No data returned from Yahoo Finance for symbol: {}", symbol);
-                }
-            }
-            
-            log.info("Successfully fetched {} stock items from Yahoo Finance", items.size());
-            
-        } catch (Exception e) {
-            log.error("Error fetching stock data from Yahoo Finance", e);
-        }
-        
-        // Return demo data if no real data available
-        if (items.isEmpty()) {
-            log.warn("No real stock data available, using demo data");
-            items.addAll(getDemoStockData());
-        }
-        
+
+        // TODO: Business logic should be moved to service/business module
+        // For now, using demo data as requested
+        log.info("Using demo stock data (business logic should be in service/business module)");
+        items.addAll(getDemoStockData());
+
         return items;
     }
     

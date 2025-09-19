@@ -4,6 +4,7 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import java.util.Objects;
  * - devices: User devices (data-devices module)
  * - preferences: User preferences and settings (data-preferences module)
  */
+@Collection("users")
 public class UserEntity extends BaseEntity {
 
     @DocumentId
@@ -81,11 +83,6 @@ public class UserEntity extends BaseEntity {
     @Override
     public void setId(String id) {
         this.userId = id;
-    }
-
-    @Override
-    public String getCollectionName() {
-        return "users";
     }
 
     @Override

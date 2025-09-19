@@ -32,9 +32,9 @@ public class UserProfileEntity {
     @JsonProperty("subscriptionTier")
     private String subscriptionTier = "free"; // free, premium, enterprise
     
-    @NotBlank(message = "Trading mode is required")
-    @JsonProperty("tradingMode")
-    private String tradingMode = "demo"; // demo, live
+    @NotNull(message = "Demo mode is required")
+    @JsonProperty("demoMode")
+    private Boolean demoMode = true; // true for demo, false for live
     
 
     // Constructors
@@ -46,16 +46,16 @@ public class UserProfileEntity {
         this.email = email;
         this.isEmailVerified = false;
         this.subscriptionTier = "free";
-        this.tradingMode = "demo";
+        this.demoMode = true;
     }
 
-    public UserProfileEntity(String name, String email, String photoURL, Boolean isEmailVerified, String subscriptionTier, String tradingMode) {
+    public UserProfileEntity(String name, String email, String photoURL, Boolean isEmailVerified, String subscriptionTier, Boolean demoMode) {
         this.name = name;
         this.email = email;
         this.photoURL = photoURL;
         this.isEmailVerified = isEmailVerified;
         this.subscriptionTier = subscriptionTier;
-        this.tradingMode = tradingMode;
+        this.demoMode = demoMode;
     }
 
     // Getters and Setters
@@ -99,12 +99,12 @@ public class UserProfileEntity {
         this.subscriptionTier = subscriptionTier;
     }
 
-    public String getTradingMode() {
-        return tradingMode;
+    public Boolean getDemoMode() {
+        return demoMode;
     }
 
-    public void setTradingMode(String tradingMode) {
-        this.tradingMode = tradingMode;
+    public void setDemoMode(Boolean demoMode) {
+        this.demoMode = demoMode;
     }
 
 
@@ -118,12 +118,12 @@ public class UserProfileEntity {
                Objects.equals(photoURL, that.photoURL) &&
                Objects.equals(isEmailVerified, that.isEmailVerified) &&
                Objects.equals(subscriptionTier, that.subscriptionTier) &&
-               Objects.equals(tradingMode, that.tradingMode);
+               Objects.equals(demoMode, that.demoMode);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, tradingMode);
+        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, demoMode);
     }
 
     @Override
@@ -134,7 +134,7 @@ public class UserProfileEntity {
                ", photoURL='" + photoURL + '\'' +
                ", isEmailVerified=" + isEmailVerified +
                ", subscriptionTier='" + subscriptionTier + '\'' +
-               ", tradingMode='" + tradingMode + '\'' +
+               ", demoMode=" + demoMode +
                '}';
     }
 }

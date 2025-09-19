@@ -1,7 +1,7 @@
 package io.strategiz.business.strategy.execution.service;
 
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
+import io.strategiz.data.provider.entity.ProviderStatus;import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.business.strategy.execution.model.ExecutionRequest;
@@ -75,9 +75,9 @@ public class StrategyExecutionService {
             
             ProviderIntegrationEntity provider = providerOpt.get();
             
-            // Verify provider is connected and active
-            if (!"CONNECTED".equals(provider.getStatus())) {
-                return createErrorResult(strategyId, "Provider is not connected: " + provider.getStatus());
+            // Verify provider is enabled
+            if (provider.getStatus() != ProviderStatus.CONNECTED) {
+                return createErrorResult(strategyId, "Provider is not enabled");
             }
             
             // Create execution request
@@ -123,7 +123,10 @@ public class StrategyExecutionService {
      * @return List of connected providers
      */
     public List<ProviderIntegrationEntity> getUserProviders(String userId) {
-        return providerRepository.findByUserIdAndStatus(userId, "CONNECTED");
+        // Find all enabled providers for the user
+        return providerRepository.findByUserId(userId).stream()
+                .filter(p -> p.getStatus() == ProviderStatus.CONNECTED)
+                .collect(Collectors.toList());
     }
     
     /**
@@ -133,11 +136,19 @@ public class StrategyExecutionService {
      * @return List of trading providers
      */
     public List<ProviderIntegrationEntity> getTradingProviders(String userId) {
+        // Filter by provider IDs that are known trading providers
         return getUserProviders(userId).stream()
-                .filter(p -> "TRADING".equals(p.getProviderType()) || 
-                           "CRYPTO".equals(p.getProviderType()) ||
-                           "BROKER".equals(p.getProviderType()))
+                .filter(p -> isTradingProvider(p.getProviderId()))
                 .collect(Collectors.toList());
+    }
+    
+    private boolean isTradingProvider(String providerId) {
+        // Known trading provider IDs
+        return "kraken".equals(providerId) || 
+               "coinbase".equals(providerId) ||
+               "binanceus".equals(providerId) ||
+               "alpaca".equals(providerId) ||
+               "schwab".equals(providerId);
     }
     
     /**
@@ -155,19 +166,22 @@ public class StrategyExecutionService {
         
         ProviderIntegrationEntity provider = providerOpt.get();
         
-        // Check if provider is connected
-        if (!"CONNECTED".equals(provider.getStatus())) {
+        // Check if provider is enabled
+        if (provider.getStatus() != ProviderStatus.CONNECTED) {
             return false;
         }
         
-        // Match provider type with strategy type
+        // Match provider ID with strategy type
+        String providerIdValue = provider.getProviderId();
         switch (strategyType.toLowerCase()) {
             case "crypto":
-                return "CRYPTO".equals(provider.getProviderType());
+                return "kraken".equals(providerIdValue) || 
+                       "coinbase".equals(providerIdValue) ||
+                       "binanceus".equals(providerIdValue);
             case "stocks":
             case "equities":
-                return "TRADING".equals(provider.getProviderType()) || 
-                       "BROKER".equals(provider.getProviderType());
+                return "alpaca".equals(providerIdValue) || 
+                       "schwab".equals(providerIdValue);
             default:
                 return false;
         }

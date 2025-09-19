@@ -1,18 +1,31 @@
 package io.strategiz.service.device.model.authenticated;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.strategiz.service.device.model.BaseDeviceFingerprint;
+
 /**
- * Request model for updating authenticated device
+ * Request for updating an authenticated device registration
+ * Updates device fingerprint and trust status for authenticated users
+ * Stores in: /users/{userId}/devices (user subcollection)
  */
-public class UpdateAuthenticatedDeviceRequest {
-    private String deviceName;
-    private String fingerprint;
-    private String platform;
-    private String browser;
-    private String userAgent;
-    private String ipAddress;
-    private Double trustScore;
-    private Boolean isTrusted;
+public class UpdateAuthenticatedDeviceRequest extends BaseDeviceFingerprint {
     
+    // Additional fields specific to authenticated device updates
+    @JsonProperty("device_name")
+    private String deviceName;  // User can update device name
+    
+    @JsonProperty("trusted")
+    private Boolean trusted;  // Can be updated based on MFA or admin action
+    
+    @JsonProperty("trust_level")
+    private String trustLevel;  // Can be upgraded/downgraded
+    
+    // Constructors
+    public UpdateAuthenticatedDeviceRequest() {
+        super();
+    }
+    
+    // Getters and Setters for additional fields
     public String getDeviceName() {
         return deviceName;
     }
@@ -21,59 +34,19 @@ public class UpdateAuthenticatedDeviceRequest {
         this.deviceName = deviceName;
     }
     
-    public String getFingerprint() {
-        return fingerprint;
+    public Boolean getTrusted() {
+        return trusted;
     }
     
-    public void setFingerprint(String fingerprint) {
-        this.fingerprint = fingerprint;
+    public void setTrusted(Boolean trusted) {
+        this.trusted = trusted;
     }
     
-    public String getPlatform() {
-        return platform;
+    public String getTrustLevel() {
+        return trustLevel;
     }
     
-    public void setPlatform(String platform) {
-        this.platform = platform;
-    }
-    
-    public String getBrowser() {
-        return browser;
-    }
-    
-    public void setBrowser(String browser) {
-        this.browser = browser;
-    }
-    
-    public String getUserAgent() {
-        return userAgent;
-    }
-    
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
-    }
-    
-    public String getIpAddress() {
-        return ipAddress;
-    }
-    
-    public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
-    }
-    
-    public Double getTrustScore() {
-        return trustScore;
-    }
-    
-    public void setTrustScore(Double trustScore) {
-        this.trustScore = trustScore;
-    }
-    
-    public Boolean getIsTrusted() {
-        return isTrusted;
-    }
-    
-    public void setIsTrusted(Boolean isTrusted) {
-        this.isTrusted = isTrusted;
+    public void setTrustLevel(String trustLevel) {
+        this.trustLevel = trustLevel;
     }
 }

@@ -49,7 +49,7 @@ public class CorsFilter implements Filter {
         // Set other CORS headers (always set these for preflight)
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
         response.setHeader("Access-Control-Max-Age", "3600");
-        response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept, origin");
+        response.setHeader("Access-Control-Allow-Headers", "x-requested-with, authorization, content-type, accept, origin, x-device-id, cookie, set-cookie");
 
         // Handle preflight requests
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {

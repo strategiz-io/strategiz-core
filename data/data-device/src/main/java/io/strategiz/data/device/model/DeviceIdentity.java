@@ -1,6 +1,7 @@
 package io.strategiz.data.device.model;
 
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import io.strategiz.data.device.constants.DeviceConstants;
 import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
@@ -13,7 +14,15 @@ import java.util.Map;
 /**
  * Entity representing a device identity with comprehensive fingerprinting
  * Extends BaseEntity for audit fields and includes all device fingerprint data
+ * 
+ * Storage locations:
+ * - Anonymous devices: /devices (root collection)
+ * - Authenticated devices: /users/{userId}/devices (subcollection)
+ * 
+ * The collection path is determined by the repository implementation,
+ * not by this annotation. The @Collection here is for the default/anonymous case.
  */
+@Collection("devices")
 public class DeviceIdentity extends BaseEntity {
 
     @DocumentId
@@ -316,12 +325,6 @@ public class DeviceIdentity extends BaseEntity {
         this.trustLevel = "pending";
     }
 
-    @Override
-    public String getCollectionName() {
-        // For authenticated devices, this would be overridden by the repository
-        // to return the subcollection path. Default to anonymous devices collection.
-        return DeviceConstants.Collections.ANONYMOUS_DEVICES;
-    }
     
     /**
      * Check if this device is authenticated (has a userId)

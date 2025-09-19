@@ -1,6 +1,7 @@
 package io.strategiz.data.strategy.entity;
 
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Collection("strategies")
 public class Strategy extends BaseEntity {
     
     @JsonProperty("id")
@@ -62,11 +64,6 @@ public class Strategy extends BaseEntity {
     @Override
     public void setId(String id) {
         this.id = id;
-    }
-    
-    @Override
-    public String getCollectionName() {
-        return "strategies";
     }
     
     // Getters and Setters

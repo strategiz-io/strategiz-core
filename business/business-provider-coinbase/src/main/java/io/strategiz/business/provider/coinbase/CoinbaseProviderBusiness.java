@@ -6,6 +6,7 @@ import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.client.coinbase.CoinbaseOAuthClient;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
+import io.strategiz.data.provider.entity.ProviderStatus;
 import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
@@ -459,20 +460,10 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
         // For OAuth providers, we don't store credentials during signup
         // Instead, we'll initiate the OAuth flow
         try {
-            // Create provider integration entity for Firestore
-            // Constructor params: providerType, providerName, displayName, connectionType
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_TYPE, PROVIDER_ID, PROVIDER_NAME, "oauth2");
-            entity.setUserId(userId);
-            // Don't set ID - let the repository generate it to avoid update vs create confusion
-            entity.setStatus("pending_oauth");
-            entity.setCapabilities(Arrays.asList("READ", "TRADE"));
-            
-            Map<String, Object> entityMetadata = new HashMap<>();
-            entityMetadata.put("oauthRequired", true);
-            entityMetadata.put("authMethod", "oauth2");
-            entityMetadata.put("scope", scope);
-            entityMetadata.put("supportsTrading", true);
-            entity.setMetadata(entityMetadata);
+            // Create simplified provider integration entity for Firestore
+            // Only store essential fields: providerId, connectionType, isEnabled
+            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+            entity.setStatusValue("disconnected"); // Not connected until OAuth is complete
             
             // Save to Firestore
             ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
@@ -526,44 +517,22 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             Optional<ProviderIntegrationEntity> existingIntegration = readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
             
             if (existingIntegration.isPresent()) {
-                // Update existing integration
+                // Update existing integration - just enable it
                 ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.markAsConnected();
+                entity.setStatusValue("connected"); // Mark as connected
                 
-                Map<String, Object> metadata = entity.getMetadata();
-                if (metadata == null) {
-                    metadata = new HashMap<>();
-                }
-                metadata.put("accountInfo", result.getAccountInfo());
-                metadata.put("oauthCompleted", true);
-                metadata.put("connectedAt", result.getConnectedAt());
-                metadata.put("access_token", result.getAccessToken());
-                metadata.put("refresh_token", result.getRefreshToken());
-                metadata.put("expires_at", result.getExpiresAt().toString());
-                entity.setMetadata(metadata);
+                // We don't store tokens or metadata in the entity anymore
+                // Those should be stored securely elsewhere (e.g., Vault)
                 
                 updateProviderIntegrationRepository.updateWithUserId(entity, userId);
                 log.info("Updated Coinbase integration status to connected for user: {}", userId);
             } else {
-                // Create new integration
-                ProviderIntegrationEntity entity = new ProviderIntegrationEntity();
-                entity.setProviderId(PROVIDER_ID);
-                entity.setProviderName(PROVIDER_NAME);
-                entity.setProviderType(PROVIDER_TYPE);
-                entity.setUserId(userId);
-                entity.markAsConnected();
+                // Create new integration with simplified entity
+                ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+                entity.setStatusValue("connected"); // Mark as connected
                 
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("accountInfo", result.getAccountInfo());
-                metadata.put("oauthCompleted", true);
-                metadata.put("connectedAt", result.getConnectedAt());
-                metadata.put("access_token", result.getAccessToken());
-                metadata.put("refresh_token", result.getRefreshToken());
-                metadata.put("expires_at", result.getExpiresAt().toString());
-                entity.setMetadata(metadata);
-                
-                // Set capabilities
-                entity.setCapabilities(Arrays.asList("READ_ACCOUNTS", "READ_TRANSACTIONS", "READ_BALANCES"));
+                // We don't store tokens or metadata in the entity anymore
+                // Those should be stored securely elsewhere (e.g., Vault)
                 
                 ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
                 log.info("Created new Coinbase integration for user: {}", userId);

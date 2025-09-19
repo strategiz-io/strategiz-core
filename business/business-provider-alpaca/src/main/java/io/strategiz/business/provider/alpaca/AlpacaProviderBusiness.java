@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Business logic for Alpaca provider integration.
@@ -93,17 +95,27 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     public String generateAuthorizationUrl(String userId, String state) {
         validateOAuthConfiguration();
         
-        String authorizationUrl = String.format(
-            "%s?client_id=%s&redirect_uri=%s&state=%s&scope=%s&response_type=code",
-            authUrl,
-            clientId,
-            redirectUri,
-            state,
-            scope.replace(" ", "%20")
-        );
-        
-        log.info("Generated Alpaca OAuth URL for user: {}", userId);
-        return authorizationUrl;
+        try {
+            // Properly URL-encode the redirect URI
+            String encodedRedirectUri = URLEncoder.encode(redirectUri, StandardCharsets.UTF_8.toString());
+            String encodedScope = URLEncoder.encode(scope, StandardCharsets.UTF_8.toString());
+            
+            String authorizationUrl = String.format(
+                "%s?response_type=code&client_id=%s&redirect_uri=%s&state=%s&scope=%s",
+                authUrl,
+                clientId,
+                encodedRedirectUri,
+                state,
+                encodedScope
+            );
+            
+            log.info("Generated Alpaca OAuth URL for user: {}", userId);
+            log.debug("OAuth URL: {}", authorizationUrl);
+            return authorizationUrl;
+        } catch (Exception e) {
+            log.error("Failed to generate OAuth URL", e);
+            throw new RuntimeException("Failed to generate OAuth URL", e);
+        }
     }
     
     /**

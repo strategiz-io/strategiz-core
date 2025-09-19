@@ -1,52 +1,15 @@
 package io.strategiz.service.device.model.anonymous;
 
+import io.strategiz.service.device.model.BaseDeviceFingerprint;
+
 /**
- * Request model for creating anonymous device
+ * Request for creating an anonymous device registration
+ * Captures FingerprintJS data and Web Crypto API public key for landing page visitors
+ * Stores in: /devices (root collection)
+ * 
+ * No additional fields needed - anonymous devices only need the base fingerprint data
  */
-public class CreateAnonymousDeviceRequest {
-    private String fingerprint;
-    private String platform;
-    private String browser;
-    private String userAgent;
-    private String ipAddress;
-    
-    public String getFingerprint() {
-        return fingerprint;
-    }
-    
-    public void setFingerprint(String fingerprint) {
-        this.fingerprint = fingerprint;
-    }
-    
-    public String getPlatform() {
-        return platform;
-    }
-    
-    public void setPlatform(String platform) {
-        this.platform = platform;
-    }
-    
-    public String getBrowser() {
-        return browser;
-    }
-    
-    public void setBrowser(String browser) {
-        this.browser = browser;
-    }
-    
-    public String getUserAgent() {
-        return userAgent;
-    }
-    
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
-    }
-    
-    public String getIpAddress() {
-        return ipAddress;
-    }
-    
-    public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
-    }
+public class CreateAnonymousDeviceRequest extends BaseDeviceFingerprint {
+    // Inherits all fingerprint fields from BaseDeviceFingerprint
+    // No additional fields needed for anonymous devices
 }

@@ -4,6 +4,7 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import jakarta.validation.constraints.NotBlank;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
  * Watchlist item for users/{userId}/watchlist subcollection
  * Represents a financial instrument the user is tracking
  */
+@Collection("watchlist")
 public class WatchlistItemEntity extends BaseEntity {
 
     @DocumentId
@@ -227,10 +229,5 @@ public class WatchlistItemEntity extends BaseEntity {
     @Override
     public void setId(String id) {
         this.itemId = id;
-    }
-
-    @Override
-    public String getCollectionName() {
-        return "watchlist";
     }
 }

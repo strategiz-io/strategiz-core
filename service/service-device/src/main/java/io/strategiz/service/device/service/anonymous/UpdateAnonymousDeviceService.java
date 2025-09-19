@@ -39,16 +39,16 @@ public class UpdateAnonymousDeviceService extends BaseService {
         
         try {
             // Get existing device
-            Optional<DeviceIdentity> existingDevice = readRepository.getAnonymousDevice(deviceId);
+            Optional<DeviceIdentity> existingDevice = readRepository.findAnonymousDevice(deviceId);
             if (existingDevice.isEmpty()) {
                 throw new RuntimeException("Device not found: " + deviceId);
             }
             
             DeviceIdentity device = existingDevice.get();
             
-            // Update fields
-            if (request.getFingerprint() != null) {
-                device.setFingerprint(request.getFingerprint());
+            // Update fields based on UpdateAnonymousDeviceRequest
+            if (request.getVisitorId() != null) {
+                device.setVisitorId(request.getVisitorId());
             }
             if (request.getVisitorId() != null) {
                 device.setVisitorId(request.getVisitorId());
@@ -56,8 +56,8 @@ public class UpdateAnonymousDeviceService extends BaseService {
             if (request.getPlatform() != null) {
                 device.setPlatform(request.getPlatform());
             }
-            if (request.getBrowser() != null) {
-                device.setBrowserName(request.getBrowser());
+            if (request.getBrowserName() != null) {
+                device.setBrowserName(request.getBrowserName());
             }
             if (request.getUserAgent() != null) {
                 device.setUserAgent(request.getUserAgent());
@@ -80,13 +80,19 @@ public class UpdateAnonymousDeviceService extends BaseService {
             if (request.getOsVersion() != null) {
                 device.setOsVersion(request.getOsVersion());
             }
-            if (request.getTrustScore() != null) {
-                device.setTrustScore(request.getTrustScore());
-                device.setTrustLevel(determineTrustLevel(request.getTrustScore()));
+            // Update comprehensive fingerprint fields
+            if (request.getConfidence() != null) {
+                device.setFingerprintConfidence(request.getConfidence());
+            }
+            if (request.getCanvasFingerprint() != null) {
+                device.setCanvasFingerprint(request.getCanvasFingerprint());
+            }
+            if (request.getPublicKey() != null) {
+                device.setPublicKey(request.getPublicKey());
             }
             
             device.setLastSeen(Instant.now());
-            device.setUpdatedAt(Instant.now());
+            // BaseEntity handles updated date automatically
             
             // Save updates
             Optional<DeviceIdentity> updatedDevice = updateRepository.updateAnonymousDevice(device);
@@ -98,10 +104,10 @@ public class UpdateAnonymousDeviceService extends BaseService {
             // Create response
             UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
             response.setDeviceId(updatedDevice.get().getDeviceId());
-            response.setFingerprint(updatedDevice.get().getFingerprint());
-            response.setTrustScore(updatedDevice.get().getTrustScore());
+            response.setVisitorId(updatedDevice.get().getVisitorId());
+            response.setTrustScore((double) updatedDevice.get().getTrustScore());
             response.setTrustLevel(updatedDevice.get().getTrustLevel());
-            response.setUpdatedAt(updatedDevice.get().getUpdatedAt());
+            response.setUpdatedAt(Instant.now());
             
             log.info("Successfully updated anonymous device: {}", deviceId);
             return response;
@@ -125,7 +131,7 @@ public class UpdateAnonymousDeviceService extends BaseService {
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
         response.setDeviceId(updated.get().getDeviceId());
         response.setTrustLevel(updated.get().getTrustLevel());
-        response.setUpdatedAt(updated.get().getUpdatedAt());
+        response.setUpdatedAt(Instant.now());
         
         return response;
     }
@@ -143,7 +149,7 @@ public class UpdateAnonymousDeviceService extends BaseService {
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
         response.setDeviceId(updated.get().getDeviceId());
         response.setTrustLevel("LOW");
-        response.setUpdatedAt(updated.get().getUpdatedAt());
+        response.setUpdatedAt(Instant.now());
         
         return response;
     }
@@ -160,7 +166,7 @@ public class UpdateAnonymousDeviceService extends BaseService {
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
         response.setDeviceId(updated.get().getDeviceId());
         response.setBlocked(true);
-        response.setUpdatedAt(updated.get().getUpdatedAt());
+        response.setUpdatedAt(Instant.now());
         
         return response;
     }
@@ -177,16 +183,15 @@ public class UpdateAnonymousDeviceService extends BaseService {
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
         response.setDeviceId(updated.get().getDeviceId());
         response.setBlocked(false);
-        response.setUpdatedAt(updated.get().getUpdatedAt());
+        response.setUpdatedAt(Instant.now());
         
         return response;
     }
     
-    private String determineTrustLevel(Double trustScore) {
-        if (trustScore == null) return "UNKNOWN";
-        if (trustScore >= 0.8) return "HIGH";
-        if (trustScore >= 0.5) return "MEDIUM";
-        if (trustScore >= 0.3) return "LOW";
+    private String determineTrustLevel(int trustScore) {
+        if (trustScore >= 80) return "HIGH";
+        if (trustScore >= 50) return "MEDIUM";
+        if (trustScore >= 30) return "LOW";
         return "VERY_LOW";
     }
 }

@@ -1,6 +1,7 @@
 package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
+import io.strategiz.data.provider.entity.ProviderStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -25,8 +26,9 @@ public class UpdateProviderIntegrationRepositoryImpl implements UpdateProviderIn
     
     @Override
     public ProviderIntegrationEntity update(ProviderIntegrationEntity integration) {
-        // Use the userId from the entity for audit
-        return baseRepository.save(integration, integration.getUserId());
+        // Since entity doesn't store userId, we need it from somewhere else
+        // This method signature should probably be changed to include userId
+        return baseRepository.save(integration, "system");
     }
     
     @Override
@@ -39,7 +41,7 @@ public class UpdateProviderIntegrationRepositoryImpl implements UpdateProviderIn
         Optional<ProviderIntegrationEntity> entity = readRepository.findByUserIdAndProviderId(userId, providerId);
         if (entity.isPresent()) {
             ProviderIntegrationEntity integration = entity.get();
-            integration.setStatus(status);
+            integration.setStatusValue(status);
             baseRepository.save(integration, userId);
             return true;
         }
@@ -51,7 +53,7 @@ public class UpdateProviderIntegrationRepositoryImpl implements UpdateProviderIn
         Optional<ProviderIntegrationEntity> entity = readRepository.findByUserIdAndProviderId(userId, providerId);
         if (entity.isPresent()) {
             ProviderIntegrationEntity integration = entity.get();
-            integration.setEnabled(enabled);
+            integration.setStatusValue(enabled ? "connected" : "disconnected");
             baseRepository.save(integration, userId);
             return true;
         }

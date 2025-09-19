@@ -2,6 +2,7 @@ package io.strategiz.framework.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.NoSuchMessageException;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class ErrorMessageService {
     private static final Pattern IP_PATTERN = Pattern.compile("\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b");
     private static final Pattern TOKEN_PATTERN = Pattern.compile("\\b[A-Za-z0-9]{20,}\\b");
     
+    @Autowired
     public ErrorMessageService(MessageSource messageSource) {
         this.messageSource = messageSource;
         this.baseDocumentationUrl = "https://docs.strategiz.io/errors/";
@@ -46,13 +48,17 @@ public class ErrorMessageService {
         String propertyKey = errorDetails.getPropertyKey();
         Object[] args = ex.getArgs();
         
+        log.info("Building error response for property key: {}", propertyKey);
+        
         try {
-            return new StandardErrorResponse(
+            StandardErrorResponse response = new StandardErrorResponse(
                 getCode(propertyKey),
                 getMessage(propertyKey),
                 getDeveloperMessage(propertyKey, ex.getModuleName(), args),
                 getMoreInfoUrl(propertyKey)
             );
+            log.info("Built response - code: {}, message: {}", response.getCode(), response.getMessage());
+            return response;
         } catch (Exception e) {
             log.error("Failed to build error response for key: {}", propertyKey, e);
             return buildFallbackErrorResponse(ex);
@@ -64,10 +70,14 @@ public class ErrorMessageService {
      */
     private String getCode(String propertyKey) {
         try {
-            return messageSource.getMessage(propertyKey + ".code", null, Locale.getDefault());
+            String messageKey = propertyKey + ".code";
+            log.debug("Looking up message key: {}", messageKey);
+            String code = messageSource.getMessage(messageKey, null, Locale.getDefault());
+            log.debug("Found code: {}", code);
+            return code;
         } catch (NoSuchMessageException e) {
-            log.warn("Missing error code for key: {}", propertyKey);
-            return propertyKey.toUpperCase().replace("-", "_");
+            log.warn("Missing error code for key: {} - returning key itself", propertyKey);
+            return propertyKey + ".code"; // Return the key itself to debug
         }
     }
     
@@ -76,10 +86,14 @@ public class ErrorMessageService {
      */
     private String getMessage(String propertyKey) {
         try {
-            return messageSource.getMessage(propertyKey + ".message", null, Locale.getDefault());
+            String messageKey = propertyKey + ".message";
+            log.debug("Looking up message key: {}", messageKey);
+            String message = messageSource.getMessage(messageKey, null, Locale.getDefault());
+            log.debug("Found message: {}", message);
+            return message;
         } catch (NoSuchMessageException e) {
-            log.warn("Missing error message for key: {}", propertyKey);
-            return "An error occurred. Please try again.";
+            log.warn("Missing error message for key: {} - returning key itself", propertyKey);
+            return propertyKey + ".message"; // Return the key itself to debug
         }
     }
     
@@ -88,7 +102,10 @@ public class ErrorMessageService {
      */
     private String getDeveloperMessage(String propertyKey, String moduleName, Object[] args) {
         try {
-            String template = messageSource.getMessage(propertyKey + ".developer", null, Locale.getDefault());
+            String messageKey = propertyKey + ".developer";
+            log.debug("Looking up developer message key: {}", messageKey);
+            String template = messageSource.getMessage(messageKey, null, Locale.getDefault());
+            log.debug("Found developer message template: {}", template);
             
             // Create enhanced args array with module name as first parameter
             Object[] enhancedArgs = new Object[args.length + 1];
@@ -102,8 +119,8 @@ public class ErrorMessageService {
             return maskSensitiveData(formatted);
             
         } catch (NoSuchMessageException e) {
-            log.warn("Missing developer message for key: {}", propertyKey);
-            return "Error occurred in module: " + moduleName;
+            log.warn("Missing developer message for key: {} - returning key itself", propertyKey);
+            return propertyKey + ".developer"; // Return the key itself to debug
         } catch (Exception e) {
             log.error("Failed to format developer message for key: {}", propertyKey, e);
             return "Error occurred in module: " + moduleName;
@@ -115,11 +132,14 @@ public class ErrorMessageService {
      */
     private String getMoreInfoUrl(String propertyKey) {
         try {
-            String path = messageSource.getMessage(propertyKey + ".more-info", null, Locale.getDefault());
+            String messageKey = propertyKey + ".more-info";
+            log.debug("Looking up more-info key: {}", messageKey);
+            String path = messageSource.getMessage(messageKey, null, Locale.getDefault());
+            log.debug("Found more-info path: {}", path);
             return baseDocumentationUrl + path;
         } catch (NoSuchMessageException e) {
-            log.warn("Missing more-info path for key: {}", propertyKey);
-            return baseDocumentationUrl + "general/error";
+            log.warn("Missing more-info path for key: {} - returning key itself", propertyKey);
+            return baseDocumentationUrl + propertyKey + ".more-info"; // Return the key itself to debug
         }
     }
     

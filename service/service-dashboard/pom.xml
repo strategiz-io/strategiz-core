@@ -50,6 +50,26 @@
             <artifactId>data-watchlist</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-kraken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-token-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- No API dependencies - services should not depend on API modules -->
         
@@ -71,7 +91,7 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-yahoo-finance</artifactId>
+            <artifactId>client-yahoofinance</artifactId>
             <version>${project.version}</version>
         </dependency>
         

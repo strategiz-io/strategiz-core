@@ -174,11 +174,11 @@ echo "   VAULT_ADDR: $VAULT_ADDR"
 echo "   VAULT_TOKEN: [CONFIGURED]"
 
 echo "Starting Strategiz Core application..."
-echo "Application will start with dev profile"
+echo "Application will start with dev profile (HTTPS enabled)"
 echo
-echo "🌐 Backend will be available at: http://localhost:8080"
-echo "📖 API Documentation: http://localhost:8080/swagger-ui.html"
-echo "💡 Health Check: http://localhost:8080/actuator/health"
+echo "🔒 Backend will be available at: https://localhost:8443"
+echo "📖 API Documentation: https://localhost:8443/swagger-ui.html"
+echo "💡 Health Check: https://localhost:8443/actuator/health"
 echo
 print_warning "Press Ctrl+C to stop the application"
 echo

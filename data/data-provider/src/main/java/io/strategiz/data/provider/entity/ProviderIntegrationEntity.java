@@ -4,93 +4,48 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import jakarta.validation.constraints.NotBlank;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Provider integration for users/{userId}/provider_integrations subcollection
- * Represents external service connections (trading platforms, APIs, etc.)
+ * Simplified entity with only essential fields - no redundancy
  */
+@Collection("provider_integrations")
 public class ProviderIntegrationEntity extends BaseEntity {
 
     @DocumentId
     @PropertyName("providerId")
     @JsonProperty("providerId")
-    private String providerId;
-
-    @PropertyName("providerType")
-    @JsonProperty("providerType")
-    @NotBlank(message = "Provider type is required")
-    private String providerType; // TRADING, CRYPTO, BANK, OAUTH, etc.
-
-    @PropertyName("providerName")
-    @JsonProperty("providerName")
-    @NotBlank(message = "Provider name is required")
-    private String providerName; // alpaca, tdameritrade, coinbase, etc.
-
-    @PropertyName("displayName")
-    @JsonProperty("displayName")
-    private String displayName; // User-friendly name
+    @NotBlank(message = "Provider ID is required")
+    private String providerId; // e.g., "kraken", "coinbase", "alpaca"
 
     @PropertyName("status")
     @JsonProperty("status")
-    private String status = "CONNECTED"; // CONNECTED, DISCONNECTED, ERROR, EXPIRED
+    private String status = "connected"; // Status of the integration - must be lowercase for consistency
 
     @PropertyName("connectionType")
     @JsonProperty("connectionType")
-    private String connectionType; // API_KEY, OAUTH, PLAID, etc.
-
-    @PropertyName("lastSyncAt")
-    @JsonProperty("lastSyncAt")
-    private Instant lastSyncAt;
-
-    @PropertyName("lastErrorAt")
-    @JsonProperty("lastErrorAt")
-    private Instant lastErrorAt;
-
-    @PropertyName("errorMessage")
-    @JsonProperty("errorMessage")
-    private String errorMessage;
-
-    @PropertyName("capabilities")
-    @JsonProperty("capabilities")
-    private List<String> capabilities; // READ, TRADE, PORTFOLIO, etc.
-
-    @PropertyName("metadata")
-    @JsonProperty("metadata")
-    private Map<String, Object> metadata; // Provider-specific data
-
-    @PropertyName("userId")
-    @JsonProperty("userId")
-    private String userId; // Owner of this integration
-
-    @PropertyName("enabled")
-    @JsonProperty("enabled")
-    private boolean enabled = true; // Whether integration is enabled
+    @NotBlank(message = "Connection type is required")
+    private String connectionType; // "oauth" or "api_key"
 
     // Constructors
     public ProviderIntegrationEntity() {
         super();
     }
 
-    public ProviderIntegrationEntity(String providerType, String providerName) {
+    public ProviderIntegrationEntity(String providerId, String connectionType) {
         super();
-        this.providerType = providerType;
-        this.providerName = providerName;
-        this.displayName = providerName;
-        this.status = "CONNECTED";
+        this.providerId = providerId;
+        this.connectionType = connectionType;
+        this.status = "connected";
     }
 
-    public ProviderIntegrationEntity(String providerType, String providerName, String displayName, String connectionType) {
-        super();
-        this.providerType = providerType;
-        this.providerName = providerName;
-        this.displayName = displayName;
+    public ProviderIntegrationEntity(String providerId, String connectionType, String userId) {
+        super(userId);
+        this.providerId = providerId;
         this.connectionType = connectionType;
-        this.status = "CONNECTED";
+        this.status = "connected";
     }
 
     // Getters and Setters
@@ -102,35 +57,21 @@ public class ProviderIntegrationEntity extends BaseEntity {
         this.providerId = providerId;
     }
 
-    public String getProviderType() {
-        return providerType;
+    public ProviderStatus getStatus() {
+        return status != null ? ProviderStatus.fromValue(status) : null;
     }
 
-    public void setProviderType(String providerType) {
-        this.providerType = providerType;
+    public void setStatus(ProviderStatus status) {
+        String newValue = status != null ? status.getValue() : null;
+        System.out.println("DEBUG: setStatus called with enum " + status + ", setting field to: " + newValue);
+        this.status = newValue;
     }
-
-    public String getProviderName() {
-        return providerName;
-    }
-
-    public void setProviderName(String providerName) {
-        this.providerName = providerName;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getStatus() {
+    
+    public String getStatusValue() {
         return status;
     }
-
-    public void setStatus(String status) {
+    
+    public void setStatusValue(String status) {
         this.status = status;
     }
 
@@ -142,92 +83,6 @@ public class ProviderIntegrationEntity extends BaseEntity {
         this.connectionType = connectionType;
     }
 
-    public Instant getLastSyncAt() {
-        return lastSyncAt;
-    }
-
-    public void setLastSyncAt(Instant lastSyncAt) {
-        this.lastSyncAt = lastSyncAt;
-    }
-
-    public Instant getLastErrorAt() {
-        return lastErrorAt;
-    }
-
-    public void setLastErrorAt(Instant lastErrorAt) {
-        this.lastErrorAt = lastErrorAt;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public List<String> getCapabilities() {
-        return capabilities;
-    }
-
-    public void setCapabilities(List<String> capabilities) {
-        this.capabilities = capabilities;
-    }
-
-    public Map<String, Object> getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
-
-    // Convenience methods
-    public boolean isConnected() {
-        return "CONNECTED".equals(status);
-    }
-
-    public boolean hasError() {
-        return "ERROR".equals(status);
-    }
-
-    public boolean isExpired() {
-        return "EXPIRED".equals(status);
-    }
-
-    public void markAsError(String errorMessage) {
-        this.status = "ERROR";
-        this.errorMessage = errorMessage;
-        this.lastErrorAt = Instant.now();
-    }
-
-    public void markAsConnected() {
-        this.status = "CONNECTED";
-        this.errorMessage = null;
-        this.lastErrorAt = null;
-        this.lastSyncAt = Instant.now();
-    }
-
-    public void markAsDisconnected() {
-        this.status = "DISCONNECTED";
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
     // Required BaseEntity methods
     @Override
     public String getId() {
@@ -237,10 +92,5 @@ public class ProviderIntegrationEntity extends BaseEntity {
     @Override
     public void setId(String id) {
         this.providerId = id;
-    }
-
-    @Override
-    public String getCollectionName() {
-        return "provider_integrations";
     }
 }

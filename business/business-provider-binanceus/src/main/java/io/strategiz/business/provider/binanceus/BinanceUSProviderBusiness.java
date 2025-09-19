@@ -1,12 +1,12 @@
 package io.strategiz.business.provider.binanceus;
 
 import io.strategiz.client.binanceus.auth.BinanceUSApiAuthClient;
-import io.strategiz.client.binanceus.auth.service.BinanceUSCredentialService;
+import io.strategiz.client.binanceus.auth.manager.BinanceUSCredentialManager;
 // import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
 // import io.strategiz.data.auth.repository.ProviderIntegrationRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
-import io.strategiz.business.base.provider.ProviderIntegrationHandler;
+import io.strategiz.business.provider.base.BaseApiKeyProviderHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import java.util.HashMap;
  * Implements dual storage: credentials in Vault, metadata in Firestore
  */
 @Service
-public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
+public class BinanceUSProviderBusiness extends BaseApiKeyProviderHandler {
 
     private static final Logger log = LoggerFactory.getLogger(BinanceUSProviderBusiness.class);
     
@@ -29,27 +29,47 @@ public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_NAME = "Binance US";
     private static final String PROVIDER_TYPE = "exchange";
     private final BinanceUSApiAuthClient apiAuthClient;
-    private final BinanceUSCredentialService credentialService;
+    private final BinanceUSCredentialManager credentialManager;
     // private final ProviderIntegrationRepository providerIntegrationRepository;
 
     public BinanceUSProviderBusiness(
             BinanceUSApiAuthClient apiAuthClient,
-            BinanceUSCredentialService credentialService) {
+            BinanceUSCredentialManager credentialManager) {
             // ProviderIntegrationRepository providerIntegrationRepository) {
         this.apiAuthClient = apiAuthClient;
-        this.credentialService = credentialService;
+        this.credentialManager = credentialManager;
         // this.providerIntegrationRepository = providerIntegrationRepository;
     }
 
     @Override
-    public boolean testConnection(CreateProviderIntegrationRequest request, String userId) {
-        log.info("Testing Binance US connection for user: {}", userId);
+    protected Map<String, String> getStoredCredentials(String userId) {
+        try {
+            return credentialManager.getCredentialsAsMap(userId);
+        } catch (Exception e) {
+            log.error("Error retrieving Binance US credentials for user: {}", userId, e);
+            return null;
+        }
+    }
+    
+    @Override
+    protected boolean testConnectionWithStoredCredentials(Map<String, String> storedCredentials, String userId) {
+        String apiKey = storedCredentials.get("apiKey");
+        String apiSecret = storedCredentials.get("apiSecret");
+        
+        // Validate credentials
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.warn("API key is missing in stored credentials for user: {}", userId);
+            return false;
+        }
+        
+        if (apiSecret == null || apiSecret.trim().isEmpty()) {
+            log.warn("API secret is missing in stored credentials for user: {}", userId);
+            return false;
+        }
+        
+        log.debug("Testing connection with stored credentials from Vault");
         
         try {
-            // Extract credentials from request
-            String apiKey = request.getApiKey();
-            String apiSecret = request.getApiSecret();
-            
             // Use the API auth client to test connection
             boolean isConnected = apiAuthClient.testConnection(apiKey, apiSecret);
             
@@ -62,7 +82,7 @@ public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
             return isConnected;
             
         } catch (Exception e) {
-            log.error("Error testing Binance US connection for user: {}", userId, e);
+            log.error("Error during Binance US API call for user: {} - Error: {}", userId, e.getMessage());
             return false;
         }
     }
@@ -76,7 +96,7 @@ public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
             String apiKey = request.getApiKey();
             String apiSecret = request.getApiSecret();
             
-            credentialService.storeCredentials(userId, apiKey, apiSecret);
+            credentialManager.storeCredentials(userId, apiKey, apiSecret);
             log.info("Stored Binance US credentials in Vault for user: {}", userId);
             
             // 2. Create provider integration entity for Firestore
@@ -123,17 +143,6 @@ public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
     }
 
 
-    /**
-     * Get stored Binance US credentials for a user
-     */
-    public Map<String, String> getCredentials(String userId) {
-        try {
-            return credentialService.getCredentialsAsMap(userId);
-        } catch (Exception e) {
-            log.error("Failed to retrieve Binance US credentials for user: {}", userId, e);
-            throw new RuntimeException("Failed to retrieve credentials", e);
-        }
-    }
 
 
 
@@ -146,7 +155,11 @@ public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
         
         try {
             // Get stored credentials
-            Map<String, String> credentials = getCredentials(userId);
+            Map<String, String> credentials = getStoredCredentials(userId);
+            if (credentials == null || credentials.isEmpty()) {
+                log.warn("No credentials found for user: {}", userId);
+                return false;
+            }
             String apiKey = credentials.get("apiKey");
             String apiSecret = credentials.get("apiSecret");
             
@@ -183,7 +196,7 @@ public class BinanceUSProviderBusiness implements ProviderIntegrationHandler {
         
         try {
             // Remove credentials from Vault using credential service
-            credentialService.deleteCredentials(userId);
+            credentialManager.deleteCredentials(userId);
             
             // Remove from Firestore
             // boolean deleted = providerIntegrationRepository.deleteByUserIdAndProviderId(userId, PROVIDER_ID);

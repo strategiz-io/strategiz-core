@@ -310,7 +310,8 @@ public abstract class BaseController {
         }
         
         // Filter out null and empty fields
-        T cleanedData = filterNullAndEmptyFields(data);
+        @SuppressWarnings("unchecked")
+        T cleanedData = (T) filterNullAndEmptyFields(data);
         
         log.debug("Created clean response for type: {}", data.getClass().getSimpleName());
         return ResponseEntity.ok(cleanedData);
@@ -325,7 +326,8 @@ public abstract class BaseController {
         }
         
         // Filter out null and empty fields
-        T cleanedData = filterNullAndEmptyFields(data);
+        @SuppressWarnings("unchecked")
+        T cleanedData = (T) filterNullAndEmptyFields(data);
         
         log.debug("Created clean response for type: {} with status: {}", data.getClass().getSimpleName(), statusCode);
         return ResponseEntity.status(statusCode).body(cleanedData);
@@ -334,13 +336,18 @@ public abstract class BaseController {
     /**
      * Filter null and empty string fields from response data
      */
-    @SuppressWarnings("unchecked")
-    private <T> T filterNullAndEmptyFields(T data) {
+    private Object filterNullAndEmptyFields(Object data) {
+        if (data == null) {
+            return null;
+        }
+        
         try {
             // Convert to JSON, filter, and convert back
             JsonNode jsonNode = objectMapper.valueToTree(data);
             JsonNode filteredNode = filterJsonNode(jsonNode);
-            return (T) objectMapper.treeToValue(filteredNode, data.getClass());
+            
+            // Create a new instance of the same type
+            return objectMapper.treeToValue(filteredNode, data.getClass());
         } catch (Exception e) {
             log.warn("Failed to filter null/empty fields, returning original data: {}", e.getMessage());
             return data; // Return original if filtering fails

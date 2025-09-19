@@ -104,7 +104,7 @@ public class SignupProfileService {
         profile.setEmail(email);
         profile.setIsEmailVerified(ProfileConstants.Defaults.EMAIL_VERIFIED);
         profile.setSubscriptionTier(ProfileConstants.Defaults.SUBSCRIPTION_TIER);
-        profile.setTradingMode(ProfileConstants.Defaults.TRADING_MODE);
+        profile.setDemoMode(ProfileConstants.Defaults.DEMO_MODE);
         
         user.setProfile(profile);
         
@@ -150,7 +150,7 @@ public class SignupProfileService {
             "signup-fingerprint", // Temporary fingerprint
             "0.0.0.0", // IP will be set by the controller
             "SignupFlow/1.0", // User agent identifier
-            "demo" // tradingMode - default to demo for new signups
+            true // demoMode - default to demo for new signups
         );
         
         // Generate the authentication tokens

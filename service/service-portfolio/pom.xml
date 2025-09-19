@@ -67,6 +67,11 @@
             <artifactId>business-token-auth</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-portfolio</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- Google Cloud Firestore -->
         <dependency>

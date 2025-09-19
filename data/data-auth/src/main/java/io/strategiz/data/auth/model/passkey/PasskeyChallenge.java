@@ -1,6 +1,7 @@
 package io.strategiz.data.auth.model.passkey;
 
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.Map;
  * Passkey challenge entity
  * This is a database entity for WebAuthn challenges
  */
+@Collection("passkey_challenges")
 public class PasskeyChallenge extends BaseEntity {
     
     private String id;
@@ -163,11 +165,6 @@ public class PasskeyChallenge extends BaseEntity {
 
     public void setMetadata(Map<String, Object> metadata) {
         this.metadata = metadata;
-    }
-
-    @Override
-    public String getCollectionName() {
-        return "passkey_challenges";
     }
 
     // === ADDITIONAL GETTERS/SETTERS FOR FIRESTORE MAPPING ===

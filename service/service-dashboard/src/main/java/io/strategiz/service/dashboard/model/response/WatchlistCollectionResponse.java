@@ -16,7 +16,7 @@ public class WatchlistCollectionResponse {
     private Integer totalCount;
     private Integer activeCount;
     private Boolean isEmpty;
-    private String tradingMode;
+    private Boolean demoMode;
     private LocalDateTime lastUpdated;
 
     // Constructors
@@ -80,12 +80,12 @@ public class WatchlistCollectionResponse {
         this.isEmpty = isEmpty;
     }
 
-    public String getTradingMode() {
-        return tradingMode;
+    public Boolean getDemoMode() {
+        return demoMode;
     }
 
-    public void setTradingMode(String tradingMode) {
-        this.tradingMode = tradingMode;
+    public void setDemoMode(Boolean demoMode) {
+        this.demoMode = demoMode;
     }
 
     public LocalDateTime getLastUpdated() {
@@ -115,13 +115,13 @@ public class WatchlistCollectionResponse {
                 Objects.equals(totalCount, that.totalCount) &&
                 Objects.equals(activeCount, that.activeCount) &&
                 Objects.equals(isEmpty, that.isEmpty) &&
-                Objects.equals(tradingMode, that.tradingMode) &&
+                Objects.equals(demoMode, that.demoMode) &&
                 Objects.equals(lastUpdated, that.lastUpdated);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userId, items, totalCount, activeCount, isEmpty, tradingMode, lastUpdated);
+        return Objects.hash(userId, items, totalCount, activeCount, isEmpty, demoMode, lastUpdated);
     }
 
     @Override
@@ -132,7 +132,7 @@ public class WatchlistCollectionResponse {
                 ", totalCount=" + totalCount +
                 ", activeCount=" + activeCount +
                 ", isEmpty=" + isEmpty +
-                ", tradingMode='" + tradingMode + '\'' +
+                ", demoMode=" + demoMode +
                 ", lastUpdated=" + lastUpdated +
                 '}';
     }

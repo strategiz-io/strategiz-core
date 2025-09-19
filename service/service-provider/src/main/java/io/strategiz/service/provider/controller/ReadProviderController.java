@@ -1,16 +1,19 @@
 package io.strategiz.service.provider.controller;
 
 import io.strategiz.service.provider.model.response.ReadProviderResponse;
+import io.strategiz.service.provider.model.response.ProvidersListResponse;
 import io.strategiz.service.provider.service.ReadProviderService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Optional;
 
 /**
  * Controller for reading provider connections and data.
@@ -29,10 +32,13 @@ public class ReadProviderController extends BaseController {
     }
     
     private final ReadProviderService readProviderService;
+    private final SessionAuthBusiness sessionAuthBusiness;
     
     @Autowired
-    public ReadProviderController(ReadProviderService readProviderService) {
+    public ReadProviderController(ReadProviderService readProviderService,
+                                  SessionAuthBusiness sessionAuthBusiness) {
         this.readProviderService = readProviderService;
+        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     /**
@@ -42,17 +48,55 @@ public class ReadProviderController extends BaseController {
      * @return List of providers with their status and data
      */
     @GetMapping
-    public ResponseEntity<ReadProviderResponse> getProviders(Principal principal) {
+    public ResponseEntity<ProvidersListResponse> getProviders(Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         
-        // Extract user ID from authentication principal
-        String userId = principal != null ? principal.getName() : "anonymous";
+        // Get user ID from session
+        String userId = null;
+        log.debug("ReadProviderController: Auth header present: {}, Principal present: {}", 
+            authHeader != null, principal != null);
+        
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            log.debug("ReadProviderController: Validating session with token (first 10 chars): {}", 
+                token.length() > 10 ? token.substring(0, 10) + "..." : token);
+            
+            Optional<String> sessionUserId = sessionAuthBusiness.validateSession(token);
+            if (sessionUserId.isPresent()) {
+                userId = sessionUserId.get();
+                log.info("ReadProviderController: Got userId from session: {}", userId);
+            } else {
+                log.warn("ReadProviderController: Session validation returned empty - token might be invalid");
+            }
+        }
+        
+        // Fallback to principal if session doesn't provide userId
+        if (userId == null && principal != null) {
+            userId = principal.getName();
+            log.info("ReadProviderController: Using userId from principal: {}", userId);
+        }
+        
+        if (userId == null) {
+            log.error("ReadProviderController: No user ID available from authentication");
+            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
+                "userId", "null", "User must be authenticated");
+        }
         
         log.info("Retrieving providers for user: {}", userId);
         
         try {
-            ReadProviderResponse response = readProviderService.getProviders(userId);
+            ProvidersListResponse response = readProviderService.getProvidersList(userId);
             
-            log.info("Retrieved provider data for user: {}, status: {}", userId, response.getStatus());
+            log.info("Retrieved {} providers for user: {}", 
+                    response.getTotalCount(), userId);
+            
+            // Log provider details
+            if (response.getProviders() != null && !response.getProviders().isEmpty()) {
+                for (ReadProviderResponse provider : response.getProviders()) {
+                    log.info("Provider in response: providerId={}, status={}, providerName={}", 
+                        provider.getProviderId(), provider.getStatus(), provider.getProviderName());
+                }
+            }
             
             return ResponseEntity.ok(response);
             

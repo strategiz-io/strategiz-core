@@ -4,6 +4,7 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.persistence.Entity;
@@ -22,6 +23,7 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "security")
+@Collection("security")
 public class AuthenticationMethodEntity extends BaseEntity {
 
     @Id
@@ -143,10 +145,6 @@ public class AuthenticationMethodEntity extends BaseEntity {
     }
 
     // Required BaseEntity methods
-    @Override
-    public String getCollectionName() {
-        return "security";
-    }
 
     // Type-specific validation (called programmatically, not stored)
     public boolean isConfigured() {

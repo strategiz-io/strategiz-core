@@ -4,6 +4,7 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.Map;
  * User preference for users/{userId}/preferences subcollection
  * Each document represents a preference category (theme, notifications, etc.)
  */
+@Collection("preferences")
 public class UserPreferenceEntity extends BaseEntity {
 
     @DocumentId
@@ -101,10 +103,5 @@ public class UserPreferenceEntity extends BaseEntity {
     @Override
     public void setId(String id) {
         this.preferenceId = id;
-    }
-
-    @Override
-    public String getCollectionName() {
-        return "preferences";
     }
 }

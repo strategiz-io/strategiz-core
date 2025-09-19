@@ -1,6 +1,7 @@
 package io.strategiz.data.base.repository;
 
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import org.slf4j.Logger;
@@ -338,12 +339,12 @@ public abstract class BaseRepository<T extends BaseEntity> {
     }
 
     protected CollectionReference getCollection() {
-        try {
-            T instance = entityClass.getDeclaredConstructor().newInstance();
-            return firestore.collection(instance.getCollectionName());
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get collection for " + entityClass.getSimpleName(), e);
+        Collection annotation = entityClass.getAnnotation(Collection.class);
+        if (annotation == null) {
+            throw new RuntimeException("Entity " + entityClass.getSimpleName() + 
+                " must have @Collection annotation");
         }
+        return firestore.collection(annotation.value());
     }
     
     /**
@@ -352,13 +353,12 @@ public abstract class BaseRepository<T extends BaseEntity> {
      * @return CollectionReference for the user's subcollection
      */
     protected CollectionReference getUserScopedCollection(String userId) {
-        try {
-            T instance = entityClass.getDeclaredConstructor().newInstance();
-            String collectionName = instance.getCollectionName();
-            // For user-scoped collections, create under users/{userId}/collection_name
-            return firestore.collection("users").document(userId).collection(collectionName);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get user-scoped collection for " + entityClass.getSimpleName(), e);
+        Collection annotation = entityClass.getAnnotation(Collection.class);
+        if (annotation == null) {
+            throw new RuntimeException("Entity " + entityClass.getSimpleName() + 
+                " must have @Collection annotation");
         }
+        // For user-scoped collections, create under users/{userId}/collection_name
+        return firestore.collection("users").document(userId).collection(annotation.value());
     }
 }

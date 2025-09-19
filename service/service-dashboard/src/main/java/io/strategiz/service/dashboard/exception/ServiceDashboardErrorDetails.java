@@ -61,6 +61,16 @@ public enum ServiceDashboardErrorDetails implements ErrorDetails {
     // Configuration errors
     CONFIGURATION_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "configuration-missing"),
     
+    // Portfolio sync errors
+    SYNC_INITIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "sync-initialization-failed"),
+    SYNC_PROVIDER_FAILED(HttpStatus.BAD_GATEWAY, "sync-provider-failed"),
+    SYNC_NO_PROVIDERS(HttpStatus.NOT_FOUND, "sync-no-providers"),
+    SYNC_CREDENTIALS_NOT_FOUND(HttpStatus.NOT_FOUND, "sync-credentials-not-found"),
+    SYNC_VAULT_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "sync-vault-error"),
+    SYNC_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "sync-timeout"),
+    SYNC_DATA_TRANSFORMATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "sync-data-transformation-failed"),
+    SYNC_FIRESTORE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "sync-firestore-error"),
+    
     // General dashboard errors
     DASHBOARD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "dashboard-error");
     

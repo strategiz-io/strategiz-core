@@ -43,6 +43,10 @@ public class CreateProviderRequest {
     @JsonProperty("apiKeyData")
     private Map<String, String> apiKeyData;
     
+    // Optional: Credentials from frontend (new field to match frontend)
+    @JsonProperty("credentials")
+    private Map<String, String> credentials;
+    
     // Optional: User preferences
     private boolean enableNotifications = true;
     private boolean enableAutoRefresh = true;
@@ -173,6 +177,24 @@ public class CreateProviderRequest {
             }
         }
     }
+    
+    public void setCredentials(Map<String, String> credentials) {
+        this.credentials = credentials;
+        // If credentials are provided, extract values to individual fields
+        if (credentials != null) {
+            this.apiKey = credentials.get("apiKey");
+            this.apiSecret = credentials.get("apiSecret");
+            this.passphrase = credentials.get("passphrase");
+            // Handle OTP through additionalConfig
+            String otp = credentials.get("otp");
+            if (otp != null && !otp.trim().isEmpty()) {
+                if (this.additionalConfig == null) {
+                    this.additionalConfig = new java.util.HashMap<>();
+                }
+                this.additionalConfig.put("otp", otp);
+            }
+        }
+    }
 
     // Helper methods
     public boolean isOAuthConnection() {
@@ -189,15 +211,26 @@ public class CreateProviderRequest {
     }
 
     public Map<String, Object> getCredentials() {
-        Map<String, Object> credentials = new java.util.HashMap<>();
-        if (apiKey != null) credentials.put("apiKey", apiKey);
-        if (apiSecret != null) credentials.put("apiSecret", apiSecret);
-        if (passphrase != null) credentials.put("passphrase", passphrase);
+        // If credentials field was directly populated, return it (with proper type conversion)
+        if (this.credentials != null && !this.credentials.isEmpty()) {
+            Map<String, Object> result = new java.util.HashMap<>(this.credentials);
+            // Also include OTP from additionalConfig if present
+            if (additionalConfig != null && additionalConfig.containsKey("otp")) {
+                result.put("otp", additionalConfig.get("otp"));
+            }
+            return result;
+        }
+        
+        // Otherwise build from individual fields
+        Map<String, Object> result = new java.util.HashMap<>();
+        if (apiKey != null) result.put("apiKey", apiKey);
+        if (apiSecret != null) result.put("apiSecret", apiSecret);
+        if (passphrase != null) result.put("passphrase", passphrase);
         // Support for OTP if provided in additionalConfig
         if (additionalConfig != null && additionalConfig.containsKey("otp")) {
-            credentials.put("otp", additionalConfig.get("otp"));
+            result.put("otp", additionalConfig.get("otp"));
         }
-        return credentials;
+        return result;
     }
 
     @Override

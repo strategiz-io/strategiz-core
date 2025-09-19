@@ -68,9 +68,14 @@ public class PasskeyRegistrationController extends BaseController {
      * @throws StrategizException if validation fails
      */
     private String validateTemporaryToken(String temporaryToken, String expectedEmail) {
+        log.info("Validating temporary token for email: {}, token starts with: {}", 
+                expectedEmail, temporaryToken != null ? 
+                (temporaryToken.length() > 20 ? temporaryToken.substring(0, 20) + "..." : temporaryToken) : "null");
+        
         // Validate the token format and extract user ID
         Optional<String> userIdOpt = sessionAuthBusiness.validateSession(temporaryToken);
         if (userIdOpt.isEmpty()) {
+            log.error("Token validation failed for email: {} - session not found or invalid", expectedEmail);
             throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, expectedEmail);
         }
         
@@ -82,7 +87,7 @@ public class PasskeyRegistrationController extends BaseController {
         // 3. Ensure user exists and has no auth methods set up yet
         // For now, basic token validation is sufficient
         
-        log.debug("Temporary token validated for user: {} with email: {}", userId, expectedEmail);
+        log.info("Temporary token validated successfully for user: {} with email: {}", userId, expectedEmail);
         return userId;
     }
 
@@ -141,17 +146,21 @@ public class PasskeyRegistrationController extends BaseController {
 
     /**
      * Complete passkey registration process - Submit credential data
-     * 
+     *
      * PUT /auth/passkeys/registrations/{id}
-     * 
+     *
      * @param registrationId The registration challenge ID
      * @param request Completion request with attestation data
+     * @param httpRequest HTTP request for session management
+     * @param httpResponse HTTP response for setting cookies
      * @return Clean registration result with tokens - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PutMapping("/registrations/{registrationId}")
     public ResponseEntity<AuthTokens> completeRegistration(
             @PathVariable String registrationId,
-            @RequestBody PasskeyRegistrationCompletionRequest request) {
+            @RequestBody PasskeyRegistrationCompletionRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            jakarta.servlet.http.HttpServletResponse httpResponse) {
         
         logRequest("completeRegistration", request.email());
         
@@ -183,7 +192,11 @@ public class PasskeyRegistrationController extends BaseController {
         
         // Extract tokens from result
         AuthTokens tokens = (AuthTokens) result.result();
-        
+
+        // Set cookies for server-side session management
+        setCookieForSession(httpResponse, "strategiz-access-token", tokens.accessToken());
+        setCookieForSession(httpResponse, "strategiz-refresh-token", tokens.refreshToken());
+
         logRequestSuccess("completeRegistration", request.email(), tokens);
         // Return clean response - headers added by StandardHeadersInterceptor
         return createCleanResponse(tokens);
@@ -228,5 +241,22 @@ public class PasskeyRegistrationController extends BaseController {
         logRequestSuccess("getRegistrationOptions", userId, options);
         // Return clean response - headers added by StandardHeadersInterceptor
         return createCleanResponse(options);
+    }
+
+    /**
+     * Helper method to set secure HTTP-only cookies for session management
+     *
+     * @param response HTTP response
+     * @param name Cookie name
+     * @param value Cookie value
+     */
+    private void setCookieForSession(jakarta.servlet.http.HttpServletResponse response, String name, String value) {
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false); // Set to true in production with HTTPS
+        cookie.setPath("/");
+        cookie.setMaxAge(24 * 60 * 60); // 24 hours
+        response.addCookie(cookie);
+        log.debug("Set session cookie: {} for session management", name);
     }
 }

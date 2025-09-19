@@ -1,6 +1,6 @@
 package io.strategiz.service.auth.service.oauth;
 
-import io.strategiz.client.google.GoogleClient;
+import io.strategiz.client.google.client.GoogleClient;
 import io.strategiz.client.google.model.GoogleTokenResponse;
 import io.strategiz.client.google.model.GoogleUserInfo;
 import io.strategiz.data.user.entity.UserEntity;
@@ -211,7 +211,7 @@ public class GoogleOAuthService {
             null, // Device fingerprint not available
             null, // IP address not available in OAuth flow
             "Google OAuth",
-            "live" // tradingMode
+            false // demoMode
         );
         
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);

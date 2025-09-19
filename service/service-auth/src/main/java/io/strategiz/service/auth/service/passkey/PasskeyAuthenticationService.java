@@ -190,10 +190,10 @@ public class PasskeyAuthenticationService extends BaseService {
             authMethod.markAsUsed();
             authMethodRepository.saveForUser(userId, authMethod);
             
-            // Get user's trading mode from profile
-            String tradingMode = userRepository.findById(userId)
-                .map(user -> user.getProfile() != null ? user.getProfile().getTradingMode() : "demo")
-                .orElse("demo");
+            // Get user's demo mode from profile
+            Boolean demoMode = userRepository.findById(userId)
+                .map(user -> user.getProfile() != null ? user.getProfile().getDemoMode() : true)
+                .orElse(true);
             
             // Generate authentication tokens AND session using new unified approach
             // Extract context from challenge (we should have user email etc.)
@@ -206,7 +206,7 @@ public class PasskeyAuthenticationService extends BaseService {
                 deviceId, // Use deviceId as fingerprint for now
                 ipAddress,
                 "Passkey Client", // userAgent placeholder
-                tradingMode
+                demoMode
             );
             
             SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);

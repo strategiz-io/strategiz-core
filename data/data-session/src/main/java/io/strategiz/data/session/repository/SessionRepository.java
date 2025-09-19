@@ -1,109 +1,130 @@
 package io.strategiz.data.session.repository;
 
-import io.strategiz.data.session.entity.UserSessionEntity;
-import org.springframework.data.repository.Repository;
-import org.springframework.stereotype.Component;
+import io.strategiz.data.session.entity.SessionEntity;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Spring Data repository interface for managing user sessions
- * Uses Spring Data method naming conventions where possible
+ * Spring Data repository for managing authentication sessions
+ * Provides CRUD operations for sessions in the 'sessions' collection
+ * Following SOLID principles with clean Spring Data patterns
  */
-@Component
-public interface SessionRepository extends Repository<UserSessionEntity, String> {
-
+@Repository
+public interface SessionRepository extends CrudRepository<SessionEntity, String> {
+    
+    // ===============================
+    // Token Lookup Methods
+    // ===============================
+    
     /**
-     * Save a session (create or update)
-     * @param session The session to save
-     * @param userId Who is saving it
-     * @return The saved session
+     * Find a session by its token value
+     * Used for token validation
      */
-    UserSessionEntity save(UserSessionEntity session, String userId);
-
+    Optional<SessionEntity> findByTokenValue(String tokenValue);
+    
+    // ===============================
+    // User Session Methods
+    // ===============================
+    
     /**
-     * Find a session by session ID
-     * @param sessionId The session identifier
-     * @return Optional containing the session if found
+     * Find all sessions for a specific user
      */
-    Optional<UserSessionEntity> findById(String sessionId);
-
+    List<SessionEntity> findByUserId(String userId);
+    
     /**
-     * Find all active sessions for a user - Spring Data naming convention
-     * @param userId The user's ID
-     * @param active Whether the session is active
-     * @return List of active sessions for the user
+     * Find all active (non-revoked) sessions for a user
      */
-    List<UserSessionEntity> findByUserIdAndActive(String userId, boolean active);
-
+    List<SessionEntity> findByUserIdAndRevokedFalse(String userId);
+    
     /**
-     * Find sessions by user ID and device fingerprint - Spring Data naming convention
-     * @param userId The user's ID
-     * @param deviceFingerprint The device fingerprint
-     * @return List of sessions matching the criteria
+     * Find sessions by user and token type
      */
-    List<UserSessionEntity> findByUserIdAndDeviceFingerprint(String userId, String deviceFingerprint);
-
+    List<SessionEntity> findByUserIdAndTokenType(String userId, String tokenType);
+    
     /**
-     * Find sessions by IP address - Spring Data naming convention
-     * @param ipAddress The IP address
-     * @return List of sessions from this IP
+     * Find active sessions by user and token type
      */
-    List<UserSessionEntity> findByIpAddress(String ipAddress);
-
+    List<SessionEntity> findByUserIdAndTokenTypeAndRevokedFalse(String userId, String tokenType);
+    
+    // ===============================
+    // Device Session Methods
+    // ===============================
+    
     /**
-     * Find sessions that expire before a certain time - Spring Data naming convention
-     * @param expiresAt Sessions that expire before this time
-     * @return List of expired sessions
+     * Find all sessions for a specific device
      */
-    List<UserSessionEntity> findByExpiresAtBefore(Instant expiresAt);
-
+    List<SessionEntity> findByDeviceId(String deviceId);
+    
     /**
-     * Count active sessions for a user - Spring Data naming convention
-     * @param userId The user's ID
-     * @param active Whether the session is active
-     * @return Number of active sessions for the user
+     * Find active sessions for a device
      */
-    long countByUserIdAndActive(String userId, boolean active);
-
+    List<SessionEntity> findByDeviceIdAndRevokedFalse(String deviceId);
+    
+    // ===============================
+    // Maintenance Methods
+    // ===============================
+    
     /**
-     * Find active sessions by session ID - custom query method
-     * @param sessionId The session identifier
-     * @param active Whether the session is active
-     * @return Optional containing the session if found and active
+     * Find sessions that expire before given time
+     * Used for cleanup operations
      */
-    Optional<UserSessionEntity> findBySessionIdAndActive(String sessionId, boolean active);
-
+    List<SessionEntity> findByExpiresAtBefore(Instant expiresBefore);
+    
     /**
-     * Delete a session by ID - Spring Data naming convention
-     * @param sessionId The session ID to delete
+     * Find revoked sessions for cleanup
      */
-    void deleteById(String sessionId);
-
+    List<SessionEntity> findByRevokedTrue();
+    
     /**
-     * Check if a session exists by ID - Spring Data naming convention
-     * @param sessionId The session ID to check
-     * @return True if session exists
+     * Find sessions by revocation or expiry
+     * Used for batch cleanup operations
      */
-    boolean existsById(String sessionId);
-
-    // Custom methods that don't follow Spring Data naming conventions
-    // These will need custom implementation
-
+    List<SessionEntity> findByExpiresAtBeforeOrRevokedTrue(Instant expiresBefore);
+    
+    // ===============================
+    // Validation Methods
+    // ===============================
+    
     /**
-     * Terminate all sessions for a user (custom business logic)
-     * @param userId The user's ID
-     * @param reason The reason for termination
-     * @return Number of sessions terminated
+     * Check if a token exists
      */
-    int terminateAllSessionsForUser(String userId, String reason);
-
+    boolean existsByTokenValue(String tokenValue);
+    
     /**
-     * Clean up expired sessions (custom business logic)
-     * @param beforeTime Remove sessions that expired before this time
-     * @return Number of sessions cleaned up
+     * Count active sessions for a user
      */
-    int cleanupExpiredSessions(Instant beforeTime);
+    long countByUserIdAndRevokedFalse(String userId);
+    
+    /**
+     * Count sessions by type for a user
+     */
+    long countByUserIdAndTokenTypeAndRevokedFalse(String userId, String tokenType);
+    
+    // ===============================
+    // Cleanup Methods
+    // ===============================
+    
+    /**
+     * Delete expired sessions
+     */
+    void deleteByExpiresAtBefore(Instant expiresBefore);
+    
+    /**
+     * Delete revoked sessions
+     */
+    void deleteByRevokedTrue();
+    
+    /**
+     * Delete all sessions for a user
+     */
+    void deleteByUserId(String userId);
+    
+    /**
+     * Delete all sessions for a device
+     */
+    void deleteByDeviceId(String deviceId);
 }

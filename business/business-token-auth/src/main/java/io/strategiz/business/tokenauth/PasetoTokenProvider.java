@@ -7,7 +7,9 @@ import dev.paseto.jpaseto.lang.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import io.strategiz.framework.secrets.service.VaultSecretService;
 
 import jakarta.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -49,12 +51,6 @@ public class PasetoTokenProvider {
     private String tokenVersion;
 
     /**
-     * Secret key for V2 tokens (base64 encoded)
-     */
-    @Value("${auth.token.secret:}")
-    private String secret;
-    
-    /**
      * The audience claim for tokens
      */
     @Value("${auth.token.audience:strategiz}")
@@ -65,28 +61,96 @@ public class PasetoTokenProvider {
      */
     @Value("${auth.token.issuer:strategiz.io}")
     private String issuer;
-
-    private SecretKey secretKey; // For V2 tokens
     
     /**
-     * Initialize the token provider with the appropriate keys
+     * The active Spring profile (dev, prod)
+     */
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
+    @Autowired(required = false)
+    private VaultSecretService vaultSecretService;
+    
+    private SecretKey identityKey; // For identity tokens (signup/profile creation)
+    private SecretKey sessionKey;  // For session tokens (authenticated users)
+    
+    /**
+     * Initialize the token provider with keys from Vault
      */
     @PostConstruct
     public void init() {
-        log.info("Initializing PASETO V2 token provider");
-        if (secret != null && !secret.isEmpty()) {
-            secretKey = Keys.secretKey(Base64.getDecoder().decode(secret));
-        } else {
-            // Generate a random key for development
-            SecureRandom secureRandom = new SecureRandom();
-            byte[] key = new byte[32]; // 256 bits key
-            secureRandom.nextBytes(key);
-            secretKey = Keys.secretKey(key);
-            log.warn("Using randomly generated secret key. In production, provide a stable key.");
+        log.info("Initializing PASETO V2 token provider with dual-key system");
+        
+        // Determine environment (use 'dev' for any non-prod profile)
+        String env = "prod".equals(activeProfile) ? "prod" : "dev";
+        log.info("Loading token keys for environment: {}", env);
+        
+        if (vaultSecretService != null) {
+            try {
+                // Load identity key from Vault
+                String identityKeyStr = vaultSecretService.readSecret(
+                    "tokens." + env + ".identity-key");
+                if (identityKeyStr != null && !identityKeyStr.isEmpty()) {
+                    identityKey = Keys.secretKey(Base64.getDecoder().decode(identityKeyStr));
+                    log.info("Loaded identity token key from Vault for {}", env);
+                }
+                
+                // Load session key from Vault
+                String sessionKeyStr = vaultSecretService.readSecret(
+                    "tokens." + env + ".session-key");
+                if (sessionKeyStr != null && !sessionKeyStr.isEmpty()) {
+                    sessionKey = Keys.secretKey(Base64.getDecoder().decode(sessionKeyStr));
+                    log.info("Loaded session token key from Vault for {}", env);
+                }
+            } catch (Exception e) {
+                log.error("Failed to load keys from Vault: {}", e.getMessage());
+            }
+        }
+        
+        // Fallback: if keys not loaded from Vault, generate temporary keys (dev only)
+        if (identityKey == null || sessionKey == null) {
+            if ("prod".equals(activeProfile)) {
+                throw new IllegalStateException("Cannot start in production without token keys in Vault");
+            }
+            log.error("CRITICAL: Token keys not found in Vault. THIS MUST BE FIXED.");
+            log.error("Authentication will fail after restart. Configure keys at:");
+            log.error("  - secret/strategiz/tokens/{}/identity-key", env);
+            log.error("  - secret/strategiz/tokens/{}/session-key", env);
+            throw new IllegalStateException("Token keys not configured in Vault");
         }
     }
 
-
+    /**
+     * Creates an identity token for signup/profile creation flow
+     * Limited scope, short-lived (30 minutes), uses identity key
+     *
+     * @param userId the user ID (or temporary ID for signup)
+     * @return the identity token string
+     */
+    public String createIdentityToken(String userId) {
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(Duration.ofMinutes(30)); // Short-lived: 30 minutes
+        String tokenId = UUID.randomUUID().toString();
+        
+        // Build identity token with identity key
+        var builder = Pasetos.V2.LOCAL.builder()
+                .setSharedSecret(identityKey)  // Use identity key, not session key
+                .setExpiration(expiresAt)
+                .setIssuedAt(now)
+                .setIssuer(issuer)
+                .setAudience(audience)
+                .setSubject(generatePublicUserId(userId))
+                .setKeyId(tokenId);
+                
+        // Add identity token specific claims
+        builder.claim("type", "IDENTITY");
+        builder.claim("token_type", "identity");
+        builder.claim("scope", "profile:create");  // Limited scope
+        builder.claim("acr", "0");  // Lowest authentication level
+        
+        log.debug("Created identity token for user: {} with 30-minute expiry", userId);
+        return builder.compact();
+    }
     
     /**
      * Creates a new refresh token for a user
@@ -112,9 +176,10 @@ public class PasetoTokenProvider {
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();
         
+        // Use session key for regular tokens
         // Build the token using the PASETO v2 local builder
         var builder = Pasetos.V2.LOCAL.builder()
-                .setSharedSecret(secretKey)
+                .setSharedSecret(sessionKey)
                 .setExpiration(expiresAt)
                 .setIssuedAt(now)
                 .setIssuer(issuer)
@@ -140,11 +205,11 @@ public class PasetoTokenProvider {
      * @param authenticationMethods list of authentication methods used
      * @param acr authentication context reference ("0", "1", "2", "3")
      * @param validity how long the token should be valid
-     * @param tradingMode the user's trading mode ("demo" or "live")
+     * @param demoMode the user's demo mode (true for demo, false for live)
      * @return the token string
      */
     public String createAuthenticationToken(String userId, List<String> authenticationMethods, 
-                                          String acr, Duration validity, String tradingMode) {
+                                          String acr, Duration validity, Boolean demoMode) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();
@@ -156,9 +221,10 @@ public class PasetoTokenProvider {
         // Calculate scopes based on user entitlements, not ACR
         String scope = calculateUserScopes(userId);
         
+        // Use session key for authenticated tokens
         // Build the token with full claims structure
         var builder = Pasetos.V2.LOCAL.builder()
-                .setSharedSecret(secretKey)
+                .setSharedSecret(sessionKey)
                 .setExpiration(expiresAt)
                 .setIssuedAt(now)
                 .setIssuer(issuer)
@@ -172,7 +238,8 @@ public class PasetoTokenProvider {
         builder.claim("auth_time", now.getEpochSecond()); // When user authenticated
         builder.claim("scope", scope);          // User permissions/entitlements
         builder.claim("type", "ACCESS");        // Token type
-        builder.claim("tradingMode", tradingMode != null ? tradingMode : "demo"); // Trading mode (default to demo)
+        builder.claim("token_type", "session"); // Specify this is a session token
+        builder.claim("demoMode", demoMode != null ? demoMode : true); // Demo mode (default to demo)
                 
         return builder.compact();
     }
@@ -189,7 +256,7 @@ public class PasetoTokenProvider {
     public String createAuthenticationToken(String userId, List<String> authenticationMethods, 
                                           boolean isPartialAuth, Duration validity) {
         String acr = calculateAcr(authenticationMethods, isPartialAuth);
-        return createAuthenticationToken(userId, authenticationMethods, acr, validity, "demo");
+        return createAuthenticationToken(userId, authenticationMethods, acr, validity, true);
     }
     
     /**
@@ -209,8 +276,18 @@ public class PasetoTokenProvider {
         String userId = (String) currentClaims.get("sub");
         
         // Get current authentication methods from AMR
-        @SuppressWarnings("unchecked")
-        List<Integer> currentAmr = (List<Integer>) currentClaims.get("amr");
+        List<Integer> currentAmr = new ArrayList<>();
+        Object amrObj = currentClaims.get("amr");
+        if (amrObj instanceof List<?>) {
+            List<?> amrList = (List<?>) amrObj;
+            for (Object item : amrList) {
+                if (item instanceof Integer) {
+                    currentAmr.add((Integer) item);
+                } else if (item instanceof Number) {
+                    currentAmr.add(((Number) item).intValue());
+                }
+            }
+        }
         List<String> currentMethods = decodeAuthenticationMethods(currentAmr);
         
         // Combine current and additional methods
@@ -220,10 +297,10 @@ public class PasetoTokenProvider {
         // Calculate new ACR - assume full authentication now
         String newAcr = calculateAcr(combinedMethods, false);
         
-        // Preserve trading mode from current token
-        String tradingMode = (String) currentClaims.getOrDefault("tradingMode", "demo");
+        // Preserve demo mode from current token
+        Boolean demoMode = (Boolean) currentClaims.getOrDefault("demoMode", true);
         
-        return createAuthenticationToken(userId, combinedMethods, newAcr, validity, tradingMode);
+        return createAuthenticationToken(userId, combinedMethods, newAcr, validity, demoMode);
     }
     
     /**
@@ -366,11 +443,32 @@ public class PasetoTokenProvider {
      * @throws PasetoException if the token is invalid or expired
      */
     public Map<String, Object> parseToken(String token) throws PasetoException {
-        Paseto paseto = Pasetos.parserBuilder()
-                .setSharedSecret(secretKey)
-                .build()
-                .parse(token);
-        return paseto.getClaims();
+        // Try session key first (most common case)
+        try {
+            Paseto paseto = Pasetos.parserBuilder()
+                    .setSharedSecret(sessionKey)
+                    .build()
+                    .parse(token);
+            return paseto.getClaims();
+        } catch (PasetoException e) {
+            // If session key fails, try identity key
+            try {
+                Paseto paseto = Pasetos.parserBuilder()
+                        .setSharedSecret(identityKey)
+                        .build()
+                        .parse(token);
+                Map<String, Object> claims = paseto.getClaims();
+                // Verify it's actually an identity token
+                String tokenType = (String) claims.get("token_type");
+                if ("identity".equals(tokenType)) {
+                    return claims;
+                }
+                throw new PasetoException("Token validation failed - not an identity token");
+            } catch (PasetoException identityException) {
+                // Both keys failed, throw original exception
+                throw e;
+            }
+        }
     }
     
     /**
@@ -393,10 +491,35 @@ public class PasetoTokenProvider {
     public boolean isValidAccessToken(String token) {
         try {
             Map<String, Object> claims = parseToken(token);
-            String tokenType = (String) claims.get("type");
-            return TokenType.ACCESS.name().equals(tokenType);
+            String tokenType = (String) claims.get("token_type");
+            log.debug("Token claims - token_type: {}, type: {}", tokenType, claims.get("type"));
+            // Session tokens are valid access tokens
+            boolean valid = "session".equals(tokenType) || 
+                   TokenType.ACCESS.name().equals(claims.get("type"));
+            if (!valid) {
+                log.warn("Token is not a valid access token - token_type: {}, type: {}", 
+                        tokenType, claims.get("type"));
+            }
+            return valid;
         } catch (PasetoException e) {
-            log.error("Invalid token: {}", e.getMessage());
+            log.warn("Failed to parse token - error: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Validates if a token is an identity token
+     * 
+     * @param token the token to validate
+     * @return true if valid identity token
+     */
+    public boolean isValidIdentityToken(String token) {
+        try {
+            Map<String, Object> claims = parseToken(token);
+            String tokenType = (String) claims.get("token_type");
+            return "identity".equals(tokenType);
+        } catch (PasetoException e) {
+            log.debug("Invalid identity token: {}", e.getMessage());
             return false;
         }
     }

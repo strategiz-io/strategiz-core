@@ -8,6 +8,7 @@ Complete authentication system providing secure user sign-up, sign-in, and multi
 - **🏠 This README** - Complete service overview and API reference
 - **📧 [Sign Up Flow Guide](src/main/resources/static/docs/signup-flow-guide.md)** - Detailed multi-step signup implementation
 - **📱 [TOTP Authentication](docs/TOTP.md)** - Time-based one-time password setup and usage
+- **🔐 [Session Management](./SESSION-MANAGEMENT.md)** - Complete session lifecycle, architecture, and cleanup policies
 - **🔗 [API Documentation](http://localhost:8080/swagger-ui/index.html)** - Interactive Swagger UI
 
 ## 📑 Table of Contents

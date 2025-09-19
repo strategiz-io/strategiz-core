@@ -5,9 +5,11 @@ import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.totp.TotpAuthenticationService;
 import io.strategiz.service.auth.model.totp.TotpAuthenticationRequest;
 import io.strategiz.service.auth.model.ApiTokenResponse;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +46,9 @@ public class TotpAuthenticationController extends BaseController {
     @Autowired
     private TotpAuthenticationService totpAuthService;
     
+    @Autowired
+    private CookieUtil cookieUtil;
+    
     /**
      * Authenticate using TOTP code - Create full authentication session
      * 
@@ -51,12 +56,14 @@ public class TotpAuthenticationController extends BaseController {
      * 
      * @param request TOTP authentication request containing user ID and code
      * @param servletRequest HTTP request to extract client IP
+     * @param servletResponse HTTP response to set cookies
      * @return Clean authentication response with access tokens
      */
     @PostMapping("/authentications")
     public ResponseEntity<ApiTokenResponse> authenticate(
             @Valid @RequestBody TotpAuthenticationRequest request,
-            HttpServletRequest servletRequest) {
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
         
         logRequest("totpAuthentication", request.userId());
         
@@ -74,6 +81,14 @@ public class TotpAuthenticationController extends BaseController {
         if (tokens == null || tokens.accessToken() == null) {
             throw new StrategizException(AuthErrors.TOTP_VERIFICATION_FAILED, request.userId());
         }
+        
+        // Set secure HTTP-only cookies for tokens
+        cookieUtil.setAccessTokenCookie(servletResponse, tokens.accessToken());
+        if (tokens.refreshToken() != null) {
+            cookieUtil.setRefreshTokenCookie(servletResponse, tokens.refreshToken());
+        }
+        
+        log.info("Authentication cookies set for user: {}", request.userId());
         
         logRequestSuccess("totpAuthentication", request.userId(), tokens);
         return createCleanResponse(tokens);

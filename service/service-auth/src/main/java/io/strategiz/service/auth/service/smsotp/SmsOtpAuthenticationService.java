@@ -294,7 +294,7 @@ public class SmsOtpAuthenticationService {
             null,                                                        // deviceFingerprint
             null,                                                        // ipAddress
             null,                                                        // userAgent
-            "live"                                                       // tradingMode
+            false // demoMode
         );
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
         

@@ -119,7 +119,7 @@ public class TotpAuthenticationService {
                 null,                                                        // deviceFingerprint
                 ipAddress,                                                   // ipAddress
                 null,                                                        // userAgent
-                "live"                                                       // tradingMode
+                false // demoMode
             );
             SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
             
@@ -127,7 +127,7 @@ public class TotpAuthenticationService {
             return new ApiTokenResponse(
                 authResult.accessToken(),
                 authResult.refreshToken(),
-                userId
+                "Bearer"
             );
         }
         

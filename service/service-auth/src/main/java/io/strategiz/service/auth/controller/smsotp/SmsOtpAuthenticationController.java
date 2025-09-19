@@ -3,8 +3,10 @@ package io.strategiz.service.auth.controller.smsotp;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.smsotp.SmsOtpAuthenticationService;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
@@ -30,6 +32,9 @@ public class SmsOtpAuthenticationController extends BaseController {
     
     @Autowired
     private SmsOtpAuthenticationService smsOtpAuthenticationService;
+    
+    @Autowired
+    private CookieUtil cookieUtil;
     
     @Override
     protected String getModuleName() {
@@ -109,12 +114,14 @@ public class SmsOtpAuthenticationController extends BaseController {
      * 
      * @param sessionId The OTP session ID
      * @param request Verification request with OTP code
+     * @param httpResponse HTTP response to set cookies
      * @return Response with authentication tokens
      */
     @PutMapping("/authentications/{sessionId}")
     public ResponseEntity<Map<String, Object>> verifyAuthenticationOtp(
             @PathVariable String sessionId,
-            @RequestBody @Valid AuthenticationVerifyRequest request) {
+            @RequestBody @Valid AuthenticationVerifyRequest request,
+            HttpServletResponse httpResponse) {
         
         logRequest("verifyAuthenticationOtp", request.phoneNumber);
         
@@ -136,12 +143,16 @@ public class SmsOtpAuthenticationController extends BaseController {
         response.put("phoneNumber", maskPhoneNumber(request.phoneNumber));
         response.put("message", "Authentication successful");
         
-        // Add authentication tokens from the business layer
+        // Add authentication tokens from the business layer and set cookies
         if (authResult.containsKey("accessToken")) {
-            response.put("accessToken", authResult.get("accessToken"));
+            String accessToken = (String) authResult.get("accessToken");
+            response.put("accessToken", accessToken);
+            cookieUtil.setAccessTokenCookie(httpResponse, accessToken);
         }
         if (authResult.containsKey("refreshToken")) {
-            response.put("refreshToken", authResult.get("refreshToken"));
+            String refreshToken = (String) authResult.get("refreshToken");
+            response.put("refreshToken", refreshToken);
+            cookieUtil.setRefreshTokenCookie(httpResponse, refreshToken);
         }
         if (authResult.containsKey("identityToken")) {
             response.put("identityToken", authResult.get("identityToken"));
@@ -150,6 +161,7 @@ public class SmsOtpAuthenticationController extends BaseController {
             response.put("userId", authResult.get("userId"));
         }
         
+        log.info("Authentication cookies set for phone: {}", maskPhoneNumber(request.phoneNumber));
         logRequestSuccess("verifyAuthenticationOtp", request.phoneNumber, response);
         return createCleanResponse(response);
     }

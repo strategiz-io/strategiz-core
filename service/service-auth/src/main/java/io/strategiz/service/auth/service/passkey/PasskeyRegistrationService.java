@@ -228,10 +228,10 @@ public class PasskeyRegistrationService extends BaseService {
             
             authMethodRepository.saveForUser(userId, authMethod);
             
-            // Get user's trading mode from profile
-            String tradingMode = userRepository.findById(userId)
-                .map(user -> user.getProfile() != null ? user.getProfile().getTradingMode() : "demo")
-                .orElse("demo");
+            // Get user's demo mode from profile
+            Boolean demoMode = userRepository.findById(userId)
+                .map(user -> user.getProfile() != null ? user.getProfile().getDemoMode() : true)
+                .orElse(true);
             
             // Generate authentication tokens using unified approach
             SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
@@ -243,7 +243,7 @@ public class PasskeyRegistrationService extends BaseService {
                 deviceId, // Use deviceId as fingerprint
                 null, // IP address not available in registration
                 "Passkey Registration",
-                tradingMode
+                demoMode
             );
             
             SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);

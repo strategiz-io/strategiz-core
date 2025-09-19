@@ -19,13 +19,14 @@ public class ServiceAuthConfig {
     
     /**
      * Configure MessageSource to load auth error messages
+     * NOTE: Commented out - using GlobalMessageSourceConfig which includes all module messages
      */
-    @Bean
-    public MessageSource messageSource() {
-        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-        messageSource.setBasenames("messages/auth-errors");
-        messageSource.setDefaultEncoding("UTF-8");
-        messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not found
-        return messageSource;
-    }
+    // @Bean
+    // public MessageSource messageSource() {
+    //     ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+    //     messageSource.setBasenames("messages/auth-errors");
+    //     messageSource.setDefaultEncoding("UTF-8");
+    //     messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not found
+    //     return messageSource;
+    // }
 }

@@ -43,7 +43,7 @@ public class TokenSessionService {
             deviceId, // Use as fingerprint
             ipAddress,
             "Token Session Service",
-            "live" // tradingMode
+            false // demoMode
         );
         
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
@@ -66,7 +66,7 @@ public class TokenSessionService {
             null, // No fingerprint
             null, // No IP address
             "Token Session Service",
-            "live" // tradingMode
+            false // demoMode
         );
         
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);

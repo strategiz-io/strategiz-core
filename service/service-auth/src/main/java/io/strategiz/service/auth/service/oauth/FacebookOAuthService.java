@@ -216,7 +216,7 @@ public class FacebookOAuthService {
             null, // Device fingerprint not available
             null, // IP address not available in OAuth flow
             "Facebook OAuth",
-            "live" // tradingMode
+            false // demoMode
         );
         
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);

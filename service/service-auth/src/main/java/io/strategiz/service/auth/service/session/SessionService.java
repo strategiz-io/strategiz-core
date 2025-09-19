@@ -2,7 +2,7 @@ package io.strategiz.service.auth.service.session;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
-import io.strategiz.data.session.entity.UserSession;
+import io.strategiz.data.session.entity.SessionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,8 @@ import java.time.Instant;
 public class SessionService {
 
     private static final Logger log = LoggerFactory.getLogger(SessionService.class);
-    private static final String AUTH_COOKIE_NAME = "strategiz-token";
+    private static final String ACCESS_TOKEN_COOKIE = "strategiz-access-token";
+    private static final String REFRESH_TOKEN_COOKIE = "strategiz-refresh-token";
 
     private final SessionAuthBusiness sessionBusiness;
 
@@ -37,7 +38,7 @@ public class SessionService {
     /**
      * Create a new user session after successful authentication
      */
-    public UserSession createSession(String userId, String userEmail, 
+    public SessionEntity createSession(String userId, String userEmail, 
                                    HttpServletRequest request, 
                                    String acr, String aal, List<String> amr) {
         log.info("Creating session for user: {} with ACR: {}, AAL: {}", userId, acr, aal);
@@ -51,15 +52,18 @@ public class SessionService {
             userId, amr, acr, deviceId, ipAddress
         );
         
-        // Create a UserSession object for compatibility
-        UserSession session = new UserSession();
+        // Create a SessionEntity object for compatibility
+        SessionEntity session = new SessionEntity(userId);
         session.setUserId(userId);
-        session.setUserEmail(userEmail);
         session.setIpAddress(ipAddress);
-        session.setDeviceFingerprint(deviceId);
-        session.setAcr(acr);
-        session.setAal(aal);
-        session.setAmr(amr);
+        session.setDeviceId(deviceId);
+        // Store ACR and AMR in claims
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("acr", acr);
+        claims.put("aal", aal);
+        claims.put("amr", amr);
+        claims.put("email", userEmail);
+        session.setClaims(claims);
         // Note: We don't have access to session ID in the token-based approach
         
         return session;
@@ -90,7 +94,7 @@ public class SessionService {
             null,               // sessionId - not available in token-based approach
             "1",                // acr - default to basic authentication
             null,               // amr - not available from token validation
-            "live",             // tradingMode - default to live
+            false,              // demoMode - default to live (false)
             Instant.now(),      // lastAccessedAt
             Instant.now().plusSeconds(3600), // expiresAt - assume 1 hour
             true                // valid
@@ -131,7 +135,7 @@ public class SessionService {
         log.info("Terminating current session");
         
         // For token-based sessions, we just clear the cookie
-        Cookie cookie = new Cookie(AUTH_COOKIE_NAME, "");
+        Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE, "");
         cookie.setMaxAge(0);
         cookie.setPath("/");
         response.addCookie(cookie);
@@ -158,7 +162,7 @@ public class SessionService {
     /**
      * Get all active sessions for a user - returns empty list for token-based approach
      */
-    public List<UserSession> getUserActiveSessions(String userId) {
+    public List<SessionEntity> getUserActiveSessions(String userId) {
         log.debug("Getting active sessions for user: {} - not supported in token-based approach", userId);
         return new ArrayList<>();
     }
@@ -206,11 +210,11 @@ public class SessionService {
             return authHeader.substring(7);
         }
         
-        // Check cookies
+        // Check cookies for access token
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (AUTH_COOKIE_NAME.equals(cookie.getName())) {
+                if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }

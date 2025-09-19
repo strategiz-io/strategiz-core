@@ -2,10 +2,7 @@ package io.strategiz.business.tokenauth;
 
 import dev.paseto.jpaseto.PasetoException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
-import io.strategiz.data.auth.entity.session.PasetoTokenEntity;
-import io.strategiz.data.auth.repository.session.PasetoTokenRepository;
-import io.strategiz.data.session.entity.UserSession;
-import io.strategiz.data.session.entity.UserSessionEntity;
+import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.data.session.repository.SessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,16 +48,19 @@ public class SessionAuthBusiness {
     @Value("${session.management.enabled:true}") // Enable/disable session creation
     private boolean sessionManagementEnabled;
     
+    @Value("${session.cleanup.expired.days:7}") // Days to keep expired sessions before deletion
+    private int expiredSessionRetentionDays;
+    
+    @Value("${session.cleanup.revoked.days:1}") // Days to keep revoked sessions before deletion
+    private int revokedSessionRetentionDays;
+    
     private final PasetoTokenProvider tokenProvider;
-    private final PasetoTokenRepository tokenRepository;
     private final SessionRepository sessionRepository;
     
     @Autowired
-    public SessionAuthBusiness(PasetoTokenProvider tokenProvider, 
-                              PasetoTokenRepository tokenRepository,
+    public SessionAuthBusiness(PasetoTokenProvider tokenProvider,
                               SessionRepository sessionRepository) {
         this.tokenProvider = tokenProvider;
-        this.tokenRepository = tokenRepository;
         this.sessionRepository = sessionRepository;
     }
     
@@ -89,157 +89,123 @@ public class SessionAuthBusiness {
             authRequest.authenticationMethods(), 
             acr, 
             accessValidity,
-            authRequest.tradingMode()
+            authRequest.demoMode()
         );
         String refreshToken = tokenProvider.createRefreshToken(authRequest.userId());
         
-        // 2. Store tokens
-        storePasetoTokens(accessToken, refreshToken, authRequest);
-        
-        // 3. Delegate session creation to data-session module if enabled
-        UserSession session = null;
+        // 2. Store tokens as sessions in unified collection
+        SessionEntity accessSession = null;
+        SessionEntity refreshSession = null;
         if (sessionManagementEnabled) {
-            session = delegateSessionCreation(authRequest, accessToken, acr);
+            accessSession = storeAccessTokenSession(accessToken, authRequest, acr);
+            refreshSession = storeRefreshTokenSession(refreshToken, authRequest, accessSession);
         }
         
         log.info("Successfully created unified auth for user: {} with {} methods (session: {})", 
                 authRequest.userId(), authRequest.authenticationMethods().size(), 
-                session != null ? "created" : "disabled");
+                accessSession != null ? "created" : "disabled");
         
-        return new AuthResult(accessToken, refreshToken, session);
+        return new AuthResult(accessToken, refreshToken, accessSession);
     }
     
     /**
-     * Store PASETO tokens with metadata
+     * Store access token as session in unified collection
      */
-    private void storePasetoTokens(String accessToken, String refreshToken, AuthRequest authRequest) {
+    private SessionEntity storeAccessTokenSession(String accessToken, AuthRequest authRequest, String acr) {
         Map<String, Object> accessClaims = tokenProvider.parseToken(accessToken);
+        
+        Map<String, Object> sessionClaims = new HashMap<>();
+        sessionClaims.put("amr", accessClaims.get("amr"));
+        sessionClaims.put("acr", acr);
+        sessionClaims.put("auth_methods", String.join(",", authRequest.authenticationMethods()));
+        sessionClaims.put("scope", accessClaims.get("scope"));
+        sessionClaims.put("demoMode", authRequest.demoMode());
+        
+        SessionEntity accessSession = new SessionEntity(authRequest.userId());
+        accessSession.setSessionId("access_" + UUID.randomUUID().toString());
+        accessSession.setUserId(authRequest.userId());
+        accessSession.setTokenType("ACCESS");
+        accessSession.setTokenValue(accessToken);
+        accessSession.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(accessClaims, "iat")));
+        accessSession.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(accessClaims, "exp")));
+        accessSession.setDeviceId(authRequest.deviceId());
+        accessSession.setIpAddress(authRequest.ipAddress());
+        accessSession.setRevoked(false);
+        accessSession.setClaims(sessionClaims);
+        accessSession.setLastAccessedAt(Instant.now());
+        
+        return sessionRepository.save(accessSession);
+    }
+    
+    /**
+     * Store refresh token as session in unified collection
+     */
+    private SessionEntity storeRefreshTokenSession(String refreshToken, AuthRequest authRequest, SessionEntity accessSession) {
         Map<String, Object> refreshClaims = tokenProvider.parseToken(refreshToken);
         
-        Map<String, Object> accessTokenMetadata = new HashMap<>();
-        accessTokenMetadata.put("amr", accessClaims.get("amr"));
-        accessTokenMetadata.put("acr", accessClaims.get("acr"));
-        accessTokenMetadata.put("auth_methods", String.join(",", authRequest.authenticationMethods()));
-        accessTokenMetadata.put("scope", accessClaims.get("scope"));
-        accessTokenMetadata.put("tradingMode", authRequest.tradingMode());
+        SessionEntity refreshSession = new SessionEntity(authRequest.userId());
+        refreshSession.setSessionId("refresh_" + UUID.randomUUID().toString());
+        refreshSession.setUserId(authRequest.userId());
+        refreshSession.setTokenType("REFRESH");
+        refreshSession.setTokenValue(refreshToken);
+        refreshSession.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(refreshClaims, "iat")));
+        refreshSession.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(refreshClaims, "exp")));
+        refreshSession.setDeviceId(authRequest.deviceId());
+        refreshSession.setIpAddress(authRequest.ipAddress());
+        refreshSession.setRevoked(false);
+        refreshSession.setClaims(Map.of("associated_access_token", accessSession.getSessionId()));
+        refreshSession.setLastAccessedAt(Instant.now());
         
-        PasetoTokenEntity accessTokenEntity = new PasetoTokenEntity();
-        accessTokenEntity.setTokenId(UUID.randomUUID().toString());
-        accessTokenEntity.setUserId(authRequest.userId());
-        accessTokenEntity.setTokenType("ACCESS");
-        accessTokenEntity.setTokenValue(accessToken);
-        accessTokenEntity.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(accessClaims, "iat")));
-        accessTokenEntity.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(accessClaims, "exp")));
-        accessTokenEntity.setDeviceId(authRequest.deviceId());
-        accessTokenEntity.setIssuedFrom(authRequest.ipAddress());
-        accessTokenEntity.setRevoked(false);
-        accessTokenEntity.setClaims(accessTokenMetadata);
-        
-        PasetoTokenEntity refreshTokenEntity = new PasetoTokenEntity();
-        refreshTokenEntity.setTokenId(UUID.randomUUID().toString());
-        refreshTokenEntity.setUserId(authRequest.userId());
-        refreshTokenEntity.setTokenType("REFRESH");
-        refreshTokenEntity.setTokenValue(refreshToken);
-        refreshTokenEntity.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(refreshClaims, "iat")));
-        refreshTokenEntity.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(refreshClaims, "exp")));
-        refreshTokenEntity.setDeviceId(authRequest.deviceId());
-        refreshTokenEntity.setIssuedFrom(authRequest.ipAddress());
-        refreshTokenEntity.setRevoked(false);
-        refreshTokenEntity.setClaims(Map.of("associated_access_token", accessTokenEntity.getTokenId()));
-        
-        tokenRepository.save(accessTokenEntity);
-        tokenRepository.save(refreshTokenEntity);
+        return sessionRepository.save(refreshSession);
     }
     
-    /**
-     * Delegate session creation to data-session module
-     * Business layer builds the session data, data layer handles persistence
-     */
-    private UserSession delegateSessionCreation(AuthRequest authRequest, String accessToken, String acr) {
-        try {
-            String sessionId = "sess_" + UUID.randomUUID().toString();
-            
-            UserSessionEntity sessionEntity = new UserSessionEntity(authRequest.userId());
-            sessionEntity.setSessionId(sessionId);
-            sessionEntity.setUserEmail(authRequest.userEmail() != null ? authRequest.userEmail() : "unknown@example.com");
-            // Store access token reference in attributes
-            if (sessionEntity.getAttributes() == null) {
-                sessionEntity.setAttributes(new HashMap<>());
-            }
-            sessionEntity.getAttributes().put("accessToken", accessToken);
-            sessionEntity.setAcr(acr);
-            sessionEntity.setAmr(authRequest.authenticationMethods());
-            sessionEntity.setDeviceFingerprint(authRequest.deviceFingerprint() != null ? authRequest.deviceFingerprint() : "unknown");
-            sessionEntity.setIpAddress(authRequest.ipAddress() != null ? authRequest.ipAddress() : "unknown");
-            sessionEntity.setUserAgent(authRequest.userAgent() != null ? authRequest.userAgent() : "Unknown");
-            sessionEntity.setActive(true);
-            sessionEntity.setLastAccessedAt(Instant.now());
-            sessionEntity.setExpiresAt(Instant.now().plusSeconds(sessionExpirySeconds));
-            
-            // Delegate to data-session module for persistence
-            UserSessionEntity savedSessionEntity = sessionRepository.save(sessionEntity, authRequest.userId());
-            UserSession savedSession = convertEntityToSession(savedSessionEntity);
-            log.debug("Delegated UserSession creation {} for user {} to data layer", sessionId, authRequest.userId());
-            
-            return savedSession;
-        } catch (Exception e) {
-            log.error("Failed to create UserSession for user {}: {}", authRequest.userId(), e.getMessage());
-            return null;
-        }
-    }
     
     /**
-     * Validate access token by delegating to data layer
-     * Business layer orchestrates, data layer provides session data
+     * Validate access token by checking unified session
      */
     public Optional<SessionValidationResult> validateToken(String accessToken) {
         try {
+            log.debug("Validating token starting with: {}", 
+                    accessToken != null && accessToken.length() > 20 ? accessToken.substring(0, 20) + "..." : "null");
+            
             // Validate token format and signature
             if (!tokenProvider.isValidAccessToken(accessToken)) {
+                log.warn("Token validation failed - invalid token format or signature");
                 return Optional.empty();
             }
             
-            // Check if token exists and is not revoked
-            Optional<PasetoTokenEntity> storedToken = tokenRepository.findByTokenValue(accessToken);
-            if (storedToken.isEmpty() || !storedToken.get().isValid()) {
+            // Find session by token value
+            Optional<SessionEntity> sessionOpt = sessionRepository.findByTokenValue(accessToken);
+            if (sessionOpt.isEmpty()) {
+                log.warn("Token validation failed - session not found in database");
+                return Optional.empty();
+            }
+            if (!sessionOpt.get().isValid()) {
+                log.warn("Token validation failed - session exists but is invalid/expired");
                 return Optional.empty();
             }
             
-            String userId = storedToken.get().getUserId();
+            SessionEntity session = sessionOpt.get();
+            String userId = session.getUserId();
             
-            // Find associated session by access token in attributes
-            List<UserSessionEntity> userSessionEntities = sessionRepository.findByUserIdAndActive(userId, true);
-            Optional<UserSessionEntity> sessionEntityOpt = userSessionEntities.stream()
-                .filter(s -> accessToken.equals(s.getAttributes() != null ? s.getAttributes().get("accessToken") : null))
-                .findFirst();
-                
-            if (sessionEntityOpt.isEmpty()) {
-                log.debug("No session found for valid access token");
-                return createValidationResultFromToken(accessToken, userId);
-            }
+            // Update last accessed time
+            session.updateLastAccessed();
+            sessionRepository.save(session);
             
-            UserSessionEntity sessionEntity = sessionEntityOpt.get();
-            if (!sessionEntity.isValid()) {
-                return Optional.empty();
-            }
-            
-            // Delegate session update to data layer
-            sessionEntity.updateLastAccessed();
-            sessionRepository.save(sessionEntity, userId);
-            
-            UserSession session = convertEntityToSession(sessionEntity);
-            
-            // Extract trading mode from token claims
-            Map<String, Object> tokenClaims = tokenProvider.parseToken(accessToken);
-            String tradingMode = (String) tokenClaims.getOrDefault("tradingMode", "demo");
+            // Extract claims from session
+            Map<String, Object> claims = session.getClaims();
+            String acr = (String) claims.getOrDefault("acr", "1");
+            String authMethodsStr = (String) claims.getOrDefault("auth_methods", "password");
+            List<String> amr = List.of(authMethodsStr.split(","));
+            Boolean demoMode = (Boolean) claims.getOrDefault("demoMode", true);
             
             return Optional.of(new SessionValidationResult(
-                session.getUserId(),
-                session.getUserEmail(),
+                userId,
+                "user@example.com", // We don't store email in session anymore
                 session.getSessionId(),
-                session.getAcr(),
-                session.getAmr(),
-                tradingMode,
+                acr,
+                amr,
+                demoMode,
                 session.getLastAccessedAt(),
                 session.getExpiresAt(),
                 true
@@ -259,13 +225,23 @@ public class SessionAuthBusiness {
             String acr = (String) claims.getOrDefault("acr", "1");
             
             // Decode AMR from token
-            @SuppressWarnings("unchecked")
-            List<Integer> amrList = (List<Integer>) claims.get("amr");
+            List<Integer> amrList = new ArrayList<>();
+            Object amrObj = claims.get("amr");
+            if (amrObj instanceof List<?>) {
+                List<?> list = (List<?>) amrObj;
+                for (Object item : list) {
+                    if (item instanceof Integer) {
+                        amrList.add((Integer) item);
+                    } else if (item instanceof Number) {
+                        amrList.add(((Number) item).intValue());
+                    }
+                }
+            }
             List<String> amr = decodeAuthenticationMethods(amrList);
             
             Instant issuedAt = Instant.ofEpochSecond(getClaimAsLong(claims, "iat"));
             Instant expiresAt = Instant.ofEpochSecond(getClaimAsLong(claims, "exp"));
-            String tradingMode = (String) claims.getOrDefault("tradingMode", "demo");
+            Boolean demoMode = (Boolean) claims.getOrDefault("demoMode", true);
             
             return Optional.of(new SessionValidationResult(
                 userId,
@@ -273,7 +249,7 @@ public class SessionAuthBusiness {
                 "token_" + accessToken.substring(0, 8),
                 acr,
                 amr,
-                tradingMode,
+                demoMode,
                 issuedAt,
                 expiresAt,
                 true
@@ -285,29 +261,22 @@ public class SessionAuthBusiness {
     }
     
     /**
-     * Revoke token and delegate session termination to data layer
+     * Revoke token by marking session as revoked
      */
     public boolean revokeAuthentication(String accessToken) {
         try {
-            // Revoke the token
-            boolean tokenRevoked = revokeToken(accessToken);
-            
-            // Terminate associated session  
-            Optional<PasetoTokenEntity> tokenOpt = tokenRepository.findByTokenValue(accessToken);
-            if (tokenOpt.isPresent()) {
-                String userId = tokenOpt.get().getUserId();
-                List<UserSessionEntity> userSessionEntities = sessionRepository.findByUserIdAndActive(userId, true);
-                // Delegate session termination to data layer
-                userSessionEntities.stream()
-                    .filter(s -> accessToken.equals(s.getAttributes() != null ? s.getAttributes().get("accessToken") : null))
-                    .findFirst()
-                    .ifPresent(sessionEntity -> {
-                        sessionEntity.terminate("Token revoked");
-                        sessionRepository.save(sessionEntity, userId);
-                    });
+            // Find and revoke the session
+            Optional<SessionEntity> sessionOpt = sessionRepository.findByTokenValue(accessToken);
+            if (sessionOpt.isEmpty()) {
+                return false;
             }
             
-            return tokenRevoked;
+            SessionEntity session = sessionOpt.get();
+            session.revoke("Token revoked");
+            sessionRepository.save(session);
+            
+            log.info("Revoked session: {}", session.getSessionId());
+            return true;
         } catch (Exception e) {
             log.error("Error revoking authentication: {}", e.getMessage());
             return false;
@@ -315,75 +284,28 @@ public class SessionAuthBusiness {
     }
     
     /**
-     * Revoke all authentication and delegate session cleanup to data layer
+     * Revoke all authentication sessions for a user
      */
     public int revokeAllUserAuthentication(String userId, String reason) {
         try {
-            // Revoke all tokens
-            int tokensRevoked = revokeAllUserTokens(userId);
+            // Find all active sessions for user
+            List<SessionEntity> sessions = sessionRepository.findByUserIdAndRevokedFalse(userId);
             
-            // Delegate session termination to data layer
-            List<UserSessionEntity> sessionEntities = sessionRepository.findByUserIdAndActive(userId, true);
-            for (UserSessionEntity sessionEntity : sessionEntities) {
-                sessionEntity.terminate(reason);
-                sessionRepository.save(sessionEntity, userId);
+            int count = 0;
+            for (SessionEntity session : sessions) {
+                session.revoke(reason);
+                sessionRepository.save(session);
+                count++;
             }
             
-            log.info("Revoked all authentication for user {}: {} tokens, {} sessions", 
-                    userId, tokensRevoked, sessionEntities.size());
-            return Math.max(tokensRevoked, sessionEntities.size());
+            log.info("Revoked {} sessions for user: {}", count, userId);
+            return count;
         } catch (Exception e) {
             log.error("Error revoking all authentication for user {}: {}", userId, e.getMessage());
             return 0;
         }
     }
     
-    /**
-     * Revoke a specific token
-     */
-    private boolean revokeToken(String token) {
-        try {
-            Optional<PasetoTokenEntity> storedToken = tokenRepository.findByTokenValue(token);
-            if (storedToken.isEmpty()) {
-                return false;
-            }
-            
-            PasetoTokenEntity tokenEntity = storedToken.get();
-            tokenEntity.setRevoked(true);
-            tokenEntity.setRevokedAt(Instant.now());
-            tokenEntity.setRevocationReason("Manually revoked");
-            
-            tokenRepository.save(tokenEntity);
-            log.info("Revoked token: {}", tokenEntity.getTokenId());
-            
-            return true;
-        } catch (Exception e) {
-            log.error("Error revoking token: {}", e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Revoke all tokens for a user
-     */
-    private int revokeAllUserTokens(String userId) {
-        List<PasetoTokenEntity> tokens = tokenRepository.findByUserId(userId);
-        
-        int count = 0;
-        for (PasetoTokenEntity token : tokens) {
-            if (!token.isRevoked()) {
-                token.setRevoked(true);
-                token.setRevokedAt(Instant.now());
-                token.setRevocationReason("All user tokens revoked");
-                
-                tokenRepository.save(token);
-                count++;
-            }
-        }
-        
-        log.info("Revoked {} tokens for user: {}", count, userId);
-        return count;
-    }
     
     /**
      * Decode authentication methods from AMR
@@ -442,7 +364,7 @@ public class SessionAuthBusiness {
      * Creates authentication token pair using the new unified approach
      */
     public TokenPair createAuthenticationTokenPair(String userId, List<String> authMethods, String acr, String deviceId, String ipAddress) {
-        AuthRequest authRequest = new AuthRequest(userId, null, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client", "live");
+        AuthRequest authRequest = new AuthRequest(userId, null, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client", false);
         AuthResult result = createAuthentication(authRequest);
         return new TokenPair(result.accessToken(), result.refreshToken());
     }
@@ -476,50 +398,47 @@ public class SessionAuthBusiness {
      */
     public Optional<String> refreshAccessToken(String refreshToken, String ipAddress) {
         try {
-            // Find the refresh token entity
-            Optional<PasetoTokenEntity> refreshTokenOpt = tokenRepository.findByTokenValue(refreshToken);
+            // Find the refresh token session
+            Optional<SessionEntity> refreshSessionOpt = sessionRepository.findByTokenValue(refreshToken);
             
-            if (refreshTokenOpt.isEmpty()) {
+            if (refreshSessionOpt.isEmpty()) {
                 log.warn("Refresh token not found");
                 return Optional.empty();
             }
             
-            PasetoTokenEntity refreshTokenEntity = refreshTokenOpt.get();
+            SessionEntity refreshSession = refreshSessionOpt.get();
             
             // Check if refresh token is valid
-            if (!refreshTokenEntity.isValid()) {
+            if (!refreshSession.isValid()) {
                 log.warn("Refresh token is expired or revoked");
                 return Optional.empty();
             }
             
-            String userId = refreshTokenEntity.getUserId();
+            String userId = refreshSession.getUserId();
             
             // Find the associated access token to get auth context
-            String associatedAccessTokenId = (String) refreshTokenEntity.getClaims().get("associated_access_token");
+            String associatedAccessTokenId = (String) refreshSession.getClaims().get("associated_access_token");
             if (associatedAccessTokenId == null) {
                 log.warn("No associated access token found for refresh token");
                 return Optional.empty();
             }
             
-            // Get the original access token to extract auth methods and context
-            List<PasetoTokenEntity> userTokens = tokenRepository.findByUserId(userId);
-            Optional<PasetoTokenEntity> originalAccessTokenOpt = userTokens.stream()
-                .filter(t -> t.getTokenId().equals(associatedAccessTokenId))
-                .findFirst();
+            // Get the original access token session
+            Optional<SessionEntity> originalAccessSessionOpt = sessionRepository.findById(associatedAccessTokenId);
             
-            if (originalAccessTokenOpt.isEmpty()) {
-                log.warn("Original access token not found");
+            if (originalAccessSessionOpt.isEmpty()) {
+                log.warn("Original access token session not found");
                 return Optional.empty();
             }
             
-            PasetoTokenEntity originalAccessToken = originalAccessTokenOpt.get();
-            Map<String, Object> originalClaims = originalAccessToken.getClaims();
+            SessionEntity originalAccessSession = originalAccessSessionOpt.get();
+            Map<String, Object> originalClaims = originalAccessSession.getClaims();
             
             // Extract authentication context from original token
             String acr = (String) originalClaims.getOrDefault("acr", "1");
             String authMethodsStr = (String) originalClaims.getOrDefault("auth_methods", "password");
             List<String> authMethods = List.of(authMethodsStr.split(","));
-            String tradingMode = (String) originalClaims.getOrDefault("tradingMode", "demo");
+            Boolean demoMode = (Boolean) originalClaims.getOrDefault("demoMode", true);
             
             // Generate new access token with same auth context
             Duration accessValidity = Duration.ofHours(24);
@@ -528,36 +447,27 @@ public class SessionAuthBusiness {
                 authMethods,
                 acr,
                 accessValidity,
-                tradingMode
+                demoMode
             );
             
-            // Store the new access token
-            Map<String, Object> newAccessClaims = tokenProvider.parseToken(newAccessToken);
+            // Store the new access token as a session
+            AuthRequest authRequest = new AuthRequest(
+                userId,
+                null,
+                authMethods,
+                false,
+                refreshSession.getDeviceId(),
+                null,
+                ipAddress != null ? ipAddress : refreshSession.getIpAddress(),
+                null,
+                demoMode
+            );
             
-            Map<String, Object> accessTokenMetadata = new HashMap<>();
-            accessTokenMetadata.put("amr", newAccessClaims.get("amr"));
-            accessTokenMetadata.put("acr", acr);
-            accessTokenMetadata.put("auth_methods", authMethodsStr);
-            accessTokenMetadata.put("scope", newAccessClaims.get("scope"));
-            accessTokenMetadata.put("tradingMode", tradingMode);
-            
-            PasetoTokenEntity newAccessTokenEntity = new PasetoTokenEntity();
-            newAccessTokenEntity.setTokenId(UUID.randomUUID().toString());
-            newAccessTokenEntity.setUserId(userId);
-            newAccessTokenEntity.setTokenType("ACCESS");
-            newAccessTokenEntity.setTokenValue(newAccessToken);
-            newAccessTokenEntity.setIssuedAt(Instant.ofEpochSecond(getClaimAsLong(newAccessClaims, "iat")));
-            newAccessTokenEntity.setExpiresAt(Instant.ofEpochSecond(getClaimAsLong(newAccessClaims, "exp")));
-            newAccessTokenEntity.setDeviceId(refreshTokenEntity.getDeviceId());
-            newAccessTokenEntity.setIssuedFrom(ipAddress != null ? ipAddress : refreshTokenEntity.getIssuedFrom());
-            newAccessTokenEntity.setRevoked(false);
-            newAccessTokenEntity.setClaims(accessTokenMetadata);
-            
-            tokenRepository.save(newAccessTokenEntity);
+            SessionEntity newAccessSession = storeAccessTokenSession(newAccessToken, authRequest, acr);
             
             // Update the refresh token to point to the new access token
-            refreshTokenEntity.getClaims().put("associated_access_token", newAccessTokenEntity.getTokenId());
-            tokenRepository.save(refreshTokenEntity);
+            refreshSession.getClaims().put("associated_access_token", newAccessSession.getSessionId());
+            sessionRepository.save(refreshSession);
             
             log.info("Successfully refreshed access token for user {}", userId);
             return Optional.of(newAccessToken);
@@ -584,8 +494,18 @@ public class SessionAuthBusiness {
             String userId = tokenProvider.getUserIdFromToken(sessionToken);
             
             // Decode existing AMR
-            @SuppressWarnings("unchecked")
-            List<Integer> amrList = (List<Integer>) currentClaims.get("amr");
+            List<Integer> amrList = new ArrayList<>();
+            Object amrObj = currentClaims.get("amr");
+            if (amrObj instanceof List<?>) {
+                List<?> list = (List<?>) amrObj;
+                for (Object item : list) {
+                    if (item instanceof Integer) {
+                        amrList.add((Integer) item);
+                    } else if (item instanceof Number) {
+                        amrList.add(((Number) item).intValue());
+                    }
+                }
+            }
             List<String> existingMethods = decodeAuthenticationMethods(amrList);
             
             // Add the new method
@@ -594,8 +514,8 @@ public class SessionAuthBusiness {
                 updatedMethods.add(authMethod);
             }
             
-            // Preserve trading mode from current token
-            String tradingMode = (String) currentClaims.getOrDefault("tradingMode", "demo");
+            // Preserve demo mode from current token
+            Boolean demoMode = (Boolean) currentClaims.getOrDefault("demoMode", true);
             
             // Create new tokens with updated authentication context
             Duration accessValidity = Duration.ofHours(24);
@@ -604,11 +524,11 @@ public class SessionAuthBusiness {
                 updatedMethods,
                 String.valueOf(newAcrLevel),
                 accessValidity,
-                tradingMode
+                demoMode
             );
             String newRefreshToken = tokenProvider.createRefreshToken(userId);
             
-            // Store the new tokens
+            // Store the new tokens as sessions
             AuthRequest authRequest = new AuthRequest(
                 userId,
                 null,
@@ -618,9 +538,10 @@ public class SessionAuthBusiness {
                 null,
                 null,
                 null,
-                tradingMode  // Preserve trading mode
+                demoMode  // Preserve demo mode
             );
-            storePasetoTokens(newAccessToken, newRefreshToken, authRequest);
+            SessionEntity newAccessSession = storeAccessTokenSession(newAccessToken, authRequest, String.valueOf(newAcrLevel));
+            SessionEntity newRefreshSession = storeRefreshTokenSession(newRefreshToken, authRequest, newAccessSession);
             
             // Return the updated tokens
             Map<String, Object> result = new HashMap<>();
@@ -647,48 +568,46 @@ public class SessionAuthBusiness {
     }
     
     /**
-     * Cleanup expired tokens and delegate session cleanup to data layer
+     * Cleanup expired and revoked sessions based on retention policies
+     * Industry standard:
+     * - Expired sessions: kept for 7 days after expiration for audit
+     * - Revoked sessions: kept for 1 day for immediate audit needs
      */
     @Scheduled(fixedRate = 3600000) // Every hour
     public void cleanupExpiredAuth() {
-        log.info("Cleaning up expired tokens and sessions");
+        log.info("Starting session cleanup with retention policies - expired: {} days, revoked: {} days", 
+                expiredSessionRetentionDays, revokedSessionRetentionDays);
         
-        // Clean up expired tokens
         Instant now = Instant.now();
-        List<PasetoTokenEntity> expiredTokens = tokenRepository.findByExpiresAtBefore(now);
-        for (PasetoTokenEntity token : expiredTokens) {
-            tokenRepository.delete(token);
+        
+        // Clean up expired sessions older than retention period
+        Instant expiredCutoff = now.minus(Duration.ofDays(expiredSessionRetentionDays));
+        List<SessionEntity> expiredSessions = sessionRepository.findByExpiresAtBefore(expiredCutoff);
+        int expiredCount = 0;
+        for (SessionEntity session : expiredSessions) {
+            // Only delete if expired for longer than retention period
+            if (session.getExpiresAt().isBefore(expiredCutoff)) {
+                sessionRepository.deleteById(session.getSessionId());
+                expiredCount++;
+            }
         }
-        int expiredTokenCount = expiredTokens.size();
         
-        // Delegate session cleanup to data layer
-        int expiredSessions = sessionRepository.cleanupExpiredSessions(Instant.now());
+        // Clean up revoked sessions older than retention period  
+        List<SessionEntity> revokedSessions = sessionRepository.findByRevokedTrue();
+        int revokedCount = 0;
+        Instant revokedCutoff = now.minus(Duration.ofDays(revokedSessionRetentionDays));
+        for (SessionEntity session : revokedSessions) {
+            // Check if revoked date is older than retention period
+            if (session.getRevokedAt() != null && session.getRevokedAt().isBefore(revokedCutoff)) {
+                sessionRepository.deleteById(session.getSessionId());
+                revokedCount++;
+            }
+        }
         
-        log.info("Business layer coordinated cleanup: {} expired tokens, {} expired sessions", expiredTokenCount, expiredSessions);
+        log.info("Session cleanup completed - deleted {} expired sessions (older than {} days) and {} revoked sessions (older than {} days)",
+                expiredCount, expiredSessionRetentionDays, revokedCount, revokedSessionRetentionDays);
     }
     
-    /**
-     * Convert UserSessionEntity to UserSession domain model
-     */
-    private UserSession convertEntityToSession(UserSessionEntity entity) {
-        UserSession session = new UserSession();
-        session.setSessionId(entity.getSessionId());
-        session.setUserId(entity.getUserId());
-        session.setUserEmail(entity.getUserEmail());
-        session.setCreatedAt(entity.getCreatedAt());
-        session.setLastAccessedAt(entity.getLastAccessedAt());
-        session.setExpiresAt(entity.getExpiresAt());
-        session.setIpAddress(entity.getIpAddress());
-        session.setUserAgent(entity.getUserAgent());
-        session.setDeviceFingerprint(entity.getDeviceFingerprint());
-        session.setAcr(entity.getAcr());
-        session.setAmr(entity.getAmr());
-        session.setAuthorities(entity.getAuthorities());
-        session.setAttributes(entity.getAttributes());
-        session.setActive(Boolean.TRUE.equals(entity.getIsActive()));
-        session.setTerminationReason(entity.getTerminationReason());
-        return session;
-    }
     
     /**
      * Token pair record for legacy compatibility
@@ -707,7 +626,7 @@ public class SessionAuthBusiness {
         String deviceFingerprint,
         String ipAddress,
         String userAgent,
-        String tradingMode  // "demo" or "live"
+        Boolean demoMode  // true for demo, false for live
     ) {}
     
     /**
@@ -716,7 +635,7 @@ public class SessionAuthBusiness {
     public record AuthResult(
         String accessToken,
         String refreshToken,
-        UserSession session
+        SessionEntity session
     ) {
         public boolean hasSession() {
             return session != null;

@@ -13,20 +13,20 @@ public class SessionValidationResult {
     private final String sessionId;
     private final String acr; // Authentication Context Reference (0-3)
     private final List<String> amr; // Authentication Methods References
-    private final String tradingMode; // Trading mode ("demo" or "live")
+    private final Boolean demoMode; // Demo mode (true for demo, false for live)
     private final Instant lastAccessedAt;
     private final Instant expiresAt;
     private final boolean valid;
 
     public SessionValidationResult(String userId, String userEmail, String sessionId,
-                                 String acr, List<String> amr, String tradingMode,
+                                 String acr, List<String> amr, Boolean demoMode,
                                  Instant lastAccessedAt, Instant expiresAt, boolean valid) {
         this.userId = userId;
         this.userEmail = userEmail;
         this.sessionId = sessionId;
         this.acr = acr;
         this.amr = amr;
-        this.tradingMode = tradingMode != null ? tradingMode : "demo";
+        this.demoMode = demoMode != null ? demoMode : true;
         this.lastAccessedAt = lastAccessedAt;
         this.expiresAt = expiresAt;
         this.valid = valid;
@@ -53,8 +53,8 @@ public class SessionValidationResult {
         return amr;
     }
 
-    public String getTradingMode() {
-        return tradingMode;
+    public Boolean getDemoMode() {
+        return demoMode;
     }
 
     public Instant getLastAccessedAt() {
@@ -105,7 +105,7 @@ public class SessionValidationResult {
                 ", sessionId='" + sessionId + '\'' +
                 ", acr='" + acr + '\'' +
                 ", amr=" + amr +
-                ", tradingMode='" + tradingMode + '\'' +
+                ", demoMode=" + demoMode +
                 ", valid=" + valid +
                 '}';
     }

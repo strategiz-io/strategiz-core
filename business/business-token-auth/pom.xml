@@ -18,11 +18,6 @@
         <!-- Data layer dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-auth</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
             <artifactId>data-session</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
@@ -31,6 +26,13 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-base</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        
+        <!-- Framework secrets for Vault integration -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         

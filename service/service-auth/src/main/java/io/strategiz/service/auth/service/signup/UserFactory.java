@@ -30,7 +30,7 @@ public class UserFactory {
             request.getPhotoURL(),
             true, // OAuth providers verify email
             "free", // Default subscription tier
-            "demo" // Default trading mode
+            true // Default demo mode
         );
         
         // Create user entity

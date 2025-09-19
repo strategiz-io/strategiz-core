@@ -290,17 +290,17 @@ public class SessionController extends BaseController {
         }
         
         String userId = validationOpt.get().getUserId();
-        java.util.List<io.strategiz.data.session.entity.UserSession> sessions = sessionService.getUserActiveSessions(userId);
+        java.util.List<io.strategiz.data.session.entity.SessionEntity> sessions = sessionService.getUserActiveSessions(userId);
         
         java.util.List<java.util.Map<String, Object>> sessionList = sessions.stream()
             .map(session -> {
                 java.util.Map<String, Object> sessionMap = new java.util.HashMap<>();
                 sessionMap.put("sessionId", session.getSessionId());
                 sessionMap.put("ipAddress", session.getIpAddress() != null ? session.getIpAddress() : "unknown");
-                sessionMap.put("userAgent", session.getUserAgent() != null ? session.getUserAgent() : "unknown");
-                sessionMap.put("createdAt", session.getCreatedAt().getEpochSecond());
-                sessionMap.put("lastAccessedAt", session.getLastAccessedAt().getEpochSecond());
-                sessionMap.put("expiresAt", session.getExpiresAt().getEpochSecond());
+                sessionMap.put("userAgent", "unknown"); // SessionEntity doesn't have userAgent
+                sessionMap.put("createdAt", session.getIssuedAt() != null ? session.getIssuedAt().getEpochSecond() : 0);
+                sessionMap.put("lastAccessedAt", session.getLastAccessedAt() != null ? session.getLastAccessedAt().getEpochSecond() : 0);
+                sessionMap.put("expiresAt", session.getExpiresAt() != null ? session.getExpiresAt().getEpochSecond() : 0);
                 return sessionMap;
             })
             .collect(java.util.stream.Collectors.toList());

@@ -2,8 +2,8 @@ package io.strategiz.service.device.controller.authenticated;
 
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
-import io.strategiz.service.device.model.DeviceRequest;
-import io.strategiz.service.device.model.CreateDeviceResponse;
+import io.strategiz.service.device.model.authenticated.CreateAuthenticatedDeviceRequest;
+import io.strategiz.service.device.model.authenticated.CreateAuthenticatedDeviceResponse;
 import io.strategiz.service.device.service.authenticated.CreateAuthenticatedDeviceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,17 +59,17 @@ public class CreateAuthenticatedDeviceController extends BaseController {
      * @return Response with registered device details
      */
     @PostMapping("/registrations")
-    public ResponseEntity<CreateDeviceResponse> registerDevice(
+    public ResponseEntity<CreateAuthenticatedDeviceResponse> registerDevice(
             HttpServletRequest request,
-            @RequestBody DeviceRequest deviceRequest) {
+            @RequestBody CreateAuthenticatedDeviceRequest deviceRequest) {
         
         // Get authenticated user ID from security context
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             log.error("Attempt to register device without authentication");
-            return ResponseEntity.status(401).body(
-                CreateDeviceResponse.error("Authentication required")
-            );
+            CreateAuthenticatedDeviceResponse errorResponse = new CreateAuthenticatedDeviceResponse();
+            errorResponse.setError("Authentication required");
+            return ResponseEntity.status(401).body(errorResponse);
         }
         
         String userId = auth.getName();
@@ -80,12 +80,13 @@ public class CreateAuthenticatedDeviceController extends BaseController {
             String ipAddress = extractClientIpAddress(request);
             String userAgent = request.getHeader("User-Agent");
             
-            // Delegate to service layer for device registration with enrichment
-            CreateDeviceResponse response = createService.registerDevice(
+            // Add server-side information to the request
+            deviceRequest.setUserAgent(userAgent);
+            
+            // Delegate to service layer for device registration
+            CreateAuthenticatedDeviceResponse response = createService.createAuthenticatedDevice(
                 userId,
-                deviceRequest,
-                ipAddress,
-                userAgent
+                deviceRequest
             );
             
             if (response.isSuccess()) {

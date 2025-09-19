@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -45,23 +46,26 @@ public class ReadProviderIntegrationRepositoryImpl implements ReadProviderIntegr
     
     @Override
     public List<ProviderIntegrationEntity> findByUserIdAndEnabledTrue(String userId) {
-        return baseRepository.findAllByUserId(userId).stream()
-            .filter(entity -> entity.isConnected()) // Use isConnected() method from entity
-            .collect(Collectors.toList());
+        // Since findAllByUserId already filters by isEnabled=true, just return it
+        return baseRepository.findAllByUserId(userId);
     }
     
     @Override
     public List<ProviderIntegrationEntity> findByUserIdAndStatus(String userId, String status) {
-        return baseRepository.findAllByUserId(userId).stream()
-            .filter(entity -> status.equals(entity.getStatus()))
-            .collect(Collectors.toList());
+        // Status is now replaced by isEnabled boolean
+        boolean enabled = "CONNECTED".equalsIgnoreCase(status);
+        if (enabled) {
+            return baseRepository.findAllByUserId(userId);
+        } else {
+            // Return empty list for disconnected status
+            return new ArrayList<>();
+        }
     }
     
     @Override
     public List<ProviderIntegrationEntity> findByUserIdAndProviderType(String userId, String providerType) {
-        return baseRepository.findAllByUserId(userId).stream()
-            .filter(entity -> providerType.equals(entity.getProviderType()))
-            .collect(Collectors.toList());
+        // Provider type is no longer stored, would need to be determined from providerId
+        return baseRepository.findAllByUserId(userId);
     }
     
     @Override

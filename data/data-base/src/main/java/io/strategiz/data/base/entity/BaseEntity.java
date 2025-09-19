@@ -12,8 +12,9 @@ import jakarta.validation.constraints.NotNull;
  * 
  * Simple rules:
  * 1. Extend this class
- * 2. Implement getId(), setId(), getCollectionName()
- * 3. Use repository.save(entity, userId) - that's it!
+ * 2. Add @Collection("collection_name") annotation to your entity
+ * 3. Implement getId(), setId()
+ * 4. Use repository.save(entity, userId) - that's it!
  * 
  * @author Strategiz Platform
  */
@@ -85,7 +86,9 @@ public abstract class BaseEntity {
         }
         this.modifiedBy = userId;
         this.modifiedDate = Timestamp.now();
-        this.version = this.version + 1;
+        // Keep version at 1 during pre-launch development
+        // TODO: Enable version incrementing after launch
+        // this.version = this.version + 1;
     }
 
     public void _softDelete(String userId) {
@@ -180,7 +183,6 @@ public abstract class BaseEntity {
 
     public abstract String getId();
     public abstract void setId(String id);
-    public abstract String getCollectionName();
 
     @Override
     public boolean equals(Object obj) {

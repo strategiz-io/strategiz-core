@@ -3,7 +3,7 @@ package io.strategiz.business.provider.schwab;
 import io.strategiz.business.provider.schwab.model.SchwabConnectionResult;
 import io.strategiz.client.schwab.SchwabClient;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
+import io.strategiz.data.provider.entity.ProviderStatus;import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
@@ -185,44 +185,22 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
                 readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
             
             if (existingIntegration.isPresent()) {
-                // Update existing integration
+                // Update existing integration - just enable it
                 ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.markAsConnected();
+                entity.setStatusValue("connected"); // Mark as connected/enabled
                 
-                Map<String, Object> metadata = entity.getMetadata();
-                if (metadata == null) {
-                    metadata = new HashMap<>();
-                }
-                metadata.put("accountInfo", result.getAccountInfo());
-                metadata.put("oauthCompleted", true);
-                metadata.put("connectedAt", result.getConnectedAt());
-                metadata.put("access_token", result.getAccessToken());
-                metadata.put("refresh_token", result.getRefreshToken());
-                metadata.put("expires_at", result.getExpiresAt().toString());
-                entity.setMetadata(metadata);
+                // Tokens should be stored securely elsewhere (e.g., Vault)
                 
                 updateProviderIntegrationRepository.updateWithUserId(entity, userId);
                 log.info("Updated Schwab integration status to connected for user: {}", userId);
             } else {
-                // Create new integration
-                ProviderIntegrationEntity entity = new ProviderIntegrationEntity();
-                entity.setProviderId(PROVIDER_ID);
-                entity.setProviderName(PROVIDER_NAME);
-                entity.setProviderType(PROVIDER_TYPE);
-                entity.setUserId(userId);
-                entity.markAsConnected();
+                // Create new integration with simplified entity
+                ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+                entity.setStatusValue("connected"); // Mark as connected/enabled
                 
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("accountInfo", result.getAccountInfo());
-                metadata.put("oauthCompleted", true);
-                metadata.put("connectedAt", result.getConnectedAt());
-                metadata.put("access_token", result.getAccessToken());
-                metadata.put("refresh_token", result.getRefreshToken());
-                metadata.put("expires_at", result.getExpiresAt().toString());
-                entity.setMetadata(metadata);
+                // Tokens should be stored securely elsewhere (e.g., Vault)
                 
-                // Set capabilities
-                entity.setCapabilities(Arrays.asList("READ_ACCOUNTS", "READ_POSITIONS", "READ_BALANCES", "TRADE"));
+                // Capabilities are implied by the provider type, not stored in entity
                 
                 createProviderIntegrationRepository.createForUser(entity, userId);
                 log.info("Created new Charles Schwab integration for user: {}", userId);
@@ -303,18 +281,9 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
                 redirectUri != null ? redirectUri : "null");
         
         try {
-            // Create provider integration entity for Firestore
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_TYPE, PROVIDER_ID, PROVIDER_NAME, "oauth2");
-            entity.setUserId(userId);
-            entity.setStatus("pending_oauth");
-            entity.setCapabilities(Arrays.asList("READ", "TRADE"));
-            
-            Map<String, Object> entityMetadata = new HashMap<>();
-            entityMetadata.put("oauthRequired", true);
-            entityMetadata.put("authMethod", "oauth2");
-            entityMetadata.put("scope", scope);
-            entityMetadata.put("supportsTrading", true);
-            entity.setMetadata(entityMetadata);
+            // Create simplified provider integration entity for Firestore
+            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+            entity.setStatusValue("disconnected"); // Not enabled until OAuth is complete
             
             // Save to Firestore
             ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);

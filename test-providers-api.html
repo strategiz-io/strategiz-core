@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Providers API</title>
+</head>
+<body>
+    <h1>Test Providers API</h1>
+    <button onclick="testProviders()">Test GET /v1/providers</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testProviders() {
+            const resultDiv = document.getElementById('result');
+            
+            // Get the access token from localStorage
+            const accessToken = localStorage.getItem('accessToken');
+            
+            if (!accessToken) {
+                resultDiv.innerHTML = 'No access token found in localStorage';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Testing with token: ' + accessToken.substring(0, 20) + '...<br>';
+            
+            try {
+                const response = await fetch('https://localhost:8443/v1/providers', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                console.log('Response:', data);
+                
+                // Check what providers are returned
+                if (data.providers) {
+                    console.log('Providers found:', data.providers);
+                    data.providers.forEach(p => {
+                        console.log(`Provider ${p.providerId}: status=${p.status}`);
+                    });
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML += 'Error: ' + error;
+                console.error('Error:', error);
+            }
+        }
+        
+        // Auto-run on load
+        window.onload = () => {
+            console.log('Access token:', localStorage.getItem('accessToken'));
+        };
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package io.strategiz.data.auth.entity.passkey;
 
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.annotation.Collection;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -19,6 +20,7 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "passkey_credentials")
+@Collection("passkey_credentials")
 public class PasskeyCredentialEntity extends BaseEntity {
 
     @PropertyName("userId")
@@ -132,11 +134,6 @@ public class PasskeyCredentialEntity extends BaseEntity {
     @Override
     public void setId(String id) {
         this.id = id;
-    }
-
-    @Override
-    public String getCollectionName() {
-        return "passkey_credentials";
     }
 
     // === CONVENIENCE METHODS ===

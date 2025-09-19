@@ -281,11 +281,9 @@ public class ReadProviderResponse {
         this.metadata = metadata;
     }
 
-    // Helper methods
-    public boolean isConnected() {
-        return "connected".equals(status);
-    }
-
+    // Helper methods - removed isConnected() to avoid JSON field duplication
+    // Use getStatus().equals("connected") instead
+    
     public boolean hasError() {
         return "error".equals(status);
     }

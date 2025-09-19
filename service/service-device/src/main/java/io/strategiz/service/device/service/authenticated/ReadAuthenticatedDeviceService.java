@@ -141,13 +141,13 @@ public class ReadAuthenticatedDeviceService extends BaseService {
         response.setDeviceId(device.getDeviceId());
         response.setUserId(device.getUserId());
         response.setDeviceName(device.getDeviceName());
-        response.setFingerprint(device.getFingerprint());
+        response.setFingerprint(device.getCanvasFingerprint());
         response.setVisitorId(device.getVisitorId());
         response.setPlatform(device.getPlatform());
         response.setBrowserName(device.getBrowserName());
         response.setOsName(device.getOsName());
         response.setOsVersion(device.getOsVersion());
-        response.setTrusted(device.getTrusted());
+        response.setTrusted(device.isTrusted());
         response.setTrustScore(device.getTrustScore());
         response.setTrustLevel(device.getTrustLevel());
         response.setLastSeen(device.getLastSeen());
@@ -222,7 +222,7 @@ public class ReadAuthenticatedDeviceService extends BaseService {
                     if (!value.equals(device.getOsName())) return false;
                     break;
                 case "trusted":
-                    if (!Boolean.valueOf(value).equals(device.getTrusted())) return false;
+                    if (Boolean.valueOf(value) != device.isTrusted()) return false;
                     break;
                 case "trustLevel":
                     if (!value.equals(device.getTrustLevel())) return false;

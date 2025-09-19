@@ -2,12 +2,17 @@ package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
+import io.strategiz.data.provider.entity.ProviderStatus;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.Query;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -19,6 +24,8 @@ import java.util.stream.Collectors;
  */
 @Repository
 public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIntegrationEntity> {
+    
+    private static final Logger log = LoggerFactory.getLogger(ProviderIntegrationBaseRepository.class);
     
     public ProviderIntegrationBaseRepository(Firestore firestore) {
         super(firestore, ProviderIntegrationEntity.class);
@@ -57,6 +64,10 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
                 entity._updateAudit(userId);
             }
             
+            // Log the status value before saving
+            log.debug("Saving ProviderIntegrationEntity with status field value: {}", entity.getStatusValue());
+            log.debug("Entity status enum: {}", entity.getStatus());
+            
             // Save to user-scoped collection
             getUserScopedCollection(userId).document(entity.getId()).set(entity).get();
             
@@ -74,7 +85,7 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
             DocumentSnapshot doc = getUserScopedCollection(userId).document(id).get().get();
             if (doc.exists()) {
                 ProviderIntegrationEntity entity = doc.toObject(ProviderIntegrationEntity.class);
-                if (entity != null && Boolean.TRUE.equals(entity.getIsActive())) {
+                if (entity != null) {
                     entity.setId(doc.getId());
                     return Optional.of(entity);
                 }
@@ -91,19 +102,33 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
      */
     public List<ProviderIntegrationEntity> findAllByUserId(String userId) {
         try {
-            List<QueryDocumentSnapshot> docs = getUserScopedCollection(userId)
-                .whereEqualTo("auditFields.isActive", true)
-                .get().get().getDocuments();
+            log.debug("ProviderIntegrationBaseRepository: Finding all providers for userId: {}", userId);
             
-            return docs.stream()
+            // Query for both uppercase (legacy) and lowercase (new standard)
+            Query query = getUserScopedCollection(userId)
+                .whereIn("status", Arrays.asList("connected", "CONNECTED"));
+            
+            log.debug("ProviderIntegrationBaseRepository: Query path: provider_integrations/users/{}/integrations, filter: status={}", 
+                userId, ProviderStatus.CONNECTED.getValue());
+            
+            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+            
+            log.info("ProviderIntegrationBaseRepository: Found {} documents for userId: {}", docs.size(), userId);
+            
+            List<ProviderIntegrationEntity> results = docs.stream()
                 .map(doc -> {
                     ProviderIntegrationEntity entity = doc.toObject(ProviderIntegrationEntity.class);
                     entity.setId(doc.getId());
+                    log.debug("ProviderIntegrationBaseRepository: Mapped entity - id: {}, providerId: {}, status: {}", 
+                        entity.getId(), entity.getProviderId(), entity.getStatus());
                     return entity;
                 })
                 .collect(Collectors.toList());
+                
+            return results;
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
+            log.error("ProviderIntegrationBaseRepository: Failed to find entities for userId {}: {}", userId, e.getMessage());
             throw new RuntimeException("Failed to find entities: " + e.getMessage(), e);
         }
     }

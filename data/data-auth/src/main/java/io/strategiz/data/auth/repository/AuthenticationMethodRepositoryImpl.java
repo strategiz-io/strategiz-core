@@ -145,10 +145,9 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
             // This requires a collection group query on the security subcollection
             // Note: This requires a composite index in Firestore
             Query query = firestore.collectionGroup("security")
-                    .whereEqualTo("authentication_method", AuthenticationMethodType.PASSKEY.name())
-                    .whereEqualTo("metadata.credentialId", credentialId)
+                    .whereEqualTo("authentication_method", "PASSKEY")
                     .whereEqualTo("isActive", true)
-                    .limit(1);
+                    .limit(100);
             
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
             QuerySnapshot snapshot = querySnapshot.get();
@@ -158,23 +157,34 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
                 return Optional.empty();
             }
             
-            // Convert the first (and only) document to entity
-            com.google.cloud.firestore.DocumentSnapshot doc = snapshot.getDocuments().get(0);
-            AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
-            entity.setId(doc.getId());
-            
-            // Extract userId from the document path and store it in metadata
-            // Path format: users/{userId}/security/{methodId}
-            String path = doc.getReference().getPath();
-            String[] pathParts = path.split("/");
-            if (pathParts.length >= 2) {
-                String userId = pathParts[1]; // users/{userId}/...
-                entity.putMetadata("userId", userId);
-                log.debug("Found passkey for user {} with credential ID: {}", userId, credentialId);
-                log.debug("Entity has audit fields: {}, isActive: {}", entity._hasAudit(), entity.getIsActive());
+            // Filter documents by credentialId in metadata
+            for (com.google.cloud.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
+                AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+                entity.setId(doc.getId());
+                
+                // Check if this passkey has the matching credential ID
+                String storedCredentialId = entity.getMetadataAsString("credentialId");
+                if (credentialId.equals(storedCredentialId)) {
+                    // Found the matching passkey!
+                    
+                    // Extract userId from the document path and store it in metadata
+                    // Path format: users/{userId}/security/{methodId}
+                    String path = doc.getReference().getPath();
+                    String[] pathParts = path.split("/");
+                    if (pathParts.length >= 2) {
+                        String userId = pathParts[1]; // users/{userId}/...
+                        entity.putMetadata("userId", userId);
+                        log.debug("Found passkey for user {} with credential ID: {}", userId, credentialId);
+                        log.debug("Entity has audit fields: {}, isActive: {}", entity._hasAudit(), entity.getIsActive());
+                    }
+                    
+                    return Optional.of(entity);
+                }
             }
             
-            return Optional.of(entity);
+            // No matching credential found
+            log.debug("No passkey found with credential ID: {} after checking {} documents", credentialId, snapshot.size());
+            return Optional.empty();
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
             throw new RuntimeException("Failed to find authentication method by credential ID", e);

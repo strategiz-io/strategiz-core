@@ -60,13 +60,23 @@ public class CreateProviderController extends BaseController {
         // Extract user ID from the authorization token
         String userId = extractUserIdFromToken(authHeader);
         if (userId == null) {
+            log.error("No valid authentication token provided for provider creation");
             throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
-                "service-provider", "Authentication token is required");
+                "service-provider", "Authentication required to connect provider");
         }
         request.setUserId(userId);
         
         log.info("Creating provider connection for user: {}, provider: {}, type: {}", 
                 userId, request.getProviderId(), request.getConnectionType());
+        
+        // Debug log to check credentials
+        if (request.getCredentials() != null) {
+            log.debug("Received credentials map with {} keys: {}", 
+                    request.getCredentials().size(), 
+                    request.getCredentials().keySet());
+        } else {
+            log.debug("No credentials provided in request");
+        }
         
         // Validate required fields
         if (request.getProviderId() == null || request.getProviderId().isEmpty()) {
@@ -84,6 +94,35 @@ public class CreateProviderController extends BaseController {
         
         // Return 201 Created for successful provider creation
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    
+    /**
+     * Fetches connected providers for the authenticated user.
+     * 
+     * @param authHeader The authorization header containing the session token
+     * @return Response containing the list of connected providers
+     */
+    @GetMapping("/connected")
+    public ResponseEntity<?> getConnectedProviders(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        String userId = extractUserIdFromToken(authHeader);
+        if (userId == null) {
+            log.error("No valid authentication token provided for fetching providers");
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
+                "service-provider", "Authentication required to fetch providers");
+        }
+        
+        log.info("Fetching connected providers for user: {}", userId);
+        
+        try {
+            var connectedProviders = createProviderService.getConnectedProviders(userId);
+            return ResponseEntity.ok(connectedProviders);
+        } catch (Exception e) {
+            log.error("Error fetching connected providers for user {}: {}", userId, e.getMessage(), e);
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_CONNECTION_FAILED, 
+                "service-provider", "Failed to fetch connected providers");
+        }
     }
     
     /**

@@ -9,6 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class DeleteAuthenticatedDeviceService extends BaseService {
@@ -20,6 +24,90 @@ public class DeleteAuthenticatedDeviceService extends BaseService {
     @Autowired
     public DeleteAuthenticatedDeviceService(DeleteDeviceRepository deleteRepository) {
         this.deleteRepository = deleteRepository;
+    }
+    
+    /**
+     * Delete a single device
+     */
+    public boolean deleteDevice(String userId, String deviceId) {
+        log.debug("Deleting device {} for user {}", deviceId, userId);
+        try {
+            return deleteRepository.deleteAuthenticatedDevice(userId, deviceId);
+        } catch (Exception e) {
+            log.error("Error deleting device {} for user {}: {}", deviceId, userId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Delete all devices for a user
+     */
+    public int deleteAllDevices(String userId) {
+        log.debug("Deleting all devices for user {}", userId);
+        try {
+            return deleteRepository.deleteAllUserDevices(userId);
+        } catch (Exception e) {
+            log.error("Error deleting all devices for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Delete all devices except the current one
+     */
+    public int deleteAllExceptCurrent(String userId, String currentVisitorId) {
+        log.debug("Deleting all devices except current for user {}", userId);
+        try {
+            return deleteRepository.deleteAllUserDevicesExcept(userId, currentVisitorId);
+        } catch (Exception e) {
+            log.error("Error deleting devices except current for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Delete multiple devices by IDs
+     */
+    public Map<String, Boolean> deleteMultipleDevices(String userId, List<String> deviceIds) {
+        log.debug("Deleting {} devices for user {}", deviceIds.size(), userId);
+        Map<String, Boolean> results = new HashMap<>();
+        for (String deviceId : deviceIds) {
+            try {
+                boolean deleted = deleteRepository.deleteAuthenticatedDevice(userId, deviceId);
+                results.put(deviceId, deleted);
+            } catch (Exception e) {
+                log.error("Error deleting device {} for user {}: {}", deviceId, userId, e.getMessage());
+                results.put(deviceId, false);
+            }
+        }
+        return results;
+    }
+    
+    /**
+     * Delete untrusted devices
+     */
+    public int deleteUntrustedDevices(String userId) {
+        log.debug("Deleting untrusted devices for user {}", userId);
+        try {
+            return deleteRepository.deleteUntrustedUserDevices(userId);
+        } catch (Exception e) {
+            log.error("Error deleting untrusted devices for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Delete inactive devices
+     */
+    public int deleteInactiveDevices(String userId, int daysInactive) {
+        log.debug("Deleting inactive devices for user {} (inactive > {} days)", userId, daysInactive);
+        try {
+            Instant cutoff = Instant.now().minus(daysInactive, ChronoUnit.DAYS);
+            return deleteRepository.deleteInactiveUserDevices(userId, cutoff);
+        } catch (Exception e) {
+            log.error("Error deleting inactive devices for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
     
     public DeleteAuthenticatedDeviceResponse deleteAuthenticatedDevice(
@@ -53,67 +141,6 @@ public class DeleteAuthenticatedDeviceService extends BaseService {
         }
     }
     
-    public int deleteAllUserDevices(String userId) {
-        log.debug("Deleting all devices for user {}", userId);
-        
-        try {
-            int count = deleteRepository.deleteAllUserDevices(userId);
-            log.info("Deleted {} devices for user {}", count, userId);
-            return count;
-            
-        } catch (Exception e) {
-            log.error("Error deleting all devices for user {}: {}", 
-                userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete user devices", e);
-        }
-    }
-    
-    public int deleteUntrustedDevices(String userId) {
-        log.debug("Deleting untrusted devices for user {}", userId);
-        
-        try {
-            int count = deleteRepository.deleteUntrustedDevices(userId);
-            log.info("Deleted {} untrusted devices for user {}", count, userId);
-            return count;
-            
-        } catch (Exception e) {
-            log.error("Error deleting untrusted devices for user {}: {}", 
-                userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete untrusted devices", e);
-        }
-    }
-    
-    public int deleteInactiveDevices(String userId, int daysInactive) {
-        log.debug("Deleting devices inactive for {} days for user {}", daysInactive, userId);
-        
-        try {
-            Instant cutoff = Instant.now().minusSeconds(daysInactive * 24L * 60 * 60);
-            int count = deleteRepository.deleteInactiveAuthenticatedDevices(userId, cutoff);
-            
-            log.info("Deleted {} inactive devices for user {}", count, userId);
-            return count;
-            
-        } catch (Exception e) {
-            log.error("Error deleting inactive devices for user {}: {}", 
-                userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete inactive devices", e);
-        }
-    }
-    
-    public int bulkDeleteDevices(String userId, String[] deviceIds) {
-        log.debug("Bulk deleting {} devices for user {}", deviceIds.length, userId);
-        
-        try {
-            int count = deleteRepository.bulkDeleteAuthenticatedDevices(userId, deviceIds);
-            log.info("Deleted {} devices for user {}", count, userId);
-            return count;
-            
-        } catch (Exception e) {
-            log.error("Error bulk deleting devices for user {}: {}", 
-                userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to bulk delete devices", e);
-        }
-    }
     
     public DeleteAuthenticatedDeviceResponse revokeDevice(String userId, String deviceId) {
         log.debug("Revoking device {} for user {}", deviceId, userId);

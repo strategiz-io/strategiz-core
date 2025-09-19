@@ -22,6 +22,13 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- Business Provider Base -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-base</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Data Auth -->
         <dependency>
             <groupId>io.strategiz</groupId>
@@ -29,10 +36,24 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- Data Provider -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-provider</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Kraken Client -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-kraken</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Yahoo Finance Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-yahoofinance</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 

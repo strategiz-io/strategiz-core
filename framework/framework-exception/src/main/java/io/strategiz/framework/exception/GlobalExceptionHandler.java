@@ -3,6 +3,9 @@ package io.strategiz.framework.exception;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -19,11 +22,18 @@ import java.util.UUID;
  * - GlobalExceptionHandler handles system exceptions (unexpected errors)
  * 
  * This provides a safety net for exceptions that fall through BaseController.
+ * 
+ * Order is set to LOWEST_PRECEDENCE to ensure BaseController's @ExceptionHandler
+ * methods are tried first for controllers that extend BaseController.
  */
 @ControllerAdvice
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    
+    @Autowired(required = false)
+    private ErrorMessageService errorMessageService;
 
     /**
      * Handle StrategizException that falls through BaseController
@@ -40,13 +50,19 @@ public class GlobalExceptionHandler {
                  "Controller should extend BaseController. Module: {}, Error: {}", 
                  traceId, ex.getModuleName(), ex.getErrorCode());
         
-        // Create basic error response since we don't have access to ErrorMessageService here
-        StandardErrorResponse errorResponse = new StandardErrorResponse(
-            ex.getErrorCode(),
-            "An error occurred. Please try again.", 
-            "Error in module: " + ex.getModuleName() + " - " + ex.getErrorCode(),
-            "https://docs.strategiz.io/errors/general/error"
-        );
+        // Use ErrorMessageService if available, otherwise create basic response
+        StandardErrorResponse errorResponse;
+        if (errorMessageService != null) {
+            errorResponse = errorMessageService.buildErrorResponse(ex);
+        } else {
+            // Fallback if ErrorMessageService is not available
+            errorResponse = new StandardErrorResponse(
+                ex.getErrorCode(),
+                "An error occurred. Please try again.", 
+                "Error in module: " + ex.getModuleName() + " - " + ex.getErrorCode(),
+                "https://docs.strategiz.io/errors/general/error"
+            );
+        }
         
         // Add trace ID to MDC for response headers
         MDC.put("traceId", traceId);

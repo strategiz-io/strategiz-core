@@ -15,7 +15,7 @@ public final class ProfileConstants {
     // Default Values
     public static final class Defaults {
         public static final String SUBSCRIPTION_TIER = "free";
-        public static final String TRADING_MODE = "demo";
+        public static final boolean DEMO_MODE = true;
         public static final boolean EMAIL_VERIFIED = false;
         public static final boolean IS_ACTIVE = true;
         public static final boolean IS_PARTIAL_AUTH = true;
@@ -65,7 +65,7 @@ public final class ProfileConstants {
         public static final String PROFILE_CREATED = "Profile created successfully for user: ";
         public static final String PROFILE_UPDATED = "Profile updated successfully for user: ";
         public static final String SUBSCRIPTION_UPDATED = "Subscription tier updated successfully for user: {} to: {}";
-        public static final String TRADING_MODE_UPDATED = "Trading mode updated successfully for user: {} to: {}";
+        public static final String DEMO_MODE_UPDATED = "Demo mode updated successfully for user: {} to: {}";
         public static final String EMAIL_VERIFIED = "Email verified successfully for user: ";
         public static final String PROFILE_DELETED = "Profile deleted successfully for user: ";
         public static final String PROFILE_ALREADY_DELETED = "Profile already deleted for user: ";

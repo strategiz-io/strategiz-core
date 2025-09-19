@@ -1,6 +1,25 @@
-# Strategiz Provider Integration Service
+# Service Provider Module Documentation
 
 This module implements the provider integration services for Strategiz, allowing users to connect various trading platforms and exchanges to their Strategiz account.
+
+## 📚 Controller Documentation
+
+Each controller in this module has comprehensive documentation following our standard template. Documentation includes business purpose, technical specs, design diagrams, testing, and monitoring details.
+
+### Available API Documentation
+
+| API Name | Controller | Documentation | Status | Description |
+|----------|------------|---------------|--------|-------------|
+| Provider Connection API | CreateProviderController | [📄 View](provider-connection-api.mdx) | ✅ Complete | Connect external providers (exchanges/brokerages) |
+| Provider Query API | ReadProviderController | _pending_ | 📝 TODO | Query provider information and status |
+| Provider Update API | UpdateProviderController | _pending_ | 📝 TODO | Update provider configurations |
+| Provider Disconnection API | DeleteProviderController | _pending_ | 📝 TODO | Disconnect and remove providers |
+| Provider OAuth Callback API | ProviderCallbackController | _pending_ | 📝 TODO | Handle OAuth authorization callbacks |
+
+### Documentation Template
+
+New controllers should be documented using our standard template:
+- [📋 Controller Documentation Template](CONTROLLER_DOCUMENTATION_TEMPLATE.mdx)
 
 ## Architecture Overview
 

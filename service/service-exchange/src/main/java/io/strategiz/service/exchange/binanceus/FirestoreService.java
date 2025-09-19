@@ -109,26 +109,34 @@ public class FirestoreService {
                 Map<String, Object> userData = userDoc.getData();
                 
                 if (userData != null && userData.containsKey("binanceusConfig")) {
-                    @SuppressWarnings("unchecked") // This cast is necessary as Firestore returns Object
-                    Map<String, String> binanceusConfig = (Map<String, String>) userData.get("binanceusConfig");
-                    
-                    if (binanceusConfig != null && binanceusConfig.containsKey("apiKey") && binanceusConfig.containsKey("secretKey")) {
-                        Map<String, String> credentials = new HashMap<>();
-                        credentials.put("apiKey", binanceusConfig.get("apiKey"));
-                        credentials.put("secretKey", binanceusConfig.get("secretKey"));
+                    Object configObj = userData.get("binanceusConfig");
+                    if (configObj instanceof Map) {
+                        Map<?, ?> configMap = (Map<?, ?>) configObj;
+                        Map<String, String> binanceusConfig = new HashMap<>();
+                        configMap.forEach((k, v) -> {
+                            if (k instanceof String && v instanceof String) {
+                                binanceusConfig.put((String) k, (String) v);
+                            }
+                        });
                         
-                        log.info("Found Binance US credentials in user document preferences for user: {}", userId);
-                        log.info("API key found (first 5 chars): {}", 
-                            credentials.get("apiKey") != null ? 
-                            credentials.get("apiKey").substring(0, Math.min(credentials.get("apiKey").length(), 5)) + "..." : "null");
-                        log.info("Secret key found (length): {}", 
-                            credentials.get("secretKey") != null ? 
-                            credentials.get("secretKey").length() + " chars" : "null");
-                        
-                        // Migrate to new structure
-                        migrateToNewStructure(userId, binanceusConfig.get("apiKey"), binanceusConfig.get("secretKey"));
-                        
-                        return credentials;
+                        if (binanceusConfig.containsKey("apiKey") && binanceusConfig.containsKey("secretKey")) {
+                            Map<String, String> credentials = new HashMap<>();
+                            credentials.put("apiKey", binanceusConfig.get("apiKey"));
+                            credentials.put("secretKey", binanceusConfig.get("secretKey"));
+                            
+                            log.info("Found Binance US credentials in user document preferences for user: {}", userId);
+                            log.info("API key found (first 5 chars): {}", 
+                                credentials.get("apiKey") != null ? 
+                                credentials.get("apiKey").substring(0, Math.min(credentials.get("apiKey").length(), 5)) + "..." : "null");
+                            log.info("Secret key found (length): {}", 
+                                credentials.get("secretKey") != null ? 
+                                credentials.get("secretKey").length() + " chars" : "null");
+                            
+                            // Migrate to new structure
+                            migrateToNewStructure(userId, binanceusConfig.get("apiKey"), binanceusConfig.get("secretKey"));
+                            
+                            return credentials;
+                        }
                     }
                 }
                 

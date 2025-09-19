@@ -110,10 +110,17 @@ public class FirestoreService {
                 Map<String, Object> userData = userDoc.getData();
                 
                 if (userData != null && userData.containsKey("coinbaseConfig")) {
-                    @SuppressWarnings("unchecked") // This cast is necessary as Firestore returns Object
-                    Map<String, String> coinbaseConfig = (Map<String, String>) userData.get("coinbaseConfig");
-                    
-                    if (coinbaseConfig != null && coinbaseConfig.containsKey("apiKey") && coinbaseConfig.containsKey("privateKey")) {
+                    Object configObj = userData.get("coinbaseConfig");
+                    if (configObj instanceof Map) {
+                        Map<?, ?> configMap = (Map<?, ?>) configObj;
+                        Map<String, String> coinbaseConfig = new HashMap<>();
+                        configMap.forEach((k, v) -> {
+                            if (k instanceof String && v instanceof String) {
+                                coinbaseConfig.put((String) k, (String) v);
+                            }
+                        });
+                        
+                        if (coinbaseConfig.containsKey("apiKey") && coinbaseConfig.containsKey("privateKey")) {
                         Map<String, String> credentials = new HashMap<>();
                         credentials.put("apiKey", coinbaseConfig.get("apiKey"));
                         credentials.put("privateKey", coinbaseConfig.get("privateKey"));
@@ -126,10 +133,11 @@ public class FirestoreService {
                             credentials.get("privateKey") != null ? 
                             credentials.get("privateKey").length() + " chars" : "null");
                         
-                        // Migrate to new structure
-                        migrateToNewStructure(userId, coinbaseConfig.get("apiKey"), coinbaseConfig.get("privateKey"));
-                        
-                        return credentials;
+                            // Migrate to new structure
+                            migrateToNewStructure(userId, coinbaseConfig.get("apiKey"), coinbaseConfig.get("privateKey"));
+                            
+                            return credentials;
+                        }
                     }
                 }
                 

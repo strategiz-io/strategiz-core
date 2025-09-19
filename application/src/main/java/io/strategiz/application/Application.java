@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Import;
 import io.strategiz.application.config.VaultOAuthInitializer;
 import io.strategiz.data.auth.config.DataAuthConfig;
 import io.strategiz.data.base.config.FirebaseConfig;
-import io.strategiz.data.device.config.DataDeviceConfig;
 import io.strategiz.data.user.config.DataUserConfig;
 import io.strategiz.data.provider.config.DataProviderConfig;
 import io.strategiz.data.strategy.config.DataStrategyConfig;
@@ -18,7 +17,7 @@ import io.strategiz.data.strategy.config.DataStrategyConfig;
  * Main Application class for Strategiz Core
  */
 @SpringBootApplication
-@Import({FirebaseConfig.class, DataAuthConfig.class, DataDeviceConfig.class, DataUserConfig.class, DataProviderConfig.class, DataStrategyConfig.class})
+@Import({FirebaseConfig.class, DataAuthConfig.class, DataUserConfig.class, DataProviderConfig.class, DataStrategyConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"
 })

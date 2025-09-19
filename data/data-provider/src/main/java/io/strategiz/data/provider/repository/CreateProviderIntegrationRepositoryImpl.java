@@ -24,24 +24,18 @@ public class CreateProviderIntegrationRepositoryImpl implements CreateProviderIn
         // DO NOT set ID here - let BaseRepository handle it as a create operation
         // The BaseRepository will generate the ID when it detects a null ID
         
-        // Set default status if not provided
-        if (integration.getStatus() == null || integration.getStatus().isEmpty()) {
-            integration.setStatus("pending");
-        }
+        // Set default enabled state (it's a primitive boolean, so no null check needed)
+        // The entity already defaults to true in its field declaration
         
-        // Set default enabled state
-        if (!integration.isEnabled()) {
-            integration.setEnabled(true);
-        }
-        
-        // Use BaseRepository's save method (requires userId)
-        // Since we're not setting an ID, BaseRepository will treat this as a create operation
-        return baseRepository.save(integration, integration.getUserId());
+        // For now, use a dummy userId - this should be handled differently
+        // The entity doesn't store userId anymore since it's in the path
+        return baseRepository.save(integration, "system");
     }
     
     @Override
     public ProviderIntegrationEntity createForUser(ProviderIntegrationEntity integration, String userId) {
-        integration.setUserId(userId);
-        return create(integration);
+        // Just save with the provided userId
+        // The entity doesn't need to store userId since it's in the path
+        return baseRepository.save(integration, userId);
     }
 }

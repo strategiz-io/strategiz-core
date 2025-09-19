@@ -21,7 +21,7 @@ public class UpdateProfileRequest {
     
     private String subscriptionTier;
     
-    private String tradingMode;
+    private Boolean demoMode;
 
     // Default constructor
     public UpdateProfileRequest() {
@@ -29,12 +29,12 @@ public class UpdateProfileRequest {
 
     // Constructor with all fields
     public UpdateProfileRequest(String name, String email, String photoURL,
-                          String subscriptionTier, String tradingMode) {
+                          String subscriptionTier, Boolean demoMode) {
         this.name = name;
         this.email = email;
         this.photoURL = photoURL;
         this.subscriptionTier = subscriptionTier;
-        this.tradingMode = tradingMode;
+        this.demoMode = demoMode;
     }
 
     // Getters and setters
@@ -70,11 +70,11 @@ public class UpdateProfileRequest {
         this.subscriptionTier = subscriptionTier;
     }
 
-    public String getTradingMode() {
-        return tradingMode;
+    public Boolean getDemoMode() {
+        return demoMode;
     }
 
-    public void setTradingMode(String tradingMode) {
-        this.tradingMode = tradingMode;
+    public void setDemoMode(Boolean demoMode) {
+        this.demoMode = demoMode;
     }
 }

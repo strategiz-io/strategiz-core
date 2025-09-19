@@ -9,6 +9,10 @@ import java.util.Map;
  * Repository interface for all device read operations
  * Groups both authenticated and anonymous device queries
  * Single Responsibility: Device retrieval/querying
+ * 
+ * Collection Paths:
+ * - Anonymous: /devices (root collection)
+ * - Authenticated: /users/{userId}/devices (subcollection)
  */
 public interface ReadDeviceRepository {
     
@@ -16,6 +20,7 @@ public interface ReadDeviceRepository {
     
     /**
      * Find an authenticated device by ID
+     * Reads from: /users/{userId}/devices/{deviceId}
      * 
      * @param userId The user ID
      * @param deviceId The device ID

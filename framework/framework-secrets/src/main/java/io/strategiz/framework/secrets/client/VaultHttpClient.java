@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -34,24 +35,48 @@ public class VaultHttpClient implements VaultClient {
     }
     
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> read(String path) {
         try {
             String url = properties.getAddress() + "/v1/" + path;
             HttpHeaders headers = createHeaders();
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, 
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
             
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-                Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
-                if (data != null && data.containsKey("data")) {
-                    // KV v2 format
-                    return (Map<String, Object>) data.get("data");
+                Object dataObj = responseBody.get("data");
+                if (dataObj instanceof Map) {
+                    Map<?, ?> dataMap = (Map<?, ?>) dataObj;
+                    // Convert to Map<String, Object> safely
+                    Map<String, Object> data = new HashMap<>();
+                    dataMap.forEach((k, v) -> {
+                        if (k instanceof String) {
+                            data.put((String) k, v);
+                        }
+                    });
+                    
+                    if (data.containsKey("data")) {
+                        // KV v2 format
+                        Object innerDataObj = data.get("data");
+                        if (innerDataObj instanceof Map) {
+                            Map<?, ?> innerDataMap = (Map<?, ?>) innerDataObj;
+                            Map<String, Object> innerData = new HashMap<>();
+                            innerDataMap.forEach((k, v) -> {
+                                if (k instanceof String) {
+                                    innerData.put((String) k, v);
+                                }
+                            });
+                            return innerData;
+                        }
+                    }
+                    return data;
                 } else {
                     // KV v1 format or direct data
-                    return data;
+                    return null;
                 }
             }
             

@@ -74,33 +74,15 @@ public class SessionService {
      */
     public Optional<SessionValidationResult> validateSession(HttpServletRequest request) {
         log.debug("Validating session from HTTP request");
-        
+
         // Extract token from request
         String token = extractTokenFromRequest(request);
         if (token == null) {
             return Optional.empty();
         }
-        
-        // Validate token
-        Optional<String> userIdOpt = sessionBusiness.validateSession(token);
-        if (userIdOpt.isEmpty()) {
-            return Optional.empty();
-        }
-        
-        // Create validation result with required parameters (AAL removed)
-        SessionValidationResult result = new SessionValidationResult(
-            userIdOpt.get(),    // userId
-            null,               // userEmail - not available from token validation
-            null,               // sessionId - not available in token-based approach
-            "1",                // acr - default to basic authentication
-            null,               // amr - not available from token validation
-            false,              // demoMode - default to live (false)
-            Instant.now(),      // lastAccessedAt
-            Instant.now().plusSeconds(3600), // expiresAt - assume 1 hour
-            true                // valid
-        );
-        
-        return Optional.of(result);
+
+        // Use validateToken which returns full SessionValidationResult with email
+        return sessionBusiness.validateToken(token);
     }
 
     /**

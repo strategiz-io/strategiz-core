@@ -12,7 +12,7 @@ public class ReadProfileResponse {
     private String photoURL;
     private boolean isEmailVerified;
     private String subscriptionTier;
-    private String tradingMode;
+    private Boolean demoMode;
     private boolean isActive;
     private long createdAt;
     private long modifiedAt;
@@ -23,7 +23,7 @@ public class ReadProfileResponse {
 
     // Full constructor
     public ReadProfileResponse(String userId, String name, String email, String photoURL,
-                          boolean isEmailVerified, String subscriptionTier, String tradingMode,
+                          boolean isEmailVerified, String subscriptionTier, Boolean demoMode,
                           boolean isActive, long createdAt, long modifiedAt) {
         this.userId = userId;
         this.name = name;
@@ -31,7 +31,7 @@ public class ReadProfileResponse {
         this.photoURL = photoURL;
         this.isEmailVerified = isEmailVerified;
         this.subscriptionTier = subscriptionTier;
-        this.tradingMode = tradingMode;
+        this.demoMode = demoMode;
         this.isActive = isActive;
         this.createdAt = createdAt;
         this.modifiedAt = modifiedAt;
@@ -86,12 +86,12 @@ public class ReadProfileResponse {
         this.subscriptionTier = subscriptionTier;
     }
 
-    public String getTradingMode() {
-        return tradingMode;
+    public Boolean getDemoMode() {
+        return demoMode;
     }
 
-    public void setTradingMode(String tradingMode) {
-        this.tradingMode = tradingMode;
+    public void setDemoMode(Boolean demoMode) {
+        this.demoMode = demoMode;
     }
 
     public boolean isActive() {
@@ -127,7 +127,7 @@ public class ReadProfileResponse {
                 ", photoURL='" + photoURL + '\'' +
                 ", isEmailVerified=" + isEmailVerified +
                 ", subscriptionTier='" + subscriptionTier + '\'' +
-                ", tradingMode='" + tradingMode + '\'' +
+                ", demoMode=" + demoMode +
                 ", isActive=" + isActive +
                 ", createdAt=" + createdAt +
                 ", modifiedAt=" + modifiedAt +
@@ -151,7 +151,7 @@ public class ReadProfileResponse {
                 profile.getPhotoURL(),
                 profile.getIsEmailVerified() != null ? profile.getIsEmailVerified() : ProfileConstants.Defaults.EMAIL_VERIFIED,
                 profile.getSubscriptionTier(),
-                profile.getTradingMode(),
+                profile.getDemoMode(),
                 user.getIsActive() != null ? user.getIsActive() : ProfileConstants.Defaults.IS_ACTIVE,
                 System.currentTimeMillis(), // Default to current time
                 System.currentTimeMillis()  // Default to current time

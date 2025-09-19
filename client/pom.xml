@@ -24,7 +24,7 @@
         <module>client-binanceus</module>
         <module>client-coingecko</module>
         <module>client-alphavantage</module>
-        <module>client-yahoo-finance</module>
+        <module>client-yahoofinance</module>
         <module>client-facebook</module>
         <module>client-google</module>
         <module>client-firebase-sms</module>

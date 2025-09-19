@@ -44,11 +44,14 @@
             <artifactId>service-dashboard</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Device Service - temporarily disabled due to compilation issues -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-device</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-exchange</artifactId>
@@ -97,6 +100,13 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Business Provider Modules -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-kraken</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

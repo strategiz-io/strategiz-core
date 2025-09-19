@@ -1,7 +1,7 @@
 package io.strategiz.client.alphavantage;
 
-// Using standard Java exceptions for client layer
 import io.strategiz.client.alphavantage.model.StockData;
+import io.strategiz.client.alphavantage.exception.AlphaVantageException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -159,14 +159,30 @@ public class AlphaVantageClient {
                 return Collections.emptyList();
             }
             
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> matches = (List<Map<String, Object>>) response.getBody().get("bestMatches");
+            Object matchesObj = response.getBody().get("bestMatches");
+            List<Map<String, Object>> matches = new ArrayList<>();
+            
+            if (matchesObj instanceof List<?>) {
+                List<?> matchesList = (List<?>) matchesObj;
+                for (Object item : matchesList) {
+                    if (item instanceof Map) {
+                        Map<?, ?> itemMap = (Map<?, ?>) item;
+                        Map<String, Object> match = new HashMap<>();
+                        itemMap.forEach((k, v) -> {
+                            if (k instanceof String) {
+                                match.put((String) k, v);
+                            }
+                        });
+                        matches.add(match);
+                    }
+                }
+            }
             
             // Return the results (already limited by the API)
             return matches;
         } catch (RestClientException e) {
             log.error("Error searching stocks from AlphaVantage API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to search stocks", e);
+            throw new AlphaVantageException("Failed to search stocks from AlphaVantage", e);
         }
     }
     
@@ -177,9 +193,18 @@ public class AlphaVantageClient {
      * @param symbol Stock symbol
      * @return Parsed StockData object
      */
-    @SuppressWarnings("unchecked")
     private StockData parseGlobalQuoteResponse(Map<String, Object> responseMap, String symbol) {
-        Map<String, String> quote = (Map<String, String>) responseMap.get("Global Quote");
+        Object quoteObj = responseMap.get("Global Quote");
+        Map<String, String> quote = new HashMap<>();
+        
+        if (quoteObj instanceof Map) {
+            Map<?, ?> quoteMap = (Map<?, ?>) quoteObj;
+            quoteMap.forEach((k, v) -> {
+                if (k instanceof String && v instanceof String) {
+                    quote.put((String) k, (String) v);
+                }
+            });
+        }
         
         StockData stockData = new StockData();
         stockData.setSymbol(symbol);

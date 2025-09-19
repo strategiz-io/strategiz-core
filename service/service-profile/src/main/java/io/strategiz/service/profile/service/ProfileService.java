@@ -12,7 +12,7 @@ import io.strategiz.service.profile.model.ProfileResponse;
 import io.strategiz.service.profile.model.ReadProfileResponse;
 import io.strategiz.service.profile.model.UpdateProfileRequest;
 import io.strategiz.service.profile.model.UpdateProfileResponse;
-import io.strategiz.service.profile.model.UpdateTradingModeResponse;
+import io.strategiz.service.profile.model.UpdateDemoModeResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +63,7 @@ public class ProfileService extends BaseService {
         profile.setEmail(request.getEmail());
         profile.setPhotoURL(request.getPhotoURL());
         profile.setSubscriptionTier(request.getSubscriptionTier() != null ? request.getSubscriptionTier() : ProfileConstants.Defaults.SUBSCRIPTION_TIER);
-        profile.setTradingMode(request.getTradingMode() != null ? request.getTradingMode() : ProfileConstants.Defaults.TRADING_MODE);
+        profile.setDemoMode(request.getDemoMode() != null ? request.getDemoMode() : ProfileConstants.Defaults.DEMO_MODE);
         profile.setIsEmailVerified(ProfileConstants.Defaults.EMAIL_VERIFIED);
         
         user.setProfile(profile);
@@ -143,8 +143,8 @@ public class ProfileService extends BaseService {
         if (request.getSubscriptionTier() != null) {
             profile.setSubscriptionTier(request.getSubscriptionTier());
         }
-        if (request.getTradingMode() != null) {
-            profile.setTradingMode(request.getTradingMode());
+        if (request.getDemoMode() != null) {
+            profile.setDemoMode(request.getDemoMode());
         }
         
         // Save the user
@@ -182,10 +182,10 @@ public class ProfileService extends BaseService {
     }
 
     /**
-     * Updates the trading mode for a user and returns new JWT tokens
+     * Updates the demo mode for a user and returns new JWT tokens
      */
-    public UpdateTradingModeResponse updateTradingMode(String userId, String tradingMode) {
-        log.debug("Updating trading mode for user: {} to: {}", userId, tradingMode);
+    public UpdateDemoModeResponse updateDemoMode(String userId, Boolean demoMode) {
+        log.debug("Updating demo mode for user: {} to: {}", userId, demoMode);
         
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -199,11 +199,11 @@ public class ProfileService extends BaseService {
             throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ProfileConstants.ErrorMessages.PROFILE_NOT_FOUND + userId);
         }
         
-        // Update and save the trading mode
-        profile.setTradingMode(tradingMode);
+        // Update and save the demo mode
+        profile.setDemoMode(demoMode);
         UserEntity savedUser = userRepository.save(user);
         
-        // Generate new tokens with updated trading mode
+        // Generate new tokens with updated demo mode
         SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
             userId,
             profile.getEmail(),
@@ -213,15 +213,15 @@ public class ProfileService extends BaseService {
             null, // No fingerprint
             null, // No IP address
             "Profile Service",
-            tradingMode // New trading mode
+            demoMode // New demo mode
         );
         
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
         
-        log.info(ProfileConstants.LogMessages.TRADING_MODE_UPDATED, userId, tradingMode);
+        log.info(ProfileConstants.LogMessages.DEMO_MODE_UPDATED, userId, demoMode);
         
-        return new UpdateTradingModeResponse(
-            tradingMode,
+        return new UpdateDemoModeResponse(
+            demoMode,
             authResult.accessToken(),
             authResult.refreshToken()
         );

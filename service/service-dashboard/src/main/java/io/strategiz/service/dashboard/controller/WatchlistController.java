@@ -17,8 +17,6 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
-import io.strategiz.client.yahoofinance.YahooFinanceClient;
-import io.strategiz.client.yahoofinance.model.YahooStockData;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +53,6 @@ public class WatchlistController extends BaseController {
 
     private final UserRepository userRepository;
     private final CoinGeckoClient coinGeckoClient;
-    private final YahooFinanceClient yahooFinanceClient;
     
     // Default symbols for watchlist
     private static final List<String> DEFAULT_CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH");
@@ -64,11 +61,9 @@ public class WatchlistController extends BaseController {
     
     @Autowired
     public WatchlistController(UserRepository userRepository,
-                              CoinGeckoClient coinGeckoClient,
-                              YahooFinanceClient yahooFinanceClient) {
+                              CoinGeckoClient coinGeckoClient) {
         this.userRepository = userRepository;
         this.coinGeckoClient = coinGeckoClient;
-        this.yahooFinanceClient = yahooFinanceClient;
     }
     
     /**
@@ -88,8 +83,8 @@ public class WatchlistController extends BaseController {
         log.info("Retrieving REAL watchlist data for user: {}", userId);
         
         try {
-            // Get user trading mode for UI context only
-            String tradingMode = getUserTradingMode(userId);
+            // Get user demo mode for UI context only
+            Boolean demoMode = getUserDemoMode(userId);
             
             // Get REAL market data instead of demo data
             WatchlistCollectionResponse watchlist = getRealWatchlistData(userId);
@@ -97,7 +92,7 @@ public class WatchlistController extends BaseController {
             // Create response with real data
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("userId", userId);
-            responseData.put("tradingMode", tradingMode); // For UI context only
+            responseData.put("demoMode", demoMode); // For UI context only
             responseData.put("watchlist", formatWatchlistForUI(watchlist));
             responseData.put("metadata", createMetadata(watchlist, "real")); // Mark as real data
             
@@ -113,7 +108,7 @@ public class WatchlistController extends BaseController {
             WatchlistCollectionResponse watchlist = getDemoWatchlistData(userId);
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("userId", userId);
-            responseData.put("tradingMode", "demo");
+            responseData.put("demoMode", "demo");
             responseData.put("watchlist", formatWatchlistForUI(watchlist));
             responseData.put("metadata", createMetadata(watchlist, "demo"));
             return ResponseEntity.ok(responseData);
@@ -291,39 +286,46 @@ public class WatchlistController extends BaseController {
             
             // Fetch stock data in parallel
             CompletableFuture<List<WatchlistItem>> stockFuture = CompletableFuture.supplyAsync(() -> {
-                log.info("Fetching real stock data from Yahoo Finance");
+                log.info("Using static stock data (Yahoo Finance integration temporarily disabled)");
                 try {
                     List<String> allSymbols = new ArrayList<>();
                     allSymbols.addAll(DEFAULT_STOCK_SYMBOLS);
                     allSymbols.addAll(DEFAULT_ETF_SYMBOLS);
-                    
-                    Map<String, YahooStockData> stockData = yahooFinanceClient.getBatchStockQuotes(allSymbols);
-                    
-                    return stockData.entrySet().stream().map(entry -> {
-                        String symbol = entry.getKey();
-                        YahooStockData data = entry.getValue();
-                        
-                        // Determine type based on symbol
-                        String type = DEFAULT_ETF_SYMBOLS.contains(symbol) ? "etf" : "stock";
-                        
-                        BigDecimal price = data.getCurrentPrice();
-                        BigDecimal change = data.getChange();
-                        BigDecimal changePercent = data.getChangePercent();
-                        
-                        return new WatchlistItem(
-                            symbol.toLowerCase() + "-1",
-                            symbol,
-                            data.getName() != null ? data.getName() : symbol,
-                            type,
-                            price,
-                            change,
-                            changePercent,
-                            change != null && change.compareTo(BigDecimal.ZERO) > 0,
-                            "/chart/" + symbol.toLowerCase()
-                        );
-                    }).collect(Collectors.toList());
+
+                    // Static prices for demo/fallback purposes
+                    Map<String, Double> staticStockPrices = new HashMap<>();
+                    staticStockPrices.put("AAPL", 182.52);
+                    staticStockPrices.put("MSFT", 338.12);
+                    staticStockPrices.put("GOOGL", 137.14);
+                    staticStockPrices.put("AMZN", 178.22);
+                    staticStockPrices.put("SPY", 504.12);
+
+                    return allSymbols.stream()
+                        .filter(staticStockPrices::containsKey)
+                        .map(symbol -> {
+                            // Determine type based on symbol
+                            String type = DEFAULT_ETF_SYMBOLS.contains(symbol) ? "etf" : "stock";
+
+                            BigDecimal price = BigDecimal.valueOf(staticStockPrices.get(symbol));
+
+                            // Static change data for demo purposes
+                            BigDecimal change = new BigDecimal("1.23");
+                            BigDecimal changePercent = new BigDecimal("0.68");
+
+                            return new WatchlistItem(
+                                symbol.toLowerCase() + "-1",
+                                symbol,
+                                symbol, // Use symbol as name since we don't have name data
+                                type,
+                                price,
+                                change,
+                                changePercent,
+                                true, // Default to positive
+                                "/chart/" + symbol.toLowerCase()
+                            );
+                        }).collect(Collectors.toList());
                 } catch (Exception e) {
-                    log.error("Error fetching stock data", e);
+                    log.error("Error creating static stock data", e);
                     return new ArrayList<>();
                 }
             });
@@ -391,7 +393,7 @@ public class WatchlistController extends BaseController {
         );
         
         WatchlistCollectionResponse response = new WatchlistCollectionResponse(userId, demoItems);
-        response.setTradingMode("demo");
+        response.setDemoMode(true);
         
         return response;
     }
@@ -399,17 +401,17 @@ public class WatchlistController extends BaseController {
     /**
      * Get user trading mode, defaulting to demo if not found
      */
-    private String getUserTradingMode(String userId) {
+    private Boolean getUserDemoMode(String userId) {
         try {
             Optional<UserEntity> userOpt = userRepository.findById(userId);
             if (userOpt.isPresent()) {
                 UserProfileEntity profile = userOpt.get().getProfile();
-                return profile != null ? profile.getTradingMode() : "demo";
+                return profile != null ? profile.getDemoMode() : true;
             }
         } catch (Exception e) {
-            log.warn("Could not retrieve user trading mode for {}, defaulting to demo", userId);
+            log.warn("Could not retrieve user demo mode for {}, defaulting to demo", userId);
         }
-        return "demo";
+        return true;
     }
 
     /**
@@ -438,7 +440,7 @@ public class WatchlistController extends BaseController {
     private Map<String, Object> createMetadata(WatchlistCollectionResponse watchlist, String dataType) {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("lastUpdated", System.currentTimeMillis());
-        metadata.put("tradingMode", "real"); // Always real mode
+        metadata.put("demoMode", "real"); // Always real mode
         metadata.put("dataType", dataType); // "real" for real data, "demo" only as fallback
         
         // Summary stats

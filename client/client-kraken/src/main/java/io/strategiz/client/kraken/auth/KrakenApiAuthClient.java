@@ -45,13 +45,28 @@ public class KrakenApiAuthClient {
      */
     public String createSignature(String path, String nonce, String postData, String apiSecret) {
         try {
+            // Add validation and logging
+            if (apiSecret == null || apiSecret.trim().isEmpty()) {
+                log.error("API secret is null or empty");
+                throw new IllegalArgumentException("API secret is null or empty");
+            }
+            
+            log.debug("Creating signature for path: {}, API secret length: {}", path, apiSecret.length());
+            
             // Step 1: Calculate SHA256 of (nonce + postData)
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             String nonceAndData = nonce + postData;
             byte[] sha256Hash = sha256.digest(nonceAndData.getBytes(StandardCharsets.UTF_8));
             
             // Step 2: Decode the API secret from base64
-            byte[] decodedSecret = Base64.decodeBase64(apiSecret);
+            byte[] decodedSecret;
+            try {
+                decodedSecret = Base64.decodeBase64(apiSecret);
+                log.debug("Successfully decoded API secret, decoded length: {}", decodedSecret.length);
+            } catch (Exception e) {
+                log.error("Failed to decode API secret from base64: {}", e.getMessage());
+                throw new IllegalArgumentException("Invalid base64 API secret", e);
+            }
             
             // Step 3: Concatenate path and SHA256 hash
             byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);

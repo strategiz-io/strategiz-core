@@ -11,6 +11,7 @@ import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.Regi
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationRequest;
 import io.strategiz.service.auth.service.passkey.PasskeyRegistrationService.RegistrationResult;
 import io.strategiz.service.auth.service.emailotp.EmailOtpAuthenticationService;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -58,6 +59,9 @@ public class PasskeyRegistrationController extends BaseController {
     
     @Autowired
     private SessionAuthBusiness sessionAuthBusiness;
+
+    @Autowired
+    private CookieUtil cookieUtil;
 
     /**
      * Validate temporary token from Step 1 and extract user ID
@@ -193,9 +197,11 @@ public class PasskeyRegistrationController extends BaseController {
         // Extract tokens from result
         AuthTokens tokens = (AuthTokens) result.result();
 
-        // Set cookies for server-side session management
-        setCookieForSession(httpResponse, "strategiz-access-token", tokens.accessToken());
-        setCookieForSession(httpResponse, "strategiz-refresh-token", tokens.refreshToken());
+        // Set cookies for server-side session management using standardized CookieUtil
+        cookieUtil.setAccessTokenCookie(httpResponse, tokens.accessToken());
+        if (tokens.refreshToken() != null) {
+            cookieUtil.setRefreshTokenCookie(httpResponse, tokens.refreshToken());
+        }
 
         logRequestSuccess("completeRegistration", request.email(), tokens);
         // Return clean response - headers added by StandardHeadersInterceptor
@@ -250,13 +256,4 @@ public class PasskeyRegistrationController extends BaseController {
      * @param name Cookie name
      * @param value Cookie value
      */
-    private void setCookieForSession(jakarta.servlet.http.HttpServletResponse response, String name, String value) {
-        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie(name, value);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set to true in production with HTTPS
-        cookie.setPath("/");
-        cookie.setMaxAge(24 * 60 * 60); // 24 hours
-        response.addCookie(cookie);
-        log.debug("Set session cookie: {} for session management", name);
-    }
 }

@@ -1,0 +1,623 @@
+---
+id: service-auth
+title: Service Auth
+sidebar_label: Service Auth
+---
+
+# Service Auth Module Documentation
+
+This module implements comprehensive authentication and authorization services for Strategiz, supporting multiple authentication methods including passkeys (WebAuthn), OAuth providers, TOTP, SMS OTP, and traditional session management.
+
+## 📚 Controller Documentation
+
+Each controller in this module has comprehensive documentation following our standard template. Documentation includes business purpose, technical specs, design diagrams, testing, and monitoring details.
+
+---
+
+## Authentication Methods Overview
+
+The service-auth module supports the following authentication methods:
+
+| Method | Type | Use Case | Documentation |
+|--------|------|----------|---------------|
+| **Passkeys (WebAuthn)** | Passwordless | Primary authentication, highest security | [📄 Passkey API](passkey-authentication-api.mdx) ✅ |
+| **OAuth** | Social Login | Sign in with Google, Facebook | [📄 OAuth API](oauth-authentication-api.mdx) ✅ |
+| **TOTP** | MFA | Time-based one-time passwords (Google Authenticator) | [📄 TOTP API](totp-authentication-api.mdx) ✅ |
+| **SMS OTP** | MFA | SMS verification codes | [📄 SMS OTP API](sms-otp-authentication-api.mdx) ✅ |
+| **Session** | Token Management | Session validation, refresh, logout | [📄 Session API](session-management-api.mdx) ✅ |
+
+---
+
+## Controllers
+
+### Passkey Authentication Controllers
+
+#### PasskeyRegistrationController
+
+**Purpose**: Handles WebAuthn passkey registration flow, allowing users to create and register passkeys (Face ID, Touch ID, Windows Hello, security keys).
+
+**Endpoints**:
+- `POST /v1/auth/passkeys/registrations` - Begin passkey registration
+- `PUT /v1/auth/passkeys/registrations/{registrationId}` - Complete passkey registration
+- `GET /v1/auth/passkeys/registrations/options` - Get registration options
+
+**Authentication**: User must be authenticated to add passkeys
+
+**Documentation**:
+- [📄 Passkey Authentication API](passkey-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/passkey/PasskeyRegistrationController.java:35`
+
+---
+
+#### PasskeyAuthenticationController
+
+**Purpose**: Handles WebAuthn passkey sign-in flow, providing passwordless authentication.
+
+**Endpoints**:
+- `POST /v1/auth/passkeys/authentications` - Begin passkey authentication
+- `PUT /v1/auth/passkeys/authentications/{authenticationId}` - Complete passkey authentication
+
+**Authentication**: Public endpoints (no authentication required for sign-in)
+
+**Documentation**:
+- [📄 Passkey Authentication API](passkey-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/passkey/PasskeyAuthenticationController.java:34`
+
+---
+
+#### PasskeyManagementController
+
+**Purpose**: Manages user's registered passkeys, allowing listing, deletion, and statistics.
+
+**Endpoints**:
+- `GET /v1/auth/passkeys` - List user's passkeys
+- `DELETE /v1/auth/passkeys/{credentialId}` - Delete specific passkey
+- `GET /v1/auth/passkeys/stats` - Get passkey statistics
+
+**Authentication**: Session-based authentication required
+
+**Documentation**:
+- [📄 Passkey Authentication API](passkey-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/passkey/PasskeyManagementController.java:26`
+
+---
+
+### OAuth Controllers
+
+#### GoogleOAuthSignUpController
+
+**Purpose**: Handles Google OAuth sign-up flow, allowing users to create accounts using their Google identity.
+
+**Endpoints**:
+- `GET /v1/auth/oauth/google/signup/authorization-url` - Get Google OAuth authorization URL
+- `GET /v1/auth/oauth/google/signup/auth` - Initiate Google OAuth flow
+- `GET /v1/auth/oauth/google/signup/callback` - Handle Google OAuth callback (GET)
+- `POST /v1/auth/oauth/google/signup/callback` - Handle Google OAuth callback (POST)
+
+**Authentication**: State-based OAuth validation
+
+**Documentation**:
+- [📄 OAuth Authentication API](oauth-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/oauth/GoogleOAuthSignUpController.java:27`
+
+---
+
+#### GoogleOAuthSignInController
+
+**Purpose**: Handles Google OAuth sign-in flow for existing users.
+
+**Endpoints**:
+- `GET /v1/auth/oauth/google/signin/authorization-url` - Get Google OAuth authorization URL
+- `GET /v1/auth/oauth/google/signin/auth` - Initiate Google OAuth flow
+- `GET /v1/auth/oauth/google/signin/callback` - Handle Google OAuth callback (GET)
+- `POST /v1/auth/oauth/google/signin/callback` - Handle Google OAuth callback (POST)
+
+**Authentication**: State-based OAuth validation
+
+**Documentation**:
+- [📄 OAuth Authentication API](oauth-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/oauth/GoogleOAuthSignInController.java:27`
+
+---
+
+#### FacebookOAuthSignUpController
+
+**Purpose**: Handles Facebook OAuth sign-up flow.
+
+**Endpoints**:
+- `GET /v1/auth/oauth/facebook/signup/authorization-url` - Get Facebook OAuth authorization URL
+- `GET /v1/auth/oauth/facebook/signup/auth` - Initiate Facebook OAuth flow
+- `GET /v1/auth/oauth/facebook/signup/callback` - Handle Facebook OAuth callback (GET)
+- `POST /v1/auth/oauth/facebook/signup/callback` - Handle Facebook OAuth callback (POST)
+
+**Authentication**: State-based OAuth validation
+
+**Documentation**:
+- [📄 OAuth Authentication API](oauth-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/oauth/FacebookOAuthSignUpController.java:27`
+
+---
+
+#### FacebookOAuthSignInController
+
+**Purpose**: Handles Facebook OAuth sign-in flow for existing users.
+
+**Endpoints**:
+- `GET /v1/auth/oauth/facebook/signin/authorization-url` - Get Facebook OAuth authorization URL
+- `GET /v1/auth/oauth/facebook/signin/auth` - Initiate Facebook OAuth flow
+- `GET /v1/auth/oauth/facebook/signin/callback` - Handle Facebook OAuth callback (GET)
+- `POST /v1/auth/oauth/facebook/signin/callback` - Handle Facebook OAuth callback (POST)
+
+**Authentication**: State-based OAuth validation
+
+**Documentation**:
+- [📄 OAuth Authentication API](oauth-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/oauth/FacebookOAuthSignInController.java:27`
+
+---
+
+#### OAuthProviderController
+
+**Purpose**: Generic OAuth controller that handles any configured OAuth provider dynamically.
+
+**Endpoints**:
+- `GET /v1/auth/oauth/{provider}/signup/authorization-url` - Get authorization URL
+- `GET /v1/auth/oauth/{provider}/signin/authorization-url` - Get authorization URL
+- `GET /v1/auth/oauth/{provider}/signup/auth` - Initiate sign-up
+- `GET /v1/auth/oauth/{provider}/signin/auth` - Initiate sign-in
+- `GET /v1/auth/oauth/{provider}/signup/callback` - Handle callback
+- `POST /v1/auth/oauth/{provider}/signup/callback` - Handle callback (POST)
+- `GET /v1/auth/oauth/{provider}/signin/callback` - Handle callback
+- `POST /v1/auth/oauth/{provider}/signin/callback` - Handle callback (POST)
+
+**Authentication**: State-based OAuth validation
+
+**Documentation**:
+- [📄 OAuth Authentication API](oauth-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/oauth/OAuthProviderController.java:31`
+
+---
+
+### TOTP (Authenticator App) Controllers
+
+#### TotpRegistrationController
+
+**Purpose**: Handles TOTP registration for authenticator apps (Google Authenticator, Authy, etc.).
+
+**Endpoints**:
+- `POST /v1/auth/totp/registrations` - Begin TOTP registration
+- `PUT /v1/auth/totp/registrations/{registrationId}` - Complete TOTP registration
+- `GET /v1/auth/totp/registrations/{userId}` - Get registration status
+- `DELETE /v1/auth/totp/registrations/{userId}` - Disable TOTP
+
+**Authentication**: User must be authenticated to register TOTP
+
+**Documentation**:
+- [📄 TOTP Authentication API](totp-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/totp/TotpRegistrationController.java:28`
+
+---
+
+#### TotpAuthenticationController
+
+**Purpose**: Handles TOTP verification during sign-in and MFA challenges.
+
+**Endpoints**:
+- `POST /v1/auth/totp/authentications` - Authenticate with TOTP code
+- `POST /v1/auth/totp/authentications/verify` - Verify TOTP code only (no session creation)
+
+**Authentication**: Partial authentication (requires valid TOTP code)
+
+**Documentation**:
+- [📄 TOTP Authentication API](totp-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/totp/TotpAuthenticationController.java:29`
+
+---
+
+### SMS OTP Controllers
+
+#### SmsOtpRegistrationController
+
+**Purpose**: Handles phone number registration and SMS verification.
+
+**Endpoints**:
+- `POST /v1/auth/sms-otp/registrations` - Register phone number
+- `PUT /v1/auth/sms-otp/registrations/{registrationId}` - Verify phone number
+- `POST /v1/auth/sms-otp/registrations/{registrationId}/resend` - Resend verification code
+- `DELETE /v1/auth/sms-otp/registrations/{userId}` - Remove phone number
+- `GET /v1/auth/sms-otp/registrations/{userId}` - Get registration status
+- `POST /v1/auth/sms-otp/firebase/verify` - Verify Firebase token
+
+**Authentication**: User must be authenticated to register phone
+
+**Documentation**:
+- [📄 SMS OTP Authentication API](sms-otp-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/smsotp/SmsOtpRegistrationController.java:31`
+
+---
+
+#### SmsOtpAuthenticationController
+
+**Purpose**: Handles SMS OTP authentication during sign-in.
+
+**Endpoints**:
+- `POST /v1/auth/sms-otp/authentications` - Request authentication OTP by user ID
+- `POST /v1/auth/sms-otp/authentications/send` - Request authentication OTP by phone
+- `PUT /v1/auth/sms-otp/authentications/{sessionId}` - Verify OTP and create session
+- `POST /v1/auth/sms-otp/authentications/verify` - Verify OTP without session
+
+**Authentication**: Public endpoints (SMS-based authentication)
+
+**Documentation**:
+- [📄 SMS OTP Authentication API](sms-otp-authentication-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/smsotp/SmsOtpAuthenticationController.java:30`
+
+---
+
+### Session Management Controllers
+
+#### SessionController
+
+**Purpose**: Manages user sessions including validation, refresh, and revocation.
+
+**Endpoints**:
+- `POST /v1/auth/session/validate` - Validate session token
+- `POST /v1/auth/session/refresh` - Refresh session token
+- `POST /v1/auth/session/revoke` - Revoke specific session
+- `POST /v1/auth/session/revoke-all/{userId}` - Revoke all user sessions
+- `POST /v1/auth/session/current-user` - Get current user from token
+- `POST /v1/auth/session/validate-server` - Validate server-side session
+- `POST /v1/auth/session/current-user-server` - Get user from server session
+- `GET /v1/auth/session/validate-cookie` - Validate session cookie
+- `POST /v1/auth/session/logout-server` - Logout from server session
+- `POST /v1/auth/session/user-sessions` - Get user's active sessions
+- `POST /v1/auth/session/logout` - Logout user
+
+**Authentication**: Session-based or token-based
+
+**Documentation**:
+- [📄 Session Management API](session-management-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/session/SessionController.java:36`
+
+---
+
+#### SignOutController
+
+**Purpose**: Handles user sign-out and session cleanup.
+
+**Endpoints**:
+- `POST /v1/auth/signout` - Sign out user and invalidate session
+
+**Authentication**: Session-based authentication
+
+**Documentation**:
+- [📄 Session Management API](session-management-api.mdx) ✅ Complete
+
+**Source**: `service-auth/src/main/java/io/strategiz/service/auth/controller/session/SignOutController.java:25`
+
+---
+
+## Architecture Overview
+
+The authentication service is built using a multi-method strategy pattern with these key components:
+
+### 1. **Authentication Methods**
+- **Passkeys (WebAuthn)**: Browser-native biometric authentication using WebAuthn4J
+- **OAuth**: Social login integration (Google, Facebook)
+- **TOTP**: Time-based one-time passwords (RFC 6238)
+- **SMS OTP**: Phone-based verification
+- **Sessions**: Token-based session management using PASETO v2
+
+### 2. **Core Components**
+
+#### Token Management
+- **PasetoTokenProvider**: Generates and validates PASETO v2 tokens
+- **Dual-key system**: Separate keys for identity and session tokens
+- **Vault integration**: Secure key storage in HashiCorp Vault
+
+#### Session Management
+- **SessionAuthBusiness**: Business logic for session operations
+- **SessionRepository**: Firestore-based session persistence
+- **Device tracking**: Associates sessions with specific devices
+
+#### WebAuthn Integration
+- **PasskeyChallengeService**: Generates and validates WebAuthn challenges
+- **PasskeyAuthenticationService**: Handles passkey authentication flow
+- **PasskeyRegistrationService**: Manages passkey registration
+- **WebAuthn4J**: Server-side WebAuthn validation library
+
+#### OAuth Integration
+- **OAuthProviderService**: Generic OAuth flow orchestration
+- **Provider-specific services**: Google, Facebook implementations
+- **State validation**: CSRF protection for OAuth flows
+
+### 3. **Security Features**
+
+- **Multi-factor authentication**: TOTP + SMS OTP support
+- **Passkey support**: Strongest authentication method (FIDO2/WebAuthn)
+- **Token rotation**: Automatic token refresh and rotation
+- **Session revocation**: Immediate invalidation capabilities
+- **Device fingerprinting**: Track and manage user devices
+- **CSRF protection**: State-based validation for OAuth flows
+
+### 4. **Data Storage**
+
+#### Firestore Collections
+- `users/{userId}/security` - Authentication methods (passkeys, TOTP, SMS)
+- `users/{userId}/sessions` - Active user sessions
+- `users/{userId}/devices` - Registered devices
+
+#### HashiCorp Vault
+- `secret/strategiz/tokens/dev` - Token signing keys
+- `secret/strategiz/oauth/{provider}` - OAuth client credentials
+
+---
+
+## Authentication Flows
+
+### Passkey Authentication Flow
+
+```
+1. Frontend: User clicks "Sign in with passkey"
+   └→ POST /v1/auth/passkeys/authentications
+
+2. Backend: Generate WebAuthn challenge
+   └→ PasskeyChallengeService.generateAuthenticationChallenge()
+   └→ Store challenge in Firestore (60s TTL)
+   └→ Return challenge to frontend
+
+3. Frontend: Browser WebAuthn API
+   └→ navigator.credentials.get()
+   └→ User authenticates (Face ID, Touch ID, etc.)
+   └→ Browser returns signed assertion
+
+4. Frontend: Complete authentication
+   └→ PUT /v1/auth/passkeys/authentications/{authenticationId}
+
+5. Backend: Validate assertion
+   └→ PasskeyAuthenticationService.completeAuthentication()
+   └→ Find passkey by credentialId (collection group query)
+   └→ Validate signature using WebAuthn4J
+   └→ Create session tokens
+   └→ Return tokens + user profile
+
+6. Frontend: Store tokens, redirect to dashboard
+```
+
+### OAuth Authentication Flow (Google/Facebook)
+
+```
+1. Frontend: User clicks "Sign in with Google"
+   └→ GET /v1/auth/oauth/google/signin/authorization-url
+
+2. Backend: Generate OAuth authorization URL
+   └→ Generate random state (CSRF protection)
+   └→ Store state in session
+   └→ Return authorization URL
+
+3. Frontend: Redirect to Google OAuth
+   └→ User grants permissions
+
+4. Google: Redirect to callback URL
+   └→ GET /v1/auth/oauth/google/signin/callback?code=...&state=...
+
+5. Backend: Exchange code for tokens
+   └→ Validate state parameter
+   └→ Exchange authorization code for access token
+   └→ Fetch user profile from Google
+   └→ Find or create user account
+   └→ Create session tokens
+   └→ Redirect with tokens
+
+6. Frontend: Extract tokens, redirect to dashboard
+```
+
+### TOTP Authentication Flow
+
+```
+1. Registration:
+   POST /v1/auth/totp/registrations
+   └→ Generate secret key
+   └→ Return QR code (otpauth:// URL)
+   └→ User scans with authenticator app
+
+2. Verification:
+   PUT /v1/auth/totp/registrations/{registrationId}
+   └→ Verify TOTP code
+   └→ Save authentication method
+
+3. Sign-in:
+   POST /v1/auth/totp/authentications
+   └→ Validate TOTP code
+   └→ Create session
+   └→ Return tokens
+```
+
+---
+
+## Supported OAuth Providers
+
+| Provider | Status | Scopes |
+|----------|--------|--------|
+| **Google** | ✅ Implemented | `openid`, `profile`, `email` |
+| **Facebook** | ✅ Implemented | `public_profile`, `email` |
+
+---
+
+## Getting Started
+
+### 1. Configure Vault Secrets
+
+```bash
+# Token signing keys
+vault kv put secret/strategiz/tokens/dev \
+  identity-key="base64-encoded-key" \
+  session-key="base64-encoded-key"
+
+# OAuth credentials
+vault kv put secret/strategiz/oauth/google \
+  client-id="your-google-client-id" \
+  client-secret="your-google-client-secret"
+
+vault kv put secret/strategiz/oauth/facebook \
+  client-id="your-facebook-app-id" \
+  client-secret="your-facebook-app-secret"
+```
+
+### 2. Configure Application Properties
+
+```yaml
+# application-dev.yml
+auth:
+  session:
+    token-ttl: 3600000  # 1 hour
+    refresh-ttl: 604800000  # 7 days
+
+  passkey:
+    rp-id: localhost
+    rp-name: Strategiz
+    timeout: 60000
+
+  oauth:
+    google:
+      redirect-uri: http://localhost:3000/auth/callback/google
+    facebook:
+      redirect-uri: http://localhost:3000/auth/callback/facebook
+```
+
+### 3. Run the Service
+
+```bash
+# Start Vault (required)
+vault server -dev
+
+# Set Vault token
+export VAULT_ADDR=http://localhost:8200
+export VAULT_TOKEN=root
+
+# Run application
+mvn spring-boot:run -pl application
+```
+
+---
+
+## Security Considerations
+
+All authentication flows follow these security principles:
+
+- **Passkeys**: Strongest authentication, resistant to phishing
+- **Token Security**: PASETO v2 tokens with encryption + MAC
+- **State Validation**: CSRF protection for all OAuth flows
+- **Challenge Uniqueness**: One-time challenges with expiration
+- **Secure Storage**: Credentials in Vault, sessions in Firestore
+- **HTTPS Only**: All endpoints require HTTPS in production
+- **Rate Limiting**: Protection against brute force attacks
+- **Device Tracking**: Monitor and manage trusted devices
+
+---
+
+## Testing
+
+### Unit Tests
+```bash
+mvn test -pl service/service-auth
+```
+
+### Integration Tests
+```bash
+mvn integration-test -pl service/service-auth
+```
+
+### Manual Testing
+
+#### Test Passkey Authentication
+```bash
+# Begin authentication
+curl -X POST http://localhost:8080/v1/auth/passkeys/authentications
+
+# Complete authentication (requires WebAuthn assertion from browser)
+curl -X PUT http://localhost:8080/v1/auth/passkeys/authentications/{id} \
+  -H "Content-Type: application/json" \
+  -d '{"credentialId": "...", "signature": "...", ...}'
+```
+
+#### Test OAuth Flow
+```bash
+# Get Google authorization URL
+curl http://localhost:8080/v1/auth/oauth/google/signin/authorization-url
+
+# Visit the URL in browser, complete OAuth flow
+```
+
+---
+
+## Monitoring and Observability
+
+### Key Metrics to Monitor
+
+- **Authentication Success Rate**: Track by method (passkey, OAuth, TOTP)
+- **Challenge Generation Rate**: Monitor passkey challenge creation
+- **Token Validation Rate**: Session validation frequency
+- **OAuth Callback Success**: Track OAuth flow completions
+- **Session Duration**: Average session lifetime
+- **Failed Authentication Attempts**: Security monitoring
+
+### Logging
+
+All controllers use structured logging with these patterns:
+
+```java
+log.info("Passkey authentication started for user: {}", userId);
+log.debug("OAuth callback received with state: {}", state);
+log.error("Failed to validate TOTP code for user: {}", userId, exception);
+```
+
+---
+
+## Error Handling
+
+All authentication endpoints return standardized error responses:
+
+```json
+{
+  "status": 401,
+  "error": "UNAUTHORIZED",
+  "message": "Invalid credentials",
+  "timestamp": "2025-10-12T23:00:00Z",
+  "path": "/v1/auth/passkeys/authentications"
+}
+```
+
+Common error codes:
+- `400` - Invalid request (malformed data)
+- `401` - Authentication failed
+- `403` - Forbidden (insufficient permissions)
+- `404` - Resource not found
+- `409` - Conflict (duplicate registration)
+- `500` - Internal server error
+
+---
+
+## Future Enhancements
+
+- [ ] Email/password authentication
+- [ ] Magic link authentication
+- [ ] Biometric authentication (native mobile)
+- [ ] Hardware security key support (Yubikey)
+- [ ] Additional OAuth providers (GitHub, Microsoft, Apple)
+- [ ] Advanced session management (concurrent session limits)
+- [ ] Suspicious login detection
+- [ ] Password rotation policies

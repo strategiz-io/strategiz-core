@@ -67,12 +67,12 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
             }
             
             entity._validate();
-            
+
             getSubcollection(parentId).document(entity.getId()).set(entity).get();
-            
-            log.debug("Saved {} in subcollection under parent {} by user {}", 
+
+            log.debug("Saved {} in subcollection under parent {} by user {}",
                 entityClass.getSimpleName(), parentId, userId);
-                
+
             return entity;
         } catch (Exception e) {
             throw new RuntimeException("Failed to save in subcollection: " + e.getMessage(), e);

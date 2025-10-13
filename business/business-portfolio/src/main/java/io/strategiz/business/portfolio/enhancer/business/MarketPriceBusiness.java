@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Business component for fetching and caching market prices.
@@ -23,19 +24,19 @@ public class MarketPriceBusiness {
     private static final Logger LOGGER = Logger.getLogger(MarketPriceBusiness.class.getName());
     
     private final YahooFinanceClient yahooFinanceClient;
-    
+
     // Cache prices for 60 seconds to avoid excessive API calls
     private final Cache<String, BigDecimal> priceCache = Caffeine.newBuilder()
         .maximumSize(1000)
         .expireAfterWrite(60, TimeUnit.SECONDS)
         .build();
-    
+
     // Cache batch prices for 60 seconds
     private final Cache<String, Map<String, BigDecimal>> batchPriceCache = Caffeine.newBuilder()
         .maximumSize(100)
         .expireAfterWrite(60, TimeUnit.SECONDS)
         .build();
-    
+
     @Autowired
     public MarketPriceBusiness(@Autowired(required = false) YahooFinanceClient yahooFinanceClient) {
         this.yahooFinanceClient = yahooFinanceClient;
@@ -129,24 +130,11 @@ public class MarketPriceBusiness {
     }
     
     /**
-     * Fetch crypto price using Yahoo Finance or fallback to static prices
+     * Fetch crypto price using static prices (Yahoo Finance integration to be implemented later)
      */
     private BigDecimal fetchCryptoPrice(String symbol) {
-        // Try Yahoo Finance first
-        if (yahooFinanceClient != null) {
-            try {
-                // Convert crypto symbol to Yahoo Finance format (e.g., BTC -> BTC-USD)
-                String yahooSymbol = getYahooSymbol(symbol);
-                // TODO: Replace with proper service call - YahooFinanceClient is now DAO only
-                Double price = null; // yahooFinanceClient.getPrice(yahooSymbol).block();
-                
-                if (price != null) {
-                    return BigDecimal.valueOf(price);
-                }
-            } catch (Exception e) {
-                LOGGER.warning("Failed to fetch price from Yahoo Finance for " + symbol + ": " + e.getMessage());
-            }
-        }
+        // TODO: Implement Yahoo Finance API integration
+        // For now, use static prices updated from user's portfolio data
         
         // Fallback to static prices (updated based on user's portfolio screenshot)
         Map<String, BigDecimal> staticPrices = Map.ofEntries(
@@ -198,41 +186,13 @@ public class MarketPriceBusiness {
     }
     
     /**
-     * Fetch crypto prices in batch using Yahoo Finance
+     * Fetch crypto prices in batch using static prices (Yahoo Finance integration to be implemented later)
      */
     private Map<String, BigDecimal> fetchCryptoPricesBatch(List<String> symbols) {
         Map<String, BigDecimal> prices = new HashMap<>();
-        
-        if (yahooFinanceClient != null) {
-            try {
-                // Convert symbols to Yahoo format
-                List<String> yahooSymbols = symbols.stream()
-                    .map(this::getYahooSymbol)
-                    .toList();
-                
-                // TODO: Replace with proper service call - YahooFinanceClient is now DAO only
-                Map<String, Double> yahooData = null; // yahooFinanceClient.getBulkPrices(yahooSymbols).block();
-                
-                // Map back to original symbols
-                if (yahooData != null) {
-                    for (String symbol : symbols) {
-                        String yahooSymbol = getYahooSymbol(symbol);
-                        Double price = yahooData.get(yahooSymbol);
-                        
-                        if (price != null) {
-                            prices.put(symbol, BigDecimal.valueOf(price));
-                        } else {
-                            // Fallback to individual fetch if batch fails for this symbol
-                            prices.put(symbol, fetchCryptoPrice(symbol));
-                        }
-                    }
-                }
-                
-                return prices;
-            } catch (Exception e) {
-                LOGGER.warning("Failed to fetch batch prices from Yahoo Finance: " + e.getMessage());
-            }
-        }
+
+        // TODO: Implement Yahoo Finance API integration for batch pricing
+        // For now, use individual static price lookups
         
         // Fallback to individual fetches
         for (String symbol : symbols) {

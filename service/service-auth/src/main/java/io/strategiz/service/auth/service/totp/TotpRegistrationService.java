@@ -361,9 +361,9 @@ public class TotpRegistrationService {
         if (totpMethods.isEmpty()) {
             log.warn("No TOTP methods found. Listing all auth methods for user ID: {}", user.getId());
             List<AuthenticationMethodEntity> allMethods = authMethodRepository.findByUserId(user.getId());
-            log.warn("Total auth methods for user: {}, types: {}", 
-                allMethods.size(), 
-                allMethods.stream().map(m -> m.getType().toString()).collect(java.util.stream.Collectors.joining(", "))
+            log.warn("Total auth methods for user: {}, types: {}",
+                allMethods.size(),
+                allMethods.stream().map(m -> m.getAuthenticationMethod().toString()).collect(java.util.stream.Collectors.joining(", "))
             );
         }
         

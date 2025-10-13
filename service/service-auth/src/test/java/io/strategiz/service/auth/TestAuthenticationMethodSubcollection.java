@@ -181,7 +181,7 @@ public class TestAuthenticationMethodSubcollection {
         
         // Create a test authentication method directly
         AuthenticationMethodEntity testMethod = new AuthenticationMethodEntity();
-        testMethod.setType(AuthenticationMethodType.PASSKEY);
+        testMethod.setAuthenticationMethod(AuthenticationMethodType.PASSKEY);
         testMethod.putMetadata("testKey", "testValue");
         
         // Save using repository

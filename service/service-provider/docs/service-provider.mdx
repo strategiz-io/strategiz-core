@@ -1,0 +1,236 @@
+---
+id: service-provider
+title: Service Provider
+sidebar_label: Service Provider
+---
+
+# Service Provider Module Documentation
+
+This module implements the provider integration services for Strategiz, allowing users to connect various trading platforms and exchanges to their Strategiz account.
+
+## 📚 Controller Documentation
+
+Each controller in this module has comprehensive documentation following our standard template. Documentation includes business purpose, technical specs, design diagrams, testing, and monitoring details.
+
+### Documentation Template
+New controllers should be documented using our standard template:
+- [📋 Controller Documentation Template](CONTROLLER_DOCUMENTATION_TEMPLATE.mdx)
+
+---
+
+## Controllers
+
+### CreateProviderController
+
+**Purpose**: Creates new provider connections and integrations, supporting both OAuth and API key authentication methods.
+
+**Endpoints**:
+- `POST /v1/providers` - Create new provider connection
+- `GET /v1/providers/connected` - List connected providers
+- `GET /v1/providers/create/health` - Health check
+
+**Authentication**: OAuth flows or API key setup for exchanges and brokerages
+
+**Documentation**:
+- [📄 Provider Connection API](provider-connection-api.mdx) ✅ Complete
+
+**Source**: `service-provider/src/main/java/io/strategiz/service/provider/controller/CreateProviderController.java:29`
+
+---
+
+### ReadProviderController
+
+**Purpose**: Retrieves provider connection information, status, balances, and transaction data.
+
+**Endpoints**:
+- `GET /v1/providers` - Get all providers for authenticated user
+- `GET /v1/providers/{providerId}` - Get specific provider details
+- `GET /v1/providers/{providerId}/status` - Check provider status
+- `GET /v1/providers/{providerId}/data` - Get provider data (balances, transactions)
+- `GET /v1/providers/read/health` - Health check
+
+**Authentication**: Session-based or Bearer token authentication
+
+**Documentation**:
+- 📝 _Documentation pending_
+
+**Source**: `service-provider/src/main/java/io/strategiz/service/provider/controller/ReadProviderController.java:27`
+
+---
+
+### UpdateProviderController
+
+**Purpose**: Updates existing provider connections, refreshes OAuth tokens, and modifies provider configurations.
+
+**Endpoints**:
+- `PUT /v1/providers/{providerId}` - Update provider connection
+
+**Authentication**: Session-based authentication
+
+**Documentation**:
+- 📝 _Documentation pending_
+
+**Source**: `service-provider/src/main/java/io/strategiz/service/provider/controller/UpdateProviderController.java:24`
+
+---
+
+### DeleteProviderController
+
+**Purpose**: Disconnects and removes provider integrations, with optional cleanup of associated data.
+
+**Endpoints**:
+- `DELETE /v1/providers/{providerId}` - Delete provider connection
+
+**Authentication**: Session-based authentication
+
+**Documentation**:
+- 📝 _Documentation pending_
+
+**Source**: `service-provider/src/main/java/io/strategiz/service/provider/controller/DeleteProviderController.java:24`
+
+---
+
+### ProviderCallbackController
+
+**Purpose**: Handles OAuth authorization callbacks from external providers, completing the OAuth flow and exchanging authorization codes for access tokens.
+
+**Endpoints**:
+- `GET /v1/providers/callback/{provider}` - OAuth callback (GET)
+- `POST /v1/providers/callback/{provider}` - OAuth callback (POST)
+- `GET /v1/providers/callback/health` - Health check
+
+**Authentication**: State-based OAuth validation
+
+**Documentation**:
+- 📝 _Documentation pending_
+
+**Source**: `service-provider/src/main/java/io/strategiz/service/provider/controller/ProviderCallbackController.java:27`
+
+---
+
+## Architecture Overview
+
+The provider integration service is built using a provider strategy pattern with these key components:
+
+1. **ProviderApiService Interface**: Defines the contract for all provider implementations
+2. **AbstractProviderApiService**: Base class providing shared functionality
+3. **ProviderApiFactory**: Factory that returns the appropriate provider implementation
+4. **ProviderOAuthService**: Facade service that delegates to provider-specific implementations
+
+## Signup Step 3 Flow - Provider Connection
+
+The provider connection during signup follows this exact module execution order:
+
+### 1. Frontend Entry Point
+- **`strategiz-ui/SignUpForm.tsx`** → User clicks "Connect Provider" (Step 3)
+
+### 2. Service Layer (API Entry)
+- **`service-provider/CreateProviderController`** → REST endpoint `/v1/providers/connect`
+- Orchestrates the entire provider connection flow
+
+### 3. Business Orchestration
+- **`business-provider-kraken/ProviderConnectionService`** → Provider-specific business logic
+- Coordinates connection workflow and error handling
+
+### 4. External API Integration (Raw Data)
+- **`client-kraken/KrakenApiPortfolioClient`** → Calls Kraken REST API
+- Retrieves **raw account holdings** (balances, quantities)
+- Returns provider-native data format **WITHOUT current prices**
+
+### 5. Portfolio Enrichment (Price Data)
+- **`business-provider-kraken/KrakenPortfolioEnhancerService`** → Takes raw data from step 4
+- Calls **`business-portfolio/MarketPriceBusiness`** for price enrichment
+- **`client-yahoofinance/YahooFinanceClient`** → Fetches real-time market prices
+- Applies current market prices to raw holdings data
+- Returns enriched `ProviderPortfolioResponse` with accurate valuations
+
+### 6. Service Processing
+- **`service-portfolio/KrakenPortfolioService`** → Calculates profit/loss metrics
+- Integrates enriched data and prepares final response
+
+### 7. Data Persistence
+- **`data-provider/ProviderDataBaseRepository`** → Stores enriched data to Firestore
+- Collection: `users/{userId}/provider_data/{providerId}`
+- Document ID = providerId (e.g., "kraken")
+
+### 8. Credentials Storage
+- **`client-vault`** → Stores OAuth tokens and API credentials securely in HashiCorp Vault
+
+### Key Architecture Points
+- **Raw Data First**: Kraken API returns holdings without current prices
+- **Then Enrichment**: Yahoo Finance API adds real-time market pricing
+- **Dual Storage**: Credentials in Vault, portfolio data in Firestore
+- **User-Scoped**: All data stored under user-specific collections
+
+## Supported Providers
+
+The service currently supports or plans to support these providers:
+
+| Provider | Status | Documentation |
+|----------|--------|---------------|
+| [Kraken](src/main/java/io/strategiz/service/provider/kraken/README.md) | Implemented | [Kraken API Docs](https://docs.kraken.com/rest/) |
+| BinanceUS | Planned | [BinanceUS API Docs](https://docs.binance.us/) |
+| Charles Schwab | Planned | [Charles Schwab API Docs](https://developer.schwab.com/) |
+
+Click on the provider name to view detailed integration documentation.
+
+## Getting Started
+
+1. Review the provider-specific README files for detailed setup instructions.
+2. Configure the necessary credentials in your application properties.
+3. Ensure the service-provider module is included in your application dependencies.
+
+## Adding a New Provider
+
+To add a new provider:
+
+1. Create a new package under `io.strategiz.service.provider.<provider-name>`
+2. Implement the `ProviderApiService` interface in a `<Provider>ApiService` class
+3. Create a README.md file with integration instructions
+4. Add appropriate tests
+
+Example implementation structure:
+```
+service-provider/
+├── src/
+│   └── main/
+│       └── java/
+│           └── io/
+│               └── strategiz/
+│                   └── service/
+│                       └── provider/
+│                           ├── api/
+│                           │   ├── ProviderApiService.java
+│                           │   ├── AbstractProviderApiService.java
+│                           │   └── ProviderApiFactory.java
+│                           ├── kraken/
+│                           │   ├── KrakenApiService.java
+│                           │   └── README.md
+│                           ├── binanceus/
+│                           │   └── BinanceUSApiService.java
+│                           ├── controller/
+│                           │   └── ProviderOAuthController.java
+│                           └── ProviderOAuthService.java
+```
+
+## Security Considerations
+
+All provider integrations follow these security principles:
+
+- OAuth client credentials are stored securely and never exposed
+- Access tokens and refresh tokens are stored in the user repository
+- All API requests use HTTPS
+- Sensitive data is never logged or included in API responses
+- Token renewal happens automatically when required
+
+## Testing
+
+Run unit tests:
+```bash
+./gradlew test
+```
+
+Run integration tests:
+```bash
+./gradlew integrationTest
+```

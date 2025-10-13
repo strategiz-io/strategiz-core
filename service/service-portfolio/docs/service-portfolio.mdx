@@ -1,0 +1,290 @@
+---
+id: service-portfolio
+title: Service Portfolio
+sidebar_label: Service Portfolio
+---
+
+# Service Portfolio Module Documentation
+
+This module implements the portfolio management services for Strategiz, providing aggregated views of user portfolios across multiple connected providers and exchanges.
+
+## 📚 Controller Documentation
+
+Each controller in this module has comprehensive documentation following our standard template. Documentation includes business purpose, technical specs, design diagrams, testing, and monitoring details.
+
+### Documentation Template
+New controllers should be documented using our standard template:
+- [📋 Controller Documentation Template](../service-provider/docs/CONTROLLER_DOCUMENTATION_TEMPLATE.mdx)
+
+---
+
+## Controllers
+
+### PortfolioAggregatorController
+
+**Purpose**: Provides aggregated portfolio data across all connected providers, including summary statistics and complete portfolio overviews.
+
+**Endpoints**:
+- `GET /v1/portfolio/summary` - Get lightweight portfolio summary for dashboard
+- `GET /v1/portfolio/overview` - Get complete aggregated portfolio data
+- `POST /v1/portfolio/refresh` - Refresh all provider portfolio data
+- `GET /v1/portfolio/health` - Health check
+
+**Authentication**: Bearer token with session validation
+
+**Documentation**:
+- [📄 Portfolio Aggregator API](portfolio-aggregator-api.mdx) ✅ Complete
+
+**Source**: `service-portfolio/src/main/java/io/strategiz/service/portfolio/controller/PortfolioAggregatorController.java:32`
+
+---
+
+### PortfolioProviderController
+
+**Purpose**: Manages provider-specific portfolio operations, allowing users to fetch and refresh data for individual connected providers.
+
+**Endpoints**:
+- `GET /v1/portfolio/providers/{providerId}` - Get portfolio for specific provider
+- `POST /v1/portfolio/providers/{providerId}/refresh` - Refresh specific provider data
+- `GET /v1/portfolio/providers/health` - Health check
+
+**Authentication**: Bearer token with session validation
+
+**Documentation**:
+- [📄 Portfolio Provider API](portfolio-provider-api.mdx) ✅ Complete
+
+**Source**: `service-portfolio/src/main/java/io/strategiz/service/portfolio/controller/PortfolioProviderController.java:27`
+
+---
+
+### KrakenPortfolioController
+
+**Purpose**: Provides Kraken-specific portfolio operations including balances, positions, and trade history with enhanced market data enrichment.
+
+**Endpoints**:
+- `GET /v1/portfolio/providers/kraken` - Get complete Kraken portfolio
+- `GET /v1/portfolio/providers/kraken/balances` - Get Kraken balances
+- `GET /v1/portfolio/providers/kraken/positions` - Get Kraken positions
+- `POST /v1/portfolio/providers/kraken/refresh` - Refresh Kraken portfolio data
+- `GET /v1/portfolio/providers/kraken/trades` - Get Kraken trade history
+- `GET /v1/portfolio/providers/kraken/health` - Health check
+
+**Authentication**: Bearer token with session validation
+
+**Documentation**:
+- [📄 Kraken Portfolio API](kraken-portfolio-api.mdx) ✅ Complete
+
+**Source**: `service-portfolio/src/main/java/io/strategiz/service/portfolio/controller/KrakenPortfolioController.java:35`
+
+---
+
+## Architecture Overview
+
+The portfolio service is built using a provider-agnostic aggregation pattern with these key components:
+
+1. **PortfolioService Interface**: Defines the contract for portfolio operations
+2. **Provider-Specific Services**: Implementations for each provider (Kraken, etc.)
+3. **Market Data Enrichment**: Integration with Yahoo Finance for real-time pricing
+4. **Aggregation Layer**: Combines data from multiple providers into unified views
+
+### Data Flow
+
+```
+User Request
+    ↓
+Controller (REST API)
+    ↓
+Service Layer (Business Logic)
+    ↓
+Provider-Specific Business Logic
+    ↓
+External API Client (Kraken, etc.)
+    ↓
+Market Data Enrichment (Yahoo Finance)
+    ↓
+Response Assembly
+    ↓
+User Response
+```
+
+## Portfolio Data Enrichment Flow
+
+The portfolio data flows through multiple layers to provide accurate, real-time valuations:
+
+### 1. Raw Data Retrieval
+- **Provider Client** (e.g., `client-kraken/KrakenApiPortfolioClient`) → Calls provider REST API
+- Retrieves **raw account holdings** (balances, quantities)
+- Returns provider-native data format **WITHOUT current prices**
+
+### 2. Market Price Enrichment
+- **Portfolio Enhancer Service** (e.g., `business-provider-kraken/KrakenPortfolioEnhancerService`) → Takes raw data
+- Calls **`business-portfolio/MarketPriceBusiness`** for price enrichment
+- **`client-yahoofinance/YahooFinanceClient`** → Fetches real-time market prices
+- Applies current market prices to raw holdings data
+- Returns enriched `ProviderPortfolioResponse` with accurate valuations
+
+### 3. Service Processing
+- **Portfolio Service** (e.g., `service-portfolio/KrakenPortfolioService`) → Calculates profit/loss metrics
+- Integrates enriched data and prepares final response
+- Adds aggregations and summary statistics
+
+### 4. Data Persistence
+- **`data-provider/ProviderDataBaseRepository`** → Stores enriched data to Firestore
+- Collection: `users/{userId}/provider_data/{providerId}`
+- Document ID = providerId (e.g., "kraken")
+
+### Key Architecture Points
+- **Raw Data First**: Provider APIs return holdings without current prices
+- **Then Enrichment**: Yahoo Finance API adds real-time market pricing
+- **Dual Storage**: Credentials in Vault, portfolio data in Firestore
+- **User-Scoped**: All data stored under user-specific collections
+
+## Supported Providers
+
+The service currently supports or plans to support these providers:
+
+| Provider | Status | Portfolio Module | Documentation |
+|----------|--------|------------------|---------------|
+| Kraken | Implemented | KrakenPortfolioController | [Kraken API Docs](https://docs.kraken.com/rest/) |
+| Coinbase | Implemented | CoinbasePortfolioService | [Coinbase API Docs](https://docs.cloud.coinbase.com/) |
+| Alpaca | Planned | - | [Alpaca API Docs](https://docs.alpaca.markets/) |
+| BinanceUS | Planned | - | [BinanceUS API Docs](https://docs.binance.us/) |
+| Charles Schwab | Planned | - | [Schwab API Docs](https://developer.schwab.com/) |
+
+## Authentication & Security
+
+All portfolio endpoints follow these security principles:
+
+- **Bearer Token Authentication**: All requests require valid session tokens
+- **Session Validation**: Tokens validated against active sessions in Firestore
+- **User-Scoped Data**: Portfolio data isolated by userId
+- **Provider Credentials**: Stored securely in HashiCorp Vault
+- **Rate Limiting**: Provider-specific rate limits enforced
+- **Data Encryption**: All sensitive data encrypted at rest and in transit
+
+## Data Aggregation Strategy
+
+The portfolio service aggregates data from multiple providers using this approach:
+
+1. **Parallel Fetching**: Provider data fetched concurrently for performance
+2. **Normalization**: Provider-specific formats normalized to common schema
+3. **Currency Conversion**: Multi-currency portfolios converted to base currency
+4. **Real-time Pricing**: Market data refreshed on each request
+5. **Caching**: Provider data cached with configurable TTL
+6. **Error Isolation**: Individual provider failures don't affect entire portfolio
+
+## Common Use Cases
+
+### Dashboard Summary
+Use `/v1/portfolio/summary` for lightweight dashboard widgets:
+- Total portfolio value
+- 24h change percentage
+- Top performing assets
+- Basic allocation breakdown
+
+### Complete Portfolio View
+Use `/v1/portfolio/overview` for detailed portfolio screens:
+- All holdings with current values
+- Complete position details
+- Historical performance
+- Full transaction history
+
+### Provider-Specific Operations
+Use `/v1/portfolio/providers/{providerId}` for:
+- Single provider portfolio view
+- Provider-specific features
+- Targeted data refresh
+- Provider connection status
+
+## Error Handling
+
+The portfolio service handles various error scenarios:
+
+- **Provider Unavailable**: Returns cached data with staleness indicator
+- **Authentication Failed**: Returns 401 with provider re-auth flow
+- **Rate Limited**: Returns 429 with retry-after header
+- **Invalid Provider**: Returns 404 for unknown provider IDs
+- **Data Enrichment Failed**: Returns partial data with warnings
+
+## Testing
+
+Run unit tests:
+```bash
+./gradlew test -pl service-portfolio
+```
+
+Run integration tests:
+```bash
+./gradlew integrationTest -pl service-portfolio
+```
+
+Test specific controller:
+```bash
+./gradlew test -pl service-portfolio --tests PortfolioAggregatorControllerTest
+```
+
+## Monitoring
+
+Key metrics to monitor:
+
+- **Response Times**: Track latency by provider
+- **Error Rates**: Monitor provider-specific failures
+- **Cache Hit Rates**: Optimize caching strategy
+- **Market Data Freshness**: Ensure pricing is current
+- **Provider API Calls**: Track usage against rate limits
+
+## Adding a New Provider
+
+To add a new provider to the portfolio service:
+
+1. **Create Provider Service**: Implement `PortfolioService` interface
+2. **Add Client Module**: Create API client for provider
+3. **Implement Enrichment**: Add market data enrichment logic
+4. **Create Controller** (Optional): Add provider-specific controller if needed
+5. **Update Aggregator**: Register provider in aggregation service
+6. **Add Documentation**: Create provider-specific API docs
+7. **Write Tests**: Add unit and integration tests
+
+Example implementation structure:
+```
+service-portfolio/
+├── src/
+│   └── main/
+│       └── java/
+│           └── io/
+│               └── strategiz/
+│                   └── service/
+│                       └── portfolio/
+│                           ├── controller/
+│                           │   ├── PortfolioAggregatorController.java
+│                           │   ├── PortfolioProviderController.java
+│                           │   ├── KrakenPortfolioController.java
+│                           │   └── [NewProvider]PortfolioController.java
+│                           ├── service/
+│                           │   ├── PortfolioService.java
+│                           │   ├── KrakenPortfolioService.java
+│                           │   └── [NewProvider]PortfolioService.java
+│                           └── model/
+│                               └── ProviderPortfolioResponse.java
+```
+
+## Performance Optimization
+
+The portfolio service employs several optimization strategies:
+
+1. **Lazy Loading**: Only fetch data when explicitly requested
+2. **Partial Updates**: Refresh individual providers without full reload
+3. **Response Compression**: Gzip compression for large portfolio data
+4. **Field Selection**: Allow clients to request specific fields only
+5. **Batch Operations**: Support bulk provider refresh operations
+
+## Future Enhancements
+
+Planned improvements for the portfolio service:
+
+- **WebSocket Support**: Real-time portfolio updates
+- **Historical Analysis**: Time-series portfolio performance
+- **Advanced Analytics**: Risk metrics, Sharpe ratio, beta calculation
+- **Custom Groupings**: User-defined portfolio segments
+- **Tax Reporting**: Cost basis tracking and tax lot management
+- **Performance Attribution**: Analyze returns by asset class

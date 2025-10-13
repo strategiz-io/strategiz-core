@@ -288,16 +288,12 @@ public class SignInPortfolioSyncService extends BaseService {
             
             // Get credentials from Vault
             Map<String, String> credentials = getProviderCredentials(userId, providerId);
-            
+
             if (credentials == null || credentials.isEmpty()) {
-                log.warn("No credentials found for provider {} user {}", providerId, userId);
-                throw new StrategizException(
-                    ServiceDashboardErrorDetails.SYNC_CREDENTIALS_NOT_FOUND,
-                    MODULE_NAME,
-                    userId,
-                    providerId,
-                    String.format("secret/strategiz/users/%s/providers/%s", userId, providerId)
-                );
+                log.warn("⚠️ Skipping provider {} for user {} - no credentials found in Vault", providerId, userId);
+                // Return empty future instead of throwing exception
+                // This allows other providers to sync successfully
+                return CompletableFuture.completedFuture(null);
             }
             
             // Fetch data based on provider type
@@ -326,30 +322,28 @@ public class SignInPortfolioSyncService extends BaseService {
             }
             
         } catch (StrategizException e) {
-            // Re-throw business exceptions
-            throw e;
+            // Log but don't fail the entire sync for one provider
+            log.warn("Provider {} sync failed for user {}: {}", provider.getProviderId(), userId, e.getMessage());
+            return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
-            log.error("Error syncing provider {} for user {}", provider.getProviderId(), userId, e);
-            throw new StrategizException(
-                ServiceDashboardErrorDetails.SYNC_PROVIDER_FAILED,
-                MODULE_NAME,
-                userId,
-                provider.getProviderId(),
-                e.getMessage()
-            );
+            // Log but don't fail the entire sync for one provider
+            log.warn("Unexpected error syncing provider {} for user {}: {}", provider.getProviderId(), userId, e.getMessage());
+            return CompletableFuture.completedFuture(null);
         }
-        
+
         return CompletableFuture.completedFuture(null);
     }
 
     /**
      * Get provider credentials from Vault
+     * Returns empty map if credentials not found or error occurs
      */
     private Map<String, String> getProviderCredentials(String userId, String providerId) {
         String vaultPath = String.format("secret/strategiz/users/%s/providers/%s", userId, providerId);
         try {
             Map<String, Object> secretData = secretManager.readSecretAsMap(vaultPath);
             if (secretData == null) {
+                log.debug("No secret data found at vault path: {}", vaultPath);
                 return new HashMap<>();
             }
             // Convert Map<String, Object> to Map<String, String>
@@ -361,14 +355,10 @@ public class SignInPortfolioSyncService extends BaseService {
             });
             return credentials;
         } catch (Exception e) {
-            log.error("Error retrieving credentials for provider {} user {}", providerId, userId, e);
-            throw new StrategizException(
-                ServiceDashboardErrorDetails.SYNC_VAULT_ERROR,
-                MODULE_NAME,
-                "readSecretAsMap",
-                vaultPath,
-                e.getMessage()
-            );
+            log.warn("Unable to retrieve credentials for provider {} user {} from {}: {}",
+                     providerId, userId, vaultPath, e.getMessage());
+            // Return empty map instead of throwing - allows graceful degradation
+            return new HashMap<>();
         }
     }
 

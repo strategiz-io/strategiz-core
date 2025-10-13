@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Optional;
 
@@ -64,12 +65,12 @@ class CreateProviderControllerTest {
     @Test
     void testCreateProvider_Success_OAuth() {
         // Given
-        String authHeader = "Bearer test-token";
-        when(sessionAuthBusiness.validateSession("test-token")).thenReturn(Optional.of("user123"));
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("user123");
         when(createProviderService.createProvider(any(CreateProviderRequest.class))).thenReturn(mockResponse);
-        
+
         // When
-        ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest, authHeader);
+        ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest, principal, null);
         
         // Then
         assertNotNull(response);
@@ -78,7 +79,7 @@ class CreateProviderControllerTest {
         assertEquals("coinbase", response.getBody().getProviderId());
         assertEquals("PENDING_AUTHORIZATION", response.getBody().getStatus());
         assertNotNull(response.getBody().getAuthorizationUrl());
-        
+
         verify(createProviderService, times(1)).createProvider(any(CreateProviderRequest.class));
         assertEquals("user123", validRequest.getUserId());
     }
@@ -94,12 +95,12 @@ class CreateProviderControllerTest {
         apiKeyResponse.setStatus("ACTIVE");
         apiKeyResponse.setConnectionId("conn-456");
         
-        String authHeader = "Bearer test-token";
-        when(sessionAuthBusiness.validateSession("test-token")).thenReturn(Optional.of("user456"));
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("user456");
         when(createProviderService.createProvider(any(CreateProviderRequest.class))).thenReturn(apiKeyResponse);
-        
+
         // When
-        ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest, authHeader);
+        ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest, principal, null);
         
         // Then
         assertNotNull(response);
@@ -115,12 +116,12 @@ class CreateProviderControllerTest {
     void testCreateProvider_MissingProviderId_ThrowsException() {
         // Given
         validRequest.setProviderId(null);
-        String authHeader = "Bearer test-token";
-        when(sessionAuthBusiness.validateSession("test-token")).thenReturn(Optional.of("user123"));
-        
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("user123");
+
         // When & Then
         StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, authHeader);
+            createProviderController.createProvider(validRequest, principal, null);
         });
         
         assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, 
@@ -132,12 +133,12 @@ class CreateProviderControllerTest {
     void testCreateProvider_EmptyProviderId_ThrowsException() {
         // Given
         validRequest.setProviderId("");
-        String authHeader = "Bearer test-token";
-        when(sessionAuthBusiness.validateSession("test-token")).thenReturn(Optional.of("user123"));
-        
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("user123");
+
         // When & Then
         StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, authHeader);
+            createProviderController.createProvider(validRequest, principal, null);
         });
         
         assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, 
@@ -148,12 +149,12 @@ class CreateProviderControllerTest {
     void testCreateProvider_MissingConnectionType_ThrowsException() {
         // Given
         validRequest.setConnectionType(null);
-        String authHeader = "Bearer test-token";
-        when(sessionAuthBusiness.validateSession("test-token")).thenReturn(Optional.of("user123"));
-        
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn("user123");
+
         // When & Then
         StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, authHeader);
+            createProviderController.createProvider(validRequest, principal, null);
         });
         
         assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, 
@@ -162,32 +163,32 @@ class CreateProviderControllerTest {
     }
     
     @Test
-    void testCreateProvider_MissingAuthHeader_ThrowsException() {
+    void testCreateProvider_MissingPrincipal_ThrowsException() {
         // Given
-        // No auth header provided (null)
-        
+        // No principal provided (null)
+
         // When & Then
         StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, null);
+            createProviderController.createProvider(validRequest, null, null);
         });
-        
-        assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
+
+        assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
                     exception.getErrorDetails());
-        assertTrue(exception.getMessage().contains("Authentication token is required"));
+        assertTrue(exception.getMessage().contains("Authentication required to connect provider"));
     }
     
     @Test
-    void testCreateProvider_InvalidToken_ThrowsException() {
+    void testCreateProvider_InvalidPrincipal_ThrowsException() {
         // Given
-        String authHeader = "Bearer invalid-token";
-        when(sessionAuthBusiness.validateSession("invalid-token")).thenReturn(Optional.empty());
-        
+        Principal principal = mock(Principal.class);
+        when(principal.getName()).thenReturn(null);
+
         // When & Then
         StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, authHeader);
+            createProviderController.createProvider(validRequest, principal, null);
         });
-        
-        assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
+
+        assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
                     exception.getErrorDetails());
     }
     

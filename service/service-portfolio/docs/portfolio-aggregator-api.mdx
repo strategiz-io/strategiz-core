@@ -1,0 +1,371 @@
+---
+id: portfolio-aggregator-api
+title: Portfolio Aggregator API
+sidebar_label: Portfolio Aggregator API
+---
+
+# Portfolio Aggregator API
+
+## Overview
+
+The Portfolio Aggregator API provides consolidated views of user portfolios across all connected providers and exchanges. It aggregates data from multiple sources to present a unified portfolio view with real-time market pricing.
+
+**Controller**: `PortfolioAggregatorController`
+**Base Path**: `/v1/portfolio`
+**Authentication**: Bearer token with session validation
+
+## Business Purpose
+
+### Primary Goals
+- Provide a unified view of user holdings across multiple providers
+- Deliver lightweight summary data for dashboard widgets
+- Offer complete portfolio overviews with detailed analytics
+- Enable bulk portfolio data refresh across all providers
+
+### Target Users
+- End users viewing their complete portfolio
+- Dashboard components requiring summary statistics
+- Portfolio analytics tools
+- Third-party integrations
+
+## Endpoints
+
+### 1. Get Portfolio Summary
+
+Retrieves lightweight portfolio summary optimized for dashboard displays.
+
+**Endpoint**: `GET /v1/portfolio/summary`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Response**: `200 OK`
+```json
+{
+  "totalValue": 125430.50,
+  "currency": "USD",
+  "change24h": 2.35,
+  "changePercent24h": 1.91,
+  "lastUpdated": "2025-10-12T22:00:00Z",
+  "providers": [
+    {
+      "providerId": "kraken",
+      "providerName": "Kraken",
+      "value": 75000.00,
+      "changePercent24h": 2.1
+    },
+    {
+      "providerId": "coinbase",
+      "providerName": "Coinbase",
+      "value": 50430.50,
+      "changePercent24h": 1.5
+    }
+  ],
+  "topHoldings": [
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "value": 45000.00,
+      "percent": 35.9
+    },
+    {
+      "symbol": "ETH",
+      "name": "Ethereum",
+      "value": 30000.00,
+      "percent": 23.9
+    }
+  ]
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid or expired session token
+- `500 Internal Server Error` - Server error during aggregation
+
+**Performance**:
+- Target response time: < 500ms
+- Utilizes cached provider data when available
+- Parallel provider data fetching
+
+---
+
+### 2. Get Portfolio Overview
+
+Retrieves complete aggregated portfolio data with full position details.
+
+**Endpoint**: `GET /v1/portfolio/overview`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Query Parameters**:
+- `includeHistory` (optional, boolean) - Include historical performance data
+- `currency` (optional, string) - Base currency for conversions (default: USD)
+
+**Response**: `200 OK`
+```json
+{
+  "totalValue": 125430.50,
+  "currency": "USD",
+  "lastUpdated": "2025-10-12T22:00:00Z",
+  "performance": {
+    "change24h": 2.35,
+    "changePercent24h": 1.91,
+    "change7d": 8.50,
+    "changePercent7d": 7.25,
+    "change30d": 12.30,
+    "changePercent30d": 10.87
+  },
+  "providers": [
+    {
+      "providerId": "kraken",
+      "providerName": "Kraken",
+      "providerType": "EXCHANGE",
+      "status": "CONNECTED",
+      "value": 75000.00,
+      "lastRefreshed": "2025-10-12T22:00:00Z",
+      "holdings": [
+        {
+          "symbol": "BTC",
+          "name": "Bitcoin",
+          "quantity": 1.5,
+          "averageCost": 28000.00,
+          "currentPrice": 30000.00,
+          "marketValue": 45000.00,
+          "unrealizedGainLoss": 3000.00,
+          "unrealizedGainLossPercent": 7.14,
+          "allocation": 35.9
+        }
+      ]
+    }
+  ],
+  "allocation": {
+    "byAssetClass": {
+      "CRYPTOCURRENCY": 85.5,
+      "STOCK": 10.2,
+      "CASH": 4.3
+    },
+    "byAsset": [
+      {
+        "symbol": "BTC",
+        "name": "Bitcoin",
+        "value": 45000.00,
+        "percent": 35.9
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid or expired session token
+- `500 Internal Server Error` - Server error during aggregation
+
+**Performance**:
+- Target response time: < 2000ms
+- Data freshness: Real-time market prices
+- Caching: Provider data cached with 5-minute TTL
+
+---
+
+### 3. Refresh All Providers
+
+Triggers a refresh of portfolio data for all connected providers.
+
+**Endpoint**: `POST /v1/portfolio/refresh`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Request Body**: None
+
+**Response**: `202 Accepted`
+```json
+{
+  "status": "REFRESH_INITIATED",
+  "message": "Portfolio refresh initiated for all providers",
+  "providers": ["kraken", "coinbase"],
+  "estimatedCompletionTime": "2025-10-12T22:01:00Z"
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid or expired session token
+- `429 Too Many Requests` - Refresh rate limit exceeded
+- `500 Internal Server Error` - Server error during refresh
+
+**Rate Limiting**:
+- Maximum: 1 refresh per minute per user
+- Cooldown: 60 seconds between requests
+
+---
+
+### 4. Health Check
+
+Checks the health status of the portfolio aggregator service.
+
+**Endpoint**: `GET /v1/portfolio/health`
+
+**Response**: `200 OK`
+```json
+{
+  "status": "UP",
+  "timestamp": "2025-10-12T22:00:00Z"
+}
+```
+
+## Authentication
+
+All endpoints (except health check) require Bearer token authentication:
+
+1. **Obtain Session Token**: User must authenticate via `/v1/auth/signin`
+2. **Include Token**: Add `Authorization: Bearer {token}` header
+3. **Token Validation**: Server validates token against active sessions
+4. **User Context**: Token provides userId for data isolation
+
+## Data Aggregation Logic
+
+### Provider Data Collection
+1. Identify all connected providers for user
+2. Fetch portfolio data from each provider in parallel
+3. Handle individual provider failures gracefully
+4. Apply timeout limits (10 seconds per provider)
+
+### Market Data Enrichment
+1. Extract unique asset symbols from all providers
+2. Fetch current market prices from Yahoo Finance
+3. Apply exchange rate conversions if needed
+4. Calculate total portfolio value in base currency
+
+### Response Assembly
+1. Normalize provider-specific data formats
+2. Aggregate holdings by symbol across providers
+3. Calculate allocation percentages
+4. Compute performance metrics
+5. Sort and rank top holdings
+
+## Error Handling
+
+The aggregator handles various error scenarios:
+
+### Provider Errors
+- **Single Provider Failure**: Exclude from aggregation, continue with others
+- **All Providers Failed**: Return 500 with detailed error message
+- **Partial Data**: Include warning in response about incomplete data
+
+### Market Data Errors
+- **Pricing Unavailable**: Use last known price with staleness indicator
+- **Currency Conversion Failed**: Default to USD values
+- **Rate Limit Exceeded**: Return cached data with warning
+
+## Caching Strategy
+
+### Provider Data Cache
+- **TTL**: 5 minutes
+- **Key**: `portfolio:user:{userId}:provider:{providerId}`
+- **Invalidation**: On manual refresh or provider connection changes
+
+### Market Data Cache
+- **TTL**: 1 minute
+- **Key**: `market:price:{symbol}`
+- **Invalidation**: Time-based only
+
+### Summary Cache
+- **TTL**: 2 minutes
+- **Key**: `portfolio:user:{userId}:summary`
+- **Invalidation**: On provider data change or manual refresh
+
+## Performance Optimization
+
+### Response Time Targets
+- Summary endpoint: < 500ms (90th percentile)
+- Overview endpoint: < 2000ms (90th percentile)
+- Refresh endpoint: < 100ms (asynchronous)
+
+### Optimization Techniques
+- Parallel provider data fetching
+- Aggressive caching with appropriate TTLs
+- Lazy loading of historical data
+- Response compression (gzip)
+
+## Use Cases
+
+### Dashboard Widget
+```javascript
+// Fetch lightweight summary for dashboard
+const response = await fetch('/v1/portfolio/summary', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const summary = await response.json();
+// Display totalValue, change24h, topHoldings
+```
+
+### Portfolio Page
+```javascript
+// Fetch complete portfolio with history
+const response = await fetch('/v1/portfolio/overview?includeHistory=true', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const portfolio = await response.json();
+// Display full holdings, allocations, performance
+```
+
+### Manual Refresh
+```javascript
+// Trigger portfolio refresh
+const response = await fetch('/v1/portfolio/refresh', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+// Show refresh status, poll for completion
+```
+
+## Testing
+
+### Unit Tests
+```bash
+./gradlew test --tests PortfolioAggregatorControllerTest
+```
+
+### Integration Tests
+```bash
+./gradlew integrationTest --tests PortfolioAggregatorIntegrationTest
+```
+
+### Test Coverage
+- Summary endpoint: All success and error scenarios
+- Overview endpoint: Various provider combinations
+- Refresh endpoint: Rate limiting and concurrent requests
+- Error handling: Provider failures, timeouts, invalid tokens
+
+## Monitoring
+
+### Key Metrics
+- **Request Rate**: Requests per minute by endpoint
+- **Response Time**: P50, P90, P99 latencies
+- **Error Rate**: Failed requests as percentage
+- **Provider Availability**: Success rate by provider
+- **Cache Hit Rate**: Percentage of cached responses
+
+### Alerts
+- Response time > 5 seconds
+- Error rate > 5%
+- Provider failure rate > 20%
+- Cache hit rate < 50%
+
+## Related Documentation
+- [Portfolio Provider API](portfolio-provider-api.mdx) - Provider-specific operations
+- [Kraken Portfolio API](kraken-portfolio-api.mdx) - Kraken integration details
+- [Service Provider](../../service-provider/docs/service-provider.mdx) - Provider connection setup

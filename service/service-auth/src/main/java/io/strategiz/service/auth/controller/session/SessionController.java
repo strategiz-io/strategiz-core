@@ -19,6 +19,7 @@ import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -224,20 +225,20 @@ public class SessionController extends BaseController {
 
     /**
      * Get current user information from server-side session (new architecture)
-     * 
+     *
      * @param httpRequest HTTP servlet request containing session
      * @return Clean user response with session data
      */
     @PostMapping("/current-user-server")
     public ResponseEntity<CurrentUserResponse> getCurrentUserFromSession(jakarta.servlet.http.HttpServletRequest httpRequest) {
         log.info("Getting current user from server-side session");
-        
+
         java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
-        
+
         if (validationOpt.isEmpty()) {
             throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
         }
-        
+
         SessionValidationResult validation = validationOpt.get();
         CurrentUserResponse response = new CurrentUserResponse(
             validation.getUserId(),
@@ -245,7 +246,59 @@ public class SessionController extends BaseController {
             "User " + validation.getUserId().substring(0, Math.min(8, validation.getUserId().length())),
             validation.getLastAccessedAt().getEpochSecond()
         );
-        
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * BEST PRACTICE: Simple session validation from HTTP-only cookie
+     * Returns user data if valid session, 401 if not
+     */
+    @GetMapping("/validate-cookie")
+    public ResponseEntity<CurrentUserResponse> validateSessionCookie(jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.info("Validating session from HTTP-only cookie");
+
+        try {
+            java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+
+            if (validationOpt.isEmpty()) {
+                log.info("No valid session cookie found");
+                return ResponseEntity.status(401).build();
+            }
+
+            SessionValidationResult validation = validationOpt.get();
+            CurrentUserResponse response = new CurrentUserResponse(
+                validation.getUserId(),
+                validation.getUserEmail(),
+                "User " + validation.getUserId().substring(0, Math.min(8, validation.getUserId().length())),
+                validation.getLastAccessedAt().getEpochSecond()
+            );
+
+            log.info("Valid session found for user: {}", validation.getUserId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error validating session cookie: {}", e.getMessage(), e);
+            return ResponseEntity.status(401).build();
+        }
+    }
+
+    /**
+     * BEST PRACTICE: Simple logout endpoint
+     * Destroys server session and clears HTTP-only cookie
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<RevocationResponse> logout(
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            jakarta.servlet.http.HttpServletResponse httpResponse) {
+        log.info("Processing logout request");
+
+        boolean terminated = sessionService.terminateSession(httpRequest, httpResponse);
+
+        RevocationResponse response = new RevocationResponse(
+            terminated,
+            terminated ? "Logged out successfully" : "No active session"
+        );
+
         return ResponseEntity.ok(response);
     }
 

@@ -71,14 +71,15 @@ The MDX documentation files reference these diagrams in two ways:
    ```
 
 3. **Embedded Code** (in collapsible section):
-   ```markdown
-   <details>
-   <summary>View Embedded Diagram Code</summary>
-   ```drawio
-   <!-- diagram XML here -->
-   ```
-   </details>
-   ```
+
+       <details>
+       <summary>View Embedded Diagram Code</summary>
+
+       ```drawio
+       <!-- diagram XML here -->
+       ```
+
+       </details>
 
 ## Tips for Creating Good Diagrams
 

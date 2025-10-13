@@ -75,7 +75,7 @@ public class SmsOtpRegistrationService {
         
         // Create new SMS OTP authentication method
         AuthenticationMethodEntity smsOtpMethod = new AuthenticationMethodEntity();
-        smsOtpMethod.setType(AuthenticationMethodType.SMS_OTP);
+        smsOtpMethod.setAuthenticationMethod(AuthenticationMethodType.SMS_OTP);
         smsOtpMethod.setIsActive(false); // Enable after verification
         
         // Set SMS OTP specific metadata
@@ -357,7 +357,7 @@ public class SmsOtpRegistrationService {
         if (methodOpt.isEmpty()) {
             // Create new SMS OTP authentication method
             method = new AuthenticationMethodEntity();
-            method.setType(AuthenticationMethodType.SMS_OTP);
+            method.setAuthenticationMethod(AuthenticationMethodType.SMS_OTP);
             method.setIsActive(true);
             method.putMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER, phoneNumber);
             method.putMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.COUNTRY_CODE, "US");

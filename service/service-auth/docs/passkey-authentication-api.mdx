@@ -1,0 +1,614 @@
+---
+id: passkey-authentication-api
+title: Passkey Authentication API
+sidebar_label: Passkey Authentication
+---
+
+# Passkey Authentication API
+
+## Overview
+
+The Passkey Authentication API provides WebAuthn/FIDO2-based passwordless authentication using biometric sensors (Face ID, Touch ID, Windows Hello) or hardware security keys. This is the most secure authentication method supported by Strategiz.
+
+**Base Path**: `/v1/auth/passkeys`
+
+**Controllers**:
+- `PasskeyRegistrationController` - Register new passkeys
+- `PasskeyAuthenticationController` - Authenticate with passkeys
+- `PasskeyManagementController` - Manage registered passkeys
+
+---
+
+## Business Purpose
+
+### Problem Solved
+Traditional password-based authentication is vulnerable to:
+- Phishing attacks
+- Password reuse
+- Brute force attacks
+- Credential stuffing
+- Social engineering
+
+### Solution
+Passkeys provide:
+- **Phishing-resistant authentication**: Public key cryptography tied to domain
+- **No shared secrets**: Private keys never leave user's device
+- **Biometric convenience**: Face ID, Touch ID, Windows Hello
+- **Hardware-backed security**: Secure enclave protection
+- **Multi-device sync**: Platform authenticators sync across devices (iCloud Keychain, Windows Hello)
+
+### Value Proposition
+- **For Users**: Fastest, most convenient sign-in experience
+- **For Strategiz**: Highest security, reduced support costs (no password resets)
+- **For Security**: Compliance with FIDO2 standards, resistant to modern attacks
+
+---
+
+## Technical Architecture
+
+### Technology Stack
+- **Frontend**: Native Web Authentication API (`navigator.credentials`)
+- **Backend**: WebAuthn4J v0.21.1 (server-side validation)
+- **Storage**: Firestore (`users/{userId}/security` collection)
+- **Protocol**: FIDO2/WebAuthn specification
+
+### Key Components
+
+#### 1. Challenge Generation
+```java
+PasskeyChallengeService.generateAuthenticationChallenge()
+```
+- Generates cryptographically secure random challenge
+- Stores challenge in Firestore with 60-second TTL
+- Returns challenge to frontend for WebAuthn ceremony
+
+#### 2. Credential Storage
+```
+users/{userId}/security/{methodId}
+{
+  "authenticationMethod": "PASSKEY",
+  "metadata": {
+    "credentialId": "base64url-encoded-credential-id",
+    "publicKey": "base64url-encoded-public-key",
+    "counter": 0,
+    "userHandle": "user-id",
+    "transports": ["internal", "usb", "nfc"],
+    "deviceName": "MacBook Pro Touch ID"
+  },
+  "lastUsedAt": "2025-10-12T23:00:00Z",
+  "isActive": true
+}
+```
+
+#### 3. Authentication Flow
+```
+┌─────────┐          ┌──────────┐          ┌──────────┐
+│ Browser │          │  Backend │          │Firestore │
+└────┬────┘          └─────┬────┘          └─────┬────┘
+     │                     │                     │
+     │ POST /authentications                    │
+     ├────────────────────>│                     │
+     │                     │                     │
+     │                     │ Generate challenge  │
+     │                     ├────────────────────>│
+     │                     │                     │
+     │      Challenge      │                     │
+     │<────────────────────┤                     │
+     │                     │                     │
+     │ navigator.credentials.get()              │
+     │ (User authenticates)                     │
+     │                     │                     │
+     │ PUT /{authId}       │                     │
+     │ (signed assertion)  │                     │
+     ├────────────────────>│                     │
+     │                     │                     │
+     │                     │ Validate challenge  │
+     │                     ├────────────────────>│
+     │                     │                     │
+     │                     │ Find credential     │
+     │                     ├────────────────────>│
+     │                     │                     │
+     │                     │ Verify signature    │
+     │                     │ (WebAuthn4J)        │
+     │                     │                     │
+     │      Tokens         │                     │
+     │<────────────────────┤                     │
+     │                     │                     │
+```
+
+---
+
+## API Endpoints
+
+### 1. Register Passkey
+
+#### Begin Registration
+
+**Endpoint**: `POST /v1/auth/passkeys/registrations`
+
+**Purpose**: Initiate passkey registration for authenticated user
+
+**Request**:
+```json
+{
+  "userId": "user-123",
+  "deviceName": "MacBook Pro Touch ID"
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "registrationId": "reg-abc123",
+  "challenge": "randomBase64Challenge",
+  "userId": "user-123",
+  "rpId": "strategiz.io",
+  "rpName": "Strategiz",
+  "timeout": 60000,
+  "attestation": "none",
+  "authenticatorSelection": {
+    "authenticatorAttachment": "platform",
+    "requireResidentKey": true,
+    "residentKey": "required",
+    "userVerification": "required"
+  },
+  "pubKeyCredParams": [
+    {"type": "public-key", "alg": -7},   // ES256
+    {"type": "public-key", "alg": -257}  // RS256
+  ]
+}
+```
+
+**Frontend Usage**:
+```javascript
+const response = await fetch('/v1/auth/passkeys/registrations', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    userId: currentUser.id,
+    deviceName: 'My iPhone'
+  })
+});
+
+const options = await response.json();
+
+// Create passkey
+const credential = await navigator.credentials.create({
+  publicKey: {
+    challenge: base64UrlDecode(options.challenge),
+    rp: { id: options.rpId, name: options.rpName },
+    user: {
+      id: stringToUint8Array(options.userId),
+      name: currentUser.email,
+      displayName: currentUser.name
+    },
+    pubKeyCredParams: options.pubKeyCredParams,
+    timeout: options.timeout,
+    attestation: options.attestation,
+    authenticatorSelection: options.authenticatorSelection
+  }
+});
+```
+
+---
+
+#### Complete Registration
+
+**Endpoint**: `PUT /v1/auth/passkeys/registrations/{registrationId}`
+
+**Purpose**: Complete passkey registration with credential from browser
+
+**Request**:
+```json
+{
+  "credentialId": "base64url-encoded-id",
+  "attestationObject": "base64url-encoded-attestation",
+  "clientDataJSON": "base64url-encoded-client-data",
+  "transports": ["internal", "usb"]
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "success": true,
+  "credentialId": "base64url-encoded-id",
+  "message": "Passkey registered successfully"
+}
+```
+
+**Frontend Usage**:
+```javascript
+// After navigator.credentials.create() succeeds
+const registrationResponse = {
+  credentialId: base64UrlEncode(credential.rawId),
+  attestationObject: base64UrlEncode(credential.response.attestationObject),
+  clientDataJSON: base64UrlEncode(credential.response.clientDataJSON),
+  transports: credential.response.getTransports()
+};
+
+await fetch(`/v1/auth/passkeys/registrations/${options.registrationId}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(registrationResponse)
+});
+```
+
+---
+
+### 2. Authenticate with Passkey
+
+#### Begin Authentication
+
+**Endpoint**: `POST /v1/auth/passkeys/authentications`
+
+**Purpose**: Initiate passkey sign-in (no authentication required)
+
+**Request**: Empty body `{}`
+
+**Response** (200 OK):
+```json
+{
+  "authenticationId": "auth-xyz789",
+  "challenge": "randomBase64Challenge",
+  "rpId": "strategiz.io",
+  "timeout": 60000,
+  "userVerification": "required"
+}
+```
+
+**Frontend Usage**:
+```javascript
+const response = await fetch('/v1/auth/passkeys/authentications', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({})
+});
+
+const options = await response.json();
+
+// Get passkey assertion
+const assertion = await navigator.credentials.get({
+  publicKey: {
+    challenge: base64UrlDecode(options.challenge),
+    rpId: options.rpId,
+    timeout: options.timeout,
+    userVerification: options.userVerification
+  }
+});
+```
+
+---
+
+#### Complete Authentication
+
+**Endpoint**: `PUT /v1/auth/passkeys/authentications/{authenticationId}`
+
+**Purpose**: Complete passkey sign-in with assertion from browser
+
+**Request**:
+```json
+{
+  "credentialId": "base64url-encoded-credential-id",
+  "authenticatorData": "base64url-encoded-auth-data",
+  "clientDataJSON": "base64url-encoded-client-data",
+  "signature": "base64url-encoded-signature",
+  "userHandle": "user-id"
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "identityToken": "paseto.v2.local.xxxxx",
+  "sessionToken": "paseto.v2.local.yyyyy",
+  "refreshToken": "paseto.v2.local.zzzzz",
+  "expiresIn": 3600,
+  "tokenType": "Bearer",
+  "user": {
+    "userId": "user-123",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "profileImageUrl": "https://..."
+  }
+}
+```
+
+**Frontend Usage**:
+```javascript
+// After navigator.credentials.get() succeeds
+const authenticationResponse = {
+  credentialId: base64UrlEncode(assertion.rawId),
+  authenticatorData: base64UrlEncode(assertion.response.authenticatorData),
+  clientDataJSON: base64UrlEncode(assertion.response.clientDataJSON),
+  signature: base64UrlEncode(assertion.response.signature),
+  userHandle: base64UrlEncode(assertion.response.userHandle)
+};
+
+const result = await fetch(`/v1/auth/passkeys/authentications/${options.authenticationId}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(authenticationResponse)
+});
+
+const { identityToken, sessionToken, user } = await result.json();
+
+// Store tokens
+localStorage.setItem('identityToken', identityToken);
+localStorage.setItem('sessionToken', sessionToken);
+
+// Redirect to dashboard
+window.location.href = '/dashboard';
+```
+
+---
+
+### 3. Manage Passkeys
+
+#### List User's Passkeys
+
+**Endpoint**: `GET /v1/auth/passkeys?userId={userId}`
+
+**Purpose**: Get all registered passkeys for a user
+
+**Authentication**: Required (session token)
+
+**Response** (200 OK):
+```json
+{
+  "passkeys": [
+    {
+      "credentialId": "credential-1",
+      "deviceName": "MacBook Pro Touch ID",
+      "createdAt": "2025-01-01T00:00:00Z",
+      "lastUsedAt": "2025-10-12T23:00:00Z",
+      "transports": ["internal"]
+    },
+    {
+      "credentialId": "credential-2",
+      "deviceName": "iPhone 15 Pro",
+      "createdAt": "2025-02-01T00:00:00Z",
+      "lastUsedAt": "2025-10-11T15:30:00Z",
+      "transports": ["internal", "nfc"]
+    }
+  ]
+}
+```
+
+---
+
+#### Delete Passkey
+
+**Endpoint**: `DELETE /v1/auth/passkeys/{credentialId}?userId={userId}`
+
+**Purpose**: Remove a registered passkey
+
+**Authentication**: Required (session token)
+
+**Response** (200 OK):
+```json
+{
+  "success": true,
+  "message": "Passkey deleted successfully"
+}
+```
+
+---
+
+#### Get Passkey Statistics
+
+**Endpoint**: `GET /v1/auth/passkeys/stats?userId={userId}`
+
+**Purpose**: Get statistics about user's passkeys
+
+**Authentication**: Required (session token)
+
+**Response** (200 OK):
+```json
+{
+  "totalPasskeys": 2,
+  "activePasskeys": 2,
+  "lastUsed": "2025-10-12T23:00:00Z",
+  "devicesWithPasskeys": [
+    "MacBook Pro Touch ID",
+    "iPhone 15 Pro"
+  ]
+}
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+#### Invalid Challenge
+```json
+{
+  "status": 404,
+  "error": "NOT_FOUND",
+  "message": "Challenge not found or expired",
+  "timestamp": "2025-10-12T23:00:00Z",
+  "path": "/v1/auth/passkeys/authentications/abc123"
+}
+```
+
+#### Credential Not Found
+```json
+{
+  "status": 404,
+  "error": "NOT_FOUND",
+  "message": "Credential not found",
+  "timestamp": "2025-10-12T23:00:00Z",
+  "path": "/v1/auth/passkeys/authentications/abc123"
+}
+```
+
+#### Signature Validation Failed
+```json
+{
+  "status": 401,
+  "error": "UNAUTHORIZED",
+  "message": "Invalid signature",
+  "timestamp": "2025-10-12T23:00:00Z",
+  "path": "/v1/auth/passkeys/authentications/abc123"
+}
+```
+
+#### Challenge Expired
+```json
+{
+  "status": 400,
+  "error": "BAD_REQUEST",
+  "message": "Challenge has expired (timeout: 60 seconds)",
+  "timestamp": "2025-10-12T23:00:00Z",
+  "path": "/v1/auth/passkeys/authentications/abc123"
+}
+```
+
+---
+
+## Security Considerations
+
+### 1. **Challenge Uniqueness**
+- Each challenge is cryptographically random
+- Challenges are single-use and expire after 60 seconds
+- Challenges are stored server-side, not client-side
+
+### 2. **Credential Binding**
+- Credentials are bound to the domain (RP ID)
+- Cannot be used on phishing sites
+- Public keys are stored server-side, private keys never leave device
+
+### 3. **Signature Verification**
+- All assertions are verified using WebAuthn4J
+- Counter tracking prevents replay attacks
+- Origin validation ensures requests come from correct domain
+
+### 4. **User Verification**
+- Requires user verification (biometric or PIN)
+- Ensures physical presence of user
+- Cannot be bypassed or automated
+
+### 5. **Collection Group Query Security**
+The passkey lookup uses a Firestore collection group query that searches across all users' security subcollections:
+
+```java
+firestore.collectionGroup("security")
+    .whereEqualTo("authenticationMethod", "PASSKEY")
+    .whereEqualTo("isActive", true)
+```
+
+**Security measures**:
+- Query filters only active passkeys
+- Credential ID matching prevents unauthorized access
+- User ID is extracted from document path, not client input
+- Signature validation ensures only owner can use credential
+
+**Required Firestore Index**:
+```json
+{
+  "collectionGroup": "security",
+  "queryScope": "COLLECTION_GROUP",
+  "fields": [
+    {"fieldPath": "authenticationMethod", "order": "ASCENDING"},
+    {"fieldPath": "isActive", "order": "ASCENDING"}
+  ]
+}
+```
+
+---
+
+## Browser Compatibility
+
+### Supported Browsers
+- ✅ **Chrome/Edge**: 67+ (Windows Hello, Touch ID on Mac)
+- ✅ **Safari**: 14+ (Touch ID, Face ID on iOS/macOS)
+- ✅ **Firefox**: 60+ (Windows Hello, Touch ID on Mac)
+
+### Platform Authenticators
+- ✅ **macOS**: Touch ID, iCloud Keychain
+- ✅ **iOS**: Face ID, Touch ID, iCloud Keychain
+- ✅ **Windows**: Windows Hello (face, fingerprint, PIN)
+- ✅ **Android**: Fingerprint, Face Unlock
+
+### Hardware Authenticators
+- ✅ **Yubikey**: FIDO2 security keys
+- ✅ **Titan**: Google Titan security keys
+- ✅ **Generic**: Any FIDO2-certified authenticator
+
+---
+
+## Testing
+
+### Manual Testing with curl
+
+**Note**: Passkey authentication requires browser WebAuthn API. For testing, use the frontend or browser developer tools.
+
+### Frontend Testing Checklist
+
+- [ ] Registration on macOS (Touch ID)
+- [ ] Registration on iOS (Face ID)
+- [ ] Registration on Windows (Windows Hello)
+- [ ] Authentication on macOS (Touch ID)
+- [ ] Authentication on iOS (Face ID)
+- [ ] Authentication on Windows (Windows Hello)
+- [ ] Cross-device authentication (iCloud Keychain sync)
+- [ ] Multiple passkeys for same user
+- [ ] Delete passkey
+- [ ] Passkey statistics
+
+---
+
+## Monitoring
+
+### Key Metrics
+
+- **Registration success rate**: Track passkey registration completions
+- **Authentication success rate**: Monitor sign-in success vs failures
+- **Challenge expiration rate**: Identify timeout issues
+- **Average authentication time**: Measure user experience
+- **Passkeys per user**: Track adoption rate
+- **Device distribution**: Understand platform usage
+
+### Logging Examples
+
+```
+INFO: Passkey authentication started, authenticationId: auth-xyz789
+DEBUG: Generated challenge for authentication: auth-xyz789
+DEBUG: Searching for passkey with credential ID: credential-abc123
+INFO: Found matching passkey for user user-123
+DEBUG: Validating signature using WebAuthn4J
+INFO: Passkey authentication successful for user user-123
+```
+
+---
+
+## Best Practices
+
+### For Frontend Developers
+
+1. **Always use HTTPS**: WebAuthn only works over secure connections
+2. **Handle browser compatibility**: Check for `navigator.credentials` support
+3. **Provide fallback**: Offer alternative sign-in methods
+4. **Clear error messages**: Guide users through browser prompts
+5. **Test across platforms**: Verify on macOS, Windows, iOS, Android
+
+### For Backend Developers
+
+1. **Validate all inputs**: Never trust client-side data
+2. **Use secure challenges**: Cryptographically random, short-lived
+3. **Index Firestore queries**: Required for collection group queries
+4. **Monitor failures**: Track and alert on authentication failures
+5. **Keep WebAuthn4J updated**: Security patches are critical
+
+---
+
+## Future Enhancements
+
+- [ ] Conditional mediation (autofill passkeys)
+- [ ] Passkey nickname editing
+- [ ] Last used location tracking
+- [ ] Suspicious authentication alerts
+- [ ] Passkey import/export
+- [ ] Backup authentication method requirement

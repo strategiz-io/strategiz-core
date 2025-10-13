@@ -14,12 +14,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.security.Principal;
 import java.util.Optional;
 
 /**
  * Controller for creating provider connections and integrations.
  * Handles OAuth initiation and API key setup for various providers.
- * 
+ *
  * @author Strategiz Team
  * @version 1.0
  */
@@ -44,24 +45,44 @@ public class CreateProviderController extends BaseController {
     
     /**
      * Creates a new provider connection.
-     * 
+     *
      * For OAuth providers: Returns authorization URL and state
      * For API key providers: Validates credentials and creates connection
-     * 
+     *
      * @param request The provider connection request
-     * @param authHeader The authorization header containing the session token
+     * @param principal The authenticated user principal from session
      * @return CreateProviderResponse containing connection details or OAuth URL
      */
     @PostMapping
     public ResponseEntity<CreateProviderResponse> createProvider(
             @Valid @RequestBody CreateProviderRequest request,
+            Principal principal,
             @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        // Extract user ID from the authorization token
-        String userId = extractUserIdFromToken(authHeader);
+
+        // Try to extract user ID from the principal (session-based auth) first
+        String userId = principal != null ? principal.getName() : null;
+        log.info("CreateProvider: Principal userId: {}, AuthHeader present: {}",
+                userId, authHeader != null);
+
+        // If session auth failed, try token-based auth as fallback (for signup flow)
+        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                var validationResult = sessionAuthBusiness.validateToken(token);
+                if (validationResult.isPresent()) {
+                    userId = validationResult.get().getUserId();
+                    log.info("Provider creation authenticated via Bearer token for user: {}", userId);
+                } else {
+                    log.warn("Invalid Bearer token provided for provider creation");
+                }
+            } catch (Exception e) {
+                log.warn("Error validating Bearer token for provider creation: {}", e.getMessage());
+            }
+        }
+
         if (userId == null) {
-            log.error("No valid authentication token provided for provider creation");
-            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
+            log.error("No valid authentication session or token for provider creation");
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
                 "service-provider", "Authentication required to connect provider");
         }
         request.setUserId(userId);
@@ -98,18 +119,17 @@ public class CreateProviderController extends BaseController {
     
     /**
      * Fetches connected providers for the authenticated user.
-     * 
-     * @param authHeader The authorization header containing the session token
+     *
+     * @param principal The authenticated user principal from session
      * @return Response containing the list of connected providers
      */
     @GetMapping("/connected")
-    public ResponseEntity<?> getConnectedProviders(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        String userId = extractUserIdFromToken(authHeader);
+    public ResponseEntity<?> getConnectedProviders(Principal principal) {
+
+        String userId = principal != null ? principal.getName() : null;
         if (userId == null) {
-            log.error("No valid authentication token provided for fetching providers");
-            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, 
+            log.error("No valid authentication session for fetching providers");
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
                 "service-provider", "Authentication required to fetch providers");
         }
         
@@ -133,19 +153,6 @@ public class CreateProviderController extends BaseController {
     @GetMapping("/create/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("CreateProviderController is healthy");
-    }
-    
-    /**
-     * Extract user ID from the authorization token
-     */
-    private String extractUserIdFromToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        
-        String token = authHeader.substring(7);
-        Optional<String> userIdOpt = sessionAuthBusiness.validateSession(token);
-        return userIdOpt.orElse(null);
     }
     
 } 

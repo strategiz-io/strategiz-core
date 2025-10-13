@@ -3,6 +3,7 @@ package io.strategiz.service.auth.controller.session;
 import io.strategiz.service.auth.service.session.SignOutService;
 import io.strategiz.service.auth.model.session.SignOutRequest;
 import io.strategiz.service.auth.model.session.SignOutResponse;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 
@@ -11,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
 /**
@@ -30,30 +33,45 @@ public class SignOutController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(SignOutController.class);
     
     private final SignOutService signOutService;
-    
-    public SignOutController(SignOutService signOutService) {
+    private final CookieUtil cookieUtil;
+
+    public SignOutController(SignOutService signOutService, CookieUtil cookieUtil) {
         this.signOutService = signOutService;
+        this.cookieUtil = cookieUtil;
     }
     
     /**
      * Sign out a user and clean up their session
-     * 
-     * @param request Sign out request containing user session information
+     *
+     * @param signOutRequest Sign out request containing user session information
+     * @param httpRequest HTTP request for session context
+     * @param httpResponse HTTP response to clear cookies
      * @return Clean sign out response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping
-    public ResponseEntity<SignOutResponse> signOut(@Valid @RequestBody SignOutRequest request) {
-        log.info("Processing sign out for user: {}", request.userId());
-        
-        // Sign out user - let exceptions bubble up
-        SignOutResponse response = signOutService.signOut(
-            request.userId(),
-            request.sessionId(),
-            request.deviceId(),
-            request.revokeAllSessions()
+    public ResponseEntity<SignOutResponse> signOut(
+            @Valid @RequestBody SignOutRequest signOutRequest,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        log.info("Processing sign out for user: {}", signOutRequest.userId());
+
+        // Sign out user and clear session/cookies - let exceptions bubble up
+        SignOutResponse signOutResponse = signOutService.signOut(
+            signOutRequest.userId(),
+            signOutRequest.sessionId(),
+            signOutRequest.deviceId(),
+            signOutRequest.revokeAllSessions(),
+            httpRequest,
+            httpResponse
         );
-        
+
+        // Additional cookie clearing as backup (the service should handle this, but double-check)
+        if (signOutResponse.success()) {
+            log.info("Additional cookie clearing for user: {}", signOutRequest.userId());
+            cookieUtil.clearAuthCookies(httpResponse);
+        }
+
         // Return clean response using BaseController method
-        return createCleanResponse(response);
+        return createCleanResponse(signOutResponse);
     }
 }

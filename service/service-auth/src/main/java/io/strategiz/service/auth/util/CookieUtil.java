@@ -28,6 +28,9 @@ public class CookieUtil {
     
     @Value("${app.cookie.refresh-token-max-age:604800}") // 7 days default
     private int refreshTokenMaxAge;
+
+    @Value("${app.cookie.same-site:Lax}")
+    private String sameSite;
     
     /**
      * Set access token cookie (short-lived, HTTP-only)
@@ -40,7 +43,7 @@ public class CookieUtil {
         cookie.setMaxAge(accessTokenMaxAge);
         
         // Set SameSite attribute to prevent CSRF
-        cookie.setAttribute("SameSite", "Lax");
+        cookie.setAttribute("SameSite", sameSite);
         
         if (cookieDomain != null && !cookieDomain.isEmpty()) {
             cookie.setDomain(cookieDomain);
@@ -59,8 +62,8 @@ public class CookieUtil {
         cookie.setPath("/"); // Allow all paths to access refresh token
         cookie.setMaxAge(refreshTokenMaxAge);
         
-        // Set SameSite to Lax for refresh token (allows navigation)
-        cookie.setAttribute("SameSite", "Lax");
+        // Set SameSite for refresh token
+        cookie.setAttribute("SameSite", sameSite);
         
         if (cookieDomain != null && !cookieDomain.isEmpty()) {
             cookie.setDomain(cookieDomain);
@@ -80,7 +83,7 @@ public class CookieUtil {
         cookie.setMaxAge(-1); // Session cookie (expires when browser closes)
         
         // Set SameSite attribute
-        cookie.setAttribute("SameSite", "Lax");
+        cookie.setAttribute("SameSite", sameSite);
         
         if (cookieDomain != null && !cookieDomain.isEmpty()) {
             cookie.setDomain(cookieDomain);
@@ -94,22 +97,29 @@ public class CookieUtil {
      */
     public void clearAuthCookies(HttpServletResponse response) {
         clearCookie(response, ACCESS_TOKEN_COOKIE, "/");
-        clearCookie(response, REFRESH_TOKEN_COOKIE, "/v1/auth/session");
+        clearCookie(response, REFRESH_TOKEN_COOKIE, "/");
         clearCookie(response, SESSION_ID_COOKIE, "/");
     }
     
     /**
      * Clear a specific cookie
+     * IMPORTANT: Must set the same attributes (Secure, SameSite) as when the cookie was created
+     * otherwise modern browsers may not clear the cookie properly
      */
     private void clearCookie(HttpServletResponse response, String cookieName, String path) {
         Cookie cookie = new Cookie(cookieName, "");
         cookie.setMaxAge(0);
         cookie.setPath(path);
-        
+        cookie.setHttpOnly(true); // Must match original cookie attributes
+        cookie.setSecure(secureCookie); // Must match original cookie attributes
+
+        // Must set SameSite attribute to match original cookie
+        cookie.setAttribute("SameSite", sameSite);
+
         if (cookieDomain != null && !cookieDomain.isEmpty()) {
             cookie.setDomain(cookieDomain);
         }
-        
+
         response.addCookie(cookie);
     }
 }

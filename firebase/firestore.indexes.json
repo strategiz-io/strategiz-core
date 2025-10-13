@@ -5,7 +5,7 @@
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
-          "fieldPath": "authentication_method",
+          "fieldPath": "authenticationMethod",
           "order": "ASCENDING"
         },
         {

@@ -65,7 +65,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     public List<AuthenticationMethodEntity> findByUserIdAndType(String userId, AuthenticationMethodType type) {
         try {
             return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.getType() == type)
+                    .filter(entity -> entity.getAuthenticationMethod() == type)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {} and type: {}", userId, type, e);
@@ -94,7 +94,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     public List<AuthenticationMethodEntity> findByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled) {
         try {
             return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.getType() == type && Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
+                    .filter(entity -> entity.getAuthenticationMethod() == type && Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {}, type: {}, enabled: {}", userId, type, isEnabled, e);
@@ -141,32 +141,33 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
     @Override
     public Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId) {
         try {
+            log.debug("Searching for passkey with credential ID: {}", credentialId);
+
             // For passkey authentication, we need to search across all users
             // This requires a collection group query on the security subcollection
             // Note: This requires a composite index in Firestore
+            // IMPORTANT: Firestore uses camelCase field names from Java getters, not @PropertyName
             Query query = firestore.collectionGroup("security")
-                    .whereEqualTo("authentication_method", "PASSKEY")
+                    .whereEqualTo("authenticationMethod", "PASSKEY")  // Use camelCase, not snake_case!
                     .whereEqualTo("isActive", true)
                     .limit(100);
-            
+
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
             QuerySnapshot snapshot = querySnapshot.get();
-            
+
             if (snapshot.isEmpty()) {
-                log.debug("No active passkey found with credential ID: {}", credentialId);
+                log.debug("No active passkey documents found in collection group query");
                 return Optional.empty();
             }
-            
+
             // Filter documents by credentialId in metadata
             for (com.google.cloud.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
                 AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
                 entity.setId(doc.getId());
-                
+
                 // Check if this passkey has the matching credential ID
                 String storedCredentialId = entity.getMetadataAsString("credentialId");
                 if (credentialId.equals(storedCredentialId)) {
-                    // Found the matching passkey!
-                    
                     // Extract userId from the document path and store it in metadata
                     // Path format: users/{userId}/security/{methodId}
                     String path = doc.getReference().getPath();
@@ -174,16 +175,13 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
                     if (pathParts.length >= 2) {
                         String userId = pathParts[1]; // users/{userId}/...
                         entity.putMetadata("userId", userId);
-                        log.debug("Found passkey for user {} with credential ID: {}", userId, credentialId);
-                        log.debug("Entity has audit fields: {}, isActive: {}", entity._hasAudit(), entity.getIsActive());
+                        log.debug("Found matching passkey for user {}", userId);
                     }
-                    
                     return Optional.of(entity);
                 }
             }
-            
-            // No matching credential found
-            log.debug("No passkey found with credential ID: {} after checking {} documents", credentialId, snapshot.size());
+
+            log.debug("No passkey found with credential ID: {}", credentialId);
             return Optional.empty();
         } catch (InterruptedException | ExecutionException e) {
             log.error("Failed to find authentication method by credential ID: {}", credentialId, e);

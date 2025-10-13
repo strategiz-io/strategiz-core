@@ -144,40 +144,31 @@ public class PortfolioAggregatorService {
         PortfolioOverviewResponse response = new PortfolioOverviewResponse();
         
         try {
-            // Check if user is in demo mode
-            boolean isInDemoMode = isDemoMode(userId);
-            log.info("User {} demo mode status for portfolio overview: {}", userId, isInDemoMode);
-            
-            // Get all provider data and integrations
-            List<ProviderDataEntity> allProviderData = new ArrayList<>();
+            // Get all provider integrations to see what's connected
             List<ProviderIntegrationEntity> integrations = providerIntegrationRepository.findByUserId(userId);
-            
-            // If not in demo mode, fetch real-time data for connected providers
-            if (!isInDemoMode) {
-                log.info("Fetching real-time data for user {} (demo mode off)", userId);
-                
-                // Check for Kraken integration
-                boolean hasKraken = integrations.stream()
-                    .anyMatch(i -> ServicePortfolioConstants.PROVIDER_KRAKEN.equals(i.getProviderId()) 
-                        && i.getStatus() == ProviderStatus.CONNECTED);
-                
-                if (hasKraken && krakenPortfolioService != null) {
-                    log.info("Fetching real-time Kraken data for user {}", userId);
-                    ProviderPortfolioResponse krakenData = krakenPortfolioService.getKrakenPortfolio(userId);
-                    
-                    if (krakenData != null && krakenData.getTotalValue() != null) {
-                        // Convert ProviderPortfolioResponse to ProviderDataEntity for consistency
-                        ProviderDataEntity krakenEntity = convertToProviderDataEntity(krakenData);
-                        allProviderData.add(krakenEntity);
-                        log.info("Added Kraken data with total value: {}", krakenData.getTotalValue());
-                    }
+            log.info("User {} has {} provider integrations", userId, integrations.size());
+
+            // Fetch real-time data ONLY from connected providers - NO demo data logic
+            List<ProviderDataEntity> allProviderData = new ArrayList<>();
+
+            // Check for Kraken integration
+            boolean hasKraken = integrations.stream()
+                .anyMatch(i => ServicePortfolioConstants.PROVIDER_KRAKEN.equals(i.getProviderId())
+                    && i.getStatus() == ProviderStatus.CONNECTED);
+
+            if (hasKraken && krakenPortfolioService != null) {
+                log.info("Fetching real-time Kraken data for user {}", userId);
+                ProviderPortfolioResponse krakenData = krakenPortfolioService.getKrakenPortfolio(userId);
+
+                if (krakenData != null && krakenData.getTotalValue() != null) {
+                    // Convert ProviderPortfolioResponse to ProviderDataEntity for consistency
+                    ProviderDataEntity krakenEntity = convertToProviderDataEntity(krakenData);
+                    allProviderData.add(krakenEntity);
+                    log.info("Added Kraken data with total value: {}", krakenData.getTotalValue());
                 }
-                
-                // TODO: Add other providers as they implement real-time data fetching
-            } else {
-                // In demo mode or when real-time fetching fails, use stored data
-                allProviderData = providerDataRepository.getAllProviderData(userId);
             }
+
+            // TODO: Add other providers as they implement real-time data fetching
             
             // Process providers
             List<PortfolioOverviewResponse.ProviderSummary> providerSummaries = new ArrayList<>();
@@ -472,26 +463,6 @@ public class PortfolioAggregatorService {
             ServicePortfolioConstants.PROVIDER_ROBINHOOD, "Robinhood"
         );
         return providerNames.getOrDefault(providerId, providerId);
-    }
-    
-    /**
-     * Check if user is in demo mode
-     */
-    private boolean isDemoMode(String userId) {
-        try {
-            return userRepository.findById(userId)
-                .map(user -> {
-                    if (user.getProfile() != null && user.getProfile().getDemoMode() != null) {
-                        return user.getProfile().getDemoMode();
-                    }
-                    // Default to demo mode if not set
-                    return true;
-                })
-                .orElse(true);
-        } catch (Exception e) {
-            log.warn("Error checking demo mode for user {}, defaulting to true: {}", userId, e.getMessage());
-            return true;
-        }
     }
     
     /**

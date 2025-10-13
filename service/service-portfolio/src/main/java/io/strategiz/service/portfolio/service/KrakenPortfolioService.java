@@ -1,6 +1,7 @@
 package io.strategiz.service.portfolio.service;
 
 import io.strategiz.business.portfolio.enhancer.PortfolioEnhancementOrchestrator;
+import io.strategiz.business.portfolio.enhancer.business.MarketPriceBusiness;
 import io.strategiz.business.portfolio.enhancer.model.EnhancedAsset;
 import io.strategiz.business.portfolio.enhancer.model.EnhancedPortfolio;
 import io.strategiz.client.kraken.auth.portfolio.KrakenApiPortfolioClient;
@@ -42,6 +43,7 @@ public class KrakenPortfolioService {
     private final UpdateProviderDataRepository updateProviderDataRepository;
     private final UserRepository userRepository;
     private final PortfolioEnhancementOrchestrator portfolioEnhancer;
+    private final MarketPriceBusiness marketPriceBusiness;
     
     // Cache for crypto prices (symbol -> price)
     private final Map<String, BigDecimal> priceCache = new ConcurrentHashMap<>();
@@ -68,13 +70,15 @@ public class KrakenPortfolioService {
             @Autowired(required = false) CreateProviderDataRepository createProviderDataRepository,
             @Autowired(required = false) UpdateProviderDataRepository updateProviderDataRepository,
             UserRepository userRepository,
-            @Autowired(required = false) PortfolioEnhancementOrchestrator portfolioEnhancer) {
+            @Autowired(required = false) PortfolioEnhancementOrchestrator portfolioEnhancer,
+            @Autowired(required = false) MarketPriceBusiness marketPriceBusiness) {
         this.krakenApiPortfolioClient = krakenApiPortfolioClient;
         this.readProviderDataRepository = readProviderDataRepository;
         this.createProviderDataRepository = createProviderDataRepository;
         this.updateProviderDataRepository = updateProviderDataRepository;
         this.userRepository = userRepository;
         this.portfolioEnhancer = portfolioEnhancer;
+        this.marketPriceBusiness = marketPriceBusiness;
     }
     
     /**
@@ -85,28 +89,19 @@ public class KrakenPortfolioService {
      */
     public ProviderPortfolioResponse getKrakenPortfolio(String userId) {
         log.info("Fetching Kraken portfolio for user: {}", userId);
-        
+
         try {
-            // Check if user is in demo mode
-            boolean isInDemoMode = isDemoMode(userId);
-            log.info("User {} demo mode status: {}", userId, isInDemoMode);
-            
-            if (isInDemoMode) {
-                // Return demo data
-                return getDemoKrakenData(userId);
-            }
-            
-            // Fetch data (prioritizes cached data from Firestore, then real-time from Kraken API)
+            // Fetch ONLY real data from database/API - NO demo data
             ProviderPortfolioResponse response = fetchRealTimeKrakenData(userId);
-            
+
             // Log what we're returning
             if (response != null && response.getPositions() != null) {
-                log.info("Returning Kraken portfolio with {} positions, total value: {}", 
+                log.info("Returning Kraken portfolio with {} positions, total value: {}",
                     response.getPositions().size(), response.getTotalValue());
             }
-            
+
             return response;
-            
+
         } catch (Exception e) {
             log.error("Error fetching Kraken portfolio for user {}: {}", userId, e.getMessage(), e);
             return createErrorResponse("Failed to fetch Kraken portfolio: " + e.getMessage());
@@ -246,17 +241,17 @@ public class KrakenPortfolioService {
      */
     private ProviderPortfolioResponse fetchRealTimeKrakenData(String userId) {
         log.info("Fetching Kraken portfolio data for user: {}", userId);
-        
+
         // Get enriched data from Firestore provider_data subcollection
         ProviderDataEntity storedData = readProviderDataRepository.getProviderData(
             userId, ServicePortfolioConstants.PROVIDER_KRAKEN);
-        
+
         if (storedData != null) {
             log.info("Found enriched Kraken data in Firestore for user: {}", userId);
-            
+
             // Map the enriched data to response
             ProviderPortfolioResponse response = mapEnrichedDataToResponse(storedData);
-            
+
             // Update with real-time prices if data is older than 5 minutes
             if (storedData.getLastUpdatedAt() != null) {
                 long ageInMillis = System.currentTimeMillis() - storedData.getLastUpdatedAt().toEpochMilli();
@@ -267,10 +262,10 @@ public class KrakenPortfolioService {
                     log.info("Returning enriched data (age: {} ms)", ageInMillis);
                 }
             }
-            
+
             return response;
         }
-        
+
         // If no enriched data exists, return error
         log.error("No enriched Kraken data found for user: {}", userId);
         return createErrorResponse("No Kraken data available. Please reconnect your Kraken account.");
@@ -358,19 +353,33 @@ public class KrakenPortfolioService {
     }
     
     /**
-     * Update real-time prices for positions.
+     * Update real-time prices for positions using Yahoo Finance API.
      * Only updates prices without modifying the enriched structure.
      */
     private void updateRealTimePrices(ProviderPortfolioResponse response, String userId) {
-        if (krakenApiPortfolioClient == null || response.getPositions() == null) {
+        if (response.getPositions() == null || response.getPositions().isEmpty()) {
             return;
         }
-        
+
         try {
-            // Get fresh price data from Kraken (for now, skip this until we add the method)
-            // TODO: Add getCurrentPrices method to KrakenApiPortfolioClient
+            // Extract symbols from positions
+            List<String> symbols = response.getPositions().stream()
+                .map(PortfolioPositionResponse::getSymbol)
+                .distinct()
+                .collect(Collectors.toList());
+
+            // Get fresh price data from Yahoo Finance via MarketPriceBusiness
             Map<String, BigDecimal> currentPrices = new HashMap<>();
-            
+            if (marketPriceBusiness != null) {
+                try {
+                    Map<String, BigDecimal> latestPrices = marketPriceBusiness.getBatchPrices(symbols, "crypto");
+                    currentPrices.putAll(latestPrices);
+                    log.info("Successfully fetched {} real-time prices for user {}", latestPrices.size(), userId);
+                } catch (Exception e) {
+                    log.warn("Failed to fetch real-time prices from Yahoo Finance: {}", e.getMessage());
+                }
+            }
+
             if (currentPrices != null && !currentPrices.isEmpty()) {
                 for (PortfolioPositionResponse position : response.getPositions()) {
                     BigDecimal newPrice = currentPrices.get(position.getSymbol());
@@ -550,13 +559,13 @@ public class KrakenPortfolioService {
                     if (user.getProfile() != null && user.getProfile().getDemoMode() != null) {
                         return user.getProfile().getDemoMode();
                     }
-                    // Default to demo mode if not set
-                    return true;
+                    // Default to REAL mode if not set - users should get real data unless explicitly in demo mode
+                    return false;
                 })
-                .orElse(true);
+                .orElse(false); // Default to REAL mode if user not found
         } catch (Exception e) {
-            log.warn("Error checking demo mode for user {}, defaulting to true: {}", userId, e.getMessage());
-            return true;
+            log.warn("Error checking demo mode for user {}, defaulting to false (real mode): {}", userId, e.getMessage());
+            return false; // Default to REAL mode on error
         }
     }
     

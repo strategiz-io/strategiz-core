@@ -3,6 +3,7 @@ package io.strategiz.service.auth.service.session;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.data.session.entity.SessionEntity;
+import io.strategiz.service.auth.util.CookieUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +29,12 @@ public class SessionService {
     private static final String REFRESH_TOKEN_COOKIE = "strategiz-refresh-token";
 
     private final SessionAuthBusiness sessionBusiness;
+    private final CookieUtil cookieUtil;
 
     @Autowired
-    public SessionService(SessionAuthBusiness sessionBusiness) {
+    public SessionService(SessionAuthBusiness sessionBusiness, CookieUtil cookieUtil) {
         this.sessionBusiness = sessionBusiness;
+        this.cookieUtil = cookieUtil;
         log.info("SessionService initialized with SessionAuthBusiness");
     }
 
@@ -115,13 +118,28 @@ public class SessionService {
      */
     public boolean terminateSession(HttpServletRequest request, HttpServletResponse response) {
         log.info("Terminating current session");
-        
-        // For token-based sessions, we just clear the cookie
-        Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE, "");
-        cookie.setMaxAge(0);
-        cookie.setPath("/");
-        response.addCookie(cookie);
-        
+
+        // First, try to get the session token and invalidate it in the business layer
+        String token = extractTokenFromRequest(request);
+        if (token != null) {
+            try {
+                // Revoke the token/session in the business layer (marks session as revoked in database)
+                boolean revoked = sessionBusiness.revokeAuthentication(token);
+                if (revoked) {
+                    log.info("Session token revoked in business layer");
+                } else {
+                    log.warn("Session token not found for revocation, continuing with cookie clearing");
+                }
+            } catch (Exception e) {
+                log.warn("Failed to revoke session in business layer: {}", e.getMessage());
+                // Continue with cookie clearing even if token revocation fails
+            }
+        }
+
+        // Clear all authentication cookies using CookieUtil
+        cookieUtil.clearAuthCookies(response);
+        log.info("All authentication cookies cleared");
+
         return true;
     }
 
@@ -134,11 +152,19 @@ public class SessionService {
     }
 
     /**
-     * Terminate all sessions for a user - not supported in token-based approach
+     * Terminate all sessions for a user by revoking all tokens in the database
      */
     public int terminateAllUserSessions(String userId, String reason) {
-        log.info("Terminating all sessions for user: {} for reason: {} - not supported in token-based approach", userId, reason);
-        return 0;
+        log.info("Terminating all sessions for user: {} for reason: {}", userId, reason);
+        try {
+            // Use the SessionAuthBusiness to revoke all user authentication
+            int revokedCount = sessionBusiness.revokeAllUserAuthentication(userId, reason);
+            log.info("Successfully revoked {} sessions for user: {}", revokedCount, userId);
+            return revokedCount;
+        } catch (Exception e) {
+            log.error("Failed to revoke all sessions for user {}: {}", userId, e.getMessage());
+            return 0;
+        }
     }
 
     /**

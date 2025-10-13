@@ -1,0 +1,611 @@
+---
+id: kraken-portfolio-api
+title: Kraken Portfolio API
+sidebar_label: Kraken Portfolio API
+---
+
+# Kraken Portfolio API
+
+## Overview
+
+The Kraken Portfolio API provides Kraken-specific portfolio operations with enhanced features tailored to the Kraken exchange platform. This API offers detailed access to balances, positions, trade history, and real-time market data enrichment.
+
+**Controller**: `KrakenPortfolioController`
+**Base Path**: `/v1/portfolio/providers/kraken`
+**Authentication**: Bearer token with session validation
+
+## Business Purpose
+
+### Primary Goals
+- Provide comprehensive Kraken portfolio management
+- Support Kraken-specific features (staking, margin, locked funds)
+- Enable detailed trade history analysis
+- Offer real-time balance and position tracking
+
+### Target Users
+- Users with Kraken exchange accounts
+- Traders managing Kraken positions
+- Analytics tools requiring Kraken-specific data
+- Portfolio tracking applications
+
+## Endpoints
+
+### 1. Get Kraken Portfolio
+
+Retrieves complete Kraken portfolio including all balances, positions, and summary statistics.
+
+**Endpoint**: `GET /v1/portfolio/providers/kraken`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Query Parameters**:
+- `includeStaking` (optional, boolean) - Include staking balances (default: true)
+- `includeMargin` (optional, boolean) - Include margin positions (default: true)
+
+**Response**: `200 OK`
+```json
+{
+  "providerId": "kraken",
+  "providerName": "Kraken",
+  "status": "CONNECTED",
+  "lastUpdated": "2025-10-12T22:00:00Z",
+  "portfolio": {
+    "totalValue": 75000.00,
+    "currency": "USD",
+    "performance": {
+      "change24h": 1575.00,
+      "changePercent24h": 2.1,
+      "change7d": 5250.00,
+      "changePercent7d": 7.5
+    },
+    "holdings": [
+      {
+        "symbol": "BTC",
+        "name": "Bitcoin",
+        "quantity": 1.5,
+        "available": 1.5,
+        "locked": 0.0,
+        "staked": 0.0,
+        "averageCost": 28000.00,
+        "currentPrice": 30000.00,
+        "marketValue": 45000.00,
+        "unrealizedGainLoss": 3000.00,
+        "unrealizedGainLossPercent": 7.14,
+        "allocation": 60.0
+      }
+    ],
+    "balances": {
+      "spot": {
+        "available": 5000.00,
+        "locked": 0.00,
+        "total": 5000.00
+      },
+      "staking": {
+        "total": 0.00,
+        "rewards": 0.00
+      },
+      "margin": {
+        "equity": 0.00,
+        "freeMargin": 0.00,
+        "usedMargin": 0.00
+      }
+    }
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid or expired session token
+- `404 Not Found` - Kraken not connected for this user
+- `503 Service Unavailable` - Kraken API unavailable
+
+---
+
+### 2. Get Kraken Balances
+
+Retrieves detailed balance information including spot, staking, and margin balances.
+
+**Endpoint**: `GET /v1/portfolio/providers/kraken/balances`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Response**: `200 OK`
+```json
+{
+  "providerId": "kraken",
+  "lastUpdated": "2025-10-12T22:00:00Z",
+  "balances": [
+    {
+      "asset": "BTC",
+      "name": "Bitcoin",
+      "balance": 1.5,
+      "available": 1.5,
+      "locked": 0.0,
+      "staked": 0.0,
+      "currentPrice": 30000.00,
+      "value": 45000.00
+    },
+    {
+      "asset": "ETH",
+      "name": "Ethereum",
+      "balance": 15.0,
+      "available": 14.5,
+      "locked": 0.5,
+      "staked": 0.0,
+      "currentPrice": 2000.00,
+      "value": 30000.00
+    },
+    {
+      "asset": "USD",
+      "name": "US Dollar",
+      "balance": 5000.00,
+      "available": 5000.00,
+      "locked": 0.00,
+      "staked": 0.0,
+      "currentPrice": 1.00,
+      "value": 5000.00
+    }
+  ],
+  "summary": {
+    "totalValue": 80000.00,
+    "totalAvailable": 79500.00,
+    "totalLocked": 500.00,
+    "totalStaked": 0.00,
+    "currency": "USD"
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid session token
+- `404 Not Found` - Kraken not connected
+- `503 Service Unavailable` - Kraken API error
+
+---
+
+### 3. Get Kraken Positions
+
+Retrieves current open positions including margin positions.
+
+**Endpoint**: `GET /v1/portfolio/providers/kraken/positions`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Query Parameters**:
+- `includeMargin` (optional, boolean) - Include margin positions (default: true)
+
+**Response**: `200 OK`
+```json
+{
+  "providerId": "kraken",
+  "lastUpdated": "2025-10-12T22:00:00Z",
+  "positions": [
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "quantity": 1.5,
+      "side": "LONG",
+      "entryPrice": 28000.00,
+      "currentPrice": 30000.00,
+      "marketValue": 45000.00,
+      "costBasis": 42000.00,
+      "unrealizedPnL": 3000.00,
+      "unrealizedPnLPercent": 7.14,
+      "openedAt": "2025-09-01T10:00:00Z"
+    }
+  ],
+  "summary": {
+    "totalPositions": 1,
+    "totalValue": 45000.00,
+    "totalCostBasis": 42000.00,
+    "totalUnrealizedPnL": 3000.00,
+    "totalUnrealizedPnLPercent": 7.14
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid session token
+- `404 Not Found` - Kraken not connected
+- `503 Service Unavailable` - Kraken API error
+
+---
+
+### 4. Refresh Kraken Portfolio
+
+Triggers a refresh of all Kraken portfolio data.
+
+**Endpoint**: `POST /v1/portfolio/providers/kraken/refresh`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Request Body**: None
+
+**Response**: `202 Accepted`
+```json
+{
+  "status": "REFRESH_INITIATED",
+  "providerId": "kraken",
+  "message": "Kraken portfolio refresh initiated",
+  "estimatedCompletionTime": "2025-10-12T22:00:30Z",
+  "refreshId": "ref_kraken_abc123"
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid session token
+- `404 Not Found` - Kraken not connected
+- `429 Too Many Requests` - Rate limit exceeded
+- `503 Service Unavailable` - Kraken API unavailable
+
+**Rate Limiting**:
+- Maximum: 1 refresh per minute
+- Cooldown: 60 seconds between requests
+
+---
+
+### 5. Get Kraken Trade History
+
+Retrieves historical trades executed on Kraken.
+
+**Endpoint**: `GET /v1/portfolio/providers/kraken/trades`
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Query Parameters**:
+- `startDate` (optional, ISO-8601) - Start date for trade history
+- `endDate` (optional, ISO-8601) - End date for trade history
+- `symbol` (optional, string) - Filter by specific symbol
+- `limit` (optional, integer) - Maximum trades to return (default: 50, max: 500)
+
+**Response**: `200 OK`
+```json
+{
+  "providerId": "kraken",
+  "trades": [
+    {
+      "tradeId": "TKH2JY-5J3E3-CFXKS2",
+      "orderId": "O3F2JY-5J3E3-CFXKS2",
+      "symbol": "BTC/USD",
+      "side": "BUY",
+      "quantity": 0.5,
+      "price": 29000.00,
+      "value": 14500.00,
+      "fee": 14.50,
+      "feeCurrency": "USD",
+      "timestamp": "2025-10-10T15:30:00Z",
+      "orderType": "LIMIT",
+      "status": "FILLED"
+    },
+    {
+      "tradeId": "TKH2JY-5J3E3-CFXKS3",
+      "orderId": "O3F2JY-5J3E3-CFXKS3",
+      "symbol": "ETH/USD",
+      "side": "BUY",
+      "quantity": 5.0,
+      "price": 1950.00,
+      "value": 9750.00,
+      "fee": 9.75,
+      "feeCurrency": "USD",
+      "timestamp": "2025-10-11T10:15:00Z",
+      "orderType": "MARKET",
+      "status": "FILLED"
+    }
+  ],
+  "pagination": {
+    "total": 2,
+    "returned": 2,
+    "hasMore": false
+  },
+  "summary": {
+    "totalTrades": 2,
+    "totalValue": 24250.00,
+    "totalFees": 24.25
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid session token
+- `404 Not Found` - Kraken not connected
+- `400 Bad Request` - Invalid date range or parameters
+- `503 Service Unavailable` - Kraken API error
+
+---
+
+### 6. Health Check
+
+Checks the health status of the Kraken portfolio service.
+
+**Endpoint**: `GET /v1/portfolio/providers/kraken/health`
+
+**Response**: `200 OK`
+```json
+{
+  "status": "UP",
+  "timestamp": "2025-10-12T22:00:00Z"
+}
+```
+
+## Kraken-Specific Features
+
+### Staking Support
+Kraken supports cryptocurrency staking for various assets:
+- **Staked Balances**: Tracked separately from available balance
+- **Staking Rewards**: Accumulated rewards included in portfolio value
+- **Unstaking Period**: Locked period tracked for accurate availability
+
+### Margin Trading
+Kraken offers margin trading with leverage:
+- **Margin Positions**: Long and short positions tracked
+- **Margin Level**: Real-time margin utilization monitoring
+- **Liquidation Price**: Calculated and displayed for risk management
+
+### Locked Funds
+Kraken may lock funds for various reasons:
+- **Open Orders**: Funds reserved for pending orders
+- **Withdrawals**: Funds in withdrawal process
+- **Security Holds**: Temporary security-related locks
+
+## Market Data Enrichment
+
+The Kraken portfolio uses a two-stage enrichment process:
+
+### Stage 1: Raw Data from Kraken
+1. **Kraken API Client** (`client-kraken/KrakenApiPortfolioClient`)
+2. Fetches balances, positions, and trade history
+3. Returns Kraken-native format **without current market prices**
+
+### Stage 2: Market Price Enrichment
+1. **Portfolio Enhancer** (`business-provider-kraken/KrakenPortfolioEnhancerService`)
+2. Calls **Market Price Business** (`business-portfolio/MarketPriceBusiness`)
+3. **Yahoo Finance Client** fetches real-time prices
+4. Applies current prices to holdings
+5. Returns enriched portfolio with accurate valuations
+
+### Data Flow Diagram
+```
+Kraken API
+    ↓ (raw balances, no prices)
+KrakenApiPortfolioClient
+    ↓
+KrakenPortfolioEnhancerService
+    ↓
+MarketPriceBusiness
+    ↓
+YahooFinanceClient (real-time prices)
+    ↓
+Enriched Portfolio Response
+```
+
+## Authentication
+
+All endpoints (except health check) require:
+
+1. **Bearer Token**: Session token from authentication
+2. **Kraken Connection**: User must have connected Kraken
+3. **Valid OAuth**: Kraken OAuth tokens must be valid
+4. **User Ownership**: Validated against userId in session
+
+## Error Handling
+
+### Kraken API Errors
+
+**Authentication Expired**
+```json
+{
+  "error": "KRAKEN_AUTH_EXPIRED",
+  "message": "Kraken authentication has expired. Please reconnect.",
+  "reconnectUrl": "/v1/providers/connect/kraken"
+}
+```
+
+**API Rate Limited**
+```json
+{
+  "error": "KRAKEN_RATE_LIMITED",
+  "message": "Kraken API rate limit exceeded",
+  "retryAfter": 30,
+  "krakenTier": "Intermediate",
+  "currentUsage": "80/120 requests"
+}
+```
+
+**Service Unavailable**
+```json
+{
+  "error": "KRAKEN_UNAVAILABLE",
+  "message": "Kraken API is temporarily unavailable",
+  "cachedDataAvailable": true,
+  "cacheAge": "3m 15s",
+  "krakenStatus": "https://status.kraken.com"
+}
+```
+
+## Caching Strategy
+
+### Portfolio Cache
+- **TTL**: 5 minutes
+- **Key**: `portfolio:user:{userId}:kraken:full`
+- **Invalidation**: Manual refresh or OAuth update
+
+### Balance Cache
+- **TTL**: 2 minutes
+- **Key**: `portfolio:user:{userId}:kraken:balances`
+- **Invalidation**: Manual refresh or detected change
+
+### Trade History Cache
+- **TTL**: 15 minutes
+- **Key**: `portfolio:user:{userId}:kraken:trades:{hash}`
+- **Invalidation**: Time-based only
+
+## Performance Optimization
+
+### Response Time Targets
+- Portfolio: < 1000ms (95th percentile)
+- Balances: < 500ms (95th percentile)
+- Positions: < 800ms (95th percentile)
+- Trade History: < 1500ms (95th percentile)
+
+### Optimization Techniques
+- Parallel Kraken API calls (balances + positions)
+- Market price batch fetching
+- Aggressive caching with smart invalidation
+- Trade history pagination
+
+## Use Cases
+
+### Portfolio Dashboard
+```javascript
+// Fetch complete Kraken portfolio
+const response = await fetch('/v1/portfolio/providers/kraken', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const portfolio = await response.json();
+// Display total value, holdings, performance
+```
+
+### Balance Monitoring
+```javascript
+// Check current balances
+const response = await fetch('/v1/portfolio/providers/kraken/balances', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const { balances, summary } = await response.json();
+// Display available, locked, staked balances
+```
+
+### Trade Analysis
+```javascript
+// Fetch recent trades
+const response = await fetch(
+  '/v1/portfolio/providers/kraken/trades?limit=100&symbol=BTC/USD',
+  {
+    headers: {
+      'Authorization': `Bearer ${sessionToken}`
+    }
+  }
+);
+const { trades, summary } = await response.json();
+// Analyze trade patterns, fees, performance
+```
+
+### Real-time Refresh
+```javascript
+// Trigger refresh, wait for completion
+const refreshResponse = await fetch(
+  '/v1/portfolio/providers/kraken/refresh',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${sessionToken}`
+    }
+  }
+);
+
+// Poll or wait, then fetch fresh data
+await new Promise(resolve => setTimeout(resolve, 2000));
+
+const portfolioResponse = await fetch('/v1/portfolio/providers/kraken', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const freshPortfolio = await portfolioResponse.json();
+```
+
+## Testing
+
+### Unit Tests
+```bash
+./gradlew test --tests KrakenPortfolioControllerTest
+```
+
+### Integration Tests
+```bash
+./gradlew integrationTest --tests KrakenPortfolioIntegrationTest
+```
+
+### Test Coverage
+- Complete portfolio retrieval
+- Balance fetching with staking
+- Position tracking with margin
+- Trade history pagination
+- Refresh flow and rate limiting
+- Error scenarios (auth expired, rate limit, API down)
+
+## Monitoring
+
+### Key Metrics
+- **Request Rate**: Requests per minute to Kraken endpoints
+- **Response Time**: Latency by endpoint type
+- **Error Rate**: Failed requests by error type
+- **Kraken API Calls**: External API usage tracking
+- **Cache Hit Rate**: Percentage of cached responses
+
+### Kraken-Specific Alerts
+- Kraken authentication expiration rate > 5%
+- Kraken API error rate > 10%
+- Kraken response time > 5 seconds
+- Kraken rate limit approaching (>80% usage)
+
+## Security Considerations
+
+### Kraken OAuth
+- **Token Storage**: OAuth tokens stored in HashiCorp Vault
+- **Token Refresh**: Automatic refresh before expiration
+- **Token Rotation**: Supports Kraken's token rotation
+
+### Data Privacy
+- Portfolio data user-scoped in Firestore
+- No cross-user data access
+- Kraken API keys never exposed
+- Sensitive data encrypted at rest
+
+### API Security
+- All requests over HTTPS
+- Bearer token validation on every request
+- Rate limiting to prevent abuse
+- Request signing for Kraken API calls
+
+## Kraken API Integration
+
+### API Documentation
+- [Kraken REST API](https://docs.kraken.com/rest/)
+- [Kraken WebSocket](https://docs.kraken.com/websockets/)
+- [Kraken API Status](https://status.kraken.com/)
+
+### Rate Limits
+Kraken enforces tiered rate limits:
+- **Starter**: 15 requests per second
+- **Intermediate**: 20 requests per second
+- **Pro**: Custom limits
+
+Our implementation respects these limits with:
+- Request queuing
+- Rate limit tracking
+- Automatic backoff
+
+## Related Documentation
+- [Portfolio Aggregator API](portfolio-aggregator-api.mdx) - Multi-provider aggregation
+- [Portfolio Provider API](portfolio-provider-api.mdx) - Generic provider operations
+- [Service Provider](../../service-provider/docs/service-provider.mdx) - Kraken connection setup

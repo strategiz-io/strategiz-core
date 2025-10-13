@@ -1,0 +1,422 @@
+---
+id: portfolio-provider-api
+title: Portfolio Provider API
+sidebar_label: Portfolio Provider API
+---
+
+# Portfolio Provider API
+
+## Overview
+
+The Portfolio Provider API manages provider-specific portfolio operations, allowing users to fetch and refresh portfolio data for individual connected providers. This API is designed for scenarios where users need to interact with a specific provider rather than aggregated data.
+
+**Controller**: `PortfolioProviderController`
+**Base Path**: `/v1/portfolio/providers`
+**Authentication**: Bearer token with session validation
+
+## Business Purpose
+
+### Primary Goals
+- Provide granular control over individual provider portfolios
+- Enable selective data refresh for specific providers
+- Support provider-specific features and operations
+- Isolate provider errors from overall portfolio view
+
+### Target Users
+- Users viewing single provider portfolios
+- Provider-specific management interfaces
+- Debugging and troubleshooting tools
+- Third-party integrations targeting specific providers
+
+## Endpoints
+
+### 1. Get Provider Portfolio
+
+Retrieves portfolio data for a specific connected provider.
+
+**Endpoint**: `GET /v1/portfolio/providers/{providerId}`
+
+**Path Parameters**:
+- `providerId` (string, required) - Provider identifier (e.g., "kraken", "coinbase")
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Query Parameters**:
+- `refresh` (optional, boolean) - Force refresh before returning data (default: false)
+
+**Response**: `200 OK`
+```json
+{
+  "providerId": "kraken",
+  "providerName": "Kraken",
+  "providerType": "EXCHANGE",
+  "status": "CONNECTED",
+  "connectionDetails": {
+    "connectedAt": "2025-10-01T10:00:00Z",
+    "lastRefreshed": "2025-10-12T22:00:00Z",
+    "authMethod": "OAUTH"
+  },
+  "portfolio": {
+    "totalValue": 75000.00,
+    "currency": "USD",
+    "lastUpdated": "2025-10-12T22:00:00Z",
+    "performance": {
+      "change24h": 1575.00,
+      "changePercent24h": 2.1,
+      "change7d": 5250.00,
+      "changePercent7d": 7.5
+    },
+    "holdings": [
+      {
+        "symbol": "BTC",
+        "name": "Bitcoin",
+        "quantity": 1.5,
+        "averageCost": 28000.00,
+        "currentPrice": 30000.00,
+        "marketValue": 45000.00,
+        "unrealizedGainLoss": 3000.00,
+        "unrealizedGainLossPercent": 7.14,
+        "allocation": 60.0
+      },
+      {
+        "symbol": "ETH",
+        "name": "Ethereum",
+        "quantity": 15.0,
+        "averageCost": 1800.00,
+        "currentPrice": 2000.00,
+        "marketValue": 30000.00,
+        "unrealizedGainLoss": 3000.00,
+        "unrealizedGainLossPercent": 11.11,
+        "allocation": 40.0
+      }
+    ],
+    "balances": {
+      "available": 5000.00,
+      "locked": 0.00,
+      "total": 5000.00
+    }
+  }
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid or expired session token
+- `404 Not Found` - Provider not found or not connected
+- `503 Service Unavailable` - Provider temporarily unavailable
+
+**Performance**:
+- Target response time: < 1000ms
+- Uses cached data unless refresh=true
+- Real-time market pricing always applied
+
+---
+
+### 2. Refresh Provider Portfolio
+
+Triggers a refresh of portfolio data for a specific provider.
+
+**Endpoint**: `POST /v1/portfolio/providers/{providerId}/refresh`
+
+**Path Parameters**:
+- `providerId` (string, required) - Provider identifier
+
+**Request Headers**:
+```
+Authorization: Bearer {session-token}
+```
+
+**Request Body**: None
+
+**Response**: `202 Accepted`
+```json
+{
+  "status": "REFRESH_INITIATED",
+  "providerId": "kraken",
+  "message": "Portfolio refresh initiated for Kraken",
+  "estimatedCompletionTime": "2025-10-12T22:00:30Z",
+  "refreshId": "ref_abc123xyz"
+}
+```
+
+**Error Responses**:
+- `401 Unauthorized` - Invalid or expired session token
+- `404 Not Found` - Provider not found or not connected
+- `429 Too Many Requests` - Refresh rate limit exceeded
+- `503 Service Unavailable` - Provider API unavailable
+
+**Rate Limiting**:
+- Maximum: 1 refresh per provider per minute
+- Cooldown: 60 seconds between requests
+- Global limit: 5 refreshes per user per minute
+
+---
+
+### 3. Health Check
+
+Checks the health status of the portfolio provider service.
+
+**Endpoint**: `GET /v1/portfolio/providers/health`
+
+**Response**: `200 OK`
+```json
+{
+  "status": "UP",
+  "timestamp": "2025-10-12T22:00:00Z"
+}
+```
+
+## Authentication
+
+All endpoints (except health check) require Bearer token authentication:
+
+1. **Session Token Required**: Obtained via authentication endpoints
+2. **User Context**: Token identifies the user and validates provider ownership
+3. **Provider Access**: User must have connected the requested provider
+4. **Token Validation**: Checked against active sessions in Firestore
+
+## Supported Providers
+
+The API supports these provider IDs:
+
+| Provider ID | Provider Name | Type | Status |
+|-------------|---------------|------|--------|
+| `kraken` | Kraken | Exchange | Active |
+| `coinbase` | Coinbase | Exchange | Active |
+| `alpaca` | Alpaca | Brokerage | Planned |
+| `binanceus` | Binance US | Exchange | Planned |
+| `schwab` | Charles Schwab | Brokerage | Planned |
+
+## Provider-Specific Features
+
+### Kraken
+- Supports staking balances
+- Includes locked funds
+- Trade history available
+- Margin positions supported
+
+### Coinbase
+- Vault balances included
+- Earn products tracked
+- Recurring buys shown
+- Pro and Advanced balances combined
+
+## Data Refresh Flow
+
+### Automatic Refresh
+1. **Trigger**: POST to `/v1/portfolio/providers/{providerId}/refresh`
+2. **Validation**: Check rate limits and provider connection
+3. **Async Processing**: Queue refresh job
+4. **Provider API Call**: Fetch latest data from provider
+5. **Market Enrichment**: Apply current market prices
+6. **Cache Update**: Store refreshed data
+7. **Notification**: (Optional) Notify client of completion
+
+### Manual Refresh
+1. **Query Parameter**: GET with `?refresh=true`
+2. **Synchronous**: Waits for refresh to complete
+3. **Timeout**: 10-second maximum
+4. **Fallback**: Returns cached data on timeout
+
+## Error Handling
+
+### Provider Connection Errors
+```json
+{
+  "error": "PROVIDER_DISCONNECTED",
+  "message": "Kraken connection has expired. Please reconnect.",
+  "providerId": "kraken",
+  "reconnectUrl": "/v1/providers/connect/kraken"
+}
+```
+
+### Rate Limit Errors
+```json
+{
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Refresh rate limit exceeded for Kraken",
+  "providerId": "kraken",
+  "retryAfter": 45,
+  "nextAllowedTime": "2025-10-12T22:01:00Z"
+}
+```
+
+### Provider API Errors
+```json
+{
+  "error": "PROVIDER_API_ERROR",
+  "message": "Kraken API is temporarily unavailable",
+  "providerId": "kraken",
+  "providerError": "Service temporarily unavailable",
+  "cachedDataAvailable": true,
+  "cacheAge": "2m 30s"
+}
+```
+
+## Caching Strategy
+
+### Provider Portfolio Cache
+- **TTL**: 5 minutes
+- **Key Pattern**: `portfolio:user:{userId}:provider:{providerId}`
+- **Invalidation Triggers**:
+  - Manual refresh request
+  - Provider reconnection
+  - Detected data inconsistency
+
+### Cache Headers
+Response includes cache information:
+```
+X-Cache-Status: HIT
+X-Cache-Age: 120
+X-Last-Refresh: 2025-10-12T21:58:00Z
+```
+
+## Performance Optimization
+
+### Response Time Targets
+- Cached requests: < 200ms (95th percentile)
+- Fresh requests: < 1000ms (95th percentile)
+- Refresh endpoint: < 100ms (async, immediate response)
+
+### Optimization Techniques
+- Provider data cached aggressively
+- Market prices cached separately (1-minute TTL)
+- Lazy loading of trade history
+- Partial response support (coming soon)
+
+## Use Cases
+
+### Provider Dashboard
+```javascript
+// Fetch Kraken portfolio for provider-specific view
+const response = await fetch('/v1/portfolio/providers/kraken', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const portfolio = await response.json();
+// Display Kraken-specific holdings and features
+```
+
+### Force Refresh
+```javascript
+// Force refresh before displaying
+const response = await fetch('/v1/portfolio/providers/kraken?refresh=true', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const portfolio = await response.json();
+// Display guaranteed-fresh data
+```
+
+### Async Refresh
+```javascript
+// Trigger refresh, continue with cached data
+const refreshResponse = await fetch('/v1/portfolio/providers/kraken/refresh', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const { refreshId } = await refreshResponse.json();
+
+// Use cached data immediately
+const portfolioResponse = await fetch('/v1/portfolio/providers/kraken', {
+  headers: {
+    'Authorization': `Bearer ${sessionToken}`
+  }
+});
+const portfolio = await portfolioResponse.json();
+
+// Poll for refresh completion or use WebSocket notification
+```
+
+### Error Recovery
+```javascript
+try {
+  const response = await fetch('/v1/portfolio/providers/kraken', {
+    headers: {
+      'Authorization': `Bearer ${sessionToken}`
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+
+    if (error.error === 'PROVIDER_DISCONNECTED') {
+      // Redirect to reconnection flow
+      window.location.href = error.reconnectUrl;
+    } else if (error.error === 'RATE_LIMIT_EXCEEDED') {
+      // Show retry countdown
+      showRetryCountdown(error.retryAfter);
+    } else if (error.cachedDataAvailable) {
+      // Use stale data with warning
+      showStaleDataWarning(error.cacheAge);
+    }
+  }
+} catch (error) {
+  // Handle network errors
+}
+```
+
+## Testing
+
+### Unit Tests
+```bash
+./gradlew test --tests PortfolioProviderControllerTest
+```
+
+### Integration Tests
+```bash
+./gradlew integrationTest --tests PortfolioProviderIntegrationTest
+```
+
+### Test Scenarios
+- Valid provider retrieval
+- Invalid provider ID (404)
+- Disconnected provider handling
+- Rate limit enforcement
+- Refresh completion verification
+- Cache invalidation
+- Concurrent refresh requests
+
+## Monitoring
+
+### Key Metrics
+- **Request Rate**: Requests per minute by provider
+- **Response Time**: Latency distribution by provider
+- **Error Rate**: Failed requests by provider and error type
+- **Refresh Rate**: Refresh requests per provider
+- **Cache Hit Rate**: Percentage of cached responses
+
+### Provider-Specific Alerts
+- Provider API error rate > 10%
+- Provider response time > 5 seconds
+- Provider refresh failures > 20%
+- Connection expiration rate
+
+## Security Considerations
+
+### Provider Access Control
+- Users can only access their own connected providers
+- Provider ownership validated on every request
+- Unauthorized access attempts logged
+
+### Data Privacy
+- Provider credentials never included in responses
+- API keys and tokens stored in Vault only
+- Portfolio data isolated by userId
+- No cross-user data leakage
+
+### Rate Limiting
+- Per-user limits prevent abuse
+- Per-provider limits protect external APIs
+- Global limits protect system resources
+
+## Related Documentation
+- [Portfolio Aggregator API](portfolio-aggregator-api.mdx) - Aggregated portfolio operations
+- [Kraken Portfolio API](kraken-portfolio-api.mdx) - Kraken-specific features
+- [Service Provider](../../service-provider/docs/service-provider.mdx) - Provider connection setup

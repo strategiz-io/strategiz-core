@@ -5,6 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 /**
  * Service for handling user sign out operations
  * Manages session cleanup and token revocation
@@ -22,29 +25,38 @@ public class SignOutService {
     
     /**
      * Sign out a user and clean up their sessions
-     * 
+     *
      * @param userId The user ID to sign out
      * @param sessionId The current session ID (token) to revoke
      * @param deviceId The device ID (optional)
      * @param revokeAllSessions Whether to revoke all sessions or just the current one
+     * @param request HTTP request for session context
+     * @param response HTTP response for clearing cookies
      * @return SignOutResponse with operation result
      */
-    public SignOutResponse signOut(String userId, String sessionId, String deviceId, boolean revokeAllSessions) {
+    public SignOutResponse signOut(String userId, String sessionId, String deviceId, boolean revokeAllSessions,
+                                  HttpServletRequest request, HttpServletResponse response) {
         log.info("Processing sign out for user: {} (revokeAll: {})", userId, revokeAllSessions);
         
         try {
             int sessionsRevoked = 0;
-            
-            if (revokeAllSessions) {
-                // Revoke all sessions for the user
-                sessionsRevoked = sessionService.terminateAllUserSessions(userId, "User sign out");
-                log.info("Revoked all sessions for user: {}", userId);
-            } else if (sessionId != null && !sessionId.isBlank()) {
-                // Revoke just the specific session
-                boolean terminated = sessionService.terminateSessionById(sessionId, "User sign out");
-                sessionsRevoked = terminated ? 1 : 0;
-                log.info("Revoked specific session for user: {}", userId);
+
+            // ALWAYS revoke ALL sessions for the user to ensure complete logout
+            // This prevents auto-login issues and ensures security
+            log.info("Revoking ALL sessions for user: {} (force logout from all devices)", userId);
+            int allSessionsRevoked = sessionService.terminateAllUserSessions(userId, "User sign out - force logout from all devices");
+            sessionsRevoked = allSessionsRevoked;
+
+            // Terminate the current session and clear cookies
+            boolean currentSessionTerminated = sessionService.terminateSession(request, response);
+            if (currentSessionTerminated) {
+                log.info("Current session and cookies cleared for user: {}", userId);
+            } else {
+                log.warn("Current session termination failed for user: {}, but continuing with logout", userId);
             }
+
+            // Log the total sessions revoked
+            log.info("Successfully revoked {} total sessions for user: {}", sessionsRevoked, userId);
             
             return new SignOutResponse(
                 true,

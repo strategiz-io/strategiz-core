@@ -25,8 +25,9 @@ public class CorsFilter implements Filter {
         // Allow specific origins or patterns
         if (origin != null) {
             // Check exact matches first
-            if (origin.equals("http://localhost:3000") || 
-                origin.equals("http://localhost:3001") || 
+            if (origin.equals("http://localhost:3000") ||
+                origin.equals("http://localhost:3001") ||
+                origin.equals("https://localhost:8443") ||
                 origin.equals("https://strategiz.io") ||
                 origin.equals("https://strategiz-io.web.app") ||
                 origin.equals("https://strategiz-io.firebaseapp.com")) {
@@ -34,7 +35,8 @@ public class CorsFilter implements Filter {
                 response.setHeader("Access-Control-Allow-Credentials", "true");
             }
             // Check patterns
-            else if (origin.matches("http://localhost:\\d+") || 
+            else if (origin.matches("http://localhost:\\d+") ||
+                     origin.matches("https://localhost:\\d+") ||
                      origin.matches("https://.*\\.strategiz\\.io") ||
                      origin.matches("https://.*\\.web\\.app") ||
                      origin.matches("https://.*\\.firebaseapp\\.com") ||

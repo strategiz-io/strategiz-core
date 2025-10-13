@@ -37,7 +37,7 @@ public class AuthenticationMethodEntity extends BaseEntity {
     @JsonProperty("authentication_method")
     @Enumerated(EnumType.STRING)
     @NotNull(message = "Authentication method type is required")
-    private AuthenticationMethodType authenticationType;
+    private AuthenticationMethodType authenticationMethod;
 
     @PropertyName("name")
     @JsonProperty("name")
@@ -57,9 +57,9 @@ public class AuthenticationMethodEntity extends BaseEntity {
         this.metadata = new HashMap<>();
     }
 
-    public AuthenticationMethodEntity(AuthenticationMethodType authenticationType, String name) {
+    public AuthenticationMethodEntity(AuthenticationMethodType authenticationMethod, String name) {
         super();
-        this.authenticationType = authenticationType;
+        this.authenticationMethod = authenticationMethod;
         this.name = name;
         this.metadata = new HashMap<>();
     }
@@ -73,22 +73,31 @@ public class AuthenticationMethodEntity extends BaseEntity {
         this.id = id;
     }
 
-    public AuthenticationMethodType getAuthenticationType() {
-        return authenticationType;
+    public AuthenticationMethodType getAuthenticationMethod() {
+        return authenticationMethod;
     }
 
-    public void setAuthenticationType(AuthenticationMethodType authenticationType) {
-        this.authenticationType = authenticationType;
+    public void setAuthenticationMethod(AuthenticationMethodType authenticationMethod) {
+        this.authenticationMethod = authenticationMethod;
     }
-    
-    // Backward compatibility - alias for getAuthenticationType()
+
+    // Backward compatibility - alias for getAuthenticationMethod()
     public AuthenticationMethodType getType() {
-        return authenticationType;
+        return authenticationMethod;
     }
-    
-    // Backward compatibility - alias for setAuthenticationType()
+
+    // Backward compatibility - alias for setAuthenticationMethod()
     public void setType(AuthenticationMethodType type) {
-        this.authenticationType = type;
+        this.authenticationMethod = type;
+    }
+
+    // New recommended alias - shorter and clearer
+    public AuthenticationMethodType getAuthenticationType() {
+        return authenticationMethod;
+    }
+
+    public void setAuthenticationType(AuthenticationMethodType type) {
+        this.authenticationMethod = type;
     }
 
     public String getName() {
@@ -152,16 +161,16 @@ public class AuthenticationMethodEntity extends BaseEntity {
             return false;
         }
         
-        return switch (authenticationType) {
-            case PASSKEY -> metadata.containsKey(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID) && 
+        return switch (authenticationMethod) {
+            case PASSKEY -> metadata.containsKey(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID) &&
                            metadata.containsKey(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64);
             case TOTP -> metadata.containsKey(AuthenticationMethodMetadata.TotpMetadata.SECRET_KEY) &&
                         Boolean.TRUE.equals(metadata.get(AuthenticationMethodMetadata.TotpMetadata.VERIFIED));
-            case SMS_OTP -> metadata.containsKey(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER) && 
+            case SMS_OTP -> metadata.containsKey(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER) &&
                            Boolean.TRUE.equals(metadata.get(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED));
-            case EMAIL_OTP -> metadata.containsKey(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS) && 
+            case EMAIL_OTP -> metadata.containsKey(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS) &&
                              Boolean.TRUE.equals(metadata.get(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED));
-            default -> AuthenticationMethodMetadata.validateMetadata(authenticationType, metadata);
+            default -> AuthenticationMethodMetadata.validateMetadata(authenticationMethod, metadata);
         };
     }
 
@@ -171,7 +180,7 @@ public class AuthenticationMethodEntity extends BaseEntity {
             return name;
         }
         
-        return switch (authenticationType) {
+        return switch (authenticationMethod) {
             case PASSKEY -> {
                 String deviceName = getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.DEVICE_NAME);
                 String authenticatorName = getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.AUTHENTICATOR_NAME);
@@ -189,7 +198,7 @@ public class AuthenticationMethodEntity extends BaseEntity {
                 String email = getMetadataAsString(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS);
                 yield email != null ? maskEmail(email) : "Email Authentication";
             }
-            default -> name != null ? name : authenticationType.getDisplayName();
+            default -> name != null ? name : authenticationMethod.getDisplayName();
         };
     }
 

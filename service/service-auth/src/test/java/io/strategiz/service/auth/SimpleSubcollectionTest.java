@@ -35,7 +35,7 @@ public class SimpleSubcollectionTest {
         
         // Create a test authentication method
         AuthenticationMethodEntity testMethod = new AuthenticationMethodEntity();
-        testMethod.setType(AuthenticationMethodType.PASSKEY);
+        testMethod.setAuthenticationMethod(AuthenticationMethodType.PASSKEY);
         testMethod.putMetadata("testKey", "testValue");
         testMethod.setIsActive(true);
         

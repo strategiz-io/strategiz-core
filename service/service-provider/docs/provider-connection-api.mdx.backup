@@ -10,7 +10,7 @@ author: Strategiz Team
 controller: CreateProviderController
 ---
 
-# Provider Connection API
+# Provider Connection API Documentation
 
 ## 1. Business Purpose
 
@@ -92,83 +92,224 @@ interface CreateProviderResponse {
 
 ## 3. Design
 
-### 3.1 Component Diagram
+### 3.1 Flow Diagram
 
-![Provider Connection Components](diagrams/provider-connection-api-components.svg)
+> **[📊 Open in draw.io](diagrams/provider-connection-api-flow.drawio)**
+> *Click above to edit this diagram in draw.io desktop app or web editor*
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
+<details>
+<summary>View Embedded Diagram Code</summary>
 
-**Architecture Overview**:
-- **Service Layer**: Controllers (CreateProviderController, ReadProviderController) and orchestration services
-- **Business Layer**: Provider-specific business logic (Kraken, Binance US, Coinbase) extending BaseApiKeyProviderHandler
-- **Client Layer**: API clients, credential managers, and Vault integration
-- **External Systems**: Provider REST APIs (Kraken, Binance US, Coinbase), Firestore database, HashiCorp Vault
+```drawio
+<mxfile host="app.diagrams.net">
+  <diagram name="Provider Connection Flow" id="provider-flow">
+    <mxGraphModel dx="1234" dy="678" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Start -->
+        <mxCell id="2" value="User Initiates Connection" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Controller -->
+        <mxCell id="3" value="CreateProviderController" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Service -->
+        <mxCell id="4" value="CreateProviderService&lt;br&gt;(Orchestrator)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;" vertex="1" parent="1">
+          <mxGeometry x="400" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Decision -->
+        <mxCell id="5" value="Provider Type?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;" vertex="1" parent="1">
+          <mxGeometry x="420" y="140" width="120" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- API Key Path -->
+        <mxCell id="6" value="API Key Provider&lt;br&gt;(Kraken/Binance)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="200" y="150" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- OAuth Path -->
+        <mxCell id="7" value="OAuth Provider&lt;br&gt;(Coinbase/Alpaca)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="620" y="150" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Store Credentials -->
+        <mxCell id="8" value="Store in Vault" style="cylinder;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="220" y="250" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Test Connection -->
+        <mxCell id="9" value="Test Connection" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="210" y="340" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Generate OAuth URL -->
+        <mxCell id="10" value="Generate OAuth URL" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="250" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrows -->
+        <mxCell id="11" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="12" edge="1" parent="1" source="3" target="4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="13" edge="1" parent="1" source="4" target="5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="14" edge="1" parent="1" source="5" target="6">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="270" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="15" edge="1" parent="1" source="5" target="7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="690" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="16" edge="1" parent="1" source="6" target="8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" edge="1" parent="1" source="8" target="9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="18" edge="1" parent="1" source="7" target="10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+```
 
----
+</details>
 
-### 3.2 Flow Diagram
+### 3.2 Component Diagram
 
-![Provider Connection Flow](diagrams/provider-connection-api-flow.svg)
+> **[📊 Open in draw.io](diagrams/provider-connection-api-components.drawio)**
+> *Click above to edit this diagram in draw.io desktop app or web editor*
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
+<details>
+<summary>View Embedded Diagram Code</summary>
 
-**Request Flow**:
-1. **User Request**: Initiates provider connection request
-2. **Controller Validation**: CreateProviderController validates request format and authentication
-3. **Service Routing**: CreateProviderService determines provider type (API key vs OAuth)
-4. **Business Processing**: Provider-specific business module handles integration logic
-5. **Credential Storage**: Credentials securely stored in HashiCorp Vault
-6. **Connection Testing**: Connection validated with provider API
-7. **Response**: Success/failure response returned to user
+```drawio
+<mxfile host="app.diagrams.net">
+  <diagram name="Provider Architecture" id="provider-arch">
+    <mxGraphModel dx="1234" dy="678" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Service Layer -->
+        <mxCell id="2" value="Service Layer" style="swimlane;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="720" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="CreateProviderController" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2">
+          <mxGeometry x="20" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="CreateProviderService&lt;br&gt;(Orchestrator)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2">
+          <mxGeometry x="220" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="ReadProviderController" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="2">
+          <mxGeometry x="420" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Business Layer -->
+        <mxCell id="6" value="Business Layer" style="swimlane;fillColor=#fff2cc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="720" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="business-provider-base&lt;br&gt;BaseApiKeyProviderHandler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" vertex="1" parent="6">
+          <mxGeometry x="20" y="40" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="KrakenProviderBusiness" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="6">
+          <mxGeometry x="220" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="BinanceUSProviderBusiness" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="6">
+          <mxGeometry x="380" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="CoinbaseProviderBusiness" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="6">
+          <mxGeometry x="560" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Client Layer -->
+        <mxCell id="11" value="Client Layer" style="swimlane;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="720" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="KrakenApiAuthClient" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="11">
+          <mxGeometry x="20" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="KrakenCredentialManager" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="11">
+          <mxGeometry x="180" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="BinanceUSApiAuthClient" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="11">
+          <mxGeometry x="360" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="HashiCorp Vault" style="cylinder;whiteSpace=wrap;html=1;" vertex="1" parent="11">
+          <mxGeometry x="540" y="40" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- External Systems -->
+        <mxCell id="16" value="External Systems" style="swimlane;fillColor=#f8cecc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="520" width="720" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="Kraken API" style="cloud;whiteSpace=wrap;html=1;" vertex="1" parent="16">
+          <mxGeometry x="40" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="18" value="Binance US API" style="cloud;whiteSpace=wrap;html=1;" vertex="1" parent="16">
+          <mxGeometry x="200" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="19" value="Coinbase API" style="cloud;whiteSpace=wrap;html=1;" vertex="1" parent="16">
+          <mxGeometry x="360" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="Firestore" style="cloud;whiteSpace=wrap;html=1;" vertex="1" parent="16">
+          <mxGeometry x="520" y="30" width="120" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
+```
 
----
+</details>
 
-### 3.3 Sequence Diagrams
+### 3.3 Sequence Diagram (API Key Provider)
 
-#### 3.3.1 API Key Provider Flow (Kraken, Binance US)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as Controller
+    participant S as Service
+    participant B as Business Module
+    participant V as Vault
+    participant API as Provider API
 
-![API Key Provider Sequence](diagrams/provider-connection-api-sequence-apikey.svg)
-
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**Flow**:
-1. User → Controller: POST /v1/providers/create with API key credentials
-2. Controller → Service: Validate and orchestrate provider creation
-3. Service → Business Module: Create provider integration
-4. Business → Vault: Store encrypted credentials
-5. Business → Provider API: Test connection with stored credentials
-6. Response chain back to user with connection status
-
----
-
-#### 3.3.2 OAuth Provider Flow (Coinbase, Alpaca)
-
-![OAuth Provider Sequence](diagrams/provider-connection-api-sequence-oauth.svg)
-
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**Flow**:
-1. User → Controller: POST /v1/providers/create (OAuth provider)
-2. Controller → Service: Initiate OAuth flow
-3. Service → Business Module: Generate authorization URL and state
-4. Response: Authorization URL returned to user
-5. User redirected to provider OAuth page
-6. Callback handled by ProviderCallbackController (separate endpoint)
-
----
-
-#### 3.3.3 Error Handling Flow
-
-![Error Handling Sequence](diagrams/provider-connection-api-sequence-error.svg)
-
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**Error Scenarios**:
-- Invalid credentials rejected by provider API
-- Provider API unavailable or timeout
-- Vault connection failure
-- Request validation errors
-- Rate limit exceeded
+    U->>C: POST /v1/providers/create
+    C->>S: createProvider(request)
+    S->>S: Validate request
+    S->>B: createIntegration()
+    B->>V: Store credentials
+    V-->>B: Success
+    B-->>S: IntegrationResult
+    S->>B: testConnection()
+    B->>V: Get credentials
+    V-->>B: Credentials
+    B->>API: Test API call
+    API-->>B: Response
+    B-->>S: Connection valid
+    S-->>C: CreateProviderResponse
+    C-->>U: 200 OK
+```
 
 ## 4. API Specifications
 

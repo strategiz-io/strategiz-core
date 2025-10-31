@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="760" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 24px sans-serif; fill: #FFFFFF; }
+      .box { stroke: #FFFFFF; stroke-width: 2; }
+      .box-blue { fill: #00BFFF; }
+      .box-green { fill: #39FF14; }
+      .box-purple { fill: #BF00FF; }
+      .box-red { fill: #FF0000; }
+      .text-white { font: 14px sans-serif; fill: #FFFFFF; text-anchor: middle; }
+      .text-dark { font: 14px sans-serif; fill: #1a1a1a; text-anchor: middle; }
+      .arrow { stroke: #FFFFFF; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-green { stroke: #39FF14; stroke-width: 2; fill: none; marker-end: url(#arrowhead-green); }
+      .arrow-red { stroke: #FF0000; stroke-width: 2; fill: none; marker-end: url(#arrowhead-red); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FFFFFF" />
+    </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#39FF14" />
+    </marker>
+    <marker id="arrowhead-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FF0000" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="760" fill="#1a1a1a"/>
+
+  <!-- Title -->
+  <text x="600" y="50" class="title" text-anchor="middle">Multi-Factor Authentication Flow</text>
+
+  <!-- User Login -->
+  <rect x="520" y="120" width="140" height="60" class="box box-blue" rx="5"/>
+  <text x="590" y="155" class="text-white">User Login</text>
+
+  <!-- Authentication Methods -->
+  <rect x="200" y="240" width="140" height="60" class="box box-green" rx="5"/>
+  <text x="270" y="260" class="text-dark">Passkey</text>
+  <text x="270" y="280" class="text-dark">(WebAuthn)</text>
+
+  <rect x="400" y="240" width="140" height="60" class="box box-green" rx="5"/>
+  <text x="470" y="260" class="text-dark">TOTP</text>
+  <text x="470" y="280" class="text-dark">(Google Auth)</text>
+
+  <rect x="600" y="240" width="140" height="60" class="box box-green" rx="5"/>
+  <text x="670" y="270" class="text-dark">SMS OTP</text>
+
+  <rect x="800" y="240" width="140" height="60" class="box box-green" rx="5"/>
+  <text x="870" y="260" class="text-dark">Social OAuth</text>
+  <text x="870" y="280" class="text-dark">(Google)</text>
+
+  <!-- Verify Credentials (Diamond) -->
+  <polygon points="590,360 680,400 590,440 500,400" fill="#BF00FF" stroke="#FFFFFF" stroke-width="2"/>
+  <text x="590" y="395" class="text-white">Verify</text>
+  <text x="590" y="415" class="text-white">Credentials</text>
+
+  <!-- Generate JWT -->
+  <rect x="520" y="500" width="140" height="60" class="box box-green" rx="5"/>
+  <text x="590" y="525" class="text-dark">Generate JWT</text>
+  <text x="590" y="545" class="text-dark">+ Session</text>
+
+  <!-- Auth Failed -->
+  <rect x="780" y="370" width="140" height="60" class="box box-red" rx="5"/>
+  <text x="850" y="395" class="text-white">Auth Failed</text>
+  <text x="850" y="415" class="text-white">Rate Limit</text>
+
+  <!-- Dashboard -->
+  <rect x="520" y="620" width="140" height="60" class="box box-blue" rx="5"/>
+  <text x="590" y="645" class="text-white">Redirect to</text>
+  <text x="590" y="665" class="text-white">Dashboard</text>
+
+  <!-- Arrows from login to methods -->
+  <line x1="520" y1="150" x2="340" y2="240" class="arrow"/>
+  <line x1="560" y1="180" x2="470" y2="240" class="arrow"/>
+  <line x1="590" y1="180" x2="670" y2="240" class="arrow"/>
+  <line x1="620" y1="150" x2="840" y2="240" class="arrow"/>
+
+  <!-- Arrows from methods to verify -->
+  <line x1="300" y1="300" x2="540" y2="380" class="arrow"/>
+  <line x1="470" y1="300" x2="560" y2="380" class="arrow"/>
+  <line x1="670" y1="300" x2="600" y2="380" class="arrow"/>
+  <line x1="870" y1="300" x2="640" y2="380" class="arrow"/>
+
+  <!-- Success path -->
+  <line x1="590" y1="440" x2="590" y2="500" class="arrow-green"/>
+  <text x="630" y="475" font-size="12" fill="#39FF14">Valid</text>
+
+  <!-- Failure path -->
+  <line x1="680" y1="400" x2="780" y2="400" class="arrow-red"/>
+  <text x="720" y="390" font-size="12" fill="#FF0000">Invalid</text>
+
+  <!-- JWT to Dashboard -->
+  <line x1="590" y1="560" x2="590" y2="620" class="arrow"/>
+</svg>

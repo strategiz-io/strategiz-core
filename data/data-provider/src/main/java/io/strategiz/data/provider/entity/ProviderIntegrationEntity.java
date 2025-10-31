@@ -57,21 +57,13 @@ public class ProviderIntegrationEntity extends BaseEntity {
         this.providerId = providerId;
     }
 
-    public ProviderStatus getStatus() {
-        return status != null ? ProviderStatus.fromValue(status) : null;
-    }
-
-    public void setStatus(ProviderStatus status) {
-        String newValue = status != null ? status.getValue() : null;
-        System.out.println("DEBUG: setStatus called with enum " + status + ", setting field to: " + newValue);
-        this.status = newValue;
-    }
-    
-    public String getStatusValue() {
+    @JsonProperty("status")
+    @PropertyName("status")
+    public String getStatus() {
         return status;
     }
-    
-    public void setStatusValue(String status) {
+
+    public void setStatus(String status) {
         this.status = status;
     }
 

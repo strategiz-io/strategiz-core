@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 16px; fill: #666; }
+      .box { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; }
+      .label { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="600" fill="#fafafa"/>
+
+  <!-- Border -->
+  <rect x="10" y="10" width="1180" height="580" fill="none" stroke="#ddd" stroke-width="2"/>
+
+  <!-- Title -->
+  <text x="1200/2" y="50" text-anchor="middle" class="title">Provider Connection - Flow Diagram</text>
+  <text x="1200/2" y="80" text-anchor="middle" class="subtitle">Open this file in draw.io to edit</text>
+
+  <!-- Placeholder content -->
+  <rect x="100" y="150" width="200" height="100" class="box" rx="5"/>
+  <text x="200" y="205" text-anchor="middle" class="label">Component 1</text>
+
+  <rect x="400" y="150" width="200" height="100" class="box" rx="5"/>
+  <text x="500" y="205" text-anchor="middle" class="label">Component 2</text>
+
+  <!-- Arrow -->
+  <line x1="300" y1="200" x2="400" y2="200" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1976d2" />
+    </marker>
+  </defs>
+
+  <!-- Footer note -->
+  <text x="1200/2" y="570" text-anchor="middle" class="subtitle">
+    This is a placeholder. Export from draw.io as PNG with embedded data to see the actual diagram.
+  </text>
+</svg>

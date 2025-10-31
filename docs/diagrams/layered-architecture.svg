@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 24px sans-serif; fill: #FFFFFF; }
+      .layer-title { font: bold 16px sans-serif; fill: #FFFFFF; }
+      .layer-title-dark { font: bold 16px sans-serif; fill: #1a1a1a; }
+      .text { font: 14px sans-serif; fill: #FFFFFF; }
+      .text-dark { font: 14px sans-serif; fill: #1a1a1a; }
+      .box { stroke: #FFFFFF; stroke-width: 3; }
+      .box-green { stroke: #1a1a1a; stroke-width: 3; }
+      .arrow { stroke: #FFFFFF; stroke-width: 3; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FFFFFF" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="900" fill="#1a1a1a"/>
+
+  <!-- Title -->
+  <text x="600" y="50" class="title" text-anchor="middle">Strategiz Core - Layered Architecture</text>
+
+  <!-- Layer 1: Service -->
+  <rect x="120" y="120" width="940" height="100" fill="#00BFFF" class="box" rx="5"/>
+  <text x="140" y="145" class="layer-title">Layer 1: Service Layer (service/*)</text>
+  <text x="140" y="165" class="text">REST Controllers, API Endpoints, Request/Response Models</text>
+  <text x="140" y="190" class="text" font-size="12">• AuthenticationController  • ProviderConnectionController  • PortfolioController</text>
+
+  <!-- Layer 2: Business -->
+  <rect x="120" y="260" width="940" height="100" fill="#39FF14" class="box-green" rx="5"/>
+  <text x="140" y="285" class="layer-title-dark">Layer 2: Business Logic (business/*)</text>
+  <text x="140" y="305" class="text-dark">Core Business Logic, Orchestration, Provider-Specific Services</text>
+  <text x="140" y="330" class="text-dark" font-size="12">• CoinbaseConnectionService  • BinanceConnectionService  • PortfolioAggregationService</text>
+
+  <!-- Layer 3: Client -->
+  <rect x="120" y="400" width="940" height="100" fill="#BF00FF" class="box" rx="5"/>
+  <text x="140" y="425" class="layer-title">Layer 3: Client Integration (client/*)</text>
+  <text x="140" y="445" class="text">External API Clients, OAuth Handlers, Data Transformation</text>
+  <text x="140" y="470" class="text" font-size="12">• CoinbaseClient  • BinanceClient  • OAuth2TokenClient</text>
+
+  <!-- Layer 4: Data -->
+  <rect x="120" y="540" width="940" height="100" fill="#00BFFF" class="box" rx="5"/>
+  <text x="140" y="565" class="layer-title">Layer 4: Data Access (data/*)</text>
+  <text x="140" y="585" class="text">Repositories, DAOs, Data Models, Persistence</text>
+  <text x="140" y="610" class="text" font-size="12">• FirestoreService  • VaultService  • UserRepository</text>
+
+  <!-- External Databases -->
+  <ellipse cx="240" cy="720" rx="60" ry="40" fill="#1a1a1a" stroke="#39FF14" stroke-width="2"/>
+  <text x="240" y="720" font-size="14" fill="#39FF14" text-anchor="middle">Firestore</text>
+
+  <ellipse cx="590" cy="720" rx="60" ry="40" fill="#1a1a1a" stroke="#BF00FF" stroke-width="2"/>
+  <text x="590" y="720" font-size="14" fill="#BF00FF" text-anchor="middle">Vault</text>
+
+  <!-- Arrows between layers -->
+  <line x1="590" y1="220" x2="590" y2="260" class="arrow"/>
+  <line x1="590" y1="360" x2="590" y2="400" class="arrow"/>
+  <line x1="590" y1="500" x2="590" y2="540" class="arrow"/>
+
+  <!-- Data layer connections -->
+  <line x1="240" y1="640" x2="240" y2="680" class="arrow" stroke="#39FF14"/>
+  <line x1="590" y1="640" x2="590" y2="680" class="arrow" stroke="#BF00FF"/>
+</svg>

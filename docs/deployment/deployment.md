@@ -5,8 +5,9 @@ This guide provides comprehensive instructions for deploying the Strategiz Core 
 ## Prerequisites
 
 ### Required Tools
-- **Java 21** or higher
+- **Java 21**
 - **Maven 3.8+**
+- **Spring Boot 3.5.7**
 - **Docker** installed and running
 - **Google Cloud SDK** authenticated (`gcloud auth login`)
 - **Firebase CLI** authenticated (`firebase login`)

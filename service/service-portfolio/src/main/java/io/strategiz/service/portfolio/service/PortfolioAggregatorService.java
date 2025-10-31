@@ -33,6 +33,7 @@ public class PortfolioAggregatorService {
     private final ReadProviderIntegrationRepository providerIntegrationRepository;
     private final PortfolioProviderService portfolioProviderService;
     private final KrakenPortfolioService krakenPortfolioService;
+    private final CoinbasePortfolioService coinbasePortfolioService;
     private final UserRepository userRepository;
     
     @Autowired
@@ -41,11 +42,13 @@ public class PortfolioAggregatorService {
             ReadProviderIntegrationRepository providerIntegrationRepository,
             PortfolioProviderService portfolioProviderService,
             @Autowired(required = false) KrakenPortfolioService krakenPortfolioService,
+            @Autowired(required = false) CoinbasePortfolioService coinbasePortfolioService,
             UserRepository userRepository) {
         this.providerDataRepository = providerDataRepository;
         this.providerIntegrationRepository = providerIntegrationRepository;
         this.portfolioProviderService = portfolioProviderService;
         this.krakenPortfolioService = krakenPortfolioService;
+        this.coinbasePortfolioService = coinbasePortfolioService;
         this.userRepository = userRepository;
     }
     
@@ -153,7 +156,7 @@ public class PortfolioAggregatorService {
 
             // Check for Kraken integration
             boolean hasKraken = integrations.stream()
-                .anyMatch(i => ServicePortfolioConstants.PROVIDER_KRAKEN.equals(i.getProviderId())
+                .anyMatch(i -> ServicePortfolioConstants.PROVIDER_KRAKEN.equals(i.getProviderId())
                     && i.getStatus() == ProviderStatus.CONNECTED);
 
             if (hasKraken && krakenPortfolioService != null) {
@@ -165,6 +168,23 @@ public class PortfolioAggregatorService {
                     ProviderDataEntity krakenEntity = convertToProviderDataEntity(krakenData);
                     allProviderData.add(krakenEntity);
                     log.info("Added Kraken data with total value: {}", krakenData.getTotalValue());
+                }
+            }
+
+            // Check for Coinbase integration
+            boolean hasCoinbase = integrations.stream()
+                .anyMatch(i -> ServicePortfolioConstants.PROVIDER_COINBASE.equals(i.getProviderId())
+                    && i.getStatus() == ProviderStatus.CONNECTED);
+
+            if (hasCoinbase && coinbasePortfolioService != null) {
+                log.info("Fetching real-time Coinbase data for user {}", userId);
+                ProviderPortfolioResponse coinbaseData = coinbasePortfolioService.getCoinbasePortfolio(userId);
+
+                if (coinbaseData != null && coinbaseData.getTotalValue() != null) {
+                    // Convert ProviderPortfolioResponse to ProviderDataEntity for consistency
+                    ProviderDataEntity coinbaseEntity = convertToProviderDataEntity(coinbaseData);
+                    allProviderData.add(coinbaseEntity);
+                    log.info("Added Coinbase data with total value: {}", coinbaseData.getTotalValue());
                 }
             }
 

@@ -116,23 +116,37 @@ public class VaultOAuthConfig {
         try {
             String path = String.format("secret/data/strategiz/oauth/%s", provider);
             VaultResponse response = vaultTemplate.read(path);
-            
+
             if (response != null && response.getData() != null) {
                 Map<String, Object> data = (Map<String, Object>) response.getData().get("data");
                 if (data != null) {
                     String clientId = (String) data.get("client-id");
                     String clientSecret = (String) data.get("client-secret");
-                    
+                    String redirectUriLocal = (String) data.get("redirect-uri-local");
+                    String redirectUriProd = (String) data.get("redirect-uri-prod");
+
                     if (clientId != null) {
                         String propKey = String.format("oauth.providers.%s.client-id", provider);
                         System.setProperty(propKey, clientId);
                         log.info("Set system property {} from Vault", propKey);
                     }
-                    
+
                     if (clientSecret != null) {
                         String propKey = String.format("oauth.providers.%s.client-secret", provider);
                         System.setProperty(propKey, clientSecret);
                         log.info("Set system property {} from Vault", propKey);
+                    }
+
+                    // Use redirect-uri-local for local development, redirect-uri-prod for production
+                    // Check if we're in production mode by looking at active profiles
+                    String activeProfiles = System.getProperty("spring.profiles.active", "dev");
+                    String redirectUri = activeProfiles.contains("prod") ? redirectUriProd : redirectUriLocal;
+
+                    if (redirectUri != null) {
+                        String propKey = String.format("oauth.providers.%s.redirect-uri", provider);
+                        System.setProperty(propKey, redirectUri);
+                        log.info("Set system property {} from Vault (using {})", propKey,
+                            activeProfiles.contains("prod") ? "prod redirect-uri" : "local redirect-uri");
                     }
                 }
             }

@@ -65,8 +65,7 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
             }
             
             // Log the status value before saving
-            log.debug("Saving ProviderIntegrationEntity with status field value: {}", entity.getStatusValue());
-            log.debug("Entity status enum: {}", entity.getStatus());
+            log.debug("Saving ProviderIntegrationEntity with status field value: {}", entity.getStatus());
             
             // Save to user-scoped collection
             getUserScopedCollection(userId).document(entity.getId()).set(entity).get();

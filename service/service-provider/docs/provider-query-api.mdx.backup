@@ -10,7 +10,7 @@ author: Strategiz Team
 controller: ReadProviderController
 ---
 
-# Provider Query API
+# Provider Query API Documentation
 
 ## 1. Business Purpose
 
@@ -116,36 +116,53 @@ interface ReadProviderResponse {
 
 ## 3. Design
 
-### 3.1 Component Diagram
+### 3.1 Sequence Diagram - Get All Providers
 
-![Provider Query Components](diagrams/provider-query-api-components.svg)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as ReadProviderController
+    participant S as ReadProviderService
+    participant DB as Firestore
+    participant P as Provider APIs
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
+    U->>C: GET /v1/providers
+    C->>C: Extract userId from session
+    C->>S: getProvidersList(userId)
+    S->>DB: Query user's providers
+    DB-->>S: Provider list
 
-**Architecture Overview**:
-- **Service Layer**: ReadProviderController handles GET requests for provider data
-- **Business Layer**: Provider-specific business logic for fetching balances, transactions, holdings
-- **Client Layer**: Provider API clients, Vault integration for credential retrieval
-- **External Systems**: Provider REST APIs, Firestore database for cached data
+    loop For each provider
+        S->>P: Fetch live status
+        P-->>S: Provider status
+    end
 
----
+    S-->>C: ProvidersListResponse
+    C-->>U: 200 OK with provider list
+```
 
-### 3.2 Flow Diagram
+### 3.2 Sequence Diagram - Get Provider Data
 
-![Provider Query Flow](diagrams/provider-query-api-flow.svg)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as ReadProviderController
+    participant S as ReadProviderService
+    participant B as Business Module
+    participant V as Vault
+    participant API as Provider API
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**Request Flow**:
-1. **User Request**: GET request for provider data (list, specific, status, or data)
-2. **Session Validation**: Controller validates bearer token and extracts userId
-3. **Authorization Check**: Verify user has access to requested provider
-4. **Data Retrieval**: Service fetches from Firestore cache or provider API
-5. **Live Status Check**: Query provider API for real-time status
-6. **Response Assembly**: Combine cached and live data
-7. **Response**: Return provider data to user
-
----
+    U->>C: GET /v1/providers/{providerId}/data?dataType=balances
+    C->>S: getProviderData(userId, providerId, "balances")
+    S->>B: getProviderBusiness(providerId)
+    B->>V: Get credentials
+    V-->>B: Credentials
+    B->>API: Fetch balances
+    API-->>B: Balance data
+    B-->>S: Formatted response
+    S-->>C: ReadProviderResponse
+    C-->>U: 200 OK with balance data
+```
 
 ## 4. API Specifications
 

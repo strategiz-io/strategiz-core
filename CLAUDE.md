@@ -137,11 +137,12 @@ The project follows a modular monorepo architecture with six types of modules:
 - API modules merged into service modules
 
 #### Required Environment Setup
-1. Java 21 or higher
+1. Java 21
 2. Maven 3.8+
-3. HashiCorp Vault (for local development)
-4. Firebase project with Firestore enabled
-5. Service account credentials for Firebase
+3. Spring Boot 3.5.7
+4. HashiCorp Vault (for local development)
+5. Firebase project with Firestore enabled
+6. Service account credentials for Firebase
 
 #### Module Dependencies
 Build order matters due to Maven dependencies:

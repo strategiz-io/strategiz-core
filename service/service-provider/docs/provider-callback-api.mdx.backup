@@ -10,7 +10,7 @@ author: Strategiz Team
 controller: ProviderCallbackController
 ---
 
-# Provider OAuth Callback API
+# Provider OAuth Callback API Documentation
 
 ## 1. Business Purpose
 
@@ -107,36 +107,54 @@ interface ProviderCallbackResponse {
 
 ## 3. Design
 
-### 3.1 Component Diagram
+### 3.1 Sequence Diagram - OAuth Callback Flow (GET)
 
-![Provider Callback Components](diagrams/provider-callback-api-components.svg)
+```mermaid
+sequenceDiagram
+    participant P as Provider (Coinbase)
+    participant C as ProviderCallbackController
+    participant S as ProviderCallbackService
+    participant B as OAuth Business
+    participant V as Vault
+    participant DB as Firestore
+    participant FE as Frontend
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
+    P->>C: GET /v1/providers/callback/coinbase?code=abc&state=xyz
+    C->>C: Map "cb" → "coinbase"
+    C->>S: processOAuthCallback("coinbase", code, state)
+    S->>DB: Validate state parameter
+    DB-->>S: State valid
+    S->>B: exchangeCodeForToken(code)
+    B->>P: POST /oauth/token
+    P-->>B: Access token + refresh token
+    B->>V: Store tokens
+    V-->>B: Stored
+    B->>DB: Save provider connection
+    DB-->>B: Saved
+    B-->>S: Connection complete
+    S->>S: Build success redirect URL
+    S-->>C: ProviderCallbackResponse
+    C-->>P: RedirectView → Frontend success page
+    P-->>FE: Redirect user to success page
+```
 
-**Architecture Overview**:
-- **Service Layer**: ProviderCallbackController handles OAuth callbacks from external providers
-- **Business Layer**: OAuth-specific business logic for token exchange and state validation
-- **Client Layer**: Provider OAuth clients, Vault for token storage, Firestore for state management
-- **External Systems**: Provider OAuth endpoints, Firestore for connection state, Frontend for redirects
+### 3.2 Sequence Diagram - OAuth Error Handling
 
----
+```mermaid
+sequenceDiagram
+    participant P as Provider
+    participant C as ProviderCallbackController
+    participant S as ProviderCallbackService
+    participant FE as Frontend
 
-### 3.2 Flow Diagram
-
-![Provider Callback Flow](diagrams/provider-callback-api-flow.svg)
-
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**OAuth Callback Flow**:
-1. **Provider Redirect**: User redirected from provider with authorization code
-2. **Path Mapping**: Controller maps provider-specific paths (e.g., `/cb` → `coinbase`)
-3. **State Validation**: Verify OAuth state parameter against stored value (CSRF protection)
-4. **Token Exchange**: Exchange authorization code for access/refresh tokens
-5. **Vault Storage**: Securely store OAuth tokens in HashiCorp Vault
-6. **Connection Save**: Save provider connection metadata to Firestore
-7. **User Redirect**: Redirect user to frontend success or error page
-
----
+    P->>C: GET /v1/providers/callback/coinbase?error=access_denied
+    C->>C: Detect error parameter
+    C->>S: getErrorRedirectUrl("coinbase", "access_denied", description)
+    S->>S: Build error redirect URL
+    S-->>C: Error redirect URL
+    C-->>P: RedirectView → Frontend error page
+    P-->>FE: Redirect user to error page
+```
 
 ## 4. API Specifications
 

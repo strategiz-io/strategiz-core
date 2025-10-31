@@ -10,7 +10,7 @@ author: Strategiz Team
 controller: UpdateProviderController
 ---
 
-# Provider Update API
+# Provider Update API Documentation
 
 ## 1. Business Purpose
 
@@ -101,37 +101,54 @@ interface UpdateProviderResponse {
 
 ## 3. Design
 
-### 3.1 Component Diagram
+### 3.1 Sequence Diagram - Update API Credentials
 
-![Provider Update Components](diagrams/provider-update-api-components.svg)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as UpdateProviderController
+    participant S as UpdateProviderService
+    participant B as Business Module
+    participant V as Vault
+    participant API as Provider API
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
+    U->>C: PUT /v1/providers/kraken
+    C->>C: Extract userId from principal
+    C->>S: updateProvider(request)
+    S->>B: validateCredentials(newApiKey, newApiSecret)
+    B->>API: Test connection
+    API-->>B: Success
+    B-->>S: Credentials valid
+    S->>V: Update stored credentials
+    V-->>S: Success
+    S-->>C: UpdateProviderResponse
+    C-->>U: 200 OK
+```
 
-**Architecture Overview**:
-- **Service Layer**: UpdateProviderController handles PUT requests for credential and configuration updates
-- **Business Layer**: Provider-specific business logic for credential validation and OAuth refresh
-- **Client Layer**: Provider API clients for connection testing, Vault for credential updates
-- **External Systems**: Provider APIs for validation, Vault for secure storage, Firestore for connection metadata
+### 3.2 Sequence Diagram - OAuth Token Refresh
 
----
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as UpdateProviderController
+    participant S as UpdateProviderService
+    participant B as OAuth Business
+    participant V as Vault
+    participant API as Provider OAuth API
 
-### 3.2 Flow Diagram
-
-![Provider Update Flow](diagrams/provider-update-api-flow.svg)
-
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**Update Flow**:
-1. **User Request**: PUT request to update credentials, refresh token, or modify configuration
-2. **Authorization Check**: Verify user owns the provider connection
-3. **Update Type Detection**: Determine if updating credentials, refreshing OAuth, or changing config
-4. **Credential Validation**: For API key updates, test new credentials with provider API
-5. **OAuth Token Refresh**: For OAuth providers, exchange refresh token for new access token
-6. **Vault Update**: Store updated credentials or tokens securely in Vault
-7. **Metadata Update**: Update connection metadata in Firestore
-8. **Response**: Return success status with updated connection details
-
----
+    U->>C: PUT /v1/providers/coinbase (refresh)
+    C->>S: updateProvider(request)
+    S->>V: Get refresh token
+    V-->>S: Refresh token
+    S->>B: refreshOAuthToken()
+    B->>API: POST /oauth/token
+    API-->>B: New access token
+    B->>V: Store new tokens
+    V-->>B: Success
+    B-->>S: Token refreshed
+    S-->>C: UpdateProviderResponse
+    C-->>U: 200 OK
+```
 
 ## 4. API Specifications
 

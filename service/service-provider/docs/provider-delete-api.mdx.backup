@@ -10,7 +10,7 @@ author: Strategiz Team
 controller: DeleteProviderController
 ---
 
-# Provider Delete API
+# Provider Delete API Documentation
 
 ## 1. Business Purpose
 
@@ -88,37 +88,55 @@ interface DeleteProviderResponse {
 
 ## 3. Design
 
-### 3.1 Component Diagram
+### 3.1 Sequence Diagram - Complete Deletion
 
-![Provider Delete Components](diagrams/provider-delete-api-components.svg)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as DeleteProviderController
+    participant S as DeleteProviderService
+    participant V as Vault
+    participant DB as Firestore
+    participant OAuth as Provider OAuth API
 
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
+    U->>C: DELETE /v1/providers/kraken
+    C->>C: Extract userId from principal
+    C->>S: deleteProvider(request)
+    S->>S: Validate confirmation
+    S->>V: Delete credentials
+    V-->>S: Deleted
+    S->>DB: Delete provider document
+    DB-->>S: Deleted
+    S->>DB: Update user metadata
+    DB-->>S: Updated
+    S-->>C: DeleteProviderResponse
+    C-->>U: 200 OK
+```
 
-**Architecture Overview**:
-- **Service Layer**: DeleteProviderController handles DELETE requests for provider disconnection
-- **Business Layer**: Deletion business logic for credential cleanup and OAuth revocation
-- **Client Layer**: Vault client for credential deletion, OAuth clients for token revocation
-- **External Systems**: Provider OAuth APIs for token revocation, Vault for secure deletion, Firestore for data cleanup
+### 3.2 Sequence Diagram - OAuth Provider Deletion with Revocation
 
----
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant C as DeleteProviderController
+    participant S as DeleteProviderService
+    participant V as Vault
+    participant DB as Firestore
+    participant OAuth as Provider OAuth API
 
-### 3.2 Flow Diagram
-
-![Provider Delete Flow](diagrams/provider-delete-api-flow.svg)
-
-*To edit: Download and open this PNG in [draw.io](https://app.diagrams.net) - it contains the editable diagram*
-
-**Deletion Flow**:
-1. **User Request**: DELETE request to remove provider connection
-2. **Authorization Check**: Verify user owns the provider connection
-3. **Confirmation Validation**: Ensure deletion is confirmed (if required)
-4. **OAuth Revocation**: For OAuth providers, revoke access and refresh tokens with provider
-5. **Vault Cleanup**: Delete all stored credentials from HashiCorp Vault
-6. **Data Cleanup**: Delete or soft-delete provider connection from Firestore
-7. **Balance Snapshot**: Optionally preserve final balance snapshot for historical records
-8. **Response**: Return success status with deletion details
-
----
+    U->>C: DELETE /v1/providers/coinbase
+    C->>S: deleteProvider(request)
+    S->>V: Get OAuth tokens
+    V-->>S: Access & refresh tokens
+    S->>OAuth: POST /oauth/revoke
+    OAuth-->>S: Token revoked
+    S->>V: Delete credentials
+    V-->>S: Deleted
+    S->>DB: Mark provider as deleted
+    DB-->>S: Updated
+    S-->>C: DeleteProviderResponse
+    C-->>U: 200 OK
+```
 
 ## 4. API Specifications
 

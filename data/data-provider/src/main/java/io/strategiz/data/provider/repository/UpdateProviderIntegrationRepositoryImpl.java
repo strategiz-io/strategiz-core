@@ -41,19 +41,19 @@ public class UpdateProviderIntegrationRepositoryImpl implements UpdateProviderIn
         Optional<ProviderIntegrationEntity> entity = readRepository.findByUserIdAndProviderId(userId, providerId);
         if (entity.isPresent()) {
             ProviderIntegrationEntity integration = entity.get();
-            integration.setStatusValue(status);
+            integration.setStatus(status);
             baseRepository.save(integration, userId);
             return true;
         }
         return false;
     }
-    
+
     @Override
     public boolean updateEnabled(String userId, String providerId, boolean enabled) {
         Optional<ProviderIntegrationEntity> entity = readRepository.findByUserIdAndProviderId(userId, providerId);
         if (entity.isPresent()) {
             ProviderIntegrationEntity integration = entity.get();
-            integration.setStatusValue(enabled ? "connected" : "disconnected");
+            integration.setStatus(enabled ? "connected" : "disconnected");
             baseRepository.save(integration, userId);
             return true;
         }

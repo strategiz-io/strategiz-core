@@ -1,0 +1,747 @@
+---
+id: coinbase-portfolio-sync-design
+title: Coinbase Portfolio Data Synchronization Design
+sidebar_label: Coinbase Portfolio Sync
+module: service-provider, service-portfolio, business-provider-coinbase
+version: 1.0.0
+lastUpdated: 2025-10-25
+author: Strategiz Team
+status: DESIGN_REVIEW
+---
+
+# Coinbase Portfolio Data Synchronization Design
+
+## 1. Overview
+
+### 1.1 Business Purpose
+After a user successfully completes the Coinbase OAuth flow, we need to immediately fetch their account and portfolio data from Coinbase and store it in a structured, enriched format in Firestore. This enables the dashboard to display real-time portfolio information without requiring additional API calls to Coinbase on every page load.
+
+### 1.2 Design Goals
+- **Immediate Data Availability**: Fetch portfolio data immediately after OAuth completion
+- **Consistent Storage**: Store data in the same format as other providers (e.g., Kraken)
+- **Real-time Updates**: Support both initial sync and periodic refresh
+- **Scalable Architecture**: Follow existing patterns for easy extension to other providers
+
+### 1.3 Success Criteria
+- ✅ User sees their Coinbase portfolio data on dashboard within 5 seconds of OAuth completion
+- ✅ Data is enriched with current market prices and profit/loss calculations
+- ✅ Consistent data model across all providers (Coinbase, Kraken, Alpaca, etc.)
+- ✅ Supports both crypto and fiat balances
+
+---
+
+## 2. Architecture Overview
+
+### 2.1 High-Level Flow
+
+```
+┌─────────────────┐
+│  User completes │
+│  OAuth on       │
+│  Coinbase       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│  ProviderCallbackController                             │
+│  - Receives callback with authorization code            │
+│  - Maps /cb → coinbase                                  │
+└────────┬────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│  ProviderCallbackService.processOAuthCallback()         │
+│  - Validates state parameter                            │
+│  - Calls CoinbaseProviderBusiness.completeOAuthFlow()   │
+└────────┬────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│  CoinbaseProviderBusiness.completeOAuthFlow()           │
+│  1. Exchange auth code for access/refresh tokens        │
+│  2. Store tokens in Vault                               │
+│  3. Update ProviderIntegration status="connected"       │
+│  4. 🆕 Fetch initial portfolio data                     │
+│  5. 🆕 Store enriched data in Firestore                 │
+└────────┬────────────────────────────────────────────────┘
+         │
+         ├─────────────────────────────────┬──────────────────────────┐
+         │                                 │                          │
+         ▼                                 ▼                          ▼
+┌──────────────────┐         ┌─────────────────────┐   ┌──────────────────────┐
+│ CoinbaseClient   │         │ Vault               │   │ Firestore            │
+│ .getAccounts()   │         │ - Access Token      │   │ - provider_data      │
+│                  │         │ - Refresh Token     │   │   subcollection      │
+└──────────────────┘         │ - Expiration Time   │   └──────────────────────┘
+                             └─────────────────────┘
+```
+
+### 2.2 Module Breakdown
+
+#### 🔵 **business-provider-coinbase** (Business Logic Layer)
+**Module**: `/business/business-provider-coinbase/`
+
+**Purpose**: Handles Coinbase-specific business operations including OAuth and data fetching
+
+**New/Modified Methods**:
+```java
+public class CoinbaseProviderBusiness {
+
+    // EXISTING - Modified to add data sync
+    public void completeOAuthFlow(String userId, String authCode, String state) {
+        // ... existing OAuth logic ...
+
+        // 🆕 NEW: Fetch and store initial portfolio data
+        try {
+            fetchAndStorePortfolioData(userId, accessToken);
+        } catch (Exception e) {
+            log.warn("Failed to fetch initial portfolio data, will sync later: {}", e.getMessage());
+            // Don't fail OAuth - data can be synced later
+        }
+    }
+
+    // 🆕 NEW METHOD
+    private void fetchAndStorePortfolioData(String userId, String accessToken) {
+        // 1. Fetch accounts from Coinbase API
+        Map<String, Object> accountsResponse = coinbaseClient.getAccounts(accessToken);
+
+        // 2. Transform to ProviderDataEntity
+        ProviderDataEntity enrichedData = transformCoinbaseAccounts(accountsResponse);
+
+        // 3. Enrich with current market prices
+        enrichWithMarketData(enrichedData);
+
+        // 4. Store in Firestore provider_data subcollection
+        storeProviderData(userId, enrichedData);
+    }
+
+    // 🆕 NEW METHOD
+    private ProviderDataEntity transformCoinbaseAccounts(Map<String, Object> accountsResponse) {
+        // Parse Coinbase API response
+        // Map to standardized ProviderDataEntity format
+        // Calculate totals, cost basis, profit/loss
+    }
+
+    // 🆕 NEW METHOD
+    private void enrichWithMarketData(ProviderDataEntity data) {
+        // Use MarketPriceBusiness to fetch current prices
+        // Update currentPrice and currentValue fields
+        // Recalculate profit/loss with latest prices
+    }
+
+    // 🆕 NEW METHOD
+    private void storeProviderData(String userId, ProviderDataEntity data) {
+        // Check if data already exists
+        Optional<ProviderDataEntity> existing =
+            readProviderDataRepository.getProviderData(userId, "coinbase");
+
+        if (existing.isPresent()) {
+            // Update existing
+            updateProviderDataRepository.updateProviderData(userId, "coinbase", data);
+        } else {
+            // Create new
+            createProviderDataRepository.createProviderData(userId, "coinbase", data);
+        }
+    }
+}
+```
+
+**Dependencies**:
+- `CoinbaseClient` - For Coinbase API calls
+- `CreateProviderDataRepository` - To create new provider data documents
+- `UpdateProviderDataRepository` - To update existing provider data
+- `ReadProviderDataRepository` - To check if data exists
+- `MarketPriceBusiness` - To enrich with current market prices
+
+---
+
+#### 🟢 **service-portfolio** (Service Layer)
+**Module**: `/service/service-portfolio/`
+
+**Purpose**: Provides portfolio aggregation and Coinbase-specific portfolio operations
+
+**New Service: CoinbasePortfolioService**
+```java
+@Service
+public class CoinbasePortfolioService {
+
+    private final ReadProviderDataRepository readProviderDataRepository;
+    private final UpdateProviderDataRepository updateProviderDataRepository;
+    private final MarketPriceBusiness marketPriceBusiness;
+
+    /**
+     * Get Coinbase portfolio from stored enriched data
+     */
+    public ProviderPortfolioResponse getCoinbasePortfolio(String userId) {
+        // 1. Read from Firestore provider_data subcollection
+        ProviderDataEntity storedData =
+            readProviderDataRepository.getProviderData(userId, "coinbase");
+
+        if (storedData == null) {
+            return createErrorResponse("No Coinbase data available");
+        }
+
+        // 2. Map to response format
+        ProviderPortfolioResponse response = mapEnrichedDataToResponse(storedData);
+
+        // 3. Update prices if data is stale (> 5 minutes)
+        if (isDataStale(storedData.getLastUpdatedAt())) {
+            updateRealTimePrices(response, userId);
+        }
+
+        return response;
+    }
+
+    /**
+     * Refresh Coinbase portfolio data from API
+     */
+    public boolean refreshCoinbaseData(String userId) {
+        // Get fresh access token from Vault
+        String accessToken = getAccessTokenFromVault(userId);
+
+        // Fetch fresh data from Coinbase
+        // Transform and enrich
+        // Store in Firestore
+
+        return true;
+    }
+
+    /**
+     * Map enriched data to response format
+     */
+    private ProviderPortfolioResponse mapEnrichedDataToResponse(ProviderDataEntity entity) {
+        // Similar to KrakenPortfolioService.mapEnrichedDataToResponse()
+        // Maps holdings → positions
+        // Preserves all enrichment fields
+    }
+
+    /**
+     * Update real-time prices using Yahoo Finance
+     */
+    private void updateRealTimePrices(ProviderPortfolioResponse response, String userId) {
+        // Similar to KrakenPortfolioService.updateRealTimePrices()
+        // Fetch latest prices
+        // Recalculate profit/loss
+    }
+}
+```
+
+**Modified Service: PortfolioAggregatorService**
+```java
+@Service
+public class PortfolioAggregatorService {
+
+    private final KrakenPortfolioService krakenPortfolioService;
+    private final CoinbasePortfolioService coinbasePortfolioService; // 🆕 NEW
+
+    public AggregatedPortfolioResponse fetchAndAggregatePortfolios(String userId) {
+        // ... existing Kraken logic ...
+
+        // 🆕 NEW: Check for Coinbase integration
+        boolean hasCoinbase = integrations.stream()
+            .anyMatch(i -> "coinbase".equals(i.getProviderId())
+                && i.getStatus() == ProviderStatus.CONNECTED);
+
+        if (hasCoinbase && coinbasePortfolioService != null) {
+            log.info("Fetching real-time Coinbase data for user {}", userId);
+            ProviderPortfolioResponse coinbaseData =
+                coinbasePortfolioService.getCoinbasePortfolio(userId);
+
+            if (coinbaseData != null && coinbaseData.getTotalValue() != null) {
+                ProviderDataEntity coinbaseEntity = convertToProviderDataEntity(coinbaseData);
+                allProviderData.add(coinbaseEntity);
+                log.info("Added Coinbase data with total value: {}", coinbaseData.getTotalValue());
+            }
+        }
+
+        // ... continue aggregation ...
+    }
+}
+```
+
+---
+
+#### 🟡 **client-coinbase** (Client Layer)
+**Module**: `/client/client-coinbase/`
+
+**Purpose**: Handles direct Coinbase API communication
+
+**Existing Methods** (Already implemented ✅):
+```java
+public class CoinbaseClient {
+
+    // ✅ Already exists - Get all accounts
+    public Map<String, Object> getAccounts(String accessToken);
+
+    // ✅ Already exists - Get specific account
+    public Map<String, Object> getAccount(String accessToken, String accountId);
+
+    // ✅ Already exists - Make authenticated OAuth request
+    public <T> T oauthRequest(HttpMethod method, String endpoint,
+                              String accessToken, Map<String, String> params,
+                              ParameterizedTypeReference<T> responseType);
+}
+```
+
+**No changes needed** - Client layer is complete!
+
+---
+
+#### 🔴 **data-provider** (Data Layer)
+**Module**: `/data/data-provider/`
+
+**Purpose**: Defines repository contracts and data entities
+
+**Existing Repositories** (Already implemented ✅):
+```java
+// ✅ Already exists
+public interface CreateProviderDataRepository {
+    void createProviderData(String userId, String providerId, ProviderDataEntity data);
+}
+
+// ✅ Already exists
+public interface ReadProviderDataRepository {
+    ProviderDataEntity getProviderData(String userId, String providerId);
+}
+
+// ✅ Already exists
+public interface UpdateProviderDataRepository {
+    void updateProviderData(String userId, String providerId, ProviderDataEntity data);
+}
+```
+
+**Existing Entity** (Already implemented ✅):
+```java
+// ✅ Already exists - Stored in Firestore at:
+// users/{userId}/provider_data/{providerId}
+public class ProviderDataEntity {
+    private String providerId;           // "coinbase"
+    private String providerName;         // "Coinbase"
+    private BigDecimal totalValue;       // Total portfolio value in USD
+    private BigDecimal cashBalance;      // Cash/fiat balance
+    private List<Holding> holdings;      // Crypto holdings
+    private Map<String, Object> balances;// Raw balances from API
+    private Instant lastUpdatedAt;       // Last sync time
+
+    public static class Holding {
+        private String asset;            // "BTC", "ETH", etc.
+        private String name;             // "Bitcoin", "Ethereum"
+        private BigDecimal quantity;     // Amount owned
+        private BigDecimal currentPrice; // Current market price
+        private BigDecimal currentValue; // quantity * currentPrice
+        private BigDecimal costBasis;    // Original purchase price
+        private BigDecimal profitLoss;   // Unrealized P/L
+        private BigDecimal profitLossPercent; // P/L percentage
+        // ... other enrichment fields
+    }
+}
+```
+
+**No changes needed** - Data layer is complete!
+
+---
+
+## 3. Data Flow Sequence
+
+### 3.1 Initial OAuth Completion & Data Sync
+
+```
+User                 Frontend          Backend                Coinbase API      Vault           Firestore
+ │                      │                  │                       │              │                 │
+ │  1. Authorizes      │                  │                       │              │                 │
+ │  on Coinbase        │                  │                       │              │                 │
+ ├─────────────────────┼──────────────────┼───────────────────────►              │                 │
+ │                      │                  │                       │              │                 │
+ │  2. Redirect to     │                  │                       │              │                 │
+ │  callback with code │                  │                       │              │                 │
+ ◄─────────────────────┼──────────────────┼───────────────────────┤              │                 │
+ │                      │                  │                       │              │                 │
+ │  3. GET /v1/providers/callback/cb?code=...&state=...          │              │                 │
+ ├─────────────────────►├─────────────────►                       │              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  4. Validate state                      │              │                 │
+ │                      │  ├──────────────►│                       │              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  5. Exchange code for tokens            │              │                 │
+ │                      │  ├──────────────►├──────────────────────►│              │                 │
+ │                      │                  │  ◄───────────────────┤              │                 │
+ │                      │                  │  (access_token,       │              │                 │
+ │                      │                  │   refresh_token)      │              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  6. Store tokens in Vault               │              │                 │
+ │                      │  ├──────────────►├───────────────────────┼─────────────►│                 │
+ │                      │                  │  ◄───────────────────┤              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  7. Update integration status           │              │                 │
+ │                      │  ├──────────────►├───────────────────────┼──────────────┼────────────────►│
+ │                      │                  │                       │              │  (provider_     │
+ │                      │                  │                       │              │   integrations) │
+ │                      │                  │                       │              │                 │
+ │                      │  🆕 8. Fetch accounts from Coinbase     │              │                 │
+ │                      │  ├──────────────►├──────────────────────►│              │                 │
+ │                      │                  │  ◄───────────────────┤              │                 │
+ │                      │                  │  (accounts data)      │              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  🆕 9. Transform & enrich data          │              │                 │
+ │                      │  ├──────────────►│  (CoinbaseProvider    │              │                 │
+ │                      │                  │   Business)           │              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  🆕 10. Store enriched data in Firestore│              │                 │
+ │                      │  ├──────────────►├───────────────────────┼──────────────┼────────────────►│
+ │                      │                  │                       │              │  (provider_data)│
+ │                      │                  │                       │              │                 │
+ │  11. Redirect to    │                  │                       │              │                 │
+ │  success page        │                  │                       │              │                 │
+ ◄─────────────────────┤◄─────────────────┤                       │              │                 │
+ │                      │                  │                       │              │                 │
+ │  12. Load dashboard │                  │                       │              │                 │
+ ├─────────────────────►├─────────────────►                       │              │                 │
+ │                      │  GET /v1/dashboard/portfolio            │              │                 │
+ │                      │                  │                       │              │                 │
+ │                      │  13. Read enriched data from Firestore  │              │                 │
+ │                      │  ├──────────────►├───────────────────────┼──────────────┼────────────────►│
+ │                      │                  │  ◄───────────────────┤              │  (provider_data)│
+ │                      │                  │  (Coinbase + Kraken   │              │                 │
+ │                      │                  │   portfolio data)     │              │                 │
+ │                      │                  │                       │              │                 │
+ │  14. Display        │                  │                       │              │                 │
+ │  portfolio with     │                  │                       │              │                 │
+ │  Coinbase data      │                  │                       │              │                 │
+ ◄─────────────────────┤◄─────────────────┤                       │              │                 │
+```
+
+---
+
+## 4. Coinbase API Response Format
+
+### 4.1 Sample Accounts Response
+
+**API Call**: `GET https://api.coinbase.com/v2/accounts`
+
+```json
+{
+  "data": [
+    {
+      "id": "71452118-efc7-4cc4-8780-a5e22d4baa53",
+      "name": "BTC Wallet",
+      "primary": true,
+      "type": "wallet",
+      "currency": {
+        "code": "BTC",
+        "name": "Bitcoin",
+        "color": "#F7931A",
+        "exponent": 8,
+        "type": "crypto"
+      },
+      "balance": {
+        "amount": "0.00100000",
+        "currency": "BTC"
+      },
+      "native_balance": {
+        "amount": "67.00",
+        "currency": "USD"
+      },
+      "created_at": "2015-01-31T20:49:02Z",
+      "updated_at": "2015-01-31T20:49:02Z"
+    },
+    {
+      "id": "a6b4c2df-a62c-5d68-822a-dd4e2102e27c",
+      "name": "ETH Wallet",
+      "primary": false,
+      "type": "wallet",
+      "currency": {
+        "code": "ETH",
+        "name": "Ethereum",
+        "color": "#627EEA",
+        "exponent": 8,
+        "type": "crypto"
+      },
+      "balance": {
+        "amount": "1.50000000",
+        "currency": "ETH"
+      },
+      "native_balance": {
+        "amount": "3750.00",
+        "currency": "USD"
+      }
+    },
+    {
+      "id": "fiat-usd-wallet",
+      "name": "USD Wallet",
+      "primary": false,
+      "type": "fiat",
+      "currency": {
+        "code": "USD",
+        "name": "US Dollar",
+        "exponent": 2,
+        "type": "fiat"
+      },
+      "balance": {
+        "amount": "1000.00",
+        "currency": "USD"
+      },
+      "native_balance": {
+        "amount": "1000.00",
+        "currency": "USD"
+      }
+    }
+  ]
+}
+```
+
+### 4.2 Transformation to ProviderDataEntity
+
+```java
+ProviderDataEntity entity = new ProviderDataEntity();
+entity.setProviderId("coinbase");
+entity.setProviderName("Coinbase");
+entity.setAccountType("crypto_exchange");
+
+// Calculate totals
+BigDecimal totalValue = BigDecimal.ZERO;
+BigDecimal cashBalance = BigDecimal.ZERO;
+List<Holding> holdings = new ArrayList<>();
+
+for (Account account : accounts) {
+    BigDecimal nativeValue = new BigDecimal(account.native_balance.amount);
+    totalValue = totalValue.add(nativeValue);
+
+    if (account.currency.type.equals("fiat")) {
+        cashBalance = cashBalance.add(nativeValue);
+    } else {
+        // Create holding for crypto assets
+        Holding holding = new Holding();
+        holding.setAsset(account.currency.code);           // "BTC"
+        holding.setName(account.currency.name);            // "Bitcoin"
+        holding.setQuantity(new BigDecimal(account.balance.amount));
+        holding.setCurrentValue(nativeValue);
+        holding.setAssetType("crypto");
+
+        // Calculate current price
+        BigDecimal currentPrice = nativeValue.divide(holding.getQuantity(), 2, RoundingMode.HALF_UP);
+        holding.setCurrentPrice(currentPrice);
+
+        holdings.add(holding);
+    }
+}
+
+entity.setTotalValue(totalValue);         // $4817.00
+entity.setCashBalance(cashBalance);       // $1000.00
+entity.setHoldings(holdings);             // [BTC, ETH holdings]
+entity.setLastUpdatedAt(Instant.now());
+```
+
+---
+
+## 5. Implementation Checklist
+
+### Phase 1: Core Data Fetching ✅
+- [ ] Modify `CoinbaseProviderBusiness.completeOAuthFlow()` to trigger data fetch
+- [ ] Implement `fetchAndStorePortfolioData()` method
+- [ ] Implement `transformCoinbaseAccounts()` method
+- [ ] Implement `storeProviderData()` method
+- [ ] Unit tests for transformation logic
+
+### Phase 2: Portfolio Service 📋
+- [ ] Create `CoinbasePortfolioService` class
+- [ ] Implement `getCoinbasePortfolio()` method
+- [ ] Implement `refreshCoinbaseData()` method
+- [ ] Implement `mapEnrichedDataToResponse()` method
+- [ ] Unit tests for portfolio service
+
+### Phase 3: Aggregation 🔄
+- [ ] Add `CoinbasePortfolioService` to `PortfolioAggregatorService`
+- [ ] Implement Coinbase data fetch in aggregation logic
+- [ ] Integration tests for aggregated portfolio
+
+### Phase 4: Market Data Enrichment 📈
+- [ ] Implement `enrichWithMarketData()` using `MarketPriceBusiness`
+- [ ] Add real-time price updates for stale data
+- [ ] Calculate profit/loss metrics
+
+### Phase 5: Testing & Monitoring 🧪
+- [ ] End-to-end testing of OAuth → Data Sync → Display
+- [ ] Performance testing with large portfolios
+- [ ] Add logging and metrics
+- [ ] Update documentation
+
+---
+
+## 6. Firestore Data Structure
+
+```
+users/
+  {userId}/
+    provider_integrations/        // OAuth connection status
+      coinbase/
+        providerId: "coinbase"
+        status: "connected"
+        enabled: true
+        connectedAt: "2025-10-25T..."
+
+    provider_data/                // 🆕 Portfolio data cache
+      coinbase/
+        providerId: "coinbase"
+        providerName: "Coinbase"
+        totalValue: 4817.00
+        cashBalance: 1000.00
+        lastUpdatedAt: "2025-10-25T..."
+        holdings: [
+          {
+            asset: "BTC"
+            name: "Bitcoin"
+            quantity: 0.001
+            currentPrice: 67000.00
+            currentValue: 67.00
+            assetType: "crypto"
+          },
+          {
+            asset: "ETH"
+            name: "Ethereum"
+            quantity: 1.5
+            currentPrice: 2500.00
+            currentValue: 3750.00
+            assetType: "crypto"
+          }
+        ]
+```
+
+---
+
+## 7. Error Handling Strategy
+
+### 7.1 OAuth Completion Errors
+```java
+try {
+    fetchAndStorePortfolioData(userId, accessToken);
+} catch (CoinbaseApiException e) {
+    log.warn("Failed to fetch initial portfolio data, will sync later: {}", e.getMessage());
+    // Don't fail OAuth - data can be synced later via refresh
+    // Mark sync status as "pending_sync" in integration metadata
+}
+```
+
+**Rationale**: OAuth should complete successfully even if initial data fetch fails. User can manually refresh or data will sync on next login.
+
+### 7.2 Data Transformation Errors
+```java
+try {
+    ProviderDataEntity entity = transformCoinbaseAccounts(accountsResponse);
+} catch (Exception e) {
+    log.error("Failed to transform Coinbase accounts: {}", e.getMessage(), e);
+    // Store raw response for debugging
+    storeRawResponseForDebug(userId, accountsResponse);
+    throw new StrategizException(TRANSFORMATION_ERROR, "Failed to process Coinbase accounts");
+}
+```
+
+### 7.3 Firestore Storage Errors
+```java
+try {
+    createProviderDataRepository.createProviderData(userId, "coinbase", entity);
+} catch (Exception e) {
+    log.error("Failed to store provider data: {}", e.getMessage(), e);
+    // Queue for retry with exponential backoff
+    retryQueue.add(new RetryTask(userId, entity, maxRetries=3));
+}
+```
+
+---
+
+## 8. Performance Considerations
+
+### 8.1 Estimated Latencies
+```yaml
+OAuth Callback Processing:
+  - Token Exchange: 200-500ms (Coinbase API)
+  - Vault Token Storage: 50-100ms
+  - Firestore Integration Update: 100-200ms
+  - Coinbase Accounts Fetch: 300-600ms  # 🆕 NEW
+  - Data Transformation: 50-100ms       # 🆕 NEW
+  - Firestore Data Storage: 150-300ms   # 🆕 NEW
+
+Total OAuth Completion Time: 850-1800ms (was: 350-800ms)
+Acceptable: Yes (< 3 seconds)
+```
+
+### 8.2 Optimization Strategies
+- ✅ **Async Data Fetch**: Consider making data fetch async (fire-and-forget)
+- ✅ **Batch API Calls**: Use Coinbase batch endpoints if available
+- ✅ **Caching**: Cache market prices for 1 minute to reduce API calls
+- ✅ **Lazy Enrichment**: Store raw data first, enrich asynchronously
+
+---
+
+## 9. Security Considerations
+
+### 9.1 Token Handling
+- ✅ **Never log tokens**: Sanitize all logs
+- ✅ **Vault storage only**: Tokens never stored in Firestore
+- ✅ **Secure retrieval**: Use Vault API with proper authentication
+
+### 9.2 Data Privacy
+- ✅ **User isolation**: Firestore security rules enforce user-level access
+- ✅ **Encrypted at rest**: Both Vault and Firestore encrypt data
+- ✅ **Audit trail**: Log all portfolio data access
+
+---
+
+## 10. Monitoring & Alerts
+
+### 10.1 Metrics to Track
+```yaml
+Metrics:
+  - coinbase_data_fetch_total (counter)
+  - coinbase_data_fetch_duration_seconds (histogram)
+  - coinbase_data_fetch_failures (counter)
+  - coinbase_transformation_errors (counter)
+  - portfolio_data_size_bytes (histogram)
+```
+
+### 10.2 Alerts
+```yaml
+Alerts:
+  - Name: High Coinbase Data Fetch Failure Rate
+    Condition: failure_rate > 10%
+    Severity: WARNING
+
+  - Name: Slow Data Sync
+    Condition: p95_duration > 3s
+    Severity: WARNING
+```
+
+---
+
+## 11. Next Steps
+
+### Immediate Actions
+1. ✅ **Review this design document** with team
+2. 📝 **Get approval** for architecture approach
+3. 🔨 **Implement Phase 1** (Core data fetching)
+4. 🧪 **Test with real Coinbase OAuth** credentials
+5. 📊 **Monitor performance** and iterate
+
+### Future Enhancements
+- [ ] Support for Coinbase Pro / Advanced Trade
+- [ ] Transaction history synchronization
+- [ ] Staking rewards tracking
+- [ ] Cost basis calculation from transaction history
+- [ ] Real-time WebSocket updates
+
+---
+
+## 12. Questions for Review
+
+1. **Architecture**: Is the module breakdown appropriate? Should data fetching be synchronous or async?
+2. **Error Handling**: Should OAuth fail if data fetch fails, or proceed with delayed sync?
+3. **Performance**: Is 850-1800ms acceptable for OAuth completion, or should we optimize?
+4. **Data Model**: Does the `ProviderDataEntity` structure accommodate all Coinbase-specific fields?
+5. **Security**: Are there additional security considerations for storing portfolio data?
+
+---
+
+*This design document is pending review. Please provide feedback in the comments or via PR.*
+
+**Status**: 🟡 DESIGN_REVIEW
+**Next Review**: 2025-10-26
+**Reviewers**: @platform-team @backend-team

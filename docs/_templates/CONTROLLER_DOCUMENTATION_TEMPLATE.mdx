@@ -191,63 +191,66 @@ curl -X [METHOD] https://api.strategiz.io/v1/[endpoint] \
 
 ### 4.1 Component Diagram
 
-> **[📊 Open in draw.io](diagrams/[api-name]-components.drawio)**
-> *Click above to edit this diagram in draw.io desktop app or web editor*
+> **How to create/edit**:
+> 1. Open [draw.io](https://app.diagrams.net)
+> 2. Create a component diagram showing: Service Layer → Business Layer → Client Layer → External Systems
+> 3. Export as PNG with "Include a copy of my diagram" enabled
+> 4. Save to `diagrams/[api-name]-components.png`
 
-<details>
-<summary>View Embedded Diagram Code</summary>
+![Component Diagram](diagrams/[api-name]-components.png)
 
-```drawio
-<mxfile host="app.diagrams.net">
-  <diagram name="[Component Name]" id="[unique-id]">
-    <!-- Add draw.io XML here -->
-    <!-- Shows: Service Layer, Business Layer, Client Layer, External Systems -->
-  </diagram>
-</mxfile>
-```
+*To edit: Open the PNG file in draw.io (it contains the editable diagram data)*
 
-</details>
+**Diagram should show**:
+- Service Layer ([ControllerName])
+- Business Layer ([BusinessService])
+- Client Layer ([ExternalClient])
+- External Systems (APIs, Vault, Database)
+- Data flow arrows with labels
 
 ### 4.2 Flow Diagram
 
-> **[📊 Open in draw.io](diagrams/[api-name]-flow.drawio)**
-> *Click above to edit this diagram in draw.io desktop app or web editor*
+> **How to create/edit**:
+> 1. Open [draw.io](https://app.diagrams.net)
+> 2. Create a flowchart showing the complete request/response flow
+> 3. Export as PNG with "Include a copy of my diagram" enabled
+> 4. Save to `diagrams/[api-name]-flow.png`
 
-<details>
-<summary>View Embedded Diagram Code</summary>
+![Flow Diagram](diagrams/[api-name]-flow.png)
 
-```drawio
-<mxfile host="app.diagrams.net">
-  <diagram name="[Flow Name]" id="[unique-id]">
-    <!-- Add draw.io XML here -->
-    <!-- Shows: User -> Controller -> Service -> Business -> Client -> External API -->
-  </diagram>
-</mxfile>
-```
+*To edit: Open the PNG file in draw.io (it contains the editable diagram data)*
 
-</details>
+**Diagram should show**:
+- Start (User Request)
+- Controller validation
+- Service processing
+- Business logic
+- External API calls
+- Database operations
+- Response generation
+- End (User Response)
 
-### 4.3 Sequence Diagram
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant C as Controller
-    participant S as Service
-    participant B as Business
-    participant DB as Database
-    participant API as External API
+### 4.3 Sequence Diagrams
 
-    U->>C: Request
-    C->>S: Process
-    S->>B: Business Logic
-    B->>DB: Data Operation
-    DB-->>B: Data
-    B->>API: External Call
-    API-->>B: Response
-    B-->>S: Result
-    S-->>C: Response
-    C-->>U: Final Response
-```
+Create sequence diagrams in draw.io for each major flow. Export as PNG with embedded diagram data.
+
+#### 4.3.1 Main Flow
+
+> **How to create/edit**:
+> 1. Open [draw.io](https://app.diagrams.net)
+> 2. Use UML Sequence template
+> 3. Export as PNG with "Include a copy of my diagram" enabled
+> 4. Save to `diagrams/[api-name]-sequence-main.png`
+
+![Main Sequence Diagram](diagrams/[api-name]-sequence-main.png)
+
+*To edit: Open the PNG file in draw.io (it contains the editable diagram data)*
+
+#### 4.3.2 Error Flow
+
+![Error Sequence Diagram](diagrams/[api-name]-sequence-error.png)
+
+*To edit: Open the PNG file in draw.io (it contains the editable diagram data)*
 
 ## 5. Quality
 
@@ -383,7 +386,7 @@ Throughput: XXX requests/second
 Max Concurrent Requests: XXX
 ```
 
-### 5.3 Observability & Monitoring
+### 5.3 Observability
 
 #### 5.3.1 Logging Strategy
 
@@ -558,9 +561,9 @@ Error Budget Policy:
   - <25%: Emergency freeze, focus on reliability
 ```
 
-## 6. Security Considerations
+### 5.4 Security
 
-### 6.1 Authentication & Authorization
+#### 5.4.1 Authentication & Authorization
 
 **Authentication Mechanisms**:
 ```yaml
@@ -590,7 +593,7 @@ Permissions:
 - ✅ Input validation against injection attacks
 - ✅ Authorization checks at controller level
 
-### 6.2 Data Protection
+#### 5.4.2 Data Protection
 
 **Data in Transit**:
 ```yaml
@@ -624,7 +627,7 @@ Logs: Retained for [X] days
 Audit Trail: Retained for [X] years
 ```
 
-### 6.3 Security Testing
+#### 5.4.3 Security Testing
 
 **SAST (Static Application Security Testing)**:
 ```yaml
@@ -649,7 +652,7 @@ Frequency: Daily
 Action: Auto-create PR for critical updates
 ```
 
-### 6.4 Compliance & Standards
+#### 5.4.4 Compliance & Standards
 
 **Regulatory Compliance**:
 - ✅ **GDPR** (EU General Data Protection Regulation)
@@ -673,7 +676,7 @@ Action: Auto-create PR for critical updates
 - ✅ **OpenAPI 3.0** for API documentation
 - ✅ **ISO 27001** information security management
 
-### 6.5 Security Incident Response
+#### 5.4.5 Security Incident Response
 
 **Incident Classification**:
 ```yaml
@@ -703,15 +706,15 @@ P2 (Medium):
 5. **Recovery**: Restore normal operations
 6. **Post-mortem**: Document lessons learned
 
-## 7. Maintenance & Support
+## 6. Maintenance & Support
 
-### 7.1 Known Issues
+### 6.1 Known Issues
 
 | Issue ID | Description | Workaround | Target Fix |
 |----------|-------------|------------|------------|
 | [ISSUE-1] | [Description] | [Workaround if available] | [Version] |
 
-### 7.2 Future Enhancements
+### 6.2 Future Enhancements
 
 **Planned Features**:
 - [ ] [Enhancement 1] - Target: [Version/Date]
@@ -727,7 +730,7 @@ P2 (Medium):
 - [ ] [Technology evaluation]
 - [ ] [Architecture improvement]
 
-### 7.3 Runbooks & Troubleshooting
+### 6.3 Runbooks & Troubleshooting
 
 **Common Issues**:
 
@@ -770,7 +773,7 @@ P2 (Medium):
      - Implement exponential backoff
    ```
 
-### 7.4 Deployment & Rollback
+### 6.4 Deployment & Rollback
 
 **Deployment Process**:
 ```yaml
@@ -790,7 +793,7 @@ Rollback Triggers:
   - Manual decision
 ```
 
-### 7.5 Contact & Support
+### 6.5 Contact & Support
 
 **Team Information**:
 - **Team**: [Team Name]
@@ -814,7 +817,7 @@ Rollback Triggers:
 - **Runbooks**: [Link to runbooks]
 - **Postmortems**: [Link to incident reports]
 
-## 8. Version History
+## 7. Version History
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|

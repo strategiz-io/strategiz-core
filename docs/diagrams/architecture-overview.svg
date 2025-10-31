@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 24px sans-serif; fill: #FFFFFF; }
+      .box { stroke: #FFFFFF; stroke-width: 2; }
+      .box-blue { fill: #00BFFF; }
+      .box-green { fill: #39FF14; }
+      .box-purple { fill: #BF00FF; }
+      .text-white { font: 14px sans-serif; fill: #FFFFFF; text-anchor: middle; }
+      .text-dark { font: 14px sans-serif; fill: #1a1a1a; text-anchor: middle; }
+      .arrow { stroke: #FFFFFF; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FFFFFF" />
+    </marker>
+  </defs>
+
+  <rect width="1200" height="800" fill="#1a1a1a"/>
+
+  <!-- Title -->
+  <text x="600" y="50" class="title" text-anchor="middle">Strategiz Core - High-Level Architecture</text>
+
+  <!-- Client Layer -->
+  <rect x="440" y="120" width="300" height="60" class="box box-blue" rx="5"/>
+  <text x="590" y="155" class="text-white">Client Applications</text>
+
+  <!-- API Gateway -->
+  <rect x="440" y="220" width="300" height="60" class="box box-purple" rx="5"/>
+  <text x="590" y="245" class="text-white">API Gateway /</text>
+  <text x="590" y="265" class="text-white">Load Balancer</text>
+
+  <!-- Service Layer -->
+  <rect x="440" y="320" width="300" height="60" class="box box-green" rx="5"/>
+  <text x="590" y="345" class="text-dark">Service Layer</text>
+  <text x="590" y="365" class="text-dark">(REST Controllers)</text>
+
+  <!-- Business Layer -->
+  <rect x="440" y="420" width="300" height="60" class="box box-green" rx="5"/>
+  <text x="590" y="445" class="text-dark">Business Logic Layer</text>
+  <text x="590" y="465" class="text-dark">(Services)</text>
+
+  <!-- Client Integration Layer -->
+  <rect x="440" y="520" width="300" height="60" class="box box-green" rx="5"/>
+  <text x="590" y="545" class="text-dark">Client Integration Layer</text>
+  <text x="590" y="565" class="text-dark">(Provider Clients)</text>
+
+  <!-- Data Layer - Firestore -->
+  <ellipse cx="270" cy="670" rx="70" ry="50" class="box box-blue"/>
+  <text x="270" y="665" class="text-white">Firestore</text>
+  <text x="270" y="685" class="text-white">(User Data)</text>
+
+  <!-- Data Layer - Vault -->
+  <ellipse cx="590" cy="670" rx="70" ry="50" class="box box-purple"/>
+  <text x="590" y="665" class="text-white">Vault</text>
+  <text x="590" y="685" class="text-white">(Secrets)</text>
+
+  <!-- External Services -->
+  <ellipse cx="920" cy="560" rx="100" ry="60" class="box box-blue"/>
+  <text x="920" y="550" class="text-white">External Providers</text>
+  <text x="920" y="570" class="text-white">(Coinbase, Binance,</text>
+  <text x="920" y="590" class="text-white">etc.)</text>
+
+  <!-- Arrows -->
+  <line x1="590" y1="180" x2="590" y2="220" class="arrow"/>
+  <line x1="590" y1="280" x2="590" y2="320" class="arrow"/>
+  <line x1="590" y1="380" x2="590" y2="420" class="arrow"/>
+  <line x1="590" y1="480" x2="590" y2="520" class="arrow"/>
+
+  <!-- Business to Firestore -->
+  <path d="M 440 450 Q 350 450 300 620" class="arrow" stroke="#00BFFF"/>
+  <text x="360" y="530" font-size="12" fill="#00BFFF">Read/Write</text>
+
+  <!-- Client to Vault -->
+  <line x1="590" y1="580" x2="590" y2="620" class="arrow" stroke="#BF00FF"/>
+  <text x="620" y="605" font-size="12" fill="#BF00FF">Secrets</text>
+
+  <!-- Client to External -->
+  <path d="M 740 550 Q 820 550 820 560" class="arrow" stroke="#39FF14"/>
+  <text x="780" y="545" font-size="12" fill="#39FF14">OAuth/API</text>
+</svg>

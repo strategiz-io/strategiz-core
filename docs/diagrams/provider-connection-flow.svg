@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font: bold 24px sans-serif; fill: #FFFFFF; }
+      .step { stroke: #FFFFFF; stroke-width: 2; }
+      .step-blue { fill: #00BFFF; }
+      .step-green { fill: #39FF14; }
+      .step-purple { fill: #BF00FF; }
+      .text-white { font: 12px sans-serif; fill: #FFFFFF; text-anchor: middle; }
+      .text-dark { font: 12px sans-serif; fill: #1a1a1a; text-anchor: middle; }
+      .arrow { stroke: #FFFFFF; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FFFFFF" />
+    </marker>
+  </defs>
+
+  <rect width="1400" height="700" fill="#1a1a1a"/>
+
+  <!-- Title -->
+  <text x="700" y="40" class="title" text-anchor="middle">Provider Connection Flow (OAuth 2.0)</text>
+
+  <!-- Flow Steps -->
+  <!-- Step 1 -->
+  <rect x="80" y="100" width="140" height="60" class="step step-blue" rx="5"/>
+  <text x="150" y="125" class="text-white">1. Click "Connect</text>
+  <text x="150" y="145" class="text-white">Coinbase"</text>
+
+  <!-- Step 2 -->
+  <rect x="280" y="100" width="140" height="60" class="step step-green" rx="5"/>
+  <text x="350" y="125" class="text-dark">2. Initiate</text>
+  <text x="350" y="145" class="text-dark">OAuth</text>
+
+  <!-- Step 3 -->
+  <rect x="480" y="100" width="140" height="60" class="step step-purple" rx="5"/>
+  <text x="550" y="120" class="text-white">3. Request</text>
+  <text x="550" y="135" class="text-white">Authorization</text>
+  <text x="550" y="150" class="text-white">URL</text>
+
+  <!-- Step 4 -->
+  <rect x="680" y="100" width="140" height="60" class="step step-blue" rx="5"/>
+  <text x="750" y="125" class="text-white">4. Generate URL</text>
+  <text x="750" y="145" class="text-white">+ State</text>
+
+  <!-- Step 5 -->
+  <rect x="880" y="100" width="140" height="60" class="step step-blue" rx="5"/>
+  <text x="950" y="125" class="text-white">5. Redirect to</text>
+  <text x="950" y="145" class="text-white">Provider</text>
+
+  <!-- Step 6 -->
+  <rect x="880" y="220" width="140" height="60" class="step step-blue" rx="5"/>
+  <text x="950" y="245" class="text-white">6. User</text>
+  <text x="950" y="265" class="text-white">Approves</text>
+
+  <!-- Step 7 -->
+  <rect x="680" y="340" width="140" height="60" class="step step-green" rx="5"/>
+  <text x="750" y="360" class="text-dark">7. Callback with</text>
+  <text x="750" y="380" class="text-dark">Auth Code</text>
+
+  <!-- Step 8 -->
+  <rect x="480" y="460" width="140" height="60" class="step step-purple" rx="5"/>
+  <text x="550" y="480" class="text-white">8. Exchange Code</text>
+  <text x="550" y="500" class="text-white">for Token</text>
+
+  <!-- Step 9 -->
+  <rect x="280" y="580" width="140" height="60" class="step step-purple" rx="5"/>
+  <text x="350" y="605" class="text-white">9. Store in Vault</text>
+
+  <!-- Step 10 -->
+  <rect x="80" y="580" width="140" height="60" class="step step-purple" rx="5"/>
+  <text x="150" y="600" class="text-white">10. Fetch</text>
+  <text x="150" y="620" class="text-white">Portfolio</text>
+
+  <!-- Arrows -->
+  <line x1="220" y1="130" x2="280" y2="130" class="arrow"/>
+  <line x1="420" y1="130" x2="480" y2="130" class="arrow"/>
+  <line x1="620" y1="130" x2="680" y2="130" class="arrow"/>
+  <line x1="820" y1="130" x2="880" y2="130" class="arrow"/>
+  <line x1="950" y1="160" x2="950" y2="220" class="arrow"/>
+  <line x1="880" y1="250" x2="820" y2="370" class="arrow"/>
+  <line x1="680" y1="370" x2="620" y2="490" class="arrow"/>
+  <line x1="480" y1="490" x2="420" y2="610" class="arrow"/>
+  <line x1="280" y1="610" x2="220" y2="610" class="arrow"/>
+</svg>

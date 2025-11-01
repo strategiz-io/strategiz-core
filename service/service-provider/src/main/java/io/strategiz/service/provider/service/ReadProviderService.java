@@ -65,7 +65,7 @@ public class ReadProviderService {
                     provider.setProviderName(providerName);
                     
                     provider.setConnectionType(integration.getConnectionType());
-                    provider.setStatus(integration.getStatus().getValue()); // Convert enum to string value
+                    provider.setStatus(integration.getStatus()); // Status is already a string
                     provider.setConnectedAt(integration.getCreatedDate() != null ? 
                         integration.getCreatedDate().toDate().toInstant() : Instant.now());
                     

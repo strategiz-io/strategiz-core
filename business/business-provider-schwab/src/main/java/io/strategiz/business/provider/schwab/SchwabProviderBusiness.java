@@ -187,7 +187,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             if (existingIntegration.isPresent()) {
                 // Update existing integration - just enable it
                 ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.setStatusValue("connected"); // Mark as connected/enabled
+                entity.setStatus("connected"); // Mark as connected/enabled
                 
                 // Tokens should be stored securely elsewhere (e.g., Vault)
                 
@@ -196,7 +196,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             } else {
                 // Create new integration with simplified entity
                 ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
-                entity.setStatusValue("connected"); // Mark as connected/enabled
+                entity.setStatus("connected"); // Mark as connected/enabled
                 
                 // Tokens should be stored securely elsewhere (e.g., Vault)
                 
@@ -283,7 +283,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         try {
             // Create simplified provider integration entity for Firestore
             ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
-            entity.setStatusValue("disconnected"); // Not enabled until OAuth is complete
+            entity.setStatus("disconnected"); // Not enabled until OAuth is complete
             
             // Save to Firestore
             ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);

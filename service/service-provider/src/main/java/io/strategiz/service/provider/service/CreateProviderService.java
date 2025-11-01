@@ -379,7 +379,7 @@ public class CreateProviderService {
                     Map<String, Object> provider = new HashMap<>();
                     provider.put("providerId", entity.getProviderId());
                     provider.put("providerName", entity.getProviderId()); // Use providerId as name for now
-                    provider.put("status", entity.getStatus() == ProviderStatus.CONNECTED ? "active" : "inactive");
+                    provider.put("status", ProviderStatus.CONNECTED.getValue().equals(entity.getStatus()) ? "active" : "inactive");
                     provider.put("connectedAt", entity.getCreatedDate());
                     provider.put("lastSyncedAt", entity.getModifiedDate()); // Use modified date as last sync
                     return provider;

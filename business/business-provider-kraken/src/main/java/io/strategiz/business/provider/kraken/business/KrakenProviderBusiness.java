@@ -134,7 +134,7 @@ public class KrakenProviderBusiness extends BaseApiKeyProviderHandler {
                     ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
                         KrakenConstants.PROVIDER_ID, "api_key", userId);
                     // Set status directly as lowercase string to ensure Firestore saves it correctly
-                    entity.setStatusValue("connected");
+                    entity.setStatus("connected");
                     
                     // Audit fields are already set in constructor
                     

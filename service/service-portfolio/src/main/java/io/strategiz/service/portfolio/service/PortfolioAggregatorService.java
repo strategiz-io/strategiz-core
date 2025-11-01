@@ -157,7 +157,7 @@ public class PortfolioAggregatorService {
             // Check for Kraken integration
             boolean hasKraken = integrations.stream()
                 .anyMatch(i -> ServicePortfolioConstants.PROVIDER_KRAKEN.equals(i.getProviderId())
-                    && i.getStatus() == ProviderStatus.CONNECTED);
+                    && ProviderStatus.CONNECTED.getValue().equals(i.getStatus()));
 
             if (hasKraken && krakenPortfolioService != null) {
                 log.info("Fetching real-time Kraken data for user {}", userId);
@@ -174,7 +174,7 @@ public class PortfolioAggregatorService {
             // Check for Coinbase integration
             boolean hasCoinbase = integrations.stream()
                 .anyMatch(i -> ServicePortfolioConstants.PROVIDER_COINBASE.equals(i.getProviderId())
-                    && i.getStatus() == ProviderStatus.CONNECTED);
+                    && ProviderStatus.CONNECTED.getValue().equals(i.getStatus()));
 
             if (hasCoinbase && coinbasePortfolioService != null) {
                 log.info("Fetching real-time Coinbase data for user {}", userId);
@@ -245,8 +245,8 @@ public class PortfolioAggregatorService {
             for (ProviderIntegrationEntity integration : integrations) {
                 boolean hasData = providerSummaries.stream()
                     .anyMatch(p -> p.getProviderId().equals(integration.getProviderId()));
-                
-                if (!hasData && integration.getStatus() == ProviderStatus.CONNECTED) {
+
+                if (!hasData && ProviderStatus.CONNECTED.getValue().equals(integration.getStatus())) {
                     PortfolioOverviewResponse.ProviderSummary summary = new PortfolioOverviewResponse.ProviderSummary();
                     summary.setProviderId(integration.getProviderId());
                     summary.setProviderName(getProviderDisplayName(integration.getProviderId()));
@@ -312,7 +312,7 @@ public class PortfolioAggregatorService {
             
             boolean allSuccess = true;
             for (ProviderIntegrationEntity integration : integrations) {
-                if (integration.getStatus() == ProviderStatus.CONNECTED) {
+                if (ProviderStatus.CONNECTED.getValue().equals(integration.getStatus())) {
                     try {
                         boolean success = portfolioProviderService.refreshProviderData(userId, integration.getProviderId());
                         if (!success) {

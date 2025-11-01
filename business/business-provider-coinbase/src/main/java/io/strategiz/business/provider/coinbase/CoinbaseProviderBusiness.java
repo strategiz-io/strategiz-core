@@ -480,7 +480,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Create simplified provider integration entity for Firestore
             // Only store essential fields: providerId, connectionType, isEnabled
             ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
-            entity.setStatusValue("disconnected"); // Not connected until OAuth is complete
+            entity.setStatus("disconnected"); // Not connected until OAuth is complete
             
             // Save to Firestore
             ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
@@ -536,7 +536,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             if (existingIntegration.isPresent()) {
                 // Update existing integration - just enable it
                 ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.setStatusValue("connected"); // Mark as connected
+                entity.setStatus("connected"); // Mark as connected
 
                 // We don't store tokens or metadata in the entity anymore
                 // Those should be stored securely elsewhere (e.g., Vault)
@@ -546,7 +546,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             } else {
                 // Create new integration with simplified entity
                 ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
-                entity.setStatusValue("connected"); // Mark as connected
+                entity.setStatus("connected"); // Mark as connected
 
                 // We don't store tokens or metadata in the entity anymore
                 // Those should be stored securely elsewhere (e.g., Vault)

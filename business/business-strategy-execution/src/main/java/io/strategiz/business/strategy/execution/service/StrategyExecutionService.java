@@ -74,9 +74,9 @@ public class StrategyExecutionService {
             }
             
             ProviderIntegrationEntity provider = providerOpt.get();
-            
+
             // Verify provider is enabled
-            if (provider.getStatus() != ProviderStatus.CONNECTED) {
+            if (!ProviderStatus.CONNECTED.getValue().equals(provider.getStatus())) {
                 return createErrorResult(strategyId, "Provider is not enabled");
             }
             
@@ -125,7 +125,7 @@ public class StrategyExecutionService {
     public List<ProviderIntegrationEntity> getUserProviders(String userId) {
         // Find all enabled providers for the user
         return providerRepository.findByUserId(userId).stream()
-                .filter(p -> p.getStatus() == ProviderStatus.CONNECTED)
+                .filter(p -> ProviderStatus.CONNECTED.getValue().equals(p.getStatus()))
                 .collect(Collectors.toList());
     }
     
@@ -165,9 +165,9 @@ public class StrategyExecutionService {
         }
         
         ProviderIntegrationEntity provider = providerOpt.get();
-        
+
         // Check if provider is enabled
-        if (provider.getStatus() != ProviderStatus.CONNECTED) {
+        if (!ProviderStatus.CONNECTED.getValue().equals(provider.getStatus())) {
             return false;
         }
         

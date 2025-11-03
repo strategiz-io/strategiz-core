@@ -133,7 +133,16 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>libraries-bom</artifactId>
-                <version>26.63.0</version>
+                <version>26.71.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Spring Cloud GCP BOM for Spring Boot 3.5.7 -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>spring-cloud-gcp-dependencies</artifactId>
+                <version>7.4.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -432,7 +441,7 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>spring-cloud-gcp-starter-firestore</artifactId>
-                <version>3.7.2</version>
+                <version>7.4.1</version>
             </dependency>
             <dependency>
                 <groupId>com.google.firebase</groupId>

@@ -1,13 +1,13 @@
 plugins {
-    id("org.springframework.boot") version "3.2.5" apply false
-    id("io.spring.dependency-management") version "1.1.4" apply false
+    id("org.springframework.boot") version "3.5.7" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
     java
 }
 
 // Centralized version catalog - like Maven's properties section
-extra["springBootVersion"] = "3.2.5"
-extra["springCloudGcpVersion"] = "4.1.1"
-extra["firebaseAdminVersion"] = "9.3.0"
+extra["springBootVersion"] = "3.5.7"
+extra["springCloudGcpVersion"] = "7.4.1"
+extra["firebaseAdminVersion"] = "9.4.1"
 extra["jacksonVersion"] = "2.15.2"
 extra["guavaVersion"] = "33.3.1-jre"
 extra["commonsLang3Version"] = "3.17.0"
@@ -16,7 +16,7 @@ extra["openaiVersion"] = "0.18.2"
 extra["webauthn4jVersion"] = "0.7.0.RELEASE"
 extra["pasetoVersion"] = "0.7.0"
 extra["totpVersion"] = "1.7.1"
-extra["springdocVersion"] = "2.5.0"
+extra["springdocVersion"] = "2.8.0"
 extra["bucket4jVersion"] = "8.13.1"
 extra["httpclient5Version"] = "5.3.1"
 extra["httpclientVersion"] = "4.5.14"

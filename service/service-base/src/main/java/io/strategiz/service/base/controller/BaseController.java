@@ -71,8 +71,14 @@ public abstract class BaseController {
     protected abstract String getModuleName();
     
     protected final Logger log = LoggerFactory.getLogger(getClass());
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    
+
+    /**
+     * Spring-managed ObjectMapper with global configuration (NON_NULL, date/time support, etc.)
+     * This ensures consistent JSON serialization across all controllers.
+     */
+    @Autowired
+    protected ObjectMapper objectMapper;
+
     @Autowired
     protected ErrorMessageService errorMessageService;
     

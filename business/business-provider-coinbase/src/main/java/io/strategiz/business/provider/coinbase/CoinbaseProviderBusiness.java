@@ -4,6 +4,7 @@ import io.strategiz.business.provider.coinbase.model.CoinbaseConnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseDisconnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
+import io.strategiz.client.coinbase.CoinbaseDataClient;
 import io.strategiz.client.coinbase.CoinbaseOAuthClient;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.entity.ProviderStatus;
@@ -58,6 +59,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_TYPE = "exchange";
     
     private final CoinbaseClient coinbaseClient;
+    private final CoinbaseDataClient coinbaseDataClient;
     private final CoinbaseOAuthClient coinbaseOAuthClient;
     private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
     private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
@@ -86,6 +88,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     @Autowired
     public CoinbaseProviderBusiness(
             CoinbaseClient coinbaseClient,
+            CoinbaseDataClient coinbaseDataClient,
             CoinbaseOAuthClient coinbaseOAuthClient,
             CreateProviderIntegrationRepository createProviderIntegrationRepository,
             ReadProviderIntegrationRepository readProviderIntegrationRepository,
@@ -95,6 +98,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             @Autowired(required = false) UpdateProviderDataRepository updateProviderDataRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.coinbaseClient = coinbaseClient;
+        this.coinbaseDataClient = coinbaseDataClient;
         this.coinbaseOAuthClient = coinbaseOAuthClient;
         this.createProviderIntegrationRepository = createProviderIntegrationRepository;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;
@@ -569,7 +573,54 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             throw new RuntimeException("Failed to complete OAuth flow", e);
         }
     }
-    
+
+    /**
+     * Sync provider data for a specific user
+     * Retrieves access token from Vault and fetches latest portfolio data from Coinbase
+     *
+     * @param userId The user ID
+     * @return ProviderDataEntity with synced data
+     * @throws RuntimeException if sync fails
+     */
+    public ProviderDataEntity syncProviderData(String userId) {
+        log.info("Syncing Coinbase provider data for user: {}", userId);
+
+        try {
+            // Retrieve access token from Vault
+            String secretPath = "secret/strategiz/users/" + userId + "/providers/coinbase";
+            Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
+
+            if (secretData == null || secretData.isEmpty()) {
+                throw new RuntimeException("No Coinbase tokens found in Vault for user: " + userId);
+            }
+
+            String accessToken = (String) secretData.get("accessToken");
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new RuntimeException("Access token not found in Vault for user: " + userId);
+            }
+
+            log.debug("Retrieved Coinbase access token from Vault for user: {}", userId);
+
+            // Fetch and store portfolio data (same process as during provider connection)
+            fetchAndStorePortfolioData(userId, accessToken);
+
+            // Retrieve and return the stored data
+            ProviderDataEntity providerData = readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+
+            if (providerData != null) {
+                log.info("Successfully synced Coinbase data for user: {}", userId);
+                return providerData;
+            } else {
+                log.warn("No provider data found after sync for user: {}", userId);
+                throw new RuntimeException("No data found after sync");
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to sync Coinbase provider data for user: {}", userId, e);
+            throw new RuntimeException("Failed to sync provider data: " + e.getMessage(), e);
+        }
+    }
+
     private void storeTokensInVault(String userId, String accessToken, String refreshToken, Instant expiresAt) {
         try {
             String secretPath = "secret/strategiz/users/" + userId + "/providers/coinbase";
@@ -614,8 +665,8 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Fetch accounts from Coinbase
             Map<String, Object> accountsResponse = coinbaseClient.getAccounts(accessToken);
 
-            // Transform to ProviderDataEntity with Holdings
-            ProviderDataEntity portfolioData = transformToProviderDataEntity(accountsResponse, userId);
+            // Transform to ProviderDataEntity with Holdings (pass access token for price fetching)
+            ProviderDataEntity portfolioData = transformToProviderDataEntity(accountsResponse, userId, accessToken);
 
             // Store in Firestore
             storeProviderData(userId, portfolioData);
@@ -631,8 +682,11 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
 
     /**
      * Transform Coinbase API accounts response to ProviderDataEntity
+     * @param accountsResponse The accounts response from Coinbase API
+     * @param userId The user ID
+     * @param accessToken OAuth access token for fetching prices
      */
-    private ProviderDataEntity transformToProviderDataEntity(Map<String, Object> accountsResponse, String userId) {
+    private ProviderDataEntity transformToProviderDataEntity(Map<String, Object> accountsResponse, String userId, String accessToken) {
         ProviderDataEntity entity = new ProviderDataEntity();
         entity.setProviderId(PROVIDER_ID);
         entity.setProviderName("Coinbase");
@@ -656,8 +710,27 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
 
         for (Map<String, Object> account : accounts) {
             try {
-                // Extract account data
-                String currency = (String) account.get("currency");
+                // DEBUG: Log the entire account object to see what fields are available
+                log.info("=== COINBASE ACCOUNT DATA ===");
+                log.info("Account fields: {}", account.keySet());
+                log.info("Full account data: {}", account);
+
+                // Extract account data - currency can be either String or Object
+                String currency = null;
+                Object currencyObj = account.get("currency");
+                if (currencyObj instanceof String) {
+                    currency = (String) currencyObj;
+                } else if (currencyObj instanceof Map) {
+                    // Coinbase returns currency as an object with 'code' and 'name'
+                    Map<String, Object> currencyMap = (Map<String, Object>) currencyObj;
+                    currency = (String) currencyMap.get("code");
+                }
+
+                if (currency == null) {
+                    log.warn("Skipping account with no currency code");
+                    continue;
+                }
+
                 Map<String, Object> balance = (Map<String, Object>) account.get("balance");
 
                 if (balance == null) {
@@ -665,29 +738,64 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
                 }
 
                 String amountStr = (String) balance.get("amount");
-                if (amountStr == null || amountStr.equals("0") || amountStr.equals("0.00")) {
+                if (amountStr == null || amountStr.equals("0") || amountStr.equals("0.00") || amountStr.equals("0.00000000")) {
                     continue;
                 }
 
                 BigDecimal quantity = new BigDecimal(amountStr).setScale(8, RoundingMode.HALF_UP);
 
+                // Skip zero balances
+                if (quantity.compareTo(BigDecimal.ZERO) == 0) {
+                    continue;
+                }
+
                 // Create Holding
                 ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
                 holding.setAsset(currency);
-                holding.setName((String) account.get("name"));
+
+                // Clean up the name - remove "Staked " prefix and " Wallet" suffix
+                String accountName = (String) account.get("name");
+                String cleanedName = accountName;
+                boolean isStaked = false;
+
+                if (accountName != null) {
+                    // Check if it's a staked asset
+                    if (accountName.startsWith("Staked ")) {
+                        isStaked = true;
+                        cleanedName = accountName.substring(7); // Remove "Staked " prefix
+                    }
+
+                    // Remove " Wallet" suffix if present
+                    if (cleanedName.endsWith(" Wallet")) {
+                        cleanedName = cleanedName.substring(0, cleanedName.length() - 7);
+                    }
+                }
+
+                holding.setName(cleanedName);
+                holding.setIsStaked(isStaked);
                 holding.setQuantity(quantity);
 
-                // For now, use 1.0 as price - will be enriched later
-                holding.setCurrentPrice(BigDecimal.ONE);
-                holding.setCurrentValue(quantity);
+                // Fetch real-time spot price from Coinbase
+                BigDecimal currentPrice = fetchSpotPrice(accessToken, currency);
+                holding.setCurrentPrice(currentPrice);
+
+                // Calculate current value (quantity × price)
+                BigDecimal currentValue = quantity.multiply(currentPrice).setScale(2, RoundingMode.HALF_UP);
+                holding.setCurrentValue(currentValue);
+
+                // Calculate cost basis and average buy price from transaction history
+                String accountId = (String) account.get("id");
+                CostBasisData costBasisData = calculateCostBasis(accessToken, accountId, currency);
+                holding.setCostBasis(costBasisData.getTotalCostBasis());
+                holding.setAverageBuyPrice(costBasisData.getAverageBuyPrice());
 
                 // Store original metadata
                 holding.setOriginalSymbol(currency);
 
                 holdings.add(holding);
 
-                // Accumulate totals
-                totalValue = totalValue.add(quantity);
+                // Accumulate totals (use current value, not quantity)
+                totalValue = totalValue.add(currentValue);
 
                 // Track fiat currencies as cash balance
                 if (isFiatCurrency(currency)) {
@@ -721,14 +829,173 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
      */
     private void storeProviderData(String userId, ProviderDataEntity entity) {
         try {
+            log.info("=== COINBASE PROVIDER DATA STORAGE ===");
+            log.info("User ID: {}", userId);
+            log.info("Provider ID: {}", PROVIDER_ID);
+            log.info("Holdings count: {}", entity.getHoldings() != null ? entity.getHoldings().size() : 0);
+            log.info("Total value: {}", entity.getTotalValue());
+            log.info("Cash balance: {}", entity.getCashBalance());
+
+            if (entity.getHoldings() != null && !entity.getHoldings().isEmpty()) {
+                log.info("First holding: asset={}, quantity={}",
+                    entity.getHoldings().get(0).getAsset(),
+                    entity.getHoldings().get(0).getQuantity());
+            }
+
             // Use createOrReplace to handle both create and update
             createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
-            log.debug("Stored Coinbase provider data for user: {}", userId);
+            log.info("Successfully stored Coinbase provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
 
         } catch (Exception e) {
-            log.error("Failed to store Coinbase provider data", e);
+            log.error("Failed to store Coinbase provider data for user: {}", userId, e);
             throw e;
         }
     }
 
-} 
+    /**
+     * Fetch current spot price for a currency from Coinbase
+     * @param accessToken OAuth access token
+     * @param currency Currency code (e.g., "BTC", "ETH")
+     * @return Current spot price in USD, or BigDecimal.ONE if unable to fetch
+     */
+    private BigDecimal fetchSpotPrice(String accessToken, String currency) {
+        try {
+            // Skip price fetching for fiat currencies (they're always 1:1 with USD)
+            if (isFiatCurrency(currency)) {
+                return BigDecimal.ONE;
+            }
+
+            // Build currency pair (e.g., "BTC-USD")
+            String currencyPair = currency + "-USD";
+
+            log.debug("Fetching spot price for {}", currencyPair);
+
+            // Call Coinbase API for spot price
+            Map<String, Object> priceData = coinbaseDataClient.getSpotPrice(accessToken, currencyPair);
+
+            // Extract price from response
+            // Response format: {"amount": "43250.50", "currency": "USD"}
+            if (priceData != null && priceData.containsKey("amount")) {
+                String priceStr = (String) priceData.get("amount");
+                BigDecimal price = new BigDecimal(priceStr).setScale(8, RoundingMode.HALF_UP);
+                log.debug("Fetched spot price for {}: ${}", currency, price);
+                return price;
+            }
+
+            log.warn("Unable to fetch price for {}, using 1.0 as fallback", currency);
+            return BigDecimal.ONE;
+
+        } catch (Exception e) {
+            log.warn("Error fetching spot price for {}: {}, using 1.0 as fallback", currency, e.getMessage());
+            return BigDecimal.ONE;
+        }
+    }
+
+    /**
+     * Calculate cost basis and average buy price from transaction history
+     * @param accessToken OAuth access token
+     * @param accountId Account ID
+     * @param currency Currency code (e.g., "BTC", "ETH")
+     * @return CostBasisData with total cost basis and average buy price
+     */
+    private CostBasisData calculateCostBasis(String accessToken, String accountId, String currency) {
+        try {
+            log.debug("Calculating cost basis for {} in account {}", currency, accountId);
+
+            // Fetch transactions for this account (limit to 100 most recent for performance)
+            List<Map<String, Object>> transactions = coinbaseDataClient.getTransactions(accessToken, accountId, 100);
+
+            BigDecimal totalCostBasis = BigDecimal.ZERO;
+            BigDecimal totalQuantityBought = BigDecimal.ZERO;
+
+            for (Map<String, Object> transaction : transactions) {
+                try {
+                    String type = (String) transaction.get("type");
+
+                    // Only process "buy" transactions for cost basis
+                    if (!"buy".equals(type)) {
+                        continue;
+                    }
+
+                    // Extract native_amount (USD spent)
+                    Map<String, Object> nativeAmount = (Map<String, Object>) transaction.get("native_amount");
+                    if (nativeAmount == null) {
+                        continue;
+                    }
+
+                    String nativeAmountStr = (String) nativeAmount.get("amount");
+                    if (nativeAmountStr == null) {
+                        continue;
+                    }
+
+                    // Extract amount (crypto received)
+                    Map<String, Object> amount = (Map<String, Object>) transaction.get("amount");
+                    if (amount == null) {
+                        continue;
+                    }
+
+                    String amountStr = (String) amount.get("amount");
+                    if (amountStr == null) {
+                        continue;
+                    }
+
+                    // Parse values
+                    BigDecimal nativeAmountValue = new BigDecimal(nativeAmountStr).abs(); // Use abs() in case it's negative
+                    BigDecimal cryptoAmount = new BigDecimal(amountStr).abs();
+
+                    // Accumulate totals
+                    totalCostBasis = totalCostBasis.add(nativeAmountValue);
+                    totalQuantityBought = totalQuantityBought.add(cryptoAmount);
+
+                    log.debug("Buy transaction: {} {} for ${}", cryptoAmount, currency, nativeAmountValue);
+
+                } catch (Exception e) {
+                    log.warn("Error processing transaction for cost basis: {}", e.getMessage());
+                    // Continue with next transaction
+                }
+            }
+
+            // Calculate average buy price
+            BigDecimal averageBuyPrice = null;
+            if (totalQuantityBought.compareTo(BigDecimal.ZERO) > 0) {
+                averageBuyPrice = totalCostBasis.divide(totalQuantityBought, 8, RoundingMode.HALF_UP);
+                log.debug("Calculated cost basis for {}: totalCost=${}, totalQty={}, avgPrice=${}",
+                    currency, totalCostBasis, totalQuantityBought, averageBuyPrice);
+            } else {
+                log.debug("No buy transactions found for {}", currency);
+            }
+
+            return new CostBasisData(
+                totalCostBasis.compareTo(BigDecimal.ZERO) > 0 ? totalCostBasis : null,
+                averageBuyPrice
+            );
+
+        } catch (Exception e) {
+            log.warn("Error calculating cost basis for {}: {}", currency, e.getMessage());
+            return new CostBasisData(null, null);
+        }
+    }
+
+    /**
+     * Helper class to hold cost basis calculation results
+     */
+    private static class CostBasisData {
+        private final BigDecimal totalCostBasis;
+        private final BigDecimal averageBuyPrice;
+
+        public CostBasisData(BigDecimal totalCostBasis, BigDecimal averageBuyPrice) {
+            this.totalCostBasis = totalCostBasis;
+            this.averageBuyPrice = averageBuyPrice;
+        }
+
+        public BigDecimal getTotalCostBasis() {
+            return totalCostBasis;
+        }
+
+        public BigDecimal getAverageBuyPrice() {
+            return averageBuyPrice;
+        }
+    }
+
+}
+ 

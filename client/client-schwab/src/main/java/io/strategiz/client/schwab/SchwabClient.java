@@ -26,8 +26,8 @@ public class SchwabClient extends BaseHttpClient {
     
     private static final Logger log = LoggerFactory.getLogger(SchwabClient.class);
     
-    private static final String DEFAULT_BASE_URL = "https://api.schwabapi.com";
-    private static final String AUTH_BASE_URL = "https://api.schwabapi.com";
+    private static final String DEFAULT_BASE_URL = "https://api.schwabapi.com/v1";
+    private static final String AUTH_BASE_URL = "https://api.schwabapi.com/v1";
     
     @Value("${oauth.providers.schwab.client-id:}")
     private String clientId;

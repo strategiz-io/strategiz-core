@@ -107,16 +107,13 @@ public class PasetoTokenProvider {
             }
         }
         
-        // Fallback: if keys not loaded from Vault, generate temporary keys (dev only)
+        // Require keys to be configured in Vault - no temporary keys
         if (identityKey == null || sessionKey == null) {
-            if ("prod".equals(activeProfile)) {
-                throw new IllegalStateException("Cannot start in production without token keys in Vault");
-            }
-            log.error("CRITICAL: Token keys not found in Vault. THIS MUST BE FIXED.");
-            log.error("Authentication will fail after restart. Configure keys at:");
+            log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
+            log.error("Please configure keys in Vault at:");
             log.error("  - secret/strategiz/tokens/{}/identity-key", env);
             log.error("  - secret/strategiz/tokens/{}/session-key", env);
-            throw new IllegalStateException("Token keys not configured in Vault");
+            throw new IllegalStateException("Token keys must be configured in Vault");
         }
     }
 

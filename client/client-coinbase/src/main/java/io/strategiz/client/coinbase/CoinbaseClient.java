@@ -130,16 +130,69 @@ public class CoinbaseClient {
     }
     
     /**
-     * Get all accounts using OAuth token
+     * Get all accounts using OAuth token with pagination support
+     * Fetches all accounts by following pagination links
      */
     public Map<String, Object> getAccounts(String accessToken) {
-        return oauthRequest(
-            HttpMethod.GET,
-            "/accounts",
-            accessToken,
-            null,
-            new ParameterizedTypeReference<Map<String, Object>>() {}
-        );
+        Map<String, String> params = new HashMap<>();
+        params.put("limit", "100"); // Request maximum allowed per page
+
+        Map<String, Object> allAccountsResponse = new HashMap<>();
+        java.util.List<Map<String, Object>> allAccounts = new java.util.ArrayList<>();
+
+        String nextUri = null;
+        int pageCount = 0;
+        final int MAX_PAGES = 10; // Safety limit to prevent infinite loops
+
+        do {
+            // If we have a next_uri from pagination, use starting_after parameter
+            if (nextUri != null && nextUri.contains("starting_after=")) {
+                String startingAfter = nextUri.substring(nextUri.indexOf("starting_after=") + 15);
+                if (startingAfter.contains("&")) {
+                    startingAfter = startingAfter.substring(0, startingAfter.indexOf("&"));
+                }
+                params.put("starting_after", startingAfter);
+            }
+
+            Map<String, Object> response = oauthRequest(
+                HttpMethod.GET,
+                "/accounts",
+                accessToken,
+                params,
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            // Extract accounts from this page
+            if (response != null && response.containsKey("data")) {
+                java.util.List<Map<String, Object>> pageAccounts =
+                    (java.util.List<Map<String, Object>>) response.get("data");
+                if (pageAccounts != null) {
+                    allAccounts.addAll(pageAccounts);
+                    log.debug("Fetched page {} with {} accounts (total: {})",
+                        pageCount + 1, pageAccounts.size(), allAccounts.size());
+                }
+            }
+
+            // Check for next page
+            nextUri = null;
+            if (response != null && response.containsKey("pagination")) {
+                Map<String, Object> pagination = (Map<String, Object>) response.get("pagination");
+                if (pagination != null && pagination.containsKey("next_uri")) {
+                    nextUri = (String) pagination.get("next_uri");
+                }
+            }
+
+            pageCount++;
+
+        } while (nextUri != null && pageCount < MAX_PAGES);
+
+        log.info("Fetched total of {} Coinbase accounts across {} pages", allAccounts.size(), pageCount);
+
+        // Build final response
+        allAccountsResponse.put("data", allAccounts);
+        allAccountsResponse.put("pagination", Collections.singletonMap("total_count", allAccounts.size()));
+
+        return allAccountsResponse;
     }
     
     /**

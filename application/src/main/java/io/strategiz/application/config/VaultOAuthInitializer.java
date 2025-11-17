@@ -148,23 +148,36 @@ public class VaultOAuthInitializer implements ApplicationContextInitializer<Conf
         try {
             String path = String.format("secret/data/strategiz/oauth/%s", provider);
             VaultResponse response = vaultTemplate.read(path);
-            
+
             if (response != null && response.getData() != null) {
                 Map<String, Object> data = (Map<String, Object>) response.getData().get("data");
                 if (data != null) {
                     String clientId = (String) data.get("client-id");
                     String clientSecret = (String) data.get("client-secret");
-                    
+                    String redirectUriLocal = (String) data.get("redirect-uri-local");
+                    String redirectUriProd = (String) data.get("redirect-uri-prod");
+
                     if (clientId != null) {
                         String propKey = String.format("oauth.providers.%s.client-id", provider);
                         properties.put(propKey, clientId);
                         log.info("Loaded {} OAuth client-id from Vault", provider);
                     }
-                    
+
                     if (clientSecret != null) {
                         String propKey = String.format("oauth.providers.%s.client-secret", provider);
                         properties.put(propKey, clientSecret);
                         log.info("Loaded {} OAuth client-secret from Vault", provider);
+                    }
+
+                    // Load redirect URI based on active profile (dev uses local, prod uses prod)
+                    String activeProfiles = System.getProperty("spring.profiles.active", "dev");
+                    String redirectUri = activeProfiles.contains("prod") ? redirectUriProd : redirectUriLocal;
+
+                    if (redirectUri != null) {
+                        String propKey = String.format("oauth.providers.%s.redirect-uri", provider);
+                        properties.put(propKey, redirectUri);
+                        log.info("Loaded {} OAuth redirect-uri from Vault (using {})", provider,
+                            activeProfiles.contains("prod") ? "prod" : "local");
                     }
                 }
             }

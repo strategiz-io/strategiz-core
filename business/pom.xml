@@ -25,5 +25,6 @@
         <module>business-provider-binanceus</module>
         <module>business-provider-alpaca</module>
         <module>business-provider-schwab</module>
+        <module>business-ai-chat</module>
     </modules>
 </project>

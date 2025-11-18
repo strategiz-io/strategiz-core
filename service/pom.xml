@@ -29,5 +29,6 @@
         <module>service-provider</module>
         <module>service-strategy</module>
         <module>service-walletaddress</module>
+        <module>service-learn</module>
     </modules>
 </project>

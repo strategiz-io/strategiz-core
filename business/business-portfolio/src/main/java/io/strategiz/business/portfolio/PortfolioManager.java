@@ -2,336 +2,201 @@ package io.strategiz.business.portfolio;
 
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.business.portfolio.model.PortfolioMetrics;
-import io.strategiz.client.binanceus.BinanceUSClient;
-import io.strategiz.client.kraken.KrakenClient;
-import io.strategiz.client.kraken.model.KrakenAccount;
+import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.repository.ReadProviderDataRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import org.json.JSONObject;
 
 /**
  * Core business logic for portfolio operations.
- * This class contains domain logic that can be reused across different services.
- * Implements Synapse BaseManager pattern.
+ * Aggregates portfolio data from multiple providers stored in Firestore.
+ * Implements clean architecture pattern - reads from data layer, performs business logic.
  */
 @Component
-public class PortfolioManager  {
+public class PortfolioManager {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioManager.class);
 
-    private final KrakenClient krakenClient;
-    private final BinanceUSClient binanceUSClient;
+    private final ReadProviderDataRepository providerDataRepository;
 
     @Autowired
-    public PortfolioManager(KrakenClient krakenClient, BinanceUSClient binanceUSClient) {
-        this.krakenClient = krakenClient;
-        this.binanceUSClient = binanceUSClient;
-        log.info("PortfolioManager initialized with exchange clients");
+    public PortfolioManager(ReadProviderDataRepository providerDataRepository) {
+        this.providerDataRepository = providerDataRepository;
+        log.info("PortfolioManager initialized with provider data repository");
     }
 
     /**
-     * Aggregates portfolio data from multiple exchanges using Synapse patterns
-     * 
+     * Aggregates portfolio data from ALL connected providers.
+     * Reads provider data from Firestore (already synced by provider sync processes).
+     *
      * @param userId The user ID to fetch portfolio data for
-     * @return Structured portfolio data
+     * @return Aggregated portfolio data from all providers
      */
     public PortfolioData getAggregatedPortfolioData(String userId) {
         log.info("Getting aggregated portfolio data for user: {}", userId);
-        
+
         try {
-            // Create portfolio data object
+            // 1. Read ALL provider data from Firestore
+            List<ProviderDataEntity> providers = providerDataRepository.getAllProviderData(userId);
+
+            if (providers == null || providers.isEmpty()) {
+                log.info("No provider data found for user: {}", userId);
+                return createEmptyPortfolioData(userId);
+            }
+
+            log.info("Found {} provider(s) for user: {}", providers.size(), userId);
+
+            // 2. Initialize aggregation variables
+            BigDecimal totalValue = BigDecimal.ZERO;
+            BigDecimal totalDayChange = BigDecimal.ZERO;
+            BigDecimal totalProfitLoss = BigDecimal.ZERO;
+            BigDecimal totalCashBalance = BigDecimal.ZERO;
+            Map<String, PortfolioData.ExchangeData> exchanges = new HashMap<>();
+
+            // 3. Aggregate data from each provider
+            for (ProviderDataEntity provider : providers) {
+                try {
+                    log.debug("Processing provider: {} for user: {}", provider.getProviderId(), userId);
+
+                    // Sum up totals
+                    if (provider.getTotalValue() != null) {
+                        totalValue = totalValue.add(provider.getTotalValue());
+                    }
+
+                    if (provider.getDayChange() != null) {
+                        totalDayChange = totalDayChange.add(provider.getDayChange());
+                    }
+
+                    if (provider.getTotalProfitLoss() != null) {
+                        totalProfitLoss = totalProfitLoss.add(provider.getTotalProfitLoss());
+                    }
+
+                    if (provider.getCashBalance() != null) {
+                        totalCashBalance = totalCashBalance.add(provider.getCashBalance());
+                    }
+
+                    // Build exchange data for this provider
+                    PortfolioData.ExchangeData exchangeData = buildExchangeData(provider);
+                    exchanges.put(provider.getProviderId(), exchangeData);
+
+                    log.debug("Processed provider {}: totalValue={}, dayChange={}",
+                            provider.getProviderId(), provider.getTotalValue(), provider.getDayChange());
+
+                } catch (Exception e) {
+                    log.error("Error processing provider {} for user {}: {}",
+                            provider.getProviderId(), userId, e.getMessage(), e);
+                    // Continue processing other providers even if one fails
+                }
+            }
+
+            // 4. Calculate aggregated percentages
+            BigDecimal dayChangePercent = calculatePercentage(totalDayChange, totalValue);
+            BigDecimal profitLossPercent = calculatePercentage(totalProfitLoss, totalValue);
+
+            // 5. Build aggregated portfolio data
             PortfolioData portfolioData = new PortfolioData();
             portfolioData.setUserId(userId);
-            portfolioData.setTotalValue(BigDecimal.ZERO);
-            portfolioData.setDailyChange(BigDecimal.ZERO);
-            portfolioData.setDailyChangePercent(BigDecimal.ZERO);
-            
-            // Create exchanges collection
-            Map<String, PortfolioData.ExchangeData> exchanges = new HashMap<>();
-            
-            // Get credentials for each exchange (in a real implementation, these would be retrieved from a secure store)
-            Map<String, Map<String, String>> credentials = getExchangeCredentials(userId);
-            
-            // Process Kraken data if credentials are available
-            if (credentials.containsKey("kraken")) {
-                PortfolioData.ExchangeData krakenData = getKrakenPortfolioData(credentials.get("kraken"));
-                if (krakenData != null) {
-                    exchanges.put("kraken", krakenData);
-                    portfolioData.setTotalValue(portfolioData.getTotalValue().add(krakenData.getValue()));
-                }
-            }
-            
-            // Process Binance US data if credentials are available
-            if (credentials.containsKey("binanceus")) {
-                PortfolioData.ExchangeData binanceData = getBinanceUSPortfolioData(credentials.get("binanceus"));
-                if (binanceData != null) {
-                    exchanges.put("binanceus", binanceData);
-                    portfolioData.setTotalValue(portfolioData.getTotalValue().add(binanceData.getValue()));
-                }
-            }
-            
-            // Set exchanges collection in portfolio data
+            portfolioData.setTotalValue(totalValue);
+            portfolioData.setDailyChange(totalDayChange);
+            portfolioData.setDailyChangePercent(dayChangePercent);
             portfolioData.setExchanges(exchanges);
-            
+
+            log.info("Aggregated portfolio for user {}: totalValue={}, dayChange={} ({}%), {} exchanges",
+                    userId, totalValue, totalDayChange, dayChangePercent, exchanges.size());
+
             return portfolioData;
+
         } catch (Exception e) {
-            log.error("Error getting portfolio data for user {}: {}", userId, e.getMessage(), e);
+            log.error("Error getting aggregated portfolio data for user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Failed to retrieve portfolio data", e);
         }
     }
     
     /**
-     * Gets exchange credentials for the user
-     * In a real implementation, this would retrieve credentials from a secure storage solution
-     * 
+     * Builds ExchangeData from ProviderDataEntity
+     *
+     * @param provider Provider data entity from Firestore
+     * @return Exchange data for portfolio response
+     */
+    private PortfolioData.ExchangeData buildExchangeData(ProviderDataEntity provider) {
+        PortfolioData.ExchangeData exchangeData = new PortfolioData.ExchangeData();
+        exchangeData.setId(provider.getProviderId());
+        exchangeData.setName(provider.getProviderName() != null ? provider.getProviderName() : provider.getProviderId());
+        exchangeData.setValue(provider.getTotalValue() != null ? provider.getTotalValue() : BigDecimal.ZERO);
+
+        // Convert holdings to assets map
+        Map<String, PortfolioData.AssetData> assets = new HashMap<>();
+        if (provider.getHoldings() != null) {
+            for (ProviderDataEntity.Holding holding : provider.getHoldings()) {
+                try {
+                    PortfolioData.AssetData assetData = new PortfolioData.AssetData();
+                    assetData.setSymbol(holding.getAsset());
+                    assetData.setName(holding.getName() != null ? holding.getName() : holding.getAsset());
+                    assetData.setQuantity(holding.getQuantity() != null ? holding.getQuantity() : BigDecimal.ZERO);
+                    assetData.setPrice(holding.getCurrentPrice() != null ? holding.getCurrentPrice() : BigDecimal.ZERO);
+                    assetData.setValue(holding.getCurrentValue() != null ? holding.getCurrentValue() : BigDecimal.ZERO);
+
+                    // Calculate allocation percentage
+                    if (provider.getTotalValue() != null && provider.getTotalValue().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal allocation = assetData.getValue()
+                                .divide(provider.getTotalValue(), 4, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100"));
+                        assetData.setAllocationPercent(allocation);
+                    } else {
+                        assetData.setAllocationPercent(BigDecimal.ZERO);
+                    }
+
+                    assets.put(holding.getAsset(), assetData);
+                } catch (Exception e) {
+                    log.warn("Error converting holding {} from provider {}: {}",
+                            holding.getAsset(), provider.getProviderId(), e.getMessage());
+                }
+            }
+        }
+        exchangeData.setAssets(assets);
+
+        return exchangeData;
+    }
+
+    /**
+     * Creates empty portfolio data for users with no connected providers
+     *
      * @param userId User ID
-     * @return Map of exchange credentials
+     * @return Empty portfolio data
      */
-    private Map<String, Map<String, String>> getExchangeCredentials(String userId) {
-        // In a real implementation, these would be retrieved from a secure store like Firebase Firestore
-        // As mentioned in the memories: "The new structure will place all API keys under a subcollection
-        // called 'api_credentials' directly under each user document"
-        
-        Map<String, Map<String, String>> credentials = new HashMap<>();
-        
-        try {
-            // For now, return sample credentials for testing
-            // In production, these would be retrieved from the user's api_credentials collection
-            
-            // Kraken credentials
-            Map<String, String> krakenCreds = new HashMap<>();
-            krakenCreds.put("apiKey", "sample_kraken_api_key");
-            krakenCreds.put("privateKey", "sample_kraken_private_key");
-            credentials.put("kraken", krakenCreds);
-            
-            // Binance US credentials
-            Map<String, String> binanceCreds = new HashMap<>();
-            binanceCreds.put("apiKey", "sample_binance_api_key");
-            binanceCreds.put("privateKey", "sample_binance_private_key");
-            credentials.put("binanceus", binanceCreds);
-            
-            return credentials;
-        } catch (Exception e) {
-            log.error("Error retrieving exchange credentials for user {}: {}", userId, e.getMessage(), e);
-            return credentials; // Return empty credentials on error
-        }
+    private PortfolioData createEmptyPortfolioData(String userId) {
+        PortfolioData portfolioData = new PortfolioData();
+        portfolioData.setUserId(userId);
+        portfolioData.setTotalValue(BigDecimal.ZERO);
+        portfolioData.setDailyChange(BigDecimal.ZERO);
+        portfolioData.setDailyChangePercent(BigDecimal.ZERO);
+        portfolioData.setExchanges(new HashMap<>());
+        return portfolioData;
     }
-    
+
     /**
-     * Gets portfolio data from Kraken exchange
-     * 
-     * @param credentials Kraken API credentials
-     * @return Structured exchange data
-     */
-    private PortfolioData.ExchangeData getKrakenPortfolioData(Map<String, String> credentials) {
-        log.info("Getting Kraken portfolio data");
-        
-        try {
-            // Extract API credentials
-            String apiKey = credentials.get("apiKey");
-            String privateKey = credentials.get("privateKey");
-            
-            if (apiKey == null || privateKey == null) {
-                log.error("Missing Kraken API credentials");
-                return null;
-            }
-            
-            // Create exchange data object
-            PortfolioData.ExchangeData krakenData = new PortfolioData.ExchangeData();
-            krakenData.setId("kraken");
-            krakenData.setName("Kraken");
-            krakenData.setValue(BigDecimal.ZERO);
-            krakenData.setAssets(new HashMap<>());
-            
-            // Get account data from Kraken API
-            KrakenAccount account = krakenClient.getAccount(apiKey, privateKey);
-            
-            // Check for API errors
-            if (account.getError() != null && account.getError().length > 0) {
-                log.error("Kraken API error: {}", String.join(", ", account.getError()));
-                return null;
-            }
-            
-            // Process and format the data
-            BigDecimal totalValue = BigDecimal.ZERO;
-            Map<String, PortfolioData.AssetData> assets = new HashMap<>();
-            
-            if (account.getResult() != null) {
-                // Process each asset in the account
-                for (Map.Entry<String, Object> entry : account.getResult().entrySet()) {
-                    try {
-                        String assetKey = entry.getKey();
-                        String balance = entry.getValue().toString();
-                        BigDecimal amount = new BigDecimal(balance);
-                        
-                        // Skip assets with zero balance
-                        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-                            continue;
-                        }
-                        
-                        // Create asset data
-                        PortfolioData.AssetData assetData = new PortfolioData.AssetData();
-                        assetData.setSymbol(getCleanAssetName(assetKey));
-                        assetData.setName(getAssetFullName(assetData.getSymbol()));
-                        assetData.setAmount(amount);
-                        assetData.setValue(BigDecimal.ZERO); // Would be calculated based on current price
-                        
-                        // Add asset to the collection
-                        assets.put(assetKey, assetData);
-                    } catch (Exception e) {
-                        log.warn("Error processing Kraken asset: {}", entry.getKey(), e);
-                    }
-                }
-            }
-            
-            // Set assets and total value
-            krakenData.setAssets(assets);
-            krakenData.setValue(totalValue);
-            
-            return krakenData;
-        } catch (Exception e) {
-            log.error("Error getting Kraken portfolio data: {}", e.getMessage(), e);
-            return null;
-        }
-    }
-    
-    /**
-     * Gets portfolio data from Binance US exchange
-     * 
-     * @param credentials Binance US API credentials
-     * @return Structured exchange data
-     */
-    private PortfolioData.ExchangeData getBinanceUSPortfolioData(Map<String, String> credentials) {
-        log.info("Getting Binance US portfolio data");
-        
-        try {
-            // Extract API credentials
-            String apiKey = credentials.get("apiKey");
-            String privateKey = credentials.get("privateKey");
-            
-            if (apiKey == null || privateKey == null) {
-                log.error("Missing Binance US API credentials");
-                return null;
-            }
-            
-            // Create exchange data object
-            PortfolioData.ExchangeData binanceData = new PortfolioData.ExchangeData();
-            binanceData.setId("binanceus");
-            binanceData.setName("Binance US");
-            binanceData.setValue(BigDecimal.ZERO);
-            binanceData.setAssets(new HashMap<>());
-            
-            // Get account info from Binance US API
-            String accountInfo = binanceUSClient.getAccountInfo(apiKey, privateKey);
-            
-            // Check if response is valid
-            if (accountInfo == null || accountInfo.isEmpty()) {
-                log.error("Failed to retrieve Binance US account data");
-                return null;
-            }
-            
-            // Parse JSON response
-            JSONObject accountJson = new JSONObject(accountInfo);
-            
-            // Process and format the data
-            BigDecimal totalValue = BigDecimal.ZERO;
-            Map<String, PortfolioData.AssetData> assets = new HashMap<>();
-            
-            // Extract balances array
-            if (accountJson.has("balances")) {
-                for (int i = 0; i < accountJson.getJSONArray("balances").length(); i++) {
-                    try {
-                        JSONObject balance = accountJson.getJSONArray("balances").getJSONObject(i);
-                        String asset = balance.getString("asset");
-                        BigDecimal free = new BigDecimal(balance.getString("free"));
-                        BigDecimal locked = new BigDecimal(balance.getString("locked"));
-                        BigDecimal total = free.add(locked);
-                        
-                        // Skip assets with zero balance
-                        if (total.compareTo(BigDecimal.ZERO) <= 0) {
-                            continue;
-                        }
-                        
-                        // Create asset data
-                        PortfolioData.AssetData assetData = new PortfolioData.AssetData();
-                        assetData.setSymbol(asset);
-                        assetData.setName(getAssetFullName(asset));
-                        assetData.setAmount(total);
-                        assetData.setValue(BigDecimal.ZERO); // Would be calculated based on current price
-                        
-                        // Add asset to the collection
-                        assets.put(asset, assetData);
-                    } catch (Exception e) {
-                        log.warn("Error processing Binance US asset: {}", e.getMessage(), e);
-                    }
-                }
-            }
-            
-            // Set assets and total value
-            binanceData.setAssets(assets);
-            binanceData.setValue(totalValue);
-            
-            return binanceData;
-        } catch (Exception e) {
-            log.error("Error getting Binance US portfolio data: {}", e.getMessage(), e);
-            return null;
-        }
-    }
-    
-    /**
-     * Clean up Kraken asset names
-     * Kraken uses special prefixes (X, Z) for some assets
+     * Calculates percentage safely (handles division by zero)
      *
-     * @param assetName Original Kraken asset name
-     * @return Cleaned asset name
+     * @param change Change amount
+     * @param total Total amount
+     * @return Percentage change, or zero if total is zero
      */
-    private String getCleanAssetName(String assetName) {
-        // Handle special cases first
-        if (assetName.equals("XXBT")) return "BTC";
-        if (assetName.equals("XETH")) return "ETH";
-        if (assetName.equals("XXDG")) return "DOGE";
-        
-        // Handle futures contracts
-        if (assetName.endsWith(".F")) {
-            String baseName = assetName.substring(0, assetName.length() - 2);
-            return getCleanAssetName(baseName) + ".F";
+    private BigDecimal calculatePercentage(BigDecimal change, BigDecimal total) {
+        if (total == null || total.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
         }
-        
-        // Handle general X/Z prefixed assets
-        if (assetName.length() > 1 && (assetName.startsWith("X") || assetName.startsWith("Z"))) {
-            return assetName.substring(1);
+        if (change == null) {
+            return BigDecimal.ZERO;
         }
-        
-        // Return as-is for other assets
-        return assetName;
-    }
-    
-    /**
-     * Get full asset name from symbol
-     *
-     * @param symbol Asset symbol
-     * @return Full asset name
-     */
-    private String getAssetFullName(String symbol) {
-        // Map common symbols to full names
-        Map<String, String> assetNames = new HashMap<>();
-        assetNames.put("BTC", "Bitcoin");
-        assetNames.put("ETH", "Ethereum");
-        assetNames.put("SOL", "Solana");
-        assetNames.put("ADA", "Cardano");
-        assetNames.put("DOT", "Polkadot");
-        assetNames.put("DOGE", "Dogecoin");
-        assetNames.put("XRP", "Ripple");
-        assetNames.put("LTC", "Litecoin");
-        
-        // Return full name if available, otherwise return the symbol
-        return assetNames.getOrDefault(symbol, symbol);
+        return change.divide(total, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"));
     }
     
     

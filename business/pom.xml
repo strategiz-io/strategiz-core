@@ -22,6 +22,7 @@
         <module>business-provider-base</module>
         <module>business-provider-coinbase</module>
         <module>business-provider-kraken</module>
+        <module>business-provider-webull</module>
         <module>business-provider-binanceus</module>
         <module>business-provider-alpaca</module>
         <module>business-provider-schwab</module>

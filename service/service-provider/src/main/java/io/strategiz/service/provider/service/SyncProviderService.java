@@ -1,6 +1,8 @@
 package io.strategiz.service.provider.service;
 
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
+import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
+import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
@@ -27,10 +29,16 @@ public class SyncProviderService {
     private static final String MODULE_NAME = "service-provider";
 
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
+    private final KrakenProviderBusiness krakenProviderBusiness;
+    private final WebullProviderBusiness webullProviderBusiness;
 
     @Autowired
-    public SyncProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness) {
+    public SyncProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
+                               KrakenProviderBusiness krakenProviderBusiness,
+                               WebullProviderBusiness webullProviderBusiness) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
+        this.krakenProviderBusiness = krakenProviderBusiness;
+        this.webullProviderBusiness = webullProviderBusiness;
     }
 
     /**
@@ -54,12 +62,16 @@ public class SyncProviderService {
                     break;
 
                 case "kraken":
-                    // TODO: Implement Kraken sync when ready
+                    syncedData = krakenProviderBusiness.syncProviderData(userId);
+                    break;
+
+                case "webull":
+                    // TODO: Implement Webull sync when ready
                     throw new StrategizException(
                         ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
                         MODULE_NAME,
                         providerId,
-                        "Kraken sync not yet implemented"
+                        "Webull sync not yet implemented"
                     );
 
                 case "alpaca":

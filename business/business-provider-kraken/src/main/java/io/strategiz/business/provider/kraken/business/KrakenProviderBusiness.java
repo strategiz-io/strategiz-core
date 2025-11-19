@@ -255,21 +255,71 @@ public class KrakenProviderBusiness extends BaseApiKeyProviderHandler {
      */
     public boolean disconnectIntegration(String userId) {
         log.info("Disconnecting Kraken integration for user: {}", userId);
-        
+
         try {
             // Remove credentials from Vault
             krakenCredentialManager.deleteCredentials(userId);
-            
+
             // Remove from Firestore
             // boolean deleted = providerIntegrationRepository.deleteByUserIdAndProviderId(userId, PROVIDER_ID);
             boolean deleted = true; // Placeholder - repository access removed
-            
+
             log.info("Disconnected Kraken integration for user: {}, deleted: {}", userId, deleted);
             return deleted;
-            
+
         } catch (Exception e) {
             log.error("Error disconnecting Kraken integration for user: {}", userId, e);
             return false;
+        }
+    }
+
+    /**
+     * Sync provider data for a user - fetches latest portfolio data from Kraken
+     * and stores it in Firestore with enriched information including cost basis.
+     *
+     * @param userId User ID
+     * @return Synced ProviderDataEntity with latest portfolio data
+     */
+    public ProviderDataEntity syncProviderData(String userId) {
+        log.info("Syncing Kraken provider data for user: {}", userId);
+
+        try {
+            // 1. Get credentials from Vault
+            Map<String, String> credentials = getStoredCredentials(userId);
+            if (credentials == null || credentials.isEmpty()) {
+                throw new StrategizException(
+                    KrakenProviderErrorDetails.INVALID_CREDENTIALS,
+                    MODULE_NAME,
+                    userId,
+                    "No credentials found in Vault"
+                );
+            }
+
+            String apiKey = credentials.get("apiKey");
+            String apiSecret = credentials.get("apiSecret");
+            String otp = credentials.get("otp");
+
+            // 2. Fetch and store fresh portfolio data using the data initializer
+            // This will fetch balances, trade history, prices, and calculate cost basis
+            ProviderDataEntity syncedData = dataInitializer.initializeAndStoreData(userId, apiKey, apiSecret, otp);
+
+            log.info("Successfully synced Kraken data for user: {}, total value: {}, holdings: {}",
+                    userId, syncedData.getTotalValue(),
+                    syncedData.getHoldings() != null ? syncedData.getHoldings().size() : 0);
+
+            return syncedData;
+
+        } catch (StrategizException e) {
+            // Re-throw business exceptions
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to sync Kraken provider data for user: {}", userId, e);
+            throw new StrategizException(
+                KrakenProviderErrorDetails.DATA_INITIALIZATION_FAILED,
+                MODULE_NAME,
+                userId,
+                e.getMessage()
+            );
         }
     }
 }

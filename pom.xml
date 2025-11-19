@@ -33,6 +33,7 @@
         <module>business/business-provider-alpaca</module>
         <module>business/business-provider-schwab</module>
         <module>business/business-strategy-execution</module>
+        <module>business/business-ai-chat</module>
         
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -62,6 +63,7 @@
         <module>client/client-yahoofinance</module>
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
+        <module>client/client-gemini</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -79,6 +81,7 @@
         <module>service/service-dashboard</module>
         <module>service/service-profile</module>
         <module>service/service-marketing</module>
+        <module>service/service-learn</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
         

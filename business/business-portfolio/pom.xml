@@ -20,7 +20,14 @@
             <artifactId>business-base</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
+        <!-- Data Provider Module -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -59,11 +59,6 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-learn</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
             <artifactId>service-marketplace</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -112,6 +107,18 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-provider-kraken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-webull</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Learn Service with AI Chat -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-learn</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

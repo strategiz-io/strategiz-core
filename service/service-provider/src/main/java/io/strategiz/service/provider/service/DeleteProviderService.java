@@ -3,6 +3,10 @@ package io.strategiz.service.provider.service;
 import io.strategiz.service.provider.model.request.DeleteProviderRequest;
 import io.strategiz.service.provider.model.response.DeleteProviderResponse;
 import io.strategiz.service.base.service.ProviderBaseService;
+import io.strategiz.data.provider.repository.DeleteProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.DeleteProviderDataRepository;
+import io.strategiz.framework.secrets.controller.SecretManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -18,7 +22,16 @@ import java.util.Map;
  */
 @Service
 public class DeleteProviderService extends ProviderBaseService {
-    
+
+    @Autowired(required = false)
+    private DeleteProviderIntegrationRepository deleteProviderIntegrationRepository;
+
+    @Autowired(required = false)
+    private DeleteProviderDataRepository deleteProviderDataRepository;
+
+    @Autowired
+    private SecretManager secretManager;
+
     /**
      * Deletes a provider connection.
      * 
@@ -88,29 +101,68 @@ public class DeleteProviderService extends ProviderBaseService {
     
     /**
      * Processes provider deletion.
-     * 
+     *
      * @param request The delete request
      * @param response The response to populate
      */
     private void processProviderDeletion(DeleteProviderRequest request, DeleteProviderResponse response) {
-        // TODO: Implement actual provider deletion logic with business module
-        // For now, simulate successful deletion
-        
-        // Set response data
         Map<String, Object> data = new HashMap<>();
         data.put("deletedAt", Instant.now().toString());
         data.put("userId", request.getUserId());
         data.put("providerId", request.getProviderId());
-        
-        // Process cleanup options
-        if (request.getCleanupOptions() != null) {
-            processCleanupOptions(request, data);
+
+        try {
+            // 1. Delete provider integration from Firestore
+            if (deleteProviderIntegrationRepository != null) {
+                providerLog.info("Deleting provider integration from Firestore for user: {}, provider: {}",
+                               request.getUserId(), request.getProviderId());
+                boolean integrationDeleted = deleteProviderIntegrationRepository.deleteByUserIdAndProviderId(
+                        request.getUserId(), request.getProviderId());
+                data.put("integrationDeleted", integrationDeleted);
+            } else {
+                providerLog.warn("DeleteProviderIntegrationRepository not available, skipping integration deletion");
+                data.put("integrationDeleted", false);
+            }
+
+            // 2. Delete provider data from Firestore
+            if (deleteProviderDataRepository != null) {
+                providerLog.info("Deleting provider data from Firestore for user: {}, provider: {}",
+                               request.getUserId(), request.getProviderId());
+                boolean dataDeleted = deleteProviderDataRepository.deleteProviderData(
+                        request.getUserId(), request.getProviderId());
+                data.put("dataDeleted", dataDeleted);
+            } else {
+                providerLog.warn("DeleteProviderDataRepository not available, skipping data deletion");
+                data.put("dataDeleted", false);
+            }
+
+            // 3. Delete OAuth tokens from Vault
+            String vaultPath = "secret/strategiz/users/" + request.getUserId() + "/providers/" + request.getProviderId();
+            providerLog.info("Deleting OAuth tokens from Vault at path: {}", vaultPath);
+            try {
+                secretManager.deleteSecret(vaultPath);
+                data.put("tokensDeleted", true);
+            } catch (Exception e) {
+                // Tokens might not exist in Vault, log but don't fail
+                providerLog.warn("Failed to delete tokens from Vault (may not exist): {}", e.getMessage());
+                data.put("tokensDeleted", false);
+                data.put("tokensDeletedReason", "Tokens not found in Vault or already deleted");
+            }
+
+            // Process cleanup options if provided
+            if (request.getCleanupOptions() != null) {
+                processCleanupOptions(request, data);
+            }
+
+            response.setSuccess(true);
+            response.setStatus("deleted");
+            response.setMessage("Provider connection deleted successfully");
+            response.setData(data);
+
+        } catch (Exception e) {
+            providerLog.error("Error during provider deletion: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to delete provider: " + e.getMessage(), e);
         }
-        
-        response.setSuccess(true);
-        response.setStatus("deleted");
-        response.setMessage("Provider connection deleted successfully");
-        response.setData(data);
     }
     
     /**
@@ -160,6 +212,7 @@ public class DeleteProviderService extends ProviderBaseService {
             case "coinbase":
             case "binance":
             case "kraken":
+            case "webull":
                 return true;
             default:
                 return false;

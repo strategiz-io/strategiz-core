@@ -5,6 +5,7 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,10 +31,13 @@ public class SyncProviderController extends BaseController {
     }
 
     private final SyncProviderService syncProviderService;
+    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Autowired
-    public SyncProviderController(SyncProviderService syncProviderService) {
+    public SyncProviderController(SyncProviderService syncProviderService,
+                                 SessionAuthBusiness sessionAuthBusiness) {
         this.syncProviderService = syncProviderService;
+        this.sessionAuthBusiness = sessionAuthBusiness;
     }
 
     /**
@@ -47,11 +51,32 @@ public class SyncProviderController extends BaseController {
     @PostMapping("/{providerId}/sync")
     public ResponseEntity<Map<String, Object>> syncProvider(
             Principal principal,
-            @PathVariable String providerId) {
+            @PathVariable String providerId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
+        // Try to extract user ID from the principal (session-based auth) first
         String userId = principal != null ? principal.getName() : null;
+        log.info("SyncProvider: Principal userId: {}, AuthHeader present: {}",
+                userId, authHeader != null);
+
+        // If session auth failed, try token-based auth as fallback
+        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                var validationResult = sessionAuthBusiness.validateToken(token);
+                if (validationResult.isPresent()) {
+                    userId = validationResult.get().getUserId();
+                    log.info("Provider sync authenticated via Bearer token for user: {}", userId);
+                } else {
+                    log.warn("Invalid Bearer token provided for provider sync");
+                }
+            } catch (Exception e) {
+                log.warn("Error validating Bearer token for provider sync: {}", e.getMessage());
+            }
+        }
 
         if (userId == null) {
+            log.error("No valid authentication session or token for provider sync");
             throw new StrategizException(
                 ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
                 getModuleName(),

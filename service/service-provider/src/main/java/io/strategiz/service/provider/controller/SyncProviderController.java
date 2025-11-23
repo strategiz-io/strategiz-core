@@ -44,20 +44,23 @@ public class SyncProviderController extends BaseController {
      * Sync a specific provider's data.
      * This endpoint allows syncing individual providers without affecting others.
      *
-     * @param principal The authenticated user principal
+     * @param principal The authenticated user principal (optional)
      * @param providerId The provider to sync (e.g., "coinbase", "kraken")
+     * @param authHeader The authorization header (optional)
+     * @param userIdParam The user ID as query parameter (optional, for development/testing)
      * @return Sync result with status and updated data
      */
     @PostMapping("/{providerId}/sync")
     public ResponseEntity<Map<String, Object>> syncProvider(
             Principal principal,
             @PathVariable String providerId,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(value = "userId", required = false) String userIdParam) {
 
         // Try to extract user ID from the principal (session-based auth) first
         String userId = principal != null ? principal.getName() : null;
-        log.info("SyncProvider: Principal userId: {}, AuthHeader present: {}",
-                userId, authHeader != null);
+        log.info("SyncProvider: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
+                userId, authHeader != null, userIdParam);
 
         // If session auth failed, try token-based auth as fallback
         if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -75,8 +78,14 @@ public class SyncProviderController extends BaseController {
             }
         }
 
+        // If both session and token auth failed, try query parameter (for development/testing)
+        if (userId == null && userIdParam != null && !userIdParam.trim().isEmpty()) {
+            userId = userIdParam;
+            log.info("Provider sync using userId from query parameter: {}", userId);
+        }
+
         if (userId == null) {
-            log.error("No valid authentication session or token for provider sync");
+            log.error("No valid authentication session, token, or userId parameter for provider sync");
             throw new StrategizException(
                 ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
                 getModuleName(),

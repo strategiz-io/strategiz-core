@@ -7,12 +7,17 @@ import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.business.strategy.execution.model.ExecutionRequest;
 import io.strategiz.business.strategy.execution.model.ExecutionResult;
 import io.strategiz.business.strategy.execution.executor.PythonExecutor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -22,24 +27,27 @@ import java.util.stream.Collectors;
  */
 @Service
 public class StrategyExecutionService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(StrategyExecutionService.class);
-    
+
     private final ReadStrategyRepository strategyRepository;
     private final ReadProviderIntegrationRepository providerRepository;
     private final ExecutionEngineService executionEngine;
     private final PythonExecutor pythonExecutor;
+    private final ObjectMapper objectMapper;
     
     @Autowired
     public StrategyExecutionService(
             ReadStrategyRepository strategyRepository,
             ReadProviderIntegrationRepository providerRepository,
             ExecutionEngineService executionEngine,
-            PythonExecutor pythonExecutor) {
+            PythonExecutor pythonExecutor,
+            ObjectMapper objectMapper) {
         this.strategyRepository = strategyRepository;
         this.providerRepository = providerRepository;
         this.executionEngine = executionEngine;
         this.pythonExecutor = pythonExecutor;
+        this.objectMapper = objectMapper;
     }
     
     /**
@@ -93,12 +101,7 @@ public class StrategyExecutionService {
             ExecutionResult result;
             switch (strategy.getLanguage().toLowerCase()) {
                 case "python":
-                    // PythonExecutor expects just the code string
-                    String pythonResult = pythonExecutor.execute(request.getStrategyCode());
-                    result = new ExecutionResult();
-                    result.setStrategyId(strategyId);
-                    result.setStatus("SUCCESS");
-                    result.setMessage(pythonResult);
+                    result = executePythonStrategy(request, strategy);
                     break;
                 case "java":
                     // TODO: Implement Java executor
@@ -107,7 +110,7 @@ public class StrategyExecutionService {
                 default:
                     result = createErrorResult(strategyId, "Unsupported language: " + strategy.getLanguage());
             }
-            
+
             return result;
             
         } catch (Exception e) {
@@ -117,8 +120,108 @@ public class StrategyExecutionService {
     }
     
     /**
+     * Execute Python strategy and parse signals from JSON output
+     *
+     * @param request The execution request
+     * @param strategy The strategy entity
+     * @return ExecutionResult with parsed signals
+     */
+    private ExecutionResult executePythonStrategy(ExecutionRequest request, Strategy strategy) {
+        logger.debug("Executing Python strategy: {}", strategy.getId());
+
+        try {
+            // Execute Python code using GraalVM
+            String pythonOutput = pythonExecutor.execute(request.getStrategyCode());
+
+            logger.debug("Python execution output: {}", pythonOutput);
+
+            // Create result object
+            ExecutionResult result = new ExecutionResult();
+            result.setStrategyId(strategy.getId());
+
+            // Parse JSON output
+            try {
+                JsonNode jsonOutput = objectMapper.readTree(pythonOutput);
+
+                // Check for execution errors
+                if (jsonOutput.has("error") && jsonOutput.get("error").asBoolean()) {
+                    result.setStatus("ERROR");
+                    result.setMessage(jsonOutput.has("reason") ?
+                                    jsonOutput.get("reason").asText() : "Strategy execution failed");
+                    return result;
+                }
+
+                // Extract signal
+                if (jsonOutput.has("signal")) {
+                    ExecutionResult.Signal signal = new ExecutionResult.Signal();
+
+                    // Signal type (BUY, SELL, HOLD)
+                    signal.setType(jsonOutput.get("signal").asText());
+
+                    // Price (optional)
+                    if (jsonOutput.has("price") && !jsonOutput.get("price").isNull()) {
+                        signal.setPrice(jsonOutput.get("price").asDouble());
+                    }
+
+                    // Quantity (optional)
+                    if (jsonOutput.has("quantity") && !jsonOutput.get("quantity").isNull()) {
+                        signal.setQuantity(jsonOutput.get("quantity").asDouble());
+                    }
+
+                    // Reason (optional)
+                    if (jsonOutput.has("reason") && !jsonOutput.get("reason").isNull()) {
+                        signal.setReason(jsonOutput.get("reason").asText());
+                    }
+
+                    // Add signal to result
+                    List<ExecutionResult.Signal> signals = new ArrayList<>();
+                    signals.add(signal);
+                    result.setSignals(signals);
+                }
+
+                // Extract indicators/metrics
+                if (jsonOutput.has("indicators") && jsonOutput.get("indicators").isObject()) {
+                    Map<String, Object> metrics = new HashMap<>();
+                    JsonNode indicators = jsonOutput.get("indicators");
+
+                    indicators.fields().forEachRemaining(entry -> {
+                        JsonNode value = entry.getValue();
+                        if (value.isNumber()) {
+                            metrics.put(entry.getKey(), value.asDouble());
+                        } else if (value.isTextual()) {
+                            metrics.put(entry.getKey(), value.asText());
+                        } else if (value.isBoolean()) {
+                            metrics.put(entry.getKey(), value.asBoolean());
+                        }
+                    });
+
+                    result.setMetrics(metrics);
+                }
+
+                result.setStatus("SUCCESS");
+                result.setMessage("Strategy executed successfully");
+
+                logger.info("Python strategy executed successfully, signal: {}",
+                          result.getSignals().isEmpty() ? "NONE" : result.getSignals().get(0).getType());
+
+                return result;
+
+            } catch (Exception parseError) {
+                logger.error("Failed to parse Python execution output as JSON", parseError);
+                result.setStatus("ERROR");
+                result.setMessage("Invalid strategy output format: " + parseError.getMessage());
+                return result;
+            }
+
+        } catch (Exception e) {
+            logger.error("Error executing Python strategy", e);
+            return createErrorResult(strategy.getId(), "Python execution failed: " + e.getMessage());
+        }
+    }
+
+    /**
      * Get available provider integrations for a user
-     * 
+     *
      * @param userId The user ID
      * @return List of connected providers
      */

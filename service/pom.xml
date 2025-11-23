@@ -27,7 +27,8 @@
         <module>service-portfolio</module>
         <module>service-profile</module>
         <module>service-provider</module>
-        <module>service-strategy</module>
+        <module>service-labs</module>
+        <module>service-live-strategies</module>
         <module>service-walletaddress</module>
         <module>service-learn</module>
     </modules>

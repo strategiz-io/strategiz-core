@@ -26,7 +26,7 @@ public class SchwabClient extends BaseHttpClient {
     
     private static final Logger log = LoggerFactory.getLogger(SchwabClient.class);
     
-    private static final String DEFAULT_BASE_URL = "https://api.schwabapi.com/v1";
+    private static final String DEFAULT_BASE_URL = "https://api.schwabapi.com";
     private static final String AUTH_BASE_URL = "https://api.schwabapi.com/v1";
     
     @Value("${oauth.providers.schwab.client-id:}")
@@ -73,27 +73,26 @@ public class SchwabClient extends BaseHttpClient {
      */
     public Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
         String tokenUrl = AUTH_BASE_URL + "/oauth/token";
-        
-        // Build the token exchange request
+
+        // Build the token exchange request (without client credentials in body)
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("code", authorizationCode);
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
         params.add("redirect_uri", redirectUri);
-        
-        // Set up headers
+
+        // Set up headers with Basic Authentication
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        
+        headers.setBasicAuth(clientId, clientSecret);  // Use Basic Auth instead of form params
+
         // Create the request entity
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        
+
         log.debug("Exchanging authorization code for tokens at: {}", tokenUrl);
-        
+
         ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-        
+
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             log.info("Successfully exchanged authorization code for Schwab tokens");
             return response.getBody();
@@ -110,21 +109,22 @@ public class SchwabClient extends BaseHttpClient {
      */
     public Map<String, Object> refreshAccessToken(String refreshToken) {
         String tokenUrl = AUTH_BASE_URL + "/oauth/token";
-        
+
+        // Build the refresh token request (without client credentials in body)
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "refresh_token");
         params.add("refresh_token", refreshToken);
-        params.add("client_id", clientId);
-        params.add("client_secret", clientSecret);
-        
+
+        // Set up headers with Basic Authentication
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        
+        headers.setBasicAuth(clientId, clientSecret);  // Use Basic Auth instead of form params
+
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        
+
         ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-        
+
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             log.info("Successfully refreshed Schwab access token");
             return response.getBody();

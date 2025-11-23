@@ -7,6 +7,7 @@ import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.service.profile.service.ProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,19 +35,22 @@ public class ProviderCallbackService {
     private final AlpacaProviderBusiness alpacaProviderBusiness;
     private final SchwabProviderBusiness schwabProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
-    
+    private final PortfolioSummaryManager portfolioSummaryManager;
+
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
-    
+
     @Autowired
     public ProviderCallbackService(CoinbaseProviderBusiness coinbaseProviderBusiness,
                                    AlpacaProviderBusiness alpacaProviderBusiness,
                                    SchwabProviderBusiness schwabProviderBusiness,
-                                   KrakenProviderBusiness krakenProviderBusiness) {
+                                   KrakenProviderBusiness krakenProviderBusiness,
+                                   PortfolioSummaryManager portfolioSummaryManager) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.alpacaProviderBusiness = alpacaProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
+        this.portfolioSummaryManager = portfolioSummaryManager;
     }
     
     /**
@@ -105,7 +109,10 @@ public class ProviderCallbackService {
             // Set success redirect URL
             response.setRedirectUrl(getSuccessRedirectUrl(provider));
             response.setOperationSuccess(true);
-            
+
+            // Refresh portfolio summary now that new provider is connected
+            portfolioSummaryManager.refreshPortfolioSummary(userId);
+
             log.info("Successfully processed OAuth callback for provider: {}, user: {}", provider, userId);
             return response;
             

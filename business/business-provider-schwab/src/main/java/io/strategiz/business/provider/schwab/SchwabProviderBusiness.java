@@ -235,7 +235,8 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Error completing Charles Schwab OAuth flow for user: {}", userId, e);
-            throw new RuntimeException("Failed to complete OAuth flow", e);
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
+                "Failed to complete Charles Schwab OAuth flow: " + e.getMessage());
         }
     }
     
@@ -258,7 +259,8 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             
         } catch (Exception e) {
             log.error("Failed to store Charles Schwab tokens for user: {}", userId, e);
-            throw new RuntimeException("Failed to store tokens", e);
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
+                "Failed to store Charles Schwab tokens in Vault: " + e.getMessage());
         }
     }
     
@@ -337,7 +339,8 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
                 
         } catch (Exception e) {
             log.error("Error creating Charles Schwab integration for user: {}", userId, e);
-            throw new RuntimeException("Failed to create Charles Schwab integration", e);
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
+                "Failed to create Charles Schwab integration: " + e.getMessage());
         }
     }
     
@@ -542,6 +545,60 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         entity.setCashBalance(cashBalance);
 
         return entity;
+    }
+
+    /**
+     * Sync provider data for a specific user
+     * Retrieves access token from Vault and fetches latest portfolio data from Schwab
+     *
+     * @param userId The user ID
+     * @return ProviderDataEntity with synced data
+     * @throws RuntimeException if sync fails
+     */
+    public ProviderDataEntity syncProviderData(String userId) {
+        log.info("Syncing Schwab provider data for user: {}", userId);
+
+        try {
+            // Retrieve access token from Vault
+            String secretPath = "secret/strategiz/users/" + userId + "/providers/schwab";
+            Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
+
+            if (secretData == null || secretData.isEmpty()) {
+                throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "No Charles Schwab tokens found in Vault for user: " + userId);
+            }
+
+            String accessToken = (String) secretData.get("accessToken");
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "Charles Schwab access token not found in Vault for user: " + userId);
+            }
+
+            log.debug("Retrieved Schwab access token from Vault for user: {}", userId);
+
+            // Fetch and store portfolio data (same process as during provider connection)
+            fetchAndStorePortfolioData(userId, accessToken);
+
+            // Retrieve and return the stored data
+            ProviderDataEntity providerData = readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+
+            if (providerData != null) {
+                log.info("Successfully synced Schwab data for user: {}", userId);
+                return providerData;
+            } else {
+                log.warn("No provider data found after sync for user: {}", userId);
+                throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "No Charles Schwab provider data found after sync for user: " + userId);
+            }
+
+        } catch (StrategizException e) {
+            log.error("Failed to sync Schwab provider data for user: {}: {}", userId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to sync Schwab provider data for user: {}", userId, e);
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
+                "Failed to sync Charles Schwab provider data: " + e.getMessage());
+        }
     }
 
     /**

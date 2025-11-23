@@ -3,6 +3,10 @@ package io.strategiz.service.dashboard.service;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.business.portfolio.model.PortfolioMetrics;
+import io.strategiz.data.provider.entity.PortfolioSummaryEntity;
+import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.repository.ReadPortfolioSummaryRepository;
+import io.strategiz.data.provider.repository.ReadProviderDataRepository;
 import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 import io.strategiz.service.dashboard.model.portfoliosummary.Asset;
 import io.strategiz.service.dashboard.model.portfoliosummary.AssetData;
@@ -12,6 +16,7 @@ import io.strategiz.framework.exception.StrategizException;
 import java.math.BigDecimal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,6 +27,7 @@ import java.util.Map;
 /**
  * Service for portfolio summary operations.
  * This service provides portfolio summary data for dashboard visualizations.
+ * Uses pre-computed portfolio_summary for aggregated stats and provider_data for detailed holdings.
  */
 @Service
 public class PortfolioSummaryService {
@@ -30,13 +36,20 @@ public class PortfolioSummaryService {
 
     private final PortfolioManager portfolioManager;
 
+    @Autowired(required = false)
+    private ReadPortfolioSummaryRepository readPortfolioSummaryRepository;
+
+    @Autowired(required = false)
+    private ReadProviderDataRepository readProviderDataRepository;
+
     public PortfolioSummaryService(PortfolioManager portfolioManager) {
         this.portfolioManager = portfolioManager;
     }
 
     /**
-     * Gets portfolio summary data for a user
-     * 
+     * Gets portfolio summary data for a user.
+     * Uses pre-computed portfolio_summary for aggregated stats and provider_data for detailed holdings.
+     *
      * @param userId The user ID to get portfolio data for
      * @return PortfolioSummaryResponse containing portfolio data
      */
@@ -44,104 +57,152 @@ public class PortfolioSummaryService {
         if (userId == null || userId.isEmpty()) {
             userId = "default-user";
         }
-        
+
         try {
-            // Get portfolio data from portfolio manager
-            PortfolioData portfolioData = portfolioManager.getAggregatedPortfolioData(userId);
-            PortfolioMetrics portfolioMetrics = portfolioManager.calculatePortfolioMetrics(portfolioData);
-            
+            log.debug("Getting portfolio summary for user: {}", userId);
+
             // Create service layer response object
             PortfolioSummaryResponse response = new PortfolioSummaryResponse();
-            
-            // Copy scalar fields from business model to service model
-            response.setUserId(portfolioData.getUserId());
-            response.setTotalValue(portfolioData.getTotalValue() != null ? portfolioData.getTotalValue() : BigDecimal.ZERO);
-            response.setDailyChange(portfolioData.getDailyChange() != null ? portfolioData.getDailyChange() : BigDecimal.ZERO);
-            response.setDailyChangePercent(portfolioData.getDailyChangePercent() != null ? portfolioData.getDailyChangePercent() : BigDecimal.ZERO);
-            response.setWeeklyChange(portfolioMetrics.getPerformance().getOrDefault("weeklyChange", BigDecimal.ZERO));
-            response.setWeeklyChangePercent(portfolioMetrics.getPerformance().getOrDefault("weeklyChangePercent", BigDecimal.ZERO));
-            response.setMonthlyChange(portfolioMetrics.getPerformance().getOrDefault("monthlyChange", BigDecimal.ZERO));
-            response.setMonthlyChangePercent(portfolioMetrics.getPerformance().getOrDefault("monthlyChangePercent", BigDecimal.ZERO));
-            response.setYearlyChange(portfolioMetrics.getPerformance().getOrDefault("yearlyChange", BigDecimal.ZERO));
-            response.setYearlyChangePercent(portfolioMetrics.getPerformance().getOrDefault("yearlyChangePercent", BigDecimal.ZERO));
-            response.setHasExchangeConnections(portfolioData.getExchanges() != null && !portfolioData.getExchanges().isEmpty());
-            
-            // Convert assets list
-            // Convert assets list from all exchanges
-            List<Asset> aggregatedAssets = new ArrayList<>();
-            if (portfolioData.getExchanges() != null) {
-                for (PortfolioData.ExchangeData businessExchange : portfolioData.getExchanges().values()) {
-                    if (businessExchange != null && businessExchange.getAssets() != null) {
-                        for (PortfolioData.AssetData businessAsset : businessExchange.getAssets().values()) {
-                            if (businessAsset == null) continue;
-                            Asset serviceAsset = new Asset();
-                            serviceAsset.setSymbol(businessAsset.getSymbol());
-                            serviceAsset.setName(businessAsset.getName());
-                            // serviceAsset.setType(businessAsset.getType()); // Type field might not exist on AssetData
-                            serviceAsset.setQuantity(businessAsset.getQuantity());
-                            serviceAsset.setValue(businessAsset.getValue());
-                            serviceAsset.setAllocation(businessAsset.getAllocationPercent());
-                            // serviceAsset.setCurrentPrice(businessAsset.getCurrentPrice()); // CurrentPrice might not exist directly
-                            // serviceAsset.setPriceChangePercentage24h(businessAsset.getPriceChangePercentage24h()); // PriceChangePercentage24h might not exist directly
-                            // serviceAsset.setExchange(businessExchange.getName()); // Exchange name is part of the parent ExchangeData
-                            aggregatedAssets.add(serviceAsset);
-                        }
-                    }
+            response.setUserId(userId);
+
+            // 1. Try to read pre-computed portfolio summary
+            PortfolioSummaryEntity summary = null;
+            if (readPortfolioSummaryRepository != null) {
+                try {
+                    summary = readPortfolioSummaryRepository.getPortfolioSummary(userId);
+                    log.debug("Found pre-computed portfolio summary for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to read pre-computed summary for user {}, will fall back to real-time computation: {}",
+                            userId, e.getMessage());
                 }
             }
-            response.setAssets(aggregatedAssets);
-            
-            // Convert exchanges map
-            if (portfolioData.getExchanges() != null) {
+
+            // 2. If pre-computed summary exists, use it for aggregated stats
+            if (summary != null) {
+                // Use pre-computed summary stats
+                response.setTotalValue(summary.getTotalValue() != null ? summary.getTotalValue() : BigDecimal.ZERO);
+                response.setDailyChange(summary.getDayChange() != null ? summary.getDayChange() : BigDecimal.ZERO);
+                response.setDailyChangePercent(summary.getDayChangePercent() != null ? summary.getDayChangePercent() : BigDecimal.ZERO);
+                response.setWeeklyChange(summary.getWeekChange() != null ? summary.getWeekChange() : BigDecimal.ZERO);
+                response.setWeeklyChangePercent(summary.getWeekChangePercent() != null ? summary.getWeekChangePercent() : BigDecimal.ZERO);
+                response.setMonthlyChange(summary.getMonthChange() != null ? summary.getMonthChange() : BigDecimal.ZERO);
+                response.setMonthlyChangePercent(summary.getMonthChangePercent() != null ? summary.getMonthChangePercent() : BigDecimal.ZERO);
+                response.setYearlyChange(BigDecimal.ZERO); // TODO: Add to summary entity
+                response.setYearlyChangePercent(BigDecimal.ZERO); // TODO: Add to summary entity
+                response.setHasExchangeConnections(summary.getProvidersCount() != null && summary.getProvidersCount() > 0);
+
+                log.debug("Using pre-computed summary stats for user: {}", userId);
+            } else {
+                // Fall back to real-time computation if no pre-computed summary
+                log.info("No pre-computed summary found for user {}, computing in real-time", userId);
+                PortfolioData portfolioData = portfolioManager.getAggregatedPortfolioData(userId);
+                PortfolioMetrics portfolioMetrics = portfolioManager.calculatePortfolioMetrics(portfolioData);
+
+                response.setTotalValue(portfolioData.getTotalValue() != null ? portfolioData.getTotalValue() : BigDecimal.ZERO);
+                response.setDailyChange(portfolioData.getDailyChange() != null ? portfolioData.getDailyChange() : BigDecimal.ZERO);
+                response.setDailyChangePercent(portfolioData.getDailyChangePercent() != null ? portfolioData.getDailyChangePercent() : BigDecimal.ZERO);
+                response.setWeeklyChange(portfolioMetrics.getPerformance().getOrDefault("weeklyChange", BigDecimal.ZERO));
+                response.setWeeklyChangePercent(portfolioMetrics.getPerformance().getOrDefault("weeklyChangePercent", BigDecimal.ZERO));
+                response.setMonthlyChange(portfolioMetrics.getPerformance().getOrDefault("monthlyChange", BigDecimal.ZERO));
+                response.setMonthlyChangePercent(portfolioMetrics.getPerformance().getOrDefault("monthlyChangePercent", BigDecimal.ZERO));
+                response.setYearlyChange(portfolioMetrics.getPerformance().getOrDefault("yearlyChange", BigDecimal.ZERO));
+                response.setYearlyChangePercent(portfolioMetrics.getPerformance().getOrDefault("yearlyChangePercent", BigDecimal.ZERO));
+                response.setHasExchangeConnections(portfolioData.getExchanges() != null && !portfolioData.getExchanges().isEmpty());
+            }
+
+            // 3. Read detailed provider data for asset/exchange breakdown
+            List<ProviderDataEntity> providerDataList = null;
+            if (readProviderDataRepository != null) {
+                try {
+                    providerDataList = readProviderDataRepository.getAllProviderData(userId);
+                    log.debug("Found {} provider data records for user: {}",
+                            providerDataList != null ? providerDataList.size() : 0, userId);
+                } catch (Exception e) {
+                    log.warn("Failed to read provider data for user {}: {}", userId, e.getMessage());
+                }
+            }
+
+            // 4. Build detailed asset and exchange breakdown
+            if (providerDataList != null && !providerDataList.isEmpty()) {
+                List<Asset> aggregatedAssets = new ArrayList<>();
                 Map<String, ExchangeData> serviceExchanges = new HashMap<>();
-                portfolioData.getExchanges().forEach((key, businessExchange) -> {
-                    ExchangeData serviceExchange = new ExchangeData();
-                    serviceExchange.setName(businessExchange.getName());
-                    // serviceExchange.setConnected(businessExchange.isConnected()); // Method not available
-                    serviceExchange.setValue(businessExchange.getValue() != null ? businessExchange.getValue() : BigDecimal.ZERO);
+
+                for (ProviderDataEntity providerData : providerDataList) {
+                    if (providerData == null || providerData.getHoldings() == null) continue;
+
+                    // Create exchange data
+                    ExchangeData exchangeData = new ExchangeData();
+                    exchangeData.setName(providerData.getProviderId());
+                    exchangeData.setValue(providerData.getTotalValue() != null ? providerData.getTotalValue() : BigDecimal.ZERO);
 
                     Map<String, AssetData> exchangeAssets = new HashMap<>();
-                    if (businessExchange.getAssets() != null) {
-                        for (PortfolioData.AssetData bizAssetData : businessExchange.getAssets().values()) {
-                            if (bizAssetData == null) continue;
-                            AssetData serviceLayerAssetData = new AssetData();
-                            serviceLayerAssetData.setSymbol(bizAssetData.getSymbol());
-                            serviceLayerAssetData.setName(bizAssetData.getName());
-                            serviceLayerAssetData.setQuantity(bizAssetData.getQuantity());
-                            serviceLayerAssetData.setPrice(bizAssetData.getPrice());
-                            serviceLayerAssetData.setValue(bizAssetData.getValue());
-                            serviceLayerAssetData.setAllocationPercent(bizAssetData.getAllocationPercent());
-                            // Note: dailyChange and dailyChangePercent might not be on bizAssetData, or need separate fetching
-                            exchangeAssets.put(bizAssetData.getSymbol(), serviceLayerAssetData);
+
+                    // Process holdings
+                    for (ProviderDataEntity.Holding holding : providerData.getHoldings()) {
+                        if (holding == null) continue;
+
+                        // Calculate allocation percentage for this holding
+                        BigDecimal allocationPercent = BigDecimal.ZERO;
+                        if (providerData.getTotalValue() != null && providerData.getTotalValue().compareTo(BigDecimal.ZERO) > 0
+                                && holding.getCurrentValue() != null) {
+                            allocationPercent = holding.getCurrentValue()
+                                    .divide(providerData.getTotalValue(), 4, java.math.RoundingMode.HALF_UP)
+                                    .multiply(new BigDecimal("100"));
                         }
+
+                        // Add to aggregated assets list
+                        Asset asset = new Asset();
+                        asset.setSymbol(holding.getAsset());
+                        asset.setName(holding.getName());
+                        asset.setQuantity(holding.getQuantity());
+                        asset.setValue(holding.getCurrentValue());
+                        asset.setAllocation(allocationPercent);
+                        aggregatedAssets.add(asset);
+
+                        // Add to exchange assets
+                        AssetData assetData = new AssetData();
+                        assetData.setSymbol(holding.getAsset());
+                        assetData.setName(holding.getName());
+                        assetData.setQuantity(holding.getQuantity());
+                        assetData.setPrice(holding.getCurrentPrice());
+                        assetData.setValue(holding.getCurrentValue());
+                        assetData.setAllocationPercent(allocationPercent);
+                        exchangeAssets.put(holding.getAsset(), assetData);
                     }
-                    serviceExchange.setAssets(exchangeAssets);
-                    serviceExchanges.put(key, serviceExchange);
-                });
+
+                    exchangeData.setAssets(exchangeAssets);
+                    serviceExchanges.put(providerData.getProviderId(), exchangeData);
+                }
+
+                response.setAssets(aggregatedAssets);
                 response.setExchanges(serviceExchanges);
             } else {
+                // No provider data, set empty collections
+                response.setAssets(new ArrayList<>());
                 response.setExchanges(new HashMap<>());
             }
-            
-            // Convert portfolio metrics
-            if (portfolioMetrics != null) {
-                io.strategiz.service.dashboard.model.portfoliosummary.PortfolioMetrics serviceMetrics = new io.strategiz.service.dashboard.model.portfoliosummary.PortfolioMetrics();
-                serviceMetrics.setSharpeRatio(portfolioMetrics.getRisk().getOrDefault("sharpeRatio", BigDecimal.ZERO));
-                serviceMetrics.setBeta(portfolioMetrics.getRisk().getOrDefault("beta", BigDecimal.ZERO));
-                serviceMetrics.setAlpha(portfolioMetrics.getPerformance().getOrDefault("alpha", BigDecimal.ZERO));
-                serviceMetrics.setVolatility(portfolioMetrics.getRisk().getOrDefault("volatility", BigDecimal.ZERO));
-                serviceMetrics.setMaxDrawdown(portfolioMetrics.getRisk().getOrDefault("maxDrawdown", BigDecimal.ZERO));
-                serviceMetrics.setAnnualizedReturn(portfolioMetrics.getPerformance().getOrDefault("annualizedReturn", BigDecimal.ZERO));
-                response.setPortfolioMetrics(serviceMetrics);
-            }
-            
+
+            // 5. Portfolio metrics (currently zeros, TODO: implement in PortfolioSummaryManager)
+            io.strategiz.service.dashboard.model.portfoliosummary.PortfolioMetrics serviceMetrics =
+                    new io.strategiz.service.dashboard.model.portfoliosummary.PortfolioMetrics();
+            serviceMetrics.setSharpeRatio(BigDecimal.ZERO);
+            serviceMetrics.setBeta(BigDecimal.ZERO);
+            serviceMetrics.setAlpha(BigDecimal.ZERO);
+            serviceMetrics.setVolatility(BigDecimal.ZERO);
+            serviceMetrics.setMaxDrawdown(BigDecimal.ZERO);
+            serviceMetrics.setAnnualizedReturn(BigDecimal.ZERO);
+            response.setPortfolioMetrics(serviceMetrics);
+
+            log.debug("Successfully built portfolio summary response for user: {}", userId);
             return response;
+
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
         } catch (Exception e) {
-            log.error("Error getting portfolio summary for user: " + userId, e);
-            throw new StrategizException(ServiceDashboardErrorDetails.PORTFOLIO_CALCULATION_FAILED, "service-dashboard", e, userId, "summary", e.getMessage());
+            log.error("Error getting portfolio summary for user: {}", userId, e);
+            throw new StrategizException(ServiceDashboardErrorDetails.PORTFOLIO_CALCULATION_FAILED,
+                    "service-dashboard", e, userId, "summary", e.getMessage());
         }
     }
 }

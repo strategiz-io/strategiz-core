@@ -6,6 +6,7 @@ import io.strategiz.service.base.service.ProviderBaseService;
 import io.strategiz.data.provider.repository.DeleteProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.DeleteProviderDataRepository;
 import io.strategiz.framework.secrets.controller.SecretManager;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,9 @@ public class DeleteProviderService extends ProviderBaseService {
 
     @Autowired
     private SecretManager secretManager;
+
+    @Autowired
+    private PortfolioSummaryManager portfolioSummaryManager;
 
     /**
      * Deletes a provider connection.
@@ -158,6 +162,9 @@ public class DeleteProviderService extends ProviderBaseService {
             response.setStatus("deleted");
             response.setMessage("Provider connection deleted successfully");
             response.setData(data);
+
+            // Refresh portfolio summary after provider deletion
+            portfolioSummaryManager.refreshPortfolioSummary(request.getUserId());
 
         } catch (Exception e) {
             providerLog.error("Error during provider deletion: {}", e.getMessage(), e);

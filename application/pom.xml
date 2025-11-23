@@ -89,7 +89,12 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-strategy</artifactId>
+            <artifactId>service-labs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-live-strategies</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

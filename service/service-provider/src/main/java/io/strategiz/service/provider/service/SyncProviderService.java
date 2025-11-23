@@ -2,7 +2,9 @@ package io.strategiz.service.provider.service;
 
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
+import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
@@ -30,15 +32,21 @@ public class SyncProviderService {
 
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
+    private final SchwabProviderBusiness schwabProviderBusiness;
     private final WebullProviderBusiness webullProviderBusiness;
+    private final PortfolioSummaryManager portfolioSummaryManager;
 
     @Autowired
     public SyncProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
                                KrakenProviderBusiness krakenProviderBusiness,
-                               WebullProviderBusiness webullProviderBusiness) {
+                               SchwabProviderBusiness schwabProviderBusiness,
+                               WebullProviderBusiness webullProviderBusiness,
+                               PortfolioSummaryManager portfolioSummaryManager) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
+        this.schwabProviderBusiness = schwabProviderBusiness;
         this.webullProviderBusiness = webullProviderBusiness;
+        this.portfolioSummaryManager = portfolioSummaryManager;
     }
 
     /**
@@ -65,14 +73,13 @@ public class SyncProviderService {
                     syncedData = krakenProviderBusiness.syncProviderData(userId);
                     break;
 
+                case "schwab":
+                    syncedData = schwabProviderBusiness.syncProviderData(userId);
+                    break;
+
                 case "webull":
-                    // TODO: Implement Webull sync when ready
-                    throw new StrategizException(
-                        ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
-                        MODULE_NAME,
-                        providerId,
-                        "Webull sync not yet implemented"
-                    );
+                    syncedData = webullProviderBusiness.syncProviderData(userId);
+                    break;
 
                 case "alpaca":
                     // TODO: Implement Alpaca sync when ready
@@ -108,6 +115,9 @@ public class SyncProviderService {
             log.info("Successfully synced provider {} for user {}: {} holdings",
                 providerId, userId,
                 syncedData != null && syncedData.getHoldings() != null ? syncedData.getHoldings().size() : 0);
+
+            // Refresh portfolio summary after provider sync
+            portfolioSummaryManager.refreshPortfolioSummary(userId);
 
             return result;
 

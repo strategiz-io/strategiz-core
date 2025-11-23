@@ -69,7 +69,8 @@
         
         <!-- Service Modules (Build Fifth) -->
         <module>service/service-base</module>
-        <module>service/service-strategy</module>
+        <module>service/service-labs</module>
+        <module>service/service-live-strategies</module>
         <module>service/service-portfolio</module>
         <module>service/service-exchange</module>
         <module>service/service-auth</module>
@@ -268,7 +269,12 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>service-strategy</artifactId>
+                <artifactId>service-labs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-live-strategies</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -61,9 +61,10 @@ public class ProviderCallbackController extends BaseController {
             provider = "coinbase";
         }
         
-        log.info("Received OAuth callback from provider: {}, state: {}, error: {}", 
-                provider, state, error);
-        
+        log.info("=== OAuth Callback Received ===");
+        log.info("Provider: {}, State: {}, Has code: {}, Error: {}",
+                provider, state, code != null ? "yes" : "no", error);
+
         try {
             // Handle OAuth errors from provider
             if (error != null) {
@@ -83,10 +84,14 @@ public class ProviderCallbackController extends BaseController {
             }
             
             // Process the OAuth callback
+            log.info("Processing OAuth callback for {} - starting token exchange", provider);
             ProviderCallbackResponse response = providerCallbackService.processOAuthCallback(provider, code, state);
-            
+            log.info("OAuth callback successful for {} - status: {}", provider, response.getStatus());
+
             // Redirect to frontend with success
-            return new RedirectView(response.getRedirectUrl());
+            String redirectUrl = response.getRedirectUrl();
+            log.info("Redirecting to: {}", redirectUrl);
+            return new RedirectView(redirectUrl);
             
         } catch (Exception e) {
             log.error("Error processing OAuth callback for provider: {}", provider, e);

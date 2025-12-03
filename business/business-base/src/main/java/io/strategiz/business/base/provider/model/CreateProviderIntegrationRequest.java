@@ -8,6 +8,7 @@ public class CreateProviderIntegrationRequest {
     private String apiKey;
     private String apiSecret;
     private String accountType;
+    private String environment; // For providers with multiple environments (e.g., "paper", "live")
     
     public String getProviderId() {
         return providerId;
@@ -36,8 +37,16 @@ public class CreateProviderIntegrationRequest {
     public String getAccountType() {
         return accountType;
     }
-    
+
     public void setAccountType(String accountType) {
         this.accountType = accountType;
+    }
+
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(String environment) {
+        this.environment = environment;
     }
 }

@@ -15,14 +15,15 @@ public class UserFactory {
 
     /**
      * Creates a new UserEntity populated with data from OAuth signup
-     * 
+     * Uses UUID as the userId - immutable and privacy-friendly
+     *
      * @param request OAuth signup request containing profile data
      * @return UserEntity ready for persistence
      */
     public UserEntity createUser(OAuthSignupRequest request) {
-        // Generate unique user ID
+        // Generate unique UUID - immutable, doesn't change even if email changes
         String userId = UUID.randomUUID().toString();
-        
+
         // Create user profile with OAuth data
         UserProfileEntity profile = new UserProfileEntity(
             request.getName(),
@@ -32,12 +33,12 @@ public class UserFactory {
             "free", // Default subscription tier
             true // Default demo mode
         );
-        
+
         // Create user entity
         UserEntity user = new UserEntity();
         user.setUserId(userId);
         user.setProfile(profile);
-        
+
         return user;
     }
 }

@@ -1,0 +1,34 @@
+server:
+  port: 8444
+
+spring:
+  application:
+    name: strategiz-batch
+  profiles:
+    active: scheduler
+  autoconfigure:
+    exclude:
+      - com.google.cloud.spring.autoconfigure.firestore.GcpFirestoreAutoConfiguration
+      - com.google.cloud.spring.autoconfigure.core.GcpContextAutoConfiguration
+      - com.google.cloud.spring.autoconfigure.firestore.FirestoreTransactionManagerAutoConfiguration
+
+# Alpaca batch job configuration
+alpaca:
+  batch:
+    # Enable backfill job to load initial historical dataset
+    backfill-enabled: true
+    backfill-timeframe: 1Min
+
+    # Enable incremental job to keep market data up-to-date
+    incremental-enabled: true
+    incremental-timeframe: 1Min
+    incremental-lookback-hours: 2
+    incremental-cron: "0 */5 * * * MON-FRI"  # Every 5 minutes, weekdays only
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    io.strategiz: DEBUG
+    io.strategiz.batch: DEBUG
+    io.strategiz.business: DEBUG

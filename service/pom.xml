@@ -23,6 +23,7 @@
         <module>service-exchange</module>
         <module>service-marketing</module>
         <module>service-marketplace</module>
+        <module>service-marketdata</module>
         <module>service-monitoring</module>
         <module>service-portfolio</module>
         <module>service-profile</module>

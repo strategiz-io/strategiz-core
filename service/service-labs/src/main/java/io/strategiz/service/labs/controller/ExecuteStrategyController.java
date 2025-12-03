@@ -181,10 +181,17 @@ public class ExecuteStrategyController extends BaseController {
 
             // For Python execution
             if ("python".equalsIgnoreCase(request.getLanguage())) {
-                //  TODO: Replace with real market data from database or API
-                // Generate simulated market data for testing
-                String ticker = request.getSymbol() != null ? request.getSymbol() : "SAMPLE";
-                String marketDataJson = generateSimulatedMarketData(ticker);
+                // Validate symbol is provided
+                String symbol = request.getSymbol();
+                if (symbol == null || symbol.trim().isEmpty()) {
+                    throwModuleException(
+                        ServiceStrategyErrorDetails.STRATEGY_EXECUTION_FAILED,
+                        "Symbol is required for strategy execution"
+                    );
+                }
+
+                // Fetch real market data from repository
+                String marketDataJson = fetchMarketDataForSymbol(symbol);
 
                 // Execute Python code with market data
                 ExecuteStrategyResponse response = pythonStrategyExecutor.executePythonCode(
@@ -194,7 +201,7 @@ public class ExecuteStrategyController extends BaseController {
 
                 // Set additional response fields
                 response.setStrategyId("direct-execution-" + System.currentTimeMillis());
-                response.setTicker(ticker);
+                response.setSymbol(symbol);
 
                 return ResponseEntity.ok(response);
             }
@@ -328,47 +335,58 @@ public class ExecuteStrategyController extends BaseController {
     }
 
     /**
-     * Generate simulated market data for testing strategies
-     * TODO: Replace this with real market data from database or API
+     * Fetch real market data from the repository for strategy execution
+     * Fetches last 180 days of daily OHLCV data for the specified symbol
+     *
+     * @param symbol Trading symbol (e.g., "AAPL", "TSLA", "BTC-USD")
+     * @return JSON string of market data in format expected by Python strategies
      */
-    private String generateSimulatedMarketData(String ticker) {
+    private String fetchMarketDataForSymbol(String symbol) {
         try {
-            logger.info("Generating simulated market data for ticker: {}", ticker);
+            logger.info("Fetching market data for symbol: {}", symbol);
 
-            java.util.List<java.util.Map<String, Object>> marketData = new java.util.ArrayList<>();
-            java.time.LocalDate startDate = java.time.LocalDate.now().minusDays(90);
-            double basePrice = 150.0;
-            java.util.Random random = new java.util.Random();
+            // Calculate date range (last 180 days for chart display)
+            java.time.LocalDate endDate = java.time.LocalDate.now().minusDays(1);
+            java.time.LocalDate startDate = endDate.minusDays(180);
 
-            for (int i = 0; i < 90; i++) {
-                java.time.LocalDate date = startDate.plusDays(i);
-                String dateString = date.toString();
+            // Query Firestore for historical data
+            java.util.List<MarketDataEntity> marketData = marketDataRepository
+                .findBySymbolAndDateRange(symbol, startDate, endDate);
 
-                // Generate realistic OHLC data with some volatility
-                double volatility = 3.0;
-                double open = basePrice + (random.nextDouble() - 0.5) * volatility;
-                double close = open + (random.nextDouble() - 0.5) * volatility;
-                double high = Math.max(open, close) + random.nextDouble() * volatility;
-                double low = Math.min(open, close) - random.nextDouble() * volatility;
-
-                java.util.Map<String, Object> candle = new java.util.HashMap<>();
-                candle.put("time", dateString);
-                candle.put("open", Math.round(open * 100.0) / 100.0);
-                candle.put("high", Math.round(high * 100.0) / 100.0);
-                candle.put("low", Math.round(low * 100.0) / 100.0);
-                candle.put("close", Math.round(close * 100.0) / 100.0);
-
-                marketData.add(candle);
-
-                // Trending behavior
-                basePrice = close + (random.nextDouble() - 0.48) * 2;
+            // If no data found, throw proper exception
+            if (marketData == null || marketData.isEmpty()) {
+                logger.warn("No market data found for symbol: {}", symbol);
+                throwModuleException(
+                    ServiceStrategyErrorDetails.MARKET_DATA_NOT_FOUND,
+                    String.format("No market data found for symbol: %s. Please ensure the batch job has run to populate data.", symbol)
+                );
             }
 
-            return objectMapper.writeValueAsString(marketData);
+            // Convert to JSON format expected by Python strategies
+            java.util.List<java.util.Map<String, Object>> jsonData = marketData.stream()
+                .map(this::convertToJsonCandle)
+                .collect(java.util.stream.Collectors.toList());
+
+            logger.info("Fetched {} data points for symbol: {}", jsonData.size(), symbol);
+            return objectMapper.writeValueAsString(jsonData);
 
         } catch (Exception e) {
-            logger.error("Failed to generate simulated market data for ticker: {}", ticker, e);
+            logger.error("Failed to fetch market data for symbol: {}", symbol, e);
             throw handleException(e, StrategyConstants.ERROR_STRATEGY_EXECUTION_FAILED);
         }
+    }
+
+    /**
+     * Convert MarketDataEntity to JSON candle format for Python
+     */
+    private java.util.Map<String, Object> convertToJsonCandle(MarketDataEntity entity) {
+        java.util.Map<String, Object> candle = new java.util.HashMap<>();
+        candle.put("time", entity.getTimestampAsLocalDateTime().toString());
+        candle.put("open", entity.getOpen().doubleValue());
+        candle.put("high", entity.getHigh().doubleValue());
+        candle.put("low", entity.getLow().doubleValue());
+        candle.put("close", entity.getClose().doubleValue());
+        candle.put("volume", entity.getVolume() != null ? entity.getVolume().longValue() : 0);
+        return candle;
     }
 }

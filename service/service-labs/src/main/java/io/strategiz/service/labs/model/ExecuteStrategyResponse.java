@@ -10,8 +10,8 @@ public class ExecuteStrategyResponse {
     @JsonProperty("strategyId")
     private String strategyId;
     
-    @JsonProperty("ticker")
-    private String ticker;
+    @JsonProperty("symbol")
+    private String symbol;
     
     @JsonProperty("signals")
     private List<Signal> signals;
@@ -284,14 +284,14 @@ public class ExecuteStrategyResponse {
         this.strategyId = strategyId;
     }
     
-    public String getTicker() {
-        return ticker;
+    public String getSymbol() {
+        return symbol;
     }
-    
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
-    
+
     public List<Signal> getSignals() {
         return signals;
     }

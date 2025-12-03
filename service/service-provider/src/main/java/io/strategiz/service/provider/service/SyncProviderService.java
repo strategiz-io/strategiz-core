@@ -3,7 +3,7 @@ package io.strategiz.service.provider.service;
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
-import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
+// import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
@@ -33,19 +33,19 @@ public class SyncProviderService {
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
     private final SchwabProviderBusiness schwabProviderBusiness;
-    private final WebullProviderBusiness webullProviderBusiness;
+    // private final WebullProviderBusiness webullProviderBusiness; // TODO: Add when webull module is ready
     private final PortfolioSummaryManager portfolioSummaryManager;
 
     @Autowired
     public SyncProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
                                KrakenProviderBusiness krakenProviderBusiness,
                                SchwabProviderBusiness schwabProviderBusiness,
-                               WebullProviderBusiness webullProviderBusiness,
+                               // WebullProviderBusiness webullProviderBusiness, // TODO: Add when webull module is ready
                                PortfolioSummaryManager portfolioSummaryManager) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
-        this.webullProviderBusiness = webullProviderBusiness;
+        // this.webullProviderBusiness = webullProviderBusiness; // TODO: Add when webull module is ready
         this.portfolioSummaryManager = portfolioSummaryManager;
     }
 
@@ -78,8 +78,13 @@ public class SyncProviderService {
                     break;
 
                 case "webull":
-                    syncedData = webullProviderBusiness.syncProviderData(userId);
-                    break;
+                    // TODO: Implement Webull sync when module is ready
+                    throw new StrategizException(
+                        ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
+                        MODULE_NAME,
+                        providerId,
+                        "Webull sync not yet implemented"
+                    );
 
                 case "alpaca":
                     // TODO: Implement Alpaca sync when ready

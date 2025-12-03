@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+io.strategiz.framework.authorization.config.AuthorizationAutoConfiguration

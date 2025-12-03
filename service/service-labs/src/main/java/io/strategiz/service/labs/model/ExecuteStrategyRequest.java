@@ -9,9 +9,9 @@ import java.util.Map;
 
 public class ExecuteStrategyRequest {
     
-    @NotBlank(message = "Ticker is required")
-    @JsonProperty("ticker")
-    private String ticker;
+    @NotBlank(message = "Symbol is required")
+    @JsonProperty("symbol")
+    private String symbol;
     
     @JsonProperty("code")
     private String code; // For direct code execution
@@ -38,12 +38,12 @@ public class ExecuteStrategyRequest {
     private String providerId;
     
     // Getters and Setters
-    public String getTicker() {
-        return ticker;
+    public String getSymbol() {
+        return symbol;
     }
-    
-    public void setTicker(String ticker) {
-        this.ticker = ticker;
+
+    public void setSymbol(String symbol) {
+        this.symbol = symbol;
     }
     
     public String getCode() {
@@ -101,12 +101,7 @@ public class ExecuteStrategyRequest {
     public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
     }
-    
-    // Alias for ticker
-    public String getSymbol() {
-        return ticker;
-    }
-    
+
     public String getProviderId() {
         return providerId;
     }

@@ -9,7 +9,7 @@ import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.binanceus.BinanceUSProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
-import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
+// import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -63,7 +63,7 @@ public class CreateProviderService {
             BinanceUSProviderBusiness binanceUSProviderBusiness,
             AlpacaProviderBusiness alpacaProviderBusiness,
             SchwabProviderBusiness schwabProviderBusiness,
-            WebullProviderBusiness webullProviderBusiness,
+            // WebullProviderBusiness webullProviderBusiness, // TODO: Add when webull module is ready
             ProfileService profileService,
             ReadProviderIntegrationRepository readProviderIntegrationRepository) {
 
@@ -75,7 +75,7 @@ public class CreateProviderService {
         this.providerHandlers.put("binanceus", binanceUSProviderBusiness);
         this.providerHandlers.put("alpaca", alpacaProviderBusiness);
         this.providerHandlers.put("schwab", schwabProviderBusiness);
-        this.providerHandlers.put("webull", webullProviderBusiness);
+        // this.providerHandlers.put("webull", webullProviderBusiness); // TODO: Add when webull module is ready
 
         this.profileService = profileService;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;

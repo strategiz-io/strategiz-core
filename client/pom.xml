@@ -20,6 +20,7 @@
         <module>client-kraken</module>
         <module>client-webull</module>
         <module>client-coinbase</module>
+        <module>client-alpaca</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client-walletaddress</module> -->
         <module>client-binanceus</module>

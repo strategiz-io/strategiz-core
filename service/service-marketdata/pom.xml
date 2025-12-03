@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>service-marketdata</artifactId>
-    <description>Market data batch processing and scheduled jobs</description>
+    <description>Market data REST API layer</description>
 
     <dependencies>
         <!-- Internal dependencies -->
@@ -23,17 +23,7 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-polygon</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-marketdata</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-watchlist</artifactId>
+            <artifactId>business-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -45,12 +35,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        
-        <!-- Scheduling support -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
         </dependency>
 
         <!-- Logging -->

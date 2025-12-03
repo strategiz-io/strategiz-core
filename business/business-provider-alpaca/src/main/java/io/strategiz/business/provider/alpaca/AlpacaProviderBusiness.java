@@ -3,8 +3,18 @@ package io.strategiz.business.provider.alpaca;
 import io.strategiz.business.provider.alpaca.model.AlpacaConnectionResult;
 import io.strategiz.business.provider.alpaca.model.AlpacaDisconnectionResult;
 import io.strategiz.business.provider.alpaca.model.AlpacaTokenRefreshResult;
-// import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
-// import io.strategiz.data.auth.repository.ProviderIntegrationRepository;
+import io.strategiz.client.alpaca.client.AlpacaClient;
+import io.strategiz.client.alpaca.client.AlpacaDataClient;
+import io.strategiz.client.alpaca.auth.AlpacaOAuthClient;
+import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
+import io.strategiz.data.provider.entity.ProviderStatus;
+import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.CreateProviderDataRepository;
+import io.strategiz.data.provider.repository.ReadProviderDataRepository;
+import io.strategiz.data.provider.repository.UpdateProviderDataRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -17,23 +27,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -50,37 +53,56 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_ID = "alpaca";
     private static final String PROVIDER_NAME = "Alpaca";
     private static final String PROVIDER_TYPE = "broker";
-    
-    // private final ProviderIntegrationRepository providerIntegrationRepository;
+    private static final String DEFAULT_ENVIRONMENT = "paper"; // Default to paper for safety
+
+    private final AlpacaClient alpacaClient;
+    private final AlpacaDataClient alpacaDataClient;
+    private final AlpacaOAuthClient alpacaOAuthClient;
+    private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
+    private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
+    private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
+    private final CreateProviderDataRepository createProviderDataRepository;
+    private final ReadProviderDataRepository readProviderDataRepository;
+    private final UpdateProviderDataRepository updateProviderDataRepository;
     private final SecretManager secretManager;
-    
+
     // OAuth Configuration
-    @Value("${oauth.providers.alpaca.client-id}")
+    @Value("${oauth.providers.alpaca.client-id:}")
     private String clientId;
-    
-    @Value("${oauth.providers.alpaca.client-secret}")
+
+    @Value("${oauth.providers.alpaca.client-secret:}")
     private String clientSecret;
-    
+
     @Value("${oauth.providers.alpaca.redirect-uri}")
     private String redirectUri;
-    
+
     @Value("${oauth.providers.alpaca.auth-url:https://app.alpaca.markets/oauth/authorize}")
     private String authUrl;
-    
-    @Value("${oauth.providers.alpaca.token-url:https://api.alpaca.markets/oauth/token}")
-    private String tokenUrl;
-    
-    @Value("${oauth.providers.alpaca.api-url:https://api.alpaca.markets}")
-    private String apiUrl;
-    
+
     @Value("${oauth.providers.alpaca.scope:account:read trading:write data:read}")
     private String scope;
 
     @Autowired
     public AlpacaProviderBusiness(
-            // ProviderIntegrationRepository providerIntegrationRepository,
+            AlpacaClient alpacaClient,
+            AlpacaDataClient alpacaDataClient,
+            AlpacaOAuthClient alpacaOAuthClient,
+            CreateProviderIntegrationRepository createProviderIntegrationRepository,
+            ReadProviderIntegrationRepository readProviderIntegrationRepository,
+            UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
+            @Autowired(required = false) CreateProviderDataRepository createProviderDataRepository,
+            @Autowired(required = false) ReadProviderDataRepository readProviderDataRepository,
+            @Autowired(required = false) UpdateProviderDataRepository updateProviderDataRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
-        // this.providerIntegrationRepository = providerIntegrationRepository;
+        this.alpacaClient = alpacaClient;
+        this.alpacaDataClient = alpacaDataClient;
+        this.alpacaOAuthClient = alpacaOAuthClient;
+        this.createProviderIntegrationRepository = createProviderIntegrationRepository;
+        this.readProviderIntegrationRepository = readProviderIntegrationRepository;
+        this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
+        this.createProviderDataRepository = createProviderDataRepository;
+        this.readProviderDataRepository = readProviderDataRepository;
+        this.updateProviderDataRepository = updateProviderDataRepository;
         this.secretManager = secretManager;
     }
 
@@ -337,45 +359,25 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     
     private Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
         try {
-            // Build the token exchange request
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("grant_type", "authorization_code");
-            params.add("code", authorizationCode);
-            params.add("client_id", clientId);
-            params.add("client_secret", clientSecret);
-            params.add("redirect_uri", redirectUri);
-            
-            // Set up headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            
-            // Create the request entity
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            
-            // Make the token exchange request
-            RestTemplate restTemplate = new RestTemplate();
-            
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
-            } else {
-                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
-                    "Token exchange failed with status: " + response.getStatusCode());
-            }
-            
-        } catch (RestClientException e) {
+            // Use the AlpacaOAuthClient to exchange the code for tokens
+            log.info("Exchanging authorization code for tokens using AlpacaOAuthClient");
+            return alpacaOAuthClient.exchangeCodeForTokens(authorizationCode);
+        } catch (StrategizException e) {
+            // Re-throw StrategizException with additional context
             log.error("Failed to exchange authorization code for tokens: {}", e.getMessage());
-            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
+                "Token exchange failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error during token exchange: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
                 "Token exchange failed: " + e.getMessage());
         }
     }
     
     private Map<String, Object> getUserAccountInfo(String accessToken) {
-        return makeAuthenticatedRequest("/v2/account", accessToken, null);
+        return alpacaDataClient.getAccount(accessToken);
     }
-    
+
     private String determineEnvironment(Map<String, Object> accountInfo) {
         // Check if this is a paper trading account
         if (accountInfo != null && accountInfo.containsKey("trading_blocked")) {
@@ -391,92 +393,65 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
         }
         return "live";
     }
-    
+
     private Map<String, Object> makeAuthenticatedRequest(String endpoint, String accessToken, Map<String, String> params) {
         try {
-            // Build the URL with parameters
-            UriComponentsBuilder uriBuilder = UriComponentsBuilder
-                .fromHttpUrl(apiUrl + endpoint);
-            
-            if (params != null) {
-                for (Map.Entry<String, String> param : params.entrySet()) {
-                    uriBuilder.queryParam(param.getKey(), param.getValue());
-                }
-            }
-            
-            String url = uriBuilder.toUriString();
-            
-            // Set up headers with Bearer token
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.setBearerAuth(accessToken);
-            
-            // Create the request entity
-            HttpEntity<String> request = new HttpEntity<>(headers);
-            
-            // Make the authenticated request
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+            // Use the AlpacaDataClient to make authenticated requests
+            log.debug("Making authenticated request to endpoint: {}", endpoint);
+
+            // Determine which client method to call based on the endpoint
+            if (endpoint.equals("/v2/account")) {
+                return alpacaDataClient.getAccount(accessToken);
+            } else if (endpoint.equals("/v2/positions")) {
+                return (Map<String, Object>) (Object) alpacaDataClient.getPositions(accessToken);
             } else {
-                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
-                    "Authenticated request failed with status: " + response.getStatusCode());
+                // For other endpoints, use the generic OAuth request method
+                return alpacaClient.oauthRequest(
+                    org.springframework.http.HttpMethod.GET,
+                    endpoint,
+                    accessToken,
+                    params,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+                );
             }
-            
-        } catch (RestClientException e) {
+        } catch (StrategizException e) {
             log.error("Failed to make authenticated request to {}: {}", endpoint, e.getMessage());
-            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+            throw e; // Re-throw StrategizException as-is
+        } catch (Exception e) {
+            log.error("Unexpected error making authenticated request to {}: {}", endpoint, e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
                 "Authenticated request failed: " + e.getMessage());
         }
     }
-    
+
     private Map<String, Object> refreshTokens(String refreshToken) {
         try {
-            // Build the token refresh request
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("grant_type", "refresh_token");
-            params.add("refresh_token", refreshToken);
-            params.add("client_id", clientId);
-            params.add("client_secret", clientSecret);
-            
-            // Set up headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            
-            // Create the request entity
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            
-            // Make the token refresh request
-            RestTemplate restTemplate = new RestTemplate();
-            
-            ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
-            } else {
-                throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
-                    "Token refresh failed with status: " + response.getStatusCode());
-            }
-            
-        } catch (RestClientException e) {
-            log.error("Failed to refresh tokens: {}", e.getMessage());
-            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR, 
+            // Use the AlpacaOAuthClient to refresh the token
+            log.info("Refreshing access token using AlpacaOAuthClient");
+            return alpacaOAuthClient.refreshAccessToken(refreshToken);
+        } catch (StrategizException e) {
+            // Re-throw StrategizException with additional context
+            log.error("Failed to refresh access token: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
+                "Token refresh failed: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error during token refresh: {}", e.getMessage());
+            throw new StrategizException(ErrorCode.EXTERNAL_SERVICE_ERROR,
                 "Token refresh failed: " + e.getMessage());
         }
     }
-    
+
     private void revokeAccessToken(String accessToken) {
         try {
-            // Alpaca doesn't have a specific revoke endpoint in the OAuth spec
-            // But we can make a request to invalidate the token
-            log.info("Revoking Alpaca access token (logout)");
-            // For now, we'll just log that we're disconnecting
-            // In a real implementation, you might call a logout endpoint if available
-            
+            // Use the AlpacaOAuthClient to revoke the token
+            log.info("Revoking access token using AlpacaOAuthClient");
+            boolean success = alpacaOAuthClient.revokeAccessToken(accessToken);
+
+            if (success) {
+                log.info("Successfully revoked Alpaca access token");
+            } else {
+                log.warn("Token revocation may have failed, but continuing anyway");
+            }
         } catch (Exception e) {
             log.error("Failed to revoke access token: {}", e.getMessage());
             // Don't throw exception for revocation failures - log and continue
@@ -497,47 +472,66 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     
     @Override
     public ProviderIntegrationResult createIntegration(CreateProviderIntegrationRequest request, String userId) {
-        log.info("Creating Alpaca integration for user: {}", userId);
-        
+        // Extract environment from request, default to paper for safety
+        String environment = request.getEnvironment();
+        if (environment == null || environment.trim().isEmpty()) {
+            environment = DEFAULT_ENVIRONMENT;
+            log.info("No environment specified, defaulting to: {}", environment);
+        }
+
+        // Validate environment
+        if (!environment.equals("paper") && !environment.equals("live")) {
+            throw new StrategizException(ErrorCode.VALIDATION_ERROR,
+                "Invalid environment: " + environment + ". Must be 'paper' or 'live'");
+        }
+
+        log.info("Creating Alpaca {} integration for user: {}", environment, userId);
+
+        // Load environment-specific OAuth configuration from Vault
+        String vaultEnvironmentKey = "alpaca-" + environment;
+        loadOAuthConfigForEnvironment(vaultEnvironmentKey);
+
+        log.info("OAuth configuration for {} - clientId: {}, redirectUri: {}",
+                environment,
+                clientId != null ? "configured" : "null",
+                redirectUri != null ? redirectUri : "null");
+
         // For OAuth providers, we don't store credentials during signup
         // Instead, we'll initiate the OAuth flow
         try {
-            // Create provider integration entity for Firestore
-            // ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
-            //     PROVIDER_ID, PROVIDER_NAME, PROVIDER_TYPE);
-            // 
-            // entity.setStatus("pending_oauth");
-            // entity.setEnabled(false); // Will be enabled after OAuth completion
-            // entity.setSupportsTrading(true);
-            // entity.setPermissions(Arrays.asList("read", "trade"));
-            // entity.putMetadata("oauthRequired", true);
-            // entity.putMetadata("authMethod", "oauth2");
-            // entity.putMetadata("scope", scope);
-            // 
-            // // Save to Firestore user subcollection
-            // ProviderIntegrationEntity savedEntity = providerIntegrationRepository.saveForUser(userId, entity);
-            // log.info("Created pending Alpaca provider integration for user: {}", userId);
-            
+            // Create simplified provider integration entity for Firestore
+            // Only store essential fields: providerId, connectionType, isEnabled
+            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+            entity.setStatus("disconnected"); // Not connected until OAuth is complete
+            entity.setEnvironment(environment); // Store which environment (paper/live)
+
+            // Save to Firestore
+            ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
+            log.info("Created pending Alpaca {} provider integration for user: {}", environment, userId);
+
             // Generate OAuth URL for the response
-            String state = generateSecureState(userId);
+            String state = generateSecureState(userId, environment);
             String authUrl = generateAuthorizationUrl(userId, state);
-            
+            log.info("Generated OAuth URL for {}: {}", environment, authUrl);
+
             // Build result with OAuth URL
-            Map<String, Object> metadata = new HashMap<>(); // new HashMap<>(savedEntity.getMetadata());
+            Map<String, Object> metadata = new HashMap<>();
             metadata.put("oauthUrl", authUrl);
             metadata.put("state", state);
+            metadata.put("environment", environment);
+            log.info("Returning metadata with oauthUrl: {}", metadata.get("oauthUrl"));
             metadata.put("oauthRequired", true);
             metadata.put("authMethod", "oauth2");
             metadata.put("scope", scope);
-            
+
             ProviderIntegrationResult result = new ProviderIntegrationResult();
             result.setSuccess(true);
-            result.setMessage("OAuth authorization required");
+            result.setMessage("OAuth URL generated successfully for " + environment + " environment");
             result.setMetadata(metadata);
             return result;
-                
+
         } catch (Exception e) {
-            log.error("Error creating Alpaca integration for user: {}", userId, e);
+            log.error("Error creating Alpaca {} integration for user: {}", environment, userId, e);
             throw new RuntimeException("Failed to create Alpaca integration", e);
         }
     }
@@ -552,61 +546,413 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
      */
     public void completeOAuthFlow(String userId, String authorizationCode, String state) {
         log.info("Completing Alpaca OAuth flow for user: {}", userId);
-        
+
         try {
+            // Extract environment from state parameter (format: userId-environment-uuid)
+            String environment = extractEnvironmentFromState(state);
+            log.info("Extracted environment from state: {}", environment);
+
             // Handle OAuth callback
             AlpacaConnectionResult result = handleOAuthCallback(userId, authorizationCode, state);
-            
-            // Store tokens in Vault
-            storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
-            
-            // Update provider integration in Firestore
-            // var existingIntegration = providerIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
-            // if (existingIntegration.isPresent()) {
-            //     ProviderIntegrationEntity entity = existingIntegration.get();
-            //     entity.setStatus("connected");
-            //     entity.setEnabled(true);
-            //     entity.setConnectedAt(result.getConnectedAt());
-            //     entity.setLastTestedAt(Instant.now());
-            //     entity.putMetadata("accountInfo", result.getAccountInfo());
-            //     entity.putMetadata("environment", result.getEnvironment());
-            //     entity.putMetadata("oauthCompleted", true);
-            //     
-            //     providerIntegrationRepository.saveForUser(userId, entity);
-            //     log.info("Updated Alpaca integration status to connected for user: {}", userId);
-            // }
-            
+
+            // Store tokens in Vault with environment suffix
+            storeTokensInVault(userId, environment, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
+
+            // Create or update provider integration in Firestore
+            Optional<ProviderIntegrationEntity> existingIntegration = readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+
+            if (existingIntegration.isPresent()) {
+                // Update existing integration - just enable it
+                ProviderIntegrationEntity entity = existingIntegration.get();
+                entity.setStatus("connected"); // Mark as connected
+                entity.setEnvironment(environment); // Store environment
+
+                updateProviderIntegrationRepository.updateWithUserId(entity, userId);
+                log.info("Updated Alpaca {} integration status to connected for user: {}", environment, userId);
+            } else {
+                // Create new integration with simplified entity
+                ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+                entity.setStatus("connected"); // Mark as connected
+                entity.setEnvironment(environment); // Store environment
+
+                ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
+                log.info("Created new Alpaca {} integration for user: {}", environment, userId);
+            }
+
+            // Fetch and store portfolio data after OAuth completion (synchronous, like Coinbase)
+            try {
+                fetchAndStorePortfolioData(userId, result.getAccessToken());
+                log.info("Successfully fetched and stored Alpaca {} portfolio data during OAuth for user: {}", environment, userId);
+            } catch (Exception e) {
+                log.error("Failed to fetch portfolio data for user: {} (OAuth still succeeded)", userId, e);
+                // Don't throw - OAuth is complete, credentials are stored, data can be synced later
+            }
+
         } catch (Exception e) {
             log.error("Error completing Alpaca OAuth flow for user: {}", userId, e);
             throw new RuntimeException("Failed to complete OAuth flow", e);
         }
     }
-    
-    private void storeTokensInVault(String userId, String accessToken, String refreshToken, Instant expiresAt) {
+
+    /**
+     * Sync provider data for a specific user
+     * Retrieves access token from Vault and fetches latest portfolio data from Alpaca
+     *
+     * @param userId The user ID
+     * @return ProviderDataEntity with synced data
+     * @throws RuntimeException if sync fails
+     */
+    public ProviderDataEntity syncProviderData(String userId) {
+        log.info("Syncing Alpaca provider data for user: {}", userId);
+
         try {
+            // Retrieve access token from Vault
             String secretPath = "secret/strategiz/users/" + userId + "/providers/alpaca";
-            
+            Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
+
+            if (secretData == null || secretData.isEmpty()) {
+                throw new RuntimeException("No Alpaca tokens found in Vault for user: " + userId);
+            }
+
+            String accessToken = (String) secretData.get("accessToken");
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new RuntimeException("Access token not found in Vault for user: " + userId);
+            }
+
+            log.debug("Retrieved Alpaca access token from Vault for user: {}", userId);
+
+            // Fetch and store portfolio data (same process as during provider connection)
+            fetchAndStorePortfolioData(userId, accessToken);
+
+            // Retrieve and return the stored data
+            ProviderDataEntity providerData = readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+
+            if (providerData != null) {
+                log.info("Successfully synced Alpaca data for user: {}", userId);
+                return providerData;
+            } else {
+                log.warn("No provider data found after sync for user: {}", userId);
+                throw new RuntimeException("No data found after sync");
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to sync Alpaca provider data for user: {}", userId, e);
+            throw new RuntimeException("Failed to sync provider data: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Fetch portfolio data from Alpaca and store in provider_data collection
+     * This is called after OAuth completion to pre-populate the dashboard
+     */
+    private void fetchAndStorePortfolioData(String userId, String accessToken) {
+        log.info("Fetching Alpaca portfolio data for user: {}", userId);
+
+        if (createProviderDataRepository == null) {
+            log.warn("Provider data repository not available - skipping portfolio data fetch");
+            return;
+        }
+
+        try {
+            // Fetch account info from Alpaca
+            Map<String, Object> accountInfo = alpacaDataClient.getAccount(accessToken);
+
+            // Fetch positions from Alpaca
+            List<Map<String, Object>> positions = alpacaDataClient.getPositions(accessToken);
+
+            // Transform to ProviderDataEntity with Holdings
+            ProviderDataEntity portfolioData = transformToProviderDataEntity(accountInfo, positions, userId, accessToken);
+
+            // Store in Firestore
+            storeProviderData(userId, portfolioData);
+
+            log.info("Successfully stored Alpaca portfolio data for user: {} with {} holdings",
+                userId, portfolioData.getHoldings() != null ? portfolioData.getHoldings().size() : 0);
+
+        } catch (Exception e) {
+            log.error("Failed to fetch and store Alpaca portfolio data for user: {}", userId, e);
+            // Don't throw - OAuth is complete, data can be synced later
+        }
+    }
+
+    /**
+     * Transform Alpaca API response to ProviderDataEntity
+     * @param accountInfo The account info response from Alpaca API
+     * @param positions The positions response from Alpaca API
+     * @param userId The user ID
+     * @param accessToken OAuth access token
+     */
+    private ProviderDataEntity transformToProviderDataEntity(Map<String, Object> accountInfo,
+                                                             List<Map<String, Object>> positions,
+                                                             String userId,
+                                                             String accessToken) {
+        ProviderDataEntity entity = new ProviderDataEntity();
+        entity.setProviderId(PROVIDER_ID);
+        entity.setProviderName("Alpaca");
+        entity.setAccountType("broker");
+        entity.setSyncStatus("success");
+        entity.setLastUpdatedAt(Instant.now());
+
+        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        BigDecimal totalValue = BigDecimal.ZERO;
+        BigDecimal cashBalance = BigDecimal.ZERO;
+
+        // Extract account cash balance
+        if (accountInfo != null) {
+            try {
+                // Extract cash (buying_power or cash)
+                String cashStr = (String) accountInfo.get("cash");
+                if (cashStr != null) {
+                    cashBalance = new BigDecimal(cashStr).setScale(2, RoundingMode.HALF_UP);
+                }
+
+                // Extract portfolio value
+                String portfolioValueStr = (String) accountInfo.get("portfolio_value");
+                if (portfolioValueStr != null) {
+                    totalValue = new BigDecimal(portfolioValueStr).setScale(2, RoundingMode.HALF_UP);
+                }
+
+                log.info("Alpaca account - cash: ${}, portfolio value: ${}", cashBalance, totalValue);
+            } catch (Exception e) {
+                log.error("Error extracting account balance from Alpaca", e);
+            }
+        }
+
+        // Process positions
+        if (positions != null && !positions.isEmpty()) {
+            for (Map<String, Object> position : positions) {
+                try {
+                    // Extract position data
+                    String symbol = (String) position.get("symbol");
+                    if (symbol == null) {
+                        log.warn("Skipping position with no symbol");
+                        continue;
+                    }
+
+                    String qtyStr = (String) position.get("qty");
+                    if (qtyStr == null || qtyStr.equals("0")) {
+                        continue;
+                    }
+
+                    BigDecimal quantity = new BigDecimal(qtyStr).setScale(8, RoundingMode.HALF_UP);
+
+                    // Skip zero positions
+                    if (quantity.compareTo(BigDecimal.ZERO) == 0) {
+                        continue;
+                    }
+
+                    // Create Holding
+                    ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
+                    holding.setAsset(symbol);
+                    holding.setName(symbol); // Alpaca uses symbol as name
+                    holding.setQuantity(quantity);
+
+                    // Extract current price
+                    String currentPriceStr = (String) position.get("current_price");
+                    if (currentPriceStr != null) {
+                        BigDecimal currentPrice = new BigDecimal(currentPriceStr).setScale(2, RoundingMode.HALF_UP);
+                        holding.setCurrentPrice(currentPrice);
+                    }
+
+                    // Extract market value
+                    String marketValueStr = (String) position.get("market_value");
+                    if (marketValueStr != null) {
+                        BigDecimal currentValue = new BigDecimal(marketValueStr).setScale(2, RoundingMode.HALF_UP);
+                        holding.setCurrentValue(currentValue);
+                    }
+
+                    // Extract cost basis
+                    String costBasisStr = (String) position.get("cost_basis");
+                    if (costBasisStr != null) {
+                        BigDecimal costBasis = new BigDecimal(costBasisStr).setScale(2, RoundingMode.HALF_UP);
+                        holding.setCostBasis(costBasis);
+                    }
+
+                    // Extract average entry price
+                    String avgEntryPriceStr = (String) position.get("avg_entry_price");
+                    if (avgEntryPriceStr != null) {
+                        BigDecimal avgBuyPrice = new BigDecimal(avgEntryPriceStr).setScale(2, RoundingMode.HALF_UP);
+                        holding.setAverageBuyPrice(avgBuyPrice);
+                    }
+
+                    // Calculate profit/loss if we have both values
+                    if (holding.getCurrentValue() != null && holding.getCostBasis() != null) {
+                        BigDecimal profitLoss = holding.getCurrentValue().subtract(holding.getCostBasis());
+                        holding.setProfitLoss(profitLoss);
+
+                        // Calculate profit/loss percentage
+                        if (holding.getCostBasis().compareTo(BigDecimal.ZERO) > 0) {
+                            BigDecimal profitLossPercent = profitLoss
+                                .divide(holding.getCostBasis(), 4, RoundingMode.HALF_UP)
+                                .multiply(new BigDecimal("100"))
+                                .setScale(2, RoundingMode.HALF_UP);
+                            holding.setProfitLossPercent(profitLossPercent);
+                        }
+                    }
+
+                    // Extract change today (unrealized_intraday_pl)
+                    String intraDayPlStr = (String) position.get("unrealized_intraday_pl");
+                    if (intraDayPlStr != null) {
+                        BigDecimal priceChange24h = new BigDecimal(intraDayPlStr).setScale(2, RoundingMode.HALF_UP);
+                        holding.setPriceChange24h(priceChange24h);
+                    }
+
+                    // Set asset type
+                    holding.setAssetType("stock");
+
+                    // Store original symbol
+                    holding.setOriginalSymbol(symbol);
+
+                    holdings.add(holding);
+
+                    log.debug("Added Alpaca position: {} - qty={}, value=${}",
+                        symbol, quantity, holding.getCurrentValue());
+
+                } catch (Exception e) {
+                    log.error("Error transforming Alpaca position", e);
+                    // Continue with other positions
+                }
+            }
+        }
+
+        entity.setHoldings(holdings);
+        entity.setTotalValue(totalValue);
+        entity.setCashBalance(cashBalance);
+
+        // Calculate total profit/loss from holdings
+        BigDecimal totalProfitLoss = BigDecimal.ZERO;
+        for (ProviderDataEntity.Holding holding : holdings) {
+            if (holding.getProfitLoss() != null) {
+                totalProfitLoss = totalProfitLoss.add(holding.getProfitLoss());
+            }
+        }
+        entity.setTotalProfitLoss(totalProfitLoss);
+
+        // Calculate total profit/loss percentage
+        BigDecimal totalCostBasis = BigDecimal.ZERO;
+        for (ProviderDataEntity.Holding holding : holdings) {
+            if (holding.getCostBasis() != null) {
+                totalCostBasis = totalCostBasis.add(holding.getCostBasis());
+            }
+        }
+        if (totalCostBasis.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal totalProfitLossPercent = totalProfitLoss
+                .divide(totalCostBasis, 4, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"))
+                .setScale(2, RoundingMode.HALF_UP);
+            entity.setTotalProfitLossPercent(totalProfitLossPercent);
+        }
+
+        return entity;
+    }
+
+    /**
+     * Store provider data entity in Firestore
+     */
+    private void storeProviderData(String userId, ProviderDataEntity entity) {
+        try {
+            log.info("=== ALPACA PROVIDER DATA STORAGE ===");
+            log.info("User ID: {}", userId);
+            log.info("Provider ID: {}", PROVIDER_ID);
+            log.info("Holdings count: {}", entity.getHoldings() != null ? entity.getHoldings().size() : 0);
+            log.info("Total value: ${}", entity.getTotalValue());
+            log.info("Cash balance: ${}", entity.getCashBalance());
+            log.info("Total P/L: ${}", entity.getTotalProfitLoss());
+
+            if (entity.getHoldings() != null && !entity.getHoldings().isEmpty()) {
+                log.info("First holding: asset={}, quantity={}, value=${}",
+                    entity.getHoldings().get(0).getAsset(),
+                    entity.getHoldings().get(0).getQuantity(),
+                    entity.getHoldings().get(0).getCurrentValue());
+            }
+
+            // Use createOrReplace to handle both create and update
+            createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
+            log.info("Successfully stored Alpaca provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
+
+        } catch (Exception e) {
+            log.error("Failed to store Alpaca provider data for user: {}", userId, e);
+            throw e;
+        }
+    }
+    
+    private void storeTokensInVault(String userId, String environment, String accessToken, String refreshToken, Instant expiresAt) {
+        try {
+            // Store tokens with environment suffix (e.g., alpaca-paper, alpaca-live)
+            String secretPath = "secret/strategiz/users/" + userId + "/providers/alpaca-" + environment;
+
             Map<String, Object> secretData = new HashMap<>();
             secretData.put("accessToken", accessToken);
             secretData.put("refreshToken", refreshToken);
             secretData.put("expiresAt", expiresAt.toString());
             secretData.put("provider", PROVIDER_ID);
+            secretData.put("environment", environment);
             secretData.put("storedAt", Instant.now().toString());
-            
+
             // Convert map to JSON string for storage
             ObjectMapper objectMapper = new ObjectMapper();
             String secretJson = objectMapper.writeValueAsString(secretData);
             secretManager.createSecret(secretPath, secretJson);
-            log.debug("Stored Alpaca OAuth tokens in Vault for user: {}", userId);
-            
+            log.debug("Stored Alpaca {} OAuth tokens in Vault for user: {}", environment, userId);
+
         } catch (Exception e) {
-            log.error("Failed to store Alpaca tokens for user: {}", userId, e);
+            log.error("Failed to store Alpaca {} tokens for user: {}", environment, userId, e);
             throw new RuntimeException("Failed to store tokens", e);
         }
     }
+
+    /**
+     * Extract environment from state parameter
+     * State format: userId-environment-uuid
+     */
+    private String extractEnvironmentFromState(String state) {
+        try {
+            String[] parts = state.split("-");
+            if (parts.length >= 3) {
+                return parts[1]; // environment is second part
+            }
+            log.warn("Could not extract environment from state, defaulting to paper");
+            return DEFAULT_ENVIRONMENT;
+        } catch (Exception e) {
+            log.error("Error extracting environment from state: {}", e.getMessage());
+            return DEFAULT_ENVIRONMENT;
+        }
+    }
     
-    private String generateSecureState(String userId) {
-        // Generate a secure random state parameter
-        return userId + "-" + UUID.randomUUID().toString();
+    private String generateSecureState(String userId, String environment) {
+        // Generate a secure random state parameter that includes environment
+        return userId + "-" + environment + "-" + UUID.randomUUID().toString();
+    }
+
+    /**
+     * Load OAuth configuration for specific environment from Vault
+     * @param vaultKey The Vault key (e.g., "alpaca-paper" or "alpaca-live")
+     */
+    private void loadOAuthConfigForEnvironment(String vaultKey) {
+        try {
+            String secretPath = "secret/strategiz/oauth/" + vaultKey;
+            Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
+
+            if (secretData == null || secretData.isEmpty()) {
+                throw new StrategizException(ErrorCode.INTERNAL_ERROR,
+                    "No OAuth configuration found in Vault for: " + vaultKey);
+            }
+
+            // Override instance variables with environment-specific values
+            this.clientId = (String) secretData.get("client-id");
+            this.clientSecret = (String) secretData.get("client-secret");
+
+            // Use redirect-uri-local for local development
+            String redirectUriLocal = (String) secretData.get("redirect-uri-local");
+            String redirectUriProd = (String) secretData.get("redirect-uri-prod");
+            this.redirectUri = redirectUriLocal != null ? redirectUriLocal : redirectUriProd;
+
+            log.debug("Loaded OAuth config for {} from Vault", vaultKey);
+
+        } catch (Exception e) {
+            log.error("Failed to load OAuth config for {}: {}", vaultKey, e.getMessage());
+            throw new StrategizException(ErrorCode.INTERNAL_ERROR,
+                "Failed to load OAuth configuration for " + vaultKey);
+        }
     }
 }

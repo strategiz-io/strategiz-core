@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.watchlist.repository.WatchlistBaseRepository;
+import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
 import io.strategiz.service.dashboard.model.request.CreateWatchlistItemRequest;
 import io.strategiz.service.dashboard.model.request.DeleteWatchlistItemRequest;
 import io.strategiz.service.dashboard.model.response.WatchlistCollectionResponse;
@@ -53,17 +55,20 @@ public class WatchlistController extends BaseController {
 
     private final UserRepository userRepository;
     private final CoinGeckoClient coinGeckoClient;
-    
-    // Default symbols for watchlist
+    private final WatchlistBaseRepository watchlistRepository;
+
+    // Default symbols for new users (when watchlist is empty)
     private static final List<String> DEFAULT_CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH");
     private static final List<String> DEFAULT_STOCK_SYMBOLS = Arrays.asList("AAPL", "MSFT", "GOOGL", "AMZN");
     private static final List<String> DEFAULT_ETF_SYMBOLS = Arrays.asList("SPY");
-    
+
     @Autowired
     public WatchlistController(UserRepository userRepository,
-                              CoinGeckoClient coinGeckoClient) {
+                              CoinGeckoClient coinGeckoClient,
+                              WatchlistBaseRepository watchlistRepository) {
         this.userRepository = userRepository;
         this.coinGeckoClient = coinGeckoClient;
+        this.watchlistRepository = watchlistRepository;
     }
     
     /**
@@ -136,16 +141,39 @@ public class WatchlistController extends BaseController {
         }
         
         try {
-            // TODO: Check if item already exists when repository is implemented
-            // For now, just return success
-            
+            String symbol = request.getSymbol().toUpperCase().trim();
+
+            // Check if item already exists in user's watchlist
+            if (watchlistRepository.existsBySymbol(symbol, userId)) {
+                log.info("Symbol {} already exists in watchlist for user {}", symbol, userId);
+                return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "operation", "CREATE",
+                    "symbol", symbol,
+                    "message", "Symbol already exists in watchlist"
+                ));
+            }
+
+            // Create new watchlist item entity
+            WatchlistItemEntity entity = new WatchlistItemEntity();
+            entity.setSymbol(symbol);
+            entity.setName(request.getName() != null ? request.getName() : symbol);
+            entity.setType(request.getType() != null ? request.getType().toUpperCase() : "STOCK");
+            entity.setExchange(request.getExchange());
+            entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+            entity.setAlertEnabled(request.getAlertEnabled() != null ? request.getAlertEnabled() : false);
+
+            // Save to Firestore
+            WatchlistItemEntity savedEntity = watchlistRepository.save(entity, userId);
+            log.info("Created watchlist item {} for user {}", symbol, userId);
+
             WatchlistOperationResponse response = WatchlistOperationResponse.success(
-                "CREATE", 
-                UUID.randomUUID().toString(), 
-                request.getSymbol(), 
+                "CREATE",
+                savedEntity.getId(),
+                savedEntity.getSymbol(),
                 "Watchlist item created successfully"
             );
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "operation", response.getOperation(),
@@ -153,7 +181,7 @@ public class WatchlistController extends BaseController {
                 "symbol", response.getSymbol(),
                 "message", response.getMessage()
             ));
-            
+
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -184,20 +212,32 @@ public class WatchlistController extends BaseController {
         }
         
         try {
-            // TODO: Implement actual deletion when repository is available
-            // For now, just return success
-            
+            // Check if item exists
+            Optional<WatchlistItemEntity> existing = watchlistRepository.findById(itemId, userId);
+            if (existing.isEmpty()) {
+                log.warn("Watchlist item {} not found for user {}", itemId, userId);
+                return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "operation", "DELETE",
+                    "message", "Watchlist item not found"
+                ));
+            }
+
+            // Delete from Firestore
+            watchlistRepository.delete(itemId, userId);
+            log.info("Deleted watchlist item {} for user {}", itemId, userId);
+
             WatchlistOperationResponse response = WatchlistOperationResponse.success(
-                "DELETE", 
+                "DELETE",
                 "Watchlist item deleted successfully"
             );
-            
+
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "operation", response.getOperation(),
                 "message", response.getMessage()
             ));
-            
+
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -223,16 +263,15 @@ public class WatchlistController extends BaseController {
         log.info("Checking if symbol {} is in watchlist for user: {}", symbol, userId);
         
         try {
-            // TODO: Implement actual check when repository is available
-            // For now, return false for all symbols
-            boolean inWatchlist = false;
-            
+            // Check if symbol exists in user's watchlist
+            boolean inWatchlist = watchlistRepository.existsBySymbol(symbol.toUpperCase(), userId);
+
             return ResponseEntity.ok(Map.of(
                 "userId", userId,
-                "symbol", symbol,
+                "symbol", symbol.toUpperCase(),
                 "inWatchlist", inWatchlist
             ));
-            
+
         } catch (Exception e) {
             log.error("Error checking symbol in watchlist: {} for user: {}", symbol, userId, e);
             throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol_in_watchlist", e.getMessage());
@@ -240,34 +279,89 @@ public class WatchlistController extends BaseController {
     }
     
     /**
-     * Get REAL watchlist data from market APIs
+     * Get REAL watchlist data from user's saved items + market APIs
      */
     private WatchlistCollectionResponse getRealWatchlistData(String userId) {
-        log.info("Fetching real market data for watchlist");
+        log.info("Fetching watchlist data for user: {}", userId);
         List<WatchlistItem> items = new ArrayList<>();
-        
+
         try {
-            // Fetch crypto data in parallel
+            // First, get user's saved watchlist items from Firestore
+            List<WatchlistItemEntity> savedItems = watchlistRepository.findAllByUserId(userId);
+            log.info("Found {} saved watchlist items for user {}", savedItems.size(), userId);
+
+            // If user has no saved items, use defaults
+            if (savedItems.isEmpty()) {
+                log.info("No saved items, using default watchlist for user {}", userId);
+                return getDefaultWatchlistData(userId);
+            }
+
+            // Separate items by type for enrichment
+            List<String> cryptoSymbols = savedItems.stream()
+                .filter(item -> "CRYPTO".equalsIgnoreCase(item.getType()))
+                .map(WatchlistItemEntity::getSymbol)
+                .collect(Collectors.toList());
+
+            List<WatchlistItemEntity> stockItems = savedItems.stream()
+                .filter(item -> !"CRYPTO".equalsIgnoreCase(item.getType()))
+                .collect(Collectors.toList());
+
+            // Fetch crypto market data from CoinGecko
+            if (!cryptoSymbols.isEmpty()) {
+                List<WatchlistItem> enrichedCrypto = fetchCryptoMarketData(cryptoSymbols, savedItems);
+                items.addAll(enrichedCrypto);
+            }
+
+            // Enrich stock/ETF items with static data (TODO: integrate Yahoo Finance)
+            for (WatchlistItemEntity entity : stockItems) {
+                items.add(enrichStockItem(entity));
+            }
+
+            log.info("Returning {} enriched watchlist items for user {}", items.size(), userId);
+
+        } catch (Exception e) {
+            log.error("Error fetching watchlist data for user {}", userId, e);
+            // If real data fails, return defaults
+            return getDefaultWatchlistData(userId);
+        }
+
+        // Create response
+        WatchlistCollectionResponse response = new WatchlistCollectionResponse();
+        response.setItems(items);
+        response.setTotalCount(items.size());
+        response.setActiveCount(items.size());
+        response.setIsEmpty(items.isEmpty());
+
+        return response;
+    }
+
+    /**
+     * Get default watchlist data for new users
+     */
+    private WatchlistCollectionResponse getDefaultWatchlistData(String userId) {
+        log.info("Fetching default watchlist data");
+        List<WatchlistItem> items = new ArrayList<>();
+
+        try {
+            // Fetch crypto data
             CompletableFuture<List<WatchlistItem>> cryptoFuture = CompletableFuture.supplyAsync(() -> {
-                log.info("Fetching real crypto data from CoinGecko");
                 try {
-                    // Convert symbol list to coin IDs for CoinGecko
                     Map<String, String> symbolToId = new HashMap<>();
                     symbolToId.put("BTC", "bitcoin");
                     symbolToId.put("ETH", "ethereum");
-                    
+
                     List<String> coinIds = DEFAULT_CRYPTO_SYMBOLS.stream()
                         .map(symbol -> symbolToId.getOrDefault(symbol, symbol.toLowerCase()))
                         .collect(Collectors.toList());
-                    
+
                     List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
                     return cryptoData.stream().map(crypto -> {
                         BigDecimal price = crypto.getCurrentPrice();
                         BigDecimal change = crypto.getPriceChange24h();
                         BigDecimal changePercent = crypto.getPriceChangePercentage24h();
-                        
+
                         return new WatchlistItem(
-                            crypto.getSymbol().toLowerCase() + "-1",
+                            crypto.getSymbol().toLowerCase() + "-default",
                             crypto.getSymbol().toUpperCase(),
                             crypto.getName(),
                             "crypto",
@@ -280,19 +374,17 @@ public class WatchlistController extends BaseController {
                     }).collect(Collectors.toList());
                 } catch (Exception e) {
                     log.error("Error fetching crypto data", e);
-                    return new ArrayList<>();
+                    return new ArrayList<WatchlistItem>();
                 }
             });
-            
-            // Fetch stock data in parallel
+
+            // Fetch stock data
             CompletableFuture<List<WatchlistItem>> stockFuture = CompletableFuture.supplyAsync(() -> {
-                log.info("Using static stock data (Yahoo Finance integration temporarily disabled)");
                 try {
                     List<String> allSymbols = new ArrayList<>();
                     allSymbols.addAll(DEFAULT_STOCK_SYMBOLS);
                     allSymbols.addAll(DEFAULT_ETF_SYMBOLS);
 
-                    // Static prices for demo/fallback purposes
                     Map<String, Double> staticStockPrices = new HashMap<>();
                     staticStockPrices.put("AAPL", 182.52);
                     staticStockPrices.put("MSFT", 338.12);
@@ -303,59 +395,144 @@ public class WatchlistController extends BaseController {
                     return allSymbols.stream()
                         .filter(staticStockPrices::containsKey)
                         .map(symbol -> {
-                            // Determine type based on symbol
                             String type = DEFAULT_ETF_SYMBOLS.contains(symbol) ? "etf" : "stock";
-
                             BigDecimal price = BigDecimal.valueOf(staticStockPrices.get(symbol));
-
-                            // Static change data for demo purposes
                             BigDecimal change = new BigDecimal("1.23");
                             BigDecimal changePercent = new BigDecimal("0.68");
 
                             return new WatchlistItem(
-                                symbol.toLowerCase() + "-1",
+                                symbol.toLowerCase() + "-default",
                                 symbol,
-                                symbol, // Use symbol as name since we don't have name data
+                                symbol,
                                 type,
                                 price,
                                 change,
                                 changePercent,
-                                true, // Default to positive
+                                true,
                                 "/chart/" + symbol.toLowerCase()
                             );
                         }).collect(Collectors.toList());
                 } catch (Exception e) {
                     log.error("Error creating static stock data", e);
-                    return new ArrayList<>();
+                    return new ArrayList<WatchlistItem>();
                 }
             });
-            
-            // Wait for both futures to complete
+
             List<WatchlistItem> cryptoItems = cryptoFuture.get();
             List<WatchlistItem> stockItems = stockFuture.get();
-            
-            // Combine results
+
             items.addAll(cryptoItems);
             items.addAll(stockItems);
-            
-            log.info("Successfully fetched {} crypto items and {} stock items", cryptoItems.size(), stockItems.size());
-            
+
         } catch (Exception e) {
-            log.error("Error fetching real market data", e);
-            // If real data fails, return empty list (will be handled by caller)
-            throw new RuntimeException("Failed to fetch real market data", e);
+            log.error("Error fetching default market data", e);
         }
-        
-        // Create response
+
         WatchlistCollectionResponse response = new WatchlistCollectionResponse();
         response.setItems(items);
         response.setTotalCount(items.size());
         response.setActiveCount(items.size());
         response.setIsEmpty(items.isEmpty());
-        // Note: setDescription and setAvailableCategories methods don't exist in the response class
-        // These are set in the constructor or through other means
-        
+
         return response;
+    }
+
+    /**
+     * Fetch crypto market data from CoinGecko for saved symbols
+     */
+    private List<WatchlistItem> fetchCryptoMarketData(List<String> symbols, List<WatchlistItemEntity> savedItems) {
+        List<WatchlistItem> items = new ArrayList<>();
+
+        try {
+            // Map symbols to CoinGecko IDs
+            Map<String, String> symbolToId = new HashMap<>();
+            symbolToId.put("BTC", "bitcoin");
+            symbolToId.put("ETH", "ethereum");
+            symbolToId.put("SOL", "solana");
+            symbolToId.put("BNB", "binancecoin");
+            symbolToId.put("ADA", "cardano");
+            symbolToId.put("XRP", "ripple");
+            symbolToId.put("DOGE", "dogecoin");
+            symbolToId.put("DOT", "polkadot");
+            symbolToId.put("AVAX", "avalanche-2");
+            symbolToId.put("MATIC", "matic-network");
+
+            List<String> coinIds = symbols.stream()
+                .map(symbol -> symbolToId.getOrDefault(symbol.toUpperCase(), symbol.toLowerCase()))
+                .collect(Collectors.toList());
+
+            List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
+
+            // Map back to WatchlistItem with saved entity info
+            for (CryptoCurrency crypto : cryptoData) {
+                String symbol = crypto.getSymbol().toUpperCase();
+
+                // Find the saved entity for this symbol
+                WatchlistItemEntity savedEntity = savedItems.stream()
+                    .filter(e -> e.getSymbol().equalsIgnoreCase(symbol))
+                    .findFirst()
+                    .orElse(null);
+
+                String id = savedEntity != null ? savedEntity.getId() : crypto.getSymbol().toLowerCase() + "-1";
+                String name = savedEntity != null && savedEntity.getName() != null ? savedEntity.getName() : crypto.getName();
+
+                BigDecimal price = crypto.getCurrentPrice();
+                BigDecimal change = crypto.getPriceChange24h();
+                BigDecimal changePercent = crypto.getPriceChangePercentage24h();
+
+                items.add(new WatchlistItem(
+                    id,
+                    symbol,
+                    name,
+                    "crypto",
+                    price,
+                    change,
+                    changePercent,
+                    change != null && change.compareTo(BigDecimal.ZERO) > 0,
+                    "/chart/" + crypto.getSymbol().toLowerCase()
+                ));
+            }
+        } catch (Exception e) {
+            log.error("Error fetching crypto market data", e);
+        }
+
+        return items;
+    }
+
+    /**
+     * Enrich a stock/ETF item with market data (static for now)
+     */
+    private WatchlistItem enrichStockItem(WatchlistItemEntity entity) {
+        // Static prices for demo/fallback purposes
+        Map<String, Double> staticStockPrices = new HashMap<>();
+        staticStockPrices.put("AAPL", 182.52);
+        staticStockPrices.put("MSFT", 338.12);
+        staticStockPrices.put("GOOGL", 137.14);
+        staticStockPrices.put("AMZN", 178.22);
+        staticStockPrices.put("SPY", 504.12);
+        staticStockPrices.put("TSLA", 248.50);
+        staticStockPrices.put("NVDA", 875.30);
+        staticStockPrices.put("META", 485.20);
+        staticStockPrices.put("NFLX", 685.40);
+        staticStockPrices.put("QQQ", 398.77);
+
+        String symbol = entity.getSymbol().toUpperCase();
+        Double priceVal = staticStockPrices.getOrDefault(symbol, 100.0);
+        BigDecimal price = BigDecimal.valueOf(priceVal);
+        BigDecimal change = new BigDecimal("1.23");
+        BigDecimal changePercent = new BigDecimal("0.68");
+
+        return new WatchlistItem(
+            entity.getId(),
+            symbol,
+            entity.getName() != null ? entity.getName() : symbol,
+            entity.getType() != null ? entity.getType().toLowerCase() : "stock",
+            price,
+            change,
+            changePercent,
+            true,
+            "/chart/" + symbol.toLowerCase()
+        );
     }
     
     /**

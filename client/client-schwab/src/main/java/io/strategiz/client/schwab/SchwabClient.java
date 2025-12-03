@@ -1,214 +1,325 @@
 package io.strategiz.client.schwab;
 
-import io.strategiz.client.base.http.BaseHttpClient;
+import io.strategiz.client.schwab.auth.SchwabOAuthClient;
+import io.strategiz.client.schwab.client.SchwabDataClient;
+import io.strategiz.client.schwab.error.SchwabErrors;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.http.client.utils.URIBuilder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
+import java.time.LocalDate;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
- * Client for Charles Schwab API integration.
- * Handles OAuth authentication and API calls to Schwab's trading platform.
+ * Main client for interacting with the Charles Schwab API.
+ * This class coordinates OAuth operations and data retrieval.
+ *
+ * API Documentation: https://developer.schwab.com/products/trader-api--individual
+ *
+ * Key features:
+ * - OAuth 2.0 authentication with Basic Auth for token requests
+ * - Access tokens expire after 30 minutes
+ * - Refresh tokens expire after 7 days
+ * - Supports account, position, and transaction data retrieval
+ * - Supports real-time market data quotes
  */
 @Component
-public class SchwabClient extends BaseHttpClient {
-    
+public class SchwabClient {
+
     private static final Logger log = LoggerFactory.getLogger(SchwabClient.class);
-    
-    private static final String DEFAULT_BASE_URL = "https://api.schwabapi.com";
-    private static final String AUTH_BASE_URL = "https://api.schwabapi.com/v1";
-    
-    @Value("${oauth.providers.schwab.client-id:}")
-    private String clientId;
-    
-    @Value("${oauth.providers.schwab.client-secret:}")
-    private String clientSecret;
-    
-    @Value("${oauth.providers.schwab.redirect-uri}")
-    private String redirectUri;
-    
+
     private final RestTemplate restTemplate;
-    
-    public SchwabClient() {
-        super(DEFAULT_BASE_URL);
-        this.restTemplate = new RestTemplate();
-        log.info("SchwabClient initialized with base URL: {}", DEFAULT_BASE_URL);
+    private final SchwabOAuthClient oauthClient;
+    private final SchwabDataClient dataClient;
+
+    @Value("${oauth.providers.schwab.api-url:https://api.schwabapi.com}")
+    private String apiUrl;
+
+    public SchwabClient(@Qualifier("schwabRestTemplate") RestTemplate restTemplate,
+                       SchwabOAuthClient oauthClient,
+                       SchwabDataClient dataClient) {
+        this.restTemplate = restTemplate;
+        this.oauthClient = oauthClient;
+        this.dataClient = dataClient;
+        log.info("SchwabClient initialized");
     }
-    
+
     /**
-     * Generate OAuth authorization URL for Charles Schwab.
-     * 
-     * @param state Security state parameter
-     * @return Authorization URL for user to visit
-     */
-    public String generateAuthorizationUrl(String state) {
-        String scope = "readonly"; // Schwab basic scope for account access
-        
-        return String.format(
-            "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=%s&scope=%s",
-            AUTH_BASE_URL,
-            clientId,
-            redirectUri,
-            state,
-            scope
-        );
-    }
-    
-    /**
-     * Exchange authorization code for access token.
-     * 
-     * @param authorizationCode The authorization code from Schwab
-     * @return Token response containing access token and refresh token
-     */
-    public Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
-        String tokenUrl = AUTH_BASE_URL + "/oauth/token";
-
-        // Build the token exchange request (without client credentials in body)
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "authorization_code");
-        params.add("code", authorizationCode);
-        params.add("redirect_uri", redirectUri);
-
-        // Set up headers with Basic Authentication
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setBasicAuth(clientId, clientSecret);  // Use Basic Auth instead of form params
-
-        // Create the request entity
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-
-        log.debug("Exchanging authorization code for tokens at: {}", tokenUrl);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            log.info("Successfully exchanged authorization code for Schwab tokens");
-            return response.getBody();
-        } else {
-            throw new RuntimeException("Token exchange failed with status: " + response.getStatusCode());
-        }
-    }
-    
-    /**
-     * Refresh expired access token using refresh token.
-     * 
-     * @param refreshToken The refresh token
-     * @return New token response
-     */
-    public Map<String, Object> refreshAccessToken(String refreshToken) {
-        String tokenUrl = AUTH_BASE_URL + "/oauth/token";
-
-        // Build the refresh token request (without client credentials in body)
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("grant_type", "refresh_token");
-        params.add("refresh_token", refreshToken);
-
-        // Set up headers with Basic Authentication
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setBasicAuth(clientId, clientSecret);  // Use Basic Auth instead of form params
-
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(tokenUrl, request, Map.class);
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            log.info("Successfully refreshed Schwab access token");
-            return response.getBody();
-        } else {
-            throw new RuntimeException("Token refresh failed with status: " + response.getStatusCode());
-        }
-    }
-    
-    /**
-     * Get user account information from Schwab.
-     * 
-     * @param accessToken The user's access token
-     * @return Account information
-     */
-    public Map<String, Object> getUserAccountInfo(String accessToken) {
-        return makeAuthenticatedRequest("/trader/v1/accounts", accessToken, null);
-    }
-    
-    /**
-     * Get account positions from Schwab.
-     * 
-     * @param accessToken The user's access token
-     * @param accountHash The account hash/ID
-     * @return Account positions
-     */
-    public Map<String, Object> getAccountPositions(String accessToken, String accountHash) {
-        String endpoint = String.format("/trader/v1/accounts/%s/positions", accountHash);
-        return makeAuthenticatedRequest(endpoint, accessToken, null);
-    }
-    
-    /**
-     * Get account balance from Schwab.
-     * 
-     * @param accessToken The user's access token
-     * @param accountHash The account hash/ID
-     * @return Account balance information
-     */
-    public Map<String, Object> getAccountBalance(String accessToken, String accountHash) {
-        String endpoint = String.format("/trader/v1/accounts/%s", accountHash);
-        return makeAuthenticatedRequest(endpoint, accessToken, null);
-    }
-    
-    /**
-     * Make authenticated request to Schwab API.
-     * 
-     * @param endpoint The API endpoint
-     * @param accessToken The access token
-     * @param params Optional query parameters
+     * Make an OAuth authenticated request to Schwab API.
+     *
+     * @param method HTTP method
+     * @param endpoint API endpoint (e.g., "/trader/v1/accounts")
+     * @param accessToken OAuth access token
+     * @param params Request parameters
+     * @param responseType Expected response type
      * @return API response
      */
-    private Map<String, Object> makeAuthenticatedRequest(String endpoint, String accessToken, Map<String, String> params) {
-        String url = DEFAULT_BASE_URL + endpoint;
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setBearerAuth(accessToken);
-        
-        HttpEntity<String> request = new HttpEntity<>(headers);
-        
-        log.debug("Making authenticated request to Schwab API: {}", endpoint);
-        
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
-        
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+    public <T> T oauthRequest(HttpMethod method, String endpoint, String accessToken,
+                             Map<String, String> params, ParameterizedTypeReference<T> responseType) {
+        try {
+            // Validate access token
+            if (accessToken == null || accessToken.trim().isEmpty()) {
+                throw new StrategizException(SchwabErrors.SCHWAB_INVALID_TOKEN,
+                    "Access token is required");
+            }
+
+            // Build the URL
+            URIBuilder uriBuilder = new URIBuilder(apiUrl + endpoint);
+            if (params != null) {
+                params.forEach(uriBuilder::addParameter);
+            }
+
+            URI uri = uriBuilder.build();
+
+            // Create headers with OAuth Bearer token
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + accessToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+            log.debug("Making OAuth request to Schwab API: {} {}", method, uri);
+
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<T> response = restTemplate.exchange(
+                uri,
+                method,
+                entity,
+                responseType
+            );
+
             return response.getBody();
-        } else {
-            throw new RuntimeException("Authenticated request failed with status: " + response.getStatusCode());
+
+        } catch (RestClientResponseException e) {
+            int statusCode = e.getStatusCode().value();
+            String responseBody = e.getResponseBodyAsString();
+
+            log.error("Schwab OAuth API request error - HTTP Status {}: {}", statusCode, responseBody);
+
+            // Handle token expiration
+            if (statusCode == 401) {
+                throw new StrategizException(SchwabErrors.SCHWAB_TOKEN_EXPIRED,
+                    "Access token expired or invalid. Please reconnect your Schwab account.");
+            }
+
+            // Handle rate limiting
+            if (statusCode == 429) {
+                throw new StrategizException(SchwabErrors.SCHWAB_RATE_LIMIT,
+                    "Schwab API rate limit exceeded. Please try again later.");
+            }
+
+            SchwabErrors errorCode = determineErrorCode(statusCode, responseBody);
+            String detailedError = buildErrorMessage(statusCode, responseBody);
+            throw new StrategizException(errorCode, detailedError);
+
+        } catch (Exception e) {
+            String errorDetails = extractErrorDetails(e);
+            log.error("Error making OAuth request to {}: {}", endpoint, errorDetails);
+            throw new StrategizException(SchwabErrors.SCHWAB_API_ERROR, errorDetails);
         }
     }
-    
+
+    // Delegated account operations
+
     /**
-     * Test connection to Schwab API using access token.
-     * 
-     * @param accessToken The access token to test
-     * @return true if connection is valid
+     * Get all user accounts
+     */
+    public List<Map<String, Object>> getAccounts(String accessToken) {
+        return dataClient.getAccounts(accessToken);
+    }
+
+    /**
+     * Get all accounts with positions
+     */
+    public List<Map<String, Object>> getAccountsWithPositions(String accessToken) {
+        return dataClient.getAccountsWithPositions(accessToken);
+    }
+
+    /**
+     * Get specific account with positions
+     */
+    public Map<String, Object> getAccountWithPositions(String accessToken, String accountHash) {
+        return dataClient.getAccountWithPositions(accessToken, accountHash);
+    }
+
+    /**
+     * Get account balance information
+     */
+    public Map<String, Object> getAccountBalance(String accessToken, String accountHash) {
+        return dataClient.getAccountBalance(accessToken, accountHash);
+    }
+
+    // Delegated transaction operations
+
+    /**
+     * Get transactions for an account
+     */
+    public List<Map<String, Object>> getTransactions(String accessToken, String accountHash,
+                                                     LocalDate startDate, LocalDate endDate, String types) {
+        return dataClient.getTransactions(accessToken, accountHash, startDate, endDate, types);
+    }
+
+    /**
+     * Get trade transactions (buy/sell) for an account
+     */
+    public List<Map<String, Object>> getTradeTransactions(String accessToken, String accountHash) {
+        return dataClient.getTradeTransactions(accessToken, accountHash);
+    }
+
+    /**
+     * Get all transactions for an account
+     */
+    public List<Map<String, Object>> getAllTransactions(String accessToken, String accountHash) {
+        return dataClient.getAllTransactions(accessToken, accountHash);
+    }
+
+    /**
+     * Get a specific transaction by ID
+     */
+    public Map<String, Object> getTransaction(String accessToken, String accountHash, String transactionId) {
+        return dataClient.getTransaction(accessToken, accountHash, transactionId);
+    }
+
+    // Delegated market data operations
+
+    /**
+     * Get real-time quote for a symbol
+     */
+    public Map<String, Object> getQuote(String accessToken, String symbol) {
+        return dataClient.getQuote(accessToken, symbol);
+    }
+
+    /**
+     * Get real-time quotes for multiple symbols
+     */
+    public Map<String, Object> getQuotes(String accessToken, List<String> symbols) {
+        return dataClient.getQuotes(accessToken, symbols);
+    }
+
+    /**
+     * Get last price for a symbol
+     */
+    public Double getLastPrice(String accessToken, String symbol) {
+        return dataClient.getLastPrice(accessToken, symbol);
+    }
+
+    // Delegated OAuth operations
+
+    /**
+     * Exchange authorization code for tokens
+     */
+    public Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
+        return oauthClient.exchangeCodeForTokens(authorizationCode);
+    }
+
+    /**
+     * Refresh access token
+     */
+    public Map<String, Object> refreshAccessToken(String refreshToken) {
+        return oauthClient.refreshAccessToken(refreshToken);
+    }
+
+    /**
+     * Generate OAuth authorization URL
+     */
+    public String generateAuthorizationUrl(String state) {
+        return oauthClient.generateAuthorizationUrl(state);
+    }
+
+    /**
+     * Validate OAuth configuration
+     */
+    public void validateConfiguration() {
+        oauthClient.validateConfiguration();
+    }
+
+    /**
+     * Test connection to Schwab API
      */
     public boolean testConnection(String accessToken) {
-        try {
-            Map<String, Object> accounts = makeAuthenticatedRequest("/trader/v1/accounts", accessToken, null);
-            return accounts != null && !accounts.isEmpty();
-        } catch (Exception e) {
-            log.debug("Schwab connection test failed: {}", e.getMessage());
-            return false;
+        return dataClient.testConnection(accessToken);
+    }
+
+    // Legacy methods for backward compatibility
+
+    /**
+     * Get user account information (legacy method name)
+     * @deprecated Use getAccounts() instead
+     */
+    @Deprecated
+    public List<Map<String, Object>> getUserAccountInfo(String accessToken) {
+        return getAccounts(accessToken);
+    }
+
+    /**
+     * Get account positions (legacy method name)
+     * @deprecated Use getAccountWithPositions() instead
+     */
+    @Deprecated
+    public Map<String, Object> getAccountPositions(String accessToken, String accountHash) {
+        return getAccountWithPositions(accessToken, accountHash);
+    }
+
+    // Helper methods
+
+    /**
+     * Determine appropriate error code based on HTTP status and response body
+     */
+    private SchwabErrors determineErrorCode(int statusCode, String responseBody) {
+        if (statusCode == 401) {
+            return SchwabErrors.SCHWAB_TOKEN_EXPIRED;
+        } else if (statusCode == 429) {
+            return SchwabErrors.SCHWAB_RATE_LIMIT;
+        } else if (statusCode >= 400 && statusCode < 500) {
+            return SchwabErrors.SCHWAB_INVALID_RESPONSE;
+        } else if (statusCode >= 500) {
+            return SchwabErrors.SCHWAB_API_ERROR;
         }
+        return SchwabErrors.SCHWAB_API_ERROR;
+    }
+
+    /**
+     * Build detailed error message from HTTP status and response
+     */
+    private String buildErrorMessage(int statusCode, String responseBody) {
+        StringBuilder errorMsg = new StringBuilder();
+        errorMsg.append("Schwab API error (HTTP ").append(statusCode).append(")");
+
+        if (responseBody != null && !responseBody.isEmpty()) {
+            errorMsg.append(": ").append(responseBody);
+        }
+
+        return errorMsg.toString();
+    }
+
+    /**
+     * Extract error details from exception
+     */
+    private String extractErrorDetails(Exception e) {
+        if (e instanceof StrategizException) {
+            return e.getMessage();
+        }
+
+        String message = e.getMessage();
+        if (message == null || message.isEmpty()) {
+            message = e.getClass().getSimpleName();
+        }
+
+        return "Failed to communicate with Schwab API: " + message;
     }
 }

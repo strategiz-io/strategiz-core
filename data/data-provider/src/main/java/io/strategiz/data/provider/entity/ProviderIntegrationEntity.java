@@ -29,6 +29,14 @@ public class ProviderIntegrationEntity extends BaseEntity {
     @NotBlank(message = "Connection type is required")
     private String connectionType; // "oauth" or "api_key"
 
+    @PropertyName("environment")
+    @JsonProperty("environment")
+    private String environment; // For providers with multiple environments (e.g., "paper", "live")
+
+    @PropertyName("errorMessage")
+    @JsonProperty("errorMessage")
+    private String errorMessage; // Error message when status is "error"
+
     // Constructors
     public ProviderIntegrationEntity() {
         super();
@@ -73,6 +81,22 @@ public class ProviderIntegrationEntity extends BaseEntity {
 
     public void setConnectionType(String connectionType) {
         this.connectionType = connectionType;
+    }
+
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(String environment) {
+        this.environment = environment;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
     }
 
     // Required BaseEntity methods

@@ -49,5 +49,11 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-firestore</artifactId>
         </dependency>
+
+        <!-- Spring Cloud GCP Firestore for @Document annotation -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>spring-cloud-gcp-data-firestore</artifactId>
+        </dependency>
     </dependencies>
 </project>

@@ -4,6 +4,7 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.service.auth.model.AuthenticationResponse;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.service.auth.model.passkey.*;
@@ -12,6 +13,7 @@ import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.annotation.PostConstruct;
 
@@ -47,12 +49,15 @@ public class PasskeyAuthenticationController extends BaseController {
 
     @Autowired
     private PasskeyChallengeService challengeService;
-    
+
     @Autowired
     private PasskeyAuthenticationService authenticationService;
-    
+
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CookieUtil cookieUtil;
     
     // Constructor to log controller initialization
     public PasskeyAuthenticationController() {
@@ -103,8 +108,9 @@ public class PasskeyAuthenticationController extends BaseController {
     public ResponseEntity<AuthenticationResponse> completeAuthentication(
             @PathVariable String authenticationId,
             @RequestBody @Valid PasskeyAuthenticationCompletionRequest request,
-            HttpServletRequest servletRequest) {
-        
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
+
         logRequest("completeAuthentication", request.credentialId());
         
         // Extract client IP address
@@ -141,7 +147,12 @@ public class PasskeyAuthenticationController extends BaseController {
         if (result.accessToken() == null || result.refreshToken() == null) {
             throw new StrategizException(AuthErrors.VERIFICATION_FAILED, request.credentialId());
         }
-        
+
+        // Set HTTP-only cookies for session management
+        cookieUtil.setAccessTokenCookie(servletResponse, result.accessToken());
+        cookieUtil.setRefreshTokenCookie(servletResponse, result.refreshToken());
+        log.info("Authentication cookies set for user: {}", result.userId());
+
         // Fetch user data to include in response
         AuthenticationResponse.UserInfo userInfo = null;
         if (result.userId() != null) {

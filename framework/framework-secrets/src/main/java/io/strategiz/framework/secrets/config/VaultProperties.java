@@ -22,7 +22,7 @@ public class VaultProperties {
     /**
      * Default path where secrets are stored in vault
      */
-    private String secretsPath = "secret/strategiz";
+    private String secretsPath = "secret";
     
     /**
      * Time in milliseconds for caching secret values

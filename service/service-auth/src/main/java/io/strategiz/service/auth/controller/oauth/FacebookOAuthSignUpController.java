@@ -1,8 +1,10 @@
 package io.strategiz.service.auth.controller.oauth;
 
 import io.strategiz.service.auth.service.oauth.FacebookOAuthService;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +29,11 @@ public class FacebookOAuthSignUpController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthSignUpController.class);
     
     private final FacebookOAuthService facebookOAuthService;
-    
-    public FacebookOAuthSignUpController(FacebookOAuthService facebookOAuthService) {
+    private final CookieUtil cookieUtil;
+
+    public FacebookOAuthSignUpController(FacebookOAuthService facebookOAuthService, CookieUtil cookieUtil) {
         this.facebookOAuthService = facebookOAuthService;
+        this.cookieUtil = cookieUtil;
     }
     
     /**
@@ -56,21 +60,35 @@ public class FacebookOAuthSignUpController extends BaseController {
     
     /**
      * Handle OAuth callback from Facebook for sign-up
-     * 
+     *
      * @param callbackRequest JSON request with code and state
+     * @param httpResponse HTTP response for setting cookies
      * @return JSON response with user data and success status
      */
     @PostMapping("/callback")
     public ResponseEntity<Map<String, Object>> handleCallbackJson(
-            @RequestBody Map<String, String> callbackRequest) {
-        
+            @RequestBody Map<String, String> callbackRequest,
+            HttpServletResponse httpResponse) {
+
         String code = callbackRequest.get("code");
         String state = callbackRequest.get("state");
-        
+
         logger.info("Received OAuth sign-up callback JSON with state: {}", state);
-        
+
         try {
             Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, null);
+
+            // Set HTTP-only cookies for session management
+            String accessToken = (String) result.get("accessToken");
+            String refreshToken = (String) result.get("refreshToken");
+            if (accessToken != null) {
+                cookieUtil.setAccessTokenCookie(httpResponse, accessToken);
+            }
+            if (refreshToken != null) {
+                cookieUtil.setRefreshTokenCookie(httpResponse, refreshToken);
+            }
+            logger.info("Authentication cookies set for Facebook OAuth sign-up");
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Error in Facebook OAuth sign-up callback", e);

@@ -34,7 +34,8 @@
         <module>business/business-provider-schwab</module>
         <module>business/business-strategy-execution</module>
         <module>business/business-ai-chat</module>
-        
+        <module>business/business-marketdata</module>
+
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
         <module>data/data-base</module>
@@ -47,7 +48,8 @@
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
         <module>data/data-user</module>
-        
+        <module>data/data-marketdata</module>
+
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->
         
@@ -63,6 +65,7 @@
         <module>client/client-yahoofinance</module>
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
+        <module>client/client-alpaca</module>
         <module>client/client-gemini</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
@@ -82,18 +85,23 @@
         <module>service/service-dashboard</module>
         <module>service/service-profile</module>
         <module>service/service-marketing</module>
+        <module>service/service-marketdata</module>
         <module>service/service-learn</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
-        
-        <!-- API Modules (Build Sixth) -->
+
+        <!-- Batch Modules (Build Sixth) -->
+        <module>batch/batch-marketdata</module>
+
+        <!-- API Modules (Build Seventh) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->
         <!-- Removed api-dashboard module as it was consolidated into service-dashboard -->
         <!-- Removed api-profile module as it was consolidated into service-profile -->
 
-        
-        <!-- Application Module (Build Last) -->
-        <module>application</module>
+
+        <!-- Application Modules (Build Last) -->
+        <module>application-web</module>
+        <module>application-batch</module>
     </modules>
 
     <properties>

@@ -15,6 +15,9 @@ import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.entity.UserProfileEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +65,9 @@ public class PasskeyRegistrationController extends BaseController {
 
     @Autowired
     private CookieUtil cookieUtil;
+
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * Validate temporary token from Step 1 and extract user ID
@@ -128,13 +134,13 @@ public class PasskeyRegistrationController extends BaseController {
         
         logRequest("beginRegistration", request.email());
         
-        // Validate identity token if provided (Step 1 token)
+        // Validate identity token if provided (Step 1 token), otherwise lookup/create user by email
         String userId = null;
         if (request.identityToken() != null) {
             userId = validateTemporaryToken(request.identityToken(), request.email());
         } else {
-            // For now, create a user ID based on email - this should be improved
-            userId = "user-" + request.email().hashCode();
+            // Lookup existing user's UUID or create new user with UUID
+            userId = getOrCreateUserByEmail(request.email());
         }
         
         // Create registration request
@@ -173,8 +179,8 @@ public class PasskeyRegistrationController extends BaseController {
         if (request.identityToken() != null) {
             userId = validateTemporaryToken(request.identityToken(), request.email());
         } else {
-            // Fallback for backward compatibility
-            userId = "user-" + request.email().hashCode();
+            // Lookup existing user's UUID or create new user with UUID
+            userId = getOrCreateUserByEmail(request.email());
         }
         
         // Create registration completion data
@@ -250,10 +256,42 @@ public class PasskeyRegistrationController extends BaseController {
     }
 
     /**
-     * Helper method to set secure HTTP-only cookies for session management
+     * Get existing user's UUID by email, or create a new user with UUID
+     * This ensures consistent userId (UUID) usage across all registration flows
      *
-     * @param response HTTP response
-     * @param name Cookie name
-     * @param value Cookie value
+     * @param email User's email address
+     * @return The user's UUID (existing or newly created)
      */
+    private String getOrCreateUserByEmail(String email) {
+        // Check if user already exists - return their existing UUID
+        Optional<UserEntity> existingUser = userRepository.getUserByEmail(email);
+
+        if (existingUser.isPresent()) {
+            String existingUserId = existingUser.get().getUserId();
+            log.info("Found existing user for email: {}, userId: {}", email, existingUserId);
+            return existingUserId;
+        }
+
+        // Create a new user with UUID
+        String newUserId = java.util.UUID.randomUUID().toString();
+        log.info("Creating new user profile for passkey registration: {} with userId: {}", email, newUserId);
+
+        // Create user profile
+        UserProfileEntity profile = new UserProfileEntity(
+            email.split("@")[0], // Use email prefix as display name
+            email,
+            null, // No photo URL
+            false, // Email not verified yet
+            "free", // Default subscription tier
+            true // Default demo mode
+        );
+
+        // Create and save user entity with UUID
+        UserEntity user = new UserEntity();
+        user.setUserId(newUserId);
+        user.setProfile(profile);
+        userRepository.createUser(user);
+
+        return newUserId;
+    }
 }

@@ -1,5 +1,7 @@
 package io.strategiz.service.portfolio.service;
 
+import io.strategiz.business.portfolio.model.AssetCategory;
+import io.strategiz.business.portfolio.model.CategoryAllocation;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.entity.ProviderStatus;
@@ -185,6 +187,42 @@ public class PortfolioAggregatorService {
                     ProviderDataEntity coinbaseEntity = convertToProviderDataEntity(coinbaseData);
                     allProviderData.add(coinbaseEntity);
                     log.info("Added Coinbase data with total value: {}", coinbaseData.getTotalValue());
+                }
+            }
+
+            // Check for Schwab integration - use stored data from provider_data collection
+            boolean hasSchwab = integrations.stream()
+                .anyMatch(i -> ServicePortfolioConstants.PROVIDER_SCHWAB.equals(i.getProviderId())
+                    && ProviderStatus.CONNECTED.getValue().equals(i.getStatus()));
+
+            if (hasSchwab) {
+                log.info("Fetching Schwab data from database for user {}", userId);
+                try {
+                    ProviderDataEntity schwabData = providerDataRepository.getProviderData(userId, ServicePortfolioConstants.PROVIDER_SCHWAB);
+                    if (schwabData != null && schwabData.getTotalValue() != null) {
+                        allProviderData.add(schwabData);
+                        log.info("Added Schwab data with total value: {}", schwabData.getTotalValue());
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not fetch Schwab data for user {}: {}", userId, e.getMessage());
+                }
+            }
+
+            // Check for Alpaca integration - use stored data from provider_data collection
+            boolean hasAlpaca = integrations.stream()
+                .anyMatch(i -> ServicePortfolioConstants.PROVIDER_ALPACA.equals(i.getProviderId())
+                    && ProviderStatus.CONNECTED.getValue().equals(i.getStatus()));
+
+            if (hasAlpaca) {
+                log.info("Fetching Alpaca data from database for user {}", userId);
+                try {
+                    ProviderDataEntity alpacaData = providerDataRepository.getProviderData(userId, ServicePortfolioConstants.PROVIDER_ALPACA);
+                    if (alpacaData != null && alpacaData.getTotalValue() != null) {
+                        allProviderData.add(alpacaData);
+                        log.info("Added Alpaca data with total value: {}", alpacaData.getTotalValue());
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not fetch Alpaca data for user {}: {}", userId, e.getMessage());
                 }
             }
 
@@ -485,6 +523,93 @@ public class PortfolioAggregatorService {
         return providerNames.getOrDefault(providerId, providerId);
     }
     
+    /**
+     * Calculate category-based asset allocation for pie chart visualization.
+     * Groups positions by asset category (crypto, stocks, bonds, cash, etc.)
+     *
+     * @param positions All portfolio positions
+     * @param totalValue Total portfolio value
+     * @param cashBalance Cash balance to include
+     * @return List of CategoryAllocation objects grouped by category
+     */
+    public List<CategoryAllocation> calculateCategoryAllocation(
+            List<PortfolioPositionResponse> positions, BigDecimal totalValue, BigDecimal cashBalance) {
+
+        log.debug("Calculating category allocation for {} positions, total value: {}",
+                positions.size(), totalValue);
+
+        // Group positions by category
+        Map<AssetCategory, List<PortfolioPositionResponse>> positionsByCategory = new HashMap<>();
+
+        for (PortfolioPositionResponse position : positions) {
+            String assetType = position.getAssetType();
+            AssetCategory category = AssetCategory.fromAssetType(assetType);
+            positionsByCategory.computeIfAbsent(category, k -> new ArrayList<>()).add(position);
+        }
+
+        // Calculate allocation for each category
+        List<CategoryAllocation> allocations = new ArrayList<>();
+
+        for (Map.Entry<AssetCategory, List<PortfolioPositionResponse>> entry : positionsByCategory.entrySet()) {
+            AssetCategory category = entry.getKey();
+            List<PortfolioPositionResponse> categoryPositions = entry.getValue();
+
+            BigDecimal categoryValue = BigDecimal.ZERO;
+            BigDecimal categoryCostBasis = BigDecimal.ZERO;
+
+            for (PortfolioPositionResponse position : categoryPositions) {
+                if (position.getCurrentValue() != null) {
+                    categoryValue = categoryValue.add(position.getCurrentValue());
+                }
+                if (position.getCostBasis() != null) {
+                    categoryCostBasis = categoryCostBasis.add(position.getCostBasis());
+                }
+            }
+
+            BigDecimal categoryProfitLoss = categoryValue.subtract(categoryCostBasis);
+
+            CategoryAllocation allocation = CategoryAllocation.builder()
+                    .category(category)
+                    .value(categoryValue)
+                    .costBasis(categoryCostBasis)
+                    .profitLoss(categoryProfitLoss)
+                    .assetCount(categoryPositions.size())
+                    .calculatePercentage(totalValue)
+                    .calculateProfitLossPercent()
+                    .build();
+
+            allocations.add(allocation);
+        }
+
+        // Add cash category if there's cash balance
+        if (cashBalance != null && cashBalance.compareTo(BigDecimal.ZERO) > 0) {
+            CategoryAllocation cashAllocation = CategoryAllocation.builder()
+                    .category(AssetCategory.CASH)
+                    .value(cashBalance)
+                    .costBasis(cashBalance)  // Cash has no profit/loss
+                    .profitLoss(BigDecimal.ZERO)
+                    .profitLossPercent(BigDecimal.ZERO)
+                    .assetCount(1)
+                    .calculatePercentage(totalValue)
+                    .build();
+
+            allocations.add(cashAllocation);
+        }
+
+        // Sort by value descending
+        allocations.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        log.info("Category allocation calculated: {} categories", allocations.size());
+        for (CategoryAllocation allocation : allocations) {
+            log.debug("  {}: ${} ({}%)",
+                    allocation.getCategoryName(),
+                    allocation.getValue(),
+                    allocation.getPercentage());
+        }
+
+        return allocations;
+    }
+
     /**
      * Convert ProviderPortfolioResponse to ProviderDataEntity
      */

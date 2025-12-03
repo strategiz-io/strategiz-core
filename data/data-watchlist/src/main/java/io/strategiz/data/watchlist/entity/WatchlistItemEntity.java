@@ -207,16 +207,16 @@ public class WatchlistItemEntity extends BaseEntity {
         this.alertPrice = alertPrice;
     }
 
-    // Convenience methods
-    public boolean isAlertEnabled() {
+    // Convenience methods - renamed to avoid Firestore getter conflicts
+    public boolean hasAlertEnabled() {
         return Boolean.TRUE.equals(alertEnabled);
     }
 
-    public boolean isPriceUp() {
+    public boolean hasPriceUp() {
         return change != null && change.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    public boolean isPriceDown() {
+    public boolean hasPriceDown() {
         return change != null && change.compareTo(BigDecimal.ZERO) < 0;
     }
 

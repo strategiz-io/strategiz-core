@@ -18,6 +18,7 @@
 
     <modules>
         <module>framework-api-docs</module>
+        <module>framework-authorization</module>
         <module>framework-exception</module>
         <module>framework-logging</module>
         <module>framework-secrets</module>

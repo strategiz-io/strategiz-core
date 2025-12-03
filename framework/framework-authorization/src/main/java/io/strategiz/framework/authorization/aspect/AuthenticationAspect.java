@@ -1,0 +1,79 @@
+package io.strategiz.framework.authorization.aspect;
+
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.framework.authorization.context.SecurityContextHolder;
+import io.strategiz.framework.authorization.error.AuthorizationErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
+/**
+ * Aspect that enforces {@link RequireAuth} annotation on controller methods.
+ *
+ * <p>Checks:</p>
+ * <ul>
+ *   <li>User is authenticated</li>
+ *   <li>User meets minimum ACR level</li>
+ *   <li>User is not in demo mode (if restricted)</li>
+ * </ul>
+ *
+ * <p>Order: 50 (runs before scope and FGA checks)</p>
+ */
+@Aspect
+@Component
+@Order(50)
+public class AuthenticationAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationAspect.class);
+    private static final String MODULE_NAME = "authorization";
+
+    @Before("@annotation(requireAuth)")
+    public void checkAuthentication(JoinPoint joinPoint, RequireAuth requireAuth) {
+        // Check if user is authenticated
+        AuthenticatedUser user = SecurityContextHolder.getAuthenticatedUser()
+                .orElseThrow(() -> {
+                    log.warn("Authentication required for {}.{}",
+                            joinPoint.getSignature().getDeclaringTypeName(),
+                            joinPoint.getSignature().getName());
+                    return new StrategizException(
+                            AuthorizationErrorDetails.NOT_AUTHENTICATED,
+                            MODULE_NAME
+                    );
+                });
+
+        // Check minimum ACR level
+        String requiredAcr = requireAuth.minAcr();
+        if (!user.meetsMinAcr(requiredAcr)) {
+            log.warn("Auth level required: user={} has acr={} but needs acr>={}",
+                    user.getUserId(), user.getAcr(), requiredAcr);
+            throw new StrategizException(
+                    AuthorizationErrorDetails.AUTH_LEVEL_REQUIRED,
+                    MODULE_NAME
+            );
+        }
+
+        // Check demo mode restriction
+        if (!requireAuth.allowDemoMode() && user.isDemoMode()) {
+            log.warn("Demo mode restricted: user={} attempted action requiring live mode",
+                    user.getUserId());
+            throw new StrategizException(
+                    AuthorizationErrorDetails.DEMO_MODE_RESTRICTED,
+                    MODULE_NAME
+            );
+        }
+
+        log.debug("Authentication check passed: user={} acr={} demoMode={}",
+                user.getUserId(), user.getAcr(), user.isDemoMode());
+    }
+
+    @Before("@within(requireAuth)")
+    public void checkAuthenticationOnClass(JoinPoint joinPoint, RequireAuth requireAuth) {
+        checkAuthentication(joinPoint, requireAuth);
+    }
+}

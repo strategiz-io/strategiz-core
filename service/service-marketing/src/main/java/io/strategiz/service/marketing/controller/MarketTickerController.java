@@ -98,59 +98,149 @@ public class MarketTickerController extends BaseController {
     }
     
     /**
-     * Fetch crypto data from available clients
+     * Fetch crypto data from available clients with fallback chain:
+     * 1. Try CoinGecko (comprehensive market data)
+     * 2. Fallback to Coinbase (exchange rates)
+     * 3. Fallback to demo data
      */
     private List<TickerItem> fetchCryptoData() {
         List<TickerItem> items = new ArrayList<>();
-        
+
+        // First try: CoinGecko
         try {
-            // Use CoinGecko to fetch real crypto data
-            log.info("Fetching real crypto data from CoinGecko");
-            
-            // Convert our symbol list to CoinGecko IDs
-            Map<String, String> symbolToId = new HashMap<>();
-            symbolToId.put("BTC", "bitcoin");
-            symbolToId.put("ETH", "ethereum");
-            symbolToId.put("SOL", "solana");
-            symbolToId.put("BNB", "binancecoin");
-            symbolToId.put("ADA", "cardano");
-            
-            List<String> coinIds = CRYPTO_SYMBOLS.stream()
-                .map(symbol -> symbolToId.getOrDefault(symbol, symbol.toLowerCase()))
-                .collect(Collectors.toList());
-            
-            var cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
-            
-            for (var crypto : cryptoData) {
-                // Find the original symbol
-                String symbol = CRYPTO_SYMBOLS.stream()
-                    .filter(s -> symbolToId.getOrDefault(s, s.toLowerCase()).equals(crypto.getId()))
-                    .findFirst()
-                    .orElse(crypto.getSymbol().toUpperCase());
-                
-                items.add(new TickerItem(
-                    symbol,
-                    crypto.getName(),
-                    "crypto",
-                    crypto.getCurrentPrice(),
-                    crypto.getPriceChange24h(),
-                    crypto.getPriceChangePercentage24h(),
-                    crypto.getPriceChange24h() != null && crypto.getPriceChange24h().compareTo(BigDecimal.ZERO) >= 0
-                ));
+            items = fetchCryptoFromCoinGecko();
+            if (!items.isEmpty()) {
+                return items;
             }
-            
-            log.info("Successfully fetched {} crypto items from CoinGecko", items.size());
-            
         } catch (Exception e) {
-            log.error("Error fetching crypto data from CoinGecko", e);
+            log.warn("CoinGecko failed, trying Coinbase fallback: {}", e.getMessage());
         }
-        
-        // Return demo data if no real data available
-        if (items.isEmpty()) {
-            log.warn("No real crypto data available, using demo data");
-            items.addAll(getDemoCryptoData());
+
+        // Second try: Coinbase
+        try {
+            items = fetchCryptoFromCoinbase();
+            if (!items.isEmpty()) {
+                return items;
+            }
+        } catch (Exception e) {
+            log.warn("Coinbase failed, using demo data: {}", e.getMessage());
         }
-        
+
+        // Final fallback: Demo data
+        log.warn("All crypto data sources failed, using demo data");
+        return getDemoCryptoData();
+    }
+
+    /**
+     * Fetch crypto data from CoinGecko API
+     */
+    private List<TickerItem> fetchCryptoFromCoinGecko() {
+        log.info("Fetching real crypto data from CoinGecko");
+        List<TickerItem> items = new ArrayList<>();
+
+        // Convert our symbol list to CoinGecko IDs
+        Map<String, String> symbolToId = new HashMap<>();
+        symbolToId.put("BTC", "bitcoin");
+        symbolToId.put("ETH", "ethereum");
+        symbolToId.put("SOL", "solana");
+        symbolToId.put("BNB", "binancecoin");
+        symbolToId.put("ADA", "cardano");
+
+        List<String> coinIds = CRYPTO_SYMBOLS.stream()
+            .map(symbol -> symbolToId.getOrDefault(symbol, symbol.toLowerCase()))
+            .collect(Collectors.toList());
+
+        List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
+
+        for (CryptoCurrency crypto : cryptoData) {
+            // Find the original symbol
+            String symbol = CRYPTO_SYMBOLS.stream()
+                .filter(s -> symbolToId.getOrDefault(s, s.toLowerCase()).equals(crypto.getId()))
+                .findFirst()
+                .orElse(crypto.getSymbol().toUpperCase());
+
+            items.add(new TickerItem(
+                symbol,
+                crypto.getName(),
+                "crypto",
+                crypto.getCurrentPrice(),
+                crypto.getPriceChange24h(),
+                crypto.getPriceChangePercentage24h(),
+                crypto.getPriceChange24h() != null && crypto.getPriceChange24h().compareTo(BigDecimal.ZERO) >= 0
+            ));
+        }
+
+        log.info("Successfully fetched {} crypto items from CoinGecko", items.size());
+        return items;
+    }
+
+    /**
+     * Fetch crypto data from Coinbase public API as fallback
+     */
+    private List<TickerItem> fetchCryptoFromCoinbase() {
+        log.info("Fetching crypto data from Coinbase (fallback)");
+        List<TickerItem> items = new ArrayList<>();
+
+        // Coinbase currency names mapping
+        Map<String, String> symbolToName = new HashMap<>();
+        symbolToName.put("BTC", "Bitcoin");
+        symbolToName.put("ETH", "Ethereum");
+        symbolToName.put("SOL", "Solana");
+        symbolToName.put("BNB", "BNB");
+        symbolToName.put("ADA", "Cardano");
+
+        try {
+            // Get exchange rates from Coinbase public API
+            Map<String, Object> response = coinbaseClient.publicRequest(
+                org.springframework.http.HttpMethod.GET,
+                "/exchange-rates",
+                java.util.Collections.singletonMap("currency", "USD"),
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response != null && response.containsKey("data")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) response.get("data");
+                @SuppressWarnings("unchecked")
+                Map<String, String> rates = (Map<String, String>) data.get("rates");
+
+                if (rates != null) {
+                    for (String symbol : CRYPTO_SYMBOLS) {
+                        String rateStr = rates.get(symbol);
+                        if (rateStr != null) {
+                            try {
+                                // Coinbase returns rates as 1 USD = X crypto, so we need to invert
+                                BigDecimal rate = new BigDecimal(rateStr);
+                                if (rate.compareTo(BigDecimal.ZERO) > 0) {
+                                    BigDecimal price = BigDecimal.ONE.divide(rate, 2, java.math.RoundingMode.HALF_UP);
+
+                                    // Coinbase exchange-rates doesn't include 24h change, so estimate as 0
+                                    // In production, you'd want to cache previous values to calculate real change
+                                    items.add(new TickerItem(
+                                        symbol,
+                                        symbolToName.getOrDefault(symbol, symbol),
+                                        "crypto",
+                                        price,
+                                        BigDecimal.ZERO,
+                                        BigDecimal.ZERO,
+                                        true // Default to positive when no change data
+                                    ));
+                                }
+                            } catch (NumberFormatException e) {
+                                log.warn("Invalid rate format for {}: {}", symbol, rateStr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            log.info("Successfully fetched {} crypto items from Coinbase", items.size());
+
+        } catch (Exception e) {
+            log.error("Error fetching crypto data from Coinbase: {}", e.getMessage());
+            throw e;
+        }
+
         return items;
     }
     

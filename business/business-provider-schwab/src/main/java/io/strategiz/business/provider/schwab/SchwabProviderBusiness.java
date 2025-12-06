@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -55,7 +54,8 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
 
     private static final String PROVIDER_ID = "schwab";
     private static final String PROVIDER_NAME = "Charles Schwab";
-    private static final String PROVIDER_TYPE = "brokerage";
+    private static final String PROVIDER_TYPE = "equity";
+    private static final String PROVIDER_CATEGORY = "brokerage";
 
     private final SchwabClient schwabClient;
     private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
@@ -301,8 +301,10 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
      * Schwab access tokens expire after 30 minutes.
      */
     private String getValidAccessToken(String userId) {
-        String secretPath = "secret/strategiz/users/" + userId + "/providers/schwab";
-        Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
+        // Use dot notation for secretManager - it will convert to:
+        // secret/data/strategiz/users/{userId}/providers/schwab
+        String secretKey = "users." + userId + ".providers.schwab.accessToken";
+        Map<String, Object> secretData = secretManager.readSecretAsMap(secretKey);
 
         if (secretData == null || secretData.isEmpty()) {
             throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND,
@@ -410,7 +412,8 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         ProviderDataEntity entity = new ProviderDataEntity();
         entity.setProviderId(PROVIDER_ID);
         entity.setProviderName(PROVIDER_NAME);
-        entity.setAccountType("brokerage");
+        entity.setProviderType(PROVIDER_TYPE);
+        entity.setProviderCategory(PROVIDER_CATEGORY);
         entity.setSyncStatus("success");
         entity.setLastUpdatedAt(Instant.now());
 
@@ -503,8 +506,24 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             }
         }
 
+        // Add cash as a visible holding if there's a cash balance
+        if (cashBalance.compareTo(BigDecimal.ZERO) > 0) {
+            ProviderDataEntity.Holding cashHolding = new ProviderDataEntity.Holding();
+            cashHolding.setAsset("CASH");
+            cashHolding.setName("Cash & Money Market");
+            cashHolding.setAssetType("cash");
+            cashHolding.setQuantity(BigDecimal.ONE);
+            cashHolding.setCurrentPrice(cashBalance);
+            cashHolding.setCurrentValue(cashBalance);
+            cashHolding.setCostBasis(cashBalance); // Cash has no gain/loss
+            cashHolding.setProfitLoss(BigDecimal.ZERO);
+            cashHolding.setProfitLossPercent(BigDecimal.ZERO);
+            holdings.add(cashHolding);
+            log.info("Added cash holding with value: {}", cashBalance);
+        }
+
         entity.setHoldings(holdings);
-        entity.setTotalValue(totalValue.add(cashBalance)); // Include cash in total value
+        entity.setTotalValue(totalValue); // totalValue already includes cash from recalculateTotalValue
         entity.setCashBalance(cashBalance);
         entity.setTotalProfitLoss(totalProfitLoss);
 
@@ -777,7 +796,9 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
 
     private void storeTokensInVault(String userId, String accessToken, String refreshToken, Instant expiresAt) {
         try {
-            String secretPath = "secret/strategiz/users/" + userId + "/providers/schwab";
+            // Use dot notation for secretManager - it will convert to:
+            // secret/data/strategiz/users/{userId}/providers/schwab
+            String secretKey = "users." + userId + ".providers.schwab";
 
             Map<String, Object> secretData = new HashMap<>();
             secretData.put("accessToken", accessToken);
@@ -786,10 +807,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             secretData.put("provider", PROVIDER_ID);
             secretData.put("storedAt", Instant.now().toString());
 
-            // Convert map to JSON string for storage
-            ObjectMapper objectMapper = new ObjectMapper();
-            String secretJson = objectMapper.writeValueAsString(secretData);
-            secretManager.createSecret(secretPath, secretJson);
+            secretManager.createSecret(secretKey, secretData);
             log.debug("Stored Charles Schwab OAuth tokens in Vault for user: {}", userId);
 
         } catch (Exception e) {

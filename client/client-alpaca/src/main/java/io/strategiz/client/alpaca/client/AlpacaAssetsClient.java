@@ -59,22 +59,23 @@ public class AlpacaAssetsClient {
         }
 
         try {
-            apiKey = vaultSecretService.readSecret("alpaca.marketdata.api-key");
-            apiSecret = vaultSecretService.readSecret("alpaca.marketdata.api-secret");
-
             // Assets API uses Trading API endpoint, not Market Data API
-            // Try to load from Vault first, but fall back to paper trading URL
+            // Must use trading (paper) credentials, not market data credentials
+            apiKey = vaultSecretService.readSecret("alpaca.paper.api-key");
+            apiSecret = vaultSecretService.readSecret("alpaca.paper.api-secret");
+
+            // Try to load URL from Vault first, but fall back to paper trading URL
             try {
-                apiUrl = vaultSecretService.readSecret("alpaca.trading.base-url");
+                apiUrl = vaultSecretService.readSecret("alpaca.paper.api-url");
             } catch (Exception ignored) {
                 // Use paper trading API as default for Assets endpoint
                 apiUrl = "https://paper-api.alpaca.markets";
             }
 
-            log.info("Successfully loaded Alpaca credentials from Vault");
+            log.info("Successfully loaded Alpaca trading credentials from Vault for Assets API");
         } catch (Exception e) {
-            log.error("Failed to load Alpaca credentials from Vault: {}", e.getMessage());
-            throw new IllegalStateException("Failed to load required Alpaca credentials from Vault", e);
+            log.error("Failed to load Alpaca trading credentials from Vault: {}", e.getMessage());
+            throw new IllegalStateException("Failed to load required Alpaca trading credentials from Vault", e);
         }
 
         // Set default URL if not in Vault

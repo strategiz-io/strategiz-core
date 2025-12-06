@@ -30,11 +30,10 @@ public class AuthenticationMethodMetadata {
         public static final String VERIFIED = "verified";                   // Has been successfully verified
         public static final String BACKUP_ELIGIBLE = "backupEligible";      // Can be backed up
         public static final String BACKUP_STATE = "backupState";            // Current backup state
-        
-        // Timestamps
-        public static final String REGISTRATION_TIME = "registrationTime";   // When registered
-        public static final String LAST_USED_TIME = "lastUsedTime";         // Last authentication
-        
+
+        // Note: Use BaseEntity.createdDate for registration time
+        // Note: Use AuthenticationMethodEntity.lastUsedAt for last used time
+
         // WebAuthn specific
         public static final String ATTESTATION_TYPE = "attestationType";     // none, basic, self, etc.
         public static final String TRANSPORT = "transport";                 // usb, nfc, ble, internal

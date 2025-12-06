@@ -52,7 +52,8 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     
     private static final String PROVIDER_ID = "alpaca";
     private static final String PROVIDER_NAME = "Alpaca";
-    private static final String PROVIDER_TYPE = "broker";
+    private static final String PROVIDER_TYPE = "equity";
+    private static final String PROVIDER_CATEGORY = "brokerage";
     private static final String DEFAULT_ENVIRONMENT = "paper"; // Default to paper for safety
 
     private final AlpacaClient alpacaClient;
@@ -688,8 +689,9 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
                                                              String accessToken) {
         ProviderDataEntity entity = new ProviderDataEntity();
         entity.setProviderId(PROVIDER_ID);
-        entity.setProviderName("Alpaca");
-        entity.setAccountType("broker");
+        entity.setProviderName(PROVIDER_NAME);
+        entity.setProviderType(PROVIDER_TYPE);
+        entity.setProviderCategory(PROVIDER_CATEGORY);
         entity.setSyncStatus("success");
         entity.setLastUpdatedAt(Instant.now());
 

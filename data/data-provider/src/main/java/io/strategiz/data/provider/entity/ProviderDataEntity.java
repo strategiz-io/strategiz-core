@@ -26,8 +26,11 @@ public class ProviderDataEntity extends BaseEntity {
     @PropertyName("provider_name")
     private String providerName;
 
-    @PropertyName("account_type")
-    private String accountType; // crypto, stock, forex
+    @PropertyName("provider_type")
+    private String providerType; // crypto, equity, forex
+
+    @PropertyName("provider_category")
+    private String providerCategory; // exchange, brokerage
 
     @PropertyName("total_value")
     private BigDecimal totalValue;
@@ -90,12 +93,20 @@ public class ProviderDataEntity extends BaseEntity {
         this.providerName = providerName;
     }
 
-    public String getAccountType() {
-        return accountType;
+    public String getProviderType() {
+        return providerType;
     }
 
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
+    public void setProviderType(String providerType) {
+        this.providerType = providerType;
+    }
+
+    public String getProviderCategory() {
+        return providerCategory;
+    }
+
+    public void setProviderCategory(String providerCategory) {
+        this.providerCategory = providerCategory;
     }
 
     public BigDecimal getTotalValue() {

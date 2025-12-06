@@ -24,10 +24,10 @@ import java.util.Map;
 @Service
 public class DeleteProviderService extends ProviderBaseService {
 
-    @Autowired(required = false)
+    @Autowired
     private DeleteProviderIntegrationRepository deleteProviderIntegrationRepository;
 
-    @Autowired(required = false)
+    @Autowired
     private DeleteProviderDataRepository deleteProviderDataRepository;
 
     @Autowired
@@ -116,29 +116,19 @@ public class DeleteProviderService extends ProviderBaseService {
         data.put("providerId", request.getProviderId());
 
         try {
-            // 1. Delete provider integration from Firestore
-            if (deleteProviderIntegrationRepository != null) {
-                providerLog.info("Deleting provider integration from Firestore for user: {}, provider: {}",
-                               request.getUserId(), request.getProviderId());
-                boolean integrationDeleted = deleteProviderIntegrationRepository.deleteByUserIdAndProviderId(
-                        request.getUserId(), request.getProviderId());
-                data.put("integrationDeleted", integrationDeleted);
-            } else {
-                providerLog.warn("DeleteProviderIntegrationRepository not available, skipping integration deletion");
-                data.put("integrationDeleted", false);
-            }
+            // 1. Delete provider integration from Firestore (soft delete - marks as deleted)
+            providerLog.info("Deleting provider integration from Firestore for user: {}, provider: {}",
+                           request.getUserId(), request.getProviderId());
+            boolean integrationDeleted = deleteProviderIntegrationRepository.deleteByUserIdAndProviderId(
+                    request.getUserId(), request.getProviderId());
+            data.put("integrationDeleted", integrationDeleted);
 
-            // 2. Delete provider data from Firestore
-            if (deleteProviderDataRepository != null) {
-                providerLog.info("Deleting provider data from Firestore for user: {}, provider: {}",
-                               request.getUserId(), request.getProviderId());
-                boolean dataDeleted = deleteProviderDataRepository.deleteProviderData(
-                        request.getUserId(), request.getProviderId());
-                data.put("dataDeleted", dataDeleted);
-            } else {
-                providerLog.warn("DeleteProviderDataRepository not available, skipping data deletion");
-                data.put("dataDeleted", false);
-            }
+            // 2. Delete provider data from Firestore (hard delete - removes cached portfolio data)
+            providerLog.info("Deleting provider data from Firestore for user: {}, provider: {}",
+                           request.getUserId(), request.getProviderId());
+            boolean dataDeleted = deleteProviderDataRepository.deleteProviderData(
+                    request.getUserId(), request.getProviderId());
+            data.put("dataDeleted", dataDeleted);
 
             // 3. Delete OAuth tokens from Vault
             String vaultPath = "secret/strategiz/users/" + request.getUserId() + "/providers/" + request.getProviderId();
@@ -220,6 +210,8 @@ public class DeleteProviderService extends ProviderBaseService {
             case "binance":
             case "kraken":
             case "webull":
+            case "schwab":
+            case "alpaca":
                 return true;
             default:
                 return false;

@@ -15,7 +15,8 @@ public final class KrakenConstants {
     public static final String PROVIDER_ID = "kraken";
     public static final String PROVIDER_NAME = "Kraken";
     public static final String PROVIDER_TYPE = "crypto";
-    
+    public static final String PROVIDER_CATEGORY = "exchange";
+
     // API endpoints (relative paths for private API)
     public static final String BALANCE_ENDPOINT = "/private/Balance";
     public static final String TRADES_ENDPOINT = "/private/TradesHistory";

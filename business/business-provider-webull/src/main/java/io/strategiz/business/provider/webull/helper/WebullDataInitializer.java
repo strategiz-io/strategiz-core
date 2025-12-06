@@ -92,7 +92,8 @@ public class WebullDataInitializer {
             ProviderDataEntity data = new ProviderDataEntity();
             data.setProviderId(WebullConstants.PROVIDER_ID);
             data.setProviderName(WebullConstants.PROVIDER_NAME);
-            data.setAccountType(WebullConstants.PROVIDER_TYPE);
+            data.setProviderType("equity");
+            data.setProviderCategory("brokerage");
             data.setHoldings(holdings);
             data.setTotalValue(totalValue);
             data.setCashBalance(cashBalance);

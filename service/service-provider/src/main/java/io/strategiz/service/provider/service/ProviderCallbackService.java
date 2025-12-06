@@ -7,6 +7,7 @@ import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
+import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.service.profile.service.ProfileService;
 import org.slf4j.Logger;
@@ -340,7 +341,7 @@ public class ProviderCallbackService {
         }
         
         String p = provider.toLowerCase();
-        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p) || "schwab".equals(p);
+        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p) || "schwab".equals(p) || "robinhood".equals(p);
     }
     
     /**
@@ -365,6 +366,8 @@ public class ProviderCallbackService {
                 return "Alpaca";
             case "schwab":
                 return "Charles Schwab";
+            case "robinhood":
+                return "Robinhood";
             default:
                 return provider;
         }

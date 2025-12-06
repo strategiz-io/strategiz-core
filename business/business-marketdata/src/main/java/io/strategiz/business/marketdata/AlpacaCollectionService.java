@@ -61,7 +61,7 @@ public class AlpacaCollectionService {
             AlpacaHistoricalClient historicalClient,
             AlpacaAssetsClient assetsClient,
             MarketDataRepository marketDataRepository,
-            @Value("${alpaca.batch.thread-pool-size:10}") int threadPoolSize,
+            @Value("${alpaca.batch.thread-pool-size:2}") int threadPoolSize,
             @Value("${alpaca.batch.batch-size:500}") int batchSize,
             @Value("${alpaca.batch.backfill-months:3}") int backfillMonths) {
 
@@ -216,11 +216,13 @@ public class AlpacaCollectionService {
      */
     private SymbolResult processSymbol(String symbol, LocalDateTime startDate, LocalDateTime endDate,
                                        String timeframe, AlpacaAsset assetMetadata) {
-        log.debug("Processing symbol: {} from {} to {}", symbol, startDate, endDate);
+        log.info(">>> Processing symbol: {} from {} to {} (timeframe: {})", symbol, startDate, endDate, timeframe);
 
         try {
             // Fetch all bars for this symbol (handles pagination internally)
+            log.info(">>> Fetching bars for {} via historicalClient...", symbol);
             List<AlpacaBar> bars = historicalClient.getBars(symbol, startDate, endDate, timeframe);
+            log.info(">>> Got {} bars for {}", bars != null ? bars.size() : "null", symbol);
 
             if (bars == null || bars.isEmpty()) {
                 log.warn("No data returned for symbol: {}", symbol);
@@ -228,15 +230,18 @@ public class AlpacaCollectionService {
             }
 
             // Convert to MarketDataEntity
+            log.info(">>> Converting {} bars to entities for {}", bars.size(), symbol);
             List<MarketDataEntity> entities = bars.stream()
                     .map(bar -> convertAlpacaBar(symbol, bar, timeframe, assetMetadata))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
+            log.info(">>> Converted to {} entities for {} (filtered out {})", entities.size(), symbol, bars.size() - entities.size());
 
             // Save in batches
+            log.info(">>> Saving {} entities for {}...", entities.size(), symbol);
             int stored = saveBatch(entities);
 
-            log.info("Symbol {}: fetched {} bars, stored {}", symbol, bars.size(), stored);
+            log.info(">>> Symbol {}: fetched {} bars, converted {}, stored {}", symbol, bars.size(), entities.size(), stored);
             return new SymbolResult(symbol, stored, true);
 
         } catch (Exception e) {
@@ -280,6 +285,9 @@ public class AlpacaCollectionService {
                                                AlpacaAsset assetMetadata) {
         try {
             MarketDataEntity entity = new MarketDataEntity();
+
+            // Initialize audit fields (required by BaseEntity)
+            entity._initAudit("SYSTEM_BATCH");
 
             // Parse timestamp (RFC-3339 format: "2024-11-23T14:30:00Z")
             Instant instant = Instant.parse(bar.getTimestamp());

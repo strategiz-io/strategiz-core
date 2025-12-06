@@ -1,5 +1,6 @@
 package io.strategiz.business.provider.kraken.enrichment;
 
+import io.strategiz.business.provider.kraken.constants.KrakenConstants;
 import io.strategiz.business.provider.kraken.enrichment.enricher.*;
 import io.strategiz.business.provider.kraken.enrichment.model.EnrichedKrakenData;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
@@ -109,10 +110,11 @@ public class KrakenDataEnrichmentService {
         log.debug("Transforming enriched data to ProviderDataEntity");
         
         ProviderDataEntity entity = new ProviderDataEntity();
-        entity.setProviderId("kraken");
-        entity.setProviderName("Kraken");
-        entity.setAccountType("crypto");
-        entity.setDocumentId("kraken");
+        entity.setProviderId(KrakenConstants.PROVIDER_ID);
+        entity.setProviderName(KrakenConstants.PROVIDER_NAME);
+        entity.setProviderType(KrakenConstants.PROVIDER_TYPE);
+        entity.setProviderCategory(KrakenConstants.PROVIDER_CATEGORY);
+        entity.setDocumentId(KrakenConstants.PROVIDER_ID);
         
         // Convert enriched holdings
         List<ProviderDataEntity.Holding> holdings = enrichedData.getAssetInfo().entrySet().stream()

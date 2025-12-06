@@ -284,7 +284,12 @@ public class PasskeyAuthenticationService extends BaseService {
         model.setCredentialId(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID));
         model.setUserId(extractUserIdFromAuthMethod(authMethod));
         model.setAuthenticatorName(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.AUTHENTICATOR_NAME));
-        model.setRegistrationTime(Instant.parse(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.REGISTRATION_TIME)));
+        // Use createdDate from BaseEntity instead of separate REGISTRATION_TIME metadata
+        if (authMethod.getCreatedDate() != null) {
+            model.setRegistrationTime(Instant.ofEpochSecond(
+                authMethod.getCreatedDate().getSeconds(),
+                authMethod.getCreatedDate().getNanos()));
+        }
         model.setLastUsedTime(authMethod.getLastUsedAt());
         model.setAaguid(authMethod.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.AAGUID));
         

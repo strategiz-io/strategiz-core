@@ -92,7 +92,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
         try {
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1000);
 
@@ -122,7 +122,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
 
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("timestamp", startOfDay)
                 .whereLessThan("timestamp", endOfDay);
 
@@ -151,7 +151,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
 
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("timestamp", startTimestamp)
                 .whereLessThan("timestamp", endTimestamp)
                 .orderBy("timestamp", Query.Direction.ASCENDING);
@@ -179,7 +179,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
                 .whereEqualTo("timeframe", timeframe)
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(500);
 
@@ -217,7 +217,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
 
                 Query query = getCollection()
                     .whereIn("symbol", batch)
-                    .whereEqualTo("auditFields.isActive", true)
+                    .whereEqualTo("isActive", true)
                     .whereGreaterThanOrEqualTo("timestamp", startOfDay)
                     .whereLessThan("timestamp", endOfDay);
 
@@ -246,7 +246,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
         try {
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1);
 
@@ -319,7 +319,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
         try {
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
 
             return query.get().get().size();
 
@@ -338,7 +338,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
 
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("timestamp", startOfDay)
                 .whereLessThan("timestamp", endOfDay)
                 .limit(1);
@@ -356,7 +356,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     public List<String> findDistinctSymbols() {
         try {
             Query query = getCollection()
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .select("symbol");
 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
@@ -381,7 +381,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             // Get earliest
             Query earliestQuery = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .limit(1);
 
@@ -394,7 +394,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             // Get latest
             Query latestQuery = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1);
 

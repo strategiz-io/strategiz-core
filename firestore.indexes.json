@@ -9,7 +9,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "auditFields.isActive",
+          "fieldPath": "isActive",
           "order": "ASCENDING"
         },
         {
@@ -27,7 +27,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "auditFields.isActive",
+          "fieldPath": "isActive",
           "order": "ASCENDING"
         },
         {
@@ -49,7 +49,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "auditFields.isActive",
+          "fieldPath": "isActive",
           "order": "ASCENDING"
         },
         {
@@ -63,7 +63,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "auditFields.isActive",
+          "fieldPath": "isActive",
           "order": "ASCENDING"
         },
         {

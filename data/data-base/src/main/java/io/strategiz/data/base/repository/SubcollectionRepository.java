@@ -109,7 +109,7 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
     public List<T> findAllInSubcollection(String parentId) {
         try {
             var query = getSubcollection(parentId)
-                    .whereEqualTo("auditFields.isActive", true);
+                    .whereEqualTo("isActive", true);
                     
             return query.get().get().getDocuments().stream()
                     .map(doc -> {

@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.web.client.HttpClientErrorException;
 
 /**
  * Alpaca Historical Data Client - Fetches historical OHLCV bars
@@ -45,8 +46,14 @@ public class AlpacaHistoricalClient {
     private String apiSecret;
     private String feed;
 
-    @Value("${alpaca.batch.delay-ms:100}")
+    @Value("${alpaca.batch.delay-ms:500}")
     private int delayMs;
+
+    @Value("${alpaca.batch.max-retries:5}")
+    private int maxRetries;
+
+    @Value("${alpaca.batch.retry-delay-ms:2000}")
+    private int retryDelayMs;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -157,7 +164,7 @@ public class AlpacaHistoricalClient {
     }
 
     /**
-     * Fetch a single page of bars
+     * Fetch a single page of bars with retry logic for rate limiting
      */
     private AlpacaBarsResponse getBarsPage(String symbol, LocalDateTime startDate, LocalDateTime endDate,
                                            String timeframe, String pageToken) {
@@ -173,41 +180,87 @@ public class AlpacaHistoricalClient {
             path.append("&page_token=").append(pageToken);
         }
 
-        try {
-            HttpEntity<String> entity = new HttpEntity<>(createHeaders());
-            ResponseEntity<String> responseEntity = restTemplate.exchange(
-                apiUrl + path.toString(),
-                HttpMethod.GET,
-                entity,
-                String.class
-            );
+        String fullUrl = apiUrl + path.toString();
 
-            String responseBody = responseEntity.getBody();
+        // Retry loop with exponential backoff for 429 errors
+        int retryCount = 0;
+        Exception lastException = null;
 
-            if (responseBody == null || responseBody.isEmpty()) {
+        while (retryCount <= maxRetries) {
+            try {
+                log.debug(">>> ALPACA API CALL (attempt {}): {}", retryCount + 1, fullUrl);
+
+                HttpEntity<String> entity = new HttpEntity<>(createHeaders());
+                ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    fullUrl,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+                );
+
+                String responseBody = responseEntity.getBody();
+                log.debug(">>> ALPACA RAW RESPONSE (first 500 chars): {}",
+                    responseBody != null ? responseBody.substring(0, Math.min(500, responseBody.length())) : "NULL");
+
+                if (responseBody == null || responseBody.isEmpty()) {
+                    throw new StrategizException(
+                        AlpacaErrorDetails.NO_DATA_AVAILABLE,
+                        MODULE_NAME,
+                        String.format("Empty response for symbol: %s", symbol)
+                    );
+                }
+
+                AlpacaBarsResponse response = objectMapper.readValue(responseBody, AlpacaBarsResponse.class);
+                log.debug(">>> PARSED RESPONSE: bars count={}, nextPageToken={}",
+                    response.getBars() != null ? response.getBars().size() : 0, response.getNextPageToken());
+
+                if (response.getSymbol() == null) {
+                    response.setSymbol(symbol);
+                }
+
+                return response;
+
+            } catch (HttpClientErrorException.TooManyRequests e) {
+                lastException = e;
+                retryCount++;
+                if (retryCount > maxRetries) {
+                    log.error("Max retries ({}) exceeded for {} - rate limit still in effect", maxRetries, symbol);
+                    break;
+                }
+
+                // Exponential backoff: 2s, 4s, 8s, 16s, 32s
+                long backoffMs = retryDelayMs * (long) Math.pow(2, retryCount - 1);
+                log.warn("Rate limited (429) for {}, attempt {}/{}, waiting {}ms before retry",
+                    symbol, retryCount, maxRetries, backoffMs);
+
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new StrategizException(
+                        AlpacaErrorDetails.PAGINATION_ERROR,
+                        MODULE_NAME,
+                        ie,
+                        "Thread interrupted during rate limit backoff"
+                    );
+                }
+            } catch (Exception e) {
+                log.error("Error fetching bars for {}: {}", symbol, e.getMessage());
                 throw new StrategizException(
-                    AlpacaErrorDetails.NO_DATA_AVAILABLE,
+                    AlpacaErrorDetails.API_ERROR_RESPONSE,
                     MODULE_NAME,
-                    String.format("Empty response for symbol: %s", symbol)
+                    e,
+                    String.format("Failed to fetch bars for symbol: %s", symbol)
                 );
             }
-
-            AlpacaBarsResponse response = objectMapper.readValue(responseBody, AlpacaBarsResponse.class);
-
-            if (response.getSymbol() == null) {
-                response.setSymbol(symbol);
-            }
-
-            return response;
-
-        } catch (Exception e) {
-            log.error("Error fetching bars for {}: {}", symbol, e.getMessage());
-            throw new StrategizException(
-                AlpacaErrorDetails.API_ERROR_RESPONSE,
-                MODULE_NAME,
-                e,
-                String.format("Failed to fetch bars for symbol: %s", symbol)
-            );
         }
+
+        // All retries exhausted
+        throw new StrategizException(
+            AlpacaErrorDetails.API_ERROR_RESPONSE,
+            MODULE_NAME,
+            lastException,
+            String.format("Failed to fetch bars for %s after %d retries due to rate limiting", symbol, maxRetries)
+        );
     }
 }

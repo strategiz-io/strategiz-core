@@ -347,6 +347,75 @@ public class AlpacaBatchController {
     }
 
     /**
+     * Debug endpoint to test AlpacaHistoricalClient directly
+     * GET /api/admin/alpaca/debug/test-api
+     */
+    @GetMapping("/debug/test-api")
+    public ResponseEntity<Map<String, Object>> debugTestApi(
+            @RequestParam(defaultValue = "AAPL") String symbol,
+            @RequestParam(defaultValue = "1Day") String timeframe,
+            @RequestParam(defaultValue = "7") int days) {
+        log.info("=== Admin API: Debug Test API for {} (timeframe: {}, days: {}) ===", symbol, timeframe, days);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("symbol", symbol);
+        result.put("timeframe", timeframe);
+        result.put("days", days);
+
+        try {
+            // Import AlpacaHistoricalClient
+            java.time.LocalDateTime endDate = java.time.LocalDateTime.now();
+            java.time.LocalDateTime startDate = endDate.minusDays(days);
+
+            result.put("startDate", startDate.toString());
+            result.put("endDate", endDate.toString());
+
+            // Use reflection to get the historicalClient from collectionService
+            java.lang.reflect.Field field = collectionService.getClass().getDeclaredField("historicalClient");
+            field.setAccessible(true);
+            Object client = field.get(collectionService);
+
+            if (client == null) {
+                result.put("status", "error");
+                result.put("message", "AlpacaHistoricalClient is null!");
+                return ResponseEntity.ok(result);
+            }
+
+            // Get the getBars method
+            java.lang.reflect.Method getBars = client.getClass().getMethod("getBars",
+                String.class, java.time.LocalDateTime.class, java.time.LocalDateTime.class, String.class);
+
+            // Call getBars with the specified timeframe
+            log.info("Calling getBars with symbol={}, start={}, end={}, timeframe={}", symbol, startDate, endDate, timeframe);
+            Object bars = getBars.invoke(client, symbol, startDate, endDate, timeframe);
+
+            if (bars == null) {
+                result.put("status", "error");
+                result.put("message", "getBars returned null");
+            } else if (bars instanceof java.util.List) {
+                java.util.List<?> barList = (java.util.List<?>) bars;
+                result.put("status", "success");
+                result.put("barsCount", barList.size());
+                if (!barList.isEmpty()) {
+                    result.put("firstBar", barList.get(0).toString());
+                    result.put("lastBar", barList.get(barList.size() - 1).toString());
+                }
+            }
+
+        } catch (Exception e) {
+            result.put("status", "error");
+            result.put("message", e.getMessage());
+            result.put("exceptionType", e.getClass().getName());
+            if (e.getCause() != null) {
+                result.put("cause", e.getCause().getMessage());
+            }
+            log.error("Debug test API failed", e);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * Request DTO for custom backfill
      */
     public static class CustomBackfillRequest {

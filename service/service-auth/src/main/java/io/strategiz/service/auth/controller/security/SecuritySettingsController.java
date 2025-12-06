@@ -4,14 +4,19 @@ import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.service.auth.service.passkey.AuthenticatorRegistry;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 
+import com.google.cloud.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +53,28 @@ public class SecuritySettingsController extends BaseController {
     }
 
     /**
+     * Convert Firestore Timestamp to ISO 8601 string for frontend
+     */
+    private String toIsoString(Timestamp timestamp) {
+        if (timestamp == null) {
+            return null;
+        }
+        return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos())
+            .atOffset(ZoneOffset.UTC)
+            .format(DateTimeFormatter.ISO_INSTANT);
+    }
+
+    /**
+     * Convert Instant to ISO 8601 string for frontend
+     */
+    private String toIsoString(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
+        return instant.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+    }
+
+    /**
      * Get all security settings for a user
      *
      * GET /auth/security?userId={userId}
@@ -81,11 +108,27 @@ public class SecuritySettingsController extends BaseController {
             .forEach(m -> {
                 Map<String, Object> passkey = new HashMap<>();
                 passkey.put("id", m.getId());
-                passkey.put("name", m.getDisplayInfo() != null ? m.getDisplayInfo() : "Passkey");
-                passkey.put("createdAt", m.getCreatedDate());
-                passkey.put("lastUsedAt", m.getLastUsedAt());
+                passkey.put("name", m.getName() != null ? m.getName() : "Passkey");
+                passkey.put("credentialId", m.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID));
+                passkey.put("createdAt", toIsoString(m.getCreatedDate()));
+                passkey.put("lastUsedAt", toIsoString(m.getLastUsedAt()));
                 passkey.put("isActive", m.getIsActive());
-                // Get device info from metadata if available
+
+                // Get AAGUID and resolve authenticator info
+                String aaguid = m.getMetadataAsString(AuthenticationMethodMetadata.PasskeyMetadata.AAGUID);
+                AuthenticatorRegistry.AuthenticatorInfo authInfo = AuthenticatorRegistry.getAuthenticator(aaguid);
+                passkey.put("aaguid", aaguid);
+                passkey.put("authenticatorName", authInfo.name());
+                passkey.put("authenticatorLogo", authInfo.logoId());
+                passkey.put("provider", authInfo.provider());
+
+                // Get backup/sync status
+                Object backupEligible = m.getMetadata(AuthenticationMethodMetadata.PasskeyMetadata.BACKUP_ELIGIBLE);
+                Object backupState = m.getMetadata(AuthenticationMethodMetadata.PasskeyMetadata.BACKUP_STATE);
+                passkey.put("backupEligible", Boolean.TRUE.equals(backupEligible));
+                passkey.put("synced", Boolean.TRUE.equals(backupState));
+
+                // Legacy device name field
                 Object deviceName = m.getMetadata(AuthenticationMethodMetadata.PasskeyMetadata.DEVICE_NAME);
                 if (deviceName != null) {
                     passkey.put("deviceName", deviceName);
@@ -104,8 +147,8 @@ public class SecuritySettingsController extends BaseController {
         if (totpMethod != null) {
             totp.put("enabled", totpMethod.getIsActive());
             totp.put("verified", totpMethod.getMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFIED));
-            totp.put("createdAt", totpMethod.getCreatedDate());
-            totp.put("lastUsedAt", totpMethod.getLastUsedAt());
+            totp.put("createdAt", toIsoString(totpMethod.getCreatedDate()));
+            totp.put("lastUsedAt", toIsoString(totpMethod.getLastUsedAt()));
         } else {
             totp.put("enabled", false);
             totp.put("verified", false);
@@ -128,7 +171,7 @@ public class SecuritySettingsController extends BaseController {
             if (phoneNumber != null && phoneNumber.length() > 4) {
                 smsOtp.put("phoneNumber", "***" + phoneNumber.substring(phoneNumber.length() - 4));
             }
-            smsOtp.put("lastUsedAt", smsMethod.getLastUsedAt());
+            smsOtp.put("lastUsedAt", toIsoString(smsMethod.getLastUsedAt()));
         } else {
             smsOtp.put("enabled", false);
             smsOtp.put("verified", false);
@@ -147,7 +190,7 @@ public class SecuritySettingsController extends BaseController {
         google.put("connected", googleMethod != null && googleMethod.getIsActive());
         if (googleMethod != null) {
             google.put("email", googleMethod.getMetadataAsString("email"));
-            google.put("connectedAt", googleMethod.getCreatedDate());
+            google.put("connectedAt", toIsoString(googleMethod.getCreatedDate()));
         }
         oauth.put("google", google);
 
@@ -159,7 +202,7 @@ public class SecuritySettingsController extends BaseController {
         Map<String, Object> facebook = new HashMap<>();
         facebook.put("connected", facebookMethod != null && facebookMethod.getIsActive());
         if (facebookMethod != null) {
-            facebook.put("connectedAt", facebookMethod.getCreatedDate());
+            facebook.put("connectedAt", toIsoString(facebookMethod.getCreatedDate()));
         }
         oauth.put("facebook", facebook);
 

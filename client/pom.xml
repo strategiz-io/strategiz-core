@@ -31,6 +31,8 @@
         <module>client-google</module>
         <module>client-firebase-sms</module>
         <module>client-gemini</module>
+        <module>client-schwab</module>
+        <module>client-robinhood</module>
     </modules>
     
     <dependencies>

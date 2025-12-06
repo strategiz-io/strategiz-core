@@ -97,27 +97,71 @@ public class PasskeyManagementService extends BaseService {
     @Transactional
     public boolean deletePasskey(String userId, String credentialId) {
         logger.debug("Attempting to delete passkey credential: {} for user: {}", credentialId, userId);
-        
+
         Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
             credentialRepository.findByCredentialId(credentialId)
         );
-        
+
         if (credentialOpt.isEmpty()) {
             logger.warn("Passkey deletion failed: Credential not found: {}", credentialId);
             return false;
         }
-        
+
         PasskeyCredential credential = credentialOpt.get();
-        
+
         // Verify user owns the credential
         if (!credential.getUserId().equals(userId)) {
-            logger.warn("Passkey deletion failed: UserEntity {} attempted to delete credential {} belonging to user {}", 
+            logger.warn("Passkey deletion failed: UserEntity {} attempted to delete credential {} belonging to user {}",
                     userId, credentialId, credential.getUserId());
             return false;
         }
-        
+
         logger.info("Deleting passkey credential: {} for user: {}", credentialId, userId);
         credentialRepository.delete(credentialConverter.toEntity(credential));
+        return true;
+    }
+
+    /**
+     * Rename a passkey credential
+     * <p>
+     * This method allows renaming of a specific passkey credential identified by its ID.
+     * For security, the method verifies that the credential belongs to the specified user
+     * before updating.
+     *
+     * @param userId UserEntity ID of the credential owner
+     * @param credentialId Credential ID to rename
+     * @param newName The new name for the passkey
+     * @return true if credential was found and renamed, false if not found or not owned by user
+     */
+    @Transactional
+    public boolean renamePasskey(String userId, String credentialId, String newName) {
+        logger.debug("Attempting to rename passkey credential: {} for user: {} to: {}", credentialId, userId, newName);
+
+        Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
+            credentialRepository.findByCredentialId(credentialId)
+        );
+
+        if (credentialOpt.isEmpty()) {
+            logger.warn("Passkey rename failed: Credential not found: {}", credentialId);
+            return false;
+        }
+
+        PasskeyCredential credential = credentialOpt.get();
+
+        // Verify user owns the credential
+        if (!credential.getUserId().equals(userId)) {
+            logger.warn("Passkey rename failed: UserEntity {} attempted to rename credential {} belonging to user {}",
+                    userId, credentialId, credential.getUserId());
+            return false;
+        }
+
+        // Update the name
+        credential.setName(newName);
+
+        // Save the updated credential
+        credentialRepository.save(credentialConverter.toEntity(credential));
+
+        logger.info("Successfully renamed passkey credential: {} for user: {} to: {}", credentialId, userId, newName);
         return true;
     }
     

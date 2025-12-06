@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * Provides access to historical OHLCV data for charting and analysis
  */
 @RestController
-@RequestMapping("/api/v1/market-data")
+@RequestMapping("/v1/market-data")
 @Tag(name = "Market Data", description = "Access historical market data (OHLCV bars)")
 public class MarketDataController extends BaseController {
 
@@ -36,7 +36,7 @@ public class MarketDataController extends BaseController {
 
     /**
      * Get market data bars for a symbol
-     * GET /api/v1/market-data/bars?symbol=AAPL&timeframe=1Day&startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z
+     * GET /v1/market-data/bars?symbol=AAPL&timeframe=1Day&startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z
      *
      * @param symbol Stock symbol (required, e.g., "AAPL")
      * @param timeframe Timeframe for the bars (required, e.g., "1Day", "1Hour")
@@ -63,7 +63,7 @@ public class MarketDataController extends BaseController {
         @RequestParam(required = false) String endDate
     ) {
         try {
-            log.info("GET /api/v1/market-data/bars - symbol={}, timeframe={}, startDate={}, endDate={}",
+            log.info("GET /v1/market-data/bars - symbol={}, timeframe={}, startDate={}, endDate={}",
                 symbol, timeframe, startDate, endDate);
 
             // Validate required parameters
@@ -91,7 +91,7 @@ public class MarketDataController extends BaseController {
 
     /**
      * Get the latest market data for a symbol
-     * GET /api/v1/market-data/latest?symbol=AAPL
+     * GET /v1/market-data/latest?symbol=AAPL
      *
      * @param symbol Stock symbol (required)
      * @return Latest market data bar
@@ -106,7 +106,7 @@ public class MarketDataController extends BaseController {
         @RequestParam(required = true) String symbol
     ) {
         try {
-            log.info("GET /api/v1/market-data/latest - symbol={}", symbol);
+            log.info("GET /v1/market-data/latest - symbol={}", symbol);
 
             // Validate required parameters
             validateRequiredParam("symbol", symbol);
@@ -133,7 +133,7 @@ public class MarketDataController extends BaseController {
 
     /**
      * Get all available symbols in the database
-     * GET /api/v1/market-data/symbols
+     * GET /v1/market-data/symbols
      *
      * @return List of distinct symbols
      */
@@ -144,7 +144,7 @@ public class MarketDataController extends BaseController {
     )
     public ResponseEntity<List<String>> getAvailableSymbols() {
         try {
-            log.info("GET /api/v1/market-data/symbols");
+            log.info("GET /v1/market-data/symbols");
 
             List<String> symbols = marketDataService.getAvailableSymbols();
 

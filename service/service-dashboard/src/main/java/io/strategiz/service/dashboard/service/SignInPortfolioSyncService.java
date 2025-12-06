@@ -390,7 +390,8 @@ public class SignInPortfolioSyncService extends BaseService {
             ProviderDataEntity data = new ProviderDataEntity();
             data.setProviderId("kraken");
             data.setProviderName("Kraken");
-            data.setAccountType("crypto");
+            data.setProviderType("crypto");
+            data.setProviderCategory("exchange");
             
             // Process balance data
             if (balanceResponse.containsKey("result")) {

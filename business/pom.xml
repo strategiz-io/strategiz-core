@@ -27,6 +27,7 @@
         <module>business-provider-binanceus</module>
         <module>business-provider-alpaca</module>
         <module>business-provider-schwab</module>
+        <module>business-provider-robinhood</module>
         <module>business-ai-chat</module>
         <module>business-marketdata</module>
     </modules>

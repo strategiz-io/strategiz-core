@@ -52,7 +52,8 @@ public class KrakenDataTransformer {
             // Set basic provider information
             data.setProviderId(KrakenConstants.PROVIDER_ID);
             data.setProviderName(KrakenConstants.PROVIDER_NAME);
-            data.setAccountType(KrakenConstants.PROVIDER_TYPE);
+            data.setProviderType(KrakenConstants.PROVIDER_TYPE);
+            data.setProviderCategory(KrakenConstants.PROVIDER_CATEGORY);
             data.setDocumentId(KrakenConstants.PROVIDER_ID); // Use provider ID as document ID
             
             // Extract and process balances
@@ -345,9 +346,10 @@ public class KrakenDataTransformer {
             // Set basic provider information
             data.setProviderId(KrakenConstants.PROVIDER_ID);
             data.setProviderName(KrakenConstants.PROVIDER_NAME);
-            data.setAccountType(KrakenConstants.PROVIDER_TYPE);
+            data.setProviderType(KrakenConstants.PROVIDER_TYPE);
+            data.setProviderCategory(KrakenConstants.PROVIDER_CATEGORY);
             data.setDocumentId(KrakenConstants.PROVIDER_ID);
-            
+
             // Store raw balances for reference
             Map<String, Object> rawBalances = new HashMap<>();
             for (Map.Entry<String, EnrichedKrakenData.AssetInfo> entry : enrichedData.getAssetInfo().entrySet()) {

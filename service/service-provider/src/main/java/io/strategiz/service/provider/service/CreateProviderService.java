@@ -9,6 +9,7 @@ import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.binanceus.BinanceUSProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
+import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
 // import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
@@ -63,6 +64,7 @@ public class CreateProviderService {
             BinanceUSProviderBusiness binanceUSProviderBusiness,
             AlpacaProviderBusiness alpacaProviderBusiness,
             SchwabProviderBusiness schwabProviderBusiness,
+            RobinhoodProviderBusiness robinhoodProviderBusiness,
             // WebullProviderBusiness webullProviderBusiness, // TODO: Add when webull module is ready
             ProfileService profileService,
             ReadProviderIntegrationRepository readProviderIntegrationRepository) {
@@ -75,6 +77,7 @@ public class CreateProviderService {
         this.providerHandlers.put("binanceus", binanceUSProviderBusiness);
         this.providerHandlers.put("alpaca", alpacaProviderBusiness);
         this.providerHandlers.put("schwab", schwabProviderBusiness);
+        this.providerHandlers.put("robinhood", robinhoodProviderBusiness);
         // this.providerHandlers.put("webull", webullProviderBusiness); // TODO: Add when webull module is ready
 
         this.profileService = profileService;
@@ -356,6 +359,8 @@ public class CreateProviderService {
                 return "Alpaca";
             case "schwab":
                 return "Charles Schwab";
+            case "robinhood":
+                return "Robinhood";
             default:
                 return providerId;
         }

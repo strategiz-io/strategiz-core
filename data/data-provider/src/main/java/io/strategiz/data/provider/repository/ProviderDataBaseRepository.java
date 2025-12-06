@@ -28,7 +28,7 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
      * Get user-scoped collection for provider data
      * Returns users/{userId}/provider_data
      */
-    protected CollectionReference getUserScopedCollection(String userId) {
+    public CollectionReference getUserScopedCollection(String userId) {
         return firestore.collection("users").document(userId).collection("provider_data");
     }
     

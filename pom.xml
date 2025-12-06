@@ -32,6 +32,7 @@
         <module>business/business-provider-binanceus</module>
         <module>business/business-provider-alpaca</module>
         <module>business/business-provider-schwab</module>
+        <module>business/business-provider-robinhood</module>
         <module>business/business-strategy-execution</module>
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
@@ -67,6 +68,7 @@
         <module>client/client-schwab</module>
         <module>client/client-alpaca</module>
         <module>client/client-gemini</module>
+        <module>client/client-robinhood</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         

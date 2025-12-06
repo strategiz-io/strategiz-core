@@ -26,6 +26,8 @@ public class PortfolioOverviewResponse {
     public static class ProviderSummary {
         private String providerId;
         private String providerName;
+        private String providerType; // crypto, equity, forex
+        private String providerCategory; // exchange, brokerage
         private boolean connected;
         private BigDecimal totalValue;
         private BigDecimal dayChange;
@@ -50,7 +52,23 @@ public class PortfolioOverviewResponse {
         public void setProviderName(String providerName) {
             this.providerName = providerName;
         }
-        
+
+        public String getProviderType() {
+            return providerType;
+        }
+
+        public void setProviderType(String providerType) {
+            this.providerType = providerType;
+        }
+
+        public String getProviderCategory() {
+            return providerCategory;
+        }
+
+        public void setProviderCategory(String providerCategory) {
+            this.providerCategory = providerCategory;
+        }
+
         public boolean isConnected() {
             return connected;
         }

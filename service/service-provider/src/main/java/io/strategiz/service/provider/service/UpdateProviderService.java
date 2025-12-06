@@ -189,6 +189,9 @@ public class UpdateProviderService extends ProviderBaseService {
             case "coinbase":
             case "binance":
             case "kraken":
+            case "webull":
+            case "schwab":
+            case "alpaca":
                 return true;
             default:
                 return false;

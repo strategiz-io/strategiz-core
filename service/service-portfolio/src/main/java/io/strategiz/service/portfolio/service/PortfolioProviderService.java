@@ -36,18 +36,15 @@ public class PortfolioProviderService {
     
     private final ReadProviderDataRepository providerDataRepository;
     private final UserRepository userRepository;
-    private final KrakenPortfolioService krakenPortfolioService;
     private final PortfolioEnhancementOrchestrator portfolioEnhancer;
-    
+
     @Autowired
     public PortfolioProviderService(
             ReadProviderDataRepository providerDataRepository,
             UserRepository userRepository,
-            @Autowired(required = false) KrakenPortfolioService krakenPortfolioService,
             @Autowired(required = false) PortfolioEnhancementOrchestrator portfolioEnhancer) {
         this.providerDataRepository = providerDataRepository;
         this.userRepository = userRepository;
-        this.krakenPortfolioService = krakenPortfolioService;
         this.portfolioEnhancer = portfolioEnhancer;
     }
     
@@ -60,18 +57,9 @@ public class PortfolioProviderService {
      */
     public ProviderPortfolioResponse getProviderPortfolio(String userId, String providerId) {
         log.debug("Fetching {} portfolio for user: {}", providerId, userId);
-        
+
         try {
-            // Check if user is in demo mode
-            boolean isInDemoMode = isDemoMode(userId);
-            log.debug("User {} demo mode: {}", userId, isInDemoMode);
-            
-            // If not in demo mode and provider is Kraken, use KrakenPortfolioService
-            if (!isInDemoMode && ServicePortfolioConstants.PROVIDER_KRAKEN.equals(providerId) && krakenPortfolioService != null) {
-                return krakenPortfolioService.getKrakenPortfolio(userId);
-            }
-            
-            // Otherwise, return stored/demo data with enhancement
+            // Read stored provider data from Firestore
             ProviderDataEntity providerData = providerDataRepository.getProviderData(userId, providerId);
             
             if (providerData == null) {
@@ -94,33 +82,6 @@ public class PortfolioProviderService {
     }
     
     /**
-     * Refresh portfolio data for a specific provider.
-     * 
-     * @param userId User ID
-     * @param providerId Provider ID
-     * @return Success status
-     */
-    public boolean refreshProviderData(String userId, String providerId) {
-        log.info("Refreshing {} data for user: {}", providerId, userId);
-        
-        try {
-            // Use provider-specific service for refresh
-            if (ServicePortfolioConstants.PROVIDER_KRAKEN.equals(providerId) && krakenPortfolioService != null) {
-                return krakenPortfolioService.refreshKrakenData(userId);
-            }
-            
-            // TODO: Add other provider-specific services
-            log.info("Would trigger refresh for provider: {}", providerId);
-            
-            return true;
-            
-        } catch (Exception e) {
-            log.error("Error refreshing {} data for user {}: {}", providerId, userId, e.getMessage(), e);
-            return false;
-        }
-    }
-    
-    /**
      * Map ProviderDataEntity to ProviderPortfolioResponse
      */
     private ProviderPortfolioResponse mapToProviderResponse(ProviderDataEntity entity) {
@@ -128,7 +89,8 @@ public class PortfolioProviderService {
         
         response.setProviderId(entity.getProviderId());
         response.setProviderName(entity.getProviderName());
-        response.setAccountType(entity.getAccountType());
+        response.setProviderType(entity.getProviderType());
+        response.setProviderCategory(entity.getProviderCategory());
         response.setConnected(true);
         response.setTotalValue(entity.getTotalValue());
         response.setDayChange(entity.getDayChange());
@@ -348,7 +310,8 @@ public class PortfolioProviderService {
         
         response.setProviderId(enhanced.getProviderId());
         response.setProviderName(enhanced.getProviderName());
-        response.setAccountType("crypto"); // Will be determined by provider type
+        response.setProviderType("crypto"); // Default, will be overridden by actual provider
+        response.setProviderCategory("exchange"); // Default, will be overridden by actual provider
         response.setConnected(true);
         response.setTotalValue(enhanced.getTotalValue());
         response.setDayChange(BigDecimal.ZERO); // TODO: Calculate from historical data

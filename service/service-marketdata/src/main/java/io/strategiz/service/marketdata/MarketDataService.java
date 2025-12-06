@@ -1,5 +1,6 @@
 package io.strategiz.service.marketdata;
 
+import io.strategiz.data.marketdata.constants.Timeframe;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +39,7 @@ public class MarketDataService {
      * Fetch market data bars for a symbol within a date range
      *
      * @param symbol The stock symbol (e.g., "AAPL")
-     * @param timeframe The timeframe (e.g., "1Day", "1Hour")
+     * @param timeframe The timeframe (e.g., "1Day", "1Hour", "1Min") - accepts both canonical and legacy formats
      * @param startDate Start date in ISO format (e.g., "2024-01-01T00:00:00Z")
      * @param endDate End date in ISO format (e.g., "2024-12-31T23:59:59Z")
      * @return List of market data entities sorted by timestamp ascending
@@ -51,6 +53,12 @@ public class MarketDataService {
             LocalDate startLocalDate = parseIsoDateToLocalDate(startDate);
             LocalDate endLocalDate = parseIsoDateToLocalDate(endDate);
 
+            // Get all possible timeframe aliases for querying (handles legacy formats)
+            String normalizedTimeframe = Timeframe.normalize(timeframe);
+            Set<String> timeframeAliases = Timeframe.getAliases(normalizedTimeframe);
+            log.debug("Timeframe {} normalized to {}, querying with aliases: {}",
+                timeframe, normalizedTimeframe, timeframeAliases);
+
             // Query repository
             List<MarketDataEntity> results;
 
@@ -58,15 +66,21 @@ public class MarketDataService {
                 // Query with date range
                 results = marketDataRepository.findBySymbolAndDateRange(symbol.toUpperCase(), startLocalDate, endLocalDate);
 
-                // Filter by timeframe if specified
+                // Filter by timeframe if specified (match any alias)
                 if (timeframe != null && !timeframe.isEmpty()) {
                     results = results.stream()
-                        .filter(entity -> timeframe.equals(entity.getTimeframe()))
+                        .filter(entity -> entity.getTimeframe() != null &&
+                                          timeframeAliases.contains(entity.getTimeframe()))
                         .collect(Collectors.toList());
                 }
             } else if (timeframe != null && !timeframe.isEmpty()) {
                 // Query by symbol and timeframe only
-                results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), timeframe);
+                // Try normalized first, then fall back to original if empty
+                results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), normalizedTimeframe);
+                if (results.isEmpty() && !normalizedTimeframe.equals(timeframe)) {
+                    log.debug("No results for normalized timeframe {}, trying original: {}", normalizedTimeframe, timeframe);
+                    results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), timeframe);
+                }
             } else {
                 // Query by symbol only
                 results = marketDataRepository.findBySymbol(symbol.toUpperCase());
@@ -75,7 +89,7 @@ public class MarketDataService {
             // Sort by timestamp ascending (oldest first)
             results.sort(Comparator.comparing(MarketDataEntity::getTimestamp));
 
-            log.info("Retrieved {} market data bars for {}", results.size(), symbol);
+            log.info("Retrieved {} market data bars for {} with timeframe {}", results.size(), symbol, timeframe);
             return results;
 
         } catch (Exception e) {

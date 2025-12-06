@@ -12,7 +12,8 @@ public class ProviderPortfolioResponse {
     
     private String providerId;
     private String providerName;
-    private String accountType;  // crypto, stock, forex
+    private String providerType;  // crypto, equity, forex
+    private String providerCategory;  // exchange, brokerage
     private boolean connected;
     private BigDecimal totalValue;
     private BigDecimal dayChange;
@@ -46,14 +47,22 @@ public class ProviderPortfolioResponse {
         this.providerName = providerName;
     }
     
-    public String getAccountType() {
-        return accountType;
+    public String getProviderType() {
+        return providerType;
     }
-    
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
+
+    public void setProviderType(String providerType) {
+        this.providerType = providerType;
     }
-    
+
+    public String getProviderCategory() {
+        return providerCategory;
+    }
+
+    public void setProviderCategory(String providerCategory) {
+        this.providerCategory = providerCategory;
+    }
+
     public boolean isConnected() {
         return connected;
     }

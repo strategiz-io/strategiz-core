@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -112,42 +111,6 @@ public class PortfolioAggregatorController extends BaseController {
             log.error("Error fetching portfolio overview for user {}: {}", userId, e.getMessage(), e);
             throw new StrategizException(ErrorCode.INTERNAL_ERROR, 
                 ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
-        }
-    }
-
-    /**
-     * Refresh portfolio data for all connected providers.
-     * 
-     * @param authHeader Authorization header with bearer token
-     * @return Status of the refresh operation
-     */
-    @PostMapping(ServicePortfolioConstants.REFRESH_PATH)
-    public ResponseEntity<Map<String, Object>> refreshPortfolio(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        // Extract user ID from token
-        String userId = extractUserIdFromToken(authHeader);
-        if (userId == null) {
-            log.error("No valid authentication token provided for portfolio refresh");
-            throw new StrategizException(ErrorCode.AUTHENTICATION_ERROR, 
-                ServicePortfolioConstants.ERROR_NO_AUTH);
-        }
-        
-        log.info("Refreshing portfolio data for user: {}", userId);
-        
-        try {
-            boolean success = portfolioAggregatorService.refreshAllProviderData(userId);
-            
-            return ResponseEntity.ok(Map.of(
-                "success", success,
-                "message", success ? "Portfolio data refreshed successfully" : "Failed to refresh portfolio data",
-                "timestamp", System.currentTimeMillis()
-            ));
-            
-        } catch (Exception e) {
-            log.error("Error refreshing portfolio for user {}: {}", userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, 
-                "Failed to refresh portfolio data");
         }
     }
 

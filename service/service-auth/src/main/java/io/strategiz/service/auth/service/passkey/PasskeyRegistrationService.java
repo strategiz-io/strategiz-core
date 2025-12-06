@@ -203,26 +203,40 @@ public class PasskeyRegistrationService extends BaseService {
                 return new RegistrationResult(false, credentialId, "Credential already exists");
             }
             
-            // Parse attestation to extract public key
-            byte[] publicKeyBytes = extractPublicKeyFromAttestation(attestationObject);
-            if (publicKeyBytes == null) {
-                log.warn("Could not extract public key from attestation");
-                return new RegistrationResult(false, credentialId, "Could not extract public key");
+            // Parse attestation to extract public key and authenticator info
+            ParsedAttestation attestation = parseAttestation(attestationObject);
+            if (attestation == null || attestation.publicKey() == null) {
+                log.warn("Could not parse attestation object");
+                return new RegistrationResult(false, credentialId, "Could not parse attestation");
             }
-            
-            // Create and save authentication method
+
+            // Get authenticator info from AAGUID
+            AuthenticatorRegistry.AuthenticatorInfo authInfo = AuthenticatorRegistry.getAuthenticator(attestation.aaguid());
+
+            // Create and save authentication method with authenticator name as default
             AuthenticationMethodEntity authMethod = new AuthenticationMethodEntity(
-                AuthenticationMethodType.PASSKEY, 
-                "Passkey"
+                AuthenticationMethodType.PASSKEY,
+                authInfo.name()  // Default name from authenticator (e.g., "iCloud Keychain")
             );
-            
-            // Store only essential passkey data in metadata
+
+            // Store essential passkey data in metadata
+            // Note: Registration time comes from BaseEntity.createdDate
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.CREDENTIAL_ID, credentialId);
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64, 
-                java.util.Base64.getEncoder().encodeToString(publicKeyBytes));
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.PUBLIC_KEY_BASE64,
+                java.util.Base64.getEncoder().encodeToString(attestation.publicKey()));
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.SIGNATURE_COUNT, 0);
             authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.VERIFIED, true);
-            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.REGISTRATION_TIME, Instant.now().toString());
+
+            // Store authenticator identification
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.AAGUID, attestation.aaguid());
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.AUTHENTICATOR_NAME, authInfo.name());
+
+            // Store backup/sync status
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.BACKUP_ELIGIBLE, attestation.backupEligible());
+            authMethod.putMetadata(AuthenticationMethodMetadata.PasskeyMetadata.BACKUP_STATE, attestation.backupState());
+
+            log.info("Registering passkey from {} (AAGUID: {}, synced: {})",
+                authInfo.name(), attestation.aaguid(), attestation.backupState());
             
             authMethod.markAsUsed();
             
@@ -260,43 +274,69 @@ public class PasskeyRegistrationService extends BaseService {
     }
     
     /**
-     * Extract public key from attestation object
+     * Parsed attestation data containing public key and authenticator info
      */
-    private byte[] extractPublicKeyFromAttestation(String attestationObject) {
+    public record ParsedAttestation(
+        byte[] publicKey,
+        String aaguid,
+        boolean backupEligible,
+        boolean backupState
+    ) {}
+
+    /**
+     * Extract public key and authenticator info from attestation object
+     */
+    private ParsedAttestation parseAttestation(String attestationObject) {
         try {
             // Use WebAuthn4J to parse attestation
             ObjectConverter objectConverter = new ObjectConverter();
             AuthenticatorDataConverter converter = new AuthenticatorDataConverter(objectConverter);
-            
+
             // Decode base64url attestation object
             byte[] attestationBytes = java.util.Base64.getUrlDecoder().decode(attestationObject);
-            
+
             // Parse CBOR attestation object
             Map<String, Object> attestationMap = objectConverter.getCborConverter().readValue(attestationBytes, Map.class);
-            
+
             // Extract authData
             byte[] authDataBytes = (byte[]) attestationMap.get("authData");
-            
+
             // Parse authenticator data
             AuthenticatorData authData = converter.convert(authDataBytes);
-            
+
             // Extract attested credential data
             AttestedCredentialData attestedCredentialData = authData.getAttestedCredentialData();
             if (attestedCredentialData == null) {
                 return null;
             }
-            
+
             // Extract COSE key
             COSEKey coseKey = attestedCredentialData.getCOSEKey();
             if (coseKey == null) {
                 return null;
             }
-            
-            // Convert to bytes
-            return objectConverter.getCborConverter().writeValueAsBytes(coseKey);
-            
+
+            // Extract AAGUID (Authenticator Attestation GUID)
+            String aaguid = null;
+            if (attestedCredentialData.getAaguid() != null) {
+                aaguid = attestedCredentialData.getAaguid().toString();
+                log.info("Extracted AAGUID: {}", aaguid);
+            }
+
+            // Extract backup flags from authenticator data flags byte
+            // BE (Backup Eligible) - bit 3 (0x08), BS (Backup State) - bit 4 (0x10)
+            byte flagsByte = authData.getFlags();
+            boolean backupEligible = (flagsByte & 0x08) != 0;  // BE flag - bit 3
+            boolean backupState = (flagsByte & 0x10) != 0;     // BS flag - bit 4
+            log.info("Backup flags - eligible: {}, state: {} (raw flags: {})", backupEligible, backupState, String.format("0x%02X", flagsByte));
+
+            // Convert public key to bytes
+            byte[] publicKeyBytes = objectConverter.getCborConverter().writeValueAsBytes(coseKey);
+
+            return new ParsedAttestation(publicKeyBytes, aaguid, backupEligible, backupState);
+
         } catch (Exception e) {
-            log.warn("Error extracting public key from attestation", e);
+            log.warn("Error parsing attestation", e);
             return null;
         }
     }

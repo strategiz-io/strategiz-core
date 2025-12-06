@@ -95,10 +95,50 @@ public class PasskeyManagementController extends BaseController {
     }
     
     /**
+     * Rename a passkey
+     *
+     * PUT /auth/passkeys/{credentialId}?userId={userId}
+     *
+     * @param credentialId The credential ID to rename
+     * @param userId The user ID for authorization
+     * @param request Request body containing the new name
+     * @return Updated passkey info
+     */
+    @PutMapping("/{credentialId}")
+    public ResponseEntity<Map<String, Object>> renamePasskey(
+            @PathVariable String credentialId,
+            @RequestParam String userId,
+            @RequestBody Map<String, String> request) {
+
+        logRequest("renamePasskey", userId);
+
+        String newName = request.get("name");
+        if (newName == null || newName.trim().isEmpty()) {
+            return createCleanResponse(Map.of(
+                "success", false,
+                "error", "Name is required"
+            ));
+        }
+
+        // Rename passkey
+        boolean renamed = passkeyManagementService.renamePasskey(userId, credentialId, newName.trim());
+
+        Map<String, Object> result = Map.of(
+            "success", renamed,
+            "credentialId", credentialId,
+            "name", newName.trim(),
+            "message", renamed ? "Passkey renamed successfully" : "Passkey not found or could not be renamed"
+        );
+
+        logRequestSuccess("renamePasskey", userId, result);
+        return createCleanResponse(result);
+    }
+
+    /**
      * Get passkey statistics for a user
-     * 
+     *
      * GET /auth/passkeys/stats?userId={userId}
-     * 
+     *
      * @param userId The user ID to get statistics for
      * @return Clean statistics response - no wrapper, let GlobalExceptionHandler handle errors
      */

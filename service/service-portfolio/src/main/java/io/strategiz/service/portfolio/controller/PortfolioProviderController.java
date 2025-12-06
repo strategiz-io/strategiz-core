@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -80,46 +79,8 @@ public class PortfolioProviderController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error fetching {} portfolio for user {}: {}", providerId, userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, 
+            throw new StrategizException(ErrorCode.INTERNAL_ERROR,
                 ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
-        }
-    }
-
-    /**
-     * Refresh portfolio data for a specific provider.
-     * 
-     * @param providerId Provider ID
-     * @param authHeader Authorization header with bearer token
-     * @return Refresh status
-     */
-    @PostMapping("/{providerId}" + ServicePortfolioConstants.REFRESH_PATH)
-    public ResponseEntity<Map<String, Object>> refreshProviderData(
-            @PathVariable String providerId,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        String userId = extractUserIdFromToken(authHeader);
-        if (userId == null) {
-            log.error("No valid authentication token provided for provider refresh");
-            throw new StrategizException(ErrorCode.AUTHENTICATION_ERROR, 
-                ServicePortfolioConstants.ERROR_NO_AUTH);
-        }
-        
-        log.info("Refreshing {} data for user: {}", providerId, userId);
-        
-        try {
-            boolean success = portfolioProviderService.refreshProviderData(userId, providerId);
-            
-            return ResponseEntity.ok(Map.of(
-                "success", success,
-                "providerId", providerId,
-                "message", success ? "Refresh initiated successfully" : "Failed to refresh data",
-                "timestamp", System.currentTimeMillis()
-            ));
-            
-        } catch (Exception e) {
-            log.error("Error refreshing {} data for user {}: {}", providerId, userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, 
-                "Failed to refresh provider data");
         }
     }
 

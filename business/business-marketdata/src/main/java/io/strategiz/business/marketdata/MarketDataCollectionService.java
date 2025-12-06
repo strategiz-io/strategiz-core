@@ -217,7 +217,7 @@ public class MarketDataCollectionService {
 
         // Set symbol and metadata first
         entity.setSymbol(symbol);
-        entity.setTimeframe("1D");
+        entity.setTimeframe("1Day");  // Use standardized timeframe format
 
         // Convert LocalDate to LocalDateTime (start of day in UTC) and set timestamp
         // This will also auto-generate the ID

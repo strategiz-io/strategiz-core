@@ -56,8 +56,9 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     
     private static final String PROVIDER_ID = "coinbase";
     private static final String PROVIDER_NAME = "Coinbase";
-    private static final String PROVIDER_TYPE = "exchange";
-    
+    private static final String PROVIDER_TYPE = "crypto";
+    private static final String PROVIDER_CATEGORY = "exchange";
+
     private final CoinbaseClient coinbaseClient;
     private final CoinbaseDataClient coinbaseDataClient;
     private final CoinbaseOAuthClient coinbaseOAuthClient;
@@ -689,8 +690,9 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     private ProviderDataEntity transformToProviderDataEntity(Map<String, Object> accountsResponse, String userId, String accessToken) {
         ProviderDataEntity entity = new ProviderDataEntity();
         entity.setProviderId(PROVIDER_ID);
-        entity.setProviderName("Coinbase");
-        entity.setAccountType("exchange");
+        entity.setProviderName(PROVIDER_NAME);
+        entity.setProviderType(PROVIDER_TYPE);
+        entity.setProviderCategory(PROVIDER_CATEGORY);
         entity.setSyncStatus("success");
         entity.setLastUpdatedAt(Instant.now());
 

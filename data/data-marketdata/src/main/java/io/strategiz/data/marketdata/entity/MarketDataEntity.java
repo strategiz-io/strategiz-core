@@ -1,7 +1,9 @@
 package io.strategiz.data.marketdata.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.firestore.annotation.DocumentId;
+import com.google.cloud.firestore.annotation.Exclude;
 import com.google.cloud.firestore.annotation.PropertyName;
 import io.strategiz.data.base.annotation.Collection;
 import io.strategiz.data.base.entity.BaseEntity;
@@ -156,6 +158,8 @@ public class MarketDataEntity extends BaseEntity {
     /**
      * Get typical price (HLC/3)
      */
+    @Exclude
+    @JsonIgnore
     public BigDecimal getTypicalPrice() {
         if (high != null && low != null && close != null) {
             return high.add(low).add(close)
@@ -167,6 +171,8 @@ public class MarketDataEntity extends BaseEntity {
     /**
      * Get price range (high - low)
      */
+    @Exclude
+    @JsonIgnore
     public BigDecimal getPriceRange() {
         if (high != null && low != null) {
             return high.subtract(low);
@@ -179,6 +185,8 @@ public class MarketDataEntity extends BaseEntity {
     /**
      * Get timestamp as LocalDateTime in UTC
      */
+    @Exclude
+    @JsonIgnore
     public LocalDateTime getTimestampAsLocalDateTime() {
         if (timestamp == null) return null;
         return LocalDateTime.ofInstant(

@@ -53,6 +53,9 @@ public class PortfolioSummaryEntity extends BaseEntity {
     @PropertyName("asset_allocation")
     private AssetAllocation assetAllocation;
 
+    @PropertyName("category_allocations")
+    private List<CategoryAllocationData> categoryAllocations;
+
     @PropertyName("account_performance")
     private Map<String, BigDecimal> accountPerformance; // providerId -> value
 
@@ -166,6 +169,14 @@ public class PortfolioSummaryEntity extends BaseEntity {
 
     public void setAssetAllocation(AssetAllocation assetAllocation) {
         this.assetAllocation = assetAllocation;
+    }
+
+    public List<CategoryAllocationData> getCategoryAllocations() {
+        return categoryAllocations;
+    }
+
+    public void setCategoryAllocations(List<CategoryAllocationData> categoryAllocations) {
+        this.categoryAllocations = categoryAllocations;
     }
 
     public Map<String, BigDecimal> getAccountPerformance() {
@@ -319,6 +330,94 @@ public class PortfolioSummaryEntity extends BaseEntity {
 
         public void setSectors(Map<String, BigDecimal> sectors) {
             this.sectors = sectors;
+        }
+    }
+
+    /**
+     * Nested class for category-based asset allocation data
+     * Used for pie chart display on dashboard
+     */
+    public static class CategoryAllocationData {
+
+        @PropertyName("category")
+        private String category;  // "CRYPTOCURRENCY", "STOCKS", "CASH", "FOREX"
+
+        @PropertyName("category_name")
+        private String categoryName;  // "Cryptocurrencies", "Stocks & Equities", etc.
+
+        @PropertyName("color")
+        private String color;  // "#39FF14", "#00BFFF", etc.
+
+        @PropertyName("value")
+        private BigDecimal value;
+
+        @PropertyName("percentage")
+        private BigDecimal percentage;
+
+        @PropertyName("asset_count")
+        private Integer assetCount;
+
+        // Default constructor for Firestore
+        public CategoryAllocationData() {}
+
+        // Constructor with all fields
+        public CategoryAllocationData(String category, String categoryName, String color,
+                                      BigDecimal value, BigDecimal percentage, Integer assetCount) {
+            this.category = category;
+            this.categoryName = categoryName;
+            this.color = color;
+            this.value = value;
+            this.percentage = percentage;
+            this.assetCount = assetCount;
+        }
+
+        // Getters and Setters
+        public String getCategory() {
+            return category;
+        }
+
+        public void setCategory(String category) {
+            this.category = category;
+        }
+
+        public String getCategoryName() {
+            return categoryName;
+        }
+
+        public void setCategoryName(String categoryName) {
+            this.categoryName = categoryName;
+        }
+
+        public String getColor() {
+            return color;
+        }
+
+        public void setColor(String color) {
+            this.color = color;
+        }
+
+        public BigDecimal getValue() {
+            return value;
+        }
+
+        public void setValue(BigDecimal value) {
+            this.value = value;
+        }
+
+        public BigDecimal getPercentage() {
+            return percentage;
+        }
+
+        public void setPercentage(BigDecimal percentage) {
+            this.percentage = percentage;
+        }
+
+        public Integer getAssetCount() {
+            return assetCount;
+        }
+
+        public void setAssetCount(Integer assetCount) {
+            this.assetCount = assetCount;
         }
     }
 

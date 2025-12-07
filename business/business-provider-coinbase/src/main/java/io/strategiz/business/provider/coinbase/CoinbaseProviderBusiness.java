@@ -18,6 +18,7 @@ import io.strategiz.data.provider.repository.UpdateProviderDataRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.framework.secrets.controller.SecretManager;
@@ -69,7 +70,10 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     private final ReadProviderDataRepository readProviderDataRepository;
     private final UpdateProviderDataRepository updateProviderDataRepository;
     private final SecretManager secretManager;
-    
+
+    @Autowired(required = false)
+    private PortfolioSummaryManager portfolioSummaryManager;
+
     // OAuth Configuration
     @Value("${oauth.providers.coinbase.client-id:}")
     private String clientId;
@@ -847,6 +851,16 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Use createOrReplace to handle both create and update
             createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
             log.info("Successfully stored Coinbase provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Coinbase data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
 
         } catch (Exception e) {
             log.error("Failed to store Coinbase provider data for user: {}", userId, e);

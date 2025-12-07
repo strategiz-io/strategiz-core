@@ -451,21 +451,35 @@ public class SignInPortfolioSyncService extends BaseService {
     }
 
     /**
-     * Update portfolio summary with latest provider data
+     * Update portfolio summary with latest provider data.
+     * Reads ALL provider data from repository to ensure totals are accurate across all providers.
      */
-    private void updatePortfolioSummary(String userId, List<ProviderDataEntity> providerData) {
+    private void updatePortfolioSummary(String userId, List<ProviderDataEntity> syncedProviderData) {
         try {
-            PortfolioSummaryEntity summary = calculatePortfolioSummary(providerData);
-            
+            // Read ALL provider data from repository to ensure we include all providers
+            // This ensures consistency between dashboard and portfolio views
+            List<ProviderDataEntity> allProviderData = readProviderDataRepo.getAllProviderData(userId);
+
+            if (allProviderData == null || allProviderData.isEmpty()) {
+                // Fallback to synced data if repository read fails
+                allProviderData = syncedProviderData;
+                log.warn("Could not read all provider data for user {}, using synced data only", userId);
+            }
+
+            log.debug("Calculating portfolio summary for user {} from {} providers", userId, allProviderData.size());
+            PortfolioSummaryEntity summary = calculatePortfolioSummary(allProviderData);
+
             // Check if summary exists
             PortfolioSummaryEntity existing = readPortfolioSummaryRepo.getPortfolioSummary(userId);
-            
+
             if (existing != null) {
                 updatePortfolioSummaryRepo.updatePortfolioSummary(userId, summary);
             } else {
                 createPortfolioSummaryRepo.createPortfolioSummary(userId, summary);
             }
-            
+
+            log.info("Updated portfolio summary for user {}: totalValue={}", userId, summary.getTotalValue());
+
         } catch (Exception e) {
             log.error("Error updating portfolio summary for user: {}", userId, e);
             throw new StrategizException(

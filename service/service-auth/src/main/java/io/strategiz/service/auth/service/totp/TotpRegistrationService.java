@@ -115,18 +115,32 @@ public class TotpRegistrationService {
     
     /**
      * Generate a new TOTP secret for a user with both secret and QR code
-     * @param username the username to generate the secret for
+     * @param username the username (user ID) to generate the secret for
      * @return TotpGenerationResult containing both secret and QR code
      */
     public TotpGenerationResult generateTotpSecretWithDetails(String username) {
+        log.info("Starting TOTP secret generation for user: {}", username);
+
+        // First try to find user by ID
         Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
-            throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
+            log.warn("User not found by ID: {}, trying by email", username);
+            // Try finding by email as fallback
+            userOpt = userRepository.findByEmail(username);
+            if (userOpt.isEmpty()) {
+                log.error("User not found by ID or email: {}", username);
+                throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
+            }
         }
         UserEntity user = userOpt.get();
-        
+        log.info("Found user with ID: {} for TOTP setup", user.getId());
+
         // Get the user's email for the TOTP label
-        String userEmail = user.getProfile().getEmail();
+        String userEmail = user.getProfile() != null ? user.getProfile().getEmail() : null;
+        if (userEmail == null || userEmail.isEmpty()) {
+            log.warn("User {} has no email in profile, using user ID as fallback for TOTP label", user.getId());
+            userEmail = user.getId(); // Use ID as fallback label
+        }
         
         // Generate a new TOTP secret
         String secret = secretGenerator.generate();

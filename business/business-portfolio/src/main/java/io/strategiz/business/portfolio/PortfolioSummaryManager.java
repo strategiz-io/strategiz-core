@@ -95,7 +95,12 @@ public class PortfolioSummaryManager {
         // Calculate total value across all providers
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal dayChange = BigDecimal.ZERO;
+        BigDecimal totalCash = BigDecimal.ZERO;
         Map<String, BigDecimal> accountPerformance = new HashMap<>();
+
+        // Track values by provider type for asset allocation
+        Map<String, BigDecimal> valueByType = new HashMap<>();
+        Map<String, Integer> assetCountByType = new HashMap<>();
 
         for (ProviderDataEntity data : providerData) {
             // Sum total values
@@ -107,6 +112,21 @@ public class PortfolioSummaryManager {
             // Sum day changes
             if (data.getDayChange() != null) {
                 dayChange = dayChange.add(data.getDayChange());
+            }
+
+            // Sum cash balances
+            if (data.getCashBalance() != null) {
+                totalCash = totalCash.add(data.getCashBalance());
+            }
+
+            // Aggregate by provider type for asset allocation
+            String providerType = data.getProviderType();
+            if (providerType != null && data.getTotalValue() != null) {
+                valueByType.merge(providerType, data.getTotalValue(), BigDecimal::add);
+
+                // Count assets (holdings) per type
+                int holdingCount = (data.getHoldings() != null) ? data.getHoldings().size() : 0;
+                assetCountByType.merge(providerType, holdingCount, Integer::sum);
             }
         }
 
@@ -127,31 +147,131 @@ public class PortfolioSummaryManager {
         summary.setAccountPerformance(accountPerformance);
         summary.setProvidersCount(providerData.size());
         summary.setLastSyncedAt(Instant.now());
+        summary.setCashAvailable(totalCash);
 
-        // TODO: Calculate week/month changes, asset allocation, top performers
-        // For now, set defaults
+        // Set defaults for fields not yet calculated
         summary.setWeekChange(BigDecimal.ZERO);
         summary.setWeekChangePercent(BigDecimal.ZERO);
         summary.setMonthChange(BigDecimal.ZERO);
         summary.setMonthChangePercent(BigDecimal.ZERO);
         summary.setTotalReturn(BigDecimal.ZERO);
         summary.setTotalReturnPercent(BigDecimal.ZERO);
-        summary.setCashAvailable(BigDecimal.ZERO);
 
-        // Create empty asset allocation
-        PortfolioSummaryEntity.AssetAllocation allocation = new PortfolioSummaryEntity.AssetAllocation();
-        allocation.setCrypto(BigDecimal.ZERO);
-        allocation.setCryptoPercent(BigDecimal.ZERO);
-        allocation.setStocks(BigDecimal.ZERO);
-        allocation.setStocksPercent(BigDecimal.ZERO);
-        allocation.setForex(BigDecimal.ZERO);
-        allocation.setForexPercent(BigDecimal.ZERO);
-        allocation.setCommodities(BigDecimal.ZERO);
-        allocation.setCommoditiesPercent(BigDecimal.ZERO);
+        // Calculate asset allocation by provider type
+        PortfolioSummaryEntity.AssetAllocation allocation = calculateAssetAllocation(valueByType, totalValue);
         summary.setAssetAllocation(allocation);
+
+        // Calculate category allocations for pie chart
+        List<PortfolioSummaryEntity.CategoryAllocationData> categoryAllocations =
+                calculateCategoryAllocations(valueByType, assetCountByType, totalValue, totalCash);
+        summary.setCategoryAllocations(categoryAllocations);
 
         return summary;
     }
+
+    /**
+     * Calculate asset allocation breakdown.
+     */
+    private PortfolioSummaryEntity.AssetAllocation calculateAssetAllocation(
+            Map<String, BigDecimal> valueByType, BigDecimal totalValue) {
+
+        PortfolioSummaryEntity.AssetAllocation allocation = new PortfolioSummaryEntity.AssetAllocation();
+
+        BigDecimal cryptoValue = valueByType.getOrDefault("crypto", BigDecimal.ZERO);
+        BigDecimal stocksValue = valueByType.getOrDefault("equity", BigDecimal.ZERO);
+        BigDecimal forexValue = valueByType.getOrDefault("forex", BigDecimal.ZERO);
+
+        allocation.setCrypto(cryptoValue);
+        allocation.setStocks(stocksValue);
+        allocation.setForex(forexValue);
+        allocation.setCommodities(BigDecimal.ZERO);
+
+        // Calculate percentages
+        if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
+            allocation.setCryptoPercent(cryptoValue.divide(totalValue, 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100")));
+            allocation.setStocksPercent(stocksValue.divide(totalValue, 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100")));
+            allocation.setForexPercent(forexValue.divide(totalValue, 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100")));
+        } else {
+            allocation.setCryptoPercent(BigDecimal.ZERO);
+            allocation.setStocksPercent(BigDecimal.ZERO);
+            allocation.setForexPercent(BigDecimal.ZERO);
+        }
+        allocation.setCommoditiesPercent(BigDecimal.ZERO);
+
+        return allocation;
+    }
+
+    /**
+     * Calculate category allocations for pie chart display.
+     * Maps provider types to user-friendly categories with colors.
+     */
+    private List<PortfolioSummaryEntity.CategoryAllocationData> calculateCategoryAllocations(
+            Map<String, BigDecimal> valueByType,
+            Map<String, Integer> assetCountByType,
+            BigDecimal totalValue,
+            BigDecimal totalCash) {
+
+        List<PortfolioSummaryEntity.CategoryAllocationData> allocations = new ArrayList<>();
+
+        // Define category mappings
+        Map<String, CategoryInfo> categoryMappings = new LinkedHashMap<>();
+        categoryMappings.put("crypto", new CategoryInfo("CRYPTOCURRENCY", "Cryptocurrencies", "#39FF14"));
+        categoryMappings.put("equity", new CategoryInfo("STOCKS", "Stocks & Equities", "#00BFFF"));
+        categoryMappings.put("forex", new CategoryInfo("FOREX", "Foreign Exchange", "#9D00FF"));
+
+        // Add categories that have value
+        for (Map.Entry<String, CategoryInfo> entry : categoryMappings.entrySet()) {
+            String providerType = entry.getKey();
+            CategoryInfo info = entry.getValue();
+            BigDecimal value = valueByType.getOrDefault(providerType, BigDecimal.ZERO);
+
+            if (value.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal percentage = totalValue.compareTo(BigDecimal.ZERO) > 0
+                        ? value.divide(totalValue, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
+                        : BigDecimal.ZERO;
+
+                Integer assetCount = assetCountByType.getOrDefault(providerType, 0);
+
+                allocations.add(new PortfolioSummaryEntity.CategoryAllocationData(
+                        info.category,
+                        info.categoryName,
+                        info.color,
+                        value,
+                        percentage,
+                        assetCount
+                ));
+            }
+        }
+
+        // Add cash category if there's cash available
+        if (totalCash.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal cashPercentage = totalValue.compareTo(BigDecimal.ZERO) > 0
+                    ? totalCash.divide(totalValue, 4, RoundingMode.HALF_UP).multiply(new BigDecimal("100"))
+                    : BigDecimal.ZERO;
+
+            allocations.add(new PortfolioSummaryEntity.CategoryAllocationData(
+                    "CASH",
+                    "Cash & Money Market",
+                    "#FFFFFF",
+                    totalCash,
+                    cashPercentage,
+                    1  // Cash is counted as 1 "asset"
+            ));
+        }
+
+        // Sort by value descending for better pie chart display
+        allocations.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        return allocations;
+    }
+
+    /**
+     * Helper record for category information.
+     */
+    private record CategoryInfo(String category, String categoryName, String color) {}
 
     /**
      * Create an empty portfolio summary.
@@ -171,6 +291,7 @@ public class PortfolioSummaryManager {
         summary.setMonthChange(BigDecimal.ZERO);
         summary.setMonthChangePercent(BigDecimal.ZERO);
         summary.setAssetAllocation(new PortfolioSummaryEntity.AssetAllocation());
+        summary.setCategoryAllocations(new ArrayList<>());
         summary.setAccountPerformance(new HashMap<>());
         summary.setProvidersCount(0);
         summary.setLastSyncedAt(Instant.now());

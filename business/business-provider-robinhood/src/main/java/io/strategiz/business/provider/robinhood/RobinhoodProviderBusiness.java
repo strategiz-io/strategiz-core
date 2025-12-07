@@ -17,6 +17,7 @@ import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.framework.secrets.controller.SecretManager;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +62,9 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
     private final CreateProviderDataRepository createProviderDataRepository;
     private final ReadProviderDataRepository readProviderDataRepository;
     private final SecretManager secretManager;
+
+    @Autowired(required = false)
+    private PortfolioSummaryManager portfolioSummaryManager;
 
     @Autowired
     public RobinhoodProviderBusiness(
@@ -320,6 +324,16 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
 
             log.info("Stored Robinhood portfolio data for user: {} with {} holdings",
                 userId, entity.getHoldings() != null ? entity.getHoldings().size() : 0);
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Robinhood data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
 
         } catch (Exception e) {
             log.error("Failed to fetch/store Robinhood portfolio data: {}", e.getMessage());

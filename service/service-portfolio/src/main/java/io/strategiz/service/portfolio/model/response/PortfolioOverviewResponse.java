@@ -18,6 +18,7 @@ public class PortfolioOverviewResponse {
     private List<ProviderSummary> providers;
     private List<PortfolioPositionResponse> allPositions;
     private AssetAllocation assetAllocation;
+    private List<CategoryAllocationResponse> categoryAllocations;
     private long lastUpdated;
     
     /**
@@ -127,7 +128,7 @@ public class PortfolioOverviewResponse {
     }
     
     /**
-     * Asset allocation breakdown
+     * Asset allocation breakdown (percentage-based)
      */
     public static class AssetAllocation {
         private BigDecimal cryptoPercent;
@@ -135,46 +136,108 @@ public class PortfolioOverviewResponse {
         private BigDecimal forexPercent;
         private BigDecimal cashPercent;
         private BigDecimal otherPercent;
-        
+
         // Getters and Setters
         public BigDecimal getCryptoPercent() {
             return cryptoPercent;
         }
-        
+
         public void setCryptoPercent(BigDecimal cryptoPercent) {
             this.cryptoPercent = cryptoPercent;
         }
-        
+
         public BigDecimal getStockPercent() {
             return stockPercent;
         }
-        
+
         public void setStockPercent(BigDecimal stockPercent) {
             this.stockPercent = stockPercent;
         }
-        
+
         public BigDecimal getForexPercent() {
             return forexPercent;
         }
-        
+
         public void setForexPercent(BigDecimal forexPercent) {
             this.forexPercent = forexPercent;
         }
-        
+
         public BigDecimal getCashPercent() {
             return cashPercent;
         }
-        
+
         public void setCashPercent(BigDecimal cashPercent) {
             this.cashPercent = cashPercent;
         }
-        
+
         public BigDecimal getOtherPercent() {
             return otherPercent;
         }
-        
+
         public void setOtherPercent(BigDecimal otherPercent) {
             this.otherPercent = otherPercent;
+        }
+    }
+
+    /**
+     * Category allocation for pie chart display.
+     * Contains category details with value, percentage, and color.
+     */
+    public static class CategoryAllocationResponse {
+        private String category;      // CRYPTOCURRENCY, STOCKS, CASH, FOREX
+        private String categoryName;  // "Cryptocurrencies", "Stocks & Equities"
+        private String color;         // "#39FF14"
+        private BigDecimal value;
+        private BigDecimal percentage;
+        private Integer assetCount;
+
+        // Getters and Setters
+        public String getCategory() {
+            return category;
+        }
+
+        public void setCategory(String category) {
+            this.category = category;
+        }
+
+        public String getCategoryName() {
+            return categoryName;
+        }
+
+        public void setCategoryName(String categoryName) {
+            this.categoryName = categoryName;
+        }
+
+        public String getColor() {
+            return color;
+        }
+
+        public void setColor(String color) {
+            this.color = color;
+        }
+
+        public BigDecimal getValue() {
+            return value;
+        }
+
+        public void setValue(BigDecimal value) {
+            this.value = value;
+        }
+
+        public BigDecimal getPercentage() {
+            return percentage;
+        }
+
+        public void setPercentage(BigDecimal percentage) {
+            this.percentage = percentage;
+        }
+
+        public Integer getAssetCount() {
+            return assetCount;
+        }
+
+        public void setAssetCount(Integer assetCount) {
+            this.assetCount = assetCount;
         }
     }
     
@@ -246,15 +309,23 @@ public class PortfolioOverviewResponse {
     public AssetAllocation getAssetAllocation() {
         return assetAllocation;
     }
-    
+
     public void setAssetAllocation(AssetAllocation assetAllocation) {
         this.assetAllocation = assetAllocation;
     }
-    
+
+    public List<CategoryAllocationResponse> getCategoryAllocations() {
+        return categoryAllocations;
+    }
+
+    public void setCategoryAllocations(List<CategoryAllocationResponse> categoryAllocations) {
+        this.categoryAllocations = categoryAllocations;
+    }
+
     public long getLastUpdated() {
         return lastUpdated;
     }
-    
+
     public void setLastUpdated(long lastUpdated) {
         this.lastUpdated = lastUpdated;
     }

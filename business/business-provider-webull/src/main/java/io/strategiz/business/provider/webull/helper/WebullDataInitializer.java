@@ -6,6 +6,7 @@ import io.strategiz.client.webull.auth.WebullApiAuthClient;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.data.provider.repository.CreateProviderDataRepository;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,9 @@ public class WebullDataInitializer {
 
     private final WebullApiAuthClient webullClient;
     private final CreateProviderDataRepository createProviderDataRepo;
+
+    @Autowired(required = false)
+    private PortfolioSummaryManager portfolioSummaryManager;
 
     @Autowired
     public WebullDataInitializer(WebullApiAuthClient webullClient,
@@ -107,6 +111,16 @@ public class WebullDataInitializer {
 
             log.info("Successfully initialized and stored Webull data for user: {}, total value: {}",
                     userId, savedData.getTotalValue());
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Webull data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
 
             return savedData;
 

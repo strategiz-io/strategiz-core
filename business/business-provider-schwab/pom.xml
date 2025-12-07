@@ -30,6 +30,14 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Business Portfolio (for portfolio summary refresh) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-portfolio</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Client Schwab -->
         <dependency>
             <groupId>io.strategiz</groupId>

@@ -9,6 +9,7 @@ import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.data.provider.repository.CreateProviderDataRepository;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,9 @@ public class KrakenDataInitializer {
     private final CreateProviderDataRepository createProviderDataRepo;
     private final KrakenDataEnrichmentService enrichmentService;
     private final YahooFinancePriceService yahooFinancePriceService;
+
+    @Autowired(required = false)
+    private PortfolioSummaryManager portfolioSummaryManager;
     
     @Autowired
     public KrakenDataInitializer(KrakenApiAuthClient krakenClient,
@@ -161,9 +165,19 @@ public class KrakenDataInitializer {
                 userId, KrakenConstants.PROVIDER_ID, data
             );
             
-            log.info("Successfully initialized and stored Kraken data for user: {}, total value: {}", 
+            log.info("Successfully initialized and stored Kraken data for user: {}, total value: {}",
                     userId, savedData.getTotalValue());
-            
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Kraken data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
+
             return savedData;
             
         } catch (StrategizException e) {

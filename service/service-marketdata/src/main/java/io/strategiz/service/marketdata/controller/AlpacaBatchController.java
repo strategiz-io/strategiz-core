@@ -40,33 +40,41 @@ public class AlpacaBatchController {
     }
 
     /**
-     * Execute full backfill - 3 months of data for all default symbols
+     * Execute full backfill - configurable months of data for all default symbols
      *
      * POST /api/admin/alpaca/backfill/full
-     * Request body: { "timeframe": "1Min" } (optional, defaults to 1Min)
+     * Request body: { "timeframe": "1Min", "months": 3 } (optional, defaults to 1Min and 3 months)
      *
-     * WARNING: This is resource-intensive and may take 30+ minutes
-     * Fetches ~500 symbols × 3 months of 1Min bars (~3GB data)
+     * WARNING: This is resource-intensive and may take 30+ minutes for 3 months
+     * For 1 year of 1Min data, expect 8+ hours
      */
     @PostMapping("/backfill/full")
     public ResponseEntity<Map<String, Object>> executeFullBackfill(
-            @RequestBody(required = false) Map<String, String> request) {
+            @RequestBody(required = false) Map<String, Object> request) {
 
         String timeframe = request != null && request.containsKey("timeframe")
-                ? request.get("timeframe")
+                ? (String) request.get("timeframe")
                 : "1Min";
 
-        log.info("=== Admin API: Full Backfill Request (timeframe: {}) ===", timeframe);
+        int months = request != null && request.containsKey("months")
+                ? ((Number) request.get("months")).intValue()
+                : 3;
+
+        log.info("=== Admin API: Full Backfill Request (timeframe: {}, months: {}) ===", timeframe, months);
 
         try {
+            LocalDateTime endDate = LocalDateTime.now();
+            LocalDateTime startDate = endDate.minusMonths(months);
+
             long startTime = System.currentTimeMillis();
-            AlpacaCollectionService.CollectionResult result = collectionService.backfillIntradayData(timeframe);
+            AlpacaCollectionService.CollectionResult result = collectionService.backfillIntradayData(startDate, endDate, timeframe);
             long duration = (System.currentTimeMillis() - startTime) / 1000;
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Full backfill completed");
             response.put("timeframe", timeframe);
+            response.put("months", months);
             response.put("symbolsProcessed", result.totalSymbolsProcessed);
             response.put("dataPointsStored", result.totalDataPointsStored);
             response.put("errors", result.errorCount);

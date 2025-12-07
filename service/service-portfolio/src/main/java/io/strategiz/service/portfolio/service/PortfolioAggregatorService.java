@@ -186,6 +186,7 @@ public class PortfolioAggregatorService {
             BigDecimal totalProfitLoss = BigDecimal.ZERO;
             BigDecimal totalCashBalance = BigDecimal.ZERO;
             boolean usedPrecomputedTotals = false;
+            List<PortfolioOverviewResponse.CategoryAllocationResponse> categoryAllocations = new ArrayList<>();
 
             if (readPortfolioSummaryRepository != null) {
                 try {
@@ -194,9 +195,24 @@ public class PortfolioAggregatorService {
                         totalValue = summary.getTotalValue() != null ? summary.getTotalValue() : BigDecimal.ZERO;
                         totalDayChange = summary.getDayChange() != null ? summary.getDayChange() : BigDecimal.ZERO;
                         totalProfitLoss = summary.getTotalReturn() != null ? summary.getTotalReturn() : BigDecimal.ZERO;
-                        // Note: totalCashBalance is not in portfolio_summary, will be computed from provider data
+                        totalCashBalance = summary.getCashAvailable() != null ? summary.getCashAvailable() : BigDecimal.ZERO;
                         usedPrecomputedTotals = true;
                         log.debug("Using pre-computed totals from portfolio_summary for user {}: totalValue={}", userId, totalValue);
+
+                        // Read pre-computed category allocations for pie chart
+                        if (summary.getCategoryAllocations() != null) {
+                            for (PortfolioSummaryEntity.CategoryAllocationData data : summary.getCategoryAllocations()) {
+                                PortfolioOverviewResponse.CategoryAllocationResponse cat = new PortfolioOverviewResponse.CategoryAllocationResponse();
+                                cat.setCategory(data.getCategory());
+                                cat.setCategoryName(data.getCategoryName());
+                                cat.setColor(data.getColor());
+                                cat.setValue(data.getValue());
+                                cat.setPercentage(data.getPercentage());
+                                cat.setAssetCount(data.getAssetCount());
+                                categoryAllocations.add(cat);
+                            }
+                            log.debug("Loaded {} category allocations from portfolio_summary", categoryAllocations.size());
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("Could not read portfolio_summary for user {}, will compute totals: {}", userId, e.getMessage());
@@ -261,8 +277,8 @@ public class PortfolioAggregatorService {
                         totalProfitLoss = totalProfitLoss.add(providerData.getTotalProfitLoss());
                     }
                 }
-                // Always compute cash balance from provider data (not in portfolio_summary)
-                if (providerData.getCashBalance() != null) {
+                // Compute cash balance from provider data if not loaded from portfolio_summary
+                if (!usedPrecomputedTotals && providerData.getCashBalance() != null) {
                     totalCashBalance = totalCashBalance.add(providerData.getCashBalance());
                 }
             }
@@ -310,6 +326,7 @@ public class PortfolioAggregatorService {
             response.setProviders(providerSummaries);
             response.setAllPositions(allPositions);
             response.setAssetAllocation(allocation);
+            response.setCategoryAllocations(categoryAllocations);
             response.setLastUpdated(System.currentTimeMillis());
             
             log.info("Portfolio overview for user {}: {} providers, {} positions, total value: {}", 

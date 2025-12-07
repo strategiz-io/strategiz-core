@@ -21,6 +21,7 @@ import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.framework.secrets.controller.SecretManager;
+import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,9 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     private final ReadProviderDataRepository readProviderDataRepository;
     private final UpdateProviderDataRepository updateProviderDataRepository;
     private final SecretManager secretManager;
+
+    @Autowired(required = false)
+    private PortfolioSummaryManager portfolioSummaryManager;
 
     // OAuth Configuration
     @Value("${oauth.providers.alpaca.client-id:}")
@@ -872,12 +876,22 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
             log.info("Successfully stored Alpaca provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
 
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Alpaca data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
+
         } catch (Exception e) {
             log.error("Failed to store Alpaca provider data for user: {}", userId, e);
             throw e;
         }
     }
-    
+
     private void storeTokensInVault(String userId, String environment, String accessToken, String refreshToken, Instant expiresAt) {
         try {
             // Store tokens with environment suffix (e.g., alpaca-paper, alpaca-live)

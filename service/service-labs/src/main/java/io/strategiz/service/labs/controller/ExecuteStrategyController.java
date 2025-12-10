@@ -7,6 +7,7 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.business.strategy.execution.service.BacktestCalculatorBusiness;
 import io.strategiz.service.labs.model.ExecuteStrategyRequest;
 import io.strategiz.service.labs.model.ExecuteStrategyResponse;
 import io.strategiz.service.labs.service.ReadStrategyService;
@@ -26,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/strategies")
@@ -38,6 +41,7 @@ public class ExecuteStrategyController extends BaseController {
     private final StrategyExecutionService strategyExecutionService;
     private final ReadStrategyService readStrategyService;
     private final PythonStrategyExecutor pythonStrategyExecutor;
+    private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final SessionAuthBusiness sessionAuthBusiness;
     private final MarketDataRepository marketDataRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -47,12 +51,14 @@ public class ExecuteStrategyController extends BaseController {
                                    StrategyExecutionService strategyExecutionService,
                                    ReadStrategyService readStrategyService,
                                    PythonStrategyExecutor pythonStrategyExecutor,
+                                   BacktestCalculatorBusiness backtestCalculatorBusiness,
                                    SessionAuthBusiness sessionAuthBusiness,
                                    MarketDataRepository marketDataRepository) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
         this.pythonStrategyExecutor = pythonStrategyExecutor;
+        this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.sessionAuthBusiness = sessionAuthBusiness;
         this.marketDataRepository = marketDataRepository;
     }
@@ -191,7 +197,8 @@ public class ExecuteStrategyController extends BaseController {
                 }
 
                 // Fetch real market data from repository
-                String marketDataJson = fetchMarketDataForSymbol(symbol);
+                List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol);
+                String marketDataJson = objectMapper.writeValueAsString(marketDataList);
 
                 // Execute Python code with market data
                 ExecuteStrategyResponse response = pythonStrategyExecutor.executePythonCode(
@@ -202,6 +209,28 @@ public class ExecuteStrategyController extends BaseController {
                 // Set additional response fields
                 response.setStrategyId("direct-execution-" + System.currentTimeMillis());
                 response.setSymbol(symbol);
+
+                // Calculate backtest performance from signals and market data
+                if (response.getSignals() != null && !response.getSignals().isEmpty()) {
+                    List<io.strategiz.business.strategy.execution.model.SignalData> signalDataList = response.getSignals().stream()
+                        .map(s -> {
+                            io.strategiz.business.strategy.execution.model.SignalData sd = new io.strategiz.business.strategy.execution.model.SignalData();
+                            sd.setTimestamp(s.getTimestamp());
+                            sd.setType(s.getType());
+                            sd.setPrice(s.getPrice());
+                            sd.setQuantity(s.getQuantity());
+                            sd.setReason(s.getReason());
+                            return sd;
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+
+                    io.strategiz.business.strategy.execution.model.BacktestPerformance backtestPerformance =
+                        backtestCalculatorBusiness.calculatePerformance(signalDataList, marketDataList);
+
+                    // Convert business model to response model
+                    ExecuteStrategyResponse.Performance performance = convertBacktestPerformance(backtestPerformance);
+                    response.setPerformance(performance);
+                }
 
                 return ResponseEntity.ok(response);
             }
@@ -382,11 +411,87 @@ public class ExecuteStrategyController extends BaseController {
     private java.util.Map<String, Object> convertToJsonCandle(MarketDataEntity entity) {
         java.util.Map<String, Object> candle = new java.util.HashMap<>();
         candle.put("time", entity.getTimestampAsLocalDateTime().toString());
+        candle.put("timestamp", entity.getTimestampAsLocalDateTime().toString());
         candle.put("open", entity.getOpen().doubleValue());
         candle.put("high", entity.getHigh().doubleValue());
         candle.put("low", entity.getLow().doubleValue());
         candle.put("close", entity.getClose().doubleValue());
         candle.put("volume", entity.getVolume() != null ? entity.getVolume().longValue() : 0);
         return candle;
+    }
+
+    /**
+     * Fetch market data as a list of maps for both Python execution and backtest calculation.
+     */
+    private List<Map<String, Object>> fetchMarketDataListForSymbol(String symbol) {
+        logger.info("Fetching market data for symbol: {}", symbol);
+
+        // Calculate date range (last 365 days for more comprehensive backtesting)
+        java.time.LocalDate endDate = java.time.LocalDate.now().minusDays(1);
+        java.time.LocalDate startDate = endDate.minusDays(365);
+
+        // Query Firestore for historical data
+        java.util.List<MarketDataEntity> marketData = marketDataRepository
+            .findBySymbolAndDateRange(symbol, startDate, endDate);
+
+        // If no data found, throw proper exception
+        if (marketData == null || marketData.isEmpty()) {
+            logger.warn("No market data found for symbol: {}", symbol);
+            throwModuleException(
+                ServiceStrategyErrorDetails.MARKET_DATA_NOT_FOUND,
+                String.format("No market data found for symbol: %s. Please ensure the batch job has run to populate data.", symbol)
+            );
+        }
+
+        // Convert to list of maps
+        List<Map<String, Object>> jsonData = marketData.stream()
+            .map(this::convertToJsonCandle)
+            .collect(java.util.stream.Collectors.toList());
+
+        logger.info("Fetched {} data points for symbol: {}", jsonData.size(), symbol);
+        return jsonData;
+    }
+
+    /**
+     * Convert business layer BacktestPerformance to response layer Performance.
+     */
+    private ExecuteStrategyResponse.Performance convertBacktestPerformance(
+            io.strategiz.business.strategy.execution.model.BacktestPerformance backtest) {
+        ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
+        performance.setTotalReturn(backtest.getTotalReturn());
+        performance.setTotalPnL(backtest.getTotalPnL());
+        performance.setWinRate(backtest.getWinRate());
+        performance.setTotalTrades(backtest.getTotalTrades());
+        performance.setProfitableTrades(backtest.getProfitableTrades());
+        performance.setBuyCount(backtest.getBuyCount());
+        performance.setSellCount(backtest.getSellCount());
+        performance.setAvgWin(backtest.getAvgWin());
+        performance.setAvgLoss(backtest.getAvgLoss());
+        performance.setProfitFactor(backtest.getProfitFactor());
+        performance.setMaxDrawdown(backtest.getMaxDrawdown());
+        performance.setSharpeRatio(backtest.getSharpeRatio());
+        performance.setLastTestedAt(backtest.getLastTestedAt());
+
+        // Convert trades
+        if (backtest.getTrades() != null) {
+            List<ExecuteStrategyResponse.Trade> trades = backtest.getTrades().stream()
+                .map(bt -> {
+                    ExecuteStrategyResponse.Trade trade = new ExecuteStrategyResponse.Trade();
+                    trade.setBuyTimestamp(bt.getBuyTimestamp());
+                    trade.setSellTimestamp(bt.getSellTimestamp());
+                    trade.setBuyPrice(bt.getBuyPrice());
+                    trade.setSellPrice(bt.getSellPrice());
+                    trade.setPnl(bt.getPnl());
+                    trade.setPnlPercent(bt.getPnlPercent());
+                    trade.setWin(bt.isWin());
+                    trade.setBuyReason(bt.getBuyReason());
+                    trade.setSellReason(bt.getSellReason());
+                    return trade;
+                })
+                .collect(java.util.stream.Collectors.toList());
+            performance.setTrades(trades);
+        }
+
+        return performance;
     }
 }

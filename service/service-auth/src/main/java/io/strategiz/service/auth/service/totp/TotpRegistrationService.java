@@ -121,32 +121,40 @@ public class TotpRegistrationService {
     public TotpGenerationResult generateTotpSecretWithDetails(String username) {
         log.info("Starting TOTP secret generation for user: {}", username);
 
-        // First try to find user by ID
+        // Try to find user by ID to get their email for a better TOTP label
+        // If user document doesn't exist, we can still proceed with TOTP setup using userId as label
+        String userId = username;
+        String userEmail = username; // Default to using username/userId as label
+
         Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
             log.warn("User not found by ID: {}, trying by email", username);
-            // Try finding by email as fallback
             userOpt = userRepository.findByEmail(username);
-            if (userOpt.isEmpty()) {
-                log.error("User not found by ID or email: {}", username);
-                throw new StrategizException(AuthErrors.USER_NOT_FOUND, username);
-            }
         }
-        UserEntity user = userOpt.get();
-        log.info("Found user with ID: {} for TOTP setup", user.getId());
 
-        // Get the user's email for the TOTP label
-        String userEmail = user.getProfile() != null ? user.getProfile().getEmail() : null;
-        if (userEmail == null || userEmail.isEmpty()) {
-            log.warn("User {} has no email in profile, using user ID as fallback for TOTP label", user.getId());
-            userEmail = user.getId(); // Use ID as fallback label
+        if (userOpt.isPresent()) {
+            UserEntity user = userOpt.get();
+            userId = user.getId();
+            log.info("Found user with ID: {} for TOTP setup", userId);
+
+            // Get the user's email for the TOTP label if available
+            if (user.getProfile() != null && user.getProfile().getEmail() != null && !user.getProfile().getEmail().isEmpty()) {
+                userEmail = user.getProfile().getEmail();
+            } else {
+                log.warn("User {} has no email in profile, using user ID as TOTP label", userId);
+                userEmail = userId;
+            }
+        } else {
+            // User document not found - this can happen for passkey-only users
+            // Proceed with TOTP setup using the username/userId directly
+            log.warn("User document not found for: {}, proceeding with TOTP setup using userId as label", username);
         }
-        
+
         // Generate a new TOTP secret
         String secret = secretGenerator.generate();
-        
+
         // Find existing TOTP method or create a new one
-        List<AuthenticationMethodEntity> existingMethods = authMethodRepository.findByUserIdAndType(user.getId(), AuthenticationMethodType.TOTP);
+        List<AuthenticationMethodEntity> existingMethods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.TOTP);
         AuthenticationMethodEntity totpAuth = null;
         
         if (!existingMethods.isEmpty()) {
@@ -170,17 +178,17 @@ public class TotpRegistrationService {
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.ACCOUNT_NAME, userEmail); // Store email for user-friendly display
         totpAuth.setIsActive(false); // Not enabled until verified
         
-        log.info("Saving TOTP auth method for user ID: {} (email: {}) with secret: {}", user.getId(), userEmail, secret.substring(0, 4) + "...");
-        authMethodRepository.saveForUser(user.getId(), totpAuth);
-        log.info("Successfully saved TOTP auth method for user ID: {}", user.getId());
-        
+        log.info("Saving TOTP auth method for user ID: {} (email: {}) with secret: {}", userId, userEmail, secret.substring(0, 4) + "...");
+        authMethodRepository.saveForUser(userId, totpAuth);
+        log.info("Successfully saved TOTP auth method for user ID: {}", userId);
+
         // Verify the save was successful by immediately retrieving it
-        List<AuthenticationMethodEntity> savedMethods = authMethodRepository.findByUserIdAndType(user.getId(), AuthenticationMethodType.TOTP);
+        List<AuthenticationMethodEntity> savedMethods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.TOTP);
         if (savedMethods.isEmpty()) {
-            log.error("Failed to verify TOTP save for user ID: {} - method not found after save", user.getId());
+            log.error("Failed to verify TOTP save for user ID: {} - method not found after save", userId);
             throw new RuntimeException("Failed to save TOTP authentication method");
         }
-        log.info("Verified TOTP auth method save - found {} TOTP methods for user ID: {}", savedMethods.size(), user.getId());
+        log.info("Verified TOTP auth method save - found {} TOTP methods for user ID: {}", savedMethods.size(), userId);
         
         // Generate the QR code using the email for display
         String qrCodeUri = generateQrCodeUri(userEmail, secret);

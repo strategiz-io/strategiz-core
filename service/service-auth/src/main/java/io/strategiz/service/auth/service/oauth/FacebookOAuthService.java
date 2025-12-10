@@ -13,7 +13,6 @@ import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import io.strategiz.framework.exception.StrategizException;
@@ -38,9 +37,6 @@ public class FacebookOAuthService {
     private final OAuthAuthenticationManager oauthAuthenticationManager;
     private final SessionAuthBusiness sessionAuthBusiness;
     private final AuthOAuthConfig oauthConfig;
-
-    @Value("${application.frontend-url}")
-    private String frontendUrl;
 
     public FacebookOAuthService(
             FacebookClient facebookClient,
@@ -89,11 +85,10 @@ public class FacebookOAuthService {
     }
     
     /**
-     * Get frontend URL
-     * @return The frontend URL
+     * Get the frontend URL for redirects
      */
     public String getFrontendUrl() {
-        return frontendUrl;
+        return oauthConfig.getFrontendUrl();
     }
     
     /**

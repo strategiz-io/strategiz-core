@@ -6,6 +6,7 @@ import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -37,6 +38,7 @@ public class MarketDataService {
 
     /**
      * Fetch market data bars for a symbol within a date range
+     * Cached for 5 minutes to reduce Firestore reads
      *
      * @param symbol The stock symbol (e.g., "AAPL")
      * @param timeframe The timeframe (e.g., "1Day", "1Hour", "1Min") - accepts both canonical and legacy formats
@@ -44,6 +46,7 @@ public class MarketDataService {
      * @param endDate End date in ISO format (e.g., "2024-12-31T23:59:59Z")
      * @return List of market data entities sorted by timestamp ascending
      */
+    @Cacheable(value = "marketDataBars", key = "#symbol.toUpperCase() + '-' + #timeframe + '-' + #startDate + '-' + #endDate")
     public List<MarketDataEntity> getMarketDataBars(String symbol, String timeframe, String startDate, String endDate) {
         log.info("Fetching market data for symbol={}, timeframe={}, start={}, end={}",
             symbol, timeframe, startDate, endDate);
@@ -100,10 +103,12 @@ public class MarketDataService {
 
     /**
      * Get the latest market data for a symbol
+     * Cached for 1 minute for near-real-time updates
      *
      * @param symbol The stock symbol
      * @return Latest market data entity or null if not found
      */
+    @Cacheable(value = "latestMarketData", key = "#symbol.toUpperCase()")
     public MarketDataEntity getLatestMarketData(String symbol) {
         log.info("Fetching latest market data for symbol={}", symbol);
 
@@ -117,9 +122,11 @@ public class MarketDataService {
 
     /**
      * Get all available symbols in the database
+     * Cached for 1 hour since symbols rarely change
      *
      * @return List of distinct symbols
      */
+    @Cacheable(value = "availableSymbols", key = "'all'")
     public List<String> getAvailableSymbols() {
         log.info("Fetching available symbols");
 

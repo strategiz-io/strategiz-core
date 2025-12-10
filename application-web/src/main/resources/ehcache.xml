@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+        xmlns='http://www.ehcache.org/v3'
+        xsi:schemaLocation="http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.10.xsd">
+
+    <!-- Market data bars cache - for historical OHLCV data -->
+    <!-- TTL: 5 minutes for daily data, good balance between freshness and performance -->
+    <cache alias="marketDataBars">
+        <key-type>java.lang.String</key-type>
+        <value-type>java.util.List</value-type>
+        <expiry>
+            <ttl unit="minutes">5</ttl>
+        </expiry>
+        <resources>
+            <!-- Heap storage: up to 1000 entries (most frequently accessed symbols) -->
+            <heap unit="entries">1000</heap>
+            <!-- Off-heap storage: 50 MB for larger datasets -->
+            <offheap unit="MB">50</offheap>
+        </resources>
+    </cache>
+
+    <!-- Latest market data cache - for real-time-ish price updates -->
+    <!-- TTL: 1 minute for fresher data -->
+    <cache alias="latestMarketData">
+        <key-type>java.lang.String</key-type>
+        <value-type>io.strategiz.data.marketdata.entity.MarketDataEntity</value-type>
+        <expiry>
+            <ttl unit="minutes">1</ttl>
+        </expiry>
+        <resources>
+            <heap unit="entries">500</heap>
+        </resources>
+    </cache>
+
+    <!-- Available symbols cache - rarely changes, long TTL -->
+    <cache alias="availableSymbols">
+        <key-type>java.lang.String</key-type>
+        <value-type>java.util.List</value-type>
+        <expiry>
+            <ttl unit="hours">1</ttl>
+        </expiry>
+        <resources>
+            <heap unit="entries">1</heap>
+        </resources>
+    </cache>
+
+</config>

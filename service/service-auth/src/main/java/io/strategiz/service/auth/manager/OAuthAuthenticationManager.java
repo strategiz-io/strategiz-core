@@ -1,14 +1,19 @@
 package io.strategiz.service.auth.manager;
 
 import io.strategiz.data.user.entity.UserEntity;
-import io.strategiz.data.auth.model.oauth.OAuthAuthenticationMethod;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Manager for managing OAuth authentication methods
@@ -28,44 +33,104 @@ public class OAuthAuthenticationManager {
      * Ensure user has active OAuth authentication method
      */
     public void ensureOAuthMethod(UserEntity user, String provider, String providerId, String email) {
-        List<OAuthAuthenticationMethod> existingMethods = findExistingOAuthMethods(user, provider, providerId);
-        
+        AuthenticationMethodType oauthType = getOAuthTypeForProvider(provider);
+        List<AuthenticationMethodEntity> existingMethods = findExistingOAuthMethods(user.getUserId(), oauthType, providerId);
+
         if (existingMethods.isEmpty()) {
-            createNewOAuthMethod(user, provider, providerId, email);
+            createNewOAuthMethod(user, provider, providerId, email, oauthType);
         } else {
             activateExistingMethodIfNeeded(existingMethods.get(0), user);
         }
     }
 
-    private List<OAuthAuthenticationMethod> findExistingOAuthMethods(UserEntity user, String provider, String providerId) {
-        // Note: This method needs to be updated to work with the new entity architecture
-        // For now, return empty list to avoid compilation errors
-        return List.of();
+    /**
+     * Get the AuthenticationMethodType for a given provider name
+     */
+    private AuthenticationMethodType getOAuthTypeForProvider(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "google" -> AuthenticationMethodType.OAUTH_GOOGLE;
+            case "facebook" -> AuthenticationMethodType.OAUTH_FACEBOOK;
+            case "microsoft" -> AuthenticationMethodType.OAUTH_MICROSOFT;
+            case "github" -> AuthenticationMethodType.OAUTH_GITHUB;
+            case "linkedin" -> AuthenticationMethodType.OAUTH_LINKEDIN;
+            case "twitter" -> AuthenticationMethodType.OAUTH_TWITTER;
+            default -> throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
+        };
     }
 
-    private void createNewOAuthMethod(UserEntity user, String provider, String providerId, String email) {
+    private List<AuthenticationMethodEntity> findExistingOAuthMethods(String userId, AuthenticationMethodType oauthType, String providerId) {
+        // Find existing OAuth methods of the same type for this user
+        List<AuthenticationMethodEntity> methods = authenticationMethodRepository.findByUserIdAndType(userId, oauthType);
+
+        // Filter by provider user ID in metadata
+        return methods.stream()
+            .filter(method -> {
+                Object storedProviderId = method.getMetadata(AuthenticationMethodMetadata.OAuthMetadata.PROVIDER_USER_ID);
+                return providerId.equals(storedProviderId);
+            })
+            .toList();
+    }
+
+    private void createNewOAuthMethod(UserEntity user, String provider, String providerId, String email, AuthenticationMethodType oauthType) {
         logger.info("Creating new {} OAuth method for user: {}", provider, user.getUserId());
-        
-        OAuthAuthenticationMethod oAuthMethod = buildOAuthMethod(user, provider, providerId, email);
-        // TODO: Update to use entity architecture - convert to OAuthAuthenticationMethodEntity
-        // authenticationMethodRepository.save(oAuthMethod);
+
+        AuthenticationMethodEntity entity = buildOAuthMethodEntity(user, provider, providerId, email, oauthType);
+        authenticationMethodRepository.saveForUser(user.getUserId(), entity);
+
+        logger.info("Successfully created {} OAuth authentication method for user: {}", provider, user.getUserId());
     }
 
-    private void activateExistingMethodIfNeeded(OAuthAuthenticationMethod oAuthMethod, UserEntity user) {
-        if (!oAuthMethod.isActive()) {
-            logger.info("Reactivating {} OAuth method for user: {}", oAuthMethod.getProvider(), user.getUserId());
-            // TODO: Update to use entity architecture - convert to OAuthAuthenticationMethodEntity
-            // authenticationMethodRepository.save(oAuthMethod);
+    private void activateExistingMethodIfNeeded(AuthenticationMethodEntity entity, UserEntity user) {
+        boolean needsUpdate = false;
+
+        // Reactivate if not active
+        if (!entity.getIsActive()) {
+            logger.info("Reactivating {} OAuth method for user: {}", entity.getAuthenticationMethod(), user.getUserId());
+            entity.setIsActive(true);
+            needsUpdate = true;
+        }
+
+        // Update last used timestamp
+        entity.markAsUsed();
+        needsUpdate = true;
+
+        if (needsUpdate) {
+            authenticationMethodRepository.saveForUser(user.getUserId(), entity);
         }
     }
 
-    private OAuthAuthenticationMethod buildOAuthMethod(UserEntity user, String provider, String providerId, String email) {
-        OAuthAuthenticationMethod oAuthMethod = new OAuthAuthenticationMethod();
-        oAuthMethod.setUserId(user.getUserId());
-        oAuthMethod.setProvider(provider);
-        oAuthMethod.setProviderId(providerId);
-        oAuthMethod.setProviderEmail(email);
-        // Audit fields are handled automatically by BaseEntity
-        return oAuthMethod;
+    private AuthenticationMethodEntity buildOAuthMethodEntity(UserEntity user, String provider, String providerId, String email, AuthenticationMethodType oauthType) {
+        AuthenticationMethodEntity entity = new AuthenticationMethodEntity();
+        entity.setId(UUID.randomUUID().toString());
+        entity.setAuthenticationMethod(oauthType);
+        entity.setName(getDisplayNameForProvider(provider));
+        entity.setIsActive(true);
+        entity.markAsUsed();
+
+        // Set OAuth-specific metadata
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.PROVIDER, provider.toLowerCase());
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.PROVIDER_USER_ID, providerId);
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.EMAIL, email);
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.PROFILE_VERIFIED, true);
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.CONNECTED_TIME, Instant.now().toString());
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.CONNECTION_STATUS, "active");
+        metadata.put(AuthenticationMethodMetadata.OAuthMetadata.LOGIN_COUNT, 1);
+
+        entity.setMetadata(metadata);
+
+        return entity;
+    }
+
+    private String getDisplayNameForProvider(String provider) {
+        return switch (provider.toLowerCase()) {
+            case "google" -> "Google Account";
+            case "facebook" -> "Facebook Account";
+            case "microsoft" -> "Microsoft Account";
+            case "github" -> "GitHub Account";
+            case "linkedin" -> "LinkedIn Account";
+            case "twitter" -> "Twitter Account";
+            default -> provider + " Account";
+        };
     }
 } 

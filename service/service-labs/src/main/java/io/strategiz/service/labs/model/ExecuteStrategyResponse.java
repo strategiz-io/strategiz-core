@@ -209,69 +209,259 @@ public class ExecuteStrategyResponse {
     public static class Performance {
         @JsonProperty("totalReturn")
         private double totalReturn;
-        
+
+        @JsonProperty("totalPnL")
+        private double totalPnL;
+
         @JsonProperty("winRate")
         private double winRate;
-        
+
         @JsonProperty("totalTrades")
         private int totalTrades;
-        
+
         @JsonProperty("profitableTrades")
         private int profitableTrades;
-        
+
+        @JsonProperty("buyCount")
+        private int buyCount;
+
+        @JsonProperty("sellCount")
+        private int sellCount;
+
+        @JsonProperty("avgWin")
+        private double avgWin;
+
+        @JsonProperty("avgLoss")
+        private double avgLoss;
+
+        @JsonProperty("profitFactor")
+        private double profitFactor;
+
         @JsonProperty("maxDrawdown")
         private double maxDrawdown;
-        
+
         @JsonProperty("sharpeRatio")
         private double sharpeRatio;
-        
+
+        @JsonProperty("trades")
+        private List<Trade> trades;
+
+        @JsonProperty("lastTestedAt")
+        private String lastTestedAt;
+
         // Getters and Setters
         public double getTotalReturn() {
             return totalReturn;
         }
-        
+
         public void setTotalReturn(double totalReturn) {
             this.totalReturn = totalReturn;
         }
-        
+
+        public double getTotalPnL() {
+            return totalPnL;
+        }
+
+        public void setTotalPnL(double totalPnL) {
+            this.totalPnL = totalPnL;
+        }
+
         public double getWinRate() {
             return winRate;
         }
-        
+
         public void setWinRate(double winRate) {
             this.winRate = winRate;
         }
-        
+
         public int getTotalTrades() {
             return totalTrades;
         }
-        
+
         public void setTotalTrades(int totalTrades) {
             this.totalTrades = totalTrades;
         }
-        
+
         public int getProfitableTrades() {
             return profitableTrades;
         }
-        
+
         public void setProfitableTrades(int profitableTrades) {
             this.profitableTrades = profitableTrades;
         }
-        
+
+        public int getBuyCount() {
+            return buyCount;
+        }
+
+        public void setBuyCount(int buyCount) {
+            this.buyCount = buyCount;
+        }
+
+        public int getSellCount() {
+            return sellCount;
+        }
+
+        public void setSellCount(int sellCount) {
+            this.sellCount = sellCount;
+        }
+
+        public double getAvgWin() {
+            return avgWin;
+        }
+
+        public void setAvgWin(double avgWin) {
+            this.avgWin = avgWin;
+        }
+
+        public double getAvgLoss() {
+            return avgLoss;
+        }
+
+        public void setAvgLoss(double avgLoss) {
+            this.avgLoss = avgLoss;
+        }
+
+        public double getProfitFactor() {
+            return profitFactor;
+        }
+
+        public void setProfitFactor(double profitFactor) {
+            this.profitFactor = profitFactor;
+        }
+
         public double getMaxDrawdown() {
             return maxDrawdown;
         }
-        
+
         public void setMaxDrawdown(double maxDrawdown) {
             this.maxDrawdown = maxDrawdown;
         }
-        
+
         public double getSharpeRatio() {
             return sharpeRatio;
         }
-        
+
         public void setSharpeRatio(double sharpeRatio) {
             this.sharpeRatio = sharpeRatio;
+        }
+
+        public List<Trade> getTrades() {
+            return trades;
+        }
+
+        public void setTrades(List<Trade> trades) {
+            this.trades = trades;
+        }
+
+        public String getLastTestedAt() {
+            return lastTestedAt;
+        }
+
+        public void setLastTestedAt(String lastTestedAt) {
+            this.lastTestedAt = lastTestedAt;
+        }
+    }
+
+    public static class Trade {
+        @JsonProperty("buyTimestamp")
+        private String buyTimestamp;
+
+        @JsonProperty("sellTimestamp")
+        private String sellTimestamp;
+
+        @JsonProperty("buyPrice")
+        private double buyPrice;
+
+        @JsonProperty("sellPrice")
+        private double sellPrice;
+
+        @JsonProperty("pnl")
+        private double pnl;
+
+        @JsonProperty("pnlPercent")
+        private double pnlPercent;
+
+        @JsonProperty("isWin")
+        private boolean isWin;
+
+        @JsonProperty("buyReason")
+        private String buyReason;
+
+        @JsonProperty("sellReason")
+        private String sellReason;
+
+        // Getters and Setters
+        public String getBuyTimestamp() {
+            return buyTimestamp;
+        }
+
+        public void setBuyTimestamp(String buyTimestamp) {
+            this.buyTimestamp = buyTimestamp;
+        }
+
+        public String getSellTimestamp() {
+            return sellTimestamp;
+        }
+
+        public void setSellTimestamp(String sellTimestamp) {
+            this.sellTimestamp = sellTimestamp;
+        }
+
+        public double getBuyPrice() {
+            return buyPrice;
+        }
+
+        public void setBuyPrice(double buyPrice) {
+            this.buyPrice = buyPrice;
+        }
+
+        public double getSellPrice() {
+            return sellPrice;
+        }
+
+        public void setSellPrice(double sellPrice) {
+            this.sellPrice = sellPrice;
+        }
+
+        public double getPnl() {
+            return pnl;
+        }
+
+        public void setPnl(double pnl) {
+            this.pnl = pnl;
+        }
+
+        public double getPnlPercent() {
+            return pnlPercent;
+        }
+
+        public void setPnlPercent(double pnlPercent) {
+            this.pnlPercent = pnlPercent;
+        }
+
+        public boolean isWin() {
+            return isWin;
+        }
+
+        public void setWin(boolean isWin) {
+            this.isWin = isWin;
+        }
+
+        public String getBuyReason() {
+            return buyReason;
+        }
+
+        public void setBuyReason(String buyReason) {
+            this.buyReason = buyReason;
+        }
+
+        public String getSellReason() {
+            return sellReason;
+        }
+
+        public void setSellReason(String sellReason) {
+            this.sellReason = sellReason;
         }
     }
     

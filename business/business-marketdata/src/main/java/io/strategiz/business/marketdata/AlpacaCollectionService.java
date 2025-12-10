@@ -52,6 +52,7 @@ public class AlpacaCollectionService {
     private final int threadPoolSize;
     private final int batchSize;
     private final int backfillMonths;
+    private final int backfillTimeoutMinutes;
     private final List<String> defaultSymbols;
 
     // Thread pool for concurrent execution
@@ -63,7 +64,8 @@ public class AlpacaCollectionService {
             MarketDataRepository marketDataRepository,
             @Value("${alpaca.batch.thread-pool-size:2}") int threadPoolSize,
             @Value("${alpaca.batch.batch-size:500}") int batchSize,
-            @Value("${alpaca.batch.backfill-months:3}") int backfillMonths) {
+            @Value("${alpaca.batch.backfill-months:3}") int backfillMonths,
+            @Value("${alpaca.batch.backfill-timeout-minutes:240}") int backfillTimeoutMinutes) {
 
         this.historicalClient = historicalClient;
         this.assetsClient = assetsClient;
@@ -71,6 +73,7 @@ public class AlpacaCollectionService {
         this.threadPoolSize = threadPoolSize;
         this.batchSize = batchSize;
         this.backfillMonths = backfillMonths;
+        this.backfillTimeoutMinutes = backfillTimeoutMinutes;
 
         // Initialize thread pool
         this.executorService = Executors.newFixedThreadPool(threadPoolSize);
@@ -112,8 +115,8 @@ public class AlpacaCollectionService {
             "EFA", "VEA", "EEM"
         );
 
-        log.info("AlpacaCollectionService initialized with {} symbols, {} threads, batch size {}",
-                defaultSymbols.size(), threadPoolSize, batchSize);
+        log.info("AlpacaCollectionService initialized with {} symbols, {} threads, batch size {}, timeout {} min",
+                defaultSymbols.size(), threadPoolSize, batchSize, backfillTimeoutMinutes);
     }
 
     /**
@@ -186,7 +189,7 @@ public class AlpacaCollectionService {
         );
 
         try {
-            allFutures.get(30, TimeUnit.MINUTES); // 30 minute timeout for full backfill
+            allFutures.get(backfillTimeoutMinutes, TimeUnit.MINUTES); // Configurable timeout (default 240 min / 4 hours)
 
             // Aggregate results
             for (CompletableFuture<SymbolResult> future : futures) {
@@ -198,7 +201,7 @@ public class AlpacaCollectionService {
             }
 
         } catch (TimeoutException e) {
-            log.error("Backfill timed out after 30 minutes");
+            log.error("Backfill timed out after {} minutes", backfillTimeoutMinutes);
             errorCount.incrementAndGet();
         } catch (Exception e) {
             log.error("Error waiting for backfill completion: {}", e.getMessage(), e);

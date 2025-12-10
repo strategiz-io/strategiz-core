@@ -1,0 +1,47 @@
+steps:
+# Build the application with Maven
+- name: 'maven:3.9.6-eclipse-temurin-21'
+  entrypoint: 'mvn'
+  args: ['clean', 'package', '-DskipTests', '-pl', 'application-batch', '-am']
+
+# Build the Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-f', 'application-batch/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID', '-t', 'gcr.io/$PROJECT_ID/strategiz-batch:latest', './application-batch']
+
+# Push the Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-batch:latest']
+
+# Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'strategiz-batch'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID'
+    - '--platform=managed'
+    - '--region=us-central1'
+    - '--no-allow-unauthenticated'
+    - '--memory=2Gi'
+    - '--cpu=2'
+    - '--port=8080'
+    - '--min-instances=1'
+    - '--max-instances=3'
+    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod'
+    - '--set-env-vars=VAULT_ADDR=https://strategiz-vault-43628135674.us-central1.run.app'
+    - '--set-env-vars=STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-central1.run.app'
+    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
+
+images:
+- 'gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID'
+- 'gcr.io/$PROJECT_ID/strategiz-batch:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+
+timeout: '1800s'

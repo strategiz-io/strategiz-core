@@ -1,5 +1,5 @@
 server:
-  port: 8444
+  port: ${PORT:8444}
 
 spring:
   application:
@@ -11,6 +11,22 @@ spring:
       - com.google.cloud.spring.autoconfigure.firestore.GcpFirestoreAutoConfiguration
       - com.google.cloud.spring.autoconfigure.core.GcpContextAutoConfiguration
       - com.google.cloud.spring.autoconfigure.firestore.FirestoreTransactionManagerAutoConfiguration
+
+# Vault configuration for secrets management
+strategiz:
+  vault:
+    enabled: true
+    address: ${STRATEGIZ_VAULT_ADDRESS:${VAULT_ADDR:http://localhost:8200}}
+    cache-timeout-ms: 60000
+    fail-fast: true
+    secrets-path: secret
+
+# Spring Cloud Vault Configuration (required for Spring Cloud Vault autoconfiguration)
+spring.cloud.vault:
+  enabled: true
+  uri: ${STRATEGIZ_VAULT_ADDRESS:${VAULT_ADDR:http://localhost:8200}}
+  token: ${VAULT_TOKEN:}
+  authentication: TOKEN
 
 # Alpaca batch job configuration
 alpaca:

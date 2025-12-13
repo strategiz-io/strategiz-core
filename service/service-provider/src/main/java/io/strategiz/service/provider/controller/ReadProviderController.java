@@ -7,81 +7,46 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
-import java.util.Optional;
-
 /**
  * Controller for reading provider connections and data.
  * Handles retrieving provider status, balances, transactions, and connection information.
- * 
+ *
  * @author Strategiz Team
  * @version 1.0
  */
 @RestController
 @RequestMapping("/v1/providers")
+@RequireAuth(minAcr = "1")
 public class ReadProviderController extends BaseController {
-    
+
     @Override
     protected String getModuleName() {
         return ModuleConstants.PROVIDER_MODULE;
     }
-    
+
     private final ReadProviderService readProviderService;
-    private final SessionAuthBusiness sessionAuthBusiness;
-    
+
     @Autowired
-    public ReadProviderController(ReadProviderService readProviderService,
-                                  SessionAuthBusiness sessionAuthBusiness) {
+    public ReadProviderController(ReadProviderService readProviderService) {
         this.readProviderService = readProviderService;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     /**
      * Get all providers for a user.
-     * 
-     * @param principal The authenticated user principal
+     *
+     * @param user The authenticated user from token
      * @return List of providers with their status and data
      */
     @GetMapping
-    public ResponseEntity<ProvidersListResponse> getProviders(Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        // Get user ID from session
-        String userId = null;
-        log.debug("ReadProviderController: Auth header present: {}, Principal present: {}", 
-            authHeader != null, principal != null);
-        
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            log.debug("ReadProviderController: Validating session with token (first 10 chars): {}", 
-                token.length() > 10 ? token.substring(0, 10) + "..." : token);
-            
-            Optional<String> sessionUserId = sessionAuthBusiness.validateSession(token);
-            if (sessionUserId.isPresent()) {
-                userId = sessionUserId.get();
-                log.info("ReadProviderController: Got userId from session: {}", userId);
-            } else {
-                log.warn("ReadProviderController: Session validation returned empty - token might be invalid");
-            }
-        }
-        
-        // Fallback to principal if session doesn't provide userId
-        if (userId == null && principal != null) {
-            userId = principal.getName();
-            log.info("ReadProviderController: Using userId from principal: {}", userId);
-        }
-        
-        if (userId == null) {
-            log.error("ReadProviderController: No user ID available from authentication");
-            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG, "service-provider", 
-                "userId", "null", "User must be authenticated");
-        }
-        
+    public ResponseEntity<ProvidersListResponse> getProviders(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
         log.info("Retrieving providers for user: {}", userId);
         
         try {
@@ -112,19 +77,17 @@ public class ReadProviderController extends BaseController {
     
     /**
      * Get a specific provider by ID.
-     * 
+     *
      * @param providerId The provider ID to retrieve
-     * @param principal The authenticated user principal
+     * @param user The authenticated user from token
      * @return Provider details
      */
     @GetMapping("/{providerId}")
     public ResponseEntity<ReadProviderResponse> getProvider(
             @PathVariable String providerId,
-            Principal principal) {
-        
-        // Extract user ID from authentication principal
-        String userId = principal != null ? principal.getName() : "anonymous";
-        
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Retrieving provider {} for user: {}", providerId, userId);
         
         try {
@@ -144,19 +107,17 @@ public class ReadProviderController extends BaseController {
     
     /**
      * Get provider status (lightweight check).
-     * 
+     *
      * @param providerId The provider ID to check
-     * @param principal The authenticated user principal
+     * @param user The authenticated user from token
      * @return Provider status information
      */
     @GetMapping("/{providerId}/status")
     public ResponseEntity<ReadProviderResponse> getProviderStatus(
             @PathVariable String providerId,
-            Principal principal) {
-        
-        // Extract user ID from authentication principal
-        String userId = principal != null ? principal.getName() : "anonymous";
-        
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Checking status for provider {} for user: {}", providerId, userId);
         
         try {
@@ -176,21 +137,19 @@ public class ReadProviderController extends BaseController {
     
     /**
      * Get provider data (balances, transactions, etc.).
-     * 
+     *
      * @param providerId The provider ID to get data for
      * @param dataType The type of data to retrieve (balances, transactions, etc.)
-     * @param principal The authenticated user principal
+     * @param user The authenticated user from token
      * @return Provider data
      */
     @GetMapping("/{providerId}/data")
     public ResponseEntity<ReadProviderResponse> getProviderData(
             @PathVariable String providerId,
             @RequestParam(required = false, defaultValue = "balances") String dataType,
-            Principal principal) {
-        
-        // Extract user ID from authentication principal
-        String userId = principal != null ? principal.getName() : "anonymous";
-        
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Retrieving {} data for provider {} for user: {}", dataType, providerId, userId);
         
         try {

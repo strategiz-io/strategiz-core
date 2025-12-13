@@ -32,12 +32,16 @@ public class VaultHttpClient implements VaultClient {
         this.restTemplate = new RestTemplate();
         this.properties = properties;
         this.environment = environment;
+        log.info("VaultHttpClient initialized with Vault address: {}", properties.getAddress());
+        String token = environment.getProperty("VAULT_TOKEN");
+        log.info("VAULT_TOKEN available: {}, length: {}", token != null, token != null ? token.length() : 0);
     }
     
     @Override
     public Map<String, Object> read(String path) {
         try {
             String url = properties.getAddress() + "/v1/" + path;
+            log.info("Reading from Vault URL: {}", url);
             HttpHeaders headers = createHeaders();
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
@@ -141,14 +145,18 @@ public class VaultHttpClient implements VaultClient {
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        
+
         // Get token from environment or Spring Cloud Vault configuration
         String token = environment.getProperty("VAULT_TOKEN");
         if (token == null) {
             token = environment.getProperty("spring.cloud.vault.token", "root-token");
         }
+        // Trim any whitespace/newlines that might come from Secret Manager
+        if (token != null) {
+            token = token.trim().replaceAll("[\\r\\n]", "");
+        }
         headers.set("X-Vault-Token", token);
-        
+
         return headers;
     }
 }

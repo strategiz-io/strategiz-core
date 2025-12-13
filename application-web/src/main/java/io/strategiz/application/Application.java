@@ -3,6 +3,7 @@ package io.strategiz.application;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Import;
@@ -18,6 +19,7 @@ import io.strategiz.data.marketdata.config.DataMarketDataConfig;
  * Main Application class for Strategiz Core
  */
 @SpringBootApplication
+@EnableCaching
 @Import({FirebaseConfig.class, DataAuthConfig.class, DataUserConfig.class, DataProviderConfig.class, DataStrategyConfig.class, DataMarketDataConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"

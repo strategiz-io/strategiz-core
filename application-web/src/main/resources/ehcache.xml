@@ -44,4 +44,17 @@
         </resources>
     </cache>
 
+    <!-- Market ticker cache - for landing page ticker data -->
+    <!-- TTL: 30 seconds for reasonably fresh ticker data -->
+    <cache alias="marketTicker">
+        <key-type>java.lang.String</key-type>
+        <value-type>org.springframework.http.ResponseEntity</value-type>
+        <expiry>
+            <ttl unit="seconds">30</ttl>
+        </expiry>
+        <resources>
+            <heap unit="entries">1</heap>
+        </resources>
+    </cache>
+
 </config>

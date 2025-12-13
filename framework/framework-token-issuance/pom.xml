@@ -11,38 +11,17 @@
         <relativePath>../..</relativePath>
     </parent>
 
-    <artifactId>framework-authorization</artifactId>
+    <artifactId>framework-token-issuance</artifactId>
     <packaging>jar</packaging>
 
-    <description>Authorization framework with PASETO scope-based and OpenFGA relationship-based authorization</description>
+    <description>Token issuance framework - PASETO token creation only (no validation)</description>
 
     <dependencies>
         <!-- Internal Dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>framework-exception</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
             <artifactId>framework-secrets</artifactId>
             <version>${project.version}</version>
-        </dependency>
-
-        <!-- Spring AOP for aspects -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
-
-        <!-- Spring Web for filters and MVC integration -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
         </dependency>
 
         <!-- Spring Boot auto-configuration -->
@@ -51,14 +30,7 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
 
-        <!-- Servlet API -->
-        <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- PASETO for token parsing -->
+        <!-- PASETO for token creation -->
         <dependency>
             <groupId>dev.paseto</groupId>
             <artifactId>jpaseto-api</artifactId>
@@ -73,13 +45,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <!-- Testing -->

@@ -88,23 +88,31 @@ public class PasetoTokenProvider {
         if (vaultSecretService != null) {
             try {
                 // Load identity key from Vault
-                String identityKeyStr = vaultSecretService.readSecret(
-                    "tokens." + env + ".identity-key");
+                String identityKeyPath = "tokens." + env + ".identity-key";
+                log.info("Attempting to load identity key from Vault path: {}", identityKeyPath);
+                String identityKeyStr = vaultSecretService.readSecret(identityKeyPath);
                 if (identityKeyStr != null && !identityKeyStr.isEmpty()) {
                     identityKey = Keys.secretKey(Base64.getDecoder().decode(identityKeyStr));
                     log.info("Loaded identity token key from Vault for {}", env);
+                } else {
+                    log.warn("Identity key is null or empty for path: {}", identityKeyPath);
                 }
-                
+
                 // Load session key from Vault
-                String sessionKeyStr = vaultSecretService.readSecret(
-                    "tokens." + env + ".session-key");
+                String sessionKeyPath = "tokens." + env + ".session-key";
+                log.info("Attempting to load session key from Vault path: {}", sessionKeyPath);
+                String sessionKeyStr = vaultSecretService.readSecret(sessionKeyPath);
                 if (sessionKeyStr != null && !sessionKeyStr.isEmpty()) {
                     sessionKey = Keys.secretKey(Base64.getDecoder().decode(sessionKeyStr));
                     log.info("Loaded session token key from Vault for {}", env);
+                } else {
+                    log.warn("Session key is null or empty for path: {}", sessionKeyPath);
                 }
             } catch (Exception e) {
-                log.error("Failed to load keys from Vault: {}", e.getMessage());
+                log.error("Failed to load keys from Vault: {} - {}", e.getClass().getSimpleName(), e.getMessage());
             }
+        } else {
+            log.warn("VaultSecretService is null - cannot load keys from Vault");
         }
         
         // Require keys to be configured in Vault - no temporary keys

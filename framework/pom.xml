@@ -22,6 +22,7 @@
         <module>framework-exception</module>
         <module>framework-logging</module>
         <module>framework-secrets</module>
+        <module>framework-token-issuance</module>
     </modules>
 
 </project>

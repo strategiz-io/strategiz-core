@@ -9,7 +9,9 @@ COPY data/ data/
 COPY client/ client/
 COPY business/ business/
 COPY service/ service/
-COPY application/ application/
+COPY application-web/ application-web/
+COPY application-batch/ application-batch/
+COPY batch/ batch/
 
 # Build the application
 RUN mvn clean install -DskipTests
@@ -18,8 +20,8 @@ RUN mvn clean install -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-# Copy the built JAR file from the builder stage
-COPY --from=builder /app/application/target/application-1.0-SNAPSHOT.jar app.jar
+# Copy the built JAR file from the builder stage (web application)
+COPY --from=builder /app/application-web/target/application-web-1.0-SNAPSHOT.jar app.jar
 
 # Ensure the service listens on the port provided by Cloud Run
 ENV PORT=8080

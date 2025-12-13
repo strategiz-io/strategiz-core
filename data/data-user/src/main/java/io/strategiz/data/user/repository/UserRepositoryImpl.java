@@ -37,10 +37,12 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     @Override
     public UserEntity createUser(UserEntity user) {
         // Use email as createdBy for user entities (since user is creating their own account)
-        String createdBy = (user.getProfile() != null && user.getProfile().getEmail() != null) 
-            ? user.getProfile().getEmail() 
+        String createdBy = (user.getProfile() != null && user.getProfile().getEmail() != null)
+            ? user.getProfile().getEmail()
             : user.getUserId();
-        return super.save(user, createdBy);
+        // Use forceCreate because UserEntity.getId() returns userId which is typically pre-set.
+        // The standard save() would treat this as an update instead of a create.
+        return super.forceCreate(user, createdBy);
     }
 
     @Override

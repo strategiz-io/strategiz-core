@@ -21,32 +21,40 @@
             <artifactId>data-session</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-        
+
         <!-- Business base dependency -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-base</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-        
+
+        <!-- Framework token issuance - for creating tokens -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-token-issuance</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Framework authorization - for validating tokens -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-authorization</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Framework secrets for Vault integration -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>framework-secrets</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-        
-        <!-- PASETO token library -->
+
+        <!-- PASETO token library (still needed for TokenType enum) -->
         <dependency>
             <groupId>dev.paseto</groupId>
             <artifactId>jpaseto-api</artifactId>
             <version>0.7.0</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.paseto</groupId>
-            <artifactId>jpaseto-impl</artifactId>
-            <version>0.7.0</version>
-            <scope>runtime</scope>
         </dependency>
         
         <!-- Spring dependencies -->

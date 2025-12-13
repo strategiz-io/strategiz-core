@@ -4,6 +4,8 @@ import dev.paseto.jpaseto.PasetoException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.data.session.repository.SessionRepository;
+import io.strategiz.framework.authorization.validator.PasetoTokenValidator;
+import io.strategiz.framework.token.issuer.PasetoTokenIssuer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,14 +55,17 @@ public class SessionAuthBusiness {
     
     @Value("${session.cleanup.revoked.days:1}") // Days to keep revoked sessions before deletion
     private int revokedSessionRetentionDays;
-    
-    private final PasetoTokenProvider tokenProvider;
+
+    private final PasetoTokenIssuer tokenIssuer;
+    private final PasetoTokenValidator tokenValidator;
     private final SessionRepository sessionRepository;
-    
+
     @Autowired
-    public SessionAuthBusiness(PasetoTokenProvider tokenProvider,
+    public SessionAuthBusiness(PasetoTokenIssuer tokenIssuer,
+                              PasetoTokenValidator tokenValidator,
                               SessionRepository sessionRepository) {
-        this.tokenProvider = tokenProvider;
+        this.tokenIssuer = tokenIssuer;
+        this.tokenValidator = tokenValidator;
         this.sessionRepository = sessionRepository;
     }
     
@@ -77,21 +82,21 @@ public class SessionAuthBusiness {
      * @return AuthResult with tokens and optional session
      */
     public AuthResult createAuthentication(AuthRequest authRequest) {
-        String acr = tokenProvider.calculateAcr(authRequest.authenticationMethods(), authRequest.isPartialAuth());
-        
-        log.info("Creating unified auth for user: {} with ACR: {} and methods: {}", 
+        String acr = tokenIssuer.calculateAcr(authRequest.authenticationMethods(), authRequest.isPartialAuth());
+
+        log.info("Creating unified auth for user: {} with ACR: {} and methods: {}",
                 authRequest.userId(), acr, authRequest.authenticationMethods());
-        
-        // 1. Create PASETO tokens
+
+        // 1. Create PASETO tokens using framework-token-issuance
         Duration accessValidity = Duration.ofHours(24);
-        String accessToken = tokenProvider.createAuthenticationToken(
-            authRequest.userId(), 
-            authRequest.authenticationMethods(), 
-            acr, 
+        String accessToken = tokenIssuer.createAuthenticationToken(
+            authRequest.userId(),
+            authRequest.authenticationMethods(),
+            acr,
             accessValidity,
             authRequest.demoMode()
         );
-        String refreshToken = tokenProvider.createRefreshToken(authRequest.userId());
+        String refreshToken = tokenIssuer.createRefreshToken(authRequest.userId());
         
         // 2. Store tokens as sessions in unified collection
         SessionEntity accessSession = null;
@@ -112,7 +117,7 @@ public class SessionAuthBusiness {
      * Store access token as session in unified collection
      */
     private SessionEntity storeAccessTokenSession(String accessToken, AuthRequest authRequest, String acr) {
-        Map<String, Object> accessClaims = tokenProvider.parseToken(accessToken);
+        Map<String, Object> accessClaims = tokenValidator.parseToken(accessToken);
         
         Map<String, Object> sessionClaims = new HashMap<>();
         sessionClaims.put("amr", accessClaims.get("amr"));
@@ -141,7 +146,7 @@ public class SessionAuthBusiness {
      * Store refresh token as session in unified collection
      */
     private SessionEntity storeRefreshTokenSession(String refreshToken, AuthRequest authRequest, SessionEntity accessSession) {
-        Map<String, Object> refreshClaims = tokenProvider.parseToken(refreshToken);
+        Map<String, Object> refreshClaims = tokenValidator.parseToken(refreshToken);
         
         SessionEntity refreshSession = new SessionEntity(authRequest.userId());
         refreshSession.setSessionId("refresh_" + UUID.randomUUID().toString());
@@ -161,53 +166,71 @@ public class SessionAuthBusiness {
     
     
     /**
-     * Validate access token by checking unified session
+     * Validate access token - FIRST LAYER: PASETO signature validation only
+     *
+     * This method validates the token cryptographically using PASETO.
+     * If the signature is valid and the token is not expired, the token is valid.
+     *
+     * Session database lookup is NOT required for basic token validation.
+     * The PASETO token contains all the information needed for authorization.
      */
     public Optional<SessionValidationResult> validateToken(String accessToken) {
         try {
-            log.debug("Validating token starting with: {}", 
+            log.debug("Validating token starting with: {}",
                     accessToken != null && accessToken.length() > 20 ? accessToken.substring(0, 20) + "..." : "null");
-            
-            // Validate token format and signature
-            if (!tokenProvider.isValidAccessToken(accessToken)) {
+
+            // FIRST LAYER: Validate PASETO token signature and expiration via framework-authorization
+            // This is the ONLY required validation - cryptographic proof that the token is authentic
+            if (!tokenValidator.isValidAccessToken(accessToken)) {
                 log.warn("Token validation failed - invalid token format or signature");
                 return Optional.empty();
             }
-            
-            // Find session by token value
-            Optional<SessionEntity> sessionOpt = sessionRepository.findByTokenValue(accessToken);
-            if (sessionOpt.isEmpty()) {
-                log.warn("Token validation failed - session not found in database");
-                return Optional.empty();
-            }
-            if (!sessionOpt.get().isValid()) {
-                log.warn("Token validation failed - session exists but is invalid/expired");
-                return Optional.empty();
-            }
-            
-            SessionEntity session = sessionOpt.get();
-            String userId = session.getUserId();
-            
-            // Update last accessed time
-            session.updateLastAccessed();
-            sessionRepository.save(session);
-            
-            // Extract claims from session
-            Map<String, Object> claims = session.getClaims();
+
+            // Token signature is valid - extract claims directly from the token
+            // No database lookup required for authorization
+            Map<String, Object> claims = tokenValidator.parseToken(accessToken);
+
+            // Extract user ID from token subject
+            String publicUserId = (String) claims.get("sub");
+
+            // Decode ACR from token
             String acr = (String) claims.getOrDefault("acr", "1");
-            String authMethodsStr = (String) claims.getOrDefault("auth_methods", "password");
-            List<String> amr = List.of(authMethodsStr.split(","));
+
+            // Decode AMR from token
+            List<Integer> amrList = new ArrayList<>();
+            Object amrObj = claims.get("amr");
+            if (amrObj instanceof List<?>) {
+                List<?> list = (List<?>) amrObj;
+                for (Object item : list) {
+                    if (item instanceof Integer) {
+                        amrList.add((Integer) item);
+                    } else if (item instanceof Number) {
+                        amrList.add(((Number) item).intValue());
+                    }
+                }
+            }
+            List<String> amr = decodeAuthenticationMethods(amrList);
+            if (amr.isEmpty()) {
+                amr = List.of("password"); // Default fallback
+            }
+
+            // Extract other claims
             Boolean demoMode = (Boolean) claims.getOrDefault("demoMode", true);
-            
+            Instant issuedAt = Instant.ofEpochSecond(getClaimAsLong(claims, "iat"));
+            Instant expiresAt = Instant.ofEpochSecond(getClaimAsLong(claims, "exp"));
+            String tokenId = (String) claims.get("kid");
+
+            log.debug("Token validated successfully via PASETO signature - user: {}, acr: {}", publicUserId, acr);
+
             return Optional.of(new SessionValidationResult(
-                userId,
-                "user@example.com", // We don't store email in session anymore
-                session.getSessionId(),
+                publicUserId,
+                "user@example.com", // Email not stored in token for privacy
+                tokenId != null ? tokenId : "token_" + accessToken.substring(0, 8),
                 acr,
                 amr,
                 demoMode,
-                session.getLastAccessedAt(),
-                session.getExpiresAt(),
+                issuedAt,
+                expiresAt,
                 true
             ));
         } catch (Exception e) {
@@ -215,13 +238,47 @@ public class SessionAuthBusiness {
             return Optional.empty();
         }
     }
+
+    /**
+     * Validate token AND check session in database (optional second layer)
+     * Use this when you need session management features like:
+     * - Session revocation checking
+     * - Session tracking/audit
+     * - Last accessed time updates
+     */
+    public Optional<SessionValidationResult> validateTokenWithSession(String accessToken) {
+        // First validate the token cryptographically
+        Optional<SessionValidationResult> tokenValidation = validateToken(accessToken);
+        if (tokenValidation.isEmpty()) {
+            return Optional.empty();
+        }
+
+        // Optional: Check session in database for revocation status
+        Optional<SessionEntity> sessionOpt = sessionRepository.findByTokenValue(accessToken);
+        if (sessionOpt.isPresent()) {
+            SessionEntity session = sessionOpt.get();
+
+            // Check if session was explicitly revoked
+            if (!session.isValid()) {
+                log.warn("Token is cryptographically valid but session was revoked");
+                return Optional.empty();
+            }
+
+            // Update last accessed time
+            session.updateLastAccessed();
+            sessionRepository.save(session);
+        }
+        // If session not found in database, token is still valid (PASETO signature is the authority)
+
+        return tokenValidation;
+    }
     
     /**
      * Create validation result from token when no session exists
      */
     private Optional<SessionValidationResult> createValidationResultFromToken(String accessToken, String userId) {
         try {
-            Map<String, Object> claims = tokenProvider.parseToken(accessToken);
+            Map<String, Object> claims = tokenValidator.parseToken(accessToken);
             String acr = (String) claims.getOrDefault("acr", "1");
             
             // Decode AMR from token
@@ -440,9 +497,9 @@ public class SessionAuthBusiness {
             List<String> authMethods = List.of(authMethodsStr.split(","));
             Boolean demoMode = (Boolean) originalClaims.getOrDefault("demoMode", true);
             
-            // Generate new access token with same auth context
+            // Generate new access token with same auth context using framework-token-issuance
             Duration accessValidity = Duration.ofHours(24);
-            String newAccessToken = tokenProvider.createAuthenticationToken(
+            String newAccessToken = tokenIssuer.createAuthenticationToken(
                 userId,
                 authMethods,
                 acr,
@@ -489,9 +546,9 @@ public class SessionAuthBusiness {
      */
     public Map<String, Object> addAuthenticationMethod(String sessionToken, String authMethod, int newAcrLevel) {
         try {
-            // Parse the current token to get user and existing methods
-            Map<String, Object> currentClaims = tokenProvider.parseToken(sessionToken);
-            String userId = tokenProvider.getUserIdFromToken(sessionToken);
+            // Parse the current token to get user and existing methods using framework-authorization
+            Map<String, Object> currentClaims = tokenValidator.parseToken(sessionToken);
+            String userId = tokenValidator.getUserIdFromToken(sessionToken);
             
             // Decode existing AMR
             List<Integer> amrList = new ArrayList<>();
@@ -516,17 +573,17 @@ public class SessionAuthBusiness {
             
             // Preserve demo mode from current token
             Boolean demoMode = (Boolean) currentClaims.getOrDefault("demoMode", true);
-            
-            // Create new tokens with updated authentication context
+
+            // Create new tokens with updated authentication context using framework-token-issuance
             Duration accessValidity = Duration.ofHours(24);
-            String newAccessToken = tokenProvider.createAuthenticationToken(
+            String newAccessToken = tokenIssuer.createAuthenticationToken(
                 userId,
                 updatedMethods,
                 String.valueOf(newAcrLevel),
                 accessValidity,
                 demoMode
             );
-            String newRefreshToken = tokenProvider.createRefreshToken(userId);
+            String newRefreshToken = tokenIssuer.createRefreshToken(userId);
             
             // Store the new tokens as sessions
             AuthRequest authRequest = new AuthRequest(

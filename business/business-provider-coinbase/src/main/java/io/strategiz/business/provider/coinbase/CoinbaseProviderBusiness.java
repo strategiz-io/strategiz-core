@@ -565,13 +565,9 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             }
 
             // Fetch and store portfolio data after OAuth completion (synchronous, like Kraken)
-            try {
-                fetchAndStorePortfolioData(userId, result.getAccessToken());
-                log.info("Successfully fetched and stored Coinbase portfolio data during OAuth for user: {}", userId);
-            } catch (Exception e) {
-                log.error("Failed to fetch portfolio data for user: {} (OAuth still succeeded)", userId, e);
-                // Don't throw - OAuth is complete, credentials are stored, data can be synced later
-            }
+            // This MUST succeed for the signup flow to complete properly
+            fetchAndStorePortfolioData(userId, result.getAccessToken());
+            log.info("Successfully fetched and stored Coinbase portfolio data during OAuth for user: {}", userId);
 
         } catch (Exception e) {
             log.error("Error completing Coinbase OAuth flow for user: {}", userId, e);
@@ -681,7 +677,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Failed to fetch and store Coinbase portfolio data for user: {}", userId, e);
-            // Don't throw - OAuth is complete, data can be synced later
+            throw new RuntimeException("Failed to fetch Coinbase portfolio data: " + e.getMessage(), e);
         }
     }
 

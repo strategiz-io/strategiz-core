@@ -144,6 +144,14 @@ public class ReadProfileResponse {
         
         io.strategiz.data.user.entity.UserProfileEntity profile = user.getProfile();
         
+        // Get timestamps from entity, fallback to current time if null
+        long createdAt = user.getCreatedDate() != null
+                ? user.getCreatedDate().toDate().getTime()
+                : System.currentTimeMillis();
+        long modifiedAt = user.getModifiedDate() != null
+                ? user.getModifiedDate().toDate().getTime()
+                : System.currentTimeMillis();
+
         return new ReadProfileResponse(
                 user.getId(),
                 profile.getName(),
@@ -153,8 +161,8 @@ public class ReadProfileResponse {
                 profile.getSubscriptionTier(),
                 profile.getDemoMode(),
                 user.getIsActive() != null ? user.getIsActive() : ProfileConstants.Defaults.IS_ACTIVE,
-                System.currentTimeMillis(), // Default to current time
-                System.currentTimeMillis()  // Default to current time
+                createdAt,
+                modifiedAt
         );
     }
 }

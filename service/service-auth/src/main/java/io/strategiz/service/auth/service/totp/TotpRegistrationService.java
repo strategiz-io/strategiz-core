@@ -181,14 +181,6 @@ public class TotpRegistrationService {
         log.info("Saving TOTP auth method for user ID: {} (email: {}) with secret: {}", userId, userEmail, secret.substring(0, 4) + "...");
         authMethodRepository.saveForUser(userId, totpAuth);
         log.info("Successfully saved TOTP auth method for user ID: {}", userId);
-
-        // Verify the save was successful by immediately retrieving it
-        List<AuthenticationMethodEntity> savedMethods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.TOTP);
-        if (savedMethods.isEmpty()) {
-            log.error("Failed to verify TOTP save for user ID: {} - method not found after save", userId);
-            throw new RuntimeException("Failed to save TOTP authentication method");
-        }
-        log.info("Verified TOTP auth method save - found {} TOTP methods for user ID: {}", savedMethods.size(), userId);
         
         // Generate the QR code using the email for display
         String qrCodeUri = generateQrCodeUri(userEmail, secret);

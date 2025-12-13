@@ -139,6 +139,24 @@ public abstract class BaseRepository<T extends BaseEntity> {
     }
 
     /**
+     * Force create an entity, even if it already has an ID set.
+     * Use this when the entity ID is pre-assigned (e.g., UserEntity where getId() returns userId).
+     * This bypasses the auto-detection logic in save().
+     *
+     * @param entity The entity to create
+     * @param userId Who is creating it
+     * @return The created entity
+     */
+    public T forceCreate(T entity, String userId) {
+        try {
+            validateInputs(entity, userId);
+            return performCreate(entity, userId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create " + entityClass.getSimpleName() + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Check if entity exists and is active
      * @param id Entity ID
      * @return True if exists and active

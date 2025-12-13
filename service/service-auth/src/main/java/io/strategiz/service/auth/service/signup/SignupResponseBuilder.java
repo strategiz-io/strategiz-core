@@ -52,8 +52,35 @@ public class SignupResponseBuilder {
     }
 
     /**
+     * Build identity token response for initial signup (before authentication is complete)
+     *
+     * Two-Phase Token Flow:
+     * Phase 1: User provides email → identity token (scope="profile:create", acr="0")
+     * Phase 2: User completes auth → session token (full scopes, acr="1"+)
+     *
+     * @param user The created user entity
+     * @param message Success message
+     * @return OAuthSignupResponse with identity token only
+     */
+    public OAuthSignupResponse buildIdentityTokenResponse(UserEntity user, String message) {
+        // Generate identity token (limited scope, uses identity-key)
+        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createIdentityTokenPair(user.getUserId());
+
+        return new OAuthSignupResponse(
+            true,
+            message,
+            user.getUserId(),
+            user.getProfile().getEmail(),
+            user.getProfile().getName(),
+            tokenPair.accessToken(),  // Identity token
+            null,                      // No refresh token for identity tokens
+            user.getProfile().getPhotoURL()
+        );
+    }
+
+    /**
      * Build failure signup response
-     * 
+     *
      * @param message Error message
      * @return OAuthSignupResponse indicating failure
      */

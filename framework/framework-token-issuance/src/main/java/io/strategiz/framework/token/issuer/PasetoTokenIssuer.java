@@ -261,13 +261,17 @@ public class PasetoTokenIssuer {
             return new ArrayList<>();
         }
 
-        Map<String, Integer> methodMap = Map.of(
-            "password", 1,
-            "sms_otp", 2,
-            "passkeys", 3,
-            "totp", 4,
-            "email_otp", 5,
-            "backup_codes", 6
+        Map<String, Integer> methodMap = Map.ofEntries(
+            Map.entry("password", 1),
+            Map.entry("sms_otp", 2),
+            Map.entry("passkeys", 3),
+            Map.entry("totp", 4),
+            Map.entry("email_otp", 5),
+            Map.entry("backup_codes", 6),
+            Map.entry("google", 7),
+            Map.entry("facebook", 8),
+            Map.entry("apple", 9),
+            Map.entry("microsoft", 10)
         );
 
         return authMethods.stream()
@@ -287,13 +291,17 @@ public class PasetoTokenIssuer {
             return new ArrayList<>();
         }
 
-        Map<Integer, String> methodMap = Map.of(
-            1, "password",
-            2, "sms_otp",
-            3, "passkeys",
-            4, "totp",
-            5, "email_otp",
-            6, "backup_codes"
+        Map<Integer, String> methodMap = Map.ofEntries(
+            Map.entry(1, "password"),
+            Map.entry(2, "sms_otp"),
+            Map.entry(3, "passkeys"),
+            Map.entry(4, "totp"),
+            Map.entry(5, "email_otp"),
+            Map.entry(6, "backup_codes"),
+            Map.entry(7, "google"),
+            Map.entry(8, "facebook"),
+            Map.entry(9, "apple"),
+            Map.entry(10, "microsoft")
         );
 
         return amr.stream()

@@ -13,11 +13,12 @@ import io.strategiz.service.profile.model.UpdateDemoModeRequest;
 import io.strategiz.service.profile.model.UpdateDemoModeResponse;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.security.Principal;
 
 import jakarta.validation.Valid;
 
@@ -63,147 +64,143 @@ public class ProfileController extends BaseController {
 
     /**
      * Get the current user's profile
-     * 
-     * @param principal The authenticated user principal
+     *
+     * @param user The authenticated user from token
      * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/users/profiles/me")
-    public ResponseEntity<ReadProfileResponse> getMyProfile(Principal principal) {
-        if (principal == null) {
-            throw new RuntimeException("Authentication required");
-        }
-        
-        String userId = principal.getName();
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<ReadProfileResponse> getMyProfile(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
         log.info("Retrieving profile for user: {}", userId);
-        
+
         // Get profile - let exceptions bubble up
         ReadProfileResponse profile = profileService.getProfile(userId);
-        
+
         if (profile == null) {
             throw new RuntimeException("Profile not found for user: " + userId);
         }
-        
+
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(profile);
     }
 
     /**
-     * Get profile by user ID
-     * 
-     * @param userId The user ID to get profile for
+     * Get profile by user ID.
+     * This endpoint requires authentication and users can only access their own profile.
+     *
+     * @param userId The user ID to get profile for (must match authenticated user)
+     * @param user The authenticated user from token
      * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/users/profiles/{userId}")
-    public ResponseEntity<ReadProfileResponse> getProfileById(@PathVariable String userId) {
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<ReadProfileResponse> getProfileById(
+            @PathVariable String userId,
+            @AuthUser AuthenticatedUser user) {
+
+        // Users can only access their own profile
+        if (!userId.equals(user.getUserId())) {
+            throw new RuntimeException("Access denied: Cannot access another user's profile");
+        }
+
         log.info("Retrieving profile for user ID: {}", userId);
-        
+
         // Get profile - let exceptions bubble up
         ReadProfileResponse profile = profileService.getProfile(userId);
-        
+
         if (profile == null) {
             throw new RuntimeException("Profile not found for user: " + userId);
         }
-        
+
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(profile);
     }
 
     /**
      * Update the current user's profile
-     * 
+     *
      * @param request Profile update request
-     * @param principal The authenticated user principal
+     * @param user The authenticated user from token
      * @return Clean updated profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PutMapping("/users/profiles/me")
+    @RequireAuth(minAcr = "1")
     public ResponseEntity<ReadProfileResponse> updateMyProfile(
             @Valid @RequestBody UpdateProfileRequest request,
-            Principal principal) {
-        
-        if (principal == null) {
-            throw new RuntimeException("Authentication required");
-        }
-        
-        String userId = principal.getName();
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Updating profile for user: {}", userId);
-        
+
         // Update profile - let exceptions bubble up
         ReadProfileResponse updatedProfile = profileService.updateProfile(userId, request);
-        
+
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(updatedProfile);
     }
 
     /**
      * Verify user's email address
-     * 
+     *
      * @param request Verification request containing verification code
-     * @param principal The authenticated user principal
+     * @param user The authenticated user from token
      * @return Clean verified profile response - no wrapper, let GlobalExceptionHandler handle errors
      */
     @PostMapping("/users/profiles/verify-email")
+    @RequireAuth(minAcr = "1")
     public ResponseEntity<ReadProfileResponse> verifyEmail(
             @Valid @RequestBody UpdateProfileVerificationRequest request,
-            Principal principal) {
-        
-        if (principal == null) {
-            throw new RuntimeException("Authentication required");
-        }
-        
-        String userId = principal.getName();
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Verifying email for user: {}", userId);
-        
+
         // Verify email - let exceptions bubble up
         ReadProfileResponse verifiedProfile = profileService.verifyEmail(userId, request.getVerificationCode());
-        
+
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(verifiedProfile);
     }
 
     /**
      * Update the current user's demo mode
-     * 
+     *
      * @param request Demo mode update request
-     * @param principal The authenticated user principal
+     * @param user The authenticated user from token
      * @return Response with new JWT tokens containing updated demo mode
      */
     @PutMapping("/profile/demo-mode")
+    @RequireAuth(minAcr = "1")
     public ResponseEntity<UpdateDemoModeResponse> updateDemoMode(
             @Valid @RequestBody UpdateDemoModeRequest request,
-            Principal principal) {
-        
-        if (principal == null) {
-            throw new RuntimeException("Authentication required");
-        }
-        
-        String userId = principal.getName();
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Updating demo mode for user: {} to: {}", userId, request.isDemoMode());
-        
+
         // Update demo mode and get new tokens
         UpdateDemoModeResponse response = profileService.updateDemoMode(userId, request.isDemoMode());
-        
+
         // Return response with new tokens
         return ResponseEntity.ok(response);
     }
 
     /**
      * Deactivate the current user's profile
-     * 
-     * @param principal The authenticated user principal
+     *
+     * @param user The authenticated user from token
      * @return Empty response indicating successful deactivation
      */
     @DeleteMapping("/users/profiles/me")
-    public ResponseEntity<Void> deactivateProfile(Principal principal) {
-        if (principal == null) {
-            throw new RuntimeException("Authentication required");
-        }
-        
-        String userId = principal.getName();
+    @RequireAuth(minAcr = "2")  // Require MFA for account deletion
+    public ResponseEntity<Void> deactivateProfile(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
         log.info("Deactivating profile for user: {}", userId);
-        
+
         // Deactivate profile - let exceptions bubble up
         profileService.deactivateProfile(userId);
-        
+
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.noContent().build();
     }

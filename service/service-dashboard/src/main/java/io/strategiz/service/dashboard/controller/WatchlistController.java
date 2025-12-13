@@ -19,6 +19,9 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +47,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/v1/dashboard/watchlists")
 @CrossOrigin(origins = "*")
+@RequireAuth(minAcr = "1")
 public class WatchlistController extends BaseController {
     
     @Override
@@ -72,19 +76,15 @@ public class WatchlistController extends BaseController {
     }
     
     /**
-     * Get watchlist data for a user.
+     * Get watchlist data for authenticated user.
      * Returns REAL market data from CoinGecko and Yahoo Finance.
-     * 
-     * @param userId The user ID to get data for
+     *
+     * @param user The authenticated user from token
      * @return Real-time watchlist data with market information
      */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getWatchlist(@RequestParam(required = false) String userId) {
-        // Use a default user ID if not provided
-        if (userId == null || userId.isEmpty()) {
-            userId = "test-user";
-        }
-        
+    public ResponseEntity<Map<String, Object>> getWatchlist(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
         log.info("Retrieving REAL watchlist data for user: {}", userId);
         
         try {
@@ -122,17 +122,17 @@ public class WatchlistController extends BaseController {
     
     /**
      * Create a new watchlist item.
+     *
+     * @param user The authenticated user from token
+     * @param request The watchlist item creation request
+     * @return Operation result with created item details
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createWatchlistItem(
-            @RequestParam(required = false) String userId,
+            @AuthUser AuthenticatedUser user,
             @RequestBody CreateWatchlistItemRequest request) {
-        
-        // Use a default user ID if not provided
-        if (userId == null || userId.isEmpty()) {
-            userId = "test-user";
-        }
-        
+
+        String userId = user.getUserId();
         log.info("Creating watchlist item for user: {} - {}", userId, request.getSymbol());
         
         // Validate input
@@ -193,17 +193,17 @@ public class WatchlistController extends BaseController {
     
     /**
      * Delete a watchlist item.
+     *
+     * @param user The authenticated user from token
+     * @param itemId The ID of the watchlist item to delete
+     * @return Operation result
      */
     @DeleteMapping("/{itemId}")
     public ResponseEntity<Map<String, Object>> deleteWatchlistItem(
-            @RequestParam(required = false) String userId,
+            @AuthUser AuthenticatedUser user,
             @PathVariable String itemId) {
-        
-        // Use a default user ID if not provided
-        if (userId == null || userId.isEmpty()) {
-            userId = "test-user";
-        }
-        
+
+        String userId = user.getUserId();
         log.info("Deleting watchlist item: {} for user: {}", itemId, userId);
         
         // Validate input
@@ -249,17 +249,17 @@ public class WatchlistController extends BaseController {
     
     /**
      * Check if symbol is in user's watchlist.
+     *
+     * @param user The authenticated user from token
+     * @param symbol The symbol to check
+     * @return Whether the symbol is in the user's watchlist
      */
     @GetMapping("/check/{symbol}")
     public ResponseEntity<Map<String, Object>> checkSymbolInWatchlist(
-            @RequestParam(required = false) String userId,
+            @AuthUser AuthenticatedUser user,
             @PathVariable String symbol) {
-        
-        // Use a default user ID if not provided
-        if (userId == null || userId.isEmpty()) {
-            userId = "test-user";
-        }
-        
+
+        String userId = user.getUserId();
         log.info("Checking if symbol {} is in watchlist for user: {}", symbol, userId);
         
         try {

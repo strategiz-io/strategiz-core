@@ -3,9 +3,11 @@ package io.strategiz.service.dashboard.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.dashboard.service.PortfolioSummaryService;
 import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryResponse;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
@@ -26,6 +28,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/dashboard/portfolio")
+@RequireAuth(minAcr = "1")
 public class PortfolioSummaryController extends BaseController {
     
     @Override
@@ -40,18 +43,14 @@ public class PortfolioSummaryController extends BaseController {
     }
     
     /**
-     * Get portfolio summary data for a user.
-     * 
-     * @param userId The user ID to get data for
+     * Get portfolio summary data for the authenticated user.
+     *
+     * @param user The authenticated user from token
      * @return Clean portfolio summary data - no wrapper, let GlobalExceptionHandler handle errors
      */
     @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getPortfolioSummary(@RequestParam(required = false) String userId) {
-        // Use a default user ID if not provided
-        if (userId == null || userId.isEmpty()) {
-            userId = "test-user";
-        }
-        
+    public ResponseEntity<Map<String, Object>> getPortfolioSummary(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
         log.info("Retrieving portfolio summary for user: {}", userId);
         
         // Get data from service - let exceptions bubble up

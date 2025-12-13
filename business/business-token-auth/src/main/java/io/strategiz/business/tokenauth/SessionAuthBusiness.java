@@ -371,23 +371,27 @@ public class SessionAuthBusiness {
         if (amr == null || amr.isEmpty()) {
             return new ArrayList<>();
         }
-        
-        Map<Integer, String> methodMap = Map.of(
-            1, "password",
-            2, "sms_otp", 
-            3, "passkeys",
-            4, "totp",
-            5, "email_otp",
-            6, "backup_codes"
+
+        Map<Integer, String> methodMap = Map.ofEntries(
+            Map.entry(1, "password"),
+            Map.entry(2, "sms_otp"),
+            Map.entry(3, "passkeys"),
+            Map.entry(4, "totp"),
+            Map.entry(5, "email_otp"),
+            Map.entry(6, "backup_codes"),
+            Map.entry(7, "google"),
+            Map.entry(8, "facebook"),
+            Map.entry(9, "apple"),
+            Map.entry(10, "microsoft")
         );
-        
+
         List<String> methods = new ArrayList<>();
         for (Integer methodId : amr) {
             if (methodMap.containsKey(methodId)) {
                 methods.add(methodMap.get(methodId));
             }
         }
-        
+
         return methods;
     }
     
@@ -424,6 +428,24 @@ public class SessionAuthBusiness {
         AuthRequest authRequest = new AuthRequest(userId, null, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client", false);
         AuthResult result = createAuthentication(authRequest);
         return new TokenPair(result.accessToken(), result.refreshToken());
+    }
+
+    /**
+     * Creates an identity token for signup/profile creation flow.
+     * Identity tokens use a separate identity-key for security isolation.
+     *
+     * Two-Phase Token Flow:
+     * Phase 1 (Signup): createIdentityToken() → identity-key → scope="profile:create", acr="0"
+     * Phase 2 (After Auth): createAuthenticationTokenPair() → session-key → full scopes, acr="1"+"
+     *
+     * @param userId the user ID (or temporary ID for signup)
+     * @return TokenPair with identity token only (no refresh token for identity tokens)
+     */
+    public TokenPair createIdentityTokenPair(String userId) {
+        log.info("Creating identity token for user: {} (signup/profile creation flow)", userId);
+        String identityToken = tokenIssuer.createIdentityToken(userId);
+        // Identity tokens don't have refresh tokens - they're short-lived and limited scope
+        return new TokenPair(identityToken, null);
     }
     
     /**

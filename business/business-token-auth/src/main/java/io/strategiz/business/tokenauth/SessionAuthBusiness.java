@@ -192,6 +192,7 @@ public class SessionAuthBusiness {
 
             // Extract user ID from token subject
             String publicUserId = (String) claims.get("sub");
+            log.info("SessionAuthBusiness.validateToken - extracted userId from token sub: {}", publicUserId);
 
             // Decode ACR from token
             String acr = (String) claims.getOrDefault("acr", "1");

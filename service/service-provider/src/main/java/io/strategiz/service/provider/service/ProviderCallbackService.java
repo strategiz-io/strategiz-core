@@ -9,6 +9,7 @@ import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.profile.service.ProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ public class ProviderCallbackService {
     private final SchwabProviderBusiness schwabProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
     private final PortfolioSummaryManager portfolioSummaryManager;
+    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -46,12 +48,14 @@ public class ProviderCallbackService {
                                    AlpacaProviderBusiness alpacaProviderBusiness,
                                    SchwabProviderBusiness schwabProviderBusiness,
                                    KrakenProviderBusiness krakenProviderBusiness,
-                                   PortfolioSummaryManager portfolioSummaryManager) {
+                                   PortfolioSummaryManager portfolioSummaryManager,
+                                   SessionAuthBusiness sessionAuthBusiness) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.alpacaProviderBusiness = alpacaProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
         this.portfolioSummaryManager = portfolioSummaryManager;
+        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     /**
@@ -107,8 +111,8 @@ public class ProviderCallbackService {
                     throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
             }
             
-            // Set success redirect URL
-            response.setRedirectUrl(getSuccessRedirectUrl(provider));
+            // Set success redirect URL with auth token for cross-origin session handling
+            response.setRedirectUrl(getSuccessRedirectUrl(provider, userId));
             response.setOperationSuccess(true);
 
             // Refresh portfolio summary now that new provider is connected
@@ -265,13 +269,29 @@ public class ProviderCallbackService {
     }
 
     /**
-     * Get success redirect URL for frontend.
-     * 
+     * Get success redirect URL for frontend with authentication token.
+     *
      * @param provider The provider name
-     * @return The redirect URL
+     * @param userId The user ID to generate token for
+     * @return The redirect URL with token
      */
-    public String getSuccessRedirectUrl(String provider) {
-        return String.format("%s/providers/callback/%s/success", frontendUrl, provider);
+    public String getSuccessRedirectUrl(String provider, String userId) {
+        try {
+            // Generate auth token for the user so frontend can re-authenticate after redirect
+            SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
+                userId,
+                java.util.List.of("provider_oauth"),
+                "1",
+                "oauth-callback",
+                "0.0.0.0"
+            );
+            String token = tokenPair.accessToken();
+            return String.format("%s/providers/callback/%s/success?token=%s&userId=%s",
+                frontendUrl, provider, java.net.URLEncoder.encode(token, "UTF-8"), userId);
+        } catch (Exception e) {
+            log.warn("Failed to generate token for redirect, falling back to basic redirect: {}", e.getMessage());
+            return String.format("%s/providers/callback/%s/success?userId=%s", frontendUrl, provider, userId);
+        }
     }
     
     /**

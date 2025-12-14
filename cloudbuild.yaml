@@ -7,9 +7,9 @@ steps:
     entrypoint: 'mvn'
     args: ['clean', 'package', '-DskipTests']
 
-  # Build the Docker image
+  # Build the Docker image (with --no-cache to ensure fresh build)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/strategiz-api', '.']
+    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-api', '.']
 
   # Push the Docker image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'

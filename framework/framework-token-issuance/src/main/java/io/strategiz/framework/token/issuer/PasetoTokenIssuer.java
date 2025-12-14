@@ -103,6 +103,7 @@ public class PasetoTokenIssuer {
      * @return the identity token string
      */
     public String createIdentityToken(String userId) {
+        log.info("PasetoTokenIssuer.createIdentityToken - userId (sub claim): {}", userId);
         Instant now = Instant.now();
         Instant expiresAt = now.plus(Duration.ofMinutes(30));
         String tokenId = UUID.randomUUID().toString();
@@ -121,7 +122,7 @@ public class PasetoTokenIssuer {
         builder.claim("scope", "profile:create");
         builder.claim("acr", "0");
 
-        log.debug("Created identity token for user: {} with 30-minute expiry", userId);
+        log.info("Created identity token for user: {} with 30-minute expiry", userId);
         return builder.compact();
     }
 
@@ -179,6 +180,7 @@ public class PasetoTokenIssuer {
      */
     public String createAuthenticationToken(String userId, List<String> authenticationMethods,
                                           String acr, Duration validity, Boolean demoMode) {
+        log.info("PasetoTokenIssuer.createAuthenticationToken - userId (sub claim): {}", userId);
         Instant now = Instant.now();
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();

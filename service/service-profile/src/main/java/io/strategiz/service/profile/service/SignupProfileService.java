@@ -107,28 +107,18 @@ public class SignupProfileService {
         profile.setDemoMode(ProfileConstants.Defaults.DEMO_MODE);
         
         user.setProfile(profile);
-        
-        // For signup, we need to handle the audit issue properly
-        // The user entity needs to be created as a NEW entity (without ID) so BaseRepository 
-        // treats it as a create operation, not an update operation
-        
-        // IMPORTANT: Don't set entity.id (the document ID) - let BaseRepository auto-generate it
-        // The BaseRepository will call prepareForCreate() which will:
-        // 1. Auto-generate a document ID if none exists
-        // 2. Initialize audit fields
-        
-        // Generate a new user ID (this is the business ID, not the document ID)
-        String newUserId = java.util.UUID.randomUUID().toString();
-        user.setUserId(newUserId);
-        
-        // Ensure the document ID is NOT set so it's treated as a CREATE
-        user.setId(null);
-        
-        log.info(ProfileConstants.LogMessages.GENERATED_USER_ID, newUserId, email);
-        
+
+        // Don't set any ID - let Firestore auto-generate the document ID on save
+        // The repository will handle:
+        // 1. Auto-generating a UUID document ID
+        // 2. Initializing audit fields
+
         // Save the user - this will be a CREATE operation since id is null
-        // The UserRepository.save() method will automatically use the email as createdBy for audit fields
-        return userRepository.save(user);
+        UserEntity savedUser = userRepository.save(user);
+
+        log.info("Created user profile with ID: {} for email: {}", savedUser.getId(), email);
+
+        return savedUser;
     }
     
     /**

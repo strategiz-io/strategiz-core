@@ -113,7 +113,7 @@ public class PasetoTokenIssuer {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(generatePublicUserId(userId))
+                .setSubject(userId)
                 .setKeyId(tokenId);
 
         builder.claim("type", "IDENTITY");
@@ -155,7 +155,7 @@ public class PasetoTokenIssuer {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(generatePublicUserId(userId))
+                .setSubject(userId)
                 .setKeyId(tokenId);
 
         builder.claim("type", tokenType.name());
@@ -182,7 +182,6 @@ public class PasetoTokenIssuer {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();
-        String publicUserId = generatePublicUserId(userId);
 
         List<Integer> amr = encodeAuthenticationMethods(authenticationMethods);
         String scope = calculateUserScopes(userId);
@@ -193,7 +192,7 @@ public class PasetoTokenIssuer {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(publicUserId)
+                .setSubject(userId)
                 .setKeyId(tokenId);
 
         builder.claim("amr", amr);
@@ -324,15 +323,6 @@ public class PasetoTokenIssuer {
      */
     public Duration getRefreshTokenValidity() {
         return parseDuration(refreshTokenValidity);
-    }
-
-    /**
-     * Generates a public user ID from internal user ID.
-     * Format: usr_pub_{hash}
-     */
-    private String generatePublicUserId(String internalUserId) {
-        String hash = Integer.toHexString(internalUserId.hashCode());
-        return "usr_pub_" + hash.substring(0, Math.min(hash.length(), 16));
     }
 
     /**

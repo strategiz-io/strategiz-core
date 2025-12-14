@@ -144,7 +144,7 @@ public class PasetoTokenProvider {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(generatePublicUserId(userId))
+                .setSubject(userId)
                 .setKeyId(tokenId);
                 
         // Add identity token specific claims
@@ -189,7 +189,7 @@ public class PasetoTokenProvider {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(generatePublicUserId(userId))
+                .setSubject(userId)
                 .setKeyId(tokenId);
                 
         // Add the token type
@@ -218,14 +218,13 @@ public class PasetoTokenProvider {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();
-        String publicUserId = generatePublicUserId(userId);
-        
+
         // Convert auth methods to numeric AMR
         List<Integer> amr = encodeAuthenticationMethods(authenticationMethods);
-        
+
         // Calculate scopes based on user entitlements, not ACR
         String scope = calculateUserScopes(userId);
-        
+
         // Use session key for authenticated tokens
         // Build the token with full claims structure
         var builder = Pasetos.V2.LOCAL.builder()
@@ -234,7 +233,7 @@ public class PasetoTokenProvider {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(publicUserId)
+                .setSubject(userId)
                 .setKeyId(tokenId);
                 
         // Add Strategiz-specific claims
@@ -334,21 +333,7 @@ public class PasetoTokenProvider {
                 .map(methodMap::get)
                 .collect(Collectors.toList());
     }
-    
-    /**
-     * Generates a public user ID from internal user ID
-     * Format: usr_pub_{16_chars}
-     *
-     * @param internalUserId the internal user ID
-     * @return public user ID safe for exposure
-     */
-    private String generatePublicUserId(String internalUserId) {
-        // For now, use a simple hash-based approach
-        // In production, this should use a proper encoding/mapping system
-        String hash = Integer.toHexString(internalUserId.hashCode());
-        return "usr_pub_" + hash.substring(0, Math.min(hash.length(), 16));
-    }
-    
+
     /**
      * Encodes authentication methods to numeric list for obfuscation
      *

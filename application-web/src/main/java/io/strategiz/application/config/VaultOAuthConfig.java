@@ -139,7 +139,9 @@ public class VaultOAuthConfig {
 
                     // Use redirect-uri-local for local development, redirect-uri-prod for production
                     // Check if we're in production mode by looking at active profiles
-                    String activeProfiles = System.getProperty("spring.profiles.active", "dev");
+                    // Check both system property and environment variable (Spring uses env var)
+                    String activeProfiles = System.getProperty("spring.profiles.active",
+                        System.getenv().getOrDefault("SPRING_PROFILES_ACTIVE", "dev"));
                     String redirectUri = activeProfiles.contains("prod") ? redirectUriProd : redirectUriLocal;
 
                     if (redirectUri != null) {

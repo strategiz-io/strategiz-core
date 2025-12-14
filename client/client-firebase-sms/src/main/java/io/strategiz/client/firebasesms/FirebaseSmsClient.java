@@ -269,7 +269,8 @@ public class FirebaseSmsClient {
      * Check if we're running in development mode
      */
     private boolean isDevelopmentMode() {
-        String profile = System.getProperty("spring.profiles.active", "");
+        String profile = System.getProperty("spring.profiles.active",
+            System.getenv().getOrDefault("SPRING_PROFILES_ACTIVE", ""));
         return profile.contains("dev") || profile.contains("local");
     }
 }

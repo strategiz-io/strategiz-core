@@ -170,7 +170,9 @@ public class VaultOAuthInitializer implements ApplicationContextInitializer<Conf
                     }
 
                     // Load redirect URI based on active profile (dev uses local, prod uses prod)
-                    String activeProfiles = System.getProperty("spring.profiles.active", "dev");
+                    // Check both system property and environment variable (Spring uses env var)
+                    String activeProfiles = System.getProperty("spring.profiles.active",
+                        System.getenv().getOrDefault("SPRING_PROFILES_ACTIVE", "dev"));
                     String redirectUri = activeProfiles.contains("prod") ? redirectUriProd : redirectUriLocal;
 
                     if (redirectUri != null) {

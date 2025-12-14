@@ -958,10 +958,12 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             this.clientId = (String) secretData.get("client-id");
             this.clientSecret = (String) secretData.get("client-secret");
 
-            // Use redirect-uri-local for local development
+            // Use redirect-uri based on active profile (prod uses prod URI, dev uses local)
             String redirectUriLocal = (String) secretData.get("redirect-uri-local");
             String redirectUriProd = (String) secretData.get("redirect-uri-prod");
-            this.redirectUri = redirectUriLocal != null ? redirectUriLocal : redirectUriProd;
+            String activeProfiles = System.getProperty("spring.profiles.active",
+                System.getenv().getOrDefault("SPRING_PROFILES_ACTIVE", "dev"));
+            this.redirectUri = activeProfiles.contains("prod") ? redirectUriProd : redirectUriLocal;
 
             log.debug("Loaded OAuth config for {} from Vault", vaultKey);
 

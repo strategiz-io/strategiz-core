@@ -95,28 +95,34 @@ public class SignupProfileService {
      * Helper method to create a new user profile
      */
     private UserEntity createProfile(String name, String email) {
-        log.info(ProfileConstants.LogMessages.CREATING_PROFILE + "{}", email);
-        
+        log.info("=== SIGNUP PROFILE SERVICE: createProfile START ===");
+        log.info("SignupProfileService.createProfile - Creating profile for email: {}", email);
+
         UserEntity user = new UserEntity();
-        
+        log.info("SignupProfileService.createProfile - UserEntity created, ID before save: {}", user.getId());
+
         UserProfileEntity profile = new UserProfileEntity();
         profile.setName(name);
         profile.setEmail(email);
         profile.setIsEmailVerified(ProfileConstants.Defaults.EMAIL_VERIFIED);
         profile.setSubscriptionTier(ProfileConstants.Defaults.SUBSCRIPTION_TIER);
         profile.setDemoMode(ProfileConstants.Defaults.DEMO_MODE);
-        
+
         user.setProfile(profile);
+        log.info("SignupProfileService.createProfile - Profile set, userId still: {}", user.getId());
 
         // Don't set any ID - let Firestore auto-generate the document ID on save
         // The repository will handle:
         // 1. Auto-generating a UUID document ID
         // 2. Initializing audit fields
 
-        // Save the user - this will be a CREATE operation since id is null
-        UserEntity savedUser = userRepository.save(user);
+        // Use createUser() to ensure proper user creation with UUID
+        log.info("SignupProfileService.createProfile - Calling userRepository.createUser()");
+        UserEntity savedUser = userRepository.createUser(user);
 
-        log.info("Created user profile with ID: {} for email: {}", savedUser.getId(), email);
+        log.info("=== SIGNUP PROFILE SERVICE: createProfile END ===");
+        log.info("SignupProfileService.createProfile - User saved with ID: {} for email: {}", savedUser.getId(), email);
+        log.info("SignupProfileService.createProfile - Full userId value: [{}]", savedUser.getId());
 
         return savedUser;
     }

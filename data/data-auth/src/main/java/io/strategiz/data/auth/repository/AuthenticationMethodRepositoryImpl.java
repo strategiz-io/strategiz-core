@@ -125,9 +125,16 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
 
     @Override
     public AuthenticationMethodEntity saveForUser(String userId, AuthenticationMethodEntity entity) {
+        log.info("=== AUTH METHOD REPOSITORY: saveForUser START ===");
+        log.info("AuthenticationMethodRepositoryImpl.saveForUser - userId (parent doc): [{}]", userId);
+        log.info("AuthenticationMethodRepositoryImpl.saveForUser - entity type: {}", entity.getAuthenticationType());
+        log.info("AuthenticationMethodRepositoryImpl.saveForUser - This will create document at: users/{}/security/...", userId);
         // Use the standardized subcollection save method from base class
         // The userId parameter acts as both the parent document ID and the audit user
-        return saveInSubcollection(userId, entity, userId);
+        AuthenticationMethodEntity saved = saveInSubcollection(userId, entity, userId);
+        log.info("AuthenticationMethodRepositoryImpl.saveForUser - Saved auth method with ID: {} under userId: [{}]", saved.getId(), userId);
+        log.info("=== AUTH METHOD REPOSITORY: saveForUser END ===");
+        return saved;
     }
 
     @Override

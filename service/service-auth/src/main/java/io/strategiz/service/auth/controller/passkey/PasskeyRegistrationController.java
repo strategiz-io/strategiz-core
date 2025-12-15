@@ -131,24 +131,35 @@ public class PasskeyRegistrationController extends BaseController {
     @PostMapping("/registrations")
     public ResponseEntity<RegistrationChallenge> beginRegistration(
             @RequestBody PasskeyRegistrationRequest request) {
-        
+
+        log.info("=== PASSKEY REGISTRATION: beginRegistration START ===");
+        log.info("PasskeyRegistrationController.beginRegistration - email: {}", request.email());
+        log.info("PasskeyRegistrationController.beginRegistration - identityToken present: {}", request.identityToken() != null);
         logRequest("beginRegistration", request.email());
-        
-        // Validate identity token if provided (Step 1 token), otherwise lookup/create user by email
+
+        // Validate identity token if provided (Step 1 token), otherwise lookup existing user by email
         String userId = null;
         if (request.identityToken() != null) {
+            log.info("PasskeyRegistrationController.beginRegistration - Using identity token to get userId");
             userId = validateTemporaryToken(request.identityToken(), request.email());
+            log.info("PasskeyRegistrationController.beginRegistration - userId from token: [{}]", userId);
         } else {
-            // Lookup existing user's UUID or create new user with UUID
-            userId = getOrCreateUserByEmail(request.email());
+            // Lookup existing user - user must have completed Step 1 (profile creation)
+            log.info("PasskeyRegistrationController.beginRegistration - No identity token, looking up by email");
+            userId = getExistingUserByEmail(request.email());
+            log.info("PasskeyRegistrationController.beginRegistration - userId from email lookup: [{}]", userId);
         }
-        
+
+        log.info("PasskeyRegistrationController.beginRegistration - FINAL userId being used: [{}]", userId);
+
         // Create registration request
         RegistrationRequest registrationRequest = new RegistrationRequest(userId, request.email());
-        
+
         // Begin registration - let exceptions bubble up
         RegistrationChallenge challenge = registrationService.beginRegistration(registrationRequest);
-        
+
+        log.info("PasskeyRegistrationController.beginRegistration - Challenge created with userId: [{}]", challenge.userId());
+        log.info("=== PASSKEY REGISTRATION: beginRegistration END ===");
         logRequestSuccess("beginRegistration", userId, challenge);
         // Return clean response - headers added by StandardHeadersInterceptor
         return createCleanResponse(challenge);
@@ -171,18 +182,28 @@ public class PasskeyRegistrationController extends BaseController {
             @RequestBody PasskeyRegistrationCompletionRequest request,
             jakarta.servlet.http.HttpServletRequest httpRequest,
             jakarta.servlet.http.HttpServletResponse httpResponse) {
-        
+
+        log.info("=== PASSKEY REGISTRATION: completeRegistration START ===");
+        log.info("PasskeyRegistrationController.completeRegistration - registrationId: {}", registrationId);
+        log.info("PasskeyRegistrationController.completeRegistration - email: {}", request.email());
+        log.info("PasskeyRegistrationController.completeRegistration - identityToken present: {}", request.identityToken() != null);
         logRequest("completeRegistration", request.email());
-        
+
         // Validate identity token to get the same user ID used in beginRegistration
         String userId = null;
         if (request.identityToken() != null) {
+            log.info("PasskeyRegistrationController.completeRegistration - Using identity token to get userId");
             userId = validateTemporaryToken(request.identityToken(), request.email());
+            log.info("PasskeyRegistrationController.completeRegistration - userId from token: [{}]", userId);
         } else {
-            // Lookup existing user's UUID or create new user with UUID
-            userId = getOrCreateUserByEmail(request.email());
+            // Lookup existing user - user must have completed Step 1 (profile creation)
+            log.info("PasskeyRegistrationController.completeRegistration - No identity token, looking up by email");
+            userId = getExistingUserByEmail(request.email());
+            log.info("PasskeyRegistrationController.completeRegistration - userId from email lookup: [{}]", userId);
         }
-        
+
+        log.info("PasskeyRegistrationController.completeRegistration - FINAL userId for passkey: [{}]", userId);
+
         // Create registration completion data
         RegistrationCompletion completion = new RegistrationCompletion(
             userId,
@@ -191,15 +212,17 @@ public class PasskeyRegistrationController extends BaseController {
             request.clientDataJSON(),
             request.deviceId()
         );
-        
+
+        log.info("PasskeyRegistrationController.completeRegistration - Calling registrationService.completeRegistration with userId: [{}]", userId);
+
         // Complete registration - let exceptions bubble up
         RegistrationResult result = registrationService.completeRegistration(completion);
-        
+
         if (!result.success()) {
             log.warn("Passkey registration failed for: {}", request.email());
             throwModuleException(ServiceAuthErrorDetails.PASSKEY_REGISTRATION_FAILED, request.email());
         }
-        
+
         // Extract tokens from result
         AuthTokens tokens = (AuthTokens) result.result();
 
@@ -209,6 +232,7 @@ public class PasskeyRegistrationController extends BaseController {
             cookieUtil.setRefreshTokenCookie(httpResponse, tokens.refreshToken());
         }
 
+        log.info("=== PASSKEY REGISTRATION: completeRegistration END ===");
         logRequestSuccess("completeRegistration", request.email(), tokens);
         // Return clean response - headers added by StandardHeadersInterceptor
         return createCleanResponse(tokens);
@@ -256,14 +280,16 @@ public class PasskeyRegistrationController extends BaseController {
     }
 
     /**
-     * Get existing user's UUID by email, or create a new user with UUID
-     * This ensures consistent userId (UUID) usage across all registration flows
+     * Get existing user's UUID by email.
+     * User MUST already exist from Step 1 (profile creation).
+     * This prevents duplicate user creation during passkey registration.
      *
      * @param email User's email address
-     * @return The user's UUID (existing or newly created)
+     * @return The user's UUID
+     * @throws StrategizException if user not found (profile not created in Step 1)
      */
-    private String getOrCreateUserByEmail(String email) {
-        // Check if user already exists - return their existing UUID
+    private String getExistingUserByEmail(String email) {
+        // User MUST already exist from Step 1 (profile creation)
         Optional<UserEntity> existingUser = userRepository.getUserByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -272,26 +298,9 @@ public class PasskeyRegistrationController extends BaseController {
             return existingUserId;
         }
 
-        // Create a new user with UUID
-        String newUserId = java.util.UUID.randomUUID().toString();
-        log.info("Creating new user profile for passkey registration: {} with userId: {}", email, newUserId);
-
-        // Create user profile
-        UserProfileEntity profile = new UserProfileEntity(
-            email.split("@")[0], // Use email prefix as display name
-            email,
-            null, // No photo URL
-            false, // Email not verified yet
-            "free", // Default subscription tier
-            true // Default demo mode
-        );
-
-        // Create and save user entity with UUID
-        UserEntity user = new UserEntity();
-        user.setUserId(newUserId);
-        user.setProfile(profile);
-        userRepository.createUser(user);
-
-        return newUserId;
+        // User not found - they need to complete Step 1 first
+        log.error("User not found for email: {}. Step 1 (profile creation) must be completed first.", email);
+        throwModuleException(ServiceAuthErrorDetails.USER_NOT_FOUND, email);
+        return null; // Never reached due to exception
     }
 }

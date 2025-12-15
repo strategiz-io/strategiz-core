@@ -10,6 +10,8 @@ import io.strategiz.data.user.model.UserWithPreferences;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 @Repository
 public class UserRepositoryImpl extends BaseRepository<UserEntity> implements UserRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
+
     @Autowired
     public UserRepositoryImpl(Firestore firestore) {
         super(firestore, UserEntity.class);
@@ -36,13 +40,26 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
 
     @Override
     public UserEntity createUser(UserEntity user) {
+        log.info("=== USER REPOSITORY: createUser START ===");
+        log.info("UserRepositoryImpl.createUser - userId before save: [{}]", user.getUserId());
+        log.info("UserRepositoryImpl.createUser - user.getId() before save: [{}]", user.getId());
+        log.info("UserRepositoryImpl.createUser - email: {}", user.getProfile() != null ? user.getProfile().getEmail() : "null");
+
         // Use email as createdBy for user entities (since user is creating their own account)
         String createdBy = (user.getProfile() != null && user.getProfile().getEmail() != null)
             ? user.getProfile().getEmail()
             : user.getUserId();
+        log.info("UserRepositoryImpl.createUser - createdBy: {}", createdBy);
+
         // Use forceCreate because UserEntity.getId() returns userId which is typically pre-set.
         // The standard save() would treat this as an update instead of a create.
-        return super.forceCreate(user, createdBy);
+        log.info("UserRepositoryImpl.createUser - Calling super.forceCreate()");
+        UserEntity savedUser = super.forceCreate(user, createdBy);
+
+        log.info("UserRepositoryImpl.createUser - savedUser.getId(): [{}]", savedUser.getId());
+        log.info("UserRepositoryImpl.createUser - savedUser.getUserId(): [{}]", savedUser.getUserId());
+        log.info("=== USER REPOSITORY: createUser END ===");
+        return savedUser;
     }
 
     @Override

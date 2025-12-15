@@ -1,7 +1,7 @@
 steps:
-# Build the Docker image using the pre-built JAR
+# Build the Docker image with --no-cache to ensure fresh build
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/strategiz-backend', '.']
+  args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-backend', '.']
 
 # Push the Docker image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'

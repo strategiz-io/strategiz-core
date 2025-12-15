@@ -1,8 +1,6 @@
 package io.strategiz.service.profile.service;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import io.strategiz.business.tokenauth.SessionAuthBusiness.AuthRequest;
-import io.strategiz.business.tokenauth.SessionAuthBusiness.AuthResult;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
@@ -14,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.Optional;
 
 /**
@@ -128,31 +125,25 @@ public class SignupProfileService {
     }
     
     /**
-     * Generate a partial authentication token for signup flow
-     * This token has ACR=1 (partial auth) and is used to verify identity
-     * during the multi-step signup process
+     * Generate an identity token for signup flow
+     * This token uses the identity-key (not session-key) and has limited scope
+     * It's used to verify identity during the multi-step signup process
+     *
+     * Two-Phase Token Flow:
+     * Phase 1 (Signup): identity token with scope="profile:create", acr="0"
+     * Phase 2 (After Auth): session token with full scopes, acr="1"+"
      */
     private String generatePartialAuthToken(String userId, String email) {
         log.info(ProfileConstants.LogMessages.GENERATING_TOKEN, userId);
-        
-        // Create auth request for partial authentication
-        // No auth methods yet - this is just identity verification
-        AuthRequest authRequest = new AuthRequest(
-            userId,
-            email,
-            Collections.emptyList(), // No auth methods yet
-            ProfileConstants.Defaults.IS_PARTIAL_AUTH, // isPartialAuth = true for signup flow
-            ProfileConstants.Auth.SIGNUP_DEVICE_ID, // Temporary device ID for signup
-            "signup-fingerprint", // Temporary fingerprint
-            "0.0.0.0", // IP will be set by the controller
-            "SignupFlow/1.0", // User agent identifier
-            true // demoMode - default to demo for new signups
-        );
-        
-        // Generate the authentication tokens
-        AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
-        
-        // Return only the access token for use as identity token
-        return authResult.accessToken();
+        log.info("SignupProfileService.generatePartialAuthToken - userId: [{}]", userId);
+
+        // Use createIdentityTokenPair to create a proper identity token
+        // This uses the identity-key (not session-key) for proper security isolation
+        SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createIdentityTokenPair(userId);
+
+        log.info("SignupProfileService.generatePartialAuthToken - Created identity token for userId: [{}]", userId);
+
+        // Return the identity token (access token from the pair)
+        return tokenPair.accessToken();
     }
 } 

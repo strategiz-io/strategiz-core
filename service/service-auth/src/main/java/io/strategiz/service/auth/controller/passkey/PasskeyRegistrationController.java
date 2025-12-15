@@ -71,33 +71,39 @@ public class PasskeyRegistrationController extends BaseController {
 
     /**
      * Validate temporary token from Step 1 and extract user ID
-     * 
+     *
      * @param temporaryToken The token from profile creation
      * @param expectedEmail The email that should match the token
      * @return The user ID if validation passes
      * @throws StrategizException if validation fails
      */
     private String validateTemporaryToken(String temporaryToken, String expectedEmail) {
-        log.info("Validating temporary token for email: {}, token starts with: {}", 
-                expectedEmail, temporaryToken != null ? 
+        log.info("=== TOKEN VALIDATION START ===");
+        log.info("validateTemporaryToken - email: {}", expectedEmail);
+        log.info("validateTemporaryToken - token starts with: {}",
+                temporaryToken != null ?
                 (temporaryToken.length() > 20 ? temporaryToken.substring(0, 20) + "..." : temporaryToken) : "null");
-        
+
         // Validate the token format and extract user ID
         Optional<String> userIdOpt = sessionAuthBusiness.validateSession(temporaryToken);
         if (userIdOpt.isEmpty()) {
             log.error("Token validation failed for email: {} - session not found or invalid", expectedEmail);
             throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, expectedEmail);
         }
-        
+
         String userId = userIdOpt.get();
-        
-        // TODO: Additional validation could be added here:
-        // 1. Check that the token has ACR "1" (partial authentication)
-        // 2. Verify the email matches the user profile
-        // 3. Ensure user exists and has no auth methods set up yet
-        // For now, basic token validation is sufficient
-        
+
+        // CRITICAL: Log the exact userId value from token
+        log.info("=== TOKEN VALIDATION RESULT ===");
+        log.info("validateTemporaryToken - EXTRACTED userId: [{}]", userId);
+        log.info("validateTemporaryToken - userId length: {}", userId != null ? userId.length() : 0);
+        log.info("validateTemporaryToken - userId format check: starts with 'usr_pub_' = {}",
+                userId != null && userId.startsWith("usr_pub_"));
+        log.info("validateTemporaryToken - userId format check: UUID format = {}",
+                userId != null && userId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
+
         log.info("Temporary token validated successfully for user: {} with email: {}", userId, expectedEmail);
+        log.info("=== TOKEN VALIDATION END ===");
         return userId;
     }
 

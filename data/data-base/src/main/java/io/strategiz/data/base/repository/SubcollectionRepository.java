@@ -41,6 +41,12 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
      * @return CollectionReference for the subcollection
      */
     protected CollectionReference getSubcollection(String parentId) {
+        log.info("=== SUBCOLLECTION: getSubcollection ===");
+        log.info("SubcollectionRepository.getSubcollection - parentId: [{}]", parentId);
+        log.info("SubcollectionRepository.getSubcollection - parentCollection: {}", getParentCollectionName());
+        log.info("SubcollectionRepository.getSubcollection - subcollection: {}", getSubcollectionName());
+        log.info("SubcollectionRepository.getSubcollection - FULL PATH: {}/{}/{}",
+                getParentCollectionName(), parentId, getSubcollectionName());
         return firestore.collection(getParentCollectionName())
                 .document(parentId)
                 .collection(getSubcollectionName());

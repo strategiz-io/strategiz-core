@@ -102,6 +102,14 @@ public class PasskeyRegistrationController extends BaseController {
         log.info("validateTemporaryToken - userId format check: UUID format = {}",
                 userId != null && userId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
 
+        // ENHANCED VALIDATION: Fail early if userId format is wrong
+        if (userId != null && !userId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            log.error("CRITICAL ERROR: userId extracted from token is NOT a valid UUID: [{}]", userId);
+            log.error("This will cause incorrect Firestore paths like: users/{}/security/ instead of users/{{UUID}}/security/", userId);
+            log.error("Expected UUID created in Step 1, but got: [{}]", userId);
+            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "Invalid userId format in token");
+        }
+
         log.info("Temporary token validated successfully for user: {} with email: {}", userId, expectedEmail);
         log.info("=== TOKEN VALIDATION END ===");
         return userId;

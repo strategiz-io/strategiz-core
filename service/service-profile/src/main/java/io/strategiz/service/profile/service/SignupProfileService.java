@@ -136,6 +136,14 @@ public class SignupProfileService {
     private String generatePartialAuthToken(String userId, String email) {
         log.info(ProfileConstants.LogMessages.GENERATING_TOKEN, userId);
         log.info("SignupProfileService.generatePartialAuthToken - userId: [{}]", userId);
+        
+        // ENHANCED LOGGING: Verify UUID format before creating token
+        boolean isValidUUID = userId != null && userId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+        log.info("SignupProfileService.generatePartialAuthToken - userId is valid UUID: {}", isValidUUID);
+        if (!isValidUUID) {
+            log.error("CRITICAL: Attempting to create identity token with non-UUID userId: [{}]", userId);
+            log.error("This will cause incorrect Firestore paths in Step 2/3 when creating subcollections!");
+        }
 
         // Use createIdentityTokenPair to create a proper identity token
         // This uses the identity-key (not session-key) for proper security isolation

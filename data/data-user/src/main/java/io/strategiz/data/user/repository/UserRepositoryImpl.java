@@ -8,6 +8,7 @@ import io.strategiz.data.user.model.UserWithProviders;
 import io.strategiz.data.user.model.UserWithDevices;
 import io.strategiz.data.user.model.UserWithPreferences;
 import io.strategiz.data.base.repository.BaseRepository;
+import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -122,10 +124,77 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     @Override
     public UserEntity save(UserEntity user) {
         // Use email as audit user for user entities
-        String auditUser = (user.getProfile() != null && user.getProfile().getEmail() != null) 
-            ? user.getProfile().getEmail() 
+        String auditUser = (user.getProfile() != null && user.getProfile().getEmail() != null)
+            ? user.getProfile().getEmail()
             : user.getUserId();
         return super.save(user, auditUser);
+    }
+
+    @Override
+    public UserEntity createUserIfEmailNotExists(UserEntity user, String createdBy) {
+        log.info("=== USER REPOSITORY: createUserIfEmailNotExists START ===");
+        String email = user.getProfile() != null ? user.getProfile().getEmail() : null;
+
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("User email cannot be null or empty");
+        }
+
+        log.info("Attempting atomic user creation for email: {}", email);
+
+        try {
+            // Use Firestore transaction for atomic check-and-create
+            UserEntity createdUser = firestore.runTransaction(transaction -> {
+                // Step 1: Check if user with this email already exists
+                Query emailQuery = getCollection()
+                    .whereEqualTo("profile.email", email)
+                    .whereEqualTo("auditFields.isActive", true)
+                    .limit(1);
+
+                // Note: We can't use transaction.get() with a Query directly,
+                // so we execute the query and check results
+                var existingDocs = emailQuery.get().get().getDocuments();
+
+                if (!existingDocs.isEmpty()) {
+                    log.warn("User with email {} already exists, aborting creation", email);
+                    throw new RuntimeException("EMAIL_ALREADY_EXISTS:User with email already exists: " + email);
+                }
+
+                // Step 2: Generate ID if not set
+                if (user.getUserId() == null || user.getUserId().isEmpty()) {
+                    String newUserId = UUID.randomUUID().toString();
+                    user.setUserId(newUserId);
+                }
+
+                // Step 3: Initialize audit fields
+                if (!user._hasAudit()) {
+                    user._initAudit(createdBy);
+                }
+                user._validate();
+
+                // Step 4: Create the user document within the transaction
+                DocumentReference userDocRef = getCollection().document(user.getUserId());
+                transaction.set(userDocRef, user);
+
+                log.info("User document created in transaction with ID: {}", user.getUserId());
+                return user;
+            }).get();
+
+            log.info("=== USER REPOSITORY: createUserIfEmailNotExists SUCCESS - userId: {} ===", createdUser.getUserId());
+            return createdUser;
+
+        } catch (ExecutionException e) {
+            // Check if this is our custom "email exists" error
+            Throwable cause = e.getCause();
+            if (cause != null && cause.getMessage() != null && cause.getMessage().startsWith("EMAIL_ALREADY_EXISTS:")) {
+                log.warn("Atomic user creation failed - email already exists: {}", email);
+                throw new RuntimeException(cause.getMessage());
+            }
+            log.error("Failed to create user atomically: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("User creation interrupted: " + e.getMessage(), e);
+        }
     }
 
     // ===============================

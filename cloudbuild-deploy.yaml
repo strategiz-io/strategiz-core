@@ -1,20 +1,20 @@
 steps:
 # Build the Docker image with --no-cache to ensure fresh build
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-backend', '.']
+  args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-core', '.']
 
 # Push the Docker image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-backend']
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-core']
 
-# Deploy to Cloud Run with OAuth environment variables
+# Deploy to Cloud Run (strategiz-core is the main backend API)
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args:
     - 'run'
     - 'deploy'
-    - 'strategiz-backend'
-    - '--image=gcr.io/$PROJECT_ID/strategiz-backend'
+    - 'strategiz-core'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-core'
     - '--platform=managed'
     - '--region=us-central1'
     - '--allow-unauthenticated'
@@ -26,4 +26,4 @@ steps:
     - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,VAULT_TOKEN=hvs.6eInEZReMFC76SUT23dnn01P,AUTH_GOOGLE_CLIENT_ID=43628135674-coabudpnuacrbr8ub027qkfkijv0vk41.apps.googleusercontent.com,AUTH_GOOGLE_CLIENT_SECRET=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,AUTH_FACEBOOK_CLIENT_ID=1971747536646640,AUTH_FACEBOOK_CLIENT_SECRET=8182a709efbb400a26ba472246e762ee'
 
 images:
-- 'gcr.io/$PROJECT_ID/strategiz-backend'
+- 'gcr.io/$PROJECT_ID/strategiz-core'

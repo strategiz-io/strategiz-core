@@ -7,6 +7,7 @@ public class AuthOAuthSettings {
     private String clientId;
     private String clientSecret;
     private String redirectUri;
+    private String signupRedirectUri;
     private String authUrl;
     private String tokenUrl;
     private String userInfoUrl;
@@ -21,6 +22,7 @@ public class AuthOAuthSettings {
         this.clientId = other.clientId;
         this.clientSecret = other.clientSecret;
         this.redirectUri = other.redirectUri;
+        this.signupRedirectUri = other.signupRedirectUri;
         this.authUrl = other.authUrl;
         this.tokenUrl = other.tokenUrl;
         this.userInfoUrl = other.userInfoUrl;
@@ -50,6 +52,14 @@ public class AuthOAuthSettings {
 
     public void setRedirectUri(String redirectUri) {
         this.redirectUri = redirectUri;
+    }
+
+    public String getSignupRedirectUri() {
+        return signupRedirectUri;
+    }
+
+    public void setSignupRedirectUri(String signupRedirectUri) {
+        this.signupRedirectUri = signupRedirectUri;
     }
 
     public String getAuthUrl() {

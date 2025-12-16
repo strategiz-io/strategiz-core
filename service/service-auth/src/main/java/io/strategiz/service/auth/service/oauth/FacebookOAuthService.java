@@ -62,25 +62,30 @@ public class FacebookOAuthService {
         if (isSignup) {
             state = "signup:" + state;
         }
-        
+
         AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         if (facebookConfig == null) {
             logger.error("Facebook OAuth configuration is not available. Check application.properties for oauth.providers.facebook settings.");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
         }
-        
+
+        // Use signup redirect URI for signup flow, otherwise use signin redirect URI
+        String redirectUri = isSignup && facebookConfig.getSignupRedirectUri() != null
+                ? facebookConfig.getSignupRedirectUri()
+                : facebookConfig.getRedirectUri();
+
         String authUrl = UriComponentsBuilder.fromUriString(facebookConfig.getAuthUrl())
                 .queryParam("client_id", facebookConfig.getClientId())
-                .queryParam("redirect_uri", facebookConfig.getRedirectUri())
+                .queryParam("redirect_uri", redirectUri)
                 .queryParam("state", state)
                 .queryParam("response_type", "code")
                 .queryParam("scope", "email,public_profile")
                 .toUriString();
-        
+
         Map<String, String> response = new HashMap<>();
         response.put("url", authUrl);
         response.put("state", state);
-        
+
         return response;
     }
     
@@ -104,7 +109,7 @@ public class FacebookOAuthService {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
         
-        FacebookTokenResponse tokenResponse = exchangeCodeForToken(code);
+        FacebookTokenResponse tokenResponse = exchangeCodeForToken(code, state);
         if (tokenResponse == null) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
         }
@@ -147,18 +152,24 @@ public class FacebookOAuthService {
         return true;
     }
 
-    private FacebookTokenResponse exchangeCodeForToken(String code) {
+    private FacebookTokenResponse exchangeCodeForToken(String code, String state) {
         AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         if (facebookConfig == null) {
             logger.error("Facebook OAuth configuration is not available during token exchange");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
         }
-        
+
+        // Use signup redirect URI if this is a signup flow, otherwise use signin redirect URI
+        boolean isSignup = oauthUserManager.isSignupFlow(state);
+        String redirectUri = isSignup && facebookConfig.getSignupRedirectUri() != null
+                ? facebookConfig.getSignupRedirectUri()
+                : facebookConfig.getRedirectUri();
+
         return facebookClient.exchangeCodeForToken(
-            code, 
-            facebookConfig.getClientId(), 
-            facebookConfig.getClientSecret(), 
-            facebookConfig.getRedirectUri()
+            code,
+            facebookConfig.getClientId(),
+            facebookConfig.getClientSecret(),
+            redirectUri
         ).orElse(null);
     }
 

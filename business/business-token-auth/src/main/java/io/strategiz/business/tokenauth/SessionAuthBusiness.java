@@ -181,7 +181,8 @@ public class SessionAuthBusiness {
 
             // FIRST LAYER: Validate PASETO token signature and expiration via framework-authorization
             // This is the ONLY required validation - cryptographic proof that the token is authentic
-            if (!tokenValidator.isValidAccessToken(accessToken)) {
+            // Accept both access tokens (session) AND identity tokens (signup flow)
+            if (!tokenValidator.isValidAccessToken(accessToken) && !tokenValidator.isValidIdentityToken(accessToken)) {
                 log.warn("Token validation failed - invalid token format or signature");
                 return Optional.empty();
             }

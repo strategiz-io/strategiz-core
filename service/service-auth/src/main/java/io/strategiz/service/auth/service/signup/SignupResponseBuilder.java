@@ -27,16 +27,21 @@ public class SignupResponseBuilder {
      * @param ipAddress IP address
      * @return OAuthSignupResponse with user data and tokens
      */
-    public OAuthSignupResponse buildSuccessResponse(UserEntity user, String message, 
-                                             java.util.List<String> authMethods, 
+    public OAuthSignupResponse buildSuccessResponse(UserEntity user, String message,
+                                             java.util.List<String> authMethods,
                                              String deviceId, String ipAddress) {
-        // Generate authentication tokens
+        // Generate authentication tokens with user profile info embedded
+        String email = user.getProfile() != null ? user.getProfile().getEmail() : null;
+        String name = user.getProfile() != null ? user.getProfile().getName() : null;
+
         SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
             user.getUserId(),
             authMethods,
             "1", // Authentication Context Class Reference
             deviceId,
-            ipAddress
+            ipAddress,
+            email,
+            name
         );
 
         return new OAuthSignupResponse(

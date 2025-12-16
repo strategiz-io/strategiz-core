@@ -84,17 +84,20 @@ public class SessionAuthBusiness {
     public AuthResult createAuthentication(AuthRequest authRequest) {
         String acr = tokenIssuer.calculateAcr(authRequest.authenticationMethods(), authRequest.isPartialAuth());
 
-        log.info("Creating unified auth for user: {} with ACR: {} and methods: {}",
-                authRequest.userId(), acr, authRequest.authenticationMethods());
+        log.info("Creating unified auth for user: {} with ACR: {} and methods: {}, email: {}, name: {}",
+                authRequest.userId(), acr, authRequest.authenticationMethods(),
+                authRequest.userEmail(), authRequest.userName());
 
-        // 1. Create PASETO tokens using framework-token-issuance
+        // 1. Create PASETO tokens using framework-token-issuance (with email and name for frontend display)
         Duration accessValidity = Duration.ofHours(24);
         String accessToken = tokenIssuer.createAuthenticationToken(
             authRequest.userId(),
             authRequest.authenticationMethods(),
             acr,
             accessValidity,
-            authRequest.demoMode()
+            authRequest.demoMode(),
+            authRequest.userEmail(),
+            authRequest.userName()
         );
         String refreshToken = tokenIssuer.createRefreshToken(authRequest.userId());
         
@@ -427,7 +430,25 @@ public class SessionAuthBusiness {
      * Creates authentication token pair using the new unified approach
      */
     public TokenPair createAuthenticationTokenPair(String userId, List<String> authMethods, String acr, String deviceId, String ipAddress) {
-        AuthRequest authRequest = new AuthRequest(userId, null, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client", false);
+        return createAuthenticationTokenPair(userId, authMethods, acr, deviceId, ipAddress, null, null);
+    }
+
+    /**
+     * Creates authentication token pair with user profile info for token claims.
+     * The email and name will be embedded in the token for frontend display.
+     *
+     * @param userId User ID
+     * @param authMethods Authentication methods used
+     * @param acr Authentication Context Reference
+     * @param deviceId Device ID
+     * @param ipAddress IP address
+     * @param email User's email address
+     * @param name User's display name
+     * @return TokenPair with access and refresh tokens
+     */
+    public TokenPair createAuthenticationTokenPair(String userId, List<String> authMethods, String acr,
+                                                   String deviceId, String ipAddress, String email, String name) {
+        AuthRequest authRequest = new AuthRequest(userId, email, authMethods, false, deviceId, deviceId, ipAddress, "Legacy Client", false, name);
         AuthResult result = createAuthentication(authRequest);
         return new TokenPair(result.accessToken(), result.refreshToken());
     }
@@ -707,8 +728,17 @@ public class SessionAuthBusiness {
         String deviceFingerprint,
         String ipAddress,
         String userAgent,
-        Boolean demoMode  // true for demo, false for live
-    ) {}
+        Boolean demoMode,  // true for demo, false for live
+        String userName    // user's display name for token claims
+    ) {
+        // Constructor without userName for backward compatibility
+        public AuthRequest(String userId, String userEmail, List<String> authenticationMethods,
+                          boolean isPartialAuth, String deviceId, String deviceFingerprint,
+                          String ipAddress, String userAgent, Boolean demoMode) {
+            this(userId, userEmail, authenticationMethods, isPartialAuth, deviceId,
+                 deviceFingerprint, ipAddress, userAgent, demoMode, null);
+        }
+    }
     
     /**
      * Authentication result record - tokens and optional session

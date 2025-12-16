@@ -180,7 +180,27 @@ public class PasetoTokenIssuer {
      */
     public String createAuthenticationToken(String userId, List<String> authenticationMethods,
                                           String acr, Duration validity, Boolean demoMode) {
-        log.info("PasetoTokenIssuer.createAuthenticationToken - userId (sub claim): {}", userId);
+        return createAuthenticationToken(userId, authenticationMethods, acr, validity, demoMode, null, null);
+    }
+
+    /**
+     * Creates a token with full Strategiz claims structure for authentication flows,
+     * including user profile information.
+     *
+     * @param userId the internal user ID
+     * @param authenticationMethods list of authentication methods used
+     * @param acr authentication context reference ("0", "1", "2", "3")
+     * @param validity how long the token should be valid
+     * @param demoMode the user's demo mode (true for demo, false for live)
+     * @param email the user's email address
+     * @param name the user's display name
+     * @return the token string
+     */
+    public String createAuthenticationToken(String userId, List<String> authenticationMethods,
+                                          String acr, Duration validity, Boolean demoMode,
+                                          String email, String name) {
+        log.info("PasetoTokenIssuer.createAuthenticationToken - userId (sub claim): {}, email: {}, name: {}",
+                 userId, email, name);
         Instant now = Instant.now();
         Instant expiresAt = now.plus(validity);
         String tokenId = UUID.randomUUID().toString();
@@ -204,6 +224,14 @@ public class PasetoTokenIssuer {
         builder.claim("type", "ACCESS");
         builder.claim("token_type", "session");
         builder.claim("demoMode", demoMode != null ? demoMode : true);
+
+        // Include user profile info in token for frontend display
+        if (email != null && !email.isEmpty()) {
+            builder.claim("email", email);
+        }
+        if (name != null && !name.isEmpty()) {
+            builder.claim("name", name);
+        }
 
         return builder.compact();
     }

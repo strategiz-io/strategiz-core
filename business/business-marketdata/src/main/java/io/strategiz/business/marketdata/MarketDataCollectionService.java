@@ -3,12 +3,15 @@ package io.strategiz.business.marketdata;
 import io.strategiz.client.yahoofinance.client.YahooFinanceHistoricalClient;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
+import io.strategiz.data.symbol.entity.SymbolEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -22,29 +25,37 @@ import java.util.stream.Collectors;
 public class MarketDataCollectionService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataCollectionService.class);
+    private static final String DATA_SOURCE = "YAHOO";
 
     private final YahooFinanceHistoricalClient yahooFinanceClient;
     private final MarketDataRepository marketDataRepository;
+    private final SymbolService symbolService;
 
     // Configuration
     private final int maxSymbolsPerRun;
     private final int backfillYears;
     private final int delayMs;
-    private final List<String> defaultSymbols;
 
+    // Fallback symbols (used only if Firestore symbols collection is empty)
+    private final List<String> fallbackSymbols;
+
+    @Autowired
     public MarketDataCollectionService(YahooFinanceHistoricalClient yahooFinanceClient,
                                      MarketDataRepository marketDataRepository,
+                                     SymbolService symbolService,
                                      @Value("${yahoo.batch.symbols.max:60}") int maxSymbolsPerRun,
                                      @Value("${yahoo.batch.backfill-years:7}") int backfillYears,
                                      @Value("${yahoo.batch.delay-ms:100}") int delayMs) {
         this.yahooFinanceClient = yahooFinanceClient;
         this.marketDataRepository = marketDataRepository;
+        this.symbolService = symbolService;
         this.maxSymbolsPerRun = maxSymbolsPerRun;
         this.backfillYears = backfillYears;
         this.delayMs = delayMs;
 
-        // Default symbols to collect - 160+ popular stocks, ETFs, and crypto
-        this.defaultSymbols = Arrays.asList(
+        // Fallback symbols - only used if Firestore symbols collection is empty
+        // TODO: Remove this fallback once symbols are seeded in Firestore
+        this.fallbackSymbols = Arrays.asList(
             // Major Tech (FAANG+)
             "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "META", "NVDA", "TSLA",
             // Semiconductors & Hardware
@@ -98,8 +109,25 @@ public class MarketDataCollectionService {
             "XLM-USD", "ALGO-USD", "VET-USD", "ICP-USD", "FIL-USD"
         );
 
-        log.info("MarketDataCollectionService initialized with {} default symbols, {} years backfill",
-                defaultSymbols.size(), backfillYears);
+        log.info("MarketDataCollectionService initialized with {} years backfill", backfillYears);
+    }
+
+    /**
+     * Get symbols to collect from Firestore, falling back to hardcoded list if empty
+     */
+    private List<String> getSymbolsToCollect() {
+        // Try to get symbols from Firestore via SymbolService
+        List<String> firestoreSymbols = symbolService.getProviderSymbolsForCollection(DATA_SOURCE);
+
+        if (!firestoreSymbols.isEmpty()) {
+            log.info("Using {} symbols from Firestore for {} collection", firestoreSymbols.size(), DATA_SOURCE);
+            return firestoreSymbols;
+        }
+
+        // Fallback to hardcoded symbols if Firestore is empty
+        log.warn("No symbols found in Firestore for {}, using {} fallback symbols",
+                DATA_SOURCE, fallbackSymbols.size());
+        return fallbackSymbols;
     }
 
     /**
@@ -109,14 +137,15 @@ public class MarketDataCollectionService {
      * @return CollectionResult with summary statistics
      */
     public CollectionResult collectDailyData() {
-        log.info("Starting daily market data collection for {} symbols", defaultSymbols.size());
+        List<String> allSymbols = getSymbolsToCollect();
+        log.info("Starting daily market data collection for {} symbols", allSymbols.size());
 
         int symbolsProcessed = 0;
         int dataPointsStored = 0;
         int errorCount = 0;
 
         // Determine which symbols to process (limit to maxSymbolsPerRun)
-        List<String> symbolsToProcess = defaultSymbols.stream()
+        List<String> symbolsToProcess = allSymbols.stream()
                 .limit(maxSymbolsPerRun)
                 .collect(Collectors.toList());
 
@@ -154,6 +183,14 @@ public class MarketDataCollectionService {
                     dataPointsStored += stored;
 
                     log.info("Symbol {}: fetched and stored {} data points", symbol, stored);
+
+                    // Mark symbol as collected (update lastCollectedAt in Firestore)
+                    try {
+                        String canonicalSymbol = symbolService.getCanonicalSymbol(symbol, DATA_SOURCE);
+                        symbolService.markCollected(canonicalSymbol, Instant.now());
+                    } catch (Exception e) {
+                        log.debug("Could not mark symbol {} as collected: {}", symbol, e.getMessage());
+                    }
                 } else {
                     log.debug("Symbol {} is up to date, no new data to fetch", symbol);
                 }

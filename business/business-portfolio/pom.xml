@@ -28,6 +28,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Symbol Reference Data -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-symbol</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -79,19 +79,34 @@ public class ProfileService extends BaseService {
      * Gets a user profile by user ID
      */
     public ReadProfileResponse getProfile(String userId) {
-        log.debug("Getting profile for user: {}", userId);
-        
+        log.info("=== ProfileService.getProfile START ===");
+        log.info("Getting profile for userId: [{}]", userId);
+
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
+            log.error("User not found for userId: [{}]", userId);
             throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ProfileConstants.ErrorMessages.USER_NOT_FOUND + userId);
         }
-        
+
         UserEntity user = userOpt.get();
+        log.info("Found user with ID: [{}]", user.getId());
+
         if (user.getProfile() == null) {
+            log.error("Profile is NULL for userId: [{}]", userId);
             throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ProfileConstants.ErrorMessages.PROFILE_NOT_FOUND + userId);
         }
-        
-        return ReadProfileResponse.fromEntity(user);
+
+        // Debug: Log profile fields
+        log.info("Profile name: [{}]", user.getProfile().getName());
+        log.info("Profile email: [{}]", user.getProfile().getEmail());
+        log.info("Profile photoURL: [{}]", user.getProfile().getPhotoURL());
+        log.info("Profile demoMode: [{}]", user.getProfile().getDemoMode());
+
+        ReadProfileResponse response = ReadProfileResponse.fromEntity(user);
+        log.info("Response name: [{}]", response.getName());
+        log.info("=== ProfileService.getProfile END ===");
+
+        return response;
     }
 
     /**
@@ -179,6 +194,36 @@ public class ProfileService extends BaseService {
         
         log.info(ProfileConstants.LogMessages.SUBSCRIPTION_UPDATED, userId, subscriptionTier);
         return UpdateProfileResponse.success(userId, "Subscription tier updated successfully");
+    }
+
+    /**
+     * Sets demo mode for a user without generating new tokens.
+     * Used by provider callbacks when connecting real data providers.
+     *
+     * @param userId the user ID
+     * @param demoMode the new demo mode value
+     */
+    public void setDemoMode(String userId, boolean demoMode) {
+        log.debug("Setting demo mode for user: {} to: {}", userId, demoMode);
+
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("User not found when setting demo mode: {}", userId);
+            return; // Don't throw - provider callback should not fail due to this
+        }
+
+        UserEntity user = userOpt.get();
+        UserProfileEntity profile = user.getProfile();
+
+        if (profile == null) {
+            log.warn("Profile not found when setting demo mode for user: {}", userId);
+            return;
+        }
+
+        profile.setDemoMode(demoMode);
+        userRepository.save(user);
+
+        log.info("Demo mode set to {} for user: {}", demoMode, userId);
     }
 
     /**

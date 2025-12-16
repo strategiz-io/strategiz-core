@@ -133,10 +133,16 @@ public class PasetoTokenProvider {
      * @return the identity token string
      */
     public String createIdentityToken(String userId) {
+        log.info("=== PASETO TOKEN PROVIDER: createIdentityToken ===");
+        log.info("PasetoTokenProvider.createIdentityToken - INPUT userId: [{}]", userId);
+        log.info("PasetoTokenProvider.createIdentityToken - userId is UUID format: {}",
+                userId != null && userId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
+        log.info("PasetoTokenProvider.createIdentityToken - USING DIRECT userId (no transformation)");
+
         Instant now = Instant.now();
         Instant expiresAt = now.plus(Duration.ofMinutes(30)); // Short-lived: 30 minutes
         String tokenId = UUID.randomUUID().toString();
-        
+
         // Build identity token with identity key
         var builder = Pasetos.V2.LOCAL.builder()
                 .setSharedSecret(identityKey)  // Use identity key, not session key
@@ -144,7 +150,7 @@ public class PasetoTokenProvider {
                 .setIssuedAt(now)
                 .setIssuer(issuer)
                 .setAudience(audience)
-                .setSubject(userId)
+                .setSubject(userId)  // DIRECT userId - no generatePublicUserId transformation!
                 .setKeyId(tokenId);
                 
         // Add identity token specific claims

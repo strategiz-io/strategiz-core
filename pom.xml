@@ -50,6 +50,7 @@
         <module>data/data-strategy</module>
         <module>data/data-user</module>
         <module>data/data-marketdata</module>
+        <module>data/data-symbol</module>
 
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->

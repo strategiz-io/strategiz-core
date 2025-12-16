@@ -90,9 +90,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     @Override
     public List<MarketDataEntity> findBySymbol(String symbol) {
         try {
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1000);
 
@@ -120,9 +120,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             Long startOfDay = convertLocalDateToTimestamp(date);
             Long endOfDay = convertLocalDateToTimestamp(date.plusDays(1));
 
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("timestamp", startOfDay)
                 .whereLessThan("timestamp", endOfDay);
 
@@ -149,9 +149,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             Long startTimestamp = convertLocalDateToTimestamp(startDate);
             Long endTimestamp = convertLocalDateToTimestamp(endDate.plusDays(1));
 
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("timestamp", startTimestamp)
                 .whereLessThan("timestamp", endTimestamp)
                 .orderBy("timestamp", Query.Direction.ASCENDING);
@@ -176,10 +176,10 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     @Override
     public List<MarketDataEntity> findBySymbolAndTimeframe(String symbol, String timeframe) {
         try {
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
                 .whereEqualTo("timeframe", timeframe)
-                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(500);
 
@@ -215,9 +215,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
                     .map(String::toUpperCase)
                     .collect(Collectors.toList());
 
+                // Note: No isActive filter - market data is immutable and never soft-deleted
                 Query query = getCollection()
                     .whereIn("symbol", batch)
-                    .whereEqualTo("isActive", true)
                     .whereGreaterThanOrEqualTo("timestamp", startOfDay)
                     .whereLessThan("timestamp", endOfDay);
 
@@ -244,9 +244,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     @Override
     public Optional<MarketDataEntity> findLatestBySymbol(String symbol) {
         try {
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1);
 
@@ -317,9 +317,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     @Override
     public long countBySymbol(String symbol) {
         try {
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
-                .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true);
+                .whereEqualTo("symbol", symbol.toUpperCase());
 
             return query.get().get().size();
 
@@ -336,9 +336,9 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             Long startOfDay = convertLocalDateToTimestamp(date);
             Long endOfDay = convertLocalDateToTimestamp(date.plusDays(1));
 
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("timestamp", startOfDay)
                 .whereLessThan("timestamp", endOfDay)
                 .limit(1);
@@ -355,8 +355,8 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     @Override
     public List<String> findDistinctSymbols() {
         try {
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             Query query = getCollection()
-                .whereEqualTo("isActive", true)
                 .select("symbol");
 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
@@ -378,10 +378,10 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
     @Override
     public DateRange getDateRangeForSymbol(String symbol) {
         try {
+            // Note: No isActive filter - market data is immutable and never soft-deleted
             // Get earliest
             Query earliestQuery = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .limit(1);
 
@@ -394,7 +394,6 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             // Get latest
             Query latestQuery = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
-                .whereEqualTo("isActive", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(1);
 

@@ -5,6 +5,7 @@ import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
+import io.strategiz.data.base.transaction.FirestoreTransactionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -12,6 +13,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import jakarta.annotation.PostConstruct;
 import java.io.File;
@@ -115,5 +117,15 @@ public class FirebaseConfig {
             throw new IllegalStateException("Firebase initialization failed. Cannot provide Firestore bean.");
         }
         return FirestoreClient.getFirestore();
+    }
+
+    /**
+     * Firestore transaction manager for Spring @Transactional support.
+     * This enables declarative transaction management for Firestore operations.
+     */
+    @Bean
+    @Primary
+    public PlatformTransactionManager transactionManager(Firestore firestore) {
+        return new FirestoreTransactionManager(firestore);
     }
 }

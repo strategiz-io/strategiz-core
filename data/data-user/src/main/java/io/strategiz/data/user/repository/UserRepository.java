@@ -153,4 +153,15 @@ public interface UserRepository {
     default Optional<UserEntity> getUserByEmail(String email) {
         return findByEmail(email);
     }
+
+    /**
+     * Atomically create a user only if no user with the same email exists.
+     * Uses Firestore transactions to prevent race conditions and duplicate users.
+     *
+     * @param user The user entity to create
+     * @param createdBy Who is creating the user (typically the email)
+     * @return The created user
+     * @throws RuntimeException if a user with the same email already exists
+     */
+    UserEntity createUserIfEmailNotExists(UserEntity user, String createdBy);
 }

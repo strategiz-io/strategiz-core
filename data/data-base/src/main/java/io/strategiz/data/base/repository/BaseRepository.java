@@ -2,6 +2,7 @@ package io.strategiz.data.base.repository;
 
 import io.strategiz.data.base.entity.BaseEntity;
 import io.strategiz.data.base.annotation.Collection;
+import io.strategiz.data.base.transaction.FirestoreTransactionHolder;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import org.slf4j.Logger;
@@ -290,21 +291,41 @@ public abstract class BaseRepository<T extends BaseEntity> {
 
     private T performCreate(T entity, String userId) throws InterruptedException, ExecutionException {
         prepareForCreate(entity, userId);
-        
+
         DocumentReference docRef = getCollection().document(entity.getId());
-        docRef.set(entity).get(); // Wait for completion
-        
-        log.debug("Created {} with ID {} by user {}", entityClass.getSimpleName(), entity.getId(), userId);
+
+        // Check if we're inside a Firestore transaction
+        Transaction transaction = FirestoreTransactionHolder.getTransaction();
+        if (transaction != null) {
+            // Use transaction for atomic operation
+            transaction.set(docRef, entity);
+            log.debug("Created {} with ID {} in transaction by user {}", entityClass.getSimpleName(), entity.getId(), userId);
+        } else {
+            // Normal non-transactional create
+            docRef.set(entity).get(); // Wait for completion
+            log.debug("Created {} with ID {} by user {}", entityClass.getSimpleName(), entity.getId(), userId);
+        }
+
         return entity;
     }
 
     private T performUpdate(T entity, String userId) throws InterruptedException, ExecutionException {
         prepareForUpdate(entity, userId);
-        
+
         DocumentReference docRef = getCollection().document(entity.getId());
-        docRef.set(entity).get(); // Wait for completion
-        
-        log.debug("Updated {} with ID {} by user {}", entityClass.getSimpleName(), entity.getId(), userId);
+
+        // Check if we're inside a Firestore transaction
+        Transaction transaction = FirestoreTransactionHolder.getTransaction();
+        if (transaction != null) {
+            // Use transaction for atomic operation
+            transaction.set(docRef, entity);
+            log.debug("Updated {} with ID {} in transaction by user {}", entityClass.getSimpleName(), entity.getId(), userId);
+        } else {
+            // Normal non-transactional update
+            docRef.set(entity).get(); // Wait for completion
+            log.debug("Updated {} with ID {} by user {}", entityClass.getSimpleName(), entity.getId(), userId);
+        }
+
         return entity;
     }
 

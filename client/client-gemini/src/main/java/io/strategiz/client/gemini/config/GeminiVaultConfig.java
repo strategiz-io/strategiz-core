@@ -1,20 +1,16 @@
 package io.strategiz.client.gemini.config;
 
 import io.strategiz.framework.secrets.controller.SecretManager;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Configuration class that loads Gemini API key from Vault
- * and makes it available as a Spring property.
+ * Configuration class that loads Gemini API key from Vault and directly injects it into
+ * GeminiConfig. This ensures the API key is available regardless of bean initialization order.
  */
 @Configuration
 public class GeminiVaultConfig {
@@ -23,39 +19,30 @@ public class GeminiVaultConfig {
 
 	private final SecretManager secretManager;
 
-	private final ConfigurableEnvironment environment;
+	private final GeminiConfig geminiConfig;
 
 	@Autowired
-	public GeminiVaultConfig(@Qualifier("vaultSecretService") SecretManager secretManager,
-			ConfigurableEnvironment environment) {
+	public GeminiVaultConfig(@Qualifier("vaultSecretService") SecretManager secretManager, GeminiConfig geminiConfig) {
 		this.secretManager = secretManager;
-		this.environment = environment;
-		loadGeminiPropertiesFromVault();
+		this.geminiConfig = geminiConfig;
 	}
 
-	private void loadGeminiPropertiesFromVault() {
+	@PostConstruct
+	public void loadGeminiPropertiesFromVault() {
 		try {
 			log.info("Loading Gemini API properties from Vault...");
-
-			Map<String, Object> vaultProperties = new HashMap<>();
 
 			// Load Gemini API key from Vault
 			// Vault path: secret/strategiz/gemini with field "api-key"
 			String geminiApiKey = secretManager.readSecret("gemini.api-key");
 
 			if (geminiApiKey != null && !geminiApiKey.isEmpty()) {
-				vaultProperties.put("gemini.api.key", geminiApiKey);
-				log.info("Loaded Gemini API key from Vault");
+				// Directly set the API key on GeminiConfig
+				geminiConfig.setApiKey(geminiApiKey);
+				log.info("Loaded and set Gemini API key from Vault");
 			}
 			else {
 				log.warn("Gemini API key not found in Vault at path: gemini.api-key");
-			}
-
-			// Add the properties to the environment
-			if (!vaultProperties.isEmpty()) {
-				MapPropertySource vaultPropertySource = new MapPropertySource("vault-gemini", vaultProperties);
-				environment.getPropertySources().addFirst(vaultPropertySource);
-				log.info("Successfully loaded {} Gemini properties from Vault", vaultProperties.size());
 			}
 
 		}

@@ -62,25 +62,30 @@ public class GoogleOAuthService {
         if (isSignup) {
             state = "signup:" + state;
         }
-        
+
         AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         if (googleConfig == null) {
             logger.error("Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
         }
-        
+
+        // Use signup redirect URI for signup flow, otherwise use signin redirect URI
+        String redirectUri = isSignup && googleConfig.getSignupRedirectUri() != null
+                ? googleConfig.getSignupRedirectUri()
+                : googleConfig.getRedirectUri();
+
         String authUrl = UriComponentsBuilder.fromUriString(googleConfig.getAuthUrl())
                 .queryParam("client_id", googleConfig.getClientId())
-                .queryParam("redirect_uri", googleConfig.getRedirectUri())
+                .queryParam("redirect_uri", redirectUri)
                 .queryParam("state", state)
                 .queryParam("response_type", "code")
                 .queryParam("scope", "openid email profile")
                 .toUriString();
-        
+
         Map<String, String> response = new HashMap<>();
         response.put("url", authUrl);
         response.put("state", state);
-        
+
         return response;
     }
     
@@ -104,7 +109,7 @@ public class GoogleOAuthService {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
         
-        GoogleTokenResponse tokenResponse = exchangeCodeForToken(code);
+        GoogleTokenResponse tokenResponse = exchangeCodeForToken(code, state);
         if (tokenResponse == null) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
         }
@@ -147,18 +152,24 @@ public class GoogleOAuthService {
         return true;
     }
 
-    private GoogleTokenResponse exchangeCodeForToken(String code) {
+    private GoogleTokenResponse exchangeCodeForToken(String code, String state) {
         AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         if (googleConfig == null) {
             logger.error("Google OAuth configuration is not available during token exchange");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
         }
-        
+
+        // Use signup redirect URI if this is a signup flow, otherwise use signin redirect URI
+        boolean isSignup = oauthUserManager.isSignupFlow(state);
+        String redirectUri = isSignup && googleConfig.getSignupRedirectUri() != null
+                ? googleConfig.getSignupRedirectUri()
+                : googleConfig.getRedirectUri();
+
         return googleClient.exchangeCodeForToken(
-            code, 
-            googleConfig.getClientId(), 
-            googleConfig.getClientSecret(), 
-            googleConfig.getRedirectUri()
+            code,
+            googleConfig.getClientId(),
+            googleConfig.getClientSecret(),
+            redirectUri
         ).orElse(null);
     }
 

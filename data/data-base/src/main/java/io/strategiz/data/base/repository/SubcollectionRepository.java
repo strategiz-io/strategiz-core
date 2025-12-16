@@ -45,8 +45,24 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
         log.info("SubcollectionRepository.getSubcollection - parentId: [{}]", parentId);
         log.info("SubcollectionRepository.getSubcollection - parentCollection: {}", getParentCollectionName());
         log.info("SubcollectionRepository.getSubcollection - subcollection: {}", getSubcollectionName());
+        
+        // ENHANCED VALIDATION - Add explicit format check
+        if (parentId == null || parentId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Parent ID cannot be null or empty for subcollection: " + getSubcollectionName());
+        }
+        
+        // UUID format validation (most user IDs should be UUIDs)
+        boolean isUUID = parentId.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+        if (!isUUID) {
+            log.warn("CRITICAL: parentId [{}] is NOT in UUID format! This may cause incorrect Firestore paths.", parentId);
+            log.warn("Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (UUID v4)");
+            log.warn("This will create path: {}/{}/{} which may be incorrect!",
+                    getParentCollectionName(), parentId, getSubcollectionName());
+        }
+        
         log.info("SubcollectionRepository.getSubcollection - FULL PATH: {}/{}/{}",
                 getParentCollectionName(), parentId, getSubcollectionName());
+                
         return firestore.collection(getParentCollectionName())
                 .document(parentId)
                 .collection(getSubcollectionName());

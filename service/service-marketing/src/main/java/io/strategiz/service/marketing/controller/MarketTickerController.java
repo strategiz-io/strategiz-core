@@ -63,7 +63,8 @@ public class MarketTickerController extends BaseController {
      * @return Market ticker data with popular crypto and stock prices
      */
     @GetMapping
-    @Cacheable(value = "marketTicker", key = "'ticker'", cacheManager = "cacheManager")
+    // TODO: Re-enable caching once cache configuration is fixed
+    // @Cacheable(value = "marketTicker", key = "'ticker'", cacheManager = "cacheManager")
     public ResponseEntity<MarketTickerResponse> getMarketTicker() {
         log.info("Fetching market ticker data");
         

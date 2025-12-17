@@ -4,9 +4,11 @@ import io.strategiz.service.auth.model.config.AuthOAuthSettings;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 import java.util.Map;
 
@@ -14,7 +16,7 @@ import java.util.Map;
  * Configuration properties for Authentication OAuth providers. Handles OAuth providers used for
  * user authentication (login/signup).
  *
- * OAuth credentials are loaded from System properties (set by VaultOAuthConfig) at startup
+ * OAuth credentials are loaded from Spring Environment (set by OAuthVaultConfig) at startup
  * and cached for subsequent requests.
  */
 @Configuration
@@ -24,11 +26,14 @@ public class AuthOAuthConfig {
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthOAuthConfig.class);
 
+	@Autowired
+	private Environment environment;
+
 	private Map<String, AuthOAuthSettings> providers;
 
 	private String frontendUrl;
 
-	// Cached settings with credentials loaded from System properties
+	// Cached settings with credentials loaded from Spring Environment
 	private AuthOAuthSettings cachedGoogleSettings;
 
 	private AuthOAuthSettings cachedFacebookSettings;
@@ -36,13 +41,13 @@ public class AuthOAuthConfig {
 	private boolean credentialsLoaded = false;
 
 	@PostConstruct
-	public void loadCredentialsFromSystemProperties() {
-		logger.info("Loading OAuth credentials from System properties (set by VaultOAuthConfig)...");
+	public void loadCredentialsFromEnvironment() {
+		logger.info("Loading OAuth credentials from Spring Environment (set by OAuthVaultConfig)...");
 
-		// Load Google credentials from System properties
-		// VaultOAuthConfig sets these as oauth.providers.google.client-id
-		String googleClientId = System.getProperty("oauth.providers.google.client-id");
-		String googleClientSecret = System.getProperty("oauth.providers.google.client-secret");
+		// Load Google credentials from Spring Environment
+		// OAuthVaultConfig sets these as oauth.providers.google.client-id
+		String googleClientId = environment.getProperty("oauth.providers.google.client-id");
+		String googleClientSecret = environment.getProperty("oauth.providers.google.client-secret");
 
 		if (googleClientId != null && !googleClientId.isEmpty()) {
 			AuthOAuthSettings googleBase = providers != null ? providers.get("google") : null;
@@ -58,12 +63,12 @@ public class AuthOAuthConfig {
 			}
 		}
 		else {
-			logger.warn("Google OAuth client_id not found in System properties");
+			logger.warn("Google OAuth client_id not found in Spring Environment");
 		}
 
-		// Load Facebook credentials from System properties
-		String facebookClientId = System.getProperty("oauth.providers.facebook.client-id");
-		String facebookClientSecret = System.getProperty("oauth.providers.facebook.client-secret");
+		// Load Facebook credentials from Spring Environment
+		String facebookClientId = environment.getProperty("oauth.providers.facebook.client-id");
+		String facebookClientSecret = environment.getProperty("oauth.providers.facebook.client-secret");
 
 		if (facebookClientId != null && !facebookClientId.isEmpty()) {
 			AuthOAuthSettings facebookBase = providers != null ? providers.get("facebook") : null;
@@ -79,7 +84,7 @@ public class AuthOAuthConfig {
 			}
 		}
 		else {
-			logger.warn("Facebook OAuth client_id not found in System properties");
+			logger.warn("Facebook OAuth client_id not found in Spring Environment");
 		}
 
 		credentialsLoaded = true;

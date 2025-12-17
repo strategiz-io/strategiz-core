@@ -36,6 +36,7 @@
         <module>business/business-strategy-execution</module>
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
+        <module>business/business-preferences</module>
 
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -70,6 +71,7 @@
         <module>client/client-alpaca</module>
         <module>client/client-gemini</module>
         <module>client/client-robinhood</module>
+        <module>client/client-sms</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         

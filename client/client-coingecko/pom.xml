@@ -17,7 +17,19 @@
     </properties>
 
     <dependencies>
+        <!-- Client Base for common client utilities -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-base</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 
+        <!-- Framework Common for exceptions -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-common</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 
         <!-- Spring Boot -->
         <dependency>

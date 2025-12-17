@@ -1,12 +1,9 @@
 package io.strategiz.service.auth.config;
 
-import io.strategiz.framework.secrets.controller.SecretManager;
 import io.strategiz.service.auth.model.config.AuthOAuthSettings;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +14,8 @@ import java.util.Map;
  * Configuration properties for Authentication OAuth providers. Handles OAuth providers used for
  * user authentication (login/signup).
  *
- * OAuth credentials are loaded from Vault at startup and cached for subsequent requests.
+ * OAuth credentials are loaded from System properties (set by VaultOAuthConfig) at startup
+ * and cached for subsequent requests.
  */
 @Configuration
 @EnableConfigurationProperties
@@ -30,11 +28,7 @@ public class AuthOAuthConfig {
 
 	private String frontendUrl;
 
-	@Autowired(required = false)
-	@Qualifier("vaultSecretService")
-	private SecretManager secretManager;
-
-	// Cached settings with credentials loaded from Vault
+	// Cached settings with credentials loaded from System properties
 	private AuthOAuthSettings cachedGoogleSettings;
 
 	private AuthOAuthSettings cachedFacebookSettings;
@@ -42,58 +36,50 @@ public class AuthOAuthConfig {
 	private boolean credentialsLoaded = false;
 
 	@PostConstruct
-	public void loadCredentialsFromVault() {
-		if (secretManager == null) {
-			logger.warn("SecretManager not available - OAuth credentials must come from properties");
-			return;
-		}
+	public void loadCredentialsFromSystemProperties() {
+		logger.info("Loading OAuth credentials from System properties (set by VaultOAuthConfig)...");
 
-		logger.info("Loading OAuth credentials from Vault at startup...");
+		// Load Google credentials from System properties
+		// VaultOAuthConfig sets these as oauth.providers.google.client-id
+		String googleClientId = System.getProperty("oauth.providers.google.client-id");
+		String googleClientSecret = System.getProperty("oauth.providers.google.client-secret");
 
-		// Load Google credentials
-		try {
-			String googleClientId = secretManager.readSecret("oauth.google.client-id");
-			String googleClientSecret = secretManager.readSecret("oauth.google.client-secret");
-
-			if (googleClientId != null && !googleClientId.isEmpty()) {
-				AuthOAuthSettings googleBase = providers != null ? providers.get("google") : null;
-				if (googleBase != null) {
-					cachedGoogleSettings = new AuthOAuthSettings(googleBase);
-					cachedGoogleSettings.setClientId(googleClientId);
-					cachedGoogleSettings.setClientSecret(googleClientSecret);
-					logger.info("Loaded Google OAuth credentials from Vault (clientId: {}...)",
-							googleClientId.substring(0, Math.min(10, googleClientId.length())));
-				}
+		if (googleClientId != null && !googleClientId.isEmpty()) {
+			AuthOAuthSettings googleBase = providers != null ? providers.get("google") : null;
+			if (googleBase != null) {
+				cachedGoogleSettings = new AuthOAuthSettings(googleBase);
+				cachedGoogleSettings.setClientId(googleClientId);
+				cachedGoogleSettings.setClientSecret(googleClientSecret);
+				logger.info("Loaded Google OAuth credentials (clientId: {}...)",
+						googleClientId.substring(0, Math.min(10, googleClientId.length())));
 			}
 			else {
-				logger.warn("Google OAuth client_id not found in Vault");
+				logger.warn("Google OAuth base config not found in providers map");
 			}
 		}
-		catch (Exception e) {
-			logger.error("Failed to load Google OAuth credentials from Vault: {}", e.getMessage());
+		else {
+			logger.warn("Google OAuth client_id not found in System properties");
 		}
 
-		// Load Facebook credentials
-		try {
-			String facebookClientId = secretManager.readSecret("oauth.facebook.client-id");
-			String facebookClientSecret = secretManager.readSecret("oauth.facebook.client-secret");
+		// Load Facebook credentials from System properties
+		String facebookClientId = System.getProperty("oauth.providers.facebook.client-id");
+		String facebookClientSecret = System.getProperty("oauth.providers.facebook.client-secret");
 
-			if (facebookClientId != null && !facebookClientId.isEmpty()) {
-				AuthOAuthSettings facebookBase = providers != null ? providers.get("facebook") : null;
-				if (facebookBase != null) {
-					cachedFacebookSettings = new AuthOAuthSettings(facebookBase);
-					cachedFacebookSettings.setClientId(facebookClientId);
-					cachedFacebookSettings.setClientSecret(facebookClientSecret);
-					logger.info("Loaded Facebook OAuth credentials from Vault (clientId: {}...)",
-							facebookClientId.substring(0, Math.min(10, facebookClientId.length())));
-				}
+		if (facebookClientId != null && !facebookClientId.isEmpty()) {
+			AuthOAuthSettings facebookBase = providers != null ? providers.get("facebook") : null;
+			if (facebookBase != null) {
+				cachedFacebookSettings = new AuthOAuthSettings(facebookBase);
+				cachedFacebookSettings.setClientId(facebookClientId);
+				cachedFacebookSettings.setClientSecret(facebookClientSecret);
+				logger.info("Loaded Facebook OAuth credentials (clientId: {}...)",
+						facebookClientId.substring(0, Math.min(10, facebookClientId.length())));
 			}
 			else {
-				logger.warn("Facebook OAuth client_id not found in Vault");
+				logger.warn("Facebook OAuth base config not found in providers map");
 			}
 		}
-		catch (Exception e) {
-			logger.error("Failed to load Facebook OAuth credentials from Vault: {}", e.getMessage());
+		else {
+			logger.warn("Facebook OAuth client_id not found in System properties");
 		}
 
 		credentialsLoaded = true;

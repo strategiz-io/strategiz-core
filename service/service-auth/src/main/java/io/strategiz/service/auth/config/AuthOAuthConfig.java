@@ -2,6 +2,7 @@ package io.strategiz.service.auth.config;
 
 import io.strategiz.framework.secrets.controller.SecretManager;
 import io.strategiz.service.auth.model.config.AuthOAuthSettings;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,132 +14,155 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Map;
 
 /**
- * Configuration properties for Authentication OAuth providers.
- * Handles OAuth providers used for user authentication (login/signup).
- * 
- * OAuth credentials are loaded from Vault when available, otherwise from environment variables:
- * - AUTH_GOOGLE_CLIENT_ID
- * - AUTH_GOOGLE_CLIENT_SECRET
- * - AUTH_FACEBOOK_CLIENT_ID  
- * - AUTH_FACEBOOK_CLIENT_SECRET
+ * Configuration properties for Authentication OAuth providers. Handles OAuth providers used for
+ * user authentication (login/signup).
+ *
+ * OAuth credentials are loaded from Vault at startup and cached for subsequent requests.
  */
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "oauth")
 public class AuthOAuthConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthOAuthConfig.class);
+	private static final Logger logger = LoggerFactory.getLogger(AuthOAuthConfig.class);
 
-    private Map<String, AuthOAuthSettings> providers;
-    private String frontendUrl;
-    
-    @Autowired(required = false)
-    @Qualifier("vaultSecretService")
-    private SecretManager secretManager;
+	private Map<String, AuthOAuthSettings> providers;
 
-    public Map<String, AuthOAuthSettings> getProviders() {
-        return providers;
-    }
+	private String frontendUrl;
 
-    public void setProviders(Map<String, AuthOAuthSettings> providers) {
-        this.providers = providers;
-    }
+	@Autowired(required = false)
+	@Qualifier("vaultSecretService")
+	private SecretManager secretManager;
 
-    public String getFrontendUrl() {
-        return frontendUrl;
-    }
+	// Cached settings with credentials loaded from Vault
+	private AuthOAuthSettings cachedGoogleSettings;
 
-    public void setFrontendUrl(String frontendUrl) {
-        this.frontendUrl = frontendUrl;
-    }
+	private AuthOAuthSettings cachedFacebookSettings;
 
-    public AuthOAuthSettings getGoogle() {
-        AuthOAuthSettings googleConfig = providers != null ? providers.get("google") : null;
+	private boolean credentialsLoaded = false;
 
-        if (googleConfig == null) {
-            logger.warn("Google OAuth config not found in providers map. Providers: {}", providers != null ? providers.keySet() : "null");
-            return null;
-        }
+	@PostConstruct
+	public void loadCredentialsFromVault() {
+		if (secretManager == null) {
+			logger.warn("SecretManager not available - OAuth credentials must come from properties");
+			return;
+		}
 
-        if (secretManager == null) {
-            logger.warn("SecretManager not available for Google OAuth. Using config values. ClientId present: {}",
-                googleConfig.getClientId() != null);
-            return googleConfig;
-        }
+		logger.info("Loading OAuth credentials from Vault at startup...");
 
-        // Try to load secrets from Vault
-        try {
-            String vaultClientId = secretManager.readSecret("oauth.google.client-id", googleConfig.getClientId());
-            String vaultClientSecret = secretManager.readSecret("oauth.google.client-secret", googleConfig.getClientSecret());
+		// Load Google credentials
+		try {
+			String googleClientId = secretManager.readSecret("oauth.google.client-id");
+			String googleClientSecret = secretManager.readSecret("oauth.google.client-secret");
 
-            logger.debug("Google OAuth - Vault clientId present: {}, config clientId present: {}",
-                vaultClientId != null, googleConfig.getClientId() != null);
+			if (googleClientId != null && !googleClientId.isEmpty()) {
+				AuthOAuthSettings googleBase = providers != null ? providers.get("google") : null;
+				if (googleBase != null) {
+					cachedGoogleSettings = new AuthOAuthSettings(googleBase);
+					cachedGoogleSettings.setClientId(googleClientId);
+					cachedGoogleSettings.setClientSecret(googleClientSecret);
+					logger.info("Loaded Google OAuth credentials from Vault (clientId: {}...)",
+							googleClientId.substring(0, Math.min(10, googleClientId.length())));
+				}
+			}
+			else {
+				logger.warn("Google OAuth client_id not found in Vault");
+			}
+		}
+		catch (Exception e) {
+			logger.error("Failed to load Google OAuth credentials from Vault: {}", e.getMessage());
+		}
 
-            if (vaultClientId != null && !vaultClientId.equals(googleConfig.getClientId())) {
-                logger.info("Loading Google OAuth credentials from Vault");
-                googleConfig = new AuthOAuthSettings(googleConfig);
-                googleConfig.setClientId(vaultClientId);
-                googleConfig.setClientSecret(vaultClientSecret);
-            }
-        } catch (Exception e) {
-            logger.error("Failed to load Google OAuth credentials from Vault: {}", e.getMessage());
-        }
+		// Load Facebook credentials
+		try {
+			String facebookClientId = secretManager.readSecret("oauth.facebook.client-id");
+			String facebookClientSecret = secretManager.readSecret("oauth.facebook.client-secret");
 
-        if (googleConfig.getClientId() == null || googleConfig.getClientId().isEmpty()) {
-            logger.error("Google OAuth client_id is null or empty after loading!");
-        }
+			if (facebookClientId != null && !facebookClientId.isEmpty()) {
+				AuthOAuthSettings facebookBase = providers != null ? providers.get("facebook") : null;
+				if (facebookBase != null) {
+					cachedFacebookSettings = new AuthOAuthSettings(facebookBase);
+					cachedFacebookSettings.setClientId(facebookClientId);
+					cachedFacebookSettings.setClientSecret(facebookClientSecret);
+					logger.info("Loaded Facebook OAuth credentials from Vault (clientId: {}...)",
+							facebookClientId.substring(0, Math.min(10, facebookClientId.length())));
+				}
+			}
+			else {
+				logger.warn("Facebook OAuth client_id not found in Vault");
+			}
+		}
+		catch (Exception e) {
+			logger.error("Failed to load Facebook OAuth credentials from Vault: {}", e.getMessage());
+		}
 
-        return googleConfig;
-    }
-    
-    public void setGoogle(AuthOAuthSettings google) {
-        if (providers == null) {
-            providers = new java.util.HashMap<>();
-        }
-        providers.put("google", google);
-    }
+		credentialsLoaded = true;
+	}
 
-    public AuthOAuthSettings getFacebook() {
-        AuthOAuthSettings facebookConfig = providers != null ? providers.get("facebook") : null;
+	public Map<String, AuthOAuthSettings> getProviders() {
+		return providers;
+	}
 
-        if (facebookConfig == null) {
-            logger.warn("Facebook OAuth config not found in providers map. Providers: {}", providers != null ? providers.keySet() : "null");
-            return null;
-        }
+	public void setProviders(Map<String, AuthOAuthSettings> providers) {
+		this.providers = providers;
+	}
 
-        if (secretManager == null) {
-            logger.warn("SecretManager not available for Facebook OAuth. Using config values. ClientId present: {}",
-                facebookConfig.getClientId() != null);
-            return facebookConfig;
-        }
+	public String getFrontendUrl() {
+		return frontendUrl;
+	}
 
-        // Try to load secrets from Vault
-        try {
-            String vaultClientId = secretManager.readSecret("oauth.facebook.client-id", facebookConfig.getClientId());
-            String vaultClientSecret = secretManager.readSecret("oauth.facebook.client-secret", facebookConfig.getClientSecret());
+	public void setFrontendUrl(String frontendUrl) {
+		this.frontendUrl = frontendUrl;
+	}
 
-            if (vaultClientId != null && !vaultClientId.equals(facebookConfig.getClientId())) {
-                logger.info("Loading Facebook OAuth credentials from Vault");
-                facebookConfig = new AuthOAuthSettings(facebookConfig);
-                facebookConfig.setClientId(vaultClientId);
-                facebookConfig.setClientSecret(vaultClientSecret);
-            }
-        } catch (Exception e) {
-            logger.error("Failed to load Facebook OAuth credentials from Vault: {}", e.getMessage());
-        }
+	public AuthOAuthSettings getGoogle() {
+		// Return cached settings if available
+		if (cachedGoogleSettings != null) {
+			return cachedGoogleSettings;
+		}
 
-        if (facebookConfig.getClientId() == null || facebookConfig.getClientId().isEmpty()) {
-            logger.error("Facebook OAuth client_id is null or empty after loading!");
-        }
+		// Fallback to properties-based settings
+		AuthOAuthSettings googleConfig = providers != null ? providers.get("google") : null;
+		if (googleConfig == null) {
+			logger.warn("Google OAuth config not found");
+		}
+		else if (googleConfig.getClientId() == null || googleConfig.getClientId().isEmpty()) {
+			logger.error("Google OAuth client_id is null or empty!");
+		}
 
-        return facebookConfig;
-    }
-    
-    public void setFacebook(AuthOAuthSettings facebook) {
-        if (providers == null) {
-            providers = new java.util.HashMap<>();
-        }
-        providers.put("facebook", facebook);
-    }
+		return googleConfig;
+	}
+
+	public void setGoogle(AuthOAuthSettings google) {
+		if (providers == null) {
+			providers = new java.util.HashMap<>();
+		}
+		providers.put("google", google);
+	}
+
+	public AuthOAuthSettings getFacebook() {
+		// Return cached settings if available
+		if (cachedFacebookSettings != null) {
+			return cachedFacebookSettings;
+		}
+
+		// Fallback to properties-based settings
+		AuthOAuthSettings facebookConfig = providers != null ? providers.get("facebook") : null;
+		if (facebookConfig == null) {
+			logger.warn("Facebook OAuth config not found");
+		}
+		else if (facebookConfig.getClientId() == null || facebookConfig.getClientId().isEmpty()) {
+			logger.error("Facebook OAuth client_id is null or empty!");
+		}
+
+		return facebookConfig;
+	}
+
+	public void setFacebook(AuthOAuthSettings facebook) {
+		if (providers == null) {
+			providers = new java.util.HashMap<>();
+		}
+		providers.put("facebook", facebook);
+	}
 
 }

@@ -62,7 +62,8 @@
         <module>client/client-binanceus</module>
         <module>client/client-coinbase</module>
         <module>client/client-coingecko</module>
-        <module>client/client-kraken</module>
+        <!-- Temporarily commented out due to compilation issues -->
+        <!-- <module>client/client-kraken</module> -->
         <module>client/client-facebook</module>
         <module>client/client-google</module>
         <module>client/client-yahoofinance</module>

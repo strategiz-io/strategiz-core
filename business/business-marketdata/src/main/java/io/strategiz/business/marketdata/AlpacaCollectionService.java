@@ -6,18 +6,16 @@ import io.strategiz.client.alpaca.model.AlpacaAsset;
 import io.strategiz.client.alpaca.model.AlpacaBar;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
-import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,26 +40,28 @@ import java.util.stream.Collectors;
 public class AlpacaCollectionService {
 
     private static final Logger log = LoggerFactory.getLogger(AlpacaCollectionService.class);
-    private static final String MODULE_NAME = "AlpacaCollectionService";
+    private static final String DATA_SOURCE = "ALPACA";
 
     private final AlpacaHistoricalClient historicalClient;
     private final AlpacaAssetsClient assetsClient;
     private final MarketDataRepository marketDataRepository;
+    private final SymbolService symbolService;
 
     // Configuration
     private final int threadPoolSize;
     private final int batchSize;
     private final int backfillMonths;
     private final int backfillTimeoutMinutes;
-    private final List<String> defaultSymbols;
 
     // Thread pool for concurrent execution
     private final ExecutorService executorService;
 
+    @Autowired
     public AlpacaCollectionService(
             AlpacaHistoricalClient historicalClient,
             AlpacaAssetsClient assetsClient,
             MarketDataRepository marketDataRepository,
+            SymbolService symbolService,
             @Value("${alpaca.batch.thread-pool-size:2}") int threadPoolSize,
             @Value("${alpaca.batch.batch-size:500}") int batchSize,
             @Value("${alpaca.batch.backfill-months:3}") int backfillMonths,
@@ -70,6 +70,7 @@ public class AlpacaCollectionService {
         this.historicalClient = historicalClient;
         this.assetsClient = assetsClient;
         this.marketDataRepository = marketDataRepository;
+        this.symbolService = symbolService;
         this.threadPoolSize = threadPoolSize;
         this.batchSize = batchSize;
         this.backfillMonths = backfillMonths;
@@ -78,66 +79,40 @@ public class AlpacaCollectionService {
         // Initialize thread pool
         this.executorService = Executors.newFixedThreadPool(threadPoolSize);
 
-        // S&P 500 major components + top ETFs (targeting ~500 symbols)
-        // For initial testing, start with top 50, then expand to full S&P 500
-        this.defaultSymbols = Arrays.asList(
-            // Mega Cap Tech
-            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO", "ORCL", "ADBE",
-
-            // Large Cap Tech
-            "CRM", "AMD", "INTC", "CSCO", "QCOM", "INTU", "TXN", "NOW", "SNOW", "PANW",
-
-            // Finance
-            "JPM", "BAC", "WFC", "C", "GS", "MS", "BLK", "SCHW", "AXP", "V", "MA",
-
-            // Healthcare
-            "UNH", "JNJ", "LLY", "ABBV", "MRK", "TMO", "ABT", "DHR", "PFE", "AMGN",
-
-            // Consumer
-            "COST", "WMT", "HD", "PG", "KO", "PEP", "NKE", "MCD", "SBUX", "DIS",
-
-            // Energy
-            "XOM", "CVX", "COP", "SLB", "EOG",
-
-            // Industrials
-            "BA", "CAT", "GE", "HON", "UPS", "RTX", "LMT", "DE",
-
-            // Major ETFs
-            "SPY", "QQQ", "IWM", "DIA", "VTI", "VOO", "IVV",
-
-            // Sector ETFs
-            "XLK", "XLF", "XLE", "XLV", "XLI", "XLP", "XLY", "XLU",
-
-            // Bond ETFs
-            "AGG", "TLT", "IEF", "LQD",
-
-            // International
-            "EFA", "VEA", "EEM"
-        );
-
-        log.info("AlpacaCollectionService initialized with {} symbols, {} threads, batch size {}, timeout {} min",
-                defaultSymbols.size(), threadPoolSize, batchSize, backfillTimeoutMinutes);
+        log.info("AlpacaCollectionService initialized with {} threads, batch size {}, timeout {} min",
+                threadPoolSize, batchSize, backfillTimeoutMinutes);
     }
 
     /**
-     * Backfill historical intraday data for all symbols
-     * Uses multi-threading for parallel symbol processing
+     * Get symbols to collect from Firestore SymbolService.
+     * Returns provider-formatted symbols for Alpaca (e.g., "AAPL", "BTC/USD").
+     */
+    private List<String> getSymbolsToCollect() {
+        List<String> symbols = symbolService.getProviderSymbolsForCollection(DATA_SOURCE);
+        log.info("Loaded {} symbols from Firestore for {} collection", symbols.size(), DATA_SOURCE);
+        return symbols;
+    }
+
+    /**
+     * Backfill historical intraday data for all symbols from Firestore.
+     * Uses multi-threading for parallel symbol processing.
      *
      * @param timeframe Bar interval ("1Min", "5Min", "15Min", "1Hour", "1Day")
      * @return Collection result with statistics
      */
     public CollectionResult backfillIntradayData(String timeframe) {
+        List<String> symbols = getSymbolsToCollect();
         log.info("Starting Alpaca backfill for {} symbols, timeframe: {}, lookback: {} months",
-                defaultSymbols.size(), timeframe, backfillMonths);
+                symbols.size(), timeframe, backfillMonths);
 
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusMonths(backfillMonths);
 
-        return backfillIntradayData(defaultSymbols, startDate, endDate, timeframe);
+        return backfillIntradayData(symbols, startDate, endDate, timeframe);
     }
 
     /**
-     * Backfill historical data with custom date range but default symbols
+     * Backfill historical data with custom date range for all Firestore symbols.
      *
      * @param startDate Start date (inclusive)
      * @param endDate End date (inclusive)
@@ -145,7 +120,8 @@ public class AlpacaCollectionService {
      * @return Collection result with statistics
      */
     public CollectionResult backfillIntradayData(LocalDateTime startDate, LocalDateTime endDate, String timeframe) {
-        return backfillIntradayData(defaultSymbols, startDate, endDate, timeframe);
+        List<String> symbols = getSymbolsToCollect();
+        return backfillIntradayData(symbols, startDate, endDate, timeframe);
     }
 
     /**
@@ -243,6 +219,14 @@ public class AlpacaCollectionService {
             // Save in batches
             log.info(">>> Saving {} entities for {}...", entities.size(), symbol);
             int stored = saveBatch(entities);
+
+            // Mark symbol as collected in Firestore
+            try {
+                String canonicalSymbol = symbolService.getCanonicalSymbol(symbol, DATA_SOURCE);
+                symbolService.markCollected(canonicalSymbol, Instant.now());
+            } catch (Exception e) {
+                log.debug("Could not mark symbol {} as collected: {}", symbol, e.getMessage());
+            }
 
             log.info(">>> Symbol {}: fetched {} bars, converted {}, stored {}", symbol, bars.size(), entities.size(), stored);
             return new SymbolResult(symbol, stored, true);

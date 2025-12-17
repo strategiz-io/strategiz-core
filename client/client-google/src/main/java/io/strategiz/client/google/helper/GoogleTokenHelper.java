@@ -35,28 +35,34 @@ public class GoogleTokenHelper {
 
     /**
      * Exchange authorization code for access token
-     * 
+     *
      * @param code Authorization code from Google
      * @param clientId Google OAuth client ID
      * @param clientSecret Google OAuth client secret
      * @param redirectUri Redirect URI used in authorization
      * @return Google access token response
      */
-    public Optional<GoogleTokenResponse> exchangeCodeForToken(String code, String clientId, 
+    public Optional<GoogleTokenResponse> exchangeCodeForToken(String code, String clientId,
                                                              String clientSecret, String redirectUri) {
         try {
+            logger.info("Exchanging code for token with redirect_uri: {}", redirectUri);
+            logger.info("Using client_id: {}...", clientId != null ? clientId.substring(0, Math.min(15, clientId.length())) : "null");
+
             HttpEntity<MultiValueMap<String, String>> request = buildTokenRequest(code, clientId, clientSecret, redirectUri);
             ResponseEntity<Map<String, Object>> response = makeTokenRequest(request);
-            
+
             if (isSuccessfulResponse(response)) {
+                logger.info("Successfully exchanged code for token");
                 return extractTokenFromResponse(response);
             }
-            
-            logger.error("Failed to get access token from Google");
+
+            // Log the actual error response from Google
+            logger.error("Failed to get access token from Google. Status: {}, Body: {}",
+                response.getStatusCode(), response.getBody());
             return Optional.empty();
-            
+
         } catch (Exception e) {
-            logger.error("Error exchanging code for token", e);
+            logger.error("Error exchanging code for token: {}", e.getMessage(), e);
             return Optional.empty();
         }
     }

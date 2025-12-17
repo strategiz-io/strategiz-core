@@ -20,16 +20,19 @@ public class CreateProfileRequest {
     private String email;
     
     private String photoURL;
-    
+
+    private Boolean demoMode;
+
     // Default constructor
     public CreateProfileRequest() {
     }
-    
+
     // Constructor
-    public CreateProfileRequest(String name, String email, String photoURL) {
+    public CreateProfileRequest(String name, String email, String photoURL, Boolean demoMode) {
         this.name = name;
         this.email = email;
         this.photoURL = photoURL;
+        this.demoMode = demoMode;
     }
     
     // Getters and setters
@@ -56,13 +59,22 @@ public class CreateProfileRequest {
     public void setPhotoURL(String photoURL) {
         this.photoURL = photoURL;
     }
-    
+
+    public Boolean getDemoMode() {
+        return demoMode;
+    }
+
+    public void setDemoMode(Boolean demoMode) {
+        this.demoMode = demoMode;
+    }
+
     @Override
     public String toString() {
         return "CreateProfileRequest{" +
                 "name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", photoURL='" + photoURL + '\'' +
+                ", demoMode=" + demoMode +
                 '}';
     }
 } 

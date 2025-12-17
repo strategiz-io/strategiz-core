@@ -61,23 +61,25 @@ public class SignupProfileService {
             response.setUserId(user.getId());
             response.setName(user.getProfile().getName());
             response.setEmail(user.getProfile().getEmail());
+            response.setDemoMode(user.getProfile().getDemoMode());
             response.setIdentityToken(identityToken);
-            
+
             return response;
         }
-        
+
         // User doesn't exist, create new profile
-        UserEntity user = createProfile(request.getName(), request.getEmail());
-        
+        UserEntity user = createProfile(request.getName(), request.getEmail(), request.getDemoMode());
+
         // Generate a partial authentication token (ACR=1) for signup flow
         String identityToken = generatePartialAuthToken(user.getId(), user.getProfile().getEmail());
-        
+
         CreateProfileResponse response = new CreateProfileResponse();
         response.setUserId(user.getId());
         response.setName(user.getProfile().getName());
         response.setEmail(user.getProfile().getEmail());
+        response.setDemoMode(user.getProfile().getDemoMode());
         response.setIdentityToken(identityToken);
-        
+
         return response;
     }
 
@@ -91,9 +93,9 @@ public class SignupProfileService {
     /**
      * Helper method to create a new user profile
      */
-    private UserEntity createProfile(String name, String email) {
+    private UserEntity createProfile(String name, String email, Boolean demoMode) {
         log.info("=== SIGNUP PROFILE SERVICE: createProfile START ===");
-        log.info("SignupProfileService.createProfile - Creating profile for email: {}", email);
+        log.info("SignupProfileService.createProfile - Creating profile for email: {}, demoMode: {}", email, demoMode);
 
         UserEntity user = new UserEntity();
         log.info("SignupProfileService.createProfile - UserEntity created, ID before save: {}", user.getId());
@@ -103,7 +105,8 @@ public class SignupProfileService {
         profile.setEmail(email);
         profile.setIsEmailVerified(ProfileConstants.Defaults.EMAIL_VERIFIED);
         profile.setSubscriptionTier(ProfileConstants.Defaults.SUBSCRIPTION_TIER);
-        profile.setDemoMode(ProfileConstants.Defaults.DEMO_MODE);
+        // Use provided demoMode, or default to true if not specified
+        profile.setDemoMode(demoMode != null ? demoMode : ProfileConstants.Defaults.DEMO_MODE);
 
         user.setProfile(profile);
         log.info("SignupProfileService.createProfile - Profile set, userId still: {}", user.getId());

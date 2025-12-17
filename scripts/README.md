@@ -177,7 +177,7 @@ ls -la ../../../application/target/application-1.0-SNAPSHOT.jar
 ### Production Deployment Issues
 ```bash
 # Check Cloud Run logs
-gcloud logs read --service=strategiz-api --limit=50
+gcloud logs read --service=strategiz-core --limit=50
 
 # Check build logs
 gcloud builds list --limit=10

@@ -39,6 +39,7 @@ public class ProviderCallbackService {
     private final KrakenProviderBusiness krakenProviderBusiness;
     private final PortfolioSummaryManager portfolioSummaryManager;
     private final SessionAuthBusiness sessionAuthBusiness;
+    private final ProfileService profileService;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -49,13 +50,15 @@ public class ProviderCallbackService {
                                    SchwabProviderBusiness schwabProviderBusiness,
                                    KrakenProviderBusiness krakenProviderBusiness,
                                    PortfolioSummaryManager portfolioSummaryManager,
-                                   SessionAuthBusiness sessionAuthBusiness) {
+                                   SessionAuthBusiness sessionAuthBusiness,
+                                   ProfileService profileService) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.alpacaProviderBusiness = alpacaProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
         this.portfolioSummaryManager = portfolioSummaryManager;
         this.sessionAuthBusiness = sessionAuthBusiness;
+        this.profileService = profileService;
     }
     
     /**
@@ -111,6 +114,11 @@ public class ProviderCallbackService {
                     throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
             }
             
+            // Real provider connected - disable demo mode
+            // User is now connected to real data, so they're no longer in demo mode
+            profileService.setDemoMode(userId, false);
+            log.info("Demo mode disabled for user {} after connecting provider: {}", userId, provider);
+
             // Set success redirect URL with auth token for cross-origin session handling
             response.setRedirectUrl(getSuccessRedirectUrl(provider, userId));
             response.setOperationSuccess(true);

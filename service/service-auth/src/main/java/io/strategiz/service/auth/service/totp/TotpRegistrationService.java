@@ -408,61 +408,61 @@ public class TotpRegistrationService {
     /**
      * Enable TOTP for a user's session and return updated auth tokens
      * @param username the username
-     * @param sessionToken the session token
+     * @param accessToken the current access token
      * @param code the TOTP code to verify
      * @return Map containing success status and updated tokens, or null if failed
      */
-    public Map<String, Object> enableTotpWithTokenUpdate(String username, String sessionToken, String code) {
+    public Map<String, Object> enableTotpWithTokenUpdate(String username, String accessToken, String code) {
         // Verify the code using registration-specific verification
         if (!verifyRegistrationCode(username, code)) {
             return null;
         }
-        
+
         // Get the user and update the TOTP authentication method
         Optional<UserEntity> userOpt = userRepository.findById(username);
         if (userOpt.isEmpty()) {
             log.warn("User not found: {}", username);
             return null;
         }
-        
+
         UserEntity user = userOpt.get();
         List<AuthenticationMethodEntity> totpMethods = authMethodRepository.findByUserIdAndType(user.getId(), AuthenticationMethodType.TOTP);
-        
+
         if (totpMethods.isEmpty()) {
             log.warn("TOTP auth method not found for user: {}", username);
             return null;
         }
-        
+
         AuthenticationMethodEntity totpAuth = totpMethods.get(0);
-        
+
         // Mark the TOTP as verified and enabled
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFIED, true);
         totpAuth.putMetadata(AuthenticationMethodMetadata.TotpMetadata.VERIFICATION_TIME, Instant.now().toString());
         totpAuth.setIsActive(true);
         totpAuth.markAsUsed();
         authMethodRepository.saveForUser(user.getId(), totpAuth);
-        
+
         // Update the session with TOTP as an authenticated method
-        // This should generate a new PASETO token with ACR=2, AAL=2, and TOTP in auth methods
+        // This generates a new PASETO access token with ACR=2 and TOTP in auth methods
         Map<String, Object> authResult = sessionAuthBusiness.addAuthenticationMethod(
-            sessionToken,
+            accessToken,
             "totp",
             2 // ACR level 2 for TOTP
         );
-        
+
         log.info("TOTP enabled for user {} with updated session", username);
         return authResult;
     }
-    
+
     /**
      * Enable TOTP for a user's session (backward compatibility)
      * @param username the username
-     * @param sessionToken the session token
+     * @param accessToken the current access token
      * @param code the TOTP code to verify
      * @return true if TOTP was successfully enabled, false otherwise
      */
-    public boolean enableTotp(String username, String sessionToken, String code) {
-        Map<String, Object> result = enableTotpWithTokenUpdate(username, sessionToken, code);
+    public boolean enableTotp(String username, String accessToken, String code) {
+        Map<String, Object> result = enableTotpWithTokenUpdate(username, accessToken, code);
         return result != null;
     }
     

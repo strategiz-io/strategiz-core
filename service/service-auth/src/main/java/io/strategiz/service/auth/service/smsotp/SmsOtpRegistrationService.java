@@ -106,55 +106,55 @@ public class SmsOtpRegistrationService {
     /**
      * Verify phone number ownership with OTP code and return tokens
      * Completes the phone number registration process with authentication
-     * 
+     *
      * @param userId User ID
-     * @param sessionToken Current session token (if adding SMS OTP to existing session)
+     * @param accessToken Current access token (if adding SMS OTP to existing session)
      * @param phoneNumber Phone number being verified
      * @param otpCode OTP code to verify
      * @return Map containing success status and updated tokens, or null if failed
      */
-    public java.util.Map<String, Object> verifySmsOtpWithTokenUpdate(String userId, String sessionToken, 
+    public java.util.Map<String, Object> verifySmsOtpWithTokenUpdate(String userId, String accessToken,
                                                                      String phoneNumber, String otpCode) {
         log.info("Verifying SMS OTP registration for user: {}", userId);
-        
+
         // Find the SMS OTP authentication method
         Optional<AuthenticationMethodEntity> methodOpt = findSmsOtpByPhoneNumber(userId, phoneNumber);
-        
+
         if (methodOpt.isEmpty()) {
             log.warn("No phone number registration found for user: {}", userId);
             return null;
         }
-        
+
         AuthenticationMethodEntity method = methodOpt.get();
-        
+
         Boolean isVerified = (Boolean) method.getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
         if (Boolean.TRUE.equals(isVerified)) {
             log.info("Phone number already verified for user: {}", userId);
             // If already verified, still return success with updated tokens
         }
-        
+
         // Verify the OTP code using authentication service
         boolean otpValid = smsOtpAuthService.verifyOtp(null, phoneNumber, otpCode);
-        
+
         if (!otpValid) {
             log.warn("Invalid OTP for phone number registration - user: {}", userId);
             return null;
         }
-        
+
         // Mark method as verified and enabled
         method.putMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED, true);
         method.setIsActive(true);
         method.markAsUsed();
         authMethodRepository.saveForUser(userId, method);
-        
+
         // Update the session with SMS OTP as an authenticated method
         // This generates a new PASETO token with ACR=2 and SMS OTP in auth methods
         java.util.Map<String, Object> authResult = sessionAuthBusiness.addAuthenticationMethod(
-            sessionToken,
+            accessToken,
             "sms_otp",
             2 // ACR level 2 for MFA with SMS OTP
         );
-        
+
         log.info("SMS OTP enabled for user {} with updated session", userId);
         return authResult;
     }
@@ -382,7 +382,7 @@ public class SmsOtpRegistrationService {
         );
         
         Map<String, Object> tokenResult = new HashMap<>();
-        tokenResult.put("sessionToken", tokens.accessToken());
+        tokenResult.put("accessToken", tokens.accessToken());
         tokenResult.put("refreshToken", tokens.refreshToken());
         tokenResult.put("userId", userId);
         

@@ -13,6 +13,7 @@ public class CreateProfileResponse {
     private String userId;
     private String name;
     private String email;
+    private Boolean demoMode;
     private String identityToken;   // Identity token for auth setup only
     private Long expiresIn;         // Token expiration (typically 1 hour)
     private String tokenType;
@@ -26,10 +27,11 @@ public class CreateProfileResponse {
     }
     
     // Constructor
-    public CreateProfileResponse(String userId, String name, String email, String identityToken, Long expiresIn) {
+    public CreateProfileResponse(String userId, String name, String email, Boolean demoMode, String identityToken, Long expiresIn) {
         this.userId = userId;
         this.name = name;
         this.email = email;
+        this.demoMode = demoMode;
         this.identityToken = identityToken;
         this.expiresIn = expiresIn;
         this.tokenType = "bearer";
@@ -60,7 +62,15 @@ public class CreateProfileResponse {
     public void setEmail(String email) {
         this.email = email;
     }
-    
+
+    public Boolean getDemoMode() {
+        return demoMode;
+    }
+
+    public void setDemoMode(Boolean demoMode) {
+        this.demoMode = demoMode;
+    }
+
     public String getIdentityToken() {
         return identityToken;
     }
@@ -99,6 +109,7 @@ public class CreateProfileResponse {
                 "userId='" + userId + '\'' +
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
+                ", demoMode=" + demoMode +
                 ", tokenType='" + tokenType + '\'' +
                 ", expiresIn=" + expiresIn +
                 ", createdAt=" + createdAt +

@@ -94,8 +94,8 @@ public class TotpRegistrationController extends BaseController {
         
         // Complete TOTP registration and get updated tokens
         Map<String, Object> authResult = totpRegistrationService.enableTotpWithTokenUpdate(
-            request.userId(), 
-            request.sessionToken(), 
+            request.userId(),
+            request.accessToken(),
             request.totpCode()
         );
         

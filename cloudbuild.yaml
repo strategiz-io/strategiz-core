@@ -9,11 +9,11 @@ steps:
 
   # Build the Docker image (with --no-cache to ensure fresh build)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-api', '.']
+    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-core', '.']
 
   # Push the Docker image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-api']
+    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-core']
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -21,9 +21,9 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'strategiz-api'
+      - 'strategiz-core'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/strategiz-api'
+      - 'gcr.io/$PROJECT_ID/strategiz-core'
       - '--region'
       - 'us-central1'
       - '--platform'

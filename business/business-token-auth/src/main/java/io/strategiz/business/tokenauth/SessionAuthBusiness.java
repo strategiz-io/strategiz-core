@@ -562,17 +562,17 @@ public class SessionAuthBusiness {
     /**
      * Add an authentication method to an existing session and update tokens
      * Used when adding 2FA during an active session (e.g., TOTP registration)
-     * 
-     * @param sessionToken Current session token
+     *
+     * @param accessToken Current access token
      * @param authMethod New authentication method to add
      * @param newAcrLevel New ACR level after adding the method
      * @return Map with updated tokens
      */
-    public Map<String, Object> addAuthenticationMethod(String sessionToken, String authMethod, int newAcrLevel) {
+    public Map<String, Object> addAuthenticationMethod(String accessToken, String authMethod, int newAcrLevel) {
         try {
             // Parse the current token to get user and existing methods using framework-authorization
-            Map<String, Object> currentClaims = tokenValidator.parseToken(sessionToken);
-            String userId = tokenValidator.getUserIdFromToken(sessionToken);
+            Map<String, Object> currentClaims = tokenValidator.parseToken(accessToken);
+            String userId = tokenValidator.getUserIdFromToken(accessToken);
             
             // Decode existing AMR
             List<Integer> amrList = new ArrayList<>();

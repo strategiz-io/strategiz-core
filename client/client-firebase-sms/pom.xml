@@ -49,6 +49,12 @@
             <artifactId>google-auth-library-oauth2-http</artifactId>
             <version>1.19.0</version>
         </dependency>
+
+        <!-- Google API Client (required for Firebase ID token verification) -->
+        <dependency>
+            <groupId>com.google.api-client</groupId>
+            <artifactId>google-api-client</artifactId>
+        </dependency>
         
         <!-- Test dependencies -->
         <dependency>

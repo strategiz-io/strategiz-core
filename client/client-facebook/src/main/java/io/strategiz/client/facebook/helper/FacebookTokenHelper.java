@@ -33,21 +33,27 @@ public class FacebookTokenHelper {
     /**
      * Exchange authorization code for access token
      */
-    public Optional<FacebookTokenResponse> exchangeCodeForToken(String code, String clientId, 
+    public Optional<FacebookTokenResponse> exchangeCodeForToken(String code, String clientId,
                                                                String clientSecret, String redirectUri) {
         try {
+            logger.info("Exchanging code for token with redirect_uri: {}", redirectUri);
+            logger.info("Using client_id: {}...", clientId != null ? clientId.substring(0, Math.min(15, clientId.length())) : "null");
+
             String tokenUrl = buildTokenUrl(code, clientId, clientSecret, redirectUri);
             ResponseEntity<Map<String, Object>> response = makeTokenRequest(tokenUrl);
-            
+
             if (isSuccessfulResponse(response)) {
+                logger.info("Successfully exchanged code for token");
                 return extractTokenFromResponse(response);
             }
-            
-            logger.error("Failed to get access token from Facebook");
+
+            // Log the actual error response from Facebook
+            logger.error("Failed to get access token from Facebook. Status: {}, Body: {}",
+                response.getStatusCode(), response.getBody());
             return Optional.empty();
-            
+
         } catch (Exception e) {
-            logger.error("Error exchanging code for token", e);
+            logger.error("Error exchanging code for token: {}", e.getMessage(), e);
             return Optional.empty();
         }
     }

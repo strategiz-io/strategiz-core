@@ -11,7 +11,7 @@ echo ""
 # Configuration
 PROJECT_ID="strategiz-io"
 REGION="us-central1"
-SERVICE_NAME="strategiz-api"
+SERVICE_NAME="strategiz-core"
 FRONTEND_DIR="../strategiz-ui"
 
 # Colors for output

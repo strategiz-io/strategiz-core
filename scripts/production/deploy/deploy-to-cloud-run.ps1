@@ -3,7 +3,7 @@
 # Script to deploy strategiz-core to Google Cloud Run
 $PROJECT_ID = "strategiz-io"
 $REGION = "us-central1"
-$SERVICE_NAME = "strategiz-api"
+$SERVICE_NAME = "strategiz-core"
 $IMAGE_NAME = "gcr.io/$PROJECT_ID/$SERVICE_NAME"
 
 Write-Host "===== Deploying strategiz-core to Google Cloud Run ====="

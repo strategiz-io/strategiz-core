@@ -99,7 +99,7 @@ public class SmsOtpRegistrationController extends BaseController {
         // Verify OTP and get updated tokens
         Map<String, Object> authResult = smsOtpRegistrationService.verifySmsOtpWithTokenUpdate(
             request.userId,
-            request.sessionToken,
+            request.accessToken,
             request.phoneNumber,
             request.otpCode
         );
@@ -265,14 +265,17 @@ public class SmsOtpRegistrationController extends BaseController {
             "Phone authentication successful");
         
         // Include tokens if authentication was successful
-        if (authResult.containsKey("sessionToken")) {
-            response.put("sessionToken", authResult.get("sessionToken"));
+        if (authResult.containsKey("accessToken")) {
+            response.put("accessToken", authResult.get("accessToken"));
         }
         if (authResult.containsKey("refreshToken")) {
             response.put("refreshToken", authResult.get("refreshToken"));
         }
         if (authResult.containsKey("identityToken")) {
             response.put("identityToken", authResult.get("identityToken"));
+        }
+        if (authResult.containsKey("userId")) {
+            response.put("userId", authResult.get("userId"));
         }
         
         logRequestSuccess("verifyFirebaseToken", request.phoneNumber, response);
@@ -298,13 +301,13 @@ public class SmsOtpRegistrationController extends BaseController {
     public record VerificationRequest(
         @NotBlank(message = "User ID is required")
         String userId,
-        
-        @NotBlank(message = "Session token is required")
-        String sessionToken,
-        
+
+        @NotBlank(message = "Access token is required")
+        String accessToken,
+
         @NotBlank(message = "Phone number is required")
         String phoneNumber,
-        
+
         @NotBlank(message = "OTP code is required")
         String otpCode
     ) {}

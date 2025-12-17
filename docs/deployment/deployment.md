@@ -89,16 +89,16 @@ Use the provided deployment script:
 1. **Build and push Docker image to Google Container Registry**:
    ```bash
    # Build and tag image
-   docker build -t gcr.io/strategiz-io/strategiz-api .
+   docker build -t gcr.io/strategiz-io/strategiz-core .
    
    # Push to GCR
-   docker push gcr.io/strategiz-io/strategiz-api
+   docker push gcr.io/strategiz-io/strategiz-core
    ```
 
 2. **Deploy to Cloud Run**:
    ```bash
-   gcloud run deploy strategiz-api \
-     --image gcr.io/strategiz-io/strategiz-api \
+   gcloud run deploy strategiz-core \
+     --image gcr.io/strategiz-io/strategiz-core \
      --platform managed \
      --region us-central1 \
      --allow-unauthenticated \
@@ -110,7 +110,7 @@ Use the provided deployment script:
 
 3. **Configure environment variables** (if using Vault):
    ```bash
-   gcloud run services update strategiz-api \
+   gcloud run services update strategiz-core \
      --set-env-vars VAULT_ADDR=<vault-address> \
      --set-env-vars VAULT_TOKEN=<vault-token> \
      --region us-central1
@@ -143,7 +143,7 @@ The backend is configured to accept requests from:
 ### Verify Deployment
 ```bash
 # Check service status
-gcloud run services describe strategiz-api --region us-central1
+gcloud run services describe strategiz-core --region us-central1
 
 # Get service URL
 gcloud run services list --platform managed
@@ -151,20 +151,20 @@ gcloud run services list --platform managed
 
 ### Access URLs
 After deployment, your API will be available at:
-- **Cloud Run URL**: `https://strategiz-api-[hash].us-central1.run.app`
-- **Health Check**: `https://strategiz-api-[hash].us-central1.run.app/actuator/health`
+- **Cloud Run URL**: `https://strategiz-core-[hash].us-central1.run.app`
+- **Health Check**: `https://strategiz-core-[hash].us-central1.run.app/actuator/health`
 
 ## Monitoring and Logging
 
 ### View Logs
 ```bash
 # Recent logs
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=strategiz-api" \
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=strategiz-core" \
   --limit 50 \
   --format json
 
 # Stream logs
-gcloud alpha logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=strategiz-api"
+gcloud alpha logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=strategiz-core"
 ```
 
 ### Metrics
@@ -201,7 +201,7 @@ Access metrics through Google Cloud Console:
 5. **Cold Start Issues**
    - Consider setting minimum instances:
      ```bash
-     gcloud run services update strategiz-api \
+     gcloud run services update strategiz-core \
        --min-instances 1 \
        --region us-central1
      ```
@@ -218,12 +218,12 @@ If deployment issues occur:
 
 1. **List previous revisions**:
    ```bash
-   gcloud run revisions list --service strategiz-api --region us-central1
+   gcloud run revisions list --service strategiz-core --region us-central1
    ```
 
 2. **Rollback to previous revision**:
    ```bash
-   gcloud run services update-traffic strategiz-api \
+   gcloud run services update-traffic strategiz-core \
      --to-revisions <previous-revision>=100 \
      --region us-central1
    ```
@@ -254,5 +254,5 @@ The deployed backend integrates with the frontend by:
 Frontend configuration should point to the Cloud Run URL:
 ```javascript
 // In frontend environment configuration
-REACT_APP_API_URL=https://strategiz-api-[hash].us-central1.run.app
+REACT_APP_API_URL=https://strategiz-core-[hash].us-central1.run.app
 ```

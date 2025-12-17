@@ -9,11 +9,14 @@ import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,25 +58,51 @@ public class FirebaseSmsClient {
                 log.warn("Firebase credentials path not configured. SMS service will be unavailable.");
                 return;
             }
-            
+
             // Initialize Firebase Admin SDK
-            FileInputStream serviceAccount = new FileInputStream(firebaseCredentialsPath);
-            
+            // Try multiple strategies to find the credentials file
+            InputStream serviceAccountStream = null;
+
+            // Strategy 1: Try as classpath resource (for packaged JAR)
+            // Remove path prefixes like "src/main/resources/" to get classpath resource name
+            String classpathResource = firebaseCredentialsPath
+                .replace("src/main/resources/", "")
+                .replace("classpath:", "");
+
+            Resource classPathRes = new ClassPathResource(classpathResource);
+            if (classPathRes.exists()) {
+                serviceAccountStream = classPathRes.getInputStream();
+                log.info("Firebase credentials loaded from classpath: {}", classpathResource);
+            } else {
+                // Strategy 2: Try as filesystem path
+                Resource fileSystemRes = new FileSystemResource(firebaseCredentialsPath);
+                if (fileSystemRes.exists()) {
+                    serviceAccountStream = fileSystemRes.getInputStream();
+                    log.info("Firebase credentials loaded from filesystem: {}", firebaseCredentialsPath);
+                }
+            }
+
+            if (serviceAccountStream == null) {
+                log.error("Firebase credentials not found at path: {} or classpath: {}",
+                    firebaseCredentialsPath, classpathResource);
+                return;
+            }
+
             FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setCredentials(GoogleCredentials.fromStream(serviceAccountStream))
                 .setProjectId(firebaseProjectId)
                 .build();
-            
+
             // Check if FirebaseApp is already initialized
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
             }
-            
+
             firebaseAuth = FirebaseAuth.getInstance();
             initialized = true;
-            
+
             log.info("Firebase SMS client initialized successfully for project: {}", firebaseProjectId);
-            
+
         } catch (IOException e) {
             log.error("Failed to initialize Firebase: {}", e.getMessage());
         }

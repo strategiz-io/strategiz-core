@@ -24,7 +24,7 @@ steps:
     - '--min-instances=0'
     - '--max-instances=10'
     - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod'
-    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
+    - '--update-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:
 - 'gcr.io/$PROJECT_ID/strategiz-core'

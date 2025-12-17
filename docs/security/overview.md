@@ -106,18 +106,132 @@ Strategiz implements a **progressive authentication system** with **risk-based a
 3. Provider Integration → OAuth consent flow or demo mode
 ```
 
-## 🎫 Token Technology
+## 🎫 Token Architecture
 
-### **PASETO v4.public**
-- **Public key cryptography** with Ed25519 signatures
+### **Tokens vs Secrets**
+
+Strategiz distinguishes between **tokens** (credentials you issue) and **secrets** (credentials you store):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              TOKEN MODEL                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  TOKENS (PASETO V2.local - What You Issue)                                  │
+│  ══════════════════════════════════════════                                  │
+│  Created by Strategiz, sent to clients for authentication                    │
+│                                                                              │
+│  ┌─────────────────┬─────────────────┬─────────────────┐                    │
+│  │  Identity Token │  Access Token   │  Refresh Token  │                    │
+│  ├─────────────────┼─────────────────┼─────────────────┤                    │
+│  │  identity-key   │  session-key    │  session-key    │                    │
+│  │  ACR: 0         │  ACR: 1-3       │  N/A            │                    │
+│  │  30 minutes     │  24 hours       │  7 days         │                    │
+│  │  profile:create │  Full scopes    │  Token refresh  │                    │
+│  └─────────────────┴─────────────────┴─────────────────┘                    │
+│                                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  SECRETS (What You Store in Vault)                                           │
+│  ═════════════════════════════════                                           │
+│  External credentials stored securely, never issued to clients               │
+│                                                                              │
+│  • Provider OAuth credentials (Coinbase, Alpaca, Schwab, etc.)               │
+│  • API keys for external services                                            │
+│  • Signing keys (identity-key, session-key)                                  │
+│  • Database credentials                                                      │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### **Token Types (3 Types, 2 Keys)**
+
+| Token | Key | ACR | Duration | Purpose | Scope |
+|-------|-----|-----|----------|---------|-------|
+| **Identity Token** | `identity-key` | `0` | 30 min | Pre-authentication (signup, profile creation) | `profile:create` |
+| **Access Token** | `session-key` | `1-3` | 24 hours | Authenticated user sessions | Full user scopes |
+| **Refresh Token** | `session-key` | N/A | 7 days | Obtain new access tokens without re-auth | N/A |
+
+### **Two-Phase Token Flow**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         AUTHENTICATION PHASES                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  PHASE 1: Pre-Authentication (Signup Flow)                                   │
+│  ─────────────────────────────────────────                                   │
+│                                                                              │
+│  User ──► Create Profile ──► Identity Token (identity-key)                   │
+│                                    │                                         │
+│                                    ├── scope: "profile:create"               │
+│                                    ├── acr: "0"                              │
+│                                    └── duration: 30 minutes                  │
+│                                                                              │
+│  PHASE 2: Full Authentication                                                │
+│  ────────────────────────────                                                │
+│                                                                              │
+│  User ──► Complete Auth ──► Access Token (session-key)                       │
+│           Method              │                                              │
+│           (TOTP/SMS/          ├── scope: Full user scopes                    │
+│            Passkey/etc.)      ├── acr: "1" | "2" | "3"                       │
+│                               └── duration: 24 hours                         │
+│                                                                              │
+│                           ──► Refresh Token (session-key)                    │
+│                               │                                              │
+│                               └── duration: 7 days                           │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### **Key Security Isolation**
+
+Two separate signing keys provide security isolation between authentication phases:
+
+| Key | Stored In | Purpose | If Compromised |
+|-----|-----------|---------|----------------|
+| `identity-key` | Vault (`tokens.{env}.identity-key`) | Sign identity tokens only | Attacker can only create limited profile tokens |
+| `session-key` | Vault (`tokens.{env}.session-key`) | Sign access/refresh tokens | Attacker can create full session tokens |
+
+This separation ensures that a compromise of the identity key (used in the more exposed signup flow) does not grant access to authenticated sessions.
+
+### **Token Technology: PASETO V2.local**
+
+- **Symmetric encryption** (shared secret)
 - **Stateless** - all information in token
-- **Tamper-proof** - cryptographically signed
-- **No encryption** - claims are readable but verified
+- **Tamper-proof** - cryptographically authenticated
+- **Encrypted payload** - claims are encrypted, not just signed
+
+### **Token Storage: SessionEntity**
+
+Access and refresh tokens are tracked in the `SessionEntity` for:
+- **Revocation** - Mark tokens as revoked before expiry
+- **Audit** - Track token usage and authentication events
+- **Session management** - List active sessions, logout from all devices
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                       SessionEntity                              │
+├─────────────────────────────────────────────────────────────────┤
+│  sessionId      │  "access_abc123" or "refresh_xyz789"          │
+│  userId         │  User who owns this session                    │
+│  tokenType      │  "ACCESS" or "REFRESH"                         │
+│  tokenValue     │  The PASETO token string                       │
+│  issuedAt       │  When token was created                        │
+│  expiresAt      │  When token expires                            │
+│  revoked        │  Whether token has been revoked                │
+│  revokedAt      │  When token was revoked (if applicable)        │
+│  deviceId       │  Device that created this session              │
+│  ipAddress      │  IP address at creation                        │
+│  lastAccessedAt │  Last time token was used                      │
+│  claims         │  Token claims (amr, acr, auth_methods, etc.)   │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### **HTTP-Only Cookies**
 ```http
-Set-Cookie: strategiz_session=v4.public.eyJ...; 
-           HttpOnly; Secure; SameSite=Strict; 
+Set-Cookie: strategiz_session=v2.local.eyJ...;
+           HttpOnly; Secure; SameSite=Strict;
            Path=/; Max-Age=86400; Domain=strategiz.io
 ```
 

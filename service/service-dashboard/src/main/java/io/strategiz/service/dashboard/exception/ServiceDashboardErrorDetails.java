@@ -24,6 +24,7 @@ public enum ServiceDashboardErrorDetails implements ErrorDetails {
     PORTFOLIO_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-calculation-failed"),
     
     // Asset allocation errors
+    ASSET_ALLOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "asset-allocation-not-found"),
     ASSET_ALLOCATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "asset-allocation-failed"),
     INVALID_ALLOCATION_PERCENTAGE(HttpStatus.BAD_REQUEST, "invalid-allocation-percentage"),
     
@@ -32,11 +33,13 @@ public enum ServiceDashboardErrorDetails implements ErrorDetails {
     SENTIMENT_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "sentiment-calculation-failed"),
     
     // Performance metrics errors
+    PERFORMANCE_METRICS_NOT_FOUND(HttpStatus.NOT_FOUND, "performance-metrics-not-found"),
     METRICS_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "metrics-calculation-failed"),
     INSUFFICIENT_DATA(HttpStatus.BAD_REQUEST, "insufficient-data"),
     INVALID_TIME_PERIOD(HttpStatus.BAD_REQUEST, "invalid-time-period"),
     
     // Risk analysis errors
+    RISK_ANALYSIS_NOT_FOUND(HttpStatus.NOT_FOUND, "risk-analysis-not-found"),
     RISK_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "risk-calculation-failed"),
     INVALID_RISK_PARAMETERS(HttpStatus.BAD_REQUEST, "invalid-risk-parameters"),
     

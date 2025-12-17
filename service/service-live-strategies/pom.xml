@@ -34,7 +34,23 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>data-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Keep YahooFinance as fallback for symbols not in cache -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>client-yahoofinance</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-sms</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-preferences</artifactId>
             <version>${project.version}</version>
         </dependency>
 

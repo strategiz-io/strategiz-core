@@ -2,7 +2,9 @@ package io.strategiz.service.device.service.anonymous;
 
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.data.device.repository.CreateDeviceRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.exception.DeviceErrorDetails;
 import io.strategiz.service.device.model.anonymous.CreateAnonymousDeviceRequest;
 import io.strategiz.service.device.model.anonymous.CreateAnonymousDeviceResponse;
 import org.slf4j.Logger;
@@ -67,7 +69,7 @@ public class CreateAnonymousDeviceService extends BaseService {
             
         } catch (Exception e) {
             log.error("Error creating anonymous device: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create anonymous device", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_REGISTRATION_FAILED, "service-device", e);
         }
     }
     

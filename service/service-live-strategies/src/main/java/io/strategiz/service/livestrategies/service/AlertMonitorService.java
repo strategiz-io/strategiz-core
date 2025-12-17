@@ -3,6 +3,9 @@ package io.strategiz.service.livestrategies.service;
 import io.strategiz.business.strategy.execution.model.ExecutionResult;
 import io.strategiz.business.strategy.execution.service.StrategyExecutionService;
 import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
+import io.strategiz.data.marketdata.entity.MarketDataEntity;
+import io.strategiz.data.marketdata.repository.MarketDataRepository;
+import io.strategiz.data.strategy.entity.DeploymentType;
 import io.strategiz.data.strategy.entity.StrategyAlert;
 import io.strategiz.data.strategy.entity.StrategyAlertHistory;
 import io.strategiz.data.strategy.repository.CreateStrategyAlertHistoryRepository;
@@ -16,25 +19,38 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Scheduled service that monitors active alerts and detects trading signals.
- * Runs every 5 minutes to check strategies and send notifications.
+ * Uses tier-based scheduling for different subscription levels.
+ *
+ * Tier-based evaluation frequency:
+ * - PRO: Every 1 minute
+ * - STARTER: Every 5 minutes
+ * - FREE: Every 15 minutes
  *
  * Flow:
- * 1. Fetch all ACTIVE alerts
+ * 1. Fetch active alerts by subscription tier
  * 2. For each alert:
- *    - Get current market data from Yahoo Finance
- *    - Execute the strategy code
- *    - Parse signals (BUY, SELL, HOLD)
- *    - Create history entries
- *    - Send notifications
- *    - Update alert metadata
+ *    a. Check cooldown (skip if in cooldown period)
+ *    b. Check daily rate limit (skip if exceeded)
+ *    c. Check signal deduplication (skip if same signal)
+ *    d. Get current market data
+ *    e. Execute the strategy code
+ *    f. Process signals (BUY, SELL)
+ *    g. Send notifications (for ALERT deployment type)
+ *    h. Update alert metadata and tracking
+ *    i. Handle errors with circuit breaker
  */
 @Component
 @ConditionalOnProperty(name = "alert.monitor.enabled", havingValue = "true", matchIfMissing = true)
@@ -51,7 +67,8 @@ public class AlertMonitorService {
     private final UpdateStrategyAlertRepository updateAlertRepository;
     private final CreateStrategyAlertHistoryRepository createHistoryRepository;
     private final StrategyExecutionService strategyExecutionService;
-    private final YahooFinanceClient yahooFinanceClient;
+    private final MarketDataRepository marketDataRepository;
+    private final YahooFinanceClient yahooFinanceClient; // Fallback for symbols not in cache
     private final AlertNotificationService notificationService;
 
     @Autowired
@@ -60,67 +77,125 @@ public class AlertMonitorService {
             UpdateStrategyAlertRepository updateAlertRepository,
             CreateStrategyAlertHistoryRepository createHistoryRepository,
             StrategyExecutionService strategyExecutionService,
-            YahooFinanceClient yahooFinanceClient,
+            MarketDataRepository marketDataRepository,
+            @Autowired(required = false) YahooFinanceClient yahooFinanceClient,
             AlertNotificationService notificationService) {
         this.readAlertRepository = readAlertRepository;
         this.updateAlertRepository = updateAlertRepository;
         this.createHistoryRepository = createHistoryRepository;
         this.strategyExecutionService = strategyExecutionService;
+        this.marketDataRepository = marketDataRepository;
         this.yahooFinanceClient = yahooFinanceClient;
         this.notificationService = notificationService;
     }
 
+    // ========================
+    // Tier-Based Scheduling
+    // ========================
+
     /**
-     * Main monitoring job - runs every 5 minutes (300000ms)
-     *
-     * FREE tier: Every 5 minutes
-     * STARTER tier: Every 5 minutes (same as free, but more alerts)
-     * PRO tier: Every 1 minute (TODO: implement tier-based intervals)
+     * PRO tier monitoring - runs every 1 minute (60000ms)
+     * Highest frequency for premium subscribers.
+     */
+    @Scheduled(fixedDelay = 60000, initialDelay = 30000) // 1 min interval, 30s initial delay
+    public void monitorProTierAlerts() {
+        monitorAlertsByTier("PRO", 1);
+    }
+
+    /**
+     * STARTER tier monitoring - runs every 5 minutes (300000ms)
+     * Mid-tier frequency for starter subscribers.
      */
     @Scheduled(fixedDelay = 300000, initialDelay = 60000) // 5 min interval, 1 min initial delay
+    public void monitorStarterTierAlerts() {
+        monitorAlertsByTier("STARTER", 5);
+    }
+
+    /**
+     * FREE tier monitoring - runs every 15 minutes (900000ms)
+     * Basic frequency for free users.
+     */
+    @Scheduled(fixedDelay = 900000, initialDelay = 120000) // 15 min interval, 2 min initial delay
+    public void monitorFreeTierAlerts() {
+        monitorAlertsByTier("FREE", 15);
+    }
+
+    /**
+     * Legacy method for backward compatibility - monitors all alerts.
+     * @deprecated Use tier-specific methods instead
+     */
+    @Deprecated
     public void monitorAlerts() {
-        // Prevent concurrent executions
+        // Process all tiers
+        monitorAlertsByTier("PRO", 1);
+        monitorAlertsByTier("STARTER", 5);
+        monitorAlertsByTier("FREE", 15);
+    }
+
+    /**
+     * Monitor alerts for a specific subscription tier.
+     *
+     * @param tier The subscription tier (PRO, STARTER, FREE)
+     * @param frequencyMinutes The evaluation frequency in minutes
+     */
+    private void monitorAlertsByTier(String tier, int frequencyMinutes) {
+        // Use tier-specific lock to allow parallel tier processing
+        // For simplicity, we use a global lock here - can be optimized later
         if (!isRunning.compareAndSet(false, true)) {
-            logger.warn("Alert monitoring job is already running, skipping this execution");
+            logger.debug("Alert monitoring already running, skipping {} tier", tier);
             return;
         }
 
         try {
-            logger.info("========================================");
-            logger.info("Starting Alert Monitoring Cycle");
-            logger.info("Time: {}", Instant.now());
-            logger.info("========================================");
+            logger.info("======== {} Tier Alert Monitoring ========", tier);
+            logger.info("Time: {} | Frequency: {} min", Instant.now(), frequencyMinutes);
 
             lastRunTime = Instant.now();
             int alertsProcessed = 0;
             int signalsDetected = 0;
+            int skippedCooldown = 0;
+            int skippedRateLimit = 0;
+            int skippedDedup = 0;
             int errors = 0;
 
-            // Fetch all ACTIVE alerts (across all users)
-            List<StrategyAlert> activeAlerts = readAlertRepository.findAllActive();
-            logger.info("Found {} active alerts to monitor", activeAlerts.size());
+            // Fetch active alerts for this tier (ALERT deployment type only)
+            List<StrategyAlert> tierAlerts = readAlertRepository.findActiveAlertsByTier(tier);
+            logger.info("Found {} active {} alerts to monitor", tierAlerts.size(), tier);
 
             // Process each alert
-            for (StrategyAlert alert : activeAlerts) {
+            for (StrategyAlert alert : tierAlerts) {
                 try {
-                    int signalsFound = processAlert(alert);
-                    alertsProcessed++;
-                    signalsDetected += signalsFound;
+                    // Skip BOT deployment types (future feature)
+                    if (!alert.isAlertDeployment()) {
+                        logger.debug("Skipping non-alert deployment: {}", alert.getId());
+                        continue;
+                    }
 
-                    if (signalsFound > 0) {
-                        logger.info("Alert {} triggered {} signal(s)", alert.getId(), signalsFound);
+                    // Reset daily count if needed
+                    resetDailyCountIfNeeded(alert);
+
+                    // Check rate limit
+                    if (alert.isDailyLimitReached()) {
+                        logger.debug("Alert {} has reached daily limit", alert.getId());
+                        skippedRateLimit++;
+                        continue;
+                    }
+
+                    ProcessResult result = processAlertWithChecks(alert);
+                    alertsProcessed++;
+
+                    switch (result.outcome) {
+                        case SIGNAL_TRIGGERED -> signalsDetected += result.signalCount;
+                        case SKIPPED_COOLDOWN -> skippedCooldown++;
+                        case SKIPPED_DEDUP -> skippedDedup++;
+                        case NO_SIGNAL -> {} // Normal, no action needed
+                        case ERROR -> errors++;
                     }
 
                 } catch (Exception e) {
                     logger.error("Error processing alert {}: {}", alert.getId(), e.getMessage(), e);
                     errors++;
-
-                    // Update alert error message
-                    try {
-                        updateAlertRepository.updateErrorMessage(alert.getId(), alert.getUserId(), e.getMessage());
-                    } catch (Exception updateError) {
-                        logger.error("Failed to update alert error message", updateError);
-                    }
+                    handleAlertError(alert, e);
                 }
             }
 
@@ -128,27 +203,36 @@ public class AlertMonitorService {
             lastAlertCount = alertsProcessed;
             lastSignalCount = signalsDetected;
 
-            logger.info("========================================");
-            logger.info("Alert Monitoring Cycle COMPLETED");
-            logger.info("Alerts processed: {}", alertsProcessed);
-            logger.info("Signals detected: {}", signalsDetected);
-            logger.info("Errors encountered: {}", errors);
-            logger.info("========================================");
+            logger.info("======== {} Tier COMPLETED ========", tier);
+            logger.info("Processed: {} | Signals: {} | Errors: {}", alertsProcessed, signalsDetected, errors);
+            logger.info("Skipped - Cooldown: {} | RateLimit: {} | Dedup: {}",
+                    skippedCooldown, skippedRateLimit, skippedDedup);
 
         } catch (Exception e) {
-            logger.error("Fatal error in alert monitoring job", e);
+            logger.error("Fatal error in {} tier monitoring", tier, e);
         } finally {
             isRunning.set(false);
         }
     }
 
+    // ========================
+    // Process Result Tracking
+    // ========================
+
+    private enum ProcessOutcome {
+        SIGNAL_TRIGGERED,
+        NO_SIGNAL,
+        SKIPPED_COOLDOWN,
+        SKIPPED_DEDUP,
+        ERROR
+    }
+
+    private record ProcessResult(ProcessOutcome outcome, int signalCount) {}
+
     /**
-     * Process a single alert - fetch market data, execute strategy, detect signals
-     *
-     * @param alert The alert to process
-     * @return Number of signals detected
+     * Process alert with cooldown and deduplication checks.
      */
-    private int processAlert(StrategyAlert alert) {
+    private ProcessResult processAlertWithChecks(StrategyAlert alert) {
         logger.debug("Processing alert: {} (strategy: {})", alert.getAlertName(), alert.getStrategyId());
 
         int signalCount = 0;
@@ -156,16 +240,24 @@ public class AlertMonitorService {
         // For each symbol in the alert
         for (String symbol : alert.getSymbols()) {
             try {
-                // 1. Get current market data from Yahoo Finance
-                Map<String, Object> marketData = yahooFinanceClient.fetchQuote(symbol);
-                Double currentPrice = extractPriceFromResponse(marketData);
+                // Check cooldown for this symbol
+                if (isInCooldown(alert, symbol)) {
+                    logger.debug("Alert {} symbol {} in cooldown, skipping", alert.getId(), symbol);
+                    return new ProcessResult(ProcessOutcome.SKIPPED_COOLDOWN, 0);
+                }
+
+                // 1. Get current market data from cache (populated by batch job)
+                Double currentPrice = getLatestPriceFromCache(symbol);
 
                 if (currentPrice == null) {
-                    logger.warn("Could not extract price for symbol: {}", symbol);
+                    logger.warn("No cached price data for symbol: {} - batch job may not have collected it yet", symbol);
                     continue;
                 }
 
-                logger.debug("Current price for {}: ${}", symbol, currentPrice);
+                logger.debug("Cached price for {}: ${}", symbol, currentPrice);
+
+                // Update last checked timestamp
+                updateAlertRepository.updateLastCheckedAt(alert.getId(), alert.getUserId(), Timestamp.now());
 
                 // 2. Execute strategy to check for signals
                 ExecutionResult result = strategyExecutionService.executeStrategy(
@@ -180,22 +272,45 @@ public class AlertMonitorService {
                     continue;
                 }
 
+                // Reset consecutive errors on successful execution
+                if (alert.getConsecutiveErrors() != null && alert.getConsecutiveErrors() > 0) {
+                    updateAlertRepository.resetConsecutiveErrors(alert.getId(), alert.getUserId());
+                }
+
                 // 3. Process signals from execution result
                 List<ExecutionResult.Signal> signals = result.getSignals();
                 if (signals != null && !signals.isEmpty()) {
                     for (ExecutionResult.Signal signal : signals) {
                         // Only process BUY/SELL signals (skip HOLD)
                         if ("BUY".equals(signal.getType()) || "SELL".equals(signal.getType())) {
+
+                            // Check deduplication: skip if same signal type as last
+                            if (isDuplicateSignal(alert, signal.getType(), symbol)) {
+                                logger.debug("Duplicate signal {} for {} on alert {}, skipping",
+                                        signal.getType(), symbol, alert.getId());
+                                return new ProcessResult(ProcessOutcome.SKIPPED_DEDUP, 0);
+                            }
+
                             signalCount++;
 
                             // Create history entry
                             createHistoryEntry(alert, signal, symbol, currentPrice, result.getMetrics());
 
-                            // Send notifications
-                            notificationService.sendSignalNotification(alert, signal, symbol, currentPrice);
+                            // Send notifications (for ALERT deployment type)
+                            if (alert.isAlertDeployment()) {
+                                notificationService.sendSignalNotification(alert, signal, symbol, currentPrice);
+                            }
 
-                            // Update alert metadata
-                            updateAlertMetadata(alert.getId(), alert.getUserId(), signal.getType());
+                            // Record signal for cooldown and deduplication
+                            updateAlertRepository.recordSignal(
+                                    alert.getId(),
+                                    alert.getUserId(),
+                                    signal.getType(),
+                                    symbol
+                            );
+
+                            logger.info("Alert {} triggered {} signal for {} at ${}",
+                                    alert.getId(), signal.getType(), symbol, currentPrice);
                         }
                     }
                 }
@@ -203,14 +318,161 @@ public class AlertMonitorService {
             } catch (Exception e) {
                 logger.error("Error processing symbol {} for alert {}: {}",
                     symbol, alert.getId(), e.getMessage());
+                return new ProcessResult(ProcessOutcome.ERROR, 0);
             }
         }
 
-        return signalCount;
+        return new ProcessResult(
+                signalCount > 0 ? ProcessOutcome.SIGNAL_TRIGGERED : ProcessOutcome.NO_SIGNAL,
+                signalCount
+        );
+    }
+
+    // ========================
+    // Cooldown & Deduplication
+    // ========================
+
+    /**
+     * Check if alert is in cooldown period.
+     * Cooldown is per-symbol and based on subscription tier.
+     */
+    private boolean isInCooldown(StrategyAlert alert, String symbol) {
+        Timestamp lastTriggered = alert.getLastTriggeredAt();
+        if (lastTriggered == null) {
+            return false; // Never triggered, not in cooldown
+        }
+
+        // Check if last trigger was for a different symbol
+        String lastSymbol = alert.getLastSignalSymbol();
+        if (lastSymbol != null && !lastSymbol.equals(symbol)) {
+            return false; // Different symbol, not in cooldown
+        }
+
+        // Calculate cooldown based on tier
+        int cooldownMinutes = alert.getEffectiveCooldownMinutes();
+        Instant cooldownEnd = lastTriggered.toDate().toInstant().plus(cooldownMinutes, ChronoUnit.MINUTES);
+
+        return Instant.now().isBefore(cooldownEnd);
     }
 
     /**
-     * Extract price from Yahoo Finance API response
+     * Check if this is a duplicate signal (same signal type for same symbol).
+     * This prevents spamming the same BUY/SELL signal repeatedly.
+     */
+    private boolean isDuplicateSignal(StrategyAlert alert, String signalType, String symbol) {
+        String lastSignalType = alert.getLastSignalType();
+        String lastSignalSymbol = alert.getLastSignalSymbol();
+
+        // If same signal type and same symbol, it's a duplicate
+        // User should only be notified when signal CHANGES (e.g., BUY -> SELL)
+        return signalType.equals(lastSignalType) &&
+               symbol.equals(lastSignalSymbol);
+    }
+
+    /**
+     * Reset daily trigger count if it's a new day.
+     */
+    private void resetDailyCountIfNeeded(StrategyAlert alert) {
+        Timestamp lastReset = alert.getLastDailyReset();
+        if (lastReset == null) {
+            // Never reset, do it now
+            updateAlertRepository.resetDailyTriggerCount(alert.getId(), alert.getUserId());
+            return;
+        }
+
+        // Check if last reset was on a different day
+        LocalDate lastResetDate = lastReset.toDate().toInstant().atOffset(ZoneOffset.UTC).toLocalDate();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+
+        if (lastResetDate.isBefore(today)) {
+            logger.debug("Resetting daily trigger count for alert {} (last reset: {})",
+                    alert.getId(), lastResetDate);
+            updateAlertRepository.resetDailyTriggerCount(alert.getId(), alert.getUserId());
+        }
+    }
+
+    // ========================
+    // Error Handling
+    // ========================
+
+    /**
+     * Handle alert processing error with circuit breaker logic.
+     */
+    private void handleAlertError(StrategyAlert alert, Exception e) {
+        try {
+            updateAlertRepository.incrementConsecutiveErrors(
+                    alert.getId(),
+                    alert.getUserId(),
+                    e.getMessage()
+            );
+
+            // Check if circuit breaker tripped (status changed to ERROR)
+            if (alert.shouldTripCircuitBreaker()) {
+                logger.warn("Circuit breaker tripped for alert {} after {} consecutive errors",
+                        alert.getId(), alert.getConsecutiveErrors());
+            }
+        } catch (Exception updateError) {
+            logger.error("Failed to update alert error state", updateError);
+        }
+    }
+
+    // ========================
+    // Market Data Access
+    // ========================
+
+    /**
+     * Get latest price from cached market data (populated by batch job).
+     * Falls back to Yahoo Finance if cache miss and fallback is available.
+     *
+     * @param symbol The symbol to get price for
+     * @return The latest close price, or null if not available
+     */
+    private Double getLatestPriceFromCache(String symbol) {
+        try {
+            // Try to get from cached market data
+            Optional<MarketDataEntity> cachedData = marketDataRepository.findLatestBySymbol(symbol);
+
+            if (cachedData.isPresent()) {
+                MarketDataEntity data = cachedData.get();
+                BigDecimal closePrice = data.getClose();
+
+                if (closePrice != null) {
+                    // Check data freshness (warn if older than 30 minutes for 1Min bars)
+                    if (data.getTimestamp() != null) {
+                        long ageMinutes = ChronoUnit.MINUTES.between(
+                                Instant.ofEpochMilli(data.getTimestamp()),
+                                Instant.now()
+                        );
+                        if (ageMinutes > 30) {
+                            logger.warn("Cached data for {} is {} minutes old (batch may be delayed)",
+                                    symbol, ageMinutes);
+                        }
+                    }
+
+                    logger.debug("Using cached price for {}: ${} (source: {}, timeframe: {})",
+                            symbol, closePrice, data.getDataSource(), data.getTimeframe());
+                    return closePrice.doubleValue();
+                }
+            }
+
+            // Cache miss - try Yahoo Finance fallback if available
+            if (yahooFinanceClient != null) {
+                logger.info("Cache miss for {}, falling back to Yahoo Finance", symbol);
+                Map<String, Object> response = yahooFinanceClient.fetchQuote(symbol);
+                return extractPriceFromResponse(response);
+            }
+
+            logger.warn("No cached data for {} and no fallback available", symbol);
+            return null;
+
+        } catch (Exception e) {
+            logger.error("Error getting price for {}: {}", symbol, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Extract price from Yahoo Finance API response (fallback only)
      */
     private Double extractPriceFromResponse(Map<String, Object> response) {
         try {
@@ -288,21 +550,6 @@ public class AlertMonitorService {
         } catch (Exception e) {
             logger.error("Failed to create history entry for alert {}: {}",
                 alert.getId(), e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Update alert metadata after signal detection
-     */
-    private void updateAlertMetadata(String alertId, String userId, String signalType) {
-        try {
-            // Increment trigger count and update last triggered timestamp
-            updateAlertRepository.recordTrigger(alertId, userId);
-
-            logger.debug("Updated metadata for alert {} (signal: {})", alertId, signalType);
-
-        } catch (Exception e) {
-            logger.error("Failed to update alert metadata for {}: {}", alertId, e.getMessage());
         }
     }
 

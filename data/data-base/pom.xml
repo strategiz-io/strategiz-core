@@ -99,6 +99,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Exception Framework -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

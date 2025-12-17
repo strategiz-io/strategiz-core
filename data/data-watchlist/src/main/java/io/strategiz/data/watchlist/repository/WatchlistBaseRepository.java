@@ -1,5 +1,7 @@
 package io.strategiz.data.watchlist.repository;
 
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
 import com.google.cloud.firestore.Firestore;
@@ -57,7 +59,7 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
                 }
             } else {
                 if (!entity._hasAudit()) {
-                    throw new RuntimeException("Cannot update entity without audit fields");
+                    throw new DataRepositoryException(DataRepositoryErrorDetails.AUDIT_FIELDS_MISSING, "WatchlistItemEntity");
                 }
                 entity._updateAudit(userId);
             }
@@ -67,8 +69,10 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
 
             log.debug("Saved watchlist item {} for user {}", entity.getSymbol(), userId);
             return entity;
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save WatchlistItemEntity: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "WatchlistItemEntity");
         }
     }
 
@@ -86,9 +90,11 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
                 }
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find watchlist item: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "WatchlistItemEntity", id);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "WatchlistItemEntity", id);
         }
     }
 
@@ -110,10 +116,13 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Failed to find watchlist items for userId {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Failed to find watchlist items: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "WatchlistItemEntity", userId);
+        } catch (ExecutionException e) {
+            log.error("Failed to find watchlist items for userId {}: {}", userId, e.getMessage());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "WatchlistItemEntity", userId);
         }
     }
 
@@ -127,9 +136,11 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
             return !docs.isEmpty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to check symbol existence: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "WatchlistItemEntity", symbol);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "WatchlistItemEntity", symbol);
         }
     }
 
@@ -149,9 +160,11 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
                 return Optional.of(entity);
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find by symbol: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "WatchlistItemEntity", symbol);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "WatchlistItemEntity", symbol);
         }
     }
 
@@ -163,9 +176,11 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
             getUserScopedCollection(userId).document(id).delete().get();
             log.debug("Deleted watchlist item {} for user {}", id, userId);
             return true;
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to delete watchlist item: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "WatchlistItemEntity", id);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "WatchlistItemEntity", id);
         }
     }
 
@@ -186,9 +201,11 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find by type: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "WatchlistItemEntity", type);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "WatchlistItemEntity", type);
         }
     }
 

@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.service.dashboard.service.PerformanceMetricsService;
 import io.strategiz.service.dashboard.model.performancemetrics.PerformanceMetricsData;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +61,7 @@ public class PerformanceMetricsController extends BaseController {
         
         // Check if data exists
         if (performanceMetrics == null) {
-            throw new RuntimeException("Performance metrics not found for user: " + userId);
+            throw new StrategizException(ServiceDashboardErrorDetails.PERFORMANCE_METRICS_NOT_FOUND, "service-dashboard", userId);
         }
         
         // Create response

@@ -7,6 +7,8 @@ import io.strategiz.data.user.model.UserWithWatchlist;
 import io.strategiz.data.user.model.UserWithProviders;
 import io.strategiz.data.user.model.UserWithDevices;
 import io.strategiz.data.user.model.UserWithPreferences;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
@@ -97,8 +99,11 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
             }
             
             return Optional.of(documents.get(0).toObject(UserEntity.class));
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Error finding user by email: " + email, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity", email);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity", email);
         }
     }
 
@@ -116,8 +121,11 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
             return query.get().get().getDocuments().stream()
                 .map(doc -> doc.toObject(UserEntity.class))
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Error finding all users", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity");
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity");
         }
     }
 
@@ -156,7 +164,7 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
 
                 if (!existingDocs.isEmpty()) {
                     log.warn("User with email {} already exists, aborting creation", email);
-                    throw new RuntimeException("EMAIL_ALREADY_EXISTS:User with email already exists: " + email);
+                    throw new DataRepositoryException(DataRepositoryErrorDetails.DUPLICATE_ENTITY, "UserEntity", email);
                 }
 
                 // Step 2: Generate ID if not set
@@ -183,17 +191,16 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
             return createdUser;
 
         } catch (ExecutionException e) {
-            // Check if this is our custom "email exists" error
+            // Check if this is our custom "duplicate entity" error
             Throwable cause = e.getCause();
-            if (cause != null && cause.getMessage() != null && cause.getMessage().startsWith("EMAIL_ALREADY_EXISTS:")) {
-                log.warn("Atomic user creation failed - email already exists: {}", email);
-                throw new RuntimeException(cause.getMessage());
+            if (cause instanceof DataRepositoryException) {
+                throw (DataRepositoryException) cause;
             }
             log.error("Failed to create user atomically: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "UserEntity", email);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("User creation interrupted: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity", email);
         }
     }
 
@@ -205,9 +212,9 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public UserAggregateData getUserWithAllData(String userId) {
         Optional<UserEntity> userOpt = findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
         }
-        
+
         UserAggregateData aggregate = new UserAggregateData();
         aggregate.setUser(userOpt.get());
         // TODO: Implement subcollection fetching
@@ -218,9 +225,9 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public UserWithAuthMethods getUserWithAuthMethods(String userId) {
         Optional<UserEntity> userOpt = findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
         }
-        
+
         UserWithAuthMethods result = new UserWithAuthMethods();
         result.setUser(userOpt.get());
         // TODO: Fetch auth methods from subcollection
@@ -231,9 +238,9 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public UserWithWatchlist getUserWithWatchlist(String userId) {
         Optional<UserEntity> userOpt = findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
         }
-        
+
         UserWithWatchlist result = new UserWithWatchlist();
         result.setUser(userOpt.get());
         // TODO: Fetch watchlist from subcollection
@@ -244,9 +251,9 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public UserWithProviders getUserWithProviders(String userId) {
         Optional<UserEntity> userOpt = findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
         }
-        
+
         UserWithProviders result = new UserWithProviders();
         result.setUser(userOpt.get());
         // TODO: Fetch providers from subcollection
@@ -257,9 +264,9 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public UserWithDevices getUserWithDevices(String userId) {
         Optional<UserEntity> userOpt = findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
         }
-        
+
         UserWithDevices result = new UserWithDevices();
         result.setUser(userOpt.get());
         // TODO: Fetch devices from subcollection
@@ -270,9 +277,9 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public UserWithPreferences getUserWithPreferences(String userId) {
         Optional<UserEntity> userOpt = findById(userId);
         if (userOpt.isEmpty()) {
-            throw new RuntimeException("User not found: " + userId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
         }
-        
+
         UserWithPreferences result = new UserWithPreferences();
         result.setUser(userOpt.get());
         // TODO: Fetch preferences from subcollection

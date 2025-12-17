@@ -1,8 +1,10 @@
 package io.strategiz.data.marketdata.repository;
 
 import com.google.cloud.firestore.*;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,7 +85,7 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
             log.error("Error saving batch of market data", e);
-            throw new RuntimeException("Failed to save market data batch", e);
+            throw new StrategizException(DataRepositoryErrorDetails.BULK_OPERATION_FAILED, "data-marketdata", e, "MarketDataEntity", entities.size());
         }
     }
 

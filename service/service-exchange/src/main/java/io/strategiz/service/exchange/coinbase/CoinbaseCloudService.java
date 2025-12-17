@@ -2,6 +2,8 @@ package io.strategiz.service.exchange.coinbase;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -66,7 +68,7 @@ public class CoinbaseCloudService {
             return jwtToken;
         } catch (Exception e) {
             log.error("Error generating JWT token for Coinbase API authentication: {}", e.getMessage(), e);
-            throw new RuntimeException("Error generating JWT token for Coinbase API authentication", e);
+            throw new StrategizException(ExchangeErrorDetails.COINBASE_JWT_GENERATION_FAILED, "service-exchange", e);
         }
     }
     
@@ -100,7 +102,7 @@ public class CoinbaseCloudService {
             return jwtToken;
         } catch (Exception e) {
             log.error("Error generating JWT token for diagnostic purposes: {}", e.getMessage(), e);
-            throw new RuntimeException("Error generating JWT token for diagnostic purposes", e);
+            throw new StrategizException(ExchangeErrorDetails.COINBASE_JWT_GENERATION_FAILED, "service-exchange", e);
         }
     }
     
@@ -140,9 +142,11 @@ public class CoinbaseCloudService {
             result.put("response", response.getBody());
             
             return result;
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error testing API authentication with JWT token: {}", e.getMessage(), e);
-            throw new RuntimeException("Error testing API authentication with JWT token", e);
+            throw new StrategizException(ExchangeErrorDetails.COINBASE_AUTH_TEST_FAILED, "service-exchange", e);
         }
     }
     
@@ -245,9 +249,11 @@ public class CoinbaseCloudService {
             result.put("data", response.getBody());
             
             return result;
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error getting account balances from Coinbase API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting account balances from Coinbase API: " + e.getMessage(), e);
+            throw new StrategizException(ExchangeErrorDetails.COINBASE_BALANCE_FETCH_FAILED, "service-exchange", e);
         }
     }
 }

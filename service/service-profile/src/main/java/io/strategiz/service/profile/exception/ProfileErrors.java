@@ -1,19 +1,42 @@
 package io.strategiz.service.profile.exception;
 
-/**
- * Profile service error constants for use with StrategizException.
- * Simplified enum approach for type-safe error codes.
- * 
- * Usage: throw new StrategizException(ProfileErrors.PROFILE_ALREADY_EXISTS, context);
- */
-public enum ProfileErrors {
-    
-    // Profile validation errors
-    PROFILE_ALREADY_EXISTS,
-    PROFILE_NOT_FOUND,
-    PROFILE_CREATION_FAILED,
-    PROFILE_UPDATE_FAILED,
-    PROFILE_VALIDATION_FAILED,
-    PROFILE_ACCESS_DENIED
+import io.strategiz.framework.exception.ErrorDetails;
+import org.springframework.http.HttpStatus;
 
-} 
+/**
+ * Profile service error details for use with StrategizException.
+ * Implements ErrorDetails for integration with the Strategiz exception framework.
+ *
+ * Usage: throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, MODULE_NAME, userId);
+ */
+public enum ProfileErrors implements ErrorDetails {
+
+	// Profile validation errors
+	PROFILE_ALREADY_EXISTS(HttpStatus.CONFLICT, "profile-already-exists"),
+	PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "profile-not-found"),
+	PROFILE_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "profile-creation-failed"),
+	PROFILE_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "profile-update-failed"),
+	PROFILE_VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "profile-validation-failed"),
+	PROFILE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "profile-access-denied");
+
+	private final HttpStatus httpStatus;
+
+	private final String propertyKey;
+
+	ProfileErrors(HttpStatus httpStatus, String propertyKey) {
+		this.httpStatus = httpStatus;
+		this.propertyKey = propertyKey;
+	}
+
+	@Override
+	public HttpStatus getHttpStatus() {
+		return httpStatus;
+	}
+
+	@Override
+	public String getPropertyKey() {
+		return propertyKey;
+	}
+
+}
+ 

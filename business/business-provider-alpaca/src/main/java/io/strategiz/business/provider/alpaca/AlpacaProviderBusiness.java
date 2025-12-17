@@ -1,5 +1,6 @@
 package io.strategiz.business.provider.alpaca;
 
+import io.strategiz.business.provider.alpaca.exception.AlpacaProviderErrorDetails;
 import io.strategiz.business.provider.alpaca.model.AlpacaConnectionResult;
 import io.strategiz.business.provider.alpaca.model.AlpacaDisconnectionResult;
 import io.strategiz.business.provider.alpaca.model.AlpacaTokenRefreshResult;
@@ -141,7 +142,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             return authorizationUrl;
         } catch (Exception e) {
             log.error("Failed to generate OAuth URL", e);
-            throw new RuntimeException("Failed to generate OAuth URL", e);
+            throw new StrategizException(AlpacaProviderErrorDetails.OAUTH_URL_GENERATION_FAILED, "business-provider-alpaca", e);
         }
     }
     
@@ -537,7 +538,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Error creating Alpaca {} integration for user: {}", environment, userId, e);
-            throw new RuntimeException("Failed to create Alpaca integration", e);
+            throw new StrategizException(AlpacaProviderErrorDetails.INTEGRATION_CREATION_FAILED, "business-provider-alpaca", e, userId);
         }
     }
     
@@ -595,7 +596,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Error completing Alpaca OAuth flow for user: {}", userId, e);
-            throw new RuntimeException("Failed to complete OAuth flow", e);
+            throw new StrategizException(AlpacaProviderErrorDetails.OAUTH_FLOW_FAILED, "business-provider-alpaca", e, userId);
         }
     }
 
@@ -616,12 +617,12 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
 
             if (secretData == null || secretData.isEmpty()) {
-                throw new RuntimeException("No Alpaca tokens found in Vault for user: " + userId);
+                throw new StrategizException(AlpacaProviderErrorDetails.TOKENS_NOT_FOUND, "business-provider-alpaca", userId);
             }
 
             String accessToken = (String) secretData.get("accessToken");
             if (accessToken == null || accessToken.isEmpty()) {
-                throw new RuntimeException("Access token not found in Vault for user: " + userId);
+                throw new StrategizException(AlpacaProviderErrorDetails.ACCESS_TOKEN_NOT_FOUND, "business-provider-alpaca", userId);
             }
 
             log.debug("Retrieved Alpaca access token from Vault for user: {}", userId);
@@ -637,12 +638,14 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
                 return providerData;
             } else {
                 log.warn("No provider data found after sync for user: {}", userId);
-                throw new RuntimeException("No data found after sync");
+                throw new StrategizException(AlpacaProviderErrorDetails.NO_DATA_AFTER_SYNC, "business-provider-alpaca", userId);
             }
 
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to sync Alpaca provider data for user: {}", userId, e);
-            throw new RuntimeException("Failed to sync provider data: " + e.getMessage(), e);
+            throw new StrategizException(AlpacaProviderErrorDetails.SYNC_FAILED, "business-provider-alpaca", e, userId);
         }
     }
 
@@ -913,7 +916,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Failed to store Alpaca {} tokens for user: {}", environment, userId, e);
-            throw new RuntimeException("Failed to store tokens", e);
+            throw new StrategizException(AlpacaProviderErrorDetails.TOKEN_STORAGE_FAILED, "business-provider-alpaca", e, userId);
         }
     }
 

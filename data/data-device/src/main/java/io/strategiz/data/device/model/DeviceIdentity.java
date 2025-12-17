@@ -235,6 +235,15 @@ public class DeviceIdentity extends BaseEntity {
     @JsonProperty("has_push_notifications")
     private Boolean hasPushNotifications;
 
+    // FCM Push Notification Token
+    @PropertyName("fcm_token")
+    @JsonProperty("fcm_token")
+    private String fcmToken;
+
+    @PropertyName("fcm_token_updated_at")
+    @JsonProperty("fcm_token_updated_at")
+    private Instant fcmTokenUpdatedAt;
+
     // Trust indicators
     @PropertyName("incognito_mode")
     @JsonProperty("incognito_mode")
@@ -761,6 +770,30 @@ public class DeviceIdentity extends BaseEntity {
 
     public void setHasPushNotifications(Boolean hasPushNotifications) {
         this.hasPushNotifications = hasPushNotifications;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+        this.fcmTokenUpdatedAt = Instant.now();
+    }
+
+    public Instant getFcmTokenUpdatedAt() {
+        return fcmTokenUpdatedAt;
+    }
+
+    public void setFcmTokenUpdatedAt(Instant fcmTokenUpdatedAt) {
+        this.fcmTokenUpdatedAt = fcmTokenUpdatedAt;
+    }
+
+    /**
+     * Check if this device has a valid FCM token for push notifications
+     */
+    public boolean hasFcmToken() {
+        return fcmToken != null && !fcmToken.isEmpty();
     }
 
     public Boolean getIncognitoMode() {

@@ -12,6 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -233,7 +236,7 @@ public class AlpacaCollectionService {
 
         } catch (Exception e) {
             log.error("Failed to process symbol {}: {}", symbol, e.getMessage());
-            throw new RuntimeException("Error processing symbol: " + symbol, e);
+            throw new StrategizException(MarketDataErrorDetails.SYMBOL_PROCESSING_FAILED, "business-marketdata", e, symbol);
         }
     }
 

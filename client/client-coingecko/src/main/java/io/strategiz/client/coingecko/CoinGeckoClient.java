@@ -1,7 +1,8 @@
 package io.strategiz.client.coingecko;
 
-// Using standard Java exceptions for client layer
+import io.strategiz.client.base.exception.ClientErrorDetails;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -95,10 +96,10 @@ public class CoinGeckoClient {
             return response.getBody();
         } catch (RestClientException e) {
             log.error("Error fetching market data from CoinGecko API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve cryptocurrency market data", e);
+            throw new StrategizException(ClientErrorDetails.DATA_RETRIEVAL_FAILED, "client-coingecko", e);
         }
     }
-    
+
     /**
      * Search for cryptocurrencies by query
      * 
@@ -142,10 +143,10 @@ public class CoinGeckoClient {
             return coins.subList(0, Math.min(coins.size(), 10));
         } catch (RestClientException e) {
             log.error("Error searching cryptocurrencies from CoinGecko API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to search cryptocurrencies", e);
+            throw new StrategizException(ClientErrorDetails.SEARCH_FAILED, "client-coingecko", e);
         }
     }
-    
+
     /**
      * Get top cryptocurrencies by market cap
      * 
@@ -193,10 +194,10 @@ public class CoinGeckoClient {
             return body;
         } catch (RestClientException e) {
             log.error("Error fetching top cryptocurrencies from CoinGecko API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve top cryptocurrencies", e);
+            throw new StrategizException(ClientErrorDetails.DATA_RETRIEVAL_FAILED, "client-coingecko", e);
         }
     }
-    
+
     /**
      * Get global cryptocurrency market data
      * 
@@ -245,7 +246,7 @@ public class CoinGeckoClient {
             }
         } catch (RestClientException e) {
             log.error("Error fetching global market data from CoinGecko API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve global cryptocurrency market data", e);
+            throw new StrategizException(ClientErrorDetails.DATA_RETRIEVAL_FAILED, "client-coingecko", e);
         }
     }
 }

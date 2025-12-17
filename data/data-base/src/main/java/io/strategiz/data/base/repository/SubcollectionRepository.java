@@ -1,6 +1,8 @@
 package io.strategiz.data.base.repository;
 
 import io.strategiz.data.base.entity.BaseEntity;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import org.slf4j.Logger;
@@ -48,7 +50,7 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
         
         // ENHANCED VALIDATION - Add explicit format check
         if (parentId == null || parentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Parent ID cannot be null or empty for subcollection: " + getSubcollectionName());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_ID_REQUIRED, getSubcollectionName(), "parentId");
         }
         
         // UUID format validation (most user IDs should be UUIDs)
@@ -96,11 +98,13 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
                 entityClass.getSimpleName(), parentId, userId);
 
             return entity;
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save in subcollection: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.SUBCOLLECTION_ACCESS_FAILED, e, entityClass.getSimpleName(), parentId);
         }
     }
-    
+
     /**
      * Find entity by ID in a subcollection
      * @param parentId The parent document ID
@@ -118,11 +122,13 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
                 }
             }
             return Optional.empty();
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find in subcollection: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, entityClass.getSimpleName(), parentId);
         }
     }
-    
+
     /**
      * Find all entities in a subcollection
      * @param parentId The parent document ID
@@ -140,11 +146,13 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
                         return entity;
                     })
                     .collect(java.util.stream.Collectors.toList());
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find all in subcollection: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, entityClass.getSimpleName(), parentId);
         }
     }
-    
+
     /**
      * Delete entity in a subcollection (soft delete)
      * @param parentId The parent document ID
@@ -166,23 +174,24 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
     // Override getCollection to prevent direct usage (must use subcollection methods)
     @Override
     protected CollectionReference getCollection() {
-        throw new UnsupportedOperationException(
-            "SubcollectionRepository requires parentId. Use subcollection-specific methods.");
+        throw new DataRepositoryException(DataRepositoryErrorDetails.SUBCOLLECTION_ACCESS_FAILED, entityClass.getSimpleName(),
+                "Use subcollection-specific methods with parentId");
     }
-    
+
     // Helper method to validate parent ID
     protected void validateParentId(String parentId) {
         if (parentId == null || parentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Parent ID cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_ID_REQUIRED, "parentId");
         }
     }
-    
+
     private void validateInputs(T entity, String userId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Entity cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NULL, entityClass.getSimpleName());
         }
         if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.USER_ID_REQUIRED);
         }
     }
+
 }

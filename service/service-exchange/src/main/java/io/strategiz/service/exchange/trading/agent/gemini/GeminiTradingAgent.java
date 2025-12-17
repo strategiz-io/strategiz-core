@@ -1,6 +1,8 @@
 package io.strategiz.service.exchange.trading.agent.gemini;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
 import io.strategiz.service.exchange.trading.agent.gemini.model.GeminiTradingSignal;
 import io.strategiz.service.exchange.trading.agent.gemini.model.TradingAgentPrompt;
 import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
@@ -57,11 +59,11 @@ public class GeminiTradingAgent {
         try {
             // Step 1: Fetch real historical data from Coinbase
             int dataLimit = dataFetcher.getDefaultLimitForTimeframe(timeframe);
-            List<HistoricalPriceData> historicalData = 
+            List<HistoricalPriceData> historicalData =
                     dataFetcher.fetchBitcoinHistoricalData(apiKey, privateKey, timeframe, dataLimit);
-            
+
             if (historicalData.isEmpty()) {
-                throw new RuntimeException("Failed to fetch historical BTC data from Coinbase");
+                throw new StrategizException(ExchangeErrorDetails.NO_HISTORICAL_DATA, "service-exchange");
             }
             
             BigDecimal currentPrice = historicalData.get(0).getClose();
@@ -93,12 +95,14 @@ public class GeminiTradingAgent {
             
             log.info("Successfully generated {} signal with {:.0f}% confidence", 
                     signal.getSignal(), signal.getConfidence() * 100);
-            
+
             return signal;
-            
+
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error generating Gemini trading signal: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to generate AI trading signal: " + e.getMessage(), e);
+            throw new StrategizException(ExchangeErrorDetails.SIGNAL_GENERATION_FAILED, "service-exchange", e);
         }
     }
     
@@ -122,10 +126,10 @@ public class GeminiTradingAgent {
                 .build();
                 
             return mockSignal;
-            
+
         } catch (Exception e) {
             log.error("Error processing mock response: {}", e.getMessage(), e);
-            throw new RuntimeException("Error processing AI response: " + e.getMessage(), e);
+            throw new StrategizException(ExchangeErrorDetails.AI_RESPONSE_PROCESSING_FAILED, "service-exchange", e);
         }
     }
     

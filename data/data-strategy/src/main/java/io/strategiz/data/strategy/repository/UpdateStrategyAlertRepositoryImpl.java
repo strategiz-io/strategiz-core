@@ -1,5 +1,7 @@
 package io.strategiz.data.strategy.repository;
 
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.strategy.entity.StrategyAlert;
 import com.google.cloud.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,7 @@ public class UpdateStrategyAlertRepositoryImpl implements UpdateStrategyAlertRep
         // Verify ownership
         Optional<StrategyAlert> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            throw new RuntimeException("Strategy alert not found or unauthorized");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "StrategyAlert", id);
         }
 
         // Ensure ID and userId are set
@@ -120,5 +122,79 @@ public class UpdateStrategyAlertRepositoryImpl implements UpdateStrategyAlertRep
         updater.accept(alert);
 
         return Optional.of(baseRepository.save(alert, userId));
+    }
+
+    // ========================
+    // Cooldown & Deduplication
+    // ========================
+
+    @Override
+    public Optional<StrategyAlert> recordSignal(String id, String userId, String signalType, String symbol) {
+        return updateField(id, userId, alert -> {
+            alert.setLastSignalType(signalType);
+            alert.setLastSignalSymbol(symbol);
+            alert.setLastTriggeredAt(Timestamp.now());
+            alert.setTriggerCount((alert.getTriggerCount() != null ? alert.getTriggerCount() : 0) + 1);
+
+            // Also increment daily trigger count
+            Integer dailyCount = alert.getDailyTriggerCount() != null ? alert.getDailyTriggerCount() : 0;
+            alert.setDailyTriggerCount(dailyCount + 1);
+
+            // Reset consecutive errors on successful trigger
+            alert.setConsecutiveErrors(0);
+            alert.setErrorMessage(null);
+        });
+    }
+
+    // ========================
+    // Circuit Breaker
+    // ========================
+
+    @Override
+    public Optional<StrategyAlert> incrementConsecutiveErrors(String id, String userId, String errorMessage) {
+        return updateField(id, userId, alert -> {
+            int currentErrors = alert.getConsecutiveErrors() != null ? alert.getConsecutiveErrors() : 0;
+            alert.setConsecutiveErrors(currentErrors + 1);
+            alert.setErrorMessage(errorMessage);
+
+            // Check if circuit breaker should trip
+            if (alert.shouldTripCircuitBreaker()) {
+                alert.setStatus("ERROR");
+            }
+        });
+    }
+
+    @Override
+    public Optional<StrategyAlert> resetConsecutiveErrors(String id, String userId) {
+        return updateField(id, userId, alert -> {
+            alert.setConsecutiveErrors(0);
+            alert.setErrorMessage(null);
+            // If status was ERROR due to circuit breaker, restore to ACTIVE
+            if ("ERROR".equals(alert.getStatus())) {
+                alert.setStatus("ACTIVE");
+            }
+        });
+    }
+
+    // ========================
+    // Rate Limiting
+    // ========================
+
+    @Override
+    public Optional<StrategyAlert> incrementDailyTriggerCount(String id, String userId) {
+        return updateField(id, userId, alert -> {
+            Integer dailyCount = alert.getDailyTriggerCount() != null ? alert.getDailyTriggerCount() : 0;
+            alert.setDailyTriggerCount(dailyCount + 1);
+            alert.setLastTriggeredAt(Timestamp.now());
+            alert.setTriggerCount((alert.getTriggerCount() != null ? alert.getTriggerCount() : 0) + 1);
+        });
+    }
+
+    @Override
+    public Optional<StrategyAlert> resetDailyTriggerCount(String id, String userId) {
+        return updateField(id, userId, alert -> {
+            alert.setDailyTriggerCount(0);
+            alert.setLastDailyReset(Timestamp.now());
+        });
     }
 }

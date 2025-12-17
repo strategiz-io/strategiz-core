@@ -3,7 +3,9 @@ package io.strategiz.service.device.service.anonymous;
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.data.device.repository.ReadDeviceRepository;
 import io.strategiz.data.device.repository.UpdateDeviceRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.exception.DeviceErrorDetails;
 import io.strategiz.service.device.model.anonymous.UpdateAnonymousDeviceRequest;
 import io.strategiz.service.device.model.anonymous.UpdateAnonymousDeviceResponse;
 import org.slf4j.Logger;
@@ -41,7 +43,7 @@ public class UpdateAnonymousDeviceService extends BaseService {
             // Get existing device
             Optional<DeviceIdentity> existingDevice = readRepository.findAnonymousDevice(deviceId);
             if (existingDevice.isEmpty()) {
-                throw new RuntimeException("Device not found: " + deviceId);
+                throw new StrategizException(DeviceErrorDetails.DEVICE_NOT_FOUND, "service-device", deviceId);
             }
             
             DeviceIdentity device = existingDevice.get();
@@ -96,9 +98,9 @@ public class UpdateAnonymousDeviceService extends BaseService {
             
             // Save updates
             Optional<DeviceIdentity> updatedDevice = updateRepository.updateAnonymousDevice(device);
-            
+
             if (updatedDevice.isEmpty()) {
-                throw new RuntimeException("Failed to update device");
+                throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
             }
             
             // Create response
@@ -112,20 +114,22 @@ public class UpdateAnonymousDeviceService extends BaseService {
             log.info("Successfully updated anonymous device: {}", deviceId);
             return response;
             
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error updating anonymous device {}: {}", deviceId, e.getMessage(), e);
-            throw new RuntimeException("Failed to update anonymous device", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", e, deviceId);
         }
     }
     
     public UpdateAnonymousDeviceResponse updateTrustLevel(String deviceId, String trustLevel) {
         log.debug("Updating trust level for device {} to {}", deviceId, trustLevel);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.updateAnonymousDeviceTrustLevel(
             deviceId, trustLevel);
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to update trust level");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
@@ -138,12 +142,12 @@ public class UpdateAnonymousDeviceService extends BaseService {
     
     public UpdateAnonymousDeviceResponse markSuspicious(String deviceId, String reason) {
         log.debug("Marking device {} as suspicious: {}", deviceId, reason);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.markAnonymousDeviceSuspicious(
             deviceId, reason);
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to mark device as suspicious");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
@@ -156,11 +160,11 @@ public class UpdateAnonymousDeviceService extends BaseService {
     
     public UpdateAnonymousDeviceResponse blockDevice(String deviceId, String reason) {
         log.debug("Blocking device {}: {}", deviceId, reason);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.blockAnonymousDevice(deviceId, reason);
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to block device");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();
@@ -173,11 +177,11 @@ public class UpdateAnonymousDeviceService extends BaseService {
     
     public UpdateAnonymousDeviceResponse unblockDevice(String deviceId) {
         log.debug("Unblocking device {}", deviceId);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.unblockAnonymousDevice(deviceId);
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to unblock device");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAnonymousDeviceResponse response = new UpdateAnonymousDeviceResponse();

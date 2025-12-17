@@ -1,9 +1,11 @@
 package io.strategiz.business.portfolio;
 
+import io.strategiz.business.portfolio.exception.PortfolioErrorDetails;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.business.portfolio.model.PortfolioMetrics;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
 import io.strategiz.data.provider.repository.ReadProviderDataRepository;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,7 +118,7 @@ public class PortfolioManager {
 
         } catch (Exception e) {
             log.error("Error getting aggregated portfolio data for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve portfolio data", e);
+            throw new StrategizException(PortfolioErrorDetails.PORTFOLIO_DATA_RETRIEVAL_FAILED, "business-portfolio", e, userId);
         }
     }
     
@@ -236,7 +238,7 @@ public class PortfolioManager {
             return metrics;
         } catch (Exception e) {
             log.error("Error calculating metrics for portfolio: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to calculate portfolio metrics", e);
+            throw new StrategizException(PortfolioErrorDetails.METRICS_CALCULATION_FAILED, "business-portfolio", e);
         }
     }
     

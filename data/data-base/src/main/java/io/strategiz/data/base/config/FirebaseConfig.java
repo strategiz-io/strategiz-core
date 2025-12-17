@@ -5,6 +5,8 @@ import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.transaction.FirestoreTransactionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -97,7 +99,7 @@ public class FirebaseConfig {
             System.err.println("❌ ERROR initializing Firebase: " + e.getMessage());
             e.printStackTrace();
             // Let the exception propagate to fail application startup
-            throw new RuntimeException("Failed to initialize Firebase. Application cannot function without Firebase.", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_INITIALIZATION_FAILED, e, "Firebase");
         }
     }
 

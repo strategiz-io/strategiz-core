@@ -1,6 +1,7 @@
 package io.strategiz.client.base.http;
 
-// Using standard Java exceptions for client layer
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -76,12 +77,14 @@ public abstract class BaseHttpClient {
                 HttpStatus status = HttpStatus.valueOf(response.getStatusCode().value());
                 String message = String.format("API error: %s %s", status.value(), status.getReasonPhrase());
                 log.error(message);
-                throw new RuntimeException(message);
+                throw new StrategizException(ClientErrorDetails.API_ERROR, "client-base", message);
             }
             return false;
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error handling response: {}", e.getMessage(), e);
-            throw new RuntimeException("Error handling API response", e);
+            throw new StrategizException(ClientErrorDetails.INVALID_RESPONSE, "client-base", e);
         }
     }
     

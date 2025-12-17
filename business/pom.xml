@@ -30,5 +30,6 @@
         <module>business-provider-robinhood</module>
         <module>business-ai-chat</module>
         <module>business-marketdata</module>
+        <module>business-preferences</module>
     </modules>
 </project>

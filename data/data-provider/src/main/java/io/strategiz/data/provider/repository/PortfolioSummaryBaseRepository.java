@@ -2,6 +2,8 @@ package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.provider.entity.PortfolioSummaryEntity;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -56,13 +58,13 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
             
             // Save to user-scoped collection with "current" as document ID
             getUserScopedCollection(userId).document(CURRENT_DOC_ID).set(entity).get();
-            
+
             return entity;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save PortfolioSummaryEntity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "PortfolioSummaryEntity");
         }
     }
-    
+
     /**
      * Save portfolio summary with specific document ID (for historical data)
      */
@@ -81,13 +83,13 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
             
             // Save to user-scoped collection
             getUserScopedCollection(userId).document(documentId).set(entity).get();
-            
+
             return entity;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save PortfolioSummaryEntity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "PortfolioSummaryEntity");
         }
     }
-    
+
     /**
      * Get current portfolio summary
      */
@@ -109,12 +111,14 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
                 }
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioSummaryEntity", id);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioSummaryEntity", id);
         }
     }
-    
+
     /**
      * Find portfolio summaries within date range
      */
@@ -134,12 +138,14 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entities: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioSummaryEntity", userId);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioSummaryEntity", userId);
         }
     }
-    
+
     /**
      * Check if current portfolio summary exists
      */
@@ -147,9 +153,11 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
         try {
             DocumentSnapshot doc = getUserScopedCollection(userId).document(CURRENT_DOC_ID).get().get();
             return doc.exists();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to check entity existence: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.ENTITY_EXISTENCE_CHECK_FAILED, e, "PortfolioSummaryEntity", userId);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.ENTITY_EXISTENCE_CHECK_FAILED, e, "PortfolioSummaryEntity", userId);
         }
     }
     

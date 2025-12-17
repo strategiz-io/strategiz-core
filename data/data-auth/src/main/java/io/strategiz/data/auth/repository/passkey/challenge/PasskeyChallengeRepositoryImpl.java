@@ -1,6 +1,8 @@
 package io.strategiz.data.auth.repository.passkey.challenge;
 
 import io.strategiz.data.auth.model.passkey.PasskeyChallenge;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.Firestore;
 import org.slf4j.Logger;
@@ -140,7 +142,7 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
                 log.debug("Hard deleted PasskeyChallenge with ID: {}", challenge.getId());
             } catch (Exception e) {
                 log.error("Failed to delete PasskeyChallenge: {}", challenge.getId(), e);
-                throw new RuntimeException("Failed to delete PasskeyChallenge", e);
+                throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "PasskeyChallenge", challenge.getId());
             }
         }
     }

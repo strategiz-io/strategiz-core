@@ -1,7 +1,9 @@
 package io.strategiz.service.device.service.anonymous;
 
 import io.strategiz.data.device.repository.DeleteDeviceRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.exception.DeviceErrorDetails;
 import io.strategiz.service.device.model.anonymous.DeleteAnonymousDeviceResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +45,7 @@ public class DeleteAnonymousDeviceService extends BaseService {
             
         } catch (Exception e) {
             log.error("Error deleting anonymous device {}: {}", deviceId, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete anonymous device", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_DELETE_FAILED, "service-device", e, deviceId);
         }
     }
     
@@ -59,7 +61,7 @@ public class DeleteAnonymousDeviceService extends BaseService {
             
         } catch (Exception e) {
             log.error("Error deleting inactive devices: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to delete inactive devices", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_DELETE_FAILED, "service-device", e);
         }
     }
     
@@ -73,7 +75,7 @@ public class DeleteAnonymousDeviceService extends BaseService {
             
         } catch (Exception e) {
             log.error("Error deleting suspicious devices: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to delete suspicious devices", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_DELETE_FAILED, "service-device", e);
         }
     }
     
@@ -87,7 +89,7 @@ public class DeleteAnonymousDeviceService extends BaseService {
             
         } catch (Exception e) {
             log.error("Error deleting blocked devices: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to delete blocked devices", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_DELETE_FAILED, "service-device", e);
         }
     }
     
@@ -107,7 +109,7 @@ public class DeleteAnonymousDeviceService extends BaseService {
             
         } catch (Exception e) {
             log.error("Error purging anonymous devices: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to purge anonymous devices", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_DELETE_FAILED, "service-device", e);
         }
     }
 }

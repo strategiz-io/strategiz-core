@@ -1,5 +1,7 @@
 package io.strategiz.client.binanceus.auth;
 
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +50,7 @@ public class BinanceUSApiAuthClient {
             
         } catch (Exception e) {
             log.error("Error creating Binance US signature", e);
-            throw new RuntimeException("Failed to create signature", e);
+            throw new StrategizException(ClientErrorDetails.SIGNATURE_GENERATION_FAILED, "client-binanceus", e);
         }
     }
     

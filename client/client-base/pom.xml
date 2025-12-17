@@ -14,7 +14,14 @@
     <description>Base components for Strategiz client modules</description>
     
     <dependencies>
-        
+
+        <!-- Internal module dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

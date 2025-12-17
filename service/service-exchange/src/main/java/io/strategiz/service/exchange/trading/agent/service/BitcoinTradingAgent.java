@@ -2,6 +2,7 @@ package io.strategiz.service.exchange.trading.agent.service;
 
 import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
 import io.strategiz.service.exchange.trading.agent.model.HistoricalPriceData;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal;
 import io.strategiz.service.exchange.trading.agent.model.TradingSignal.SignalStrength;
@@ -66,7 +67,7 @@ public class BitcoinTradingAgent {
             List<HistoricalPriceData> historicalData = fetchHistoricalData(apiKey, privateKey, timeframe);
             if (historicalData.isEmpty()) {
                 log.error("No historical data found");
-                throw new RuntimeException("No historical price data available");
+                throw new StrategizException(ExchangeErrorDetails.NO_HISTORICAL_DATA, "service-exchange");
             }
             
             // Get the current price (most recent close price)
@@ -99,10 +100,12 @@ public class BitcoinTradingAgent {
                 .timeframe(timeframe)
                 .additionalMetrics(indicators)
                 .build();
-                
+
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error generating trading signal: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to generate trading signal: " + e.getMessage(), e);
+            throw new StrategizException(ExchangeErrorDetails.SIGNAL_GENERATION_FAILED, "service-exchange", e);
         }
     }
     

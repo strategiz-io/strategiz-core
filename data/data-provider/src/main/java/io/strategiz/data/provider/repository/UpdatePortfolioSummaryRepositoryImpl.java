@@ -1,6 +1,8 @@
 package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.provider.entity.PortfolioSummaryEntity;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -36,9 +38,9 @@ public class UpdatePortfolioSummaryRepositoryImpl implements UpdatePortfolioSumm
         // Get existing summary
         PortfolioSummaryEntity existing = readRepository.getPortfolioSummary(userId);
         if (existing == null) {
-            throw new RuntimeException("Portfolio summary not found for update: " + userId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, "PortfolioSummary", userId);
         }
-        
+
         // Update total value and sync time
         existing.setTotalValue(totalValue);
         existing.setLastSyncedAt(Instant.now());
@@ -51,9 +53,9 @@ public class UpdatePortfolioSummaryRepositoryImpl implements UpdatePortfolioSumm
         // Get existing summary
         PortfolioSummaryEntity existing = readRepository.getPortfolioSummary(userId);
         if (existing == null) {
-            throw new RuntimeException("Portfolio summary not found for update: " + userId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, "PortfolioSummary", userId);
         }
-        
+
         // Update day change values
         existing.setDayChange(dayChange);
         existing.setDayChangePercent(dayChangePercent);
@@ -67,9 +69,9 @@ public class UpdatePortfolioSummaryRepositoryImpl implements UpdatePortfolioSumm
         // Get existing summary
         PortfolioSummaryEntity existing = readRepository.getPortfolioSummary(userId);
         if (existing == null) {
-            throw new RuntimeException("Portfolio summary not found for update: " + userId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, "PortfolioSummary", userId);
         }
-        
+
         // Update account performance
         existing.setAccountPerformance(accountPerformance);
         existing.setLastSyncedAt(Instant.now());
@@ -82,9 +84,9 @@ public class UpdatePortfolioSummaryRepositoryImpl implements UpdatePortfolioSumm
         // Get existing summary
         PortfolioSummaryEntity existing = readRepository.getPortfolioSummary(userId);
         if (existing == null) {
-            throw new RuntimeException("Portfolio summary not found for update: " + userId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, "PortfolioSummary", userId);
         }
-        
+
         // Update asset allocation
         existing.setAssetAllocation(assetAllocation);
         existing.setLastSyncedAt(Instant.now());
@@ -97,9 +99,9 @@ public class UpdatePortfolioSummaryRepositoryImpl implements UpdatePortfolioSumm
         // Get existing summary
         PortfolioSummaryEntity existing = readRepository.getPortfolioSummary(userId);
         if (existing == null) {
-            throw new RuntimeException("Portfolio summary not found for update: " + userId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, "PortfolioSummary", userId);
         }
-        
+
         // Update last sync time
         existing.setLastSyncedAt(timestamp);
         

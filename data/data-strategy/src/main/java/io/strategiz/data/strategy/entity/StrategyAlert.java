@@ -61,11 +61,49 @@ public class StrategyAlert extends BaseEntity {
     @JsonProperty("subscriptionTier")
     private String subscriptionTier; // FREE, STARTER, PRO
 
+    // Deployment type (for future bot support)
+    @JsonProperty("deploymentType")
+    private String deploymentType; // ALERT, BOT, PAPER - defaults to ALERT
+
+    // Cooldown and deduplication fields
+    @JsonProperty("cooldownMinutes")
+    private Integer cooldownMinutes; // Min time between alerts (default: 15 for FREE, 5 for STARTER, 1 for PRO)
+
+    @JsonProperty("lastSignalType")
+    private String lastSignalType; // Last signal type for deduplication (BUY, SELL, HOLD)
+
+    @JsonProperty("lastSignalSymbol")
+    private String lastSignalSymbol; // Last symbol that triggered
+
+    // Circuit breaker fields
+    @JsonProperty("consecutiveErrors")
+    private Integer consecutiveErrors; // Error count for circuit breaker
+
+    @JsonProperty("maxConsecutiveErrors")
+    private Integer maxConsecutiveErrors; // Threshold to pause (default: 5)
+
+    // Rate limiting
+    @JsonProperty("evaluationFrequencyMinutes")
+    private Integer evaluationFrequencyMinutes; // How often to evaluate (tier-based)
+
+    @JsonProperty("dailyTriggerCount")
+    private Integer dailyTriggerCount; // Alerts triggered today
+
+    @JsonProperty("dailyTriggerLimit")
+    private Integer dailyTriggerLimit; // Max alerts per day (tier-based)
+
+    @JsonProperty("lastDailyReset")
+    private Timestamp lastDailyReset; // When daily count was reset
+
     // Constructors
     public StrategyAlert() {
         super();
         this.triggerCount = 0;
         this.status = "ACTIVE";
+        this.deploymentType = DeploymentType.ALERT.name();
+        this.consecutiveErrors = 0;
+        this.maxConsecutiveErrors = 5;
+        this.dailyTriggerCount = 0;
     }
 
     @Override
@@ -181,5 +219,151 @@ public class StrategyAlert extends BaseEntity {
 
     public void setSubscriptionTier(String subscriptionTier) {
         this.subscriptionTier = subscriptionTier;
+    }
+
+    public String getDeploymentType() {
+        return deploymentType;
+    }
+
+    public void setDeploymentType(String deploymentType) {
+        this.deploymentType = deploymentType;
+    }
+
+    public Integer getCooldownMinutes() {
+        return cooldownMinutes;
+    }
+
+    public void setCooldownMinutes(Integer cooldownMinutes) {
+        this.cooldownMinutes = cooldownMinutes;
+    }
+
+    public String getLastSignalType() {
+        return lastSignalType;
+    }
+
+    public void setLastSignalType(String lastSignalType) {
+        this.lastSignalType = lastSignalType;
+    }
+
+    public String getLastSignalSymbol() {
+        return lastSignalSymbol;
+    }
+
+    public void setLastSignalSymbol(String lastSignalSymbol) {
+        this.lastSignalSymbol = lastSignalSymbol;
+    }
+
+    public Integer getConsecutiveErrors() {
+        return consecutiveErrors;
+    }
+
+    public void setConsecutiveErrors(Integer consecutiveErrors) {
+        this.consecutiveErrors = consecutiveErrors;
+    }
+
+    public Integer getMaxConsecutiveErrors() {
+        return maxConsecutiveErrors;
+    }
+
+    public void setMaxConsecutiveErrors(Integer maxConsecutiveErrors) {
+        this.maxConsecutiveErrors = maxConsecutiveErrors;
+    }
+
+    public Integer getEvaluationFrequencyMinutes() {
+        return evaluationFrequencyMinutes;
+    }
+
+    public void setEvaluationFrequencyMinutes(Integer evaluationFrequencyMinutes) {
+        this.evaluationFrequencyMinutes = evaluationFrequencyMinutes;
+    }
+
+    public Integer getDailyTriggerCount() {
+        return dailyTriggerCount;
+    }
+
+    public void setDailyTriggerCount(Integer dailyTriggerCount) {
+        this.dailyTriggerCount = dailyTriggerCount;
+    }
+
+    public Integer getDailyTriggerLimit() {
+        return dailyTriggerLimit;
+    }
+
+    public void setDailyTriggerLimit(Integer dailyTriggerLimit) {
+        this.dailyTriggerLimit = dailyTriggerLimit;
+    }
+
+    public Timestamp getLastDailyReset() {
+        return lastDailyReset;
+    }
+
+    public void setLastDailyReset(Timestamp lastDailyReset) {
+        this.lastDailyReset = lastDailyReset;
+    }
+
+    // Convenience methods
+
+    /**
+     * Check if this is an ALERT deployment type
+     */
+    public boolean isAlertDeployment() {
+        return DeploymentType.ALERT.name().equals(deploymentType);
+    }
+
+    /**
+     * Check if this is a BOT deployment type
+     */
+    public boolean isBotDeployment() {
+        return DeploymentType.BOT.name().equals(deploymentType);
+    }
+
+    /**
+     * Get effective cooldown minutes based on subscription tier
+     */
+    public int getEffectiveCooldownMinutes() {
+        if (cooldownMinutes != null) {
+            return cooldownMinutes;
+        }
+        // Default based on tier
+        return switch (subscriptionTier != null ? subscriptionTier : "FREE") {
+            case "PRO" -> 1;
+            case "STARTER" -> 5;
+            default -> 15; // FREE
+        };
+    }
+
+    /**
+     * Get effective evaluation frequency based on subscription tier
+     */
+    public int getEffectiveEvaluationFrequencyMinutes() {
+        if (evaluationFrequencyMinutes != null) {
+            return evaluationFrequencyMinutes;
+        }
+        // Default based on tier
+        return switch (subscriptionTier != null ? subscriptionTier : "FREE") {
+            case "PRO" -> 1;
+            case "STARTER" -> 5;
+            default -> 15; // FREE
+        };
+    }
+
+    /**
+     * Check if circuit breaker should trip (too many consecutive errors)
+     */
+    public boolean shouldTripCircuitBreaker() {
+        int threshold = maxConsecutiveErrors != null ? maxConsecutiveErrors : 5;
+        int errors = consecutiveErrors != null ? consecutiveErrors : 0;
+        return errors >= threshold;
+    }
+
+    /**
+     * Check if daily limit is reached
+     */
+    public boolean isDailyLimitReached() {
+        if (dailyTriggerLimit == null) {
+            return false; // No limit
+        }
+        int count = dailyTriggerCount != null ? dailyTriggerCount : 0;
+        return count >= dailyTriggerLimit;
     }
 }

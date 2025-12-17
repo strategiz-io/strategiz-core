@@ -2,6 +2,8 @@ package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.provider.entity.PortfolioHistoryEntity;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Query;
@@ -66,8 +68,10 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
         try {
             String documentId = date.format(DATE_FORMATTER);
             return findByIdInUserScope(documentId, userId);
+        } catch (ProviderIntegrationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find PortfolioHistoryEntity by date: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioHistoryEntity", date);
         }
     }
 
@@ -86,7 +90,7 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
             }
             return Optional.ofNullable(entity);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find PortfolioHistoryEntity by id: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioHistoryEntity", id);
         }
     }
 
@@ -108,7 +112,7 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
                     })
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find PortfolioHistoryEntity list: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioHistoryEntity", userId);
         }
     }
 
@@ -132,7 +136,7 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
                     })
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find PortfolioHistoryEntity by date range: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioHistoryEntity", userId);
         }
     }
 
@@ -156,7 +160,7 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
             entity.setId(documents.get(0).getId());
             return Optional.of(entity);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find latest PortfolioHistoryEntity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioHistoryEntity", userId);
         }
     }
 
@@ -179,7 +183,7 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
                     })
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find recent PortfolioHistoryEntity list: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioHistoryEntity", userId);
         }
     }
 

@@ -1,6 +1,7 @@
 package io.strategiz.client.base.http;
 
-// Using standard Java exceptions for client layer
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -77,7 +78,7 @@ public abstract class ProviderClient extends BaseHttpClient {
             return Base64.getEncoder().encodeToString(signature);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             log.error("Failed to sign request: {}", e.getMessage());
-            throw new RuntimeException("Error signing API request", e);
+            throw new StrategizException(ClientErrorDetails.SIGNATURE_GENERATION_FAILED, "client-base", e);
         }
     }
     

@@ -2,7 +2,9 @@ package io.strategiz.service.device.service.authenticated;
 
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.data.device.repository.CreateDeviceRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.exception.DeviceErrorDetails;
 import io.strategiz.service.device.model.authenticated.CreateAuthenticatedDeviceRequest;
 import io.strategiz.service.device.model.authenticated.CreateAuthenticatedDeviceResponse;
 import org.slf4j.Logger;
@@ -96,9 +98,9 @@ public class CreateAuthenticatedDeviceService extends BaseService {
             return response;
             
         } catch (Exception e) {
-            log.error("Error creating authenticated device for user {}: {}", 
+            log.error("Error creating authenticated device for user {}: {}",
                 userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to create authenticated device", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_REGISTRATION_FAILED, "service-device", e, userId);
         }
     }
 }

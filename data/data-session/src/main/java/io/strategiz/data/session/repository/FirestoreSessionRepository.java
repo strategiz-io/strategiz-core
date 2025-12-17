@@ -1,7 +1,9 @@
 package io.strategiz.data.session.repository;
 
 import io.strategiz.data.session.entity.SessionEntity;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.repository.BaseRepository;
+import io.strategiz.framework.exception.StrategizException;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -81,7 +83,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
                 .collect(Collectors.toList());
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find all sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findAll");
         }
     }
 
@@ -100,7 +102,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             return getCollection().get().get().size();
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to count sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "count");
         }
     }
 
@@ -110,7 +112,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             getCollection().document(id).delete().get();
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to delete session: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, "data-session", e, "SessionEntity", id);
         }
     }
 
@@ -144,7 +146,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             }
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to delete all sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.BULK_OPERATION_FAILED, "data-session", e, "deleteAll");
         }
     }
 
@@ -170,7 +172,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             return Optional.empty();
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find session by token value: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByTokenValue");
         }
     }
 
@@ -183,7 +185,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find sessions by userId: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByUserId", userId);
         }
     }
 
@@ -197,7 +199,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find active sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByUserIdAndRevokedFalse", userId);
         }
     }
 
@@ -211,7 +213,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find sessions by type: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByUserIdAndTokenType", userId, tokenType);
         }
     }
 
@@ -226,7 +228,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find active sessions by type: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByUserIdAndTokenTypeAndRevokedFalse", userId, tokenType);
         }
     }
 
@@ -239,7 +241,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find sessions by deviceId: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByDeviceId", deviceId);
         }
     }
 
@@ -253,7 +255,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find active sessions by deviceId: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByDeviceIdAndRevokedFalse", deviceId);
         }
     }
 
@@ -266,7 +268,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find expired sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByExpiresAtBefore");
         }
     }
 
@@ -279,7 +281,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return executeQuery(query);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find revoked sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByRevokedTrue");
         }
     }
 
@@ -308,7 +310,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
             
             return combined;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find expired or revoked sessions: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "findByExpiresAtBeforeOrRevokedTrue");
         }
     }
 
@@ -376,7 +378,7 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
                 .collect(Collectors.toList());
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Query execution failed: " + e.getMessage(), e);
+            throw new StrategizException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, "data-session", e, "executeQuery");
         }
     }
 }

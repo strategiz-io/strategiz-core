@@ -11,11 +11,13 @@ import io.strategiz.service.profile.model.ReadProfileResponse;
 import io.strategiz.service.profile.model.UpdateProfileVerificationRequest;
 import io.strategiz.service.profile.model.UpdateDemoModeRequest;
 import io.strategiz.service.profile.model.UpdateDemoModeResponse;
+import io.strategiz.service.profile.exception.ProfileErrors;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +80,7 @@ public class ProfileController extends BaseController {
         ReadProfileResponse profile = profileService.getProfile(userId);
 
         if (profile == null) {
-            throw new RuntimeException("Profile not found for user: " + userId);
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ModuleConstants.PROFILE_MODULE, userId);
         }
 
         // Return clean response - headers added by StandardHeadersInterceptor
@@ -101,7 +103,7 @@ public class ProfileController extends BaseController {
 
         // Users can only access their own profile
         if (!userId.equals(user.getUserId())) {
-            throw new RuntimeException("Access denied: Cannot access another user's profile");
+            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, ModuleConstants.PROFILE_MODULE, userId);
         }
 
         log.info("Retrieving profile for user ID: {}", userId);
@@ -110,7 +112,7 @@ public class ProfileController extends BaseController {
         ReadProfileResponse profile = profileService.getProfile(userId);
 
         if (profile == null) {
-            throw new RuntimeException("Profile not found for user: " + userId);
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ModuleConstants.PROFILE_MODULE, userId);
         }
 
         // Return clean response - headers added by StandardHeadersInterceptor

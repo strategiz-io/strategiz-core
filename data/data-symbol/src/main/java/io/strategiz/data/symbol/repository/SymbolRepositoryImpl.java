@@ -1,8 +1,10 @@
 package io.strategiz.data.symbol.repository;
 
 import com.google.cloud.firestore.*;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.symbol.entity.SymbolEntity;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,7 +84,7 @@ public class SymbolRepositoryImpl extends BaseRepository<SymbolEntity> implement
         } catch (InterruptedException | ExecutionException e) {
             Thread.currentThread().interrupt();
             log.error("Error saving batch of symbols", e);
-            throw new RuntimeException("Failed to save symbol batch", e);
+            throw new StrategizException(DataRepositoryErrorDetails.BULK_OPERATION_FAILED, "data-symbol", e, "SymbolEntity", entities.size());
         }
     }
 

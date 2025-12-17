@@ -12,6 +12,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ClassPathResource;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
+
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileInputStream;
@@ -115,7 +118,7 @@ public class FirebaseConfig {
             System.err.println("ERROR initializing Firebase. The application will not function correctly: " + e.getMessage());
             e.printStackTrace();
             // Let the exception propagate to fail application startup
-            throw new RuntimeException("Failed to initialize Firebase. Application cannot function without Firebase.", e);
+            throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED, "service-base", e);
         }
     }
 

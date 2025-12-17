@@ -1,5 +1,7 @@
 package io.strategiz.client.kraken.auth;
 
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.slf4j.Logger;
@@ -83,9 +85,11 @@ public class KrakenApiAuthClient {
             // Step 5: Encode to base64
             return Base64.encodeBase64String(hmacHash);
             
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error creating Kraken signature", e);
-            throw new RuntimeException("Failed to create Kraken signature", e);
+            throw new StrategizException(ClientErrorDetails.SIGNATURE_GENERATION_FAILED, "client-kraken", e);
         }
     }
     

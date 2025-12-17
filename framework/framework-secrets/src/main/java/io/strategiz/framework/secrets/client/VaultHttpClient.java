@@ -1,6 +1,8 @@
 package io.strategiz.framework.secrets.client;
 
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.secrets.config.VaultProperties;
+import io.strategiz.framework.secrets.exception.SecretsErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,10 +92,10 @@ public class VaultHttpClient implements VaultClient {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 return null;
             }
-            throw new RuntimeException("Failed to read from Vault: " + e.getMessage(), e);
+            throw new StrategizException(SecretsErrors.VAULT_READ_FAILED, "framework-secrets", e, path);
         }
     }
-    
+
     @Override
     public void write(String path, Map<String, Object> data) {
         String url = properties.getAddress() + "/v1/" + path;
@@ -109,21 +111,21 @@ public class VaultHttpClient implements VaultClient {
             restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
             log.debug("Successfully wrote to Vault path: {}", path);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to write to Vault: " + e.getMessage(), e);
+            throw new StrategizException(SecretsErrors.VAULT_WRITE_FAILED, "framework-secrets", e, path);
         }
     }
-    
+
     @Override
     public void delete(String path) {
         String url = properties.getAddress() + "/v1/" + path;
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
             log.debug("Successfully deleted Vault path: {}", path);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to delete from Vault: " + e.getMessage(), e);
+            throw new StrategizException(SecretsErrors.VAULT_DELETE_FAILED, "framework-secrets", e, path);
         }
     }
     

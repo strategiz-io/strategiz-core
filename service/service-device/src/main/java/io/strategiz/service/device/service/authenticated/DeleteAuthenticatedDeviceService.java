@@ -1,7 +1,9 @@
 package io.strategiz.service.device.service.authenticated;
 
 import io.strategiz.data.device.repository.DeleteDeviceRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.exception.DeviceErrorDetails;
 import io.strategiz.service.device.model.authenticated.DeleteAuthenticatedDeviceResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,9 +137,9 @@ public class DeleteAuthenticatedDeviceService extends BaseService {
             return response;
             
         } catch (Exception e) {
-            log.error("Error deleting authenticated device {} for user {}: {}", 
+            log.error("Error deleting authenticated device {} for user {}: {}",
                 deviceId, userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete authenticated device", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_DELETE_FAILED, "service-device", e, deviceId);
         }
     }
     

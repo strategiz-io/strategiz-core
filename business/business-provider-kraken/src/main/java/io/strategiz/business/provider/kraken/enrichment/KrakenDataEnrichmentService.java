@@ -3,7 +3,9 @@ package io.strategiz.business.provider.kraken.enrichment;
 import io.strategiz.business.provider.kraken.constants.KrakenConstants;
 import io.strategiz.business.provider.kraken.enrichment.enricher.*;
 import io.strategiz.business.provider.kraken.enrichment.model.EnrichedKrakenData;
+import io.strategiz.business.provider.kraken.exception.KrakenProviderErrorDetails;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,7 +97,7 @@ public class KrakenDataEnrichmentService {
             
         } catch (Exception e) {
             log.error("Error during Kraken data enrichment for user: {}", userId, e);
-            throw new RuntimeException("Failed to enrich Kraken data", e);
+            throw new StrategizException(KrakenProviderErrorDetails.DATA_TRANSFORMATION_FAILED, "business-provider-kraken", e, userId);
         }
     }
     

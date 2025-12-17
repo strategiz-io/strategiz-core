@@ -3,6 +3,7 @@ package io.strategiz.service.base;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.framework.exception.ErrorDetails;
+import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -197,13 +198,13 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new RuntimeException("Interrupted during retry", ie);
+                        throw new StrategizException(ServiceBaseErrorDetails.RETRY_INTERRUPTED, "service-base", ie, operation);
                     }
                 }
             }
         }
         
-        throw new RuntimeException("Operation failed after " + maxRetries + " attempts", lastException);
+        throw new StrategizException(ServiceBaseErrorDetails.RETRY_EXHAUSTED, "service-base", lastException, operation, maxRetries);
     }
     
     /**
@@ -221,7 +222,7 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
         try {
             return executeWithLogging(operation, "cached:" + parameters, serviceOperation::get);
         } catch (Exception e) {
-            throw new RuntimeException("Cached operation failed: " + operation, e);
+            throw new StrategizException(ServiceBaseErrorDetails.CACHED_OPERATION_FAILED, "service-base", e, operation);
         }
     }
     

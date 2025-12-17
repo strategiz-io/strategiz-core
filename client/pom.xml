@@ -33,6 +33,7 @@
         <module>client-gemini</module>
         <module>client-schwab</module>
         <module>client-robinhood</module>
+        <module>client-sms</module>
     </modules>
     
     <dependencies>

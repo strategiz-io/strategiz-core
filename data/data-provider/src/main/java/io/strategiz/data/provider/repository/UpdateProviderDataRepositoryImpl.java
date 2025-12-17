@@ -1,6 +1,8 @@
 package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -42,9 +44,9 @@ public class UpdateProviderDataRepositoryImpl implements UpdateProviderDataRepos
         // Get existing data
         ProviderDataEntity existing = readRepository.getProviderData(userId, providerId);
         if (existing == null) {
-            throw new RuntimeException("Provider data not found for update: " + providerId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, providerId);
         }
-        
+
         // Update balances and sync time
         existing.setBalances(balances);
         existing.setLastUpdatedAt(Instant.now());
@@ -57,9 +59,9 @@ public class UpdateProviderDataRepositoryImpl implements UpdateProviderDataRepos
         // Get existing data
         ProviderDataEntity existing = readRepository.getProviderData(userId, providerId);
         if (existing == null) {
-            throw new RuntimeException("Provider data not found for update: " + providerId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, providerId);
         }
-        
+
         // Update sync status
         existing.setSyncStatus(syncStatus);
         existing.setErrorMessage(errorMessage);
@@ -73,9 +75,9 @@ public class UpdateProviderDataRepositoryImpl implements UpdateProviderDataRepos
         // Get existing data
         ProviderDataEntity existing = readRepository.getProviderData(userId, providerId);
         if (existing == null) {
-            throw new RuntimeException("Provider data not found for update: " + providerId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, providerId);
         }
-        
+
         // Update total value
         existing.setTotalValue(totalValue);
         existing.setLastUpdatedAt(Instant.now());
@@ -88,9 +90,9 @@ public class UpdateProviderDataRepositoryImpl implements UpdateProviderDataRepos
         // Get existing data
         ProviderDataEntity existing = readRepository.getProviderData(userId, providerId);
         if (existing == null) {
-            throw new RuntimeException("Provider data not found for update: " + providerId);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.PROVIDER_NOT_FOUND, providerId);
         }
-        
+
         // Update last sync time
         existing.setLastUpdatedAt(timestamp);
         

@@ -54,6 +54,7 @@ public enum ServiceProviderErrorDetails implements ErrorDetails {
     PROVIDER_CACHE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "provider-cache-error"),
     PROVIDER_ENCRYPTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "provider-encryption-error"),
     PROVIDER_VAULT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "provider-vault-error"),
+    PROVIDER_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "provider-delete-failed"),
     
     // Webhook Errors
     WEBHOOK_REGISTRATION_FAILED(HttpStatus.BAD_GATEWAY, "webhook-registration-failed"),

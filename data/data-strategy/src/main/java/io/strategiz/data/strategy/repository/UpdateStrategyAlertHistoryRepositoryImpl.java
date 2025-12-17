@@ -1,5 +1,7 @@
 package io.strategiz.data.strategy.repository;
 
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.strategy.entity.StrategyAlertHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -26,7 +28,7 @@ public class UpdateStrategyAlertHistoryRepositoryImpl implements UpdateStrategyA
         // Verify ownership
         Optional<StrategyAlertHistory> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            throw new RuntimeException("Alert history not found or unauthorized");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "StrategyAlertHistory", id);
         }
 
         // Ensure ID and userId are set

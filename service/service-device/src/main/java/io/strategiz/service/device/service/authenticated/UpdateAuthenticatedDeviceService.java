@@ -3,7 +3,9 @@ package io.strategiz.service.device.service.authenticated;
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.data.device.repository.ReadDeviceRepository;
 import io.strategiz.data.device.repository.UpdateDeviceRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.service.BaseService;
+import io.strategiz.service.device.exception.DeviceErrorDetails;
 import io.strategiz.service.device.model.authenticated.UpdateAuthenticatedDeviceRequest;
 import io.strategiz.service.device.model.authenticated.UpdateAuthenticatedDeviceResponse;
 import org.slf4j.Logger;
@@ -43,7 +45,7 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
                 userId, deviceId);
             
             if (existingDevice.isEmpty()) {
-                throw new RuntimeException("Device not found: " + deviceId);
+                throw new StrategizException(DeviceErrorDetails.DEVICE_NOT_FOUND, "service-device", deviceId);
             }
             
             DeviceIdentity device = existingDevice.get();
@@ -101,7 +103,7 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
                 userId, device);
             
             if (updatedDevice.isEmpty()) {
-                throw new RuntimeException("Failed to update device");
+                throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
             }
             
             // Create response
@@ -118,10 +120,12 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
             log.info("Successfully updated authenticated device {} for user {}", deviceId, userId);
             return response;
             
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Error updating authenticated device {} for user {}: {}", 
+            log.error("Error updating authenticated device {} for user {}: {}",
                 deviceId, userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to update authenticated device", e);
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", e, deviceId);
         }
     }
     
@@ -134,7 +138,7 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
             userId, deviceId, trusted);
         
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to update device trust");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAuthenticatedDeviceResponse response = new UpdateAuthenticatedDeviceResponse();
@@ -150,12 +154,12 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
             String userId, String deviceId, String deviceName) {
         
         log.debug("Updating name for device {} to {}", deviceId, deviceName);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.updateDeviceName(
             userId, deviceId, deviceName);
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to update device name");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAuthenticatedDeviceResponse response = new UpdateAuthenticatedDeviceResponse();
@@ -171,12 +175,12 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
             String userId, String deviceId, String trustLevel) {
         
         log.debug("Updating trust level for device {} to {}", deviceId, trustLevel);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.updateDeviceTrustLevel(
             userId, deviceId, trustLevel);
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to update trust level");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAuthenticatedDeviceResponse response = new UpdateAuthenticatedDeviceResponse();
@@ -192,12 +196,12 @@ public class UpdateAuthenticatedDeviceService extends BaseService {
             String userId, String deviceId) {
         
         log.debug("Updating last seen for device {}", deviceId);
-        
+
         Optional<DeviceIdentity> updated = updateRepository.updateDeviceLastSeen(
             userId, deviceId, Instant.now());
-        
+
         if (updated.isEmpty()) {
-            throw new RuntimeException("Failed to update last seen");
+            throw new StrategizException(DeviceErrorDetails.DEVICE_UPDATE_FAILED, "service-device", deviceId);
         }
         
         UpdateAuthenticatedDeviceResponse response = new UpdateAuthenticatedDeviceResponse();

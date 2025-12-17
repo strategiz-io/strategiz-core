@@ -1,7 +1,8 @@
 package io.strategiz.client.binanceus;
 
+import io.strategiz.client.base.exception.ClientErrorDetails;
 import io.strategiz.client.base.http.ProviderClient;
-// Using standard Java exceptions for client layer
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -92,7 +93,7 @@ public class BinanceUSClient extends ProviderClient {
     protected void validateRealProviderAccount() {
         if (apiKey == null || apiKey.isEmpty() || privateKey == null || privateKey.isEmpty()) {
             log.error("Missing API credentials for Binance US");
-            throw new RuntimeException("Cannot connect to Binance US: Missing API credentials");
+            throw new StrategizException(ClientErrorDetails.MISSING_CREDENTIALS, "client-binanceus", "Binance US");
         }
         log.debug("Validated Binance US credentials");
     }
@@ -175,7 +176,7 @@ public class BinanceUSClient extends ProviderClient {
             return Base64.getEncoder().encodeToString(sha256_HMAC.doFinal(data.getBytes()));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             log.error("Error generating signature: {}", e.getMessage());
-            throw new RuntimeException("Error generating Binance US API signature", e);
+            throw new StrategizException(ClientErrorDetails.SIGNATURE_GENERATION_FAILED, "client-binanceus", e);
         }
     }
     
@@ -188,7 +189,7 @@ public class BinanceUSClient extends ProviderClient {
      */
     public String getAccountInfo(String apiKey, String secretKey) {
         if (restTemplate == null) {
-            throw new RuntimeException("RestTemplate not initialized");
+            throw new StrategizException(ClientErrorDetails.NOT_INITIALIZED, "client-binanceus", "RestTemplate");
         }
         
         HttpHeaders headers = new HttpHeaders();
@@ -214,7 +215,7 @@ public class BinanceUSClient extends ProviderClient {
      */
     public String ping() {
         if (restTemplate == null) {
-            throw new RuntimeException("RestTemplate not initialized");
+            throw new StrategizException(ClientErrorDetails.NOT_INITIALIZED, "client-binanceus", "RestTemplate");
         }
         
         String url = baseUrl + "/api/v3/ping";

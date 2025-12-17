@@ -2,6 +2,8 @@ package io.strategiz.data.base.repository;
 
 import io.strategiz.data.base.entity.BaseEntity;
 import io.strategiz.data.base.annotation.Collection;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.transaction.FirestoreTransactionHolder;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
@@ -57,8 +59,10 @@ public abstract class BaseRepository<T extends BaseEntity> {
             } else {
                 return performUpdate(entity, userId);
             }
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save " + entityClass.getSimpleName() + ": " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, entityClass.getSimpleName());
         }
     }
 
@@ -78,9 +82,11 @@ public abstract class BaseRepository<T extends BaseEntity> {
                 }
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entity: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, entityClass.getSimpleName());
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, entityClass.getSimpleName());
         }
     }
 
@@ -100,9 +106,11 @@ public abstract class BaseRepository<T extends BaseEntity> {
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entities: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, entityClass.getSimpleName());
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, entityClass.getSimpleName());
         }
     }
 
@@ -152,8 +160,10 @@ public abstract class BaseRepository<T extends BaseEntity> {
         try {
             validateInputs(entity, userId);
             return performCreate(entity, userId);
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create " + entityClass.getSimpleName() + ": " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, entityClass.getSimpleName());
         }
     }
 
@@ -181,8 +191,8 @@ public abstract class BaseRepository<T extends BaseEntity> {
      * @throws RuntimeException if entity not found or inactive
      */
     public T getById(String id) {
-        return findById(id).orElseThrow(() -> 
-            new RuntimeException(entityClass.getSimpleName() + " not found with ID: " + id));
+        return findById(id).orElseThrow(() ->
+            new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, entityClass.getSimpleName(), id));
     }
 
     // === BULK OPERATIONS ===
@@ -217,9 +227,11 @@ public abstract class BaseRepository<T extends BaseEntity> {
             log.debug("Bulk saved {} entities by user {}", entities.size(), userId);
             return entities;
             
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to bulk save entities: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, entityClass.getSimpleName());
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.BULK_OPERATION_FAILED, e, entityClass.getSimpleName());
         }
     }
 
@@ -262,9 +274,11 @@ public abstract class BaseRepository<T extends BaseEntity> {
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to query entities: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, entityClass.getSimpleName());
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, entityClass.getSimpleName(), fieldName);
         }
     }
 
@@ -371,21 +385,22 @@ public abstract class BaseRepository<T extends BaseEntity> {
                 }
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find deleted entity: " + e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, entityClass.getSimpleName());
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, entityClass.getSimpleName());
         }
     }
 
     protected CollectionReference getCollection() {
         Collection annotation = entityClass.getAnnotation(Collection.class);
         if (annotation == null) {
-            throw new RuntimeException("Entity " + entityClass.getSimpleName() + 
-                " must have @Collection annotation");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.COLLECTION_ANNOTATION_MISSING, entityClass.getSimpleName());
         }
         return firestore.collection(annotation.value());
     }
-    
+
     /**
      * Get collection reference for user-scoped entities (subcollections under users)
      * @param userId The user ID for the subcollection
@@ -394,10 +409,10 @@ public abstract class BaseRepository<T extends BaseEntity> {
     protected CollectionReference getUserScopedCollection(String userId) {
         Collection annotation = entityClass.getAnnotation(Collection.class);
         if (annotation == null) {
-            throw new RuntimeException("Entity " + entityClass.getSimpleName() + 
-                " must have @Collection annotation");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.COLLECTION_ANNOTATION_MISSING, entityClass.getSimpleName());
         }
         // For user-scoped collections, create under users/{userId}/collection_name
         return firestore.collection("users").document(userId).collection(annotation.value());
     }
+
 }

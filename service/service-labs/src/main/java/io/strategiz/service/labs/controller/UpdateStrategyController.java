@@ -2,8 +2,10 @@ package io.strategiz.service.labs.controller;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.constants.StrategyConstants;
+import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import io.strategiz.service.labs.model.CreateStrategyRequest;
 import io.strategiz.service.labs.model.StrategyResponse;
 import io.strategiz.service.labs.service.UpdateStrategyService;
@@ -146,12 +148,12 @@ public class UpdateStrategyController extends BaseController {
             boolean updated = updateStrategyService.updateStrategyStatus(strategyId, userId, status);
 
             if (!updated) {
-                throw new RuntimeException("Strategy not found or access denied");
+                throw new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs", strategyId);
             }
 
             // Fetch updated strategy to return
             Strategy strategy = readStrategyService.getStrategyById(strategyId, userId)
-                .orElseThrow(() -> new RuntimeException("Strategy not found"));
+                .orElseThrow(() -> new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs", strategyId));
 
             return ResponseEntity.ok(convertToResponse(strategy));
         } catch (Exception e) {

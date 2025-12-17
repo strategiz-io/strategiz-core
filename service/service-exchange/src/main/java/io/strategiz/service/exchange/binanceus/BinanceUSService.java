@@ -4,7 +4,9 @@ import io.strategiz.data.exchange.binanceus.model.Account;
 import io.strategiz.data.exchange.binanceus.model.Balance;
 import io.strategiz.data.exchange.binanceus.model.TickerPrice;
 import io.strategiz.data.exchange.binanceus.model.response.BalanceResponse;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
+import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -162,9 +164,11 @@ public class BinanceUSService extends BaseService {
             );
             
             return response.getBody();
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error getting raw account data from Binance US API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting raw account data from Binance US API", e);
+            throw new StrategizException(ExchangeErrorDetails.BINANCE_ACCOUNT_FETCH_FAILED, "service-exchange", e);
         }
     }
     
@@ -249,7 +253,7 @@ public class BinanceUSService extends BaseService {
             sha256_HMAC.init(secret_key);
             return Hex.encodeHexString(sha256_HMAC.doFinal(data.getBytes()));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new RuntimeException("Error generating signature", e);
+            throw new StrategizException(ExchangeErrorDetails.BINANCE_SIGNATURE_FAILED, "service-exchange", e);
         }
     }
     
@@ -279,11 +283,13 @@ public class BinanceUSService extends BaseService {
                 entity,
                 Account.class
             );
-            
+
             return response.getBody();
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error getting account from Binance US API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting account from Binance US API", e);
+            throw new StrategizException(ExchangeErrorDetails.BINANCE_ACCOUNT_FETCH_FAILED, "service-exchange", e);
         }
     }
     
@@ -302,11 +308,11 @@ public class BinanceUSService extends BaseService {
                 null,
                 new ParameterizedTypeReference<List<TickerPrice>>() {}
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("Error getting ticker prices from Binance US API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting ticker prices from Binance US API", e);
+            throw new StrategizException(ExchangeErrorDetails.BINANCE_TICKER_FETCH_FAILED, "service-exchange", e);
         }
     }
     
@@ -325,11 +331,11 @@ public class BinanceUSService extends BaseService {
                 null,
                 Object.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("Error getting exchange info from Binance US API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting exchange info from Binance US API", e);
+            throw new StrategizException(ExchangeErrorDetails.BINANCE_EXCHANGE_INFO_FAILED, "service-exchange", e);
         }
     }
     
@@ -365,11 +371,13 @@ public class BinanceUSService extends BaseService {
                 response.setPositions(List.of());
                 response.setTotalUsdValue(0.0);
             }
-            
+
             return response;
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error getting balances from Binance US API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting balances from Binance US API", e);
+            throw new StrategizException(ExchangeErrorDetails.BINANCE_BALANCE_FETCH_FAILED, "service-exchange", e);
         }
     }
 }

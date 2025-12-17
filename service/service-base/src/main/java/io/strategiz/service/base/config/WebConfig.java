@@ -18,6 +18,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +106,7 @@ public class WebConfig implements WebMvcConfigurer {
             return restTemplate;
         } catch (Exception e) {
             log.error("Error creating RestTemplate: {}", e.getMessage());
-            throw new RuntimeException("Failed to create RestTemplate", e);
+            throw new StrategizException(ServiceBaseErrorDetails.RESTTEMPLATE_CREATION_FAILED, "service-base", e);
         }
     }
     

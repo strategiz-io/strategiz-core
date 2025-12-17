@@ -3,6 +3,8 @@ package io.strategiz.data.provider.repository;
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.entity.ProviderStatus;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -59,7 +61,7 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
                 }
             } else {
                 if (!entity._hasAudit()) {
-                    throw new RuntimeException("Cannot update entity without audit fields");
+                    throw new ProviderIntegrationException(DataProviderErrorDetails.AUDIT_FIELDS_MISSING, "ProviderIntegrationEntity");
                 }
                 entity._updateAudit(userId);
             }
@@ -69,13 +71,15 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
             
             // Save to user-scoped collection
             getUserScopedCollection(userId).document(entity.getId()).set(entity).get();
-            
+
             return entity;
+        } catch (ProviderIntegrationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save ProviderIntegrationEntity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "ProviderIntegrationEntity");
         }
     }
-    
+
     /**
      * Override findById to use user-scoped collection
      */
@@ -90,12 +94,14 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
                 }
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderIntegrationEntity", id);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderIntegrationEntity", id);
         }
     }
-    
+
     /**
      * Find all provider integrations for a user
      */
@@ -125,13 +131,16 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
                 .collect(Collectors.toList());
                 
             return results;
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("ProviderIntegrationBaseRepository: Failed to find entities for userId {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Failed to find entities: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderIntegrationEntity", userId);
+        } catch (ExecutionException e) {
+            log.error("ProviderIntegrationBaseRepository: Failed to find entities for userId {}: {}", userId, e.getMessage());
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderIntegrationEntity", userId);
         }
     }
-    
+
     /**
      * Find provider integration by userId and providerId
      */

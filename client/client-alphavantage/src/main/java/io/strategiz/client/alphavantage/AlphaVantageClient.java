@@ -2,6 +2,8 @@ package io.strategiz.client.alphavantage;
 
 import io.strategiz.client.alphavantage.model.StockData;
 import io.strategiz.client.alphavantage.exception.AlphaVantageException;
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -76,25 +78,27 @@ public class AlphaVantageClient {
             
             if (response.getBody() == null) {
                 log.error("Empty response from AlphaVantage API for symbol: {}", symbol);
-                throw new RuntimeException("Empty response from AlphaVantage API");
+                throw new StrategizException(ClientErrorDetails.EMPTY_RESPONSE, "client-alphavantage", symbol);
             }
-            
+
             // Check for demo API key response
             if (response.getBody().containsKey("Information")) {
                 String info = (String) response.getBody().get("Information");
                 log.error("AlphaVantage API returned information message for symbol {}: {}", symbol, info);
-                throw new RuntimeException("AlphaVantage API key issue: " + info);
+                throw new StrategizException(ClientErrorDetails.CONFIGURATION_ERROR, "client-alphavantage", info);
             }
-            
+
             if (!response.getBody().containsKey("Global Quote")) {
                 log.error("Invalid response format from AlphaVantage API for symbol: {}. Response: {}", symbol, response.getBody());
-                throw new RuntimeException("Invalid response format from AlphaVantage API");
+                throw new StrategizException(ClientErrorDetails.INVALID_RESPONSE, "client-alphavantage", symbol);
             }
-            
+
             return parseGlobalQuoteResponse(response.getBody(), symbol);
+        } catch (StrategizException e) {
+            throw e;
         } catch (RestClientException e) {
             log.error("Error fetching stock quote from AlphaVantage API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve stock quote data", e);
+            throw new StrategizException(ClientErrorDetails.DATA_RETRIEVAL_FAILED, "client-alphavantage", e);
         }
     }
     

@@ -1,5 +1,6 @@
 package io.strategiz.business.provider.binanceus;
 
+import io.strategiz.business.provider.binanceus.exception.BinanceUSProviderErrorDetails;
 import io.strategiz.client.binanceus.auth.BinanceUSApiAuthClient;
 import io.strategiz.client.binanceus.auth.manager.BinanceUSCredentialManager;
 // import io.strategiz.data.auth.entity.ProviderIntegrationEntity;
@@ -7,6 +8,7 @@ import io.strategiz.client.binanceus.auth.manager.BinanceUSCredentialManager;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.provider.base.BaseApiKeyProviderHandler;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -133,7 +135,7 @@ public class BinanceUSProviderBusiness extends BaseApiKeyProviderHandler {
                 
         } catch (Exception e) {
             log.error("Error creating Binance US integration for user: {}", userId, e);
-            throw new RuntimeException("Failed to create Binance US integration", e);
+            throw new StrategizException(BinanceUSProviderErrorDetails.INTEGRATION_CREATION_FAILED, "business-provider-binanceus", e, userId);
         }
     }
 

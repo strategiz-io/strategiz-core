@@ -2,6 +2,8 @@ package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -52,7 +54,7 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
                 }
             } else {
                 if (!entity._hasAudit()) {
-                    throw new RuntimeException("Cannot update entity without audit fields");
+                    throw new ProviderIntegrationException(DataProviderErrorDetails.AUDIT_FIELDS_MISSING, "ProviderDataEntity");
                 }
                 entity._updateAudit(userId);
             }
@@ -61,11 +63,13 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
             getUserScopedCollection(userId).document(entity.getId()).set(entity).get();
             
             return entity;
+        } catch (ProviderIntegrationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save ProviderDataEntity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "ProviderDataEntity");
         }
     }
-    
+
     /**
      * Save provider data with specific document ID (providerId)
      */
@@ -84,13 +88,13 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
             
             // Save to user-scoped collection with providerId as document ID
             getUserScopedCollection(userId).document(providerId).set(entity).get();
-            
+
             return entity;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save ProviderDataEntity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "ProviderDataEntity");
         }
     }
-    
+
     /**
      * Override findById to use user-scoped collection
      */
@@ -105,12 +109,14 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
                 }
             }
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entity: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", id);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", id);
         }
     }
-    
+
     /**
      * Find provider data by providerId (document ID)
      */
@@ -133,12 +139,14 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entities: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", userId);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", userId);
         }
     }
-    
+
     /**
      * Find provider data by account type
      */
@@ -155,12 +163,14 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
                     return entity;
                 })
                 .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to find entities: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", userId);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", userId);
         }
     }
-    
+
     /**
      * Check if provider data exists
      */
@@ -168,9 +178,11 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
         try {
             DocumentSnapshot doc = getUserScopedCollection(userId).document(providerId).get().get();
             return doc.exists();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to check entity existence: " + e.getMessage(), e);
+            throw new ProviderIntegrationException(DataProviderErrorDetails.ENTITY_EXISTENCE_CHECK_FAILED, e, "ProviderDataEntity", providerId);
+        } catch (ExecutionException e) {
+            throw new ProviderIntegrationException(DataProviderErrorDetails.ENTITY_EXISTENCE_CHECK_FAILED, e, "ProviderDataEntity", providerId);
         }
     }
     

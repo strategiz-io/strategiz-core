@@ -1,5 +1,7 @@
 package io.strategiz.data.strategy.repository;
 
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.strategy.entity.Strategy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -26,9 +28,9 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
         // Verify ownership
         Optional<Strategy> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            throw new RuntimeException("Strategy not found or unauthorized");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "Strategy", id);
         }
-        
+
         // Ensure ID and userId are set
         strategy.setId(id);
         strategy.setUserId(userId);

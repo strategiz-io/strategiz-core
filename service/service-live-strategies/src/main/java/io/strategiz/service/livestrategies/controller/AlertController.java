@@ -9,6 +9,8 @@ import io.strategiz.data.strategy.repository.CreateStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.DeleteStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.livestrategies.exception.LiveStrategiesErrorDetails;
 import io.strategiz.service.livestrategies.model.request.CreateAlertRequest;
 import io.strategiz.service.livestrategies.model.request.UpdateAlertStatusRequest;
 import io.strategiz.service.livestrategies.model.response.AlertResponse;
@@ -82,9 +84,11 @@ public class AlertController {
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(responses);
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch alerts for user: {}", userId, e);
-            throw new RuntimeException("Failed to fetch alerts", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_FETCH_FAILED, "service-live-strategies", e);
         }
     }
 
@@ -136,9 +140,11 @@ public class AlertController {
             response.setStatus("ACTIVE");
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to create alert", e);
-            throw new RuntimeException("Failed to create alert", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_CREATE_FAILED, "service-live-strategies", e);
         }
     }
 
@@ -175,9 +181,11 @@ public class AlertController {
             response.setStatus(request.getStatus());
 
             return ResponseEntity.ok(response);
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to update alert status", e);
-            throw new RuntimeException("Failed to update alert status", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_UPDATE_FAILED, "service-live-strategies", e);
         }
     }
 
@@ -222,9 +230,11 @@ public class AlertController {
                     .collect(Collectors.toList()));
 
             return ResponseEntity.ok(response);
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch alert history", e);
-            throw new RuntimeException("Failed to fetch alert history", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_HISTORY_FETCH_FAILED, "service-live-strategies", e);
         }
     }
 
@@ -250,9 +260,11 @@ public class AlertController {
             }
 
             return ResponseEntity.ok(new MessageResponse("Alert deleted successfully"));
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to delete alert", e);
-            throw new RuntimeException("Failed to delete alert", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_DELETE_FAILED, "service-live-strategies", e);
         }
     }
 
@@ -284,9 +296,11 @@ public class AlertController {
             return ResponseEntity.ok(
                     new MessageResponse("Test notification sent to " + channels)
             );
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Failed to send test notification", e);
-            throw new RuntimeException("Failed to send test notification", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.NOTIFICATION_SEND_FAILED, "service-live-strategies", e);
         }
     }
 

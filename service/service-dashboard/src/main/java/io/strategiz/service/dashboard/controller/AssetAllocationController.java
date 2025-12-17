@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.service.dashboard.service.AssetAllocationService;
 import io.strategiz.service.dashboard.model.assetallocation.AssetAllocationData;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +61,7 @@ public class AssetAllocationController extends BaseController {
         
         // Check if data exists
         if (assetAllocation == null) {
-            throw new RuntimeException("Asset allocation not found for user: " + userId);
+            throw new StrategizException(ServiceDashboardErrorDetails.ASSET_ALLOCATION_NOT_FOUND, "service-dashboard", userId);
         }
         
         // Create response

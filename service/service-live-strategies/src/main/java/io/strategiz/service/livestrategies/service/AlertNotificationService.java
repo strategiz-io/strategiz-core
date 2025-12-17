@@ -12,6 +12,10 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 import io.strategiz.business.strategy.execution.model.ExecutionResult;
+import io.strategiz.business.preferences.service.AlertPreferencesService;
+import io.strategiz.client.sms.SmsProvider;
+import io.strategiz.client.sms.model.SmsDeliveryResult;
+import io.strategiz.client.sms.model.SmsMessage;
 import io.strategiz.data.strategy.entity.StrategyAlert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,13 +50,19 @@ public class AlertNotificationService {
 
     private final Firestore firestore;
     private final FirebaseMessaging firebaseMessaging;
+    private final SmsProvider smsProvider;
+    private final AlertPreferencesService alertPreferencesService;
 
     @Autowired
     public AlertNotificationService(
             Firestore firestore,
-            @Autowired(required = false) FirebaseMessaging firebaseMessaging) {
+            @Autowired(required = false) FirebaseMessaging firebaseMessaging,
+            @Autowired(required = false) SmsProvider smsProvider,
+            @Autowired(required = false) AlertPreferencesService alertPreferencesService) {
         this.firestore = firestore;
         this.firebaseMessaging = firebaseMessaging;
+        this.smsProvider = smsProvider;
+        this.alertPreferencesService = alertPreferencesService;
     }
 
     /**
@@ -78,6 +88,9 @@ public class AlertNotificationService {
                 switch (channel.toLowerCase()) {
                     case "email":
                         sendEmailNotification(alert, signal, symbol, currentPrice);
+                        break;
+                    case "sms":
+                        sendSmsNotification(alert, signal, symbol, currentPrice);
                         break;
                     case "push":
                         sendPushNotification(alert, signal, symbol, currentPrice);
@@ -193,6 +206,99 @@ public class AlertNotificationService {
         } catch (Exception e) {
             logger.error("Error sending email notification", e);
         }
+    }
+
+    /**
+     * Send SMS notification via Twilio
+     */
+    private void sendSmsNotification(
+            StrategyAlert alert,
+            ExecutionResult.Signal signal,
+            String symbol,
+            Double currentPrice) {
+
+        if (smsProvider == null || !smsProvider.isAvailable()) {
+            logger.warn("SMS provider not available, skipping SMS notification");
+            return;
+        }
+
+        try {
+            // Fetch user's phone number from AlertNotificationPreferences
+            String userPhone = null;
+            if (alertPreferencesService != null) {
+                userPhone = alertPreferencesService.getSmsPhoneNumber(alert.getUserId());
+            }
+
+            if (userPhone == null || userPhone.isEmpty()) {
+                logger.warn("User {} has no verified phone number configured for SMS alerts", alert.getUserId());
+                return;
+            }
+
+            // Check quiet hours
+            if (alertPreferencesService != null && alertPreferencesService.isInQuietHours(alert.getUserId())) {
+                logger.info("Skipping SMS for user {} - currently in quiet hours", alert.getUserId());
+                return;
+            }
+
+            // Check rate limit
+            if (alertPreferencesService != null && !alertPreferencesService.canSendAlert(alert.getUserId())) {
+                logger.warn("Rate limit exceeded for user {} - skipping SMS", alert.getUserId());
+                return;
+            }
+
+            // Build SMS message
+            String signalEmoji = "BUY".equals(signal.getType()) ? "+" : "-";
+            String message = String.format(
+                    "[Strategiz] %s %s signal for %s at $%.2f. Alert: %s",
+                    signalEmoji,
+                    signal.getType(),
+                    symbol,
+                    currentPrice,
+                    alert.getAlertName()
+            );
+
+            // Add reason if available
+            if (signal.getReason() != null && !signal.getReason().isEmpty()) {
+                String reason = signal.getReason();
+                // Truncate reason if message would be too long (SMS limit ~160 chars)
+                int remainingChars = 160 - message.length() - 3; // -3 for " - "
+                if (remainingChars > 10 && reason.length() > remainingChars) {
+                    reason = reason.substring(0, remainingChars - 3) + "...";
+                }
+                if (remainingChars > 10) {
+                    message += " - " + reason;
+                }
+            }
+
+            SmsMessage smsMessage = new SmsMessage(userPhone, message);
+            SmsDeliveryResult result = smsProvider.sendSms(smsMessage);
+
+            if (result.isSuccess()) {
+                logger.info("SMS notification sent successfully to {} for {} signal on {}. MessageId: {}",
+                        maskPhoneNumber(userPhone), signal.getType(), symbol, result.getMessageId());
+
+                // Record alert sent for rate limiting
+                if (alertPreferencesService != null) {
+                    alertPreferencesService.recordAlertSent(alert.getUserId());
+                }
+            } else {
+                logger.error("Failed to send SMS notification. Status: {}, Error: {}",
+                        result.getStatus(), result.getErrorMessage());
+            }
+
+        } catch (Exception e) {
+            logger.error("Error sending SMS notification", e);
+        }
+    }
+
+    /**
+     * Mask phone number for secure logging.
+     */
+    private String maskPhoneNumber(String phone) {
+        if (phone == null || phone.length() < 4) {
+            return "****";
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 2);
     }
 
     /**

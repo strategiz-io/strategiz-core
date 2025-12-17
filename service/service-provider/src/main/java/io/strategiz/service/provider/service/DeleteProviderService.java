@@ -2,10 +2,12 @@ package io.strategiz.service.provider.service;
 
 import io.strategiz.service.provider.model.request.DeleteProviderRequest;
 import io.strategiz.service.provider.model.response.DeleteProviderResponse;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.service.base.service.ProviderBaseService;
 import io.strategiz.data.provider.repository.DeleteProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.DeleteProviderDataRepository;
 import io.strategiz.framework.secrets.controller.SecretManager;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -156,9 +158,11 @@ public class DeleteProviderService extends ProviderBaseService {
             // Refresh portfolio summary after provider deletion
             portfolioSummaryManager.refreshPortfolioSummary(request.getUserId());
 
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             providerLog.error("Error during provider deletion: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to delete provider: " + e.getMessage(), e);
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_DELETE_FAILED, "service-provider", e, request.getProviderId());
         }
     }
     

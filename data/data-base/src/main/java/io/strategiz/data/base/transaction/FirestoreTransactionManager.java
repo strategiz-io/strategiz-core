@@ -2,6 +2,8 @@ package io.strategiz.data.base.transaction;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Transaction;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.TransactionDefinition;
@@ -77,10 +79,10 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
                     transactionFuture.get();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException("Transaction interrupted", e);
+                    throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "Transaction");
                 } catch (ExecutionException e) {
                     // Rollback case - throw to abort the Firestore transaction
-                    throw new RuntimeException("Transaction rolled back", e.getCause());
+                    throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_TRANSACTION_FAILED, e.getCause(), "Transaction");
                 }
 
                 return null;
@@ -116,7 +118,7 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
             // Signal the Firestore transaction to abort
             if (txObject.getTransactionFuture() != null) {
                 txObject.getTransactionFuture().completeExceptionally(
-                    new RuntimeException("Transaction rolled back by Spring")
+                    new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_TRANSACTION_FAILED, "Transaction", "rolled back by Spring")
                 );
             }
         } finally {

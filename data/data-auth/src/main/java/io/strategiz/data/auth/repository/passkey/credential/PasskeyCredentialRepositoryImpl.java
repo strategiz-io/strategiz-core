@@ -1,6 +1,8 @@
 package io.strategiz.data.auth.repository.passkey.credential;
 
 import io.strategiz.data.auth.entity.passkey.PasskeyCredentialEntity;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
@@ -123,8 +125,10 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                     .limit(1);
             List<PasskeyCredentialEntity> results = executeQuery(query);
             return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find passkey credential by credential ID", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity", credentialId);
         }
     }
 
@@ -135,8 +139,10 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                     .whereEqualTo("userId", userId)
                     .whereEqualTo("auditFields.isActive", true);
             return executeQuery(query);
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find passkey credentials by user ID", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity", userId);
         }
     }
 
@@ -147,8 +153,10 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                     .whereEqualTo("device", device)
                     .whereEqualTo("auditFields.isActive", true);
             return executeQuery(query);
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find passkey credentials by device", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity", device);
         }
     }
 
@@ -159,8 +167,10 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                     .whereEqualTo("verified", true)
                     .whereEqualTo("auditFields.isActive", true);
             return executeQuery(query);
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find verified passkey credentials", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
         }
     }
 
@@ -171,8 +181,10 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                     .whereLessThan("auditFields.createdAt", before)
                     .whereEqualTo("auditFields.isActive", true);
             return executeQuery(query);
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find passkey credentials created before date", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
         }
     }
 
@@ -183,8 +195,10 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                     .whereLessThan("lastUsedAt", before)
                     .whereEqualTo("auditFields.isActive", true);
             return executeQuery(query);
+        } catch (DataRepositoryException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find passkey credentials last used before date", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
         }
     }
 
@@ -224,9 +238,11 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
                         return entity;
                     })
                     .collect(Collectors.toList());
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to execute Firestore query", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "PasskeyCredentialEntity");
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
         }
     }
 }

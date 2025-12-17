@@ -1,5 +1,7 @@
 package io.strategiz.service.exchange.coinbase;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,9 +68,11 @@ public class CoinbaseService {
             
             log.info("Successfully retrieved raw account data from Coinbase API");
             return response.getBody();
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error getting raw account data from Coinbase API: {}", e.getMessage(), e);
-            throw new RuntimeException("Error getting raw account data from Coinbase API", e);
+            throw new StrategizException(ExchangeErrorDetails.COINBASE_ACCOUNT_FETCH_FAILED, "service-exchange", e);
         }
     }
     
@@ -132,7 +136,7 @@ public class CoinbaseService {
             
             // Check response status
             if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Failed to connect to Coinbase API: " + response.getStatusCode());
+                throw new StrategizException(ExchangeErrorDetails.COINBASE_CONNECTION_FAILED, "service-exchange");
             }
             
             log.info("Successfully tested connection to Coinbase API: {}", response.getStatusCode());

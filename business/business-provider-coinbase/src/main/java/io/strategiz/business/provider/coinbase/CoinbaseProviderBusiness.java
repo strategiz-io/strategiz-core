@@ -1,5 +1,6 @@
 package io.strategiz.business.provider.coinbase;
 
+import io.strategiz.business.provider.coinbase.exception.CoinbaseProviderErrorDetails;
 import io.strategiz.business.provider.coinbase.model.CoinbaseConnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseDisconnectionResult;
 import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
@@ -517,7 +518,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
                 
         } catch (Exception e) {
             log.error("Error creating Coinbase integration for user: {}", userId, e);
-            throw new RuntimeException("Failed to create Coinbase integration", e);
+            throw new StrategizException(CoinbaseProviderErrorDetails.INTEGRATION_CREATION_FAILED, "business-provider-coinbase", e, userId);
         }
     }
     
@@ -571,7 +572,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Error completing Coinbase OAuth flow for user: {}", userId, e);
-            throw new RuntimeException("Failed to complete OAuth flow", e);
+            throw new StrategizException(CoinbaseProviderErrorDetails.OAUTH_FLOW_FAILED, "business-provider-coinbase", e, userId);
         }
     }
 
@@ -592,12 +593,12 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             Map<String, Object> secretData = secretManager.readSecretAsMap(secretPath);
 
             if (secretData == null || secretData.isEmpty()) {
-                throw new RuntimeException("No Coinbase tokens found in Vault for user: " + userId);
+                throw new StrategizException(CoinbaseProviderErrorDetails.TOKENS_NOT_FOUND, "business-provider-coinbase", userId);
             }
 
             String accessToken = (String) secretData.get("accessToken");
             if (accessToken == null || accessToken.isEmpty()) {
-                throw new RuntimeException("Access token not found in Vault for user: " + userId);
+                throw new StrategizException(CoinbaseProviderErrorDetails.ACCESS_TOKEN_NOT_FOUND, "business-provider-coinbase", userId);
             }
 
             log.debug("Retrieved Coinbase access token from Vault for user: {}", userId);
@@ -613,12 +614,14 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
                 return providerData;
             } else {
                 log.warn("No provider data found after sync for user: {}", userId);
-                throw new RuntimeException("No data found after sync");
+                throw new StrategizException(CoinbaseProviderErrorDetails.NO_DATA_AFTER_SYNC, "business-provider-coinbase", userId);
             }
 
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to sync Coinbase provider data for user: {}", userId, e);
-            throw new RuntimeException("Failed to sync provider data: " + e.getMessage(), e);
+            throw new StrategizException(CoinbaseProviderErrorDetails.SYNC_FAILED, "business-provider-coinbase", e, userId);
         }
     }
 
@@ -641,7 +644,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             
         } catch (Exception e) {
             log.error("Failed to store Coinbase tokens for user: {}", userId, e);
-            throw new RuntimeException("Failed to store tokens", e);
+            throw new StrategizException(CoinbaseProviderErrorDetails.TOKEN_STORAGE_FAILED, "business-provider-coinbase", e, userId);
         }
     }
     
@@ -677,7 +680,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
 
         } catch (Exception e) {
             log.error("Failed to fetch and store Coinbase portfolio data for user: {}", userId, e);
-            throw new RuntimeException("Failed to fetch Coinbase portfolio data: " + e.getMessage(), e);
+            throw new StrategizException(CoinbaseProviderErrorDetails.PORTFOLIO_FETCH_FAILED, "business-provider-coinbase", e, userId);
         }
     }
 

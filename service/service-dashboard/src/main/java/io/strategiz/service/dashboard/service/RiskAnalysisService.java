@@ -1,8 +1,10 @@
 package io.strategiz.service.dashboard.service;
 
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.dashboard.model.riskanalysis.RiskAnalysisData;
 import io.strategiz.service.dashboard.model.riskanalysis.VolatilityMetric;
 import io.strategiz.service.dashboard.model.riskanalysis.DiversificationMetric;
@@ -60,7 +62,7 @@ public class RiskAnalysisService extends BaseService {
             return calculateRiskMetrics(portfolioData, historicalData);
         } catch (Exception e) {
             log.error("Error getting risk analysis for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve risk analysis data", e);
+            throw new StrategizException(ServiceDashboardErrorDetails.RISK_CALCULATION_FAILED, "service-dashboard", e, userId);
         }
     }
     

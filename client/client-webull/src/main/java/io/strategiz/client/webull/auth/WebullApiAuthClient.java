@@ -1,5 +1,7 @@
 package io.strategiz.client.webull.auth;
 
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.slf4j.Logger;
@@ -130,9 +132,11 @@ public class WebullApiAuthClient {
             log.debug("Successfully created signature");
             return signature;
 
+        } catch (StrategizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to create signature: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create Webull API signature", e);
+            throw new StrategizException(ClientErrorDetails.SIGNATURE_GENERATION_FAILED, "client-webull", e);
         }
     }
 

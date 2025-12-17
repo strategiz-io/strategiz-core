@@ -1,46 +1,29 @@
 package io.strategiz.data.provider.exception;
 
+import io.strategiz.framework.exception.StrategizException;
+
 /**
- * Custom exception for provider integration operations
+ * Exception class for provider integration operations.
+ * Extends StrategizException for integration with the global exception handling framework.
  */
-public class ProviderIntegrationException extends RuntimeException {
-    
-    private final DataProviderErrorDetails errorDetails;
-    private final Object[] args;
-    
-    public ProviderIntegrationException(DataProviderErrorDetails errorDetails) {
-        super(errorDetails.getDefaultMessage());
-        this.errorDetails = errorDetails;
-        this.args = null;
-    }
-    
-    public ProviderIntegrationException(DataProviderErrorDetails errorDetails, Object... args) {
-        super(errorDetails.getDefaultMessage());
-        this.errorDetails = errorDetails;
-        this.args = args;
-    }
-    
-    public ProviderIntegrationException(DataProviderErrorDetails errorDetails, Throwable cause) {
-        super(errorDetails.getDefaultMessage(), cause);
-        this.errorDetails = errorDetails;
-        this.args = null;
-    }
-    
-    public ProviderIntegrationException(DataProviderErrorDetails errorDetails, Throwable cause, Object... args) {
-        super(errorDetails.getDefaultMessage(), cause);
-        this.errorDetails = errorDetails;
-        this.args = args;
-    }
-    
-    public DataProviderErrorDetails getErrorDetails() {
-        return errorDetails;
-    }
-    
-    public Object[] getArgs() {
-        return args;
-    }
-    
-    public String getErrorCode() {
-        return errorDetails.getCode();
-    }
+public class ProviderIntegrationException extends StrategizException {
+
+	private static final String MODULE_NAME = "data-provider";
+
+	public ProviderIntegrationException(DataProviderErrorDetails errorDetails) {
+		super(errorDetails, MODULE_NAME);
+	}
+
+	public ProviderIntegrationException(DataProviderErrorDetails errorDetails, Object... args) {
+		super(errorDetails, MODULE_NAME, args);
+	}
+
+	public ProviderIntegrationException(DataProviderErrorDetails errorDetails, Throwable cause) {
+		super(errorDetails, MODULE_NAME, cause);
+	}
+
+	public ProviderIntegrationException(DataProviderErrorDetails errorDetails, Throwable cause, Object... args) {
+		super(errorDetails, MODULE_NAME, cause, args);
+	}
+
 }

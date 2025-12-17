@@ -1,8 +1,10 @@
 package io.strategiz.service.labs.controller;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.constants.StrategyConstants;
+import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import io.strategiz.service.labs.service.DeleteStrategyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -78,7 +80,7 @@ public class DeleteStrategyController extends BaseController {
             boolean deleted = deleteStrategyService.deleteStrategy(strategyId, userId);
 
             if (!deleted) {
-                throw new RuntimeException("Strategy not found or access denied");
+                throw new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs", strategyId);
             }
 
             return ResponseEntity.noContent().build();

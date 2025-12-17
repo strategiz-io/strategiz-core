@@ -1,6 +1,8 @@
 package io.strategiz.data.device.repository;
 
 import io.strategiz.data.device.model.DeviceIdentity;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import com.google.cloud.firestore.DocumentReference;
@@ -45,7 +47,7 @@ public class CreateDeviceRepositoryImpl implements CreateDeviceRepository {
             docRef.set(device).get();
             return device;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create authenticated device", e);
+            throw new StrategizException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, "data-device", e, "DeviceIdentity", device.getDeviceId());
         }
     }
     

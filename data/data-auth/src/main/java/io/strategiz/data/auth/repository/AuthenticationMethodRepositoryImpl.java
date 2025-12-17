@@ -2,6 +2,8 @@ package io.strategiz.data.auth.repository;
 
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.SubcollectionRepository;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
@@ -57,7 +59,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {}", userId, e);
-            throw new RuntimeException("Failed to find authentication methods by user ID", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
         }
     }
 
@@ -69,7 +71,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {} and type: {}", userId, type, e);
-            throw new RuntimeException("Failed to find authentication methods by user ID and type", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
         }
     }
 
@@ -86,7 +88,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {} with enabled: {}", userId, isEnabled, e);
-            throw new RuntimeException("Failed to find authentication methods by user ID and enabled status", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
         }
     }
 
@@ -98,7 +100,7 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Failed to find authentication methods for user: {}, type: {}, enabled: {}", userId, type, isEnabled, e);
-            throw new RuntimeException("Failed to find authentication methods by user ID, type and enabled status", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
         }
     }
 
@@ -190,9 +192,13 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
 
             log.debug("No passkey found with credential ID: {}", credentialId);
             return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
-            throw new RuntimeException("Failed to find authentication method by credential ID", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AuthenticationMethodEntity", credentialId);
+        } catch (ExecutionException e) {
+            log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", credentialId);
         }
     }
 }

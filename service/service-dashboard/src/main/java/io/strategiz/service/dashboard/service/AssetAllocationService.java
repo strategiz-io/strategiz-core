@@ -1,8 +1,10 @@
 package io.strategiz.service.dashboard.service;
 
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.dashboard.model.assetallocation.AssetAllocation;
 import io.strategiz.service.dashboard.model.assetallocation.AssetAllocationData;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +66,7 @@ public class AssetAllocationService extends BaseService {
             return calculateAssetAllocation(portfolioData);
         } catch (Exception e) {
             log.error("Error getting asset allocation for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve asset allocation data", e);
+            throw new StrategizException(ServiceDashboardErrorDetails.ASSET_ALLOCATION_FAILED, "service-dashboard", e, userId);
         }
     }
     

@@ -1,8 +1,10 @@
 package io.strategiz.service.dashboard.service;
 
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.dashboard.model.performancemetrics.PerformanceMetricsData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,7 +58,7 @@ public class PerformanceMetricsService extends BaseService {
             return calculatePerformanceMetrics(portfolioData, historicalData);
         } catch (Exception e) {
             log.error("Error getting performance metrics for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve performance metrics", e);
+            throw new StrategizException(ServiceDashboardErrorDetails.METRICS_CALCULATION_FAILED, "service-dashboard", e, userId);
         }
     }
     

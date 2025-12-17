@@ -4,6 +4,8 @@ import io.strategiz.business.portfolio.PortfolioManager;
 import io.strategiz.business.portfolio.model.PortfolioData;
 // import io.strategiz.client.alphavantage.AlphaVantageClient;
 // import io.strategiz.client.coingecko.CoinGeckoClient;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -71,7 +73,7 @@ public class MarketSentimentService {
             return calculateMarketSentiment(portfolioData);
         } catch (Exception e) {
             log.error("Error getting market sentiment for user {}: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve market sentiment data", e);
+            throw new StrategizException(ServiceDashboardErrorDetails.SENTIMENT_CALCULATION_FAILED, "service-dashboard", e, userId);
         }
     }
     

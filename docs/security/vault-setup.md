@@ -1,177 +1,317 @@
-# Vault Setup for Strategiz Core
+# Vault Setup for Strategiz
 
 ## Overview
 
-Strategiz Core uses HashiCorp Vault for secure management of OAuth credentials and other secrets. This setup is **consistent across all environments** to minimize configuration drift and bugs.
+Strategiz uses HashiCorp Vault deployed on Google Cloud Run for production secrets management. The setup includes:
 
-## Required Environment Variables
+- **Persistent Storage**: Google Cloud Storage (GCS)
+- **Auto-Unseal**: Google Cloud KMS
+- **High Availability**: Cloud Run with auto-scaling
 
-**ALWAYS REQUIRED** (both development and production):
-- `VAULT_TOKEN` - Your Vault authentication token
-- `VAULT_ADDR` - Vault server address (defaults to http://localhost:8200)
+## Production Architecture
+
+```
+                              ┌─────────────────────────────────────┐
+                              │         Google Cloud Platform        │
+                              │                                       │
+┌──────────────┐              │  ┌─────────────────────────────────┐ │
+│              │   HTTPS      │  │        strategiz-vault          │ │
+│  strategiz-  │─────────────▶│  │        (Cloud Run)              │ │
+│    core      │              │  │                                 │ │
+│              │              │  │  ┌─────────┐    ┌─────────────┐ │ │
+└──────────────┘              │  │  │ Vault   │───▶│  GCS Bucket │ │ │
+                              │  │  │ Server  │    │  (Storage)  │ │ │
+                              │  │  └────┬────┘    └─────────────┘ │ │
+                              │  │       │                         │ │
+                              │  │       ▼                         │ │
+                              │  │  ┌─────────────┐               │ │
+                              │  │  │  Cloud KMS  │               │ │
+                              │  │  │(Auto-Unseal)│               │ │
+                              │  │  └─────────────┘               │ │
+                              │  └─────────────────────────────────┘ │
+                              │                                       │
+                              │  ┌─────────────────────────────────┐ │
+                              │  │       Secret Manager            │ │
+                              │  │  (Vault Root Token Storage)    │ │
+                              │  └─────────────────────────────────┘ │
+                              └───────────────────────────────────────┘
+```
+
+## Infrastructure Components
+
+### 1. Cloud KMS (Auto-Unseal)
+
+- **Key Ring**: `vault-keyring`
+- **Crypto Key**: `vault-unseal-key`
+- **Location**: `us-central1`
+- **Purpose**: Automatically unseal Vault on startup
+
+### 2. Cloud Storage (Persistent Backend)
+
+- **Bucket**: `gs://strategiz-vault-storage`
+- **Location**: `us-central1`
+- **Purpose**: Store encrypted Vault data
+
+### 3. Secret Manager
+
+- **vault-root-token**: Vault root authentication token
+- **vault-unseal-keys**: Recovery keys for disaster recovery
+
+### 4. Cloud Run Service
+
+- **Service**: `strategiz-vault`
+- **Image**: `gcr.io/strategiz-io/vault-prod`
+- **Port**: 8200
+- **Memory**: 512Mi
+- **Min Instances**: 0 (scales to zero when idle)
+
+## Configuration Files
+
+### vault.hcl
+
+Located at `/vault-config/vault.hcl`:
+
+```hcl
+ui = true
+disable_mlock = true
+
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+  tls_disable = true  # Cloud Run handles TLS
+}
+
+storage "gcs" {
+  bucket     = "strategiz-vault-storage"
+  ha_enabled = "false"
+}
+
+seal "gcpckms" {
+  project     = "strategiz-io"
+  region      = "us-central1"
+  key_ring    = "vault-keyring"
+  crypto_key  = "vault-unseal-key"
+}
+
+api_addr = "https://strategiz-vault-xxx.us-central1.run.app"
+```
+
+## Setup Instructions
+
+### Prerequisites
+
+```bash
+# Enable required APIs
+gcloud services enable cloudkms.googleapis.com
+gcloud services enable run.googleapis.com
+gcloud services enable storage.googleapis.com
+```
+
+### Step 1: Create KMS Key for Auto-Unseal
+
+```bash
+# Create keyring
+gcloud kms keyrings create vault-keyring --location=us-central1
+
+# Create crypto key
+gcloud kms keys create vault-unseal-key \
+  --location=us-central1 \
+  --keyring=vault-keyring \
+  --purpose=encryption
+```
+
+### Step 2: Create Storage Bucket
+
+```bash
+gcloud storage buckets create gs://strategiz-vault-storage \
+  --location=us-central1 \
+  --uniform-bucket-level-access
+```
+
+### Step 3: Grant Service Account Permissions
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe strategiz-io --format='value(projectNumber)')
+SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+
+# KMS permissions
+gcloud kms keys add-iam-policy-binding vault-unseal-key \
+  --location=us-central1 \
+  --keyring=vault-keyring \
+  --member="serviceAccount:$SA_EMAIL" \
+  --role="roles/cloudkms.cryptoKeyEncrypterDecrypter"
+
+# GCS permissions
+gcloud storage buckets add-iam-policy-binding gs://strategiz-vault-storage \
+  --member="serviceAccount:$SA_EMAIL" \
+  --role="roles/storage.objectAdmin"
+```
+
+### Step 4: Build and Deploy Vault
+
+```bash
+cd vault-config
+
+# Build Docker image
+gcloud builds submit --tag gcr.io/strategiz-io/vault-prod .
+
+# Deploy to Cloud Run
+gcloud run deploy strategiz-vault \
+  --image=gcr.io/strategiz-io/vault-prod:latest \
+  --region=us-central1 \
+  --platform=managed \
+  --allow-unauthenticated \
+  --memory=512Mi \
+  --cpu=1 \
+  --min-instances=0 \
+  --max-instances=3 \
+  --port=8200 \
+  --no-cpu-throttling
+```
+
+### Step 5: Initialize Vault
+
+```bash
+VAULT_ADDR="https://strategiz-vault-xxx.us-central1.run.app"
+
+# Initialize with recovery keys
+curl -X POST "$VAULT_ADDR/v1/sys/init" \
+  -H "Content-Type: application/json" \
+  -d '{"recovery_shares": 5, "recovery_threshold": 3}'
+
+# Save the output! Contains root_token and recovery_keys
+```
+
+### Step 6: Store Credentials in Secret Manager
+
+```bash
+# Save root token
+echo -n "<root-token>" | gcloud secrets create vault-root-token --data-file=-
+
+# Save recovery keys
+echo "<recovery-keys-json>" | gcloud secrets create vault-unseal-keys --data-file=-
+```
+
+### Step 7: Enable KV Secrets Engine
+
+```bash
+VAULT_TOKEN="<root-token>"
+
+curl -X POST "$VAULT_ADDR/v1/sys/mounts/secret" \
+  -H "X-Vault-Token: $VAULT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"type": "kv", "options": {"version": "2"}}'
+```
 
 ## Local Development Setup
 
-### 1. Start Vault Dev Server
+For local development, use Vault in dev mode:
 
 ```bash
-# Start Vault in development mode
+# Start Vault dev server
 vault server -dev
 
-# In a new terminal, note the Root Token displayed
-# Example output: Root Token: hvs.CAESIJaNtF...
-```
-
-### 2. Set Environment Variables
-
-```bash
-# Set Vault address (if not using default)
+# Set environment variables
 export VAULT_ADDR='http://localhost:8200'
+export VAULT_TOKEN='<root-token-from-output>'
 
-# Set your Vault token (use the Root Token from step 1)
-export VAULT_TOKEN='hvs.CAESIJaNtF...'  # Replace with your actual token
+# Add secrets
+vault kv put secret/strategiz/tokens/prod \
+  identity-key="$(openssl rand -base64 32)" \
+  session-key="$(openssl rand -base64 32)"
 ```
 
-### 3. Configure OAuth Secrets in Vault
+## Operations
+
+### Health Check
 
 ```bash
-# Add Google OAuth credentials (for user authentication)
-vault kv put secret/strategiz/oauth/google \
-  client-id="your-google-client-id" \
-  client-secret="your-google-client-secret"
-
-# Add Facebook OAuth credentials (for user authentication)
-vault kv put secret/strategiz/oauth/facebook \
-  client-id="your-facebook-client-id" \
-  client-secret="your-facebook-client-secret"
-
-# Add Coinbase OAuth credentials (for provider integration)
-vault kv put secret/strategiz/oauth/coinbase \
-  client-id="your-coinbase-client-id" \
-  client-secret="your-coinbase-client-secret"
-
-# Verify secrets are stored
-vault kv get secret/strategiz/oauth/coinbase
+curl https://strategiz-vault-xxx.us-central1.run.app/v1/sys/health
 ```
 
-### 4. Start the Application
-
-```bash
-# Option 1: Use the startup script
-./scripts/local/run/start-with-vault.sh
-
-# Option 2: Direct Java command
-java -jar application/target/application-1.0-SNAPSHOT.jar
-
-# Option 3: Maven
-mvn spring-boot:run -pl application
-```
-
-## Production Setup
-
-### 1. Vault Server Configuration
-
-Your production Vault server should be properly secured with TLS and appropriate authentication methods.
-
-### 2. Create Production Token
-
-```bash
-# Create a policy for the application
-vault policy write strategiz-app - <<EOF
-path "secret/data/strategiz/oauth/*" {
-  capabilities = ["read", "list"]
+Response when healthy:
+```json
+{
+  "initialized": true,
+  "sealed": false,
+  "standby": false,
+  "version": "1.15.6"
 }
-path "secret/metadata/strategiz/oauth/*" {
-  capabilities = ["read", "list"]
-}
-EOF
-
-# Create a token with the policy
-vault token create -policy=strategiz-app -ttl=720h
 ```
 
-### 3. Deploy with Environment Variables
+### Add a Secret
 
-For Google Cloud Run:
-```yaml
-env:
-  - name: VAULT_ADDR
-    value: "https://vault.yourdomain.com"
-  - name: VAULT_TOKEN
-    valueFrom:
-      secretKeyRef:
-        name: vault-token
-        key: token
-```
-
-For Docker:
 ```bash
-docker run -e VAULT_ADDR=https://vault.yourdomain.com \
-           -e VAULT_TOKEN=$VAULT_TOKEN \
-           strategiz-core:latest
+VAULT_TOKEN=$(gcloud secrets versions access latest --secret=vault-root-token)
+VAULT_ADDR="https://strategiz-vault-xxx.us-central1.run.app"
+
+curl -X POST "$VAULT_ADDR/v1/secret/data/strategiz/<path>" \
+  -H "X-Vault-Token: $VAULT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"key": "value"}}'
 ```
 
-For Kubernetes:
-```yaml
-env:
-  - name: VAULT_ADDR
-    value: "https://vault.yourdomain.com"
-  - name: VAULT_TOKEN
-    valueFrom:
-      secretKeyRef:
-        name: vault-credentials
-        key: token
+### Read a Secret
+
+```bash
+curl -s "$VAULT_ADDR/v1/secret/data/strategiz/<path>" \
+  -H "X-Vault-Token: $VAULT_TOKEN"
 ```
 
-## Verification
+### List Secrets
 
-To verify Vault integration is working:
+```bash
+curl -s "$VAULT_ADDR/v1/secret/metadata/strategiz?list=true" \
+  -H "X-Vault-Token: $VAULT_TOKEN"
+```
 
-1. Check application logs for:
-   ```
-   Loading OAuth credentials from Vault at: http://localhost:8200
-   Successfully loaded 6 OAuth properties from Vault
-   ```
+## Disaster Recovery
 
-2. Test OAuth endpoint:
-   ```bash
-   curl -X POST http://localhost:8080/v1/providers \
-     -H "Content-Type: application/json" \
-     -d '{"providerId": "coinbase", "connectionType": "oauth"}'
-   ```
+### If Vault Becomes Unavailable
 
-   Should return an authorization URL with the client ID from Vault.
+1. **Check Cloud Run logs** for errors
+2. **Verify KMS permissions** are intact
+3. **Check GCS bucket** accessibility
+4. **Redeploy** if necessary - data persists in GCS
 
-## Troubleshooting
+### If Root Token is Compromised
 
-### "No Vault token found" Error
-- Ensure `VAULT_TOKEN` environment variable is set
-- Check token hasn't expired: `vault token lookup`
+1. Generate new root token using recovery keys
+2. Update Secret Manager with new token
+3. Restart strategiz-core to pick up new token
 
-### "Failed to load OAuth credentials from Vault" Error
-- Verify Vault is running: `vault status`
-- Check token has correct permissions: `vault token capabilities secret/strategiz/oauth/coinbase`
-- Verify secrets exist: `vault kv get secret/strategiz/oauth/coinbase`
+### Complete Rebuild
 
-### OAuth Returns 502 Error
-- This usually means OAuth credentials aren't loaded
-- Check application logs for Vault errors
-- Verify `VAULT_TOKEN` was set before starting the application
+If everything is lost:
 
-## Security Best Practices
+1. Data in GCS bucket is preserved (encrypted)
+2. Use recovery keys to unseal manually
+3. Generate new root token
+4. Resume operations
 
-1. **Never commit tokens** to version control
-2. **Use short-lived tokens** in production (renew periodically)
-3. **Use least-privilege policies** - only grant read access to required paths
-4. **Enable audit logging** in production Vault
-5. **Use TLS** for all production Vault communications
-6. **Rotate OAuth secrets** periodically
-7. **Monitor token expiration** and implement renewal
+## Cost Analysis
 
-## Benefits of This Approach
+| Component | Monthly Cost |
+|-----------|-------------|
+| Cloud Run (Vault) | ~$2-5 (pay-per-use) |
+| Cloud Storage | ~$0.02 |
+| Cloud KMS | ~$1 |
+| Secret Manager | ~$0.06 |
+| **Total** | **~$3-7/month** |
 
-1. **Consistency**: Same configuration method in all environments
-2. **Security**: Secrets never stored in code or config files
-3. **Auditability**: All secret access is logged in Vault
-4. **Rotation**: Easy to rotate secrets without code changes
-5. **Simplicity**: Single source of truth for all OAuth credentials
+Compared to always-on (min-instances=1): **~$20/month savings**
+
+## Security Considerations
+
+1. **TLS Termination**: Cloud Run provides automatic HTTPS
+2. **Authentication**: All requests require X-Vault-Token header
+3. **Encryption at Rest**: GCS storage is encrypted
+4. **Auto-Unseal**: KMS key protects master key
+5. **Recovery Keys**: Stored separately for disaster recovery
+6. **Audit Logging**: Enable Vault audit logs for compliance
+
+## Related Documentation
+
+- [Secrets Management](secrets-management.md) - How to use secrets in code
+- [Vault Token Storage](vault-token-storage.md) - Token management details
+- [Security Overview](overview.md) - Overall security architecture
+- [Vault Config README](/vault-config/README.md) - Module documentation

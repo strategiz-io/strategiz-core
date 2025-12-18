@@ -313,22 +313,23 @@ public class SmsOtpRegistrationService {
      * @return Map containing session tokens on success
      */
     public Map<String, Object> verifyFirebaseTokenAndComplete(
-            String firebaseIdToken, 
-            String userId, 
+            String firebaseIdToken,
+            String userId,
             String phoneNumber,
             boolean isRegistration) {
-        
+
         log.info("Verifying Firebase token for phone: {}", maskPhoneNumber(phoneNumber));
-        
+
         try {
             // Verify the Firebase ID token
             boolean tokenValid = firebaseSmsClient.verifyFirebaseIdToken(firebaseIdToken, phoneNumber);
-            
+
             if (!tokenValid) {
-                throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, 
+                log.warn("Firebase ID token validation failed for phone: {}", maskPhoneNumber(phoneNumber));
+                throw new StrategizException(AuthErrors.INVALID_CREDENTIALS,
                     "Invalid Firebase authentication token");
             }
-            
+
             if (isRegistration) {
                 // Complete phone number registration
                 return completePhoneRegistration(userId, phoneNumber);
@@ -336,11 +337,14 @@ public class SmsOtpRegistrationService {
                 // Complete phone authentication (signin)
                 return completeSmsAuthentication(phoneNumber);
             }
-            
+
+        } catch (StrategizException e) {
+            // Re-throw StrategizException without wrapping
+            throw e;
         } catch (Exception e) {
-            log.error("Firebase token verification failed: {}", e.getMessage());
-            throw new StrategizException(AuthErrors.SMS_SEND_FAILED, 
-                "Phone verification failed");
+            log.error("Firebase token verification failed: {}", e.getMessage(), e);
+            throw new StrategizException(AuthErrors.SMS_SEND_FAILED,
+                "Phone verification failed: " + e.getMessage());
         }
     }
     

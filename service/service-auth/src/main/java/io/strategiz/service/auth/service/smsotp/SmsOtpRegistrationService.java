@@ -318,7 +318,14 @@ public class SmsOtpRegistrationService {
             String phoneNumber,
             boolean isRegistration) {
 
-        log.info("Verifying Firebase token for phone: {}", maskPhoneNumber(phoneNumber));
+        log.info("Verifying Firebase token for phone: {} userId: {}", maskPhoneNumber(phoneNumber), userId);
+
+        // Validate userId for registration flow
+        if (isRegistration && (userId == null || userId.isBlank())) {
+            log.error("User ID is required for SMS registration but was null or blank");
+            throw new StrategizException(AuthErrors.USER_NOT_FOUND,
+                "User ID is required for phone registration. Please complete profile creation first.");
+        }
 
         try {
             // Verify the Firebase ID token

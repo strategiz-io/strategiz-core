@@ -102,38 +102,51 @@ public class FacebookOAuthSignUpController extends BaseController {
     }
 
     /**
-     * Handle OAuth callback from Facebook for sign-up (legacy redirect)
-     * 
+     * Handle OAuth callback from Facebook for sign-up (redirect to frontend)
+     *
+     * This endpoint receives the authorization code from Facebook and redirects
+     * to the frontend with the code. The frontend will then call the POST
+     * callback endpoint to exchange the code for tokens.
+     *
+     * IMPORTANT: Do NOT process the code here - OAuth codes can only be used once!
+     *
      * @param code Authorization code from Facebook
      * @param state State parameter for verification
-     * @param deviceId Optional device ID for fingerprinting
-     * @return Redirect to frontend with tokens
+     * @param error Optional error parameter from Facebook
+     * @param errorDescription Optional error description from Facebook
+     * @return Redirect to frontend with code or error
      */
     @GetMapping("/callback")
     public RedirectView handleCallback(
-            @RequestParam String code,
-            @RequestParam String state,
-            @RequestParam(required = false) String deviceId) {
-        
-        logger.info("Received OAuth sign-up callback with state: {} and deviceId: {}", state, deviceId);
-        
-        try {
-            Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, deviceId);
-            
-            boolean success = (Boolean) result.getOrDefault("success", false);
-            
-            if (!success) {
-                String error = (String) result.getOrDefault("error", "Unknown error");
-                return new RedirectView(String.format("%s/auth/oauth/facebook/callback?error=%s", 
-                        facebookOAuthService.getFrontendUrl(), error));
-            }
-            
-            return new RedirectView(String.format("%s/auth/oauth/facebook/callback?code=%s&state=%s", 
-                    facebookOAuthService.getFrontendUrl(), code, state));
-        } catch (Exception e) {
-            logger.error("Error in Facebook OAuth sign-up callback", e);
-            return new RedirectView(String.format("%s/auth/oauth/facebook/callback?error=%s", 
-                    facebookOAuthService.getFrontendUrl(), e.getMessage()));
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String error,
+            @RequestParam(name = "error_description", required = false) String errorDescription) {
+
+        logger.info("Received OAuth sign-up callback with state: {}", state);
+
+        // Handle OAuth errors from Facebook
+        if (error != null) {
+            logger.error("OAuth error from Facebook: {} - {}", error, errorDescription);
+            String errorMsg = errorDescription != null ? errorDescription : error;
+            return new RedirectView(String.format("%s/auth/oauth/facebook/callback?error=%s",
+                    facebookOAuthService.getFrontendUrl(),
+                    java.net.URLEncoder.encode(errorMsg, java.nio.charset.StandardCharsets.UTF_8)));
         }
+
+        // Validate code is present
+        if (code == null || code.isEmpty()) {
+            logger.error("No authorization code received from Facebook");
+            return new RedirectView(String.format("%s/auth/oauth/facebook/callback?error=%s",
+                    facebookOAuthService.getFrontendUrl(),
+                    java.net.URLEncoder.encode("No authorization code received", java.nio.charset.StandardCharsets.UTF_8)));
+        }
+
+        // Redirect to frontend with the code - frontend will call POST callback to exchange it
+        logger.info("Redirecting to frontend with authorization code for sign-up");
+        return new RedirectView(String.format("%s/auth/oauth/facebook/callback?code=%s&state=%s",
+                facebookOAuthService.getFrontendUrl(),
+                java.net.URLEncoder.encode(code, java.nio.charset.StandardCharsets.UTF_8),
+                state != null ? java.net.URLEncoder.encode(state, java.nio.charset.StandardCharsets.UTF_8) : ""));
     }
 }

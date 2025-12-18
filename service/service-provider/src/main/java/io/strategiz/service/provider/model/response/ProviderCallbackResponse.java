@@ -45,7 +45,11 @@ public class ProviderCallbackResponse {
     
     @JsonProperty("error_description")
     private String errorDescription;
-    
+
+    // Access token for setting HTTP-only cookie (not serialized to JSON)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private transient String accessToken;
+
     // Constructors
     public ProviderCallbackResponse() {
         this.operationSuccess = false;
@@ -131,7 +135,15 @@ public class ProviderCallbackResponse {
     public void setErrorDescription(String errorDescription) {
         this.errorDescription = errorDescription;
     }
-    
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
     @Override
     public String toString() {
         return "ProviderCallbackResponse{" +

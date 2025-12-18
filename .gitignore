@@ -92,3 +92,8 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Vault local data and secrets
+vault/data/
+vault/vault-keys.txt
+vault/load-secrets.sh

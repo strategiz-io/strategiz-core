@@ -108,10 +108,12 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
     public List<ProviderIntegrationEntity> findAllByUserId(String userId) {
         try {
             log.debug("ProviderIntegrationBaseRepository: Finding all providers for userId: {}", userId);
-            
+
             // Query for both uppercase (legacy) and lowercase (new standard)
+            // Also filter by isActive=true to exclude soft-deleted integrations
             Query query = getUserScopedCollection(userId)
-                .whereIn("status", Arrays.asList("connected", "CONNECTED"));
+                .whereIn("status", Arrays.asList("connected", "CONNECTED"))
+                .whereEqualTo("isActive", true);
             
             log.debug("ProviderIntegrationBaseRepository: Query path: provider_integrations/users/{}/integrations, filter: status={}", 
                 userId, ProviderStatus.CONNECTED.getValue());

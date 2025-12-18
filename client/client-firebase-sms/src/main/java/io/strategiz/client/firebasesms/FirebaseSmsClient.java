@@ -196,10 +196,10 @@ public class FirebaseSmsClient {
     
     /**
      * Verify Firebase ID token from client-side phone authentication
-     * 
+     *
      * This method validates the Firebase ID token sent from the frontend
      * after successful phone number verification.
-     * 
+     *
      * @param idToken The Firebase ID token from client
      * @param expectedPhoneNumber The phone number that should match the token
      * @return true if token is valid and phone number matches
@@ -207,9 +207,12 @@ public class FirebaseSmsClient {
     public boolean verifyFirebaseIdToken(String idToken, String expectedPhoneNumber) {
         try {
             if (!initialized) {
-                log.error("Firebase not initialized. Cannot verify ID token.");
+                log.error("Firebase not initialized. Cannot verify ID token. Check firebase.credentials.path={} and firebase.project.id={}",
+                    firebaseCredentialsPath, firebaseProjectId);
                 return false;
             }
+
+            log.debug("Verifying Firebase ID token for phone: {}", maskPhoneNumber(expectedPhoneNumber));
             
             // Verify the ID token with Firebase Admin SDK
             var decodedToken = firebaseAuth.verifyIdToken(idToken);

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,8 @@ import java.io.IOException;
  * Usage: Include header X-Admin-Key: <admin-api-key>
  *
  * Vault path: admin.api-key
+ *
+ * Can be disabled via ADMIN_API_KEY_ENABLED=false environment variable
  */
 @Configuration
 public class AdminApiKeyConfig {
@@ -30,6 +33,9 @@ public class AdminApiKeyConfig {
 
     private final SecretManager secretManager;
     private String adminApiKey;
+
+    @Value("${admin.api-key.enabled:true}")
+    private boolean adminApiKeyEnabled;
 
     @Autowired
     public AdminApiKeyConfig(@Qualifier("vaultSecretService") SecretManager secretManager) {
@@ -71,6 +77,13 @@ public class AdminApiKeyConfig {
 
             HttpServletRequest httpRequest = (HttpServletRequest) request;
             HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+            // Skip filter if admin API key is disabled
+            if (!adminApiKeyEnabled) {
+                log.warn("Admin API key check DISABLED - allowing request to {}", httpRequest.getRequestURI());
+                chain.doFilter(request, response);
+                return;
+            }
 
             // Skip filter if no admin key configured (for backward compatibility)
             if (adminApiKey == null || adminApiKey.isEmpty()) {

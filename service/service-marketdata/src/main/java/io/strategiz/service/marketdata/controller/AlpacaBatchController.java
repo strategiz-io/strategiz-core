@@ -1,6 +1,7 @@
 package io.strategiz.service.marketdata.controller;
 
 import io.strategiz.business.marketdata.AlpacaCollectionService;
+import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -8,10 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Admin REST controller for managing Alpaca market data collection
@@ -261,6 +259,105 @@ public class AlpacaBatchController {
 
             return ResponseEntity.internalServerError().body(errorResponse);
         }
+    }
+
+    /**
+     * Execute incremental collection for ALL timeframes (1Min to 1Month)
+     *
+     * POST /api/admin/alpaca/incremental/all-timeframes
+     * Request body: { "lookbackHours": 2 } (optional, defaults to 2 hours)
+     *
+     * This pulls the latest delta data across all 9 timeframes:
+     * 1Min, 5Min, 15Min, 30Min, 1Hour, 4Hour, 1Day, 1Week, 1Month
+     *
+     * Useful for:
+     * - Initializing the alerting system with fresh data
+     * - Manual full refresh across all timeframes
+     * - Testing multi-timeframe collection
+     */
+    @PostMapping("/incremental/all-timeframes")
+    public ResponseEntity<Map<String, Object>> executeAllTimeframesIncremental(
+            @RequestBody(required = false) Map<String, Object> request) {
+
+        int lookbackHours = request != null && request.containsKey("lookbackHours")
+                ? ((Number) request.get("lookbackHours")).intValue()
+                : 2;
+
+        List<String> allTimeframes = new ArrayList<>(Timeframe.VALID_TIMEFRAMES);
+
+        log.info("=== Admin API: All Timeframes Incremental Request ({} timeframes, lookback: {}h) ===",
+                allTimeframes.size(), lookbackHours);
+
+        long startTime = System.currentTimeMillis();
+
+        // Aggregate counters
+        int totalSymbolsProcessed = 0;
+        int totalDataPointsStored = 0;
+        int totalErrors = 0;
+        int timeframesProcessed = 0;
+        List<Map<String, Object>> timeframeResults = new ArrayList<>();
+
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusHours(lookbackHours);
+
+        for (String timeframe : allTimeframes) {
+            try {
+                log.info("--- Collecting timeframe: {} ---", timeframe);
+                long tfStartTime = System.currentTimeMillis();
+
+                AlpacaCollectionService.CollectionResult result =
+                        collectionService.backfillIntradayData(startDate, endDate, timeframe);
+
+                long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
+
+                totalSymbolsProcessed += result.totalSymbolsProcessed;
+                totalDataPointsStored += result.totalDataPointsStored;
+                totalErrors += result.errorCount;
+                timeframesProcessed++;
+
+                // Track per-timeframe results
+                Map<String, Object> tfResult = new HashMap<>();
+                tfResult.put("timeframe", timeframe);
+                tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
+                tfResult.put("dataPointsStored", result.totalDataPointsStored);
+                tfResult.put("errors", result.errorCount);
+                tfResult.put("durationSeconds", tfDuration);
+                timeframeResults.add(tfResult);
+
+                log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---",
+                        timeframe, tfDuration, result.totalSymbolsProcessed,
+                        result.totalDataPointsStored, result.errorCount);
+
+            } catch (Exception e) {
+                log.error("Failed to collect timeframe {}: {}", timeframe, e.getMessage(), e);
+                totalErrors++;
+
+                Map<String, Object> tfResult = new HashMap<>();
+                tfResult.put("timeframe", timeframe);
+                tfResult.put("error", e.getMessage());
+                timeframeResults.add(tfResult);
+            }
+        }
+
+        long totalDuration = (System.currentTimeMillis() - startTime) / 1000;
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", totalErrors == 0 ? "success" : "partial_success");
+        response.put("message", "All timeframes incremental collection completed");
+        response.put("timeframesRequested", allTimeframes.size());
+        response.put("timeframesProcessed", timeframesProcessed);
+        response.put("lookbackHours", lookbackHours);
+        response.put("totalSymbolsProcessed", totalSymbolsProcessed);
+        response.put("totalDataPointsStored", totalDataPointsStored);
+        response.put("totalErrors", totalErrors);
+        response.put("totalDurationSeconds", totalDuration);
+        response.put("timeframeResults", timeframeResults);
+
+        log.info("=== All Timeframes Incremental Completed in {}s ===", totalDuration);
+        log.info("Timeframes: {}/{}, Symbols: {}, Bars: {}, Errors: {}",
+                timeframesProcessed, allTimeframes.size(), totalSymbolsProcessed, totalDataPointsStored, totalErrors);
+
+        return ResponseEntity.ok(response);
     }
 
     /**

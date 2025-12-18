@@ -1,6 +1,7 @@
 package io.strategiz.batch.marketdata;
 
 import io.strategiz.business.marketdata.AlpacaCollectionService;
+import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,24 +10,30 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Scheduled job for incremental intraday data collection from Alpaca
  *
- * Purpose: Keep market data up-to-date with latest bars
+ * Purpose: Keep market data up-to-date with latest bars across ALL timeframes
  * Execution: Auto-scheduled every 5 minutes during market hours
- * Target: Fetch latest bars for all tracked symbols
+ * Target: Fetch latest bars for all tracked symbols across all 9 timeframes
  *
  * Behavior:
- * - Checks latest bar timestamp in Firestore for each symbol
- * - Fetches only new bars since last collection
+ * - Iterates through all 9 canonical timeframes (1Min to 1Month)
+ * - Checks latest bar timestamp in Firestore for each symbol/timeframe
+ * - Fetches only new bars since last collection (delta collection)
  * - Handles market hours automatically (9:30 AM - 4:00 PM ET)
  * - Runs on weekdays only (Monday-Friday)
+ * - Aggregates results across all timeframes
  *
  * Configuration:
  * - alpaca.batch.incremental-enabled: Enable/disable incremental updates (default: false)
- * - alpaca.batch.incremental-timeframe: Bar interval (default: 1Min)
  * - alpaca.batch.incremental-cron: Cron schedule (default: every 5 minutes)
+ * - alpaca.batch.incremental-lookback-hours: How far back to look for new bars (default: 2)
+ *
+ * Timeframes collected: 1Min, 5Min, 15Min, 30Min, 1Hour, 4Hour, 1Day, 1Week, 1Month
  *
  * Architecture: Only runs when "scheduler" profile is active
  */
@@ -41,23 +48,26 @@ public class AlpacaIncrementalJob {
     @Value("${alpaca.batch.incremental-enabled:false}")
     private boolean incrementalEnabled;
 
-    @Value("${alpaca.batch.incremental-timeframe:1Min}")
-    private String defaultTimeframe;
-
     @Value("${alpaca.batch.incremental-lookback-hours:2}")
     private int lookbackHours;
 
+    // All canonical timeframes to collect
+    private static final List<String> ALL_TIMEFRAMES = new ArrayList<>(Timeframe.VALID_TIMEFRAMES);
+
     public AlpacaIncrementalJob(AlpacaCollectionService collectionService) {
         this.collectionService = collectionService;
-        log.info("AlpacaIncrementalJob initialized (enabled: {}, profile: scheduler)", incrementalEnabled);
+        log.info("AlpacaIncrementalJob initialized (enabled: {}, timeframes: {}, profile: scheduler)",
+                incrementalEnabled, ALL_TIMEFRAMES.size());
     }
 
     /**
-     * Scheduled incremental collection
+     * Scheduled incremental collection across ALL timeframes
      * Runs every 5 minutes by default (configurable via cron)
      *
      * Default schedule: 0 *&#47;5 * * * MON-FRI (every 5 minutes, weekdays only)
      * Market hours: 9:30 AM - 4:00 PM ET
+     *
+     * Collects delta data for all 9 timeframes: 1Min, 5Min, 15Min, 30Min, 1Hour, 4Hour, 1Day, 1Week, 1Month
      */
     @Scheduled(cron = "${alpaca.batch.incremental-cron:0 */5 * * * MON-FRI}")
     public void executeScheduledIncremental() {
@@ -72,27 +82,51 @@ public class AlpacaIncrementalJob {
             return;
         }
 
-        log.info("=== Starting Scheduled Incremental Collection ===");
+        log.info("=== Starting Scheduled Incremental Collection (All {} Timeframes) ===", ALL_TIMEFRAMES.size());
 
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusHours(lookbackHours);
 
         long startTime = System.currentTimeMillis();
 
-        try {
-            AlpacaCollectionService.CollectionResult result =
-                    collectionService.backfillIntradayData(startDate, endDate, defaultTimeframe);
+        // Aggregate counters across all timeframes
+        int totalSymbolsProcessed = 0;
+        int totalDataPointsStored = 0;
+        int totalErrors = 0;
+        int timeframesProcessed = 0;
 
-            long duration = (System.currentTimeMillis() - startTime) / 1000;
+        for (String timeframe : ALL_TIMEFRAMES) {
+            try {
+                log.info("--- Collecting timeframe: {} ---", timeframe);
+                long tfStartTime = System.currentTimeMillis();
 
-            log.info("=== Incremental Collection Completed in {}s ===", duration);
-            log.info("Symbols processed: {}", result.totalSymbolsProcessed);
-            log.info("Data points stored: {}", result.totalDataPointsStored);
-            log.info("Errors: {}", result.errorCount);
+                AlpacaCollectionService.CollectionResult result =
+                        collectionService.backfillIntradayData(startDate, endDate, timeframe);
 
-        } catch (Exception e) {
-            log.error("Incremental collection failed: {}", e.getMessage(), e);
+                long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
+
+                totalSymbolsProcessed += result.totalSymbolsProcessed;
+                totalDataPointsStored += result.totalDataPointsStored;
+                totalErrors += result.errorCount;
+                timeframesProcessed++;
+
+                log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---",
+                        timeframe, tfDuration, result.totalSymbolsProcessed,
+                        result.totalDataPointsStored, result.errorCount);
+
+            } catch (Exception e) {
+                log.error("Failed to collect timeframe {}: {}", timeframe, e.getMessage(), e);
+                totalErrors++;
+            }
         }
+
+        long totalDuration = (System.currentTimeMillis() - startTime) / 1000;
+
+        log.info("=== Incremental Collection Completed in {}s ===", totalDuration);
+        log.info("Timeframes processed: {}/{}", timeframesProcessed, ALL_TIMEFRAMES.size());
+        log.info("Total symbols processed: {}", totalSymbolsProcessed);
+        log.info("Total data points stored: {}", totalDataPointsStored);
+        log.info("Total errors: {}", totalErrors);
     }
 
     /**

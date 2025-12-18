@@ -552,13 +552,88 @@ public class SessionAuthBusiness {
             
             log.info("Successfully refreshed access token for user {}", userId);
             return Optional.of(newAccessToken);
-            
+
         } catch (Exception e) {
             log.error("Error refreshing access token: {}", e.getMessage());
             return Optional.empty();
         }
     }
-    
+
+    /**
+     * Find and refresh an existing active session for a user.
+     * This is the industry-standard approach for OAuth callbacks when the user
+     * is already authenticated - we refresh their existing session instead of
+     * creating a new one.
+     *
+     * @param userId The user ID to find session for
+     * @param clientIp The client IP to update in session
+     * @param userAgent The user agent to log
+     * @return Optional containing the refreshed session's access token, or empty if no valid session found
+     */
+    public Optional<RefreshedSession> findAndRefreshActiveSession(String userId, String clientIp, String userAgent) {
+        try {
+            log.info("Looking for existing active session to refresh for user: {}", userId);
+
+            // Find active ACCESS token sessions for this user
+            List<SessionEntity> activeSessions = sessionRepository.findByUserIdAndTokenTypeAndRevokedFalse(userId, "ACCESS");
+
+            if (activeSessions.isEmpty()) {
+                log.info("No active sessions found for user: {}", userId);
+                return Optional.empty();
+            }
+
+            // Find the most recent valid (non-expired) session
+            SessionEntity validSession = null;
+            Instant now = Instant.now();
+
+            for (SessionEntity session : activeSessions) {
+                if (session.isValid() && session.getExpiresAt().isAfter(now)) {
+                    if (validSession == null || session.getIssuedAt().isAfter(validSession.getIssuedAt())) {
+                        validSession = session;
+                    }
+                }
+            }
+
+            if (validSession == null) {
+                log.info("No valid (non-expired) sessions found for user: {}", userId);
+                return Optional.empty();
+            }
+
+            // Refresh the session - extend expiry and update metadata
+            Instant newExpiry = now.plus(Duration.ofHours(24));
+            validSession.setExpiresAt(newExpiry);
+            validSession.updateLastAccessed();
+            if (clientIp != null) {
+                validSession.setIpAddress(clientIp);
+            }
+
+            // Save the updated session
+            sessionRepository.save(validSession);
+
+            log.info("Refreshed existing session {} for user {} - new expiry: {}",
+                validSession.getSessionId(), userId, newExpiry);
+
+            return Optional.of(new RefreshedSession(
+                validSession.getTokenValue(),
+                validSession.getSessionId(),
+                newExpiry
+            ));
+
+        } catch (Exception e) {
+            log.error("Error finding/refreshing active session for user {}: {}", userId, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Result of refreshing an existing session
+     */
+    public record RefreshedSession(
+        String accessToken,
+        String sessionId,
+        Instant newExpiry
+    ) {}
+
     /**
      * Add an authentication method to an existing session and update tokens
      * Used when adding 2FA during an active session (e.g., TOTP registration)

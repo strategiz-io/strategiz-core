@@ -6,6 +6,9 @@ import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.service.auth.util.CookieUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,20 +35,27 @@ public class ProviderCallbackController extends BaseController {
     }
     
     private final ProviderCallbackService providerCallbackService;
-    
+    private final CookieUtil cookieUtil;
+
     @Autowired
-    public ProviderCallbackController(ProviderCallbackService providerCallbackService) {
+    public ProviderCallbackController(ProviderCallbackService providerCallbackService,
+                                      CookieUtil cookieUtil) {
         this.providerCallbackService = providerCallbackService;
+        this.cookieUtil = cookieUtil;
     }
     
     /**
      * Handle OAuth callback from provider (GET request from OAuth provider).
-     * 
+     * Sets HTTP-only session cookie for authentication before redirecting to frontend.
+     * Creates a database-backed session with full audit trail (IP, User-Agent).
+     *
      * @param provider The provider name (coinbase, kraken, etc.)
      * @param code The authorization code from OAuth provider
      * @param state The state parameter for security validation
      * @param error Optional error parameter if OAuth failed
      * @param errorDescription Optional error description
+     * @param servletRequest The HTTP request for extracting client info
+     * @param servletResponse The HTTP response for setting cookies
      * @return Redirect to frontend with success or error
      */
     @GetMapping("/{provider}")
@@ -54,16 +64,22 @@ public class ProviderCallbackController extends BaseController {
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error,
-            @RequestParam(name = "error_description", required = false) String errorDescription) {
-        
+            @RequestParam(name = "error_description", required = false) String errorDescription,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
+
         // Map "cb" to "coinbase" to avoid Coinbase's redirect URI restriction
         if ("cb".equals(provider)) {
             provider = "coinbase";
         }
-        
+
+        // Extract client info for enterprise-grade audit trail
+        String clientIp = getClientIpAddress(servletRequest);
+        String userAgent = servletRequest.getHeader("User-Agent");
+
         log.info("=== OAuth Callback Received ===");
-        log.info("Provider: {}, State: {}, Has code: {}, Error: {}",
-                provider, state, code != null ? "yes" : "no", error);
+        log.info("Provider: {}, State: {}, Has code: {}, Error: {}, ClientIP: {}",
+                provider, state, code != null ? "yes" : "no", error, clientIp);
 
         try {
             // Handle OAuth errors from provider
@@ -71,28 +87,39 @@ public class ProviderCallbackController extends BaseController {
                 log.error("OAuth error from {}: {} - {}", provider, error, errorDescription);
                 return new RedirectView(providerCallbackService.getErrorRedirectUrl(provider, error, errorDescription));
             }
-            
+
             // Validate required parameters
             if (code == null || code.isEmpty()) {
                 log.error("Missing authorization code from {} callback", provider);
                 return new RedirectView(providerCallbackService.getErrorRedirectUrl(provider, "missing_code", "Authorization code is required"));
             }
-            
+
             if (state == null || state.isEmpty()) {
                 log.error("Missing state parameter from {} callback", provider);
                 return new RedirectView(providerCallbackService.getErrorRedirectUrl(provider, "missing_state", "State parameter is required"));
             }
-            
-            // Process the OAuth callback
+
+            // Process the OAuth callback with client info for audit trail
             log.info("Processing OAuth callback for {} - starting token exchange", provider);
-            ProviderCallbackResponse response = providerCallbackService.processOAuthCallback(provider, code, state);
+            ProviderCallbackResponse response = providerCallbackService.processOAuthCallback(
+                provider, code, state, clientIp, userAgent);
             log.info("OAuth callback successful for {} - status: {}", provider, response.getStatus());
+
+            // Set HTTP-only session cookie for authentication
+            // This ensures the frontend can validate the session after redirect
+            String accessToken = response.getAccessToken();
+            if (accessToken != null && !accessToken.isEmpty()) {
+                cookieUtil.setAccessTokenCookie(servletResponse, accessToken);
+                log.info("Set HTTP-only access token cookie for provider OAuth callback");
+            } else {
+                log.warn("No access token available to set cookie - user may need to re-authenticate");
+            }
 
             // Redirect to frontend with success
             String redirectUrl = response.getRedirectUrl();
             log.info("Redirecting to: {}", redirectUrl);
             return new RedirectView(redirectUrl);
-            
+
         } catch (Exception e) {
             log.error("Error processing OAuth callback for provider: {}", provider, e);
             return new RedirectView(providerCallbackService.getErrorRedirectUrl(provider, "processing_error", e.getMessage()));
@@ -144,9 +171,10 @@ public class ProviderCallbackController extends BaseController {
                 throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, "service-provider", "state");
             }
             
-            // Process the OAuth callback
-            ProviderCallbackResponse response = providerCallbackService.processOAuthCallback(provider, code, state);
-            
+            // Process the OAuth callback (POST doesn't have request context, use defaults)
+            ProviderCallbackResponse response = providerCallbackService.processOAuthCallback(
+                provider, code, state, "0.0.0.0", "Frontend POST Callback");
+
             return ResponseEntity.ok(response);
             
         } catch (StrategizException e) {
@@ -160,11 +188,48 @@ public class ProviderCallbackController extends BaseController {
     
     /**
      * Health check endpoint for the callback service.
-     * 
+     *
      * @return Simple health status
      */
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("ProviderCallbackController is healthy");
+    }
+
+    /**
+     * Extract the real client IP address from the request.
+     * Handles proxies, load balancers, and CDNs by checking standard headers.
+     *
+     * @param request The HTTP request
+     * @return The client IP address
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        // Check X-Forwarded-For header (used by most proxies/load balancers)
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
+            // X-Forwarded-For can contain multiple IPs, the first one is the client
+            return xForwardedFor.split(",")[0].trim();
+        }
+
+        // Check X-Real-IP header (used by Nginx)
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
+            return xRealIp;
+        }
+
+        // Check CF-Connecting-IP header (used by Cloudflare)
+        String cfConnectingIp = request.getHeader("CF-Connecting-IP");
+        if (cfConnectingIp != null && !cfConnectingIp.isEmpty() && !"unknown".equalsIgnoreCase(cfConnectingIp)) {
+            return cfConnectingIp;
+        }
+
+        // Check True-Client-IP header (used by Akamai and some CDNs)
+        String trueClientIp = request.getHeader("True-Client-IP");
+        if (trueClientIp != null && !trueClientIp.isEmpty() && !"unknown".equalsIgnoreCase(trueClientIp)) {
+            return trueClientIp;
+        }
+
+        // Fallback to remote address
+        return request.getRemoteAddr();
     }
 }

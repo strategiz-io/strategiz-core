@@ -63,14 +63,17 @@ public class ProviderCallbackService {
     
     /**
      * Process OAuth callback from a provider.
-     * 
+     *
      * @param provider The provider name
      * @param code The authorization code
      * @param state The state parameter
+     * @param clientIp The client IP address for audit trail
+     * @param userAgent The client user agent for audit trail
      * @return ProviderCallbackResponse with connection status
      */
-    public ProviderCallbackResponse processOAuthCallback(String provider, String code, String state) {
-        log.info("Processing OAuth callback for provider: {}, state: {}", provider, state);
+    public ProviderCallbackResponse processOAuthCallback(String provider, String code, String state,
+                                                         String clientIp, String userAgent) {
+        log.info("Processing OAuth callback for provider: {}, state: {}, clientIp: {}", provider, state, clientIp);
         
         // Validate provider
         if (!isValidProvider(provider)) {
@@ -120,7 +123,9 @@ public class ProviderCallbackService {
             log.info("Demo mode disabled for user {} after connecting provider: {}", userId, provider);
 
             // Set success redirect URL with auth token for cross-origin session handling
-            response.setRedirectUrl(getSuccessRedirectUrl(provider, userId));
+            // Also sets the token on the response for HTTP-only cookie creation by the controller
+            // Pass client IP and User-Agent for enterprise-grade audit trail
+            setSuccessRedirectWithToken(response, provider, userId, clientIp, userAgent);
             response.setOperationSuccess(true);
 
             // Refresh portfolio summary now that new provider is connected
@@ -299,6 +304,94 @@ public class ProviderCallbackService {
         } catch (Exception e) {
             log.warn("Failed to generate token for redirect, falling back to basic redirect: {}", e.getMessage());
             return String.format("%s/providers/callback/%s/success?userId=%s", frontendUrl, provider, userId);
+        }
+    }
+
+    /**
+     * Set success redirect URL and access token on the response.
+     *
+     * INDUSTRY STANDARD APPROACH:
+     * 1. First, try to find and refresh the user's existing active session
+     * 2. Only create a new session if no valid session exists (fallback)
+     *
+     * This prevents duplicate sessions and follows OAuth best practices for
+     * account linking flows where the user is already authenticated.
+     *
+     * @param response The response to populate
+     * @param provider The provider name
+     * @param userId The user ID to generate token for
+     * @param clientIp The client IP address for audit trail
+     * @param userAgent The client user agent for audit trail
+     */
+    public void setSuccessRedirectWithToken(ProviderCallbackResponse response, String provider, String userId,
+                                            String clientIp, String userAgent) {
+        try {
+            String accessToken;
+            String sessionId;
+
+            // STEP 1: Try to find and refresh existing session (industry standard)
+            java.util.Optional<SessionAuthBusiness.RefreshedSession> refreshedSession =
+                sessionAuthBusiness.findAndRefreshActiveSession(userId, clientIp, userAgent);
+
+            if (refreshedSession.isPresent()) {
+                // User has an existing valid session - refresh it instead of creating new
+                SessionAuthBusiness.RefreshedSession session = refreshedSession.get();
+                accessToken = session.accessToken();
+                sessionId = session.sessionId();
+
+                log.info("Refreshed existing session {} for user {} after {} OAuth callback (industry standard approach)",
+                    sessionId, userId, provider);
+            } else {
+                // STEP 2: No valid session found - create new one as fallback
+                // This handles edge cases like expired sessions or first-time connections
+                log.info("No existing valid session found for user {} - creating new session as fallback", userId);
+
+                SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
+                    userId,
+                    null, // email not needed for provider OAuth
+                    java.util.List.of("provider_oauth", provider), // Include provider as an auth method for tracking
+                    false, // Not partial auth - this is a full provider connection
+                    "oauth-callback-" + provider, // Device ID for tracking
+                    null, // No device fingerprint
+                    clientIp != null ? clientIp : "0.0.0.0", // Client IP for audit trail
+                    userAgent != null ? userAgent : "Provider OAuth Callback", // User agent for audit trail
+                    false // demoMode - real provider connection means live mode
+                );
+
+                SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+                accessToken = authResult.accessToken();
+                sessionId = authResult.getSessionId();
+
+                log.info("Created new fallback session {} for user {} via provider {}", sessionId, userId, provider);
+            }
+
+            // Set the access token on the response for HTTP-only cookie creation by the controller
+            response.setAccessToken(accessToken);
+
+            // Store session info in connection data for frontend use
+            if (response.getConnectionData() == null) {
+                response.setConnectionData(new HashMap<>());
+            }
+            response.getConnectionData().put("sessionId", sessionId);
+            response.getConnectionData().put("sessionRefreshed", refreshedSession.isPresent());
+
+            // Build redirect URL with token as fallback for cross-origin scenarios
+            String redirectUrl = String.format("%s/providers/callback/%s/success?token=%s&userId=%s&sessionId=%s",
+                frontendUrl, provider,
+                java.net.URLEncoder.encode(accessToken, "UTF-8"),
+                userId,
+                sessionId != null ? sessionId : "");
+            response.setRedirectUrl(redirectUrl);
+
+            log.info("OAuth callback complete for user: {} (session: {}, refreshed: {})",
+                userId, sessionId, refreshedSession.isPresent());
+
+        } catch (Exception e) {
+            log.error("Failed to handle session for user {} after provider {} OAuth: {}",
+                userId, provider, e.getMessage(), e);
+            // Fallback to basic redirect without session
+            response.setRedirectUrl(String.format("%s/providers/callback/%s/success?userId=%s&error=session_handling_failed",
+                frontendUrl, provider, userId));
         }
     }
     

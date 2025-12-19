@@ -147,6 +147,15 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
 
     @Override
     public List<MarketDataEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate) {
+        return findBySymbolAndDateRange(symbol, startDate, endDate, null, 500);
+    }
+
+    /**
+     * Find market data by symbol and date range with optional timeframe filter and limit.
+     * Optimized to filter at database level for better performance.
+     */
+    public List<MarketDataEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate,
+                                                            String timeframe, int limit) {
         try {
             Long startTimestamp = convertLocalDateToTimestamp(startDate);
             Long endTimestamp = convertLocalDateToTimestamp(endDate.plusDays(1));
@@ -155,8 +164,15 @@ public class MarketDataRepositoryImpl extends BaseRepository<MarketDataEntity> i
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol.toUpperCase())
                 .whereGreaterThanOrEqualTo("timestamp", startTimestamp)
-                .whereLessThan("timestamp", endTimestamp)
-                .orderBy("timestamp", Query.Direction.ASCENDING);
+                .whereLessThan("timestamp", endTimestamp);
+
+            // Add timeframe filter if specified (filters at DB level for performance)
+            if (timeframe != null && !timeframe.isEmpty()) {
+                query = query.whereEqualTo("timeframe", timeframe);
+            }
+
+            query = query.orderBy("timestamp", Query.Direction.ASCENDING)
+                         .limit(limit);
 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 

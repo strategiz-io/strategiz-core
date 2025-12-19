@@ -62,23 +62,20 @@ public class MarketDataService {
             log.debug("Timeframe {} normalized to {}, querying with aliases: {}",
                 timeframe, normalizedTimeframe, timeframeAliases);
 
-            // Query repository
+            // Query repository with optimized filtering at DB level
             List<MarketDataEntity> results;
 
             if (startLocalDate != null && endLocalDate != null) {
-                // Query with date range
-                results = marketDataRepository.findBySymbolAndDateRange(symbol.toUpperCase(), startLocalDate, endLocalDate);
-
-                // Filter by timeframe if specified (match any alias)
-                if (timeframe != null && !timeframe.isEmpty()) {
-                    results = results.stream()
-                        .filter(entity -> entity.getTimeframe() != null &&
-                                          timeframeAliases.contains(entity.getTimeframe()))
-                        .collect(Collectors.toList());
-                }
+                // Query with date range and timeframe filter at DB level (optimized)
+                results = marketDataRepository.findBySymbolAndDateRange(
+                    symbol.toUpperCase(),
+                    startLocalDate,
+                    endLocalDate,
+                    normalizedTimeframe,  // Filter at DB level
+                    500  // Limit results for performance
+                );
             } else if (timeframe != null && !timeframe.isEmpty()) {
                 // Query by symbol and timeframe only
-                // Try normalized first, then fall back to original if empty
                 results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), normalizedTimeframe);
                 if (results.isEmpty() && !normalizedTimeframe.equals(timeframe)) {
                     log.debug("No results for normalized timeframe {}, trying original: {}", normalizedTimeframe, timeframe);
@@ -89,9 +86,7 @@ public class MarketDataService {
                 results = marketDataRepository.findBySymbol(symbol.toUpperCase());
             }
 
-            // Sort by timestamp ascending (oldest first)
-            results.sort(Comparator.comparing(MarketDataEntity::getTimestamp));
-
+            // Results already sorted by Firestore query - no need for in-memory sort
             log.info("Retrieved {} market data bars for {} with timeframe {}", results.size(), symbol, timeframe);
             return results;
 

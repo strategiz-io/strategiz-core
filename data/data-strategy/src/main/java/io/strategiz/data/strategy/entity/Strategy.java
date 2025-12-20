@@ -54,7 +54,7 @@ public class Strategy extends BaseEntity {
 
     // Versioning fields
     @JsonProperty("version")
-    private Integer version = 1;
+    private Long version = 1L;
 
     @JsonProperty("parentStrategyId")
     private String parentStrategyId; // Points to original strategy when versioned
@@ -181,11 +181,13 @@ public class Strategy extends BaseEntity {
         this.performance = performance;
     }
 
-    public Integer getVersion() {
+    @Override
+    public Long getVersion() {
         return version;
     }
 
-    public void setVersion(Integer version) {
+    @Override
+    public void setVersion(Long version) {
         this.version = version;
     }
 

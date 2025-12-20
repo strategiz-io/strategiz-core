@@ -88,8 +88,8 @@ public class ReadStrategyRepositoryImpl implements ReadStrategyRepository {
         List<Strategy> versions = findVersionsByParentId(parentStrategyId);
         return versions.stream()
                 .max((s1, s2) -> {
-                    Integer v1 = s1.getVersion() != null ? s1.getVersion() : 1;
-                    Integer v2 = s2.getVersion() != null ? s2.getVersion() : 1;
+                    Long v1 = s1.getVersion() != null ? s1.getVersion() : 1L;
+                    Long v2 = s2.getVersion() != null ? s2.getVersion() : 1L;
                     return v1.compareTo(v2);
                 });
     }

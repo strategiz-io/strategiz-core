@@ -55,7 +55,7 @@ public class StrategyResponse {
 
     // Versioning fields
     @JsonProperty("version")
-    private Integer version;
+    private Long version;
 
     @JsonProperty("parentStrategyId")
     private String parentStrategyId;
@@ -191,11 +191,11 @@ public class StrategyResponse {
         this.updatedAt = updatedAt;
     }
 
-    public Integer getVersion() {
+    public Long getVersion() {
         return version;
     }
 
-    public void setVersion(Integer version) {
+    public void setVersion(Long version) {
         this.version = version;
     }
 

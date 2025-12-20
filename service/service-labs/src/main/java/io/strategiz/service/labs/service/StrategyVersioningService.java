@@ -66,18 +66,18 @@ public class StrategyVersioningService {
         }
 
         // Determine the new version number
-        int newVersion = (original.getVersion() != null ? original.getVersion() : 1) + 1;
+        long newVersion = (original.getVersion() != null ? original.getVersion() : 1L) + 1L;
 
         // Check if there are already newer versions
         List<Strategy> existingVersions = readStrategyRepository.findVersionsByParentId(
                 original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId
         );
         if (!existingVersions.isEmpty()) {
-            int maxVersion = existingVersions.stream()
-                    .map(s -> s.getVersion() != null ? s.getVersion() : 1)
-                    .max(Integer::compareTo)
-                    .orElse(1);
-            newVersion = Math.max(newVersion, maxVersion + 1);
+            long maxVersion = existingVersions.stream()
+                    .map(s -> s.getVersion() != null ? s.getVersion() : 1L)
+                    .max(Long::compareTo)
+                    .orElse(1L);
+            newVersion = Math.max(newVersion, maxVersion + 1L);
         }
 
         // Create new strategy with copied fields
@@ -145,7 +145,7 @@ public class StrategyVersioningService {
 
         // Sort by version number descending (newest first)
         return versions.stream()
-                .sorted(Comparator.comparingInt((Strategy s) -> s.getVersion() != null ? s.getVersion() : 1).reversed())
+                .sorted(Comparator.comparingLong((Strategy s) -> s.getVersion() != null ? s.getVersion() : 1L).reversed())
                 .collect(Collectors.toList());
     }
 

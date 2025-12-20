@@ -81,4 +81,11 @@ public interface UserPreferenceRepository extends CrudRepository<UserPreferenceE
     default Optional<UserPreferenceEntity> findPrivacyPreference() {
         return findFirstByCategory("privacy");
     }
+
+    /**
+     * Find AI preference (model selection, etc.)
+     */
+    default Optional<UserPreferenceEntity> findAIPreference() {
+        return findFirstByCategory("ai");
+    }
 }

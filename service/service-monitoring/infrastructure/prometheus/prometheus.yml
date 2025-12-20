@@ -1,55 +1,133 @@
+# Prometheus Configuration for Strategiz Observability
+# Short-term storage with remote write to Mimir for long-term
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'strategiz'
+    environment: 'development'
 
+# =============================================================================
+# ALERTING CONFIGURATION
+# =============================================================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      timeout: 10s
+      api_version: v2
+
+# =============================================================================
+# RULE FILES
+# =============================================================================
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "rules/strategiz-alerts.yml"
+  - "rules/strategiz-slos.yml"
 
+# =============================================================================
+# REMOTE WRITE TO MIMIR (Long-term storage)
+# =============================================================================
+remote_write:
+  - url: http://mimir:9009/api/v1/push
+    send_exemplars: true
+    queue_config:
+      capacity: 10000
+      max_shards: 200
+      min_shards: 1
+      max_samples_per_send: 2000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 5s
+    metadata_config:
+      send: true
+      send_interval: 1m
+
+# =============================================================================
+# SCRAPE CONFIGURATIONS
+# =============================================================================
 scrape_configs:
-  # Prometheus itself
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'prometheus'
 
   # Spring Boot Application Metrics
   - job_name: 'strategiz-app'
     metrics_path: '/actuator/prometheus'
     scrape_interval: 5s
-    static_configs:
-      - targets: ['host.docker.internal:8080']  # Spring Boot app
     scrape_timeout: 10s
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          service: 'strategiz-core'
+          environment: 'development'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '(.+):\d+'
+        replacement: '${1}'
 
-  # Frontend metrics (if we add a metrics endpoint)
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'tempo'
+
+  # Mimir metrics
+  - job_name: 'mimir'
+    static_configs:
+      - targets: ['mimir:9009']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'mimir'
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'loki'
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'otel-collector'
+
+  # AlertManager metrics
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'alertmanager'
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    relabel_configs:
+      - target_label: 'service'
+        replacement: 'grafana'
+
+  # Frontend metrics (React app - if instrumented)
   - job_name: 'strategiz-frontend'
     metrics_path: '/metrics'
-    scrape_interval: 15s
+    scrape_interval: 30s
+    scrape_timeout: 10s
     static_configs:
-      - targets: ['host.docker.internal:3000']  # React app
-    scrape_timeout: 5s
-
-  # System metrics (if you want to add node_exporter)
-  - job_name: 'node'
-    static_configs:
-      - targets: ['host.docker.internal:9100']  # node_exporter if installed
-
-  # Database metrics (if you want to add postgres_exporter)
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['host.docker.internal:9187']  # postgres_exporter if installed
-
-  # Container metrics (if you want to add cAdvisor)
-  - job_name: 'cadvisor'
-    static_configs:
-      - targets: ['host.docker.internal:8080']  # cAdvisor if installed
-
-# Alerting rules (optional)
-alerting:
-  alertmanagers:
-    - static_configs:
-        - targets:
-          # - alertmanager:9093
-
-# Recording rules for complex queries
-rule_files:
-  - "rules/*.yml" 
+      - targets: ['host.docker.internal:3000']
+        labels:
+          service: 'strategiz-ui'
+          environment: 'development'
+    honor_labels: true

@@ -98,12 +98,7 @@ public class TimescaleMarketDataRepositoryImpl implements MarketDataRepository {
 		Instant start = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();
 		Instant end = endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-		log.info("TimescaleDB query: symbol={}, timeframe={}, start={}, end={}, limit={}",
-				symbol, timeframe, start, end, limit);
-
 		List<MarketDataTimescaleEntity> results = timescaleRepo.findBySymbolAndTimeRange(symbol, start, end, timeframe);
-
-		log.info("TimescaleDB query returned {} results", results.size());
 
 		// Apply limit
 		if (results.size() > limit) {

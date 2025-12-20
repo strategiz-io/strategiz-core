@@ -1,0 +1,175 @@
+# OpenTelemetry Collector Configuration for Strategiz
+# Unified telemetry collection and export
+
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://localhost:3000"
+            - "http://localhost:8080"
+
+  # Prometheus receiver for scraping Spring Boot metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'strategiz-app'
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['host.docker.internal:8080']
+          metrics_path: '/actuator/prometheus'
+
+  # Host metrics for system monitoring
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+      memory:
+      disk:
+      network:
+
+processors:
+  # Batch processor for efficiency
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Resource processor to add common attributes
+  resource:
+    attributes:
+      - key: service.namespace
+        value: strategiz
+        action: upsert
+      - key: deployment.environment
+        value: ${ENVIRONMENT:-development}
+        action: upsert
+      - key: deployment.platform
+        value: ${PLATFORM:-docker}
+        action: upsert
+
+  # Attributes processor for trace enrichment
+  attributes:
+    actions:
+      - key: http.user_agent
+        action: hash
+      - key: http.client_ip
+        action: hash
+
+  # Tail sampling for traces (keep errors and slow requests)
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100
+    expected_new_traces_per_sec: 100
+    policies:
+      # Always sample errors
+      - name: errors-policy
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      # Sample slow requests (> 1s)
+      - name: latency-policy
+        type: latency
+        latency:
+          threshold_ms: 1000
+      # Probabilistic sampling for the rest
+      - name: probabilistic-policy
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+  # Filter processor to drop health check spans
+  filter:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.route"] == "/actuator/health"'
+        - 'attributes["http.route"] == "/actuator/prometheus"'
+
+exporters:
+  # Export traces to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Export metrics to Prometheus (for Mimir to scrape)
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    const_labels:
+      collector: otel
+
+  # Export metrics directly to Mimir
+  prometheusremotewrite:
+    endpoint: http://mimir:9009/api/v1/push
+    tls:
+      insecure: true
+
+  # Export logs to Loki
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    labels:
+      attributes:
+        service.name: "service"
+        level: ""
+        http.method: ""
+      resource:
+        service.namespace: ""
+
+  # Debug exporter for troubleshooting
+  debug:
+    verbosity: basic
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # Zpages for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+  # Memory ballast for GC optimization
+  memory_ballast:
+    size_mib: 64
+
+service:
+  extensions: [health_check, zpages, memory_ballast]
+
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter, resource, attributes, tail_sampling, batch]
+      exporters: [otlp/tempo]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus, hostmetrics]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheusremotewrite]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [loki]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      address: 0.0.0.0:8888

@@ -1,0 +1,229 @@
+# Strategiz SLO Recording Rules
+# Service Level Objectives and Error Budgets
+
+groups:
+  # =============================================================================
+  # SERVICE LEVEL INDICATORS (SLIs)
+  # =============================================================================
+  - name: strategiz-slis
+    interval: 30s
+    rules:
+      # Overall Availability SLI
+      - record: strategiz:availability:sli
+        expr: |
+          1 - (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m]))
+          )
+
+      # Latency SLI (percentage of requests under 500ms)
+      - record: strategiz:latency:sli
+        expr: |
+          sum(rate(http_server_requests_seconds_bucket{job="strategiz-app", le="0.5"}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m]))
+
+      # Auth Availability SLI
+      - record: strategiz:auth:availability:sli
+        expr: |
+          1 - (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*", status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*"}[5m]))
+          )
+
+      # Auth Success SLI (excludes client errors from legitimate failed logins)
+      - record: strategiz:auth:success:sli
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*", status=~"2.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*"}[5m]))
+
+      # Provider Availability SLI
+      - record: strategiz:provider:availability:sli
+        expr: |
+          1 - (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/providers/.*", status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/providers/.*"}[5m]))
+          )
+
+      # Portfolio Latency SLI (under 2s)
+      - record: strategiz:portfolio:latency:sli
+        expr: |
+          sum(rate(http_server_requests_seconds_bucket{job="strategiz-app", uri=~"/v1/portfolio/.*", le="2"}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/portfolio/.*"}[5m]))
+
+      # API Latency SLI by endpoint
+      - record: strategiz:api:latency:sli
+        expr: |
+          sum(rate(http_server_requests_seconds_bucket{job="strategiz-app", le="0.5"}[5m])) by (uri)
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m])) by (uri)
+
+  # =============================================================================
+  # ERROR BUDGET CALCULATIONS
+  # =============================================================================
+  - name: strategiz-error-budgets
+    interval: 1m
+    rules:
+      # Error Budget Remaining (30-day window, 99.9% SLO = 0.1% error budget)
+      - record: strategiz:error_budget:remaining
+        expr: |
+          1 - (
+            sum(increase(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[30d]))
+            /
+            sum(increase(http_server_requests_seconds_count{job="strategiz-app"}[30d]))
+          ) / 0.001
+
+      # Error Budget Burn Rate (1 hour window)
+      - record: strategiz:error_budget:burn_rate_1h
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[1h]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[1h]))
+          ) / 0.001
+
+      # Error Budget Burn Rate (6 hour window)
+      - record: strategiz:error_budget:burn_rate_6h
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[6h]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[6h]))
+          ) / 0.001
+
+      # Error Budget Consumption (percentage of 30-day budget used)
+      - record: strategiz:error_budget:consumed
+        expr: |
+          (
+            sum(increase(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[30d]))
+            /
+            sum(increase(http_server_requests_seconds_count{job="strategiz-app"}[30d]))
+          ) / 0.001 * 100
+
+  # =============================================================================
+  # LATENCY PERCENTILES
+  # =============================================================================
+  - name: strategiz-latency
+    interval: 30s
+    rules:
+      # P50 Latency
+      - record: strategiz:latency:p50
+        expr: |
+          histogram_quantile(0.50,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (le)
+          )
+
+      # P90 Latency
+      - record: strategiz:latency:p90
+        expr: |
+          histogram_quantile(0.90,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (le)
+          )
+
+      # P95 Latency
+      - record: strategiz:latency:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (le)
+          )
+
+      # P99 Latency
+      - record: strategiz:latency:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (le)
+          )
+
+      # Latency by URI
+      - record: strategiz:latency:by_uri:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (uri, le)
+          )
+
+  # =============================================================================
+  # THROUGHPUT METRICS
+  # =============================================================================
+  - name: strategiz-throughput
+    interval: 30s
+    rules:
+      # Total RPS
+      - record: strategiz:throughput:rps
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m]))
+
+      # RPS by Status
+      - record: strategiz:throughput:rps:by_status
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m])) by (status)
+
+      # RPS by URI
+      - record: strategiz:throughput:rps:by_uri
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m])) by (uri)
+
+      # Error Rate
+      - record: strategiz:error_rate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m]))
+          * 100
+
+  # =============================================================================
+  # SLO ALERTS (based on error budget burn)
+  # =============================================================================
+  - name: strategiz-slo-alerts
+    interval: 30s
+    rules:
+      # Fast burn alert (burning 2% of monthly budget in 1 hour)
+      - alert: SLOBudgetBurnFast
+        expr: strategiz:error_budget:burn_rate_1h > 14.4
+        for: 2m
+        labels:
+          severity: critical
+          category: slo
+        annotations:
+          summary: "SLO Error Budget burning fast"
+          description: "Error budget is being consumed at {{ $value }}x the sustainable rate. At this rate, the 30-day budget will be exhausted in {{ 30 / $value | humanizeDuration }}"
+
+      # Slow burn alert (burning 5% of monthly budget in 6 hours)
+      - alert: SLOBudgetBurnSlow
+        expr: |
+          strategiz:error_budget:burn_rate_1h > 6
+          and
+          strategiz:error_budget:burn_rate_6h > 3
+        for: 15m
+        labels:
+          severity: warning
+          category: slo
+        annotations:
+          summary: "SLO Error Budget burning slowly"
+          description: "Error budget consumption is elevated. Current 6h burn rate: {{ printf \"%.2f\" $value }}x"
+
+      # Budget exhausted alert
+      - alert: SLOBudgetExhausted
+        expr: strategiz:error_budget:remaining < 0
+        for: 5m
+        labels:
+          severity: critical
+          category: slo
+        annotations:
+          summary: "SLO Error Budget exhausted"
+          description: "The 30-day error budget has been fully consumed"
+
+      # Budget low alert
+      - alert: SLOBudgetLow
+        expr: strategiz:error_budget:remaining < 0.25
+        for: 5m
+        labels:
+          severity: warning
+          category: slo
+        annotations:
+          summary: "SLO Error Budget running low"
+          description: "Only {{ $value | humanizePercentage }} of the 30-day error budget remains"

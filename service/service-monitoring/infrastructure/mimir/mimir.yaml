@@ -1,0 +1,94 @@
+# Mimir Configuration for Strategiz Observability
+# Long-term metrics storage (Prometheus-compatible)
+
+# Single-tenant mode for simplicity
+multitenancy_enabled: false
+
+# Server configuration
+server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
+  log_level: info
+
+# Blocks storage (local filesystem for development)
+blocks_storage:
+  backend: filesystem
+  bucket_store:
+    sync_dir: /data/tsdb-sync
+    bucket_index:
+      enabled: true
+  filesystem:
+    dir: /data/blocks
+
+# Compactor configuration
+compactor:
+  data_dir: /data/compactor
+  sharding_ring:
+    kvstore:
+      store: memberlist
+
+# Distributor configuration
+distributor:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+
+# Ingester configuration
+ingester:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+    replication_factor: 1
+
+# Ruler storage (for alerting rules)
+ruler_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/rules
+
+# Alertmanager storage
+alertmanager_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/alertmanager
+
+# Store gateway
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+
+# Activity tracker
+activity_tracker:
+  filepath: /data/activity/activity.log
+
+# Limits configuration
+limits:
+  # Ingestion limits
+  ingestion_rate: 100000
+  ingestion_burst_size: 200000
+  max_global_series_per_user: 1500000
+  max_global_series_per_metric: 50000
+  max_label_names_per_series: 30
+  max_label_value_length: 2048
+
+  # Query limits
+  max_fetched_series_per_query: 50000
+  max_fetched_chunks_per_query: 2000000
+  max_query_lookback: 0
+
+  # Ruler limits
+  ruler_max_rules_per_rule_group: 20
+  ruler_max_rule_groups_per_tenant: 70
+
+# Memberlist configuration (for single-node deployment)
+memberlist:
+  abort_if_cluster_join_fails: false
+  bind_port: 7946
+  join_members: []
+
+# Runtime configuration
+runtime_config:
+  file: /data/runtime.yaml
+  period: 10s

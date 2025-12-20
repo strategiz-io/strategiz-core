@@ -1,7 +1,10 @@
 version: '3.8'
 
 services:
-  # Log Storage & Processing
+  # =============================================================================
+  # LOGS - Loki + Promtail
+  # =============================================================================
+
   loki:
     image: grafana/loki:2.9.0
     container_name: strategiz-loki
@@ -13,8 +16,12 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Log Collection Agent
   promtail:
     image: grafana/promtail:latest
     container_name: strategiz-promtail
@@ -22,14 +29,19 @@ services:
       - ./loki/promtail-config.yml:/etc/promtail/config.yml
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ../../../logs:/logs:ro
     command: -config.file=/etc/promtail/config.yml
     networks:
-      - monitoring
+      - observability
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
     restart: unless-stopped
 
-  # Metrics Collection
+  # =============================================================================
+  # METRICS - Prometheus + Mimir (long-term storage)
+  # =============================================================================
+
   prometheus:
     image: prom/prometheus:latest
     container_name: strategiz-prometheus
@@ -37,19 +49,132 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
+      - '--storage.tsdb.retention.time=24h'
       - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=exemplar-storage'
     networks:
-      - monitoring
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mimir:
+    image: grafana/mimir:2.10.0
+    container_name: strategiz-mimir
+    ports:
+      - "9009:9009"
+    volumes:
+      - ./mimir/mimir.yaml:/etc/mimir/mimir.yaml
+      - mimir-data:/data
+    command:
+      - '-config.file=/etc/mimir/mimir.yaml'
+      - '-target=all'
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9009/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # TRACES - Tempo
+  # =============================================================================
+
+  tempo:
+    image: grafana/tempo:2.3.0
+    container_name: strategiz-tempo
+    ports:
+      - "3200:3200"    # Tempo API
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "9411:9411"    # Zipkin
+      - "14268:14268"  # Jaeger ingest
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo-data:/var/tempo
+    command:
+      - '-config.file=/etc/tempo/tempo.yaml'
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3200/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # COLLECTION - OpenTelemetry Collector
+  # =============================================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.89.0
+    container_name: strategiz-otel-collector
+    ports:
+      - "4316:4317"    # OTLP gRPC (external, remapped to avoid Tempo conflict)
+      - "4319:4318"    # OTLP HTTP (external)
+      - "8888:8888"    # Prometheus metrics
+      - "8889:8889"    # Prometheus exporter metrics
+    volumes:
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    command:
+      - '--config=/etc/otel-collector-config.yaml'
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=strategiz,deployment.environment=development
+    networks:
+      - observability
+    depends_on:
+      tempo:
+        condition: service_healthy
+      mimir:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
     restart: unless-stopped
 
-  # Visualization & Alerting Dashboard
+  # =============================================================================
+  # ALERTING - AlertManager
+  # =============================================================================
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: strategiz-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.listen-address=:9093'
+      - '--cluster.listen-address='
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9093/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================================================
+  # VISUALIZATION - Grafana
+  # =============================================================================
+
   grafana:
     image: grafana/grafana:latest
     container_name: strategiz-grafana
@@ -63,20 +188,38 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=strategiz123
       - GF_USERS_ALLOW_SIGN_UP=false
-    restart: unless-stopped
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor tempoSearch tempoBackendSearch tempoServiceGraph traceToMetrics
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_ALERTING_ENABLED=true
+      - GF_UNIFIED_ALERTING_ENABLED=true
     networks:
-      - monitoring
+      - observability
     depends_on:
-      - loki
-      - prometheus
+      loki:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+      mimir:
+        condition: service_healthy
+      alertmanager:
+        condition: service_healthy
+    restart: unless-stopped
 
-
+# =============================================================================
+# NETWORKS
+# =============================================================================
 
 networks:
   observability:
     driver: bridge
-  monitoring:
-    driver: bridge
+    name: strategiz-observability
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
 
 volumes:
   loki-data:
@@ -84,4 +227,10 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
-    driver: local 
+    driver: local
+  tempo-data:
+    driver: local
+  mimir-data:
+    driver: local
+  alertmanager-data:
+    driver: local

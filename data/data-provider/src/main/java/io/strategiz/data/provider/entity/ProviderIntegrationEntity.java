@@ -8,13 +8,27 @@ import io.strategiz.data.base.annotation.Collection;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Provider integration for users/{userId}/provider_integrations subcollection
- * Simplified entity with only essential fields - no redundancy
+ * Provider integration entity - root-level collection
+ * Collection: provider_integrations/{integrationId}
+ *
+ * Subcollection: provider_integrations/{integrationId}/provider_data/{dataId}
+ *
+ * This entity represents a user's connection to an external provider (exchange/brokerage).
+ * Provider data (balances, transactions, etc.) is stored as a subcollection under this entity.
  */
 @Collection("provider_integrations")
 public class ProviderIntegrationEntity extends BaseEntity {
 
     @DocumentId
+    @PropertyName("id")
+    @JsonProperty("id")
+    private String id;
+
+    @PropertyName("userId")
+    @JsonProperty("userId")
+    @NotBlank(message = "User ID is required")
+    private String userId;
+
     @PropertyName("providerId")
     @JsonProperty("providerId")
     @NotBlank(message = "Provider ID is required")
@@ -42,21 +56,33 @@ public class ProviderIntegrationEntity extends BaseEntity {
         super();
     }
 
-    public ProviderIntegrationEntity(String providerId, String connectionType) {
-        super();
-        this.providerId = providerId;
-        this.connectionType = connectionType;
-        this.status = "connected";
-    }
-
-    public ProviderIntegrationEntity(String providerId, String connectionType, String userId) {
+    public ProviderIntegrationEntity(String userId, String providerId, String connectionType) {
         super(userId);
+        this.userId = userId;
         this.providerId = providerId;
         this.connectionType = connectionType;
         this.status = "connected";
     }
 
     // Getters and Setters
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     public String getProviderId() {
         return providerId;
     }
@@ -99,14 +125,25 @@ public class ProviderIntegrationEntity extends BaseEntity {
         this.errorMessage = errorMessage;
     }
 
-    // Required BaseEntity methods
-    @Override
-    public String getId() {
-        return providerId;
+    /**
+     * Mark this integration as disconnected (soft delete alternative for explicit status)
+     */
+    public void disconnect() {
+        this.status = "disconnected";
     }
 
-    @Override
-    public void setId(String id) {
-        this.providerId = id;
+    /**
+     * Mark this integration as having an error
+     */
+    public void setError(String errorMessage) {
+        this.status = "error";
+        this.errorMessage = errorMessage;
+    }
+
+    /**
+     * Check if this integration is connected and active
+     */
+    public boolean isConnected() {
+        return "connected".equalsIgnoreCase(this.status) && Boolean.TRUE.equals(getIsActive());
     }
 }

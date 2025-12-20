@@ -1,5 +1,7 @@
 package io.strategiz.service.livestrategies.controller;
 
+import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
+import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.entity.StrategyBot;
 import io.strategiz.data.strategy.repository.ReadStrategyBotRepository;
@@ -7,10 +9,12 @@ import io.strategiz.data.strategy.repository.CreateStrategyBotRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyBotRepository;
 import io.strategiz.data.strategy.repository.DeleteStrategyBotRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
+import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.livestrategies.exception.LiveStrategiesErrorDetails;
 import io.strategiz.service.livestrategies.model.request.CreateBotRequest;
 import io.strategiz.service.livestrategies.model.request.UpdateBotStatusRequest;
+import io.strategiz.service.livestrategies.model.response.BotPrerequisitesResponse;
 import io.strategiz.service.livestrategies.model.response.BotResponse;
 import io.strategiz.service.livestrategies.model.response.MessageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,6 +51,8 @@ public class BotController {
     private final UpdateStrategyBotRepository updateBotRepository;
     private final DeleteStrategyBotRepository deleteBotRepository;
     private final ReadStrategyRepository readStrategyRepository;
+    private final UpdateStrategyRepository updateStrategyRepository;
+    private final ReadProviderIntegrationRepository providerIntegrationRepository;
 
     @Autowired
     public BotController(
@@ -54,12 +60,16 @@ public class BotController {
             CreateStrategyBotRepository createBotRepository,
             UpdateStrategyBotRepository updateBotRepository,
             DeleteStrategyBotRepository deleteBotRepository,
-            ReadStrategyRepository readStrategyRepository) {
+            ReadStrategyRepository readStrategyRepository,
+            UpdateStrategyRepository updateStrategyRepository,
+            ReadProviderIntegrationRepository providerIntegrationRepository) {
         this.readBotRepository = readBotRepository;
         this.createBotRepository = createBotRepository;
         this.updateBotRepository = updateBotRepository;
         this.deleteBotRepository = deleteBotRepository;
         this.readStrategyRepository = readStrategyRepository;
+        this.updateStrategyRepository = updateStrategyRepository;
+        this.providerIntegrationRepository = providerIntegrationRepository;
     }
 
     /**
@@ -84,6 +94,49 @@ public class BotController {
         } catch (Exception e) {
             logger.error("Failed to fetch bots for user: {}", userId, e);
             throw new StrategizException(LiveStrategiesErrorDetails.BOT_FETCH_FAILED, "service-live-strategies", e);
+        }
+    }
+
+    /**
+     * GET /v1/bots/prerequisites - Check bot deployment prerequisites
+     * Returns whether the user can deploy bots (Alpaca connected, etc.)
+     */
+    @GetMapping("/prerequisites")
+    @Operation(summary = "Check prerequisites", description = "Check if user can deploy bots (provider connection status)")
+    public ResponseEntity<BotPrerequisitesResponse> checkPrerequisites(Authentication authentication) {
+        String userId = authentication.getName();
+        logger.info("Checking bot prerequisites for user: {}", userId);
+
+        try {
+            // Check if Alpaca is connected
+            Optional<ProviderIntegrationEntity> alpaca = providerIntegrationRepository
+                    .findByUserIdAndProviderId(userId, "alpaca");
+
+            if (alpaca.isEmpty()) {
+                return ResponseEntity.ok(BotPrerequisitesResponse.notConnected());
+            }
+
+            ProviderIntegrationEntity integration = alpaca.get();
+
+            // Check if there's an error with the connection
+            if ("error".equalsIgnoreCase(integration.getStatus())) {
+                return ResponseEntity.ok(BotPrerequisitesResponse.error(integration.getErrorMessage()));
+            }
+
+            // Check if it's actually connected
+            if (!integration.isConnected()) {
+                return ResponseEntity.ok(BotPrerequisitesResponse.notConnected());
+            }
+
+            // Return connected status with environment
+            String environment = integration.getEnvironment();
+            return ResponseEntity.ok(BotPrerequisitesResponse.connected(environment));
+
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Failed to check prerequisites for user: {}", userId, e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_PREREQUISITES_CHECK_FAILED, "service-live-strategies", e);
         }
     }
 
@@ -116,8 +169,6 @@ public class BotController {
     /**
      * POST /v1/bots - Deploy new bot
      * Called from "Deploy Bot" dialog in Labs screen
-     *
-     * NOTE: Currently disabled in UI (Coming Soon)
      */
     @PostMapping
     @Operation(summary = "Deploy new bot", description = "Create and deploy a new strategy bot")
@@ -129,9 +180,18 @@ public class BotController {
         logger.info("Creating bot '{}' for user: {}", request.getBotName(), userId);
 
         try {
+            // Check prerequisites - Alpaca must be connected
+            Optional<ProviderIntegrationEntity> alpaca = providerIntegrationRepository
+                    .findByUserIdAndProviderId(userId, "alpaca");
+
+            if (alpaca.isEmpty() || !alpaca.get().isConnected()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse("Please connect your Alpaca account in Settings before deploying a bot."));
+            }
+
             // Validate strategy exists and belongs to user
-            Optional<Strategy> strategy = readStrategyRepository.findById(request.getStrategyId());
-            if (strategy.isEmpty() || !userId.equals(strategy.get().getUserId())) {
+            Optional<Strategy> strategyOpt = readStrategyRepository.findById(request.getStrategyId());
+            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Strategy not found or access denied"));
             }
@@ -163,9 +223,18 @@ public class BotController {
             bot.setAutoExecute(request.getAutoExecute());
             bot.setStatus("ACTIVE");
             bot.setSubscriptionTier("FREE"); // TODO: Get from user profile
+            bot.setSimulatedMode(true); // Always simulated until full trading is implemented
 
             // Save bot
             StrategyBot created = createBotRepository.createWithUserId(bot, userId);
+
+            // Update strategy deployment status
+            updateStrategyRepository.updateDeploymentStatus(
+                    request.getStrategyId(),
+                    userId,
+                    "BOT",
+                    created.getId()
+            );
 
             String envLabel = "PAPER".equals(request.getEnvironment()) ? "Paper Trading" : "Live Trading";
             MessageResponse response = new MessageResponse(

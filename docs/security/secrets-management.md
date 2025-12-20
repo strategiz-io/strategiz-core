@@ -126,7 +126,7 @@ vault kv put secret/strategiz/alpaca/paper \
 
 ```bash
 # The application will connect to Vault at $VAULT_ADDR
-mvn spring-boot:run -pl application-web
+mvn spring-boot:run -pl application-core
 ```
 
 ## Production Configuration

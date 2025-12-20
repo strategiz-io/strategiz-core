@@ -38,7 +38,17 @@ public class CreateAlertRequest {
 
     @NotEmpty(message = "At least one notification channel is required")
     @JsonProperty("notificationChannels")
-    private List<String> notificationChannels; // email, push, in-app
+    private List<String> notificationChannels; // email, push, in-app, sms
+
+    // Contact info override (optional - defaults from user profile when useDefaultContact=true)
+    @JsonProperty("useDefaultContact")
+    private Boolean useDefaultContact = true;
+
+    @JsonProperty("emailOverride")
+    private String emailOverride;
+
+    @JsonProperty("phoneOverride")
+    private String phoneOverride;
 
     // Getters and Setters
     public String getStrategyId() {
@@ -87,5 +97,29 @@ public class CreateAlertRequest {
 
     public void setNotificationChannels(List<String> notificationChannels) {
         this.notificationChannels = notificationChannels;
+    }
+
+    public Boolean getUseDefaultContact() {
+        return useDefaultContact;
+    }
+
+    public void setUseDefaultContact(Boolean useDefaultContact) {
+        this.useDefaultContact = useDefaultContact;
+    }
+
+    public String getEmailOverride() {
+        return emailOverride;
+    }
+
+    public void setEmailOverride(String emailOverride) {
+        this.emailOverride = emailOverride;
+    }
+
+    public String getPhoneOverride() {
+        return phoneOverride;
+    }
+
+    public void setPhoneOverride(String phoneOverride) {
+        this.phoneOverride = phoneOverride;
     }
 }

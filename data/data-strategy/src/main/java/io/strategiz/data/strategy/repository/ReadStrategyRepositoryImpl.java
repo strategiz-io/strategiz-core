@@ -77,4 +77,20 @@ public class ReadStrategyRepositoryImpl implements ReadStrategyRepository {
     public boolean existsById(String id) {
         return baseRepository.findById(id).isPresent();
     }
+
+    @Override
+    public List<Strategy> findVersionsByParentId(String parentStrategyId) {
+        return baseRepository.findAllByParentStrategyId(parentStrategyId);
+    }
+
+    @Override
+    public Optional<Strategy> findLatestVersion(String parentStrategyId) {
+        List<Strategy> versions = findVersionsByParentId(parentStrategyId);
+        return versions.stream()
+                .max((s1, s2) -> {
+                    Integer v1 = s1.getVersion() != null ? s1.getVersion() : 1;
+                    Integer v2 = s2.getVersion() != null ? s2.getVersion() : 1;
+                    return v1.compareTo(v2);
+                });
+    }
 }

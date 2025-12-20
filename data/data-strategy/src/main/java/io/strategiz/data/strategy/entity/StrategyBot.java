@@ -41,6 +41,10 @@ public class StrategyBot extends BaseEntity {
     @JsonProperty("environment")
     private String environment; // PAPER, LIVE
 
+    // Simulated mode (until full trading execution is implemented)
+    @JsonProperty("simulatedMode")
+    private Boolean simulatedMode = true;
+
     // Risk management
     @JsonProperty("maxPositionSize")
     private Double maxPositionSize;
@@ -178,6 +182,14 @@ public class StrategyBot extends BaseEntity {
 
     public void setEnvironment(String environment) {
         this.environment = environment;
+    }
+
+    public Boolean getSimulatedMode() {
+        return simulatedMode;
+    }
+
+    public void setSimulatedMode(Boolean simulatedMode) {
+        this.simulatedMode = simulatedMode;
     }
 
     public Double getMaxPositionSize() {
@@ -338,6 +350,13 @@ public class StrategyBot extends BaseEntity {
      */
     public boolean isLiveTrading() {
         return "LIVE".equals(environment);
+    }
+
+    /**
+     * Check if this bot is running in simulated mode (no real trades)
+     */
+    public boolean isSimulated() {
+        return Boolean.TRUE.equals(simulatedMode);
     }
 
     /**

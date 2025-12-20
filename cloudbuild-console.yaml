@@ -2,18 +2,18 @@ steps:
 # Build the application with Maven
 - name: 'maven:3.9.6-eclipse-temurin-21'
   entrypoint: 'mvn'
-  args: ['clean', 'package', '-DskipTests', '-pl', 'application-batch', '-am']
+  args: ['clean', 'package', '-DskipTests', '-pl', 'application-console', '-am']
 
 # Build the Docker image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-f', 'application-batch/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID', '-t', 'gcr.io/$PROJECT_ID/strategiz-batch:latest', './application-batch']
+  args: ['build', '-f', 'application-console/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/strategiz-console:$BUILD_ID', '-t', 'gcr.io/$PROJECT_ID/strategiz-console:latest', './application-console']
 
 # Push the Docker image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID']
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-console:$BUILD_ID']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-batch:latest']
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-console:latest']
 
 # Deploy to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -21,8 +21,8 @@ steps:
   args:
     - 'run'
     - 'deploy'
-    - 'strategiz-batch'
-    - '--image=gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID'
+    - 'strategiz-console'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-console:$BUILD_ID'
     - '--platform=managed'
     - '--region=us-east1'
     - '--no-allow-unauthenticated'
@@ -37,8 +37,8 @@ steps:
     - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:
-- 'gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID'
-- 'gcr.io/$PROJECT_ID/strategiz-batch:latest'
+- 'gcr.io/$PROJECT_ID/strategiz-console:$BUILD_ID'
+- 'gcr.io/$PROJECT_ID/strategiz-console:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY

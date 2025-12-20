@@ -86,7 +86,17 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     public Optional<Strategy> updateDescription(String id, String userId, String description) {
         return updateField(id, userId, strategy -> strategy.setDescription(description));
     }
-    
+
+    @Override
+    public Optional<Strategy> updateDeploymentStatus(String id, String userId, String deploymentType, String deploymentId) {
+        return updateField(id, userId, strategy -> {
+            strategy.setStatus("deployed");
+            strategy.setDeploymentType(deploymentType);
+            strategy.setDeploymentId(deploymentId);
+            strategy.setDeployedAt(com.google.cloud.Timestamp.now());
+        });
+    }
+
     private Optional<Strategy> updateField(String id, String userId, java.util.function.Consumer<Strategy> updater) {
         Optional<Strategy> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {

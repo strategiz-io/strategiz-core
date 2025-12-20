@@ -40,8 +40,15 @@ public enum ServiceStrategyErrorDetails implements ErrorDetails {
     STRATEGY_DATABASE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-database-error"),
     
     // Performance Errors
-    STRATEGY_PERFORMANCE_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-performance-update-failed");
-    
+    STRATEGY_PERFORMANCE_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-performance-update-failed"),
+
+    // Fetch Errors
+    STRATEGY_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-fetch-failed"),
+
+    // Versioning Errors
+    STRATEGY_VERSION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-version-failed"),
+    STRATEGY_VERSION_INVALID_STATE(HttpStatus.BAD_REQUEST, "strategy-version-invalid-state");
+
     private final HttpStatus httpStatus;
     private final String propertyKey;
     

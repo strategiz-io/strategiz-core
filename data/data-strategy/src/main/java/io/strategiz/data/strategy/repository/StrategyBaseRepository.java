@@ -22,4 +22,11 @@ public class StrategyBaseRepository extends BaseRepository<Strategy> {
     public java.util.List<Strategy> findAllByUserId(String userId) {
         return findByField("userId", userId);
     }
+
+    /**
+     * Find all versions of a strategy by parentStrategyId
+     */
+    public java.util.List<Strategy> findAllByParentStrategyId(String parentStrategyId) {
+        return findByField("parentStrategyId", parentStrategyId);
+    }
 }

@@ -121,7 +121,7 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
         try {
             Query query = getCollection()
                     .whereEqualTo("credentialId", credentialId)
-                    .whereEqualTo("auditFields.isActive", true)
+                    .whereEqualTo("isActive", true)
                     .limit(1);
             List<PasskeyCredentialEntity> results = executeQuery(query);
             return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
@@ -137,7 +137,7 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
         try {
             Query query = getCollection()
                     .whereEqualTo("userId", userId)
-                    .whereEqualTo("auditFields.isActive", true);
+                    .whereEqualTo("isActive", true);
             return executeQuery(query);
         } catch (DataRepositoryException e) {
             throw e;
@@ -151,7 +151,7 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
         try {
             Query query = getCollection()
                     .whereEqualTo("device", device)
-                    .whereEqualTo("auditFields.isActive", true);
+                    .whereEqualTo("isActive", true);
             return executeQuery(query);
         } catch (DataRepositoryException e) {
             throw e;
@@ -165,7 +165,7 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
         try {
             Query query = getCollection()
                     .whereEqualTo("verified", true)
-                    .whereEqualTo("auditFields.isActive", true);
+                    .whereEqualTo("isActive", true);
             return executeQuery(query);
         } catch (DataRepositoryException e) {
             throw e;
@@ -178,8 +178,8 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
     public List<PasskeyCredentialEntity> findByCreatedAtBefore(Instant before) {
         try {
             Query query = getCollection()
-                    .whereLessThan("auditFields.createdAt", before)
-                    .whereEqualTo("auditFields.isActive", true);
+                    .whereLessThan("createdDate", before)
+                    .whereEqualTo("isActive", true);
             return executeQuery(query);
         } catch (DataRepositoryException e) {
             throw e;
@@ -193,7 +193,7 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
         try {
             Query query = getCollection()
                     .whereLessThan("lastUsedAt", before)
-                    .whereEqualTo("auditFields.isActive", true);
+                    .whereEqualTo("isActive", true);
             return executeQuery(query);
         } catch (DataRepositoryException e) {
             throw e;

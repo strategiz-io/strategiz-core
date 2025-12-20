@@ -24,7 +24,7 @@ public class LLMRouter {
 
 	private static final Logger logger = LoggerFactory.getLogger(LLMRouter.class);
 
-	private static final String DEFAULT_MODEL = "gemini-1.5-flash";
+	private static final String DEFAULT_MODEL = "gemini-3-flash-preview";
 
 	private final Map<String, LLMProvider> providersByModel;
 
@@ -84,14 +84,18 @@ public class LLMRouter {
 	public List<ModelInfo> getAvailableModels() {
 		List<ModelInfo> models = new ArrayList<>();
 
-		// Gemini models
-		models.add(new ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "google", "Fast & efficient"));
-		models.add(new ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "google", "Most capable Gemini"));
+		// Gemini models (latest first)
+		models.add(new ModelInfo("gemini-3-flash-preview", "Gemini 3 Flash", "google",
+				"Frontier intelligence, 3x faster than 2.5 Pro"));
+		models.add(new ModelInfo("gemini-3-pro-preview", "Gemini 3 Pro", "google",
+				"Most intelligent, PhD-level reasoning"));
+		models.add(new ModelInfo("gemini-2.0-flash", "Gemini 2.0 Flash", "google", "Fast & capable"));
 
-		// Claude models
-		models.add(new ModelInfo("claude-3-5-sonnet", "Claude 3.5 Sonnet", "anthropic", "Best balance"));
-		models.add(new ModelInfo("claude-3-opus", "Claude 3 Opus", "anthropic", "Most powerful"));
-		models.add(new ModelInfo("claude-3-haiku", "Claude 3 Haiku", "anthropic", "Fast & affordable"));
+		// Claude models (latest first)
+		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
+				"Best for coding & agents"));
+		models.add(new ModelInfo("claude-sonnet-4", "Claude Sonnet 4", "anthropic", "Balanced performance"));
+		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));
 
 		// Mark models as available based on registered providers
 		for (ModelInfo model : models) {

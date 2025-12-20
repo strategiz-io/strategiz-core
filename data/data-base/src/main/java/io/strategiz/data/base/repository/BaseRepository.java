@@ -96,7 +96,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
      */
     public List<T> findAll() {
         try {
-            Query query = getCollection().whereEqualTo("auditFields.isActive", true);
+            Query query = getCollection().whereEqualTo("isActive", true);
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
             
             return docs.stream()
@@ -263,7 +263,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         try {
             Query query = getCollection()
                 .whereEqualTo(fieldName, value)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
                 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
             
@@ -288,7 +288,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
      * @return List of entities created by the user
      */
     public List<T> findByCreatedBy(String userId) {
-        return findByField("auditFields.createdBy", userId);
+        return findByField("createdBy", userId);
     }
 
     /**

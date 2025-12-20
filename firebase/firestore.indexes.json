@@ -1,6 +1,20 @@
 {
   "indexes": [
     {
+      "collectionGroup": "strategies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isActive",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "security",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

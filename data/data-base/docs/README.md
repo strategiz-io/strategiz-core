@@ -141,7 +141,7 @@ public CompletableFuture<List<WatchlistItem>> findBySymbol(String symbol) {
         try {
             Query query = getCollection()
                 .whereEqualTo("symbol", symbol)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
                 
             return query.get().get().getDocuments().stream()
                 .map(doc -> {

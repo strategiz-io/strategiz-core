@@ -20,6 +20,15 @@ strategiz:
     cache-timeout-ms: 60000
     fail-fast: true
     secrets-path: secret
+  # TimescaleDB for market data storage
+  timescale:
+    enabled: true
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      connection-timeout-ms: 10000
+      idle-timeout-ms: 300000
+      max-lifetime-ms: 1800000
 
 # Spring Cloud Vault Configuration (required for Spring Cloud Vault autoconfiguration)
 spring.cloud.vault:

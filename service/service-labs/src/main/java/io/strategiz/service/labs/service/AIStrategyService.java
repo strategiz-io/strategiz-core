@@ -345,7 +345,7 @@ public class AIStrategyService {
 			return new HashMap<String, Object>();
 		}).onErrorResume(e -> {
 			logger.error("Error parsing backtest query", e);
-			return Mono.just(new HashMap<>());
+			return Mono.just(new HashMap<String, Object>());
 		});
 	}
 

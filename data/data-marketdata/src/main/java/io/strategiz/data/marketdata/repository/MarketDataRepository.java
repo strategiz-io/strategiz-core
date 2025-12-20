@@ -42,6 +42,12 @@ public interface MarketDataRepository {
      * Find market data for a symbol within a date range
      */
     List<MarketDataEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Find market data for a symbol within a date range with timeframe filter and limit
+     */
+    List<MarketDataEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate,
+                                                     String timeframe, int limit);
     
     /**
      * Find market data for a symbol with specific timeframe

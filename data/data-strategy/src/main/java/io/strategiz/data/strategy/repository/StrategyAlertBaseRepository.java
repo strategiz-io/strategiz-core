@@ -47,7 +47,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", status)
                 .whereEqualTo("subscriptionTier", subscriptionTier)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
 
             java.util.List<com.google.cloud.firestore.QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
@@ -74,7 +74,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", status)
                 .whereEqualTo("deploymentType", deploymentType)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
 
             java.util.List<com.google.cloud.firestore.QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
@@ -102,7 +102,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
                 .whereEqualTo("status", "ACTIVE")
                 .whereEqualTo("subscriptionTier", subscriptionTier)
                 .whereEqualTo("deploymentType", deploymentType)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
 
             java.util.List<com.google.cloud.firestore.QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 

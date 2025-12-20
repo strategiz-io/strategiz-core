@@ -29,7 +29,8 @@ public class GeminiClient implements LLMProvider {
 
 	private static final String PROVIDER_NAME = "google";
 
-	private static final List<String> SUPPORTED_MODELS = List.of("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp");
+	private static final List<String> SUPPORTED_MODELS = List.of("gemini-3-flash-preview", "gemini-3-pro-preview",
+			"gemini-2.0-flash", "gemini-1.5-pro");
 
 	private final GeminiConfig config;
 

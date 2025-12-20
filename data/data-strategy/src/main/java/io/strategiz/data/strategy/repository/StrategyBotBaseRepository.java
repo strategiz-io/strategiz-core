@@ -54,7 +54,7 @@ public class StrategyBotBaseRepository extends BaseRepository<StrategyBot> {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", status)
                 .whereEqualTo("subscriptionTier", subscriptionTier)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
 
             java.util.List<com.google.cloud.firestore.QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
@@ -81,7 +81,7 @@ public class StrategyBotBaseRepository extends BaseRepository<StrategyBot> {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", status)
                 .whereEqualTo("environment", environment)
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
 
             java.util.List<com.google.cloud.firestore.QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 

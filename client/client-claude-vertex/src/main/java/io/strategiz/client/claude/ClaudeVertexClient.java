@@ -36,13 +36,12 @@ public class ClaudeVertexClient implements LLMProvider {
 
 	private static final String PROVIDER_NAME = "anthropic";
 
-	// Claude models available on Vertex AI
-	private static final List<String> SUPPORTED_MODELS = List.of("claude-3-5-sonnet@20241022",
-			"claude-3-5-sonnet-v2@20241022", "claude-3-opus@20240229", "claude-3-sonnet@20240229",
-			"claude-3-haiku@20240307");
+	// Claude models available on Vertex AI (latest 2025 models)
+	private static final List<String> SUPPORTED_MODELS = List.of("claude-opus-4-5", "claude-sonnet-4", "claude-haiku-4-5",
+			"claude-opus-4-1", "claude-opus-4");
 
 	// User-friendly model IDs that map to Vertex AI model names
-	private static final List<String> USER_MODEL_IDS = List.of("claude-3-5-sonnet", "claude-3-opus", "claude-3-haiku");
+	private static final List<String> USER_MODEL_IDS = List.of("claude-opus-4-5", "claude-sonnet-4", "claude-haiku-4-5");
 
 	private final ClaudeVertexConfig config;
 
@@ -143,12 +142,13 @@ public class ClaudeVertexClient implements LLMProvider {
 			return config.getDefaultModel();
 		}
 
-		// If already a full Vertex model name, return as-is
-		if (model.contains("@")) {
+		// Claude 4.x models use the same name on Vertex AI (no @date suffix)
+		if (model.startsWith("claude-opus-4") || model.startsWith("claude-sonnet-4")
+				|| model.startsWith("claude-haiku-4")) {
 			return model;
 		}
 
-		// Map user-friendly names to Vertex AI model names
+		// Legacy Claude 3.x models with @date suffix
 		return switch (model.toLowerCase()) {
 			case "claude-3-5-sonnet" -> "claude-3-5-sonnet@20241022";
 			case "claude-3-opus" -> "claude-3-opus@20240229";

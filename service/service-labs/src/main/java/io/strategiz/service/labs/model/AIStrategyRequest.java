@@ -45,6 +45,9 @@ public class AIStrategyRequest {
 	@JsonProperty("elementToExplain")
 	private String elementToExplain;
 
+	@JsonProperty("model")
+	private String model; // LLM model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
+
 	// Getters and Setters
 
 	public String getPrompt() {
@@ -93,6 +96,14 @@ public class AIStrategyRequest {
 
 	public void setElementToExplain(String elementToExplain) {
 		this.elementToExplain = elementToExplain;
+	}
+
+	public String getModel() {
+		return model;
+	}
+
+	public void setModel(String model) {
+		this.model = model;
 	}
 
 	/**

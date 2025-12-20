@@ -90,7 +90,7 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
         try {
             Query query = getCollection()
                 .whereEqualTo("profile.email", email)
-                .whereEqualTo("auditFields.isActive", true)
+                .whereEqualTo("isActive", true)
                 .limit(1);
             
             var documents = query.get().get().getDocuments();
@@ -116,7 +116,7 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     public List<UserEntity> findAll() {
         try {
             Query query = getCollection()
-                .whereEqualTo("auditFields.isActive", true);
+                .whereEqualTo("isActive", true);
             
             return query.get().get().getDocuments().stream()
                 .map(doc -> doc.toObject(UserEntity.class))
@@ -155,7 +155,7 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
                 // Step 1: Check if user with this email already exists
                 Query emailQuery = getCollection()
                     .whereEqualTo("profile.email", email)
-                    .whereEqualTo("auditFields.isActive", true)
+                    .whereEqualTo("isActive", true)
                     .limit(1);
 
                 // Note: We can't use transaction.get() with a Query directly,

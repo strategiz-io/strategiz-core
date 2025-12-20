@@ -64,6 +64,7 @@
         <dependency>
             <groupId>io.opentelemetry.instrumentation</groupId>
             <artifactId>opentelemetry-spring-boot-starter</artifactId>
+            <version>2.10.0</version>
         </dependency>
 
         <!-- Micrometer tracing bridge for OpenTelemetry -->

@@ -1,5 +1,7 @@
 package io.strategiz.service.livestrategies.controller;
 
+import io.strategiz.data.preferences.entity.AlertNotificationPreferences;
+import io.strategiz.data.preferences.repository.AlertNotificationPreferencesRepository;
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.entity.StrategyAlert;
 import io.strategiz.data.strategy.entity.StrategyAlertHistory;
@@ -9,6 +11,9 @@ import io.strategiz.data.strategy.repository.CreateStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.DeleteStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
+import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
+import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.livestrategies.exception.LiveStrategiesErrorDetails;
 import io.strategiz.service.livestrategies.model.request.CreateAlertRequest;
@@ -50,6 +55,9 @@ public class AlertController {
     private final DeleteStrategyAlertRepository deleteAlertRepository;
     private final ReadStrategyAlertHistoryRepository readHistoryRepository;
     private final ReadStrategyRepository readStrategyRepository;
+    private final UpdateStrategyRepository updateStrategyRepository;
+    private final AlertNotificationPreferencesRepository alertPreferencesRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public AlertController(
@@ -58,13 +66,19 @@ public class AlertController {
             UpdateStrategyAlertRepository updateAlertRepository,
             DeleteStrategyAlertRepository deleteAlertRepository,
             ReadStrategyAlertHistoryRepository readHistoryRepository,
-            ReadStrategyRepository readStrategyRepository) {
+            ReadStrategyRepository readStrategyRepository,
+            UpdateStrategyRepository updateStrategyRepository,
+            AlertNotificationPreferencesRepository alertPreferencesRepository,
+            UserRepository userRepository) {
         this.readAlertRepository = readAlertRepository;
         this.createAlertRepository = createAlertRepository;
         this.updateAlertRepository = updateAlertRepository;
         this.deleteAlertRepository = deleteAlertRepository;
         this.readHistoryRepository = readHistoryRepository;
         this.readStrategyRepository = readStrategyRepository;
+        this.updateStrategyRepository = updateStrategyRepository;
+        this.alertPreferencesRepository = alertPreferencesRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -107,15 +121,54 @@ public class AlertController {
 
         try {
             // Validate strategy exists and belongs to user
-            Optional<Strategy> strategy = readStrategyRepository.findById(request.getStrategyId());
-            if (strategy.isEmpty() || !userId.equals(strategy.get().getUserId())) {
+            Optional<Strategy> strategyOpt = readStrategyRepository.findById(request.getStrategyId());
+            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Strategy not found or access denied"));
             }
 
+            Strategy strategy = strategyOpt.get();
+
             // TODO: Check subscription tier limits (FREE: 3, STARTER: 10, PRO: unlimited)
             int activeCount = readAlertRepository.countActiveByUserId(userId);
             // For now, allow unlimited - will add tier checking later
+
+            // Resolve contact info for notifications
+            String notificationEmail = null;
+            String notificationPhone = null;
+
+            if (Boolean.FALSE.equals(request.getUseDefaultContact())) {
+                // Use override values from request
+                notificationEmail = request.getEmailOverride();
+                notificationPhone = request.getPhoneOverride();
+            } else {
+                // Use default from user preferences or profile
+                AlertNotificationPreferences prefs = alertPreferencesRepository.getByUserId(userId);
+
+                // Email: prefer alert-specific email, fall back to profile email
+                if (prefs.getEmailForAlerts() != null && !prefs.getEmailForAlerts().isEmpty()) {
+                    notificationEmail = prefs.getEmailForAlerts();
+                } else {
+                    // Fall back to user profile email
+                    Optional<UserEntity> user = userRepository.findById(userId);
+                    if (user.isPresent() && user.get().getProfile() != null) {
+                        notificationEmail = user.get().getProfile().getEmail();
+                    }
+                }
+
+                // Phone: from preferences
+                notificationPhone = prefs.getPhoneNumber();
+            }
+
+            // Get subscription tier from user profile
+            String subscriptionTier = "FREE";
+            Optional<UserEntity> user = userRepository.findById(userId);
+            if (user.isPresent() && user.get().getProfile() != null) {
+                String tier = user.get().getProfile().getSubscriptionTier();
+                if (tier != null) {
+                    subscriptionTier = tier.toUpperCase();
+                }
+            }
 
             // Create alert entity
             StrategyAlert alert = new StrategyAlert();
@@ -126,12 +179,22 @@ public class AlertController {
             alert.setProviderId(request.getProviderId());
             alert.setExchange(request.getExchange());
             alert.setNotificationChannels(request.getNotificationChannels());
+            alert.setNotificationEmail(notificationEmail);
+            alert.setNotificationPhone(notificationPhone);
             alert.setStatus("ACTIVE");
             alert.setTriggerCount(0);
-            alert.setSubscriptionTier("FREE"); // TODO: Get from user profile
+            alert.setSubscriptionTier(subscriptionTier);
 
             // Save alert
             StrategyAlert created = createAlertRepository.createWithUserId(alert, userId);
+
+            // Update strategy deployment status
+            updateStrategyRepository.updateDeploymentStatus(
+                    request.getStrategyId(),
+                    userId,
+                    "ALERT",
+                    created.getId()
+            );
 
             MessageResponse response = new MessageResponse(
                     created.getId(),

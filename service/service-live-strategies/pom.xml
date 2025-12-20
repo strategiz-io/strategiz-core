@@ -53,6 +53,16 @@
             <artifactId>business-preferences</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-user</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring dependencies -->
         <dependency>

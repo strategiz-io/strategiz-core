@@ -55,4 +55,14 @@ public interface ReadStrategyRepository {
      * Check if a strategy exists by ID
      */
     boolean existsById(String id);
+
+    /**
+     * Find all versions of a strategy by parent strategy ID
+     */
+    List<Strategy> findVersionsByParentId(String parentStrategyId);
+
+    /**
+     * Find the latest version of a strategy
+     */
+    Optional<Strategy> findLatestVersion(String parentStrategyId);
 }

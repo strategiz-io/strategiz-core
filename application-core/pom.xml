@@ -11,8 +11,8 @@
     </parent>
 
     <groupId>io.strategiz</groupId>
-    <artifactId>application-web</artifactId>
-    <description>Web application module - REST APIs on port 8443</description>
+    <artifactId>application-core</artifactId>
+    <description>Strategiz Core API - Main REST API service</description>
 
     <dependencies>
         <!-- Essential Spring Boot Starter for bootstrapping -->

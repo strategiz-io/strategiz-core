@@ -107,8 +107,8 @@
 
 
         <!-- Application Modules (Build Last) -->
-        <module>application-web</module>
-        <module>application-batch</module>
+        <module>application-core</module>
+        <module>application-console</module>
     </modules>
 
     <properties>

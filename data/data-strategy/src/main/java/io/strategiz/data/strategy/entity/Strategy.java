@@ -4,6 +4,7 @@ import io.strategiz.data.base.entity.BaseEntity;
 import io.strategiz.data.base.annotation.Collection;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.cloud.Timestamp;
 
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,24 @@ public class Strategy extends BaseEntity {
     
     @JsonProperty("performance")
     private Map<String, Object> performance;
-    
+
+    // Versioning fields
+    @JsonProperty("version")
+    private Integer version = 1;
+
+    @JsonProperty("parentStrategyId")
+    private String parentStrategyId; // Points to original strategy when versioned
+
+    // Deployment tracking fields
+    @JsonProperty("deploymentType")
+    private String deploymentType; // ALERT, BOT, or null if not deployed
+
+    @JsonProperty("deployedAt")
+    private Timestamp deployedAt;
+
+    @JsonProperty("deploymentId")
+    private String deploymentId; // ID of StrategyAlert or StrategyBot
+
     // Constructors
     public Strategy() {
         super();
@@ -161,5 +179,58 @@ public class Strategy extends BaseEntity {
     
     public void setPerformance(Map<String, Object> performance) {
         this.performance = performance;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public String getParentStrategyId() {
+        return parentStrategyId;
+    }
+
+    public void setParentStrategyId(String parentStrategyId) {
+        this.parentStrategyId = parentStrategyId;
+    }
+
+    public String getDeploymentType() {
+        return deploymentType;
+    }
+
+    public void setDeploymentType(String deploymentType) {
+        this.deploymentType = deploymentType;
+    }
+
+    public Timestamp getDeployedAt() {
+        return deployedAt;
+    }
+
+    public void setDeployedAt(Timestamp deployedAt) {
+        this.deployedAt = deployedAt;
+    }
+
+    public String getDeploymentId() {
+        return deploymentId;
+    }
+
+    public void setDeploymentId(String deploymentId) {
+        this.deploymentId = deploymentId;
+    }
+
+    // Helper methods
+    public boolean isDeployed() {
+        return "deployed".equals(this.status) && this.deploymentId != null;
+    }
+
+    public boolean isAlertDeployment() {
+        return "ALERT".equals(this.deploymentType);
+    }
+
+    public boolean isBotDeployment() {
+        return "BOT".equals(this.deploymentType);
     }
 }

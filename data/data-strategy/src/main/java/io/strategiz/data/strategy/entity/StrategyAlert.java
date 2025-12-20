@@ -41,7 +41,14 @@ public class StrategyAlert extends BaseEntity {
     private String exchange; // NYSE, NASDAQ, CRYPTO, etc.
 
     @JsonProperty("notificationChannels")
-    private List<String> notificationChannels; // email, push, in-app
+    private List<String> notificationChannels; // email, push, in-app, sms
+
+    // Resolved contact info for notifications
+    @JsonProperty("notificationEmail")
+    private String notificationEmail; // Email address for email notifications
+
+    @JsonProperty("notificationPhone")
+    private String notificationPhone; // Phone number for SMS notifications
 
     @JsonProperty("status")
     private String status; // ACTIVE, PAUSED, ERROR, STOPPED
@@ -171,6 +178,22 @@ public class StrategyAlert extends BaseEntity {
 
     public void setNotificationChannels(List<String> notificationChannels) {
         this.notificationChannels = notificationChannels;
+    }
+
+    public String getNotificationEmail() {
+        return notificationEmail;
+    }
+
+    public void setNotificationEmail(String notificationEmail) {
+        this.notificationEmail = notificationEmail;
+    }
+
+    public String getNotificationPhone() {
+        return notificationPhone;
+    }
+
+    public void setNotificationPhone(String notificationPhone) {
+        this.notificationPhone = notificationPhone;
     }
 
     public String getStatus() {

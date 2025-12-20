@@ -23,7 +23,9 @@ public enum LiveStrategiesErrorDetails implements ErrorDetails {
     BOT_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "bot-update-failed"),
     BOT_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "bot-delete-failed"),
     BOT_NOT_FOUND(HttpStatus.NOT_FOUND, "bot-not-found"),
-    BOT_PERFORMANCE_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "bot-performance-fetch-failed");
+    BOT_PERFORMANCE_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "bot-performance-fetch-failed"),
+    BOT_PREREQUISITES_CHECK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "bot-prerequisites-check-failed"),
+    BOT_PREREQUISITES_NOT_MET(HttpStatus.BAD_REQUEST, "bot-prerequisites-not-met");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

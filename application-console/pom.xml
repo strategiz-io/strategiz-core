@@ -11,14 +11,20 @@
     </parent>
 
     <groupId>io.strategiz</groupId>
-    <artifactId>application-batch</artifactId>
-    <description>Batch application module - Scheduled jobs on port 8444</description>
+    <artifactId>application-console</artifactId>
+    <description>Strategiz Console - Admin &amp; Operations Hub (batch jobs, admin, observability)</description>
 
     <dependencies>
-        <!-- Essential Spring Boot Starter for batch processing -->
+        <!-- Spring Boot Web for admin endpoints -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Actuator for health/metrics -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
         <!-- Spring scheduling support -->
@@ -61,6 +67,13 @@
             <artifactId>framework-secrets</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Monitoring module for observability integration -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-monitoring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -71,7 +84,7 @@
                 <version>3.5.0</version>
                 <configuration>
                     <skip>false</skip>
-                    <mainClass>io.strategiz.application.batch.BatchApplication</mainClass>
+                    <mainClass>io.strategiz.application.console.ConsoleApplication</mainClass>
                     <jvmArguments>--add-opens java.base/java.time.chrono=ALL-UNNAMED</jvmArguments>
                     <excludes>
                         <exclude>

@@ -56,4 +56,10 @@ public interface UpdateStrategyRepository {
      * Update strategy description
      */
     Optional<Strategy> updateDescription(String id, String userId, String description);
+
+    /**
+     * Update strategy deployment status when deploying as alert or bot
+     * Sets status to "deployed", deploymentType, deploymentId, and deployedAt
+     */
+    Optional<Strategy> updateDeploymentStatus(String id, String userId, String deploymentType, String deploymentId);
 }

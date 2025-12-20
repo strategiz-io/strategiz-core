@@ -52,7 +52,24 @@ public class StrategyResponse {
     
     @JsonProperty("updatedAt")
     private Date updatedAt;
-    
+
+    // Versioning fields
+    @JsonProperty("version")
+    private Integer version;
+
+    @JsonProperty("parentStrategyId")
+    private String parentStrategyId;
+
+    // Deployment fields
+    @JsonProperty("deploymentType")
+    private String deploymentType;
+
+    @JsonProperty("deploymentId")
+    private String deploymentId;
+
+    @JsonProperty("deployedAt")
+    private Object deployedAt;
+
     // Getters and Setters
     public String getId() {
         return id;
@@ -172,5 +189,45 @@ public class StrategyResponse {
     
     public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public String getParentStrategyId() {
+        return parentStrategyId;
+    }
+
+    public void setParentStrategyId(String parentStrategyId) {
+        this.parentStrategyId = parentStrategyId;
+    }
+
+    public String getDeploymentType() {
+        return deploymentType;
+    }
+
+    public void setDeploymentType(String deploymentType) {
+        this.deploymentType = deploymentType;
+    }
+
+    public String getDeploymentId() {
+        return deploymentId;
+    }
+
+    public void setDeploymentId(String deploymentId) {
+        this.deploymentId = deploymentId;
+    }
+
+    public Object getDeployedAt() {
+        return deployedAt;
+    }
+
+    public void setDeployedAt(Object deployedAt) {
+        this.deployedAt = deployedAt;
     }
 }

@@ -34,6 +34,7 @@
         <module>client-schwab</module>
         <module>client-robinhood</module>
         <module>client-sms</module>
+        <module>client-claude-vertex</module>
     </modules>
     
     <dependencies>

@@ -25,7 +25,7 @@ steps:
       - '--image'
       - 'gcr.io/$PROJECT_ID/strategiz-core'
       - '--region'
-      - 'us-central1'
+      - 'us-east1'
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
@@ -40,7 +40,9 @@ steps:
       - '--port'
       - '8080'
       - '--set-env-vars'
-      - 'SPRING_PROFILES_ACTIVE=prod'
+      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
+      - '--set-secrets'
+      - 'VAULT_TOKEN=vault-root-token:latest'
 
 # Build timeout
 timeout: '1200s'

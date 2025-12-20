@@ -7,9 +7,9 @@ import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
 import io.strategiz.business.aichat.prompt.LabsPrompts;
 import io.strategiz.business.aichat.prompt.LearnPrompts;
-import io.strategiz.client.gemini.GeminiClient;
-import io.strategiz.client.gemini.model.GeminiRequest;
-import io.strategiz.client.gemini.model.GeminiResponse;
+import io.strategiz.client.base.llm.model.LLMMessage;
+import io.strategiz.client.base.llm.model.LLMResponse;
+import io.strategiz.client.base.llm.model.ModelInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,64 +21,72 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Business logic for AI-powered chat across Learn, Labs, and other features
+ * Business logic for AI-powered chat across Learn, Labs, and other features. Uses
+ * LLMRouter to support multiple LLM providers (Gemini, Claude, etc.)
  */
 @Service
 public class AIChatBusiness {
 
 	private static final Logger logger = LoggerFactory.getLogger(AIChatBusiness.class);
 
-	private final GeminiClient geminiClient;
+	private final LLMRouter llmRouter;
 
 	private final MarketContextProvider marketContextProvider;
 
 	private final PortfolioContextProvider portfolioContextProvider;
 
-	public AIChatBusiness(GeminiClient geminiClient, MarketContextProvider marketContextProvider,
+	public AIChatBusiness(LLMRouter llmRouter, MarketContextProvider marketContextProvider,
 			PortfolioContextProvider portfolioContextProvider) {
-		this.geminiClient = geminiClient;
+		this.llmRouter = llmRouter;
 		this.marketContextProvider = marketContextProvider;
 		this.portfolioContextProvider = portfolioContextProvider;
 	}
 
 	/**
-	 * Send a chat message and get AI response
+	 * Send a chat message and get AI response using the specified model
 	 * @param userMessage the user's message
 	 * @param context the chat context (feature, page, user data)
 	 * @param conversationHistory previous messages in the conversation
+	 * @param model the LLM model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
 	 * @return ChatResponse containing AI's reply
 	 */
-	public Mono<ChatResponse> chat(String userMessage, ChatContext context, List<ChatMessage> conversationHistory) {
-		logger.info("Processing chat message for feature: {}, page: {}", context.getFeature(),
-				context.getCurrentPage());
+	public Mono<ChatResponse> chat(String userMessage, ChatContext context, List<ChatMessage> conversationHistory,
+			String model) {
+		logger.info("Processing chat message for feature: {}, page: {}, model: {}", context.getFeature(),
+				context.getCurrentPage(), model);
 
 		try {
 			// Build the enhanced prompt with system context
 			String systemPrompt = buildSystemPrompt(context);
 			String enhancedMessage = buildEnhancedMessage(userMessage, context);
 
-			// Convert conversation history to Gemini format
-			List<GeminiRequest.Content> geminiHistory = convertToGeminiHistory(conversationHistory, systemPrompt);
+			// Convert conversation history to LLM format
+			List<LLMMessage> llmHistory = convertToLLMHistory(conversationHistory, systemPrompt);
 
-			// Call Gemini API
-			return geminiClient.generateContent(enhancedMessage, geminiHistory).map(geminiResponse -> {
+			// Call LLM via router
+			return llmRouter.generateContent(enhancedMessage, llmHistory, model).map(llmResponse -> {
 				ChatResponse response = new ChatResponse();
 				response.setId(UUID.randomUUID().toString());
-				response.setContent(geminiResponse.getText());
-				response.setSuccess(true);
+				response.setContent(llmResponse.getContent());
+				response.setModel(llmResponse.getModel());
+				response.setSuccess(llmResponse.isSuccess());
 
 				// Extract token usage if available
-				if (geminiResponse.getUsageMetadata() != null) {
-					response.setTokensUsed(geminiResponse.getUsageMetadata().getTotalTokenCount());
+				if (llmResponse.getTotalTokens() != null) {
+					response.setTokensUsed(llmResponse.getTotalTokens());
 				}
 
-				logger.info("Chat response generated successfully, tokens used: {}", response.getTokensUsed());
+				if (!llmResponse.isSuccess()) {
+					response.setError(llmResponse.getError());
+				}
+
+				logger.info("Chat response generated successfully, model: {}, tokens used: {}", response.getModel(),
+						response.getTokensUsed());
 				return response;
-			})
-				.onErrorResume(error -> {
-					logger.error("Error generating chat response", error);
-					return Mono.just(ChatResponse.error("Failed to generate response: " + error.getMessage()));
-				});
+			}).onErrorResume(error -> {
+				logger.error("Error generating chat response", error);
+				return Mono.just(ChatResponse.error("Failed to generate response: " + error.getMessage()));
+			});
 		}
 		catch (Exception e) {
 			logger.error("Error in chat business logic", e);
@@ -87,37 +95,68 @@ public class AIChatBusiness {
 	}
 
 	/**
+	 * Send a chat message using the default model (backward compatibility)
+	 */
+	public Mono<ChatResponse> chat(String userMessage, ChatContext context, List<ChatMessage> conversationHistory) {
+		return chat(userMessage, context, conversationHistory, null);
+	}
+
+	/**
 	 * Send a chat message with streaming response
 	 * @param userMessage the user's message
 	 * @param context the chat context
 	 * @param conversationHistory previous messages
+	 * @param model the LLM model to use
 	 * @return Flux of ChatResponse chunks
 	 */
-	public Flux<ChatResponse> chatStream(String userMessage, ChatContext context,
-			List<ChatMessage> conversationHistory) {
-		logger.info("Processing streaming chat message for feature: {}", context.getFeature());
+	public Flux<ChatResponse> chatStream(String userMessage, ChatContext context, List<ChatMessage> conversationHistory,
+			String model) {
+		logger.info("Processing streaming chat message for feature: {}, model: {}", context.getFeature(), model);
 
 		try {
 			String systemPrompt = buildSystemPrompt(context);
 			String enhancedMessage = buildEnhancedMessage(userMessage, context);
-			List<GeminiRequest.Content> geminiHistory = convertToGeminiHistory(conversationHistory, systemPrompt);
+			List<LLMMessage> llmHistory = convertToLLMHistory(conversationHistory, systemPrompt);
 
-			return geminiClient.generateContentStream(enhancedMessage, geminiHistory).map(geminiResponse -> {
+			return llmRouter.generateContentStream(enhancedMessage, llmHistory, model).map(llmResponse -> {
 				ChatResponse response = new ChatResponse();
 				response.setId(UUID.randomUUID().toString());
-				response.setContent(geminiResponse.getText());
-				response.setSuccess(true);
+				response.setContent(llmResponse.getContent());
+				response.setModel(llmResponse.getModel());
+				response.setSuccess(llmResponse.isSuccess());
 				return response;
-			})
-				.onErrorResume(error -> {
-					logger.error("Error in streaming chat", error);
-					return Flux.just(ChatResponse.error("Stream error: " + error.getMessage()));
-				});
+			}).onErrorResume(error -> {
+				logger.error("Error in streaming chat", error);
+				return Flux.just(ChatResponse.error("Stream error: " + error.getMessage()));
+			});
 		}
 		catch (Exception e) {
 			logger.error("Error in streaming chat business logic", e);
 			return Flux.just(ChatResponse.error("An error occurred: " + e.getMessage()));
 		}
+	}
+
+	/**
+	 * Send a streaming chat message using the default model (backward compatibility)
+	 */
+	public Flux<ChatResponse> chatStream(String userMessage, ChatContext context,
+			List<ChatMessage> conversationHistory) {
+		return chatStream(userMessage, context, conversationHistory, null);
+	}
+
+	/**
+	 * Get available LLM models
+	 * @return list of ModelInfo objects
+	 */
+	public List<ModelInfo> getAvailableModels() {
+		return llmRouter.getAvailableModels();
+	}
+
+	/**
+	 * Get the default model
+	 */
+	public String getDefaultModel() {
+		return llmRouter.getDefaultModel();
 	}
 
 	/**
@@ -160,28 +199,26 @@ public class AIChatBusiness {
 	}
 
 	/**
-	 * Convert chat message history to Gemini API format
+	 * Convert chat message history to LLM message format
 	 */
-	private List<GeminiRequest.Content> convertToGeminiHistory(List<ChatMessage> conversationHistory,
-			String systemPrompt) {
-		List<GeminiRequest.Content> geminiHistory = new ArrayList<>();
+	private List<LLMMessage> convertToLLMHistory(List<ChatMessage> conversationHistory, String systemPrompt) {
+		List<LLMMessage> llmHistory = new ArrayList<>();
 
-		// Add system prompt as first message
+		// Add system prompt as first message pair
 		if (systemPrompt != null && !systemPrompt.isEmpty()) {
-			geminiHistory.add(new GeminiRequest.Content("user", systemPrompt));
-			geminiHistory.add(new GeminiRequest.Content("model",
-					"Understood. I'm ready to assist with trading education and development."));
+			llmHistory.add(LLMMessage.user(systemPrompt));
+			llmHistory.add(LLMMessage.assistant("Understood. I'm ready to assist with trading education and development."));
 		}
 
 		// Add conversation history
 		if (conversationHistory != null) {
 			for (ChatMessage message : conversationHistory) {
-				String role = "user".equals(message.getRole()) ? "user" : "model";
-				geminiHistory.add(new GeminiRequest.Content(role, message.getContent()));
+				String role = "user".equals(message.getRole()) ? "user" : "assistant";
+				llmHistory.add(new LLMMessage(role, message.getContent()));
 			}
 		}
 
-		return geminiHistory;
+		return llmHistory;
 	}
 
 }

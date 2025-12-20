@@ -49,7 +49,8 @@ public class LearnChatService {
 	 * @return ChatResponseDto
 	 */
 	public Mono<ChatResponseDto> chat(ChatRequestDto request, String userId) {
-		logger.info("Processing chat request for user: {}, feature: {}", userId, request.getFeature());
+		logger.info("Processing chat request for user: {}, feature: {}, model: {}", userId, request.getFeature(),
+				request.getModel());
 
 		try {
 			// Build context
@@ -58,8 +59,8 @@ public class LearnChatService {
 			// Convert conversation history
 			List<ChatMessage> history = convertHistory(request.getConversationHistory());
 
-			// Call business layer
-			return aiChatBusiness.chat(request.getMessage(), context, history).map(this::convertToDto);
+			// Call business layer with model selection
+			return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel()).map(this::convertToDto);
 		}
 		catch (Exception e) {
 			logger.error("Error processing chat request", e);
@@ -74,13 +75,15 @@ public class LearnChatService {
 	 * @return Flux of ChatResponseDto chunks
 	 */
 	public Flux<ChatResponseDto> chatStream(ChatRequestDto request, String userId) {
-		logger.info("Processing streaming chat request for user: {}, feature: {}", userId, request.getFeature());
+		logger.info("Processing streaming chat request for user: {}, feature: {}, model: {}", userId,
+				request.getFeature(), request.getModel());
 
 		try {
 			ChatContext context = buildContext(request, userId);
 			List<ChatMessage> history = convertHistory(request.getConversationHistory());
 
-			return aiChatBusiness.chatStream(request.getMessage(), context, history).map(this::convertToDto);
+			return aiChatBusiness.chatStream(request.getMessage(), context, history, request.getModel())
+				.map(this::convertToDto);
 		}
 		catch (Exception e) {
 			logger.error("Error processing streaming chat request", e);

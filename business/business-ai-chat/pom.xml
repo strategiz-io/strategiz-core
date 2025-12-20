@@ -24,10 +24,24 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Client Base (LLMProvider interface) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Gemini Client -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-gemini</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Claude Vertex Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-claude-vertex</artifactId>
             <version>${project.version}</version>
         </dependency>
 

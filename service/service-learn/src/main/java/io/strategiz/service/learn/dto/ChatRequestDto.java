@@ -33,6 +33,9 @@ public class ChatRequestDto {
 	@JsonProperty("additionalContext")
 	private Map<String, Object> additionalContext;
 
+	@JsonProperty("model")
+	private String model; // LLM model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
+
 	public ChatRequestDto() {
 	}
 
@@ -90,6 +93,14 @@ public class ChatRequestDto {
 
 	public void setAdditionalContext(Map<String, Object> additionalContext) {
 		this.additionalContext = additionalContext;
+	}
+
+	public String getModel() {
+		return model;
+	}
+
+	public void setModel(String model) {
+		this.model = model;
 	}
 
 }

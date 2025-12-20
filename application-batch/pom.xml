@@ -48,6 +48,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- TimescaleDB for market data storage -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-marketdata-timescale</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Framework Secrets - Required for Vault integration used by clients -->
         <dependency>
             <groupId>io.strategiz</groupId>

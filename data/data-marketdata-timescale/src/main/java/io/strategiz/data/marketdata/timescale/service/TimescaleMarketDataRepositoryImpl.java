@@ -92,9 +92,7 @@ public class TimescaleMarketDataRepositoryImpl implements MarketDataRepository {
 		return results.stream().map(converter::toFirestore).collect(Collectors.toList());
 	}
 
-	/**
-	 * Extended method with timeframe filter and limit - used by MarketDataService.
-	 */
+	@Override
 	public List<MarketDataEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate,
 			String timeframe, int limit) {
 		Instant start = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();

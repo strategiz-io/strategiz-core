@@ -1,258 +1,387 @@
 {
-  "dashboard": {
-    "id": null,
-    "title": "Strategiz Application Overview",
-    "tags": ["strategiz", "overview", "logs", "metrics"],
-    "timezone": "browser",
-    "panels": [
+  "annotations": {
+    "list": [
       {
-        "id": 1,
-        "title": "Application Health",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "up{job=\"strategiz-app\"}",
-            "refId": "A",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            }
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {
-              "mode": "thresholds"
-            },
-            "thresholds": {
-              "steps": [
-                {"color": "red", "value": 0},
-                {"color": "green", "value": 1}
-              ]
-            }
-          }
-        },
-        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
       },
       {
-        "id": 2,
-        "title": "Request Rate (RPS)",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "rate(http_server_requests_seconds_count{job=\"strategiz-app\"}[5m])",
-            "refId": "A",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            }
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "reqps",
-            "color": {"mode": "palette-classic"}
-          }
-        },
-        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
-      },
-      {
-        "id": 3,
-        "title": "Error Rate",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "rate(http_server_requests_seconds_count{job=\"strategiz-app\",status=~\"5..\"}[5m]) / rate(http_server_requests_seconds_count{job=\"strategiz-app\"}[5m]) * 100",
-            "refId": "A",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            }
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "color": {
-              "mode": "thresholds"
-            },
-            "thresholds": {
-              "steps": [
-                {"color": "green", "value": 0},
-                {"color": "yellow", "value": 1},
-                {"color": "red", "value": 5}
-              ]
-            }
-          }
-        },
-        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
-      },
-      {
-        "id": 4,
-        "title": "Response Time (P95)",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job=\"strategiz-app\"}[5m]))",
-            "refId": "A",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            }
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s",
-            "color": {
-              "mode": "thresholds"
-            },
-            "thresholds": {
-              "steps": [
-                {"color": "green", "value": 0},
-                {"color": "yellow", "value": 0.5},
-                {"color": "red", "value": 1}
-              ]
-            }
-          }
-        },
-        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
-      },
-      {
-        "id": 5,
-        "title": "Recent Error Logs",
-        "type": "logs",
-        "targets": [
-          {
-            "expr": "{job=\"strategiz-app\"} |= \"ERROR\"",
-            "refId": "A",
-            "datasource": {
-              "type": "loki",
-              "uid": "loki"
-            }
-          }
-        ],
-        "options": {
-          "showTime": true,
-          "showLabels": true,
-          "showCommonLabels": false,
-          "wrapLogMessage": true,
-          "sortOrder": "Descending"
-        },
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
-      },
-      {
-        "id": 6,
-        "title": "Log Levels Over Time",
-        "type": "timeseries",
-        "targets": [
-          {
-            "expr": "sum by(level) (rate({job=\"strategiz-app\"} [5m]))",
-            "refId": "A",
-            "datasource": {
-              "type": "loki",
-              "uid": "loki"
-            }
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "color": {"mode": "palette-classic"},
-            "custom": {
-              "drawStyle": "line",
-              "lineInterpolation": "linear",
-              "barAlignment": 0,
-              "lineWidth": 1,
-              "fillOpacity": 10,
-              "gradientMode": "none",
-              "spanNulls": false,
-              "insertNulls": false,
-              "showPoints": "never",
-              "pointSize": 5,
-              "stacking": {"mode": "none", "group": "A"},
-              "axisPlacement": "auto",
-              "axisLabel": "",
-              "scaleDistribution": {"type": "linear"},
-              "hideFrom": {"legend": false, "tooltip": false, "vis": false}
-            }
-          }
-        },
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
-      },
-      {
-        "id": 7,
-        "title": "API Endpoints Performance",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "topk(10, avg by (uri) (rate(http_server_requests_seconds_sum{job=\"strategiz-app\"}[5m]) / rate(http_server_requests_seconds_count{job=\"strategiz-app\"}[5m])))",
-            "refId": "A",
-            "format": "table",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            }
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "align": "auto",
-              "displayMode": "auto"
-            }
-          }
-        },
-        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12}
-      },
-      {
-        "id": 8,
-        "title": "Authentication Events",
-        "type": "logs",
-        "targets": [
-          {
-            "expr": "{job=\"strategiz-app\"} |~ \"passkey|oauth|signup|signin\" | json",
-            "refId": "A",
-            "datasource": {
-              "type": "loki",
-              "uid": "loki"
-            }
-          }
-        ],
-        "options": {
-          "showTime": true,
-          "showLabels": true,
-          "showCommonLabels": false,
-          "wrapLogMessage": true,
-          "sortOrder": "Descending"
-        },
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
-      },
-      {
-        "id": 9,
-        "title": "User Activity by Endpoint",
-        "type": "piechart",
-        "targets": [
-          {
-            "expr": "topk(8, sum by (uri) (rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri!~\"/actuator.*\"}[5m])))",
-            "refId": "A",
-            "datasource": {
-              "type": "prometheus",
-              "uid": "prometheus"
-            }
-          }
-        ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+        "datasource": {"type": "prometheus", "uid": "mimir"},
+        "enable": true,
+        "expr": "changes(process_start_time_seconds{job=\"strategiz-app\"}[5m]) > 0",
+        "iconColor": "#00ff9f",
+        "name": "Deployments",
+        "titleFormat": "Deployment"
       }
-    ],
-    "time": {
-      "from": "now-1h",
-      "to": "now"
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {"asDropdown": true, "icon": "external link", "includeVars": true, "keepTime": true, "tags": ["strategiz"], "targetBlank": true, "title": "Strategiz Dashboards", "type": "dashboards"}
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 100,
+      "panels": [],
+      "title": "Service Health",
+      "type": "row"
     },
-    "timepicker": {},
-    "timezone": "",
-    "refresh": "30s",
-    "schemaVersion": 30,
-    "version": 1,
-    "links": []
-  }
-} 
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "index": 1, "text": "DOWN"}}, "type": "value"},
+            {"options": {"1": {"color": "#00ff9f", "index": 0, "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "#00ff9f", "value": 1}]}
+        }
+      },
+      "gridPos": {"h": 4, "w": 3, "x": 0, "y": 1},
+      "id": 1,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "pluginVersion": "10.0.0",
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "up{job=\"strategiz-app\"}", "refId": "A"}],
+      "title": "App Status",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}]},
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {"h": 4, "w": 3, "x": 3, "y": 1},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\"}[5m]))", "refId": "A"}],
+      "title": "Request Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 2,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]},
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 4, "w": 3, "x": 6, "y": 1},
+      "id": 3,
+      "options": {"colorMode": "background", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "(sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\"}[5m]))) * 100", "refId": "A"}],
+      "title": "Error Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 1}]},
+          "unit": "s"
+        }
+      },
+      "gridPos": {"h": 4, "w": 3, "x": 9, "y": 1},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\"}[5m])) by (le))", "refId": "A"}],
+      "title": "Latency P95",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 95}, {"color": "#00ff9f", "value": 99}]},
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1},
+      "id": 5,
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "strategiz:availability:sli * 100", "refId": "A"}],
+      "title": "Availability SLO",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 25}, {"color": "#00ff9f", "value": 50}]},
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1},
+      "id": 6,
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "strategiz:error_budget:remaining * 100", "refId": "A"}],
+      "title": "Error Budget Remaining",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}]},
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1},
+      "id": 7,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\"}[24h]))", "refId": "A"}],
+      "title": "Requests (24h)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+      "id": 101,
+      "panels": [],
+      "title": "Traffic & Performance",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "reqps"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "2xx"}, "properties": [{"id": "color", "value": {"fixedColor": "#00ff9f", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "4xx"}, "properties": [{"id": "color", "value": {"fixedColor": "#ffcc00", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "5xx"}, "properties": [{"id": "color", "value": {"fixedColor": "#ff4d4d", "mode": "fixed"}}]}
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "id": 10,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", status=~\"2..\"}[5m]))", "legendFormat": "2xx", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", status=~\"4..\"}[5m]))", "legendFormat": "4xx", "refId": "B"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", status=~\"5..\"}[5m]))", "legendFormat": "5xx", "refId": "C"}
+      ],
+      "title": "Request Rate by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "line+area"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "transparent", "value": null}, {"color": "red", "value": 1}]},
+          "unit": "s"
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "P50"}, "properties": [{"id": "color", "value": {"fixedColor": "#00ff9f", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "P95"}, "properties": [{"id": "color", "value": {"fixedColor": "#6e40aa", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "P99"}, "properties": [{"id": "color", "value": {"fixedColor": "#ff4d4d", "mode": "fixed"}}]}
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "id": 11,
+      "options": {"legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\"}[5m])) by (le))", "legendFormat": "P50", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\"}[5m])) by (le))", "legendFormat": "P95", "refId": "B"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\"}[5m])) by (le))", "legendFormat": "P99", "refId": "C"}
+      ],
+      "title": "Response Time Percentiles",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 14},
+      "id": 102,
+      "panels": [],
+      "title": "Top Endpoints",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": false},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "RPS"}, "properties": [{"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "gauge"}}, {"id": "color", "value": {"mode": "continuous-BlYlRd"}}]},
+          {"matcher": {"id": "byName", "options": "Latency P95"}, "properties": [{"id": "unit", "value": "s"}, {"id": "custom.cellOptions", "value": {"mode": "basic", "type": "gauge"}}, {"id": "color", "value": {"mode": "thresholds"}}, {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 1}]}}]},
+          {"matcher": {"id": "byName", "options": "Error %"}, "properties": [{"id": "unit", "value": "percent"}, {"id": "custom.cellOptions", "value": {"mode": "basic", "type": "gauge"}}, {"id": "color", "value": {"mode": "thresholds"}}, {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}]}
+        ]
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 15},
+      "id": 20,
+      "options": {"cellHeight": "sm", "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false}, "showHeader": true, "sortBy": [{"desc": true, "displayName": "RPS"}]},
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "topk(15, sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri!~\"/actuator.*\"}[5m])) by (uri, method))", "format": "table", "instant": true, "legendFormat": "", "refId": "RPS"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "topk(15, histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\", uri!~\"/actuator.*\"}[5m])) by (uri, method, le)))", "format": "table", "instant": true, "legendFormat": "", "refId": "Latency"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "topk(15, (sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri!~\"/actuator.*\", status=~\"5..\"}[5m])) by (uri, method) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri!~\"/actuator.*\"}[5m])) by (uri, method)) * 100)", "format": "table", "instant": true, "legendFormat": "", "refId": "Errors"}
+      ],
+      "title": "Top Endpoints by Traffic",
+      "transformations": [
+        {"id": "merge", "options": {}},
+        {"id": "organize", "options": {"excludeByName": {"Time": true, "Time 1": true, "Time 2": true, "Time 3": true}, "indexByName": {}, "renameByName": {"Value #Errors": "Error %", "Value #Latency": "Latency P95", "Value #RPS": "RPS", "method": "Method", "uri": "Endpoint"}}}
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "id": 103,
+      "panels": [],
+      "title": "System Resources",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "decimals": 1,
+          "max": 100,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}]},
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 0, "y": 24},
+      "id": 30,
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "(jvm_memory_used_bytes{job=\"strategiz-app\", area=\"heap\"} / jvm_memory_max_bytes{job=\"strategiz-app\", area=\"heap\"}) * 100", "refId": "A"}],
+      "title": "Heap Usage",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "#00ff9f", "value": null}, {"color": "yellow", "value": 300}, {"color": "red", "value": 500}]},
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 5, "w": 4, "x": 4, "y": 24},
+      "id": 31,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "jvm_threads_live_threads{job=\"strategiz-app\"}", "refId": "A"}],
+      "title": "Active Threads",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "bytes"
+        }
+      },
+      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 24},
+      "id": 32,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "jvm_memory_used_bytes{job=\"strategiz-app\", area=\"heap\"}", "legendFormat": "Used", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "jvm_memory_committed_bytes{job=\"strategiz-app\", area=\"heap\"}", "legendFormat": "Committed", "refId": "B"},
+        {"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "jvm_memory_max_bytes{job=\"strategiz-app\", area=\"heap\"}", "legendFormat": "Max", "refId": "C"}
+      ],
+      "title": "Heap Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "mimir"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 20, "gradientMode": "opacity", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "smooth", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "never", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}},
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "s"
+        }
+      },
+      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 24},
+      "id": 33,
+      "options": {"legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"datasource": {"type": "prometheus", "uid": "mimir"}, "expr": "rate(jvm_gc_pause_seconds_sum{job=\"strategiz-app\"}[5m])", "legendFormat": "{{action}} {{cause}}", "refId": "A"}],
+      "title": "GC Pause Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 29},
+      "id": 104,
+      "panels": [],
+      "title": "Logs & Traces",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 30},
+      "id": 40,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"datasource": {"type": "loki", "uid": "loki"}, "expr": "{job=\"strategiz-app\"} |= \"ERROR\" | json", "refId": "A"}],
+      "title": "Recent Errors",
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 30},
+      "id": 41,
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"datasource": {"type": "loki", "uid": "loki"}, "expr": "{job=\"strategiz-app\"} |~ \"(?i)(oauth|signin|signup|session|passkey)\" | json", "refId": "A"}],
+      "title": "Authentication Events",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["strategiz", "overview"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {"refresh_intervals": ["5s", "10s", "30s", "1m", "5m"], "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "7d"]},
+  "timezone": "browser",
+  "title": "Strategiz Overview",
+  "uid": "strategiz-overview",
+  "version": 1,
+  "weekStart": ""
+}

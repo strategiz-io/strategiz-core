@@ -1,36 +1,136 @@
 apiVersion: 1
 
 datasources:
-  # Loki for Logs
+  # =============================================================================
+  # LOGS - Loki
+  # =============================================================================
   - name: Loki
     type: loki
     access: proxy
     url: http://loki:3100
+    uid: loki
     isDefault: false
     jsonData:
       maxLines: 1000
+      # Derived fields for trace correlation
       derivedFields:
-        - datasourceUid: prometheus
-          matcherRegex: 'traceID=(\w+)'
+        # Link to Tempo via traceId in JSON logs
+        - datasourceUid: tempo
+          matcherRegex: '"traceId":"([a-f0-9]+)"'
+          name: TraceID
+          url: '$${__value.raw}'
+        # Link via traceId= format
+        - datasourceUid: tempo
+          matcherRegex: 'traceId=([a-f0-9]+)'
+          name: TraceID
+          url: '$${__value.raw}'
+        # Link via X-Trace-Id header
+        - datasourceUid: tempo
+          matcherRegex: 'X-Trace-Id[=:]\s*([a-f0-9-]+)'
           name: TraceID
           url: '$${__value.raw}'
 
-  # Prometheus for Metrics  
+  # =============================================================================
+  # METRICS - Prometheus (short-term, real-time)
+  # =============================================================================
   - name: Prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
+    uid: prometheus
+    isDefault: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus
+      prometheusVersion: 2.45.0
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
+      # Exemplar configuration for trace linking
+      exemplarTraceIdDestinations:
+        - name: traceId
+          datasourceUid: tempo
+        - name: trace_id
+          datasourceUid: tempo
+
+  # =============================================================================
+  # METRICS - Mimir (long-term storage, default for dashboards)
+  # =============================================================================
+  - name: Mimir
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009/prometheus
+    uid: mimir
     isDefault: true
     jsonData:
       httpMethod: POST
+      manageAlerts: true
+      prometheusType: Mimir
+      cacheLevel: 'High'
+      incrementalQuerying: true
+      incrementalQueryOverlapWindow: 10m
+      # Exemplar configuration for trace linking
       exemplarTraceIdDestinations:
-        - name: traceID
-          datasourceUid: jaeger
-          
-  # Jaeger for Traces (if you add distributed tracing)
-  - name: Jaeger
-    type: jaeger
+        - name: traceId
+          datasourceUid: tempo
+        - name: trace_id
+          datasourceUid: tempo
+
+  # =============================================================================
+  # TRACES - Tempo
+  # =============================================================================
+  - name: Tempo
+    type: tempo
     access: proxy
-    url: http://jaeger:16686
+    url: http://tempo:3200
+    uid: tempo
     isDefault: false
-    uid: jaeger 
+    jsonData:
+      httpMethod: GET
+      serviceMap:
+        datasourceUid: mimir
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      lokiSearch:
+        datasourceUid: loki
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags: ['service.name', 'http.method', 'http.status_code']
+        filterByTraceID: true
+        filterBySpanID: true
+        customQuery: true
+        query: '{service_name="${__span.tags["service.name"]}"} | json'
+      tracesToMetrics:
+        datasourceUid: mimir
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+        tags:
+          - key: service.name
+            value: service
+          - key: http.method
+            value: method
+        queries:
+          - name: Request Rate
+            query: 'sum(rate(http_server_requests_seconds_count{service="$${__tags.service}", method="$${__tags.method}"}[5m]))'
+          - name: Error Rate
+            query: 'sum(rate(http_server_requests_seconds_count{service="$${__tags.service}", status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count{service="$${__tags.service}"}[5m])) * 100'
+          - name: P95 Latency
+            query: 'histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{service="$${__tags.service}"}[5m])) by (le))'
+
+  # =============================================================================
+  # ALERTING - AlertManager
+  # =============================================================================
+  - name: AlertManager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    uid: alertmanager
+    isDefault: false
+    jsonData:
+      implementation: prometheus
+      handleGrafanaManagedAlerts: true

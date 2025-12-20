@@ -1,0 +1,100 @@
+# Tempo Configuration for Strategiz Observability
+# Distributed tracing backend
+
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+# Distributor receives spans and forwards to ingesters
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+    zipkin:
+      endpoint: 0.0.0.0:9411
+    jaeger:
+      protocols:
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+        grpc:
+          endpoint: 0.0.0.0:14250
+
+# Ingester writes traces to backend
+ingester:
+  max_block_duration: 5m
+  trace_idle_period: 10s
+  max_block_bytes: 1048576
+
+# Compactor merges blocks
+compactor:
+  compaction:
+    block_retention: 48h
+    compacted_block_retention: 1h
+    compaction_window: 1h
+    max_block_bytes: 104857600
+
+# Storage configuration
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal
+    block:
+      bloom_filter_false_positive: 0.05
+      v2_index_downsample_bytes: 1000
+      v2_encoding: zstd
+
+# Metrics generator for span metrics -> Prometheus
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: strategiz
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
+  processor:
+    service_graphs:
+      dimensions:
+        - http.method
+        - http.status_code
+        - http.route
+    span_metrics:
+      dimensions:
+        - http.method
+        - http.status_code
+        - http.route
+        - service.name
+      enable_target_info: true
+      histogram_buckets: [0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128, 0.256, 0.512, 1.024, 2.048, 4.096, 8.192]
+
+# Query frontend for trace lookups
+query_frontend:
+  search:
+    duration_slo: 5s
+    throughput_bytes_slo: 1073741824
+  trace_by_id:
+    duration_slo: 5s
+
+# Overrides for limits
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
+    ingestion:
+      max_traces_per_user: 10000
+      max_bytes_per_trace: 5000000
+
+# Usage report (disable for privacy)
+usage_report:
+  reporting_enabled: false

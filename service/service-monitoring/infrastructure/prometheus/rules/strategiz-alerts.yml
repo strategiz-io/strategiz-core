@@ -1,0 +1,264 @@
+# Strategiz Alert Rules
+# Enterprise-grade alerting for observability
+
+groups:
+  # =============================================================================
+  # AVAILABILITY ALERTS
+  # =============================================================================
+  - name: strategiz-availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job="strategiz-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+          service: strategiz-core
+        annotations:
+          summary: "Strategiz application is down"
+          description: "The Strategiz application has been unreachable for more than 1 minute"
+          runbook_url: "https://docs.strategiz.io/runbooks/service-down"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app"}[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "High error rate detected ({{ $value | humanizePercentage }})"
+          description: "Error rate is above 5% for the last 2 minutes"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High latency detected (P95: {{ $value | humanizeDuration }})"
+          description: "95th percentile latency is above 2 seconds"
+
+      - alert: EndpointHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app"}[5m])) by (uri, le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Endpoint {{ $labels.uri }} has high latency"
+          description: "Endpoint P95 latency is {{ $value | humanizeDuration }}"
+
+  # =============================================================================
+  # AUTHENTICATION ALERTS
+  # =============================================================================
+  - name: strategiz-auth
+    interval: 30s
+    rules:
+      - alert: HighAuthFailureRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*", status=~"4.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*"}[5m]))
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High authentication failure rate ({{ $value | humanizePercentage }})"
+          description: "Authentication failures are above 10% for the last 5 minutes"
+
+      - alert: PossibleBruteForce
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/.*", status="401"}[5m])) > 1
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Possible brute force attack detected"
+          description: "More than 60 failed auth attempts per minute detected"
+
+      - alert: OAuthProviderDown
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/oauth/.*", status=~"5.."}[5m])) by (uri)
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/auth/oauth/.*"}[5m])) by (uri)
+          > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: integration
+        annotations:
+          summary: "OAuth provider issues detected"
+          description: "OAuth endpoint {{ $labels.uri }} has >50% error rate"
+
+  # =============================================================================
+  # PROVIDER INTEGRATION ALERTS
+  # =============================================================================
+  - name: strategiz-providers
+    interval: 30s
+    rules:
+      - alert: ProviderHighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/providers/.*", status=~"5.."}[5m])) by (uri)
+          /
+          sum(rate(http_server_requests_seconds_count{job="strategiz-app", uri=~"/v1/providers/.*"}[5m])) by (uri)
+          > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          category: integration
+        annotations:
+          summary: "Provider integration errors detected"
+          description: "Provider endpoint {{ $labels.uri }} has >20% error rate"
+
+      - alert: ProviderSyncSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app", uri=~"/v1/providers/.*/sync"}[5m])) by (uri, le)
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Provider sync is slow"
+          description: "Provider sync P95 latency is {{ $value | humanizeDuration }}"
+
+  # =============================================================================
+  # PORTFOLIO ALERTS
+  # =============================================================================
+  - name: strategiz-portfolio
+    interval: 30s
+    rules:
+      - alert: PortfolioAggregationSlow
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="strategiz-app", uri=~"/v1/portfolio/.*"}[5m])) by (le)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Portfolio aggregation is slow"
+          description: "Portfolio operations P95 latency is {{ $value | humanizeDuration }}"
+
+  # =============================================================================
+  # RESOURCE ALERTS
+  # =============================================================================
+  - name: strategiz-resources
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          jvm_memory_used_bytes{job="strategiz-app", area="heap"}
+          /
+          jvm_memory_max_bytes{job="strategiz-app", area="heap"}
+          > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High JVM heap memory usage ({{ $value | humanizePercentage }})"
+          description: "JVM heap usage is above 90% for 5 minutes"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          jvm_memory_used_bytes{job="strategiz-app", area="heap"}
+          /
+          jvm_memory_max_bytes{job="strategiz-app", area="heap"}
+          > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical JVM heap memory usage ({{ $value | humanizePercentage }})"
+          description: "JVM heap usage is above 95% - risk of OOM"
+
+      - alert: HighGCPauseTime
+        expr: |
+          rate(jvm_gc_pause_seconds_sum{job="strategiz-app"}[5m])
+          /
+          rate(jvm_gc_pause_seconds_count{job="strategiz-app"}[5m])
+          > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High GC pause time ({{ $value | humanizeDuration }})"
+          description: "Average GC pause time is above 500ms"
+
+      - alert: HighThreadCount
+        expr: jvm_threads_live_threads{job="strategiz-app"} > 500
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High thread count ({{ $value }})"
+          description: "JVM thread count is above 500"
+
+  # =============================================================================
+  # INFRASTRUCTURE ALERTS
+  # =============================================================================
+  - name: strategiz-infrastructure
+    interval: 30s
+    rules:
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus has been unreachable for more than 1 minute"
+
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Loki is down"
+          description: "Loki log aggregator is unreachable"
+
+      - alert: TempoDown
+        expr: up{job="tempo"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Tempo is down"
+          description: "Tempo tracing backend is unreachable"
+
+      - alert: MimirDown
+        expr: up{job="mimir"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "Mimir is down"
+          description: "Mimir long-term metrics storage is unreachable"

@@ -1,0 +1,950 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Comprehensive authentication and identity monitoring - OAuth, MFA, sessions, passkeys",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": ["strategiz"],
+      "targetBlank": true,
+      "title": "Strategiz Dashboards",
+      "type": "dashboards"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "Authentication Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#ff4d4d", "value": null },
+              { "color": "#00ff9f", "value": 0.95 },
+              { "color": "#00ff9f", "value": 0.99 }
+            ]
+          },
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/.*\", status=~\"2..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/.*\"}[5m]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Success Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/.*\"}[5m]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Requests/sec",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#00ff9f", "value": null },
+              { "color": "#ff9f00", "value": 0.5 },
+              { "color": "#ff4d4d", "value": 1 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\", uri=~\"/v1/auth/.*\"}[5m])) by (le))",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Latency P95",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#00ff9f", "value": null },
+              { "color": "#ff9f00", "value": 10 },
+              { "color": "#ff4d4d", "value": 50 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/.*\", status=\"401\"}[1h]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Failed Logins (1h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#00ff9f", "value": null },
+              { "color": "#ff9f00", "value": 100 },
+              { "color": "#ff4d4d", "value": 500 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/session.*\", status=~\"2..\"}[24h]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Sessions (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#00ff9f", "value": null },
+              { "color": "#ff9f00", "value": 5 },
+              { "color": "#ff4d4d", "value": 20 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/.*\", status=~\"5..\"}[1h]))",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth Errors (1h)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 101,
+      "panels": [],
+      "title": "OAuth Providers",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "reqps"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Google" }, "properties": [{ "id": "color", "value": { "fixedColor": "#DB4437", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Facebook" }, "properties": [{ "id": "color", "value": { "fixedColor": "#4267B2", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Microsoft" }, "properties": [{ "id": "color", "value": { "fixedColor": "#00A4EF", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "GitHub" }, "properties": [{ "id": "color", "value": { "fixedColor": "#6e5494", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "LinkedIn" }, "properties": [{ "id": "color", "value": { "fixedColor": "#0077B5", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Twitter" }, "properties": [{ "id": "color", "value": { "fixedColor": "#1DA1F2", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+      "id": 10,
+      "options": {
+        "legend": { "calcs": ["mean", "lastNotNull"], "displayMode": "table", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/google.*\"}[5m]))",
+          "legendFormat": "Google",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/facebook.*\"}[5m]))",
+          "legendFormat": "Facebook",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/microsoft.*\"}[5m]))",
+          "legendFormat": "Microsoft",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/github.*\"}[5m]))",
+          "legendFormat": "GitHub",
+          "refId": "D"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/linkedin.*\"}[5m]))",
+          "legendFormat": "LinkedIn",
+          "refId": "E"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/twitter.*\"}[5m]))",
+          "legendFormat": "Twitter",
+          "refId": "F"
+        }
+      ],
+      "title": "OAuth Provider Traffic",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Google" }, "properties": [{ "id": "color", "value": { "fixedColor": "#DB4437", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Facebook" }, "properties": [{ "id": "color", "value": { "fixedColor": "#4267B2", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Microsoft" }, "properties": [{ "id": "color", "value": { "fixedColor": "#00A4EF", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "GitHub" }, "properties": [{ "id": "color", "value": { "fixedColor": "#6e5494", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "LinkedIn" }, "properties": [{ "id": "color", "value": { "fixedColor": "#0077B5", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Twitter" }, "properties": [{ "id": "color", "value": { "fixedColor": "#1DA1F2", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 7 },
+      "id": 11,
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": { "displayMode": "table", "placement": "right", "showLegend": true, "values": ["value"] },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/google.*\", status=~\"2..\"}[24h]))",
+          "legendFormat": "Google",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/facebook.*\", status=~\"2..\"}[24h]))",
+          "legendFormat": "Facebook",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/microsoft.*\", status=~\"2..\"}[24h]))",
+          "legendFormat": "Microsoft",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/github.*\", status=~\"2..\"}[24h]))",
+          "legendFormat": "GitHub",
+          "refId": "D"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/linkedin.*\", status=~\"2..\"}[24h]))",
+          "legendFormat": "LinkedIn",
+          "refId": "E"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/twitter.*\", status=~\"2..\"}[24h]))",
+          "legendFormat": "Twitter",
+          "refId": "F"
+        }
+      ],
+      "title": "OAuth Provider Distribution (24h)",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Success Rate" },
+            "properties": [
+              { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } },
+              { "id": "unit", "value": "percentunit" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "#ff4d4d", "value": null }, { "color": "#ff9f00", "value": 0.9 }, { "color": "#00ff9f", "value": 0.95 }] } },
+              { "id": "max", "value": 1 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Latency P95" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "#00ff9f", "value": null }, { "color": "#ff9f00", "value": 1 }, { "color": "#ff4d4d", "value": 2 }] } },
+              { "id": "max", "value": 3 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "RPS" },
+            "properties": [{ "id": "unit", "value": "reqps" }, { "id": "decimals", "value": 2 }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 7 },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "enablePagination": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "RPS" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/.*\"}[5m])) by (uri)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/.*\", status=~\"2..\"}[5m])) by (uri) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/.*\"}[5m])) by (uri)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\", uri=~\"/v1/auth/oauth/.*\"}[5m])) by (uri, le))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "C"
+        }
+      ],
+      "title": "OAuth Endpoints Health",
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "Value #A": "RPS", "Value #B": "Success Rate", "Value #C": "Latency P95", "uri": "Endpoint" } } },
+        { "id": "filterByValue", "options": { "filters": [{ "config": { "id": "greaterOrEqual", "options": { "value": 0 } }, "fieldName": "RPS" }], "match": "any", "type": "include" } }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "id": 102,
+      "panels": [],
+      "title": "Multi-Factor Authentication",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "hue",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "TOTP" }, "properties": [{ "id": "color", "value": { "fixedColor": "#00ff9f", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "SMS" }, "properties": [{ "id": "color", "value": { "fixedColor": "#00b8ff", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Email" }, "properties": [{ "id": "color", "value": { "fixedColor": "#ff9f00", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Passkey" }, "properties": [{ "id": "color", "value": { "fixedColor": "#b054ff", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 16 },
+      "id": 20,
+      "options": {
+        "legend": { "calcs": ["sum"], "displayMode": "table", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/totp/.*\", status=~\"2..\"}[1h]))",
+          "legendFormat": "TOTP",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/sms/.*\", status=~\"2..\"}[1h]))",
+          "legendFormat": "SMS",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/email/.*\", status=~\"2..\"}[1h]))",
+          "legendFormat": "Email",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/passkey/.*\", status=~\"2..\"}[1h]))",
+          "legendFormat": "Passkey",
+          "refId": "D"
+        }
+      ],
+      "title": "MFA Verifications by Type",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#ff4d4d", "value": null },
+              { "color": "#ff9f00", "value": 0.85 },
+              { "color": "#00ff9f", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 3, "x": 12, "y": 16 },
+      "id": 21,
+      "options": {
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/totp/.*\", status=~\"2..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/totp/.*\"}[5m]))",
+          "legendFormat": "TOTP",
+          "refId": "A"
+        }
+      ],
+      "title": "TOTP Success",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#ff4d4d", "value": null },
+              { "color": "#ff9f00", "value": 0.85 },
+              { "color": "#00ff9f", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 3, "x": 15, "y": 16 },
+      "id": 22,
+      "options": {
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/sms/.*\", status=~\"2..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/sms/.*\"}[5m]))",
+          "legendFormat": "SMS",
+          "refId": "A"
+        }
+      ],
+      "title": "SMS Success",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#ff4d4d", "value": null },
+              { "color": "#ff9f00", "value": 0.85 },
+              { "color": "#00ff9f", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 3, "x": 18, "y": 16 },
+      "id": 23,
+      "options": {
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/email/.*\", status=~\"2..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/email/.*\"}[5m]))",
+          "legendFormat": "Email",
+          "refId": "A"
+        }
+      ],
+      "title": "Email Success",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#ff4d4d", "value": null },
+              { "color": "#ff9f00", "value": 0.85 },
+              { "color": "#00ff9f", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 7, "w": 3, "x": 21, "y": 16 },
+      "id": 24,
+      "options": {
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "pluginVersion": "10.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/passkey/.*\", status=~\"2..\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/passkey/.*\"}[5m]))",
+          "legendFormat": "Passkey",
+          "refId": "A"
+        }
+      ],
+      "title": "Passkey Success",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "panels": [],
+      "title": "Session Management",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Created" }, "properties": [{ "id": "color", "value": { "fixedColor": "#00ff9f", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Validated" }, "properties": [{ "id": "color", "value": { "fixedColor": "#00b8ff", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Terminated" }, "properties": [{ "id": "color", "value": { "fixedColor": "#ff9f00", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Expired" }, "properties": [{ "id": "color", "value": { "fixedColor": "#ff4d4d", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 30,
+      "options": {
+        "legend": { "calcs": ["sum", "mean"], "displayMode": "table", "placement": "right", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/session\", method=\"POST\", status=~\"2..\"}[5m]))",
+          "legendFormat": "Created",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/session/validate\", status=~\"2..\"}[5m]))",
+          "legendFormat": "Validated",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/session\", method=\"DELETE\", status=~\"2..\"}[5m]))",
+          "legendFormat": "Terminated",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "sum(increase(http_server_requests_seconds_count{job=\"strategiz-app\", uri=~\"/v1/auth/session/validate\", status=\"401\"}[5m]))",
+          "legendFormat": "Expired",
+          "refId": "D"
+        }
+      ],
+      "title": "Session Lifecycle",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "custom": {
+            "fillOpacity": 80,
+            "gradientMode": "scheme",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineWidth": 1,
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 31,
+      "options": {
+        "colWidth": 0.9,
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\", uri=~\"/v1/auth/session.*\"}[5m])) by (le))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.90, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\", uri=~\"/v1/auth/session.*\"}[5m])) by (le))",
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "mimir" },
+          "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"strategiz-app\", uri=~\"/v1/auth/session.*\"}[5m])) by (le))",
+          "legendFormat": "P99",
+          "refId": "C"
+        }
+      ],
+      "title": "Session Operation Latency Distribution",
+      "type": "histogram"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "id": 104,
+      "panels": [],
+      "title": "Authentication Logs & Traces",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "id": 40,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=\"strategiz-core\"} |= \"auth\" | json | level = \"ERROR\" or level = \"WARN\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Authentication Errors & Warnings",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "id": 41,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=\"strategiz-core\"} |= \"login\" or |= \"session\" or |= \"oauth\" | json | level = \"INFO\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Authentication Activity",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["strategiz", "auth", "identity", "security"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+  },
+  "timezone": "browser",
+  "title": "Strategiz - Authentication & Identity",
+  "uid": "strategiz-auth-identity",
+  "version": 1,
+  "weekStart": ""
+}

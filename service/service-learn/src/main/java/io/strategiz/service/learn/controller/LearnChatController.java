@@ -1,5 +1,7 @@
 package io.strategiz.service.learn.controller;
 
+import io.strategiz.business.aichat.AIChatBusiness;
+import io.strategiz.client.base.llm.model.ModelInfo;
 import io.strategiz.service.learn.dto.ChatRequestDto;
 import io.strategiz.service.learn.dto.ChatResponseDto;
 import io.strategiz.service.learn.service.LearnChatService;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 /**
  * REST controller for Learn feature AI chat
  */
@@ -31,8 +35,11 @@ public class LearnChatController {
 
 	private final LearnChatService learnChatService;
 
-	public LearnChatController(LearnChatService learnChatService) {
+	private final AIChatBusiness aiChatBusiness;
+
+	public LearnChatController(LearnChatService learnChatService, AIChatBusiness aiChatBusiness) {
 		this.learnChatService = learnChatService;
+		this.aiChatBusiness = aiChatBusiness;
 	}
 
 	@PostMapping
@@ -65,15 +72,17 @@ public class LearnChatController {
 	public Flux<ChatResponseDto> chatStream(@RequestParam String message,
 			@RequestParam(required = false, defaultValue = "learn") String feature,
 			@RequestParam(required = false) String currentPage,
+			@RequestParam(required = false) String model,
 			@RequestHeader(value = "X-User-Id", required = false) String userId) {
 
-		logger.info("Received streaming chat request from user: {}", userId);
+		logger.info("Received streaming chat request from user: {}, model: {}", userId, model);
 
 		// Build request from query params
 		ChatRequestDto request = new ChatRequestDto();
 		request.setMessage(message);
 		request.setFeature(feature);
 		request.setCurrentPage(currentPage);
+		request.setModel(model);
 
 		String authenticatedUserId = userId != null ? userId : "anonymous";
 
@@ -84,6 +93,17 @@ public class LearnChatController {
 	@Operation(summary = "Health check", description = "Check if the chat service is available")
 	public ResponseEntity<String> health() {
 		return ResponseEntity.ok("Chat service is healthy");
+	}
+
+	@GetMapping("/models")
+	@Operation(summary = "Get available AI models",
+			description = "Returns list of available LLM models for chat (Gemini, Claude, etc.)")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "List of available models"),
+			@ApiResponse(responseCode = "500", description = "Internal server error") })
+	public ResponseEntity<List<ModelInfo>> getModels() {
+		logger.debug("Getting available AI models");
+		return ResponseEntity.ok(aiChatBusiness.getAvailableModels());
 	}
 
 }

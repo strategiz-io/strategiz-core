@@ -24,7 +24,7 @@ steps:
     - 'strategiz-batch'
     - '--image=gcr.io/$PROJECT_ID/strategiz-batch:$BUILD_ID'
     - '--platform=managed'
-    - '--region=us-central1'
+    - '--region=us-east1'
     - '--no-allow-unauthenticated'
     - '--memory=2Gi'
     - '--cpu=2'
@@ -32,8 +32,8 @@ steps:
     - '--min-instances=1'
     - '--max-instances=3'
     - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod'
-    - '--set-env-vars=VAULT_ADDR=https://strategiz-vault-43628135674.us-central1.run.app'
-    - '--set-env-vars=STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-central1.run.app'
+    - '--set-env-vars=VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app'
+    - '--set-env-vars=STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
     - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:

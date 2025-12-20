@@ -1,0 +1,149 @@
+package io.strategiz.business.aichat;
+
+import io.strategiz.client.base.llm.LLMProvider;
+import io.strategiz.client.base.llm.model.LLMMessage;
+import io.strategiz.client.base.llm.model.LLMResponse;
+import io.strategiz.client.base.llm.model.ModelInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Routes LLM requests to the appropriate provider based on model selection. Provides a
+ * unified interface for generating content across multiple LLM providers.
+ */
+@Service
+public class LLMRouter {
+
+	private static final Logger logger = LoggerFactory.getLogger(LLMRouter.class);
+
+	private static final String DEFAULT_MODEL = "gemini-1.5-flash";
+
+	private final Map<String, LLMProvider> providersByModel;
+
+	private final List<LLMProvider> providers;
+
+	public LLMRouter(List<LLMProvider> providers) {
+		this.providers = providers != null ? providers : new ArrayList<>();
+		this.providersByModel = buildModelProviderMap();
+		logger.info("LLMRouter initialized with {} providers: {}", this.providers.size(),
+				this.providers.stream().map(LLMProvider::getProviderName).toList());
+	}
+
+	/**
+	 * Generate content using the specified model
+	 * @param prompt the user prompt
+	 * @param history conversation history
+	 * @param model the model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
+	 * @return LLMResponse containing the generated content
+	 */
+	public Mono<LLMResponse> generateContent(String prompt, List<LLMMessage> history, String model) {
+		String targetModel = resolveModel(model);
+		LLMProvider provider = getProviderForModel(targetModel);
+
+		if (provider == null) {
+			logger.warn("No provider found for model: {}, falling back to default", targetModel);
+			return Mono.just(LLMResponse.error("No provider available for model: " + targetModel));
+		}
+
+		logger.debug("Routing request to {} provider for model {}", provider.getProviderName(), targetModel);
+		return provider.generateContent(prompt, history, targetModel);
+	}
+
+	/**
+	 * Generate content with streaming using the specified model
+	 * @param prompt the user prompt
+	 * @param history conversation history
+	 * @param model the model to use
+	 * @return Flux of LLMResponse chunks
+	 */
+	public Flux<LLMResponse> generateContentStream(String prompt, List<LLMMessage> history, String model) {
+		String targetModel = resolveModel(model);
+		LLMProvider provider = getProviderForModel(targetModel);
+
+		if (provider == null) {
+			logger.warn("No provider found for model: {}", targetModel);
+			return Flux.just(LLMResponse.error("No provider available for model: " + targetModel));
+		}
+
+		logger.debug("Routing streaming request to {} provider for model {}", provider.getProviderName(), targetModel);
+		return provider.generateContentStream(prompt, history, targetModel);
+	}
+
+	/**
+	 * Get all available models from all providers
+	 * @return list of ModelInfo objects
+	 */
+	public List<ModelInfo> getAvailableModels() {
+		List<ModelInfo> models = new ArrayList<>();
+
+		// Gemini models
+		models.add(new ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "google", "Fast & efficient"));
+		models.add(new ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "google", "Most capable Gemini"));
+
+		// Claude models
+		models.add(new ModelInfo("claude-3-5-sonnet", "Claude 3.5 Sonnet", "anthropic", "Best balance"));
+		models.add(new ModelInfo("claude-3-opus", "Claude 3 Opus", "anthropic", "Most powerful"));
+		models.add(new ModelInfo("claude-3-haiku", "Claude 3 Haiku", "anthropic", "Fast & affordable"));
+
+		// Mark models as available based on registered providers
+		for (ModelInfo model : models) {
+			model.setAvailable(providersByModel.containsKey(model.getId()));
+		}
+
+		return models;
+	}
+
+	/**
+	 * Get the default model
+	 */
+	public String getDefaultModel() {
+		return DEFAULT_MODEL;
+	}
+
+	/**
+	 * Check if a model is available
+	 */
+	public boolean isModelAvailable(String model) {
+		return providersByModel.containsKey(model);
+	}
+
+	/**
+	 * Get provider for a specific model
+	 */
+	private LLMProvider getProviderForModel(String model) {
+		return providersByModel.get(model);
+	}
+
+	/**
+	 * Resolve model name (handle null/empty, apply defaults)
+	 */
+	private String resolveModel(String model) {
+		if (model == null || model.isEmpty()) {
+			return DEFAULT_MODEL;
+		}
+		return model;
+	}
+
+	/**
+	 * Build a map of model -> provider for quick lookups
+	 */
+	private Map<String, LLMProvider> buildModelProviderMap() {
+		Map<String, LLMProvider> map = new HashMap<>();
+		for (LLMProvider provider : providers) {
+			for (String model : provider.getSupportedModels()) {
+				map.put(model, provider);
+				logger.debug("Registered model {} with provider {}", model, provider.getProviderName());
+			}
+		}
+		return map;
+	}
+
+}

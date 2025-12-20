@@ -6,14 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.business.aichat.prompt.AIStrategyPrompts;
 import io.strategiz.client.gemini.GeminiClient;
 import io.strategiz.client.gemini.model.GeminiRequest;
+import io.strategiz.client.gemini.model.GeminiResponse;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -45,73 +44,81 @@ public class AIStrategyService {
 	/**
 	 * Generate a new strategy from a natural language prompt.
 	 */
-	public Mono<AIStrategyResponse> generateStrategy(AIStrategyRequest request) {
+	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
 		logger.info("Generating strategy from prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
 
-		// Build the system prompt with context
-		String symbols = request.getContext() != null && request.getContext().getSymbols() != null
-				? String.join(", ", request.getContext().getSymbols()) : null;
-		String timeframe = request.getContext() != null ? request.getContext().getTimeframe() : null;
+		try {
+			// Build the system prompt with context
+			String symbols = request.getContext() != null && request.getContext().getSymbols() != null
+					? String.join(", ", request.getContext().getSymbols()) : null;
+			String timeframe = request.getContext() != null ? request.getContext().getTimeframe() : null;
 
-		String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe);
+			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe);
 
-		// Build conversation history for Gemini
-		List<GeminiRequest.Content> history = buildConversationHistory(systemPrompt, request.getConversationHistory());
+			// Build conversation history for Gemini
+			List<GeminiRequest.Content> history = buildConversationHistory(systemPrompt,
+					request.getConversationHistory());
 
-		// Call Gemini
-		return geminiClient.generateContent(request.getPrompt(), history).map(this::parseGenerationResponse)
-			.onErrorResume(e -> {
-				logger.error("Error generating strategy", e);
-				return Mono.just(AIStrategyResponse.error("Failed to generate strategy: " + e.getMessage()));
-			});
+			// Call Gemini (blocking)
+			GeminiResponse geminiResponse = geminiClient.generateContent(request.getPrompt(), history).block();
+			return parseGenerationResponse(geminiResponse);
+		}
+		catch (Exception e) {
+			logger.error("Error generating strategy", e);
+			return AIStrategyResponse.error("Failed to generate strategy: " + e.getMessage());
+		}
 	}
 
 	/**
 	 * Refine an existing strategy based on user feedback.
 	 */
-	public Mono<AIStrategyResponse> refineStrategy(AIStrategyRequest request) {
+	public AIStrategyResponse refineStrategy(AIStrategyRequest request) {
 		logger.info("Refining strategy with prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
 
 		if (request.getContext() == null || request.getContext().getCurrentCode() == null) {
-			return Mono.just(AIStrategyResponse.error("Current strategy context is required for refinement"));
+			return AIStrategyResponse.error("Current strategy context is required for refinement");
 		}
 
-		// Serialize current visual config
-		String visualConfigJson;
 		try {
-			visualConfigJson = objectMapper.writeValueAsString(request.getContext().getCurrentVisualConfig());
+			// Serialize current visual config
+			String visualConfigJson;
+			try {
+				visualConfigJson = objectMapper.writeValueAsString(request.getContext().getCurrentVisualConfig());
+			}
+			catch (JsonProcessingException e) {
+				visualConfigJson = "{}";
+			}
+
+			String refinementPrompt = AIStrategyPrompts.buildRefinementPrompt(visualConfigJson,
+					request.getContext().getCurrentCode(), request.getPrompt());
+
+			// Build conversation history
+			List<GeminiRequest.Content> history = buildConversationHistory(AIStrategyPrompts.STRATEGY_GENERATION_SYSTEM,
+					request.getConversationHistory());
+
+			GeminiResponse geminiResponse = geminiClient.generateContent(refinementPrompt, history).block();
+			return parseGenerationResponse(geminiResponse);
 		}
-		catch (JsonProcessingException e) {
-			visualConfigJson = "{}";
+		catch (Exception e) {
+			logger.error("Error refining strategy", e);
+			return AIStrategyResponse.error("Failed to refine strategy: " + e.getMessage());
 		}
-
-		String refinementPrompt = AIStrategyPrompts.buildRefinementPrompt(visualConfigJson,
-				request.getContext().getCurrentCode(), request.getPrompt());
-
-		// Build conversation history
-		List<GeminiRequest.Content> history = buildConversationHistory(AIStrategyPrompts.STRATEGY_GENERATION_SYSTEM,
-				request.getConversationHistory());
-
-		return geminiClient.generateContent(refinementPrompt, history).map(this::parseGenerationResponse)
-			.onErrorResume(e -> {
-				logger.error("Error refining strategy", e);
-				return Mono.just(AIStrategyResponse.error("Failed to refine strategy: " + e.getMessage()));
-			});
 	}
 
 	/**
 	 * Parse Python code to extract visual configuration.
 	 */
-	public Mono<AIStrategyResponse> parseCodeToVisual(String code) {
+	public AIStrategyResponse parseCodeToVisual(String code) {
 		logger.info("Parsing code to visual config");
 
-		String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code);
+		try {
+			String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code);
+			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
 
-		return geminiClient.generateContent(prompt).map(response -> {
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = response.getText();
+			String text = geminiResponse.getText();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -139,30 +146,32 @@ public class AIStrategyService {
 			}
 
 			return result;
-		}).onErrorResume(e -> {
+		}
+		catch (Exception e) {
 			logger.error("Error parsing code to visual", e);
-			return Mono.just(AIStrategyResponse.error("Failed to parse code: " + e.getMessage()));
-		});
+			return AIStrategyResponse.error("Failed to parse code: " + e.getMessage());
+		}
 	}
 
 	/**
 	 * Explain a specific element (rule, condition, or code section).
 	 */
-	public Mono<AIStrategyResponse> explainElement(AIStrategyRequest request) {
+	public AIStrategyResponse explainElement(AIStrategyRequest request) {
 		logger.info("Explaining element: {}",
 				request.getElementToExplain().substring(0, Math.min(50, request.getElementToExplain().length())));
 
-		// Serialize context if available
-		String contextJson = null;
-		if (request.getContext() != null && request.getContext().getCurrentCode() != null) {
-			contextJson = request.getContext().getCurrentCode();
-		}
+		try {
+			// Serialize context if available
+			String contextJson = null;
+			if (request.getContext() != null && request.getContext().getCurrentCode() != null) {
+				contextJson = request.getContext().getCurrentCode();
+			}
 
-		String prompt = AIStrategyPrompts.buildExplainPrompt(request.getElementToExplain(), contextJson);
+			String prompt = AIStrategyPrompts.buildExplainPrompt(request.getElementToExplain(), contextJson);
+			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
 
-		return geminiClient.generateContent(prompt).map(response -> {
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = response.getText();
+			String text = geminiResponse.getText();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -191,44 +200,47 @@ public class AIStrategyService {
 			}
 
 			return result;
-		}).onErrorResume(e -> {
+		}
+		catch (Exception e) {
 			logger.error("Error explaining element", e);
-			return Mono.just(AIStrategyResponse.error("Failed to explain element: " + e.getMessage()));
-		});
+			return AIStrategyResponse.error("Failed to explain element: " + e.getMessage());
+		}
 	}
 
 	/**
 	 * Get optimization suggestions based on backtest results.
 	 */
-	public Mono<AIStrategyResponse> optimizeFromBacktest(AIStrategyRequest request) {
+	public AIStrategyResponse optimizeFromBacktest(AIStrategyRequest request) {
 		logger.info("Generating optimization suggestions from backtest results");
 
 		if (request.getBacktestResults() == null) {
-			return Mono.just(AIStrategyResponse.error("Backtest results are required for optimization"));
+			return AIStrategyResponse.error("Backtest results are required for optimization");
 		}
 
-		// Serialize current strategy
-		String strategyJson;
 		try {
-			Map<String, Object> strategyMap = new HashMap<>();
-			if (request.getContext() != null) {
-				strategyMap.put("visualConfig", request.getContext().getCurrentVisualConfig());
-				strategyMap.put("code", request.getContext().getCurrentCode());
+			// Serialize current strategy
+			String strategyJson;
+			try {
+				Map<String, Object> strategyMap = new HashMap<>();
+				if (request.getContext() != null) {
+					strategyMap.put("visualConfig", request.getContext().getCurrentVisualConfig());
+					strategyMap.put("code", request.getContext().getCurrentCode());
+				}
+				strategyJson = objectMapper.writeValueAsString(strategyMap);
 			}
-			strategyJson = objectMapper.writeValueAsString(strategyMap);
-		}
-		catch (JsonProcessingException e) {
-			strategyJson = "{}";
-		}
+			catch (JsonProcessingException e) {
+				strategyJson = "{}";
+			}
 
-		AIStrategyRequest.BacktestResults bt = request.getBacktestResults();
-		String prompt = AIStrategyPrompts.buildOptimizationPrompt(strategyJson, bt.getTotalReturn(), bt.getTotalPnL(),
-				bt.getWinRate(), bt.getTotalTrades(), bt.getProfitableTrades(), bt.getAvgWin(), bt.getAvgLoss(),
-				bt.getProfitFactor(), bt.getMaxDrawdown(), bt.getSharpeRatio());
+			AIStrategyRequest.BacktestResults bt = request.getBacktestResults();
+			String prompt = AIStrategyPrompts.buildOptimizationPrompt(strategyJson, bt.getTotalReturn(),
+					bt.getTotalPnL(), bt.getWinRate(), bt.getTotalTrades(), bt.getProfitableTrades(), bt.getAvgWin(),
+					bt.getAvgLoss(), bt.getProfitFactor(), bt.getMaxDrawdown(), bt.getSharpeRatio());
 
-		return geminiClient.generateContent(prompt).map(response -> {
+			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
+
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = response.getText();
+			String text = geminiResponse.getText();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -258,24 +270,26 @@ public class AIStrategyService {
 			}
 
 			return result;
-		}).onErrorResume(e -> {
+		}
+		catch (Exception e) {
 			logger.error("Error generating optimizations", e);
-			return Mono.just(AIStrategyResponse.error("Failed to generate optimizations: " + e.getMessage()));
-		});
+			return AIStrategyResponse.error("Failed to generate optimizations: " + e.getMessage());
+		}
 	}
 
 	/**
 	 * Detect indicators from a partial prompt (for live preview).
 	 */
-	public Mono<AIStrategyResponse> previewIndicators(String partialPrompt) {
+	public AIStrategyResponse previewIndicators(String partialPrompt) {
 		logger.debug("Previewing indicators for partial prompt: {}",
 				partialPrompt.substring(0, Math.min(30, partialPrompt.length())));
 
-		String prompt = AIStrategyPrompts.buildIndicatorPreviewPrompt(partialPrompt);
+		try {
+			String prompt = AIStrategyPrompts.buildIndicatorPreviewPrompt(partialPrompt);
+			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
 
-		return geminiClient.generateContent(prompt).map(response -> {
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = response.getText();
+			String text = geminiResponse.getText();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -313,26 +327,29 @@ public class AIStrategyService {
 			}
 
 			return result;
-		}).onErrorResume(e -> {
+		}
+		catch (Exception e) {
 			logger.error("Error previewing indicators", e);
 			AIStrategyResponse result = new AIStrategyResponse();
 			result.setDetectedIndicators(new ArrayList<>());
 			result.setSuccess(true);
-			return Mono.just(result);
-		});
+			return result;
+		}
 	}
 
 	/**
 	 * Parse a natural language backtest query to extract date parameters.
 	 */
-	public Mono<Map<String, Object>> parseBacktestQuery(String query) {
+	public Map<String, Object> parseBacktestQuery(String query) {
 		logger.info("Parsing backtest query: {}", query);
 
-		String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
-		String prompt = AIStrategyPrompts.buildBacktestQueryPrompt(query, currentDate);
+		try {
+			String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
+			String prompt = AIStrategyPrompts.buildBacktestQueryPrompt(query, currentDate);
 
-		return geminiClient.generateContent(prompt).map(response -> {
-			String text = response.getText();
+			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
+			String text = geminiResponse.getText();
+
 			try {
 				JsonNode json = extractJsonFromResponse(text);
 				if (json != null) {
@@ -342,30 +359,12 @@ public class AIStrategyService {
 			catch (Exception e) {
 				logger.error("Error parsing backtest query response", e);
 			}
-			return new HashMap<String, Object>();
-		}).onErrorResume(e -> {
+		}
+		catch (Exception e) {
 			logger.error("Error parsing backtest query", e);
-			return Mono.just(new HashMap<String, Object>());
-		});
-	}
+		}
 
-	/**
-	 * Generate strategy with streaming support.
-	 */
-	public Flux<String> streamGeneration(AIStrategyRequest request) {
-		logger.info("Starting streaming generation for prompt: {}",
-				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
-
-		String symbols = request.getContext() != null && request.getContext().getSymbols() != null
-				? String.join(", ", request.getContext().getSymbols()) : null;
-		String timeframe = request.getContext() != null ? request.getContext().getTimeframe() : null;
-
-		String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe);
-		List<GeminiRequest.Content> history = buildConversationHistory(systemPrompt, request.getConversationHistory());
-
-		return geminiClient.generateContentStream(request.getPrompt(), history)
-			.map(response -> response.getText() != null ? response.getText() : "")
-			.filter(text -> !text.isEmpty());
+		return new HashMap<>();
 	}
 
 	// Helper methods
@@ -390,8 +389,15 @@ public class AIStrategyService {
 		return history;
 	}
 
-	private AIStrategyResponse parseGenerationResponse(io.strategiz.client.gemini.model.GeminiResponse geminiResponse) {
+	private AIStrategyResponse parseGenerationResponse(GeminiResponse geminiResponse) {
 		AIStrategyResponse result = new AIStrategyResponse();
+
+		if (geminiResponse == null) {
+			result.setSuccess(false);
+			result.setError("No response from AI");
+			return result;
+		}
+
 		String text = geminiResponse.getText();
 
 		if (text == null || text.isEmpty()) {

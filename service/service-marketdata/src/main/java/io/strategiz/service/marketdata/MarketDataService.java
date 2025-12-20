@@ -34,6 +34,7 @@ public class MarketDataService {
     @Autowired
     public MarketDataService(MarketDataRepository marketDataRepository) {
         this.marketDataRepository = marketDataRepository;
+        log.info("MarketDataService initialized with repository: {}", marketDataRepository.getClass().getName());
     }
 
     /**
@@ -56,10 +57,12 @@ public class MarketDataService {
             LocalDate startLocalDate = parseIsoDateToLocalDate(startDate);
             LocalDate endLocalDate = parseIsoDateToLocalDate(endDate);
 
+            log.info("Parsed dates: startLocalDate={}, endLocalDate={}", startLocalDate, endLocalDate);
+
             // Get all possible timeframe aliases for querying (handles legacy formats)
             String normalizedTimeframe = Timeframe.normalize(timeframe);
             Set<String> timeframeAliases = Timeframe.getAliases(normalizedTimeframe);
-            log.debug("Timeframe {} normalized to {}, querying with aliases: {}",
+            log.info("Timeframe {} normalized to {}, querying with aliases: {}",
                 timeframe, normalizedTimeframe, timeframeAliases);
 
             // Query repository with optimized filtering at DB level

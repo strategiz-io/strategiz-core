@@ -69,6 +69,26 @@ public class Strategy extends BaseEntity {
     @JsonProperty("deploymentId")
     private String deploymentId; // ID of StrategyAlert or StrategyBot
 
+    // Pricing and Publishing fields
+    @JsonProperty("pricing")
+    private StrategyPricing pricing;
+
+    @JsonProperty("publishedAt")
+    private Timestamp publishedAt; // null = private, non-null = public/published
+
+    // Marketplace stats (denormalized for display)
+    @JsonProperty("subscriberCount")
+    private Integer subscriberCount = 0;
+
+    @JsonProperty("commentCount")
+    private Integer commentCount = 0;
+
+    @JsonProperty("averageRating")
+    private Double averageRating;
+
+    @JsonProperty("reviewCount")
+    private Integer reviewCount = 0;
+
     // Constructors
     public Strategy() {
         super();
@@ -223,6 +243,55 @@ public class Strategy extends BaseEntity {
         this.deploymentId = deploymentId;
     }
 
+    // Pricing and Publishing getters/setters
+    public StrategyPricing getPricing() {
+        return pricing;
+    }
+
+    public void setPricing(StrategyPricing pricing) {
+        this.pricing = pricing;
+    }
+
+    public Timestamp getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(Timestamp publishedAt) {
+        this.publishedAt = publishedAt;
+    }
+
+    public Integer getSubscriberCount() {
+        return subscriberCount;
+    }
+
+    public void setSubscriberCount(Integer subscriberCount) {
+        this.subscriberCount = subscriberCount;
+    }
+
+    public Integer getCommentCount() {
+        return commentCount;
+    }
+
+    public void setCommentCount(Integer commentCount) {
+        this.commentCount = commentCount;
+    }
+
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public Integer getReviewCount() {
+        return reviewCount;
+    }
+
+    public void setReviewCount(Integer reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
     // Helper methods
     public boolean isDeployed() {
         return "deployed".equals(this.status) && this.deploymentId != null;
@@ -234,5 +303,75 @@ public class Strategy extends BaseEntity {
 
     public boolean isBotDeployment() {
         return "BOT".equals(this.deploymentType);
+    }
+
+    /**
+     * Check if strategy is published (publicly visible in marketplace).
+     */
+    public boolean isPublished() {
+        return publishedAt != null;
+    }
+
+    /**
+     * Check if strategy is private (not published).
+     */
+    public boolean isPrivate() {
+        return publishedAt == null;
+    }
+
+    /**
+     * Publish the strategy with the given pricing.
+     */
+    public void publish(StrategyPricing pricing) {
+        this.pricing = pricing;
+        this.publishedAt = Timestamp.now();
+        this.isPublic = true;
+    }
+
+    /**
+     * Unpublish the strategy (make private).
+     */
+    public void unpublish() {
+        this.publishedAt = null;
+        this.isPublic = false;
+    }
+
+    /**
+     * Check if strategy is free to use.
+     */
+    public boolean isFree() {
+        return pricing == null || pricing.isFree();
+    }
+
+    /**
+     * Increment subscriber count.
+     */
+    public void incrementSubscribers() {
+        this.subscriberCount = (this.subscriberCount != null ? this.subscriberCount : 0) + 1;
+    }
+
+    /**
+     * Decrement subscriber count.
+     */
+    public void decrementSubscribers() {
+        if (this.subscriberCount != null && this.subscriberCount > 0) {
+            this.subscriberCount--;
+        }
+    }
+
+    /**
+     * Increment comment count.
+     */
+    public void incrementComments() {
+        this.commentCount = (this.commentCount != null ? this.commentCount : 0) + 1;
+    }
+
+    /**
+     * Decrement comment count.
+     */
+    public void decrementComments() {
+        if (this.commentCount != null && this.commentCount > 0) {
+            this.commentCount--;
+        }
     }
 }

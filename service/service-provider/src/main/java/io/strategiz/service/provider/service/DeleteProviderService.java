@@ -4,8 +4,8 @@ import io.strategiz.service.provider.model.request.DeleteProviderRequest;
 import io.strategiz.service.provider.model.response.DeleteProviderResponse;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.service.base.service.ProviderBaseService;
-import io.strategiz.data.provider.repository.DeleteProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.DeleteProviderDataRepository;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.framework.secrets.controller.SecretManager;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
@@ -27,10 +27,10 @@ import java.util.Map;
 public class DeleteProviderService extends ProviderBaseService {
 
     @Autowired
-    private DeleteProviderIntegrationRepository deleteProviderIntegrationRepository;
+    private PortfolioProviderRepository portfolioProviderRepository;
 
     @Autowired
-    private DeleteProviderDataRepository deleteProviderDataRepository;
+    private ProviderHoldingsRepository providerHoldingsRepository;
 
     @Autowired
     private SecretManager secretManager;
@@ -118,19 +118,21 @@ public class DeleteProviderService extends ProviderBaseService {
         data.put("providerId", request.getProviderId());
 
         try {
-            // 1. Delete provider integration from Firestore (soft delete - marks as deleted)
-            providerLog.info("Deleting provider integration from Firestore for user: {}, provider: {}",
+            // 1. Soft delete provider from Firestore (marks as deleted with isActive=false)
+            // Path: users/{userId}/portfolio/data/providers/{providerId}
+            providerLog.info("Soft deleting provider from Firestore for user: {}, provider: {}",
                            request.getUserId(), request.getProviderId());
-            boolean integrationDeleted = deleteProviderIntegrationRepository.deleteByUserIdAndProviderId(
+            boolean providerDeleted = portfolioProviderRepository.softDelete(
                     request.getUserId(), request.getProviderId());
-            data.put("integrationDeleted", integrationDeleted);
+            data.put("providerDeleted", providerDeleted);
 
-            // 2. Delete provider data from Firestore (hard delete - removes cached portfolio data)
-            providerLog.info("Deleting provider data from Firestore for user: {}, provider: {}",
+            // 2. Delete holdings subcollection (hard delete - removes cached portfolio data)
+            // Path: users/{userId}/portfolio/data/providers/{providerId}/holdings/current
+            providerLog.info("Deleting provider holdings from Firestore for user: {}, provider: {}",
                            request.getUserId(), request.getProviderId());
-            boolean dataDeleted = deleteProviderDataRepository.deleteProviderData(
+            boolean holdingsDeleted = providerHoldingsRepository.delete(
                     request.getUserId(), request.getProviderId());
-            data.put("dataDeleted", dataDeleted);
+            data.put("holdingsDeleted", holdingsDeleted);
 
             // 3. Delete OAuth tokens from Vault
             String vaultPath = "secret/strategiz/users/" + request.getUserId() + "/providers/" + request.getProviderId();

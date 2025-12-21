@@ -4,8 +4,8 @@ import io.strategiz.service.provider.model.response.ReadProviderResponse;
 import io.strategiz.service.provider.model.response.ProvidersListResponse;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,9 +28,9 @@ public class ReadProviderService {
     
     @Autowired(required = false)
     private io.strategiz.framework.secrets.service.VaultSecretService vaultSecretService;
-    
+
     @Autowired(required = false)
-    private ReadProviderIntegrationRepository providerIntegrationRepository;
+    private PortfolioProviderRepository portfolioProviderRepository;
     
     /**
      * Gets all provider connections for a user as a list.
@@ -40,60 +40,63 @@ public class ReadProviderService {
      */
     public ProvidersListResponse getProvidersList(String userId) {
         log.info("Getting providers list for user: {}", userId);
-        
+
         ProvidersListResponse listResponse = new ProvidersListResponse();
-        
-        if (providerIntegrationRepository != null) {
+
+        if (portfolioProviderRepository != null) {
             try {
-                // Get all enabled provider integrations for the user from Firestore
-                List<ProviderIntegrationEntity> integrations = providerIntegrationRepository.findByUserIdAndEnabledTrue(userId);
-                
-                log.info("Found {} enabled provider integrations for user: {}", integrations != null ? integrations.size() : "null", userId);
-                
-                // Also try to get all integrations to debug
-                List<ProviderIntegrationEntity> allIntegrations = providerIntegrationRepository.findByUserId(userId);
-                log.info("Total provider integrations (enabled and disabled) for user {}: {}", 
-                    userId, allIntegrations != null ? allIntegrations.size() : "null");
-                
-                for (ProviderIntegrationEntity integration : integrations) {
-                    // All integrations returned should already have status="connected" (filtered by repository)
-                    ReadProviderResponse provider = new ReadProviderResponse();
-                    provider.setProviderId(integration.getProviderId());
-                    
-                    // Set proper provider name based on ID
-                    String providerName = getProviderDisplayName(integration.getProviderId());
-                    provider.setProviderName(providerName);
-                    
-                    provider.setConnectionType(integration.getConnectionType());
-                    provider.setStatus(integration.getStatus()); // Status is already a string
-                    provider.setConnectedAt(integration.getCreatedDate() != null ? 
-                        integration.getCreatedDate().toDate().toInstant() : Instant.now());
-                    
+                // Get all active providers for the user from new portfolio structure
+                // Path: users/{userId}/portfolio/data/providers/
+                List<PortfolioProviderEntity> providers = portfolioProviderRepository.findAllByUserId(userId);
+
+                log.info("Found {} active providers for user: {}", providers != null ? providers.size() : "null", userId);
+
+                for (PortfolioProviderEntity provider : providers) {
+                    ReadProviderResponse providerResponse = new ReadProviderResponse();
+                    providerResponse.setProviderId(provider.getProviderId());
+
+                    // Set proper provider name based on ID (or use stored name if available)
+                    String providerName = provider.getProviderName() != null ?
+                        provider.getProviderName() : getProviderDisplayName(provider.getProviderId());
+                    providerResponse.setProviderName(providerName);
+
+                    providerResponse.setConnectionType(provider.getConnectionType());
+                    providerResponse.setStatus(provider.getStatus());
+                    providerResponse.setConnectedAt(provider.getCreatedAt() != null ?
+                        provider.getCreatedAt() : Instant.now());
+
                     // Build account info
                     Map<String, Object> providerAccountInfo = new HashMap<>();
-                    providerAccountInfo.put("provider", integration.getProviderId());
-                    providerAccountInfo.put("connectionType", integration.getConnectionType());
-                    
-                    // Add version if present (should be version 1)
-                    if (integration.getVersion() != null) {
-                        providerAccountInfo.put("version", integration.getVersion());
+                    providerAccountInfo.put("provider", provider.getProviderId());
+                    providerAccountInfo.put("connectionType", provider.getConnectionType());
+                    providerAccountInfo.put("providerType", provider.getProviderType());
+                    providerAccountInfo.put("environment", provider.getEnvironment());
+
+                    // Add summary data if available
+                    if (provider.getTotalValue() != null) {
+                        providerAccountInfo.put("totalValue", provider.getTotalValue());
                     }
-                    
-                    provider.setAccountInfo(providerAccountInfo);
-                    
-                    listResponse.addProvider(provider);
-                    log.info("Added provider {} (status={}, providerName={}) to list for user: {}", 
-                        integration.getProviderId(), provider.getStatus(), provider.getProviderName(), userId);
-                    log.debug("Full provider details: {}", provider);
+                    if (provider.getHoldingsCount() != null) {
+                        providerAccountInfo.put("holdingsCount", provider.getHoldingsCount());
+                    }
+                    if (provider.getLastSyncedAt() != null) {
+                        providerAccountInfo.put("lastSyncedAt", provider.getLastSyncedAt().toString());
+                    }
+
+                    providerResponse.setAccountInfo(providerAccountInfo);
+
+                    listResponse.addProvider(providerResponse);
+                    log.info("Added provider {} (status={}, providerName={}) to list for user: {}",
+                        provider.getProviderId(), providerResponse.getStatus(), providerResponse.getProviderName(), userId);
                 }
             } catch (Exception e) {
-                log.error("Error reading provider integrations from Firestore: {}", e.getMessage(), e);
+                log.error("Error reading providers from Firestore: {}", e.getMessage(), e);
                 // Return empty list on error
             }
         } else {
-            log.warn("ProviderIntegrationRepository not available - returning empty list");
+            log.warn("PortfolioProviderRepository not available - returning empty list");
         }
-        
+
         return listResponse;
     }
     

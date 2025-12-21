@@ -7,10 +7,9 @@ import io.strategiz.business.provider.kraken.helper.KrakenDataTransformer;
 import io.strategiz.client.kraken.auth.KrakenApiAuthClient;
 import io.strategiz.client.kraken.auth.model.KrakenApiCredentials;
 import io.strategiz.client.kraken.auth.manager.KrakenCredentialManager;
-import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.entity.ProviderStatus;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.provider.base.BaseApiKeyProviderHandler;
@@ -39,18 +38,18 @@ public class KrakenProviderBusiness extends BaseApiKeyProviderHandler {
     private final KrakenApiAuthClient krakenApiAuthClient;
     private final KrakenCredentialManager krakenCredentialManager;
     private final KrakenDataInitializer dataInitializer;
-    
-    @Autowired(required = false)
-    private CreateProviderIntegrationRepository providerIntegrationRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
 
     @Autowired
     public KrakenProviderBusiness(
             KrakenApiAuthClient krakenApiAuthClient,
             KrakenCredentialManager krakenCredentialManager,
-            KrakenDataInitializer dataInitializer) {
+            KrakenDataInitializer dataInitializer,
+            PortfolioProviderRepository portfolioProviderRepository) {
         this.krakenApiAuthClient = krakenApiAuthClient;
         this.krakenCredentialManager = krakenCredentialManager;
         this.dataInitializer = dataInitializer;
+        this.portfolioProviderRepository = portfolioProviderRepository;
     }
 
     @Override
@@ -118,71 +117,67 @@ public class KrakenProviderBusiness extends BaseApiKeyProviderHandler {
     @Override
     public ProviderIntegrationResult createIntegration(CreateProviderIntegrationRequest request, String userId) {
         log.info("Creating Kraken integration for user: {}", userId);
-        
+
         try {
             // 1. Store credentials in Vault
             String apiKey = request.getApiKey();
             String apiSecret = request.getApiSecret();
             String otp = null; // OTP not supported in simplified request
-            
+
             krakenCredentialManager.storeCredentials(userId, apiKey, apiSecret, otp);
             log.info("Stored Kraken credentials in Vault for user: {}", userId);
-            
-            // 2. Create provider integration entity for Firestore
-            if (providerIntegrationRepository != null) {
-                try {
-                    ProviderIntegrationEntity entity = new ProviderIntegrationEntity(
-                        KrakenConstants.PROVIDER_ID, "api_key", userId);
-                    // Set status directly as lowercase string to ensure Firestore saves it correctly
-                    entity.setStatus("connected");
-                    
-                    // Audit fields are already set in constructor
-                    
-                    // 3. Save to Firestore user subcollection (provider_integrations)
-                    ProviderIntegrationEntity savedEntity = providerIntegrationRepository.createForUser(entity, userId);
-                    log.info("Saved Kraken provider integration to Firestore for user: {}", userId);
-                } catch (Exception e) {
-                    log.error("Failed to save provider integration to Firestore, but continuing: {}", e.getMessage());
-                    // Continue even if Firestore save fails - credentials are in Vault
-                }
-            } else {
-                log.warn("ProviderIntegrationRepository not available, skipping Firestore storage");
+
+            // 2. Create provider entity in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            try {
+                PortfolioProviderEntity entity = new PortfolioProviderEntity(
+                    KrakenConstants.PROVIDER_ID, "api_key", userId);
+                entity.setProviderName("Kraken");
+                entity.setProviderType("crypto");
+                entity.setProviderCategory("exchange");
+                entity.setStatus("connected");
+
+                portfolioProviderRepository.save(entity, userId);
+                log.info("Saved Kraken provider to Firestore for user: {}", userId);
+            } catch (Exception e) {
+                log.error("Failed to save provider to Firestore, but continuing: {}", e.getMessage());
+                // Continue even if Firestore save fails - credentials are in Vault
             }
-            
-            // 4. Initialize and store portfolio data
-            ProviderDataEntity portfolioData = null;
+
+            // 3. Initialize and store portfolio data
+            ProviderHoldingsEntity portfolioData = null;
             try {
                 portfolioData = dataInitializer.initializeAndStoreData(userId, apiKey, apiSecret, otp);
-                log.info("Successfully initialized portfolio data for user: {}, total value: {}", 
+                log.info("Successfully initialized portfolio data for user: {}, total value: {}",
                         userId, portfolioData.getTotalValue());
             } catch (Exception e) {
                 log.error("Failed to initialize portfolio data, but connection saved: {}", e.getMessage());
                 // Don't fail the connection if initial data fetch fails
             }
-            
-            // 5. Build result
+
+            // 4. Build result
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("hasOtp", otp != null && !otp.trim().isEmpty());
             metadata.put("connectionMethod", "api_key");
             metadata.put("apiVersion", "v0");
-            
+
             // Add portfolio data to metadata if available
             if (portfolioData != null) {
                 metadata.put("initialSync", "success");
                 metadata.put("totalValue", portfolioData.getTotalValue());
-                metadata.put("holdingsCount", portfolioData.getHoldings() != null ? 
+                metadata.put("holdingsCount", portfolioData.getHoldings() != null ?
                     portfolioData.getHoldings().size() : 0);
                 metadata.put("cashBalance", portfolioData.getCashBalance());
             } else {
                 metadata.put("initialSync", "failed");
             }
-            
+
             ProviderIntegrationResult result = new ProviderIntegrationResult();
             result.setSuccess(true);
             result.setMessage("Kraken integration created successfully");
             result.setMetadata(metadata);
             return result;
-                
+
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -278,9 +273,9 @@ public class KrakenProviderBusiness extends BaseApiKeyProviderHandler {
      * and stores it in Firestore with enriched information including cost basis.
      *
      * @param userId User ID
-     * @return Synced ProviderDataEntity with latest portfolio data
+     * @return Synced ProviderHoldingsEntity with latest portfolio data
      */
-    public ProviderDataEntity syncProviderData(String userId) {
+    public ProviderHoldingsEntity syncProviderData(String userId) {
         log.info("Syncing Kraken provider data for user: {}", userId);
 
         try {
@@ -301,7 +296,7 @@ public class KrakenProviderBusiness extends BaseApiKeyProviderHandler {
 
             // 2. Fetch and store fresh portfolio data using the data initializer
             // This will fetch balances, trade history, prices, and calculate cost basis
-            ProviderDataEntity syncedData = dataInitializer.initializeAndStoreData(userId, apiKey, apiSecret, otp);
+            ProviderHoldingsEntity syncedData = dataInitializer.initializeAndStoreData(userId, apiKey, apiSecret, otp);
 
             log.info("Successfully synced Kraken data for user: {}, total value: {}, holdings: {}",
                     userId, syncedData.getTotalValue(),

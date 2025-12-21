@@ -3,14 +3,10 @@ package io.strategiz.business.provider.schwab;
 import io.strategiz.business.provider.schwab.model.SchwabConnectionResult;
 import io.strategiz.client.schwab.SchwabClient;
 import io.strategiz.client.schwab.error.SchwabErrors;
-import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.CreateProviderDataRepository;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
-import io.strategiz.data.provider.repository.UpdateProviderDataRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -59,12 +55,8 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     private static final String PROVIDER_CATEGORY = "brokerage";
 
     private final SchwabClient schwabClient;
-    private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
-    private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
-    private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
-    private final CreateProviderDataRepository createProviderDataRepository;
-    private final ReadProviderDataRepository readProviderDataRepository;
-    private final UpdateProviderDataRepository updateProviderDataRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
+    private final ProviderHoldingsRepository providerHoldingsRepository;
     private final SecretManager secretManager;
 
     @Autowired(required = false)
@@ -89,20 +81,12 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     @Autowired
     public SchwabProviderBusiness(
             SchwabClient schwabClient,
-            CreateProviderIntegrationRepository createProviderIntegrationRepository,
-            ReadProviderIntegrationRepository readProviderIntegrationRepository,
-            UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
-            @Autowired(required = false) CreateProviderDataRepository createProviderDataRepository,
-            @Autowired(required = false) ReadProviderDataRepository readProviderDataRepository,
-            @Autowired(required = false) UpdateProviderDataRepository updateProviderDataRepository,
+            PortfolioProviderRepository portfolioProviderRepository,
+            ProviderHoldingsRepository providerHoldingsRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.schwabClient = schwabClient;
-        this.createProviderIntegrationRepository = createProviderIntegrationRepository;
-        this.readProviderIntegrationRepository = readProviderIntegrationRepository;
-        this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
-        this.createProviderDataRepository = createProviderDataRepository;
-        this.readProviderDataRepository = readProviderDataRepository;
-        this.updateProviderDataRepository = updateProviderDataRepository;
+        this.portfolioProviderRepository = portfolioProviderRepository;
+        this.providerHoldingsRepository = providerHoldingsRepository;
         this.secretManager = secretManager;
     }
 
@@ -210,23 +194,27 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             // Store tokens in Vault
             storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
 
-            // Create or update provider integration in Firestore
-            Optional<ProviderIntegrationEntity> existingIntegration =
-                readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            // Create or update provider in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            Optional<PortfolioProviderEntity> existingProvider = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
 
-            if (existingIntegration.isPresent()) {
-                // Update existing integration - just enable it
-                ProviderIntegrationEntity entity = existingIntegration.get();
+            PortfolioProviderEntity entity;
+            if (existingProvider.isPresent()) {
+                // Update existing provider - mark as connected
+                entity = existingProvider.get();
                 entity.setStatus("connected");
-                updateProviderIntegrationRepository.updateWithUserId(entity, userId);
-                log.info("Updated Schwab integration status to connected for user: {}", userId);
+                log.info("Updating existing Schwab provider to connected for user: {}", userId);
             } else {
-                // Create new integration
-                ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+                // Create new provider entity
+                entity = new PortfolioProviderEntity(PROVIDER_ID, "oauth", userId);
+                entity.setProviderName(PROVIDER_NAME);
+                entity.setProviderType(PROVIDER_TYPE);
+                entity.setProviderCategory(PROVIDER_CATEGORY);
                 entity.setStatus("connected");
-                createProviderIntegrationRepository.createForUser(entity, userId);
-                log.info("Created new Charles Schwab integration for user: {}", userId);
+                log.info("Creating new Charles Schwab provider for user: {}", userId);
             }
+
+            portfolioProviderRepository.save(entity, userId);
 
             // Fetch and store portfolio data after OAuth completion (synchronous)
             try {
@@ -240,16 +228,15 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         } catch (Exception e) {
             log.error("Error completing Charles Schwab OAuth flow for user: {}", userId, e);
 
-            // Update the provider integration status to 'error' with error message
+            // Update the provider status to 'error' with error message
             try {
-                Optional<ProviderIntegrationEntity> existingIntegration =
-                    readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
-                if (existingIntegration.isPresent()) {
-                    ProviderIntegrationEntity entity = existingIntegration.get();
+                Optional<PortfolioProviderEntity> existingProvider = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+                if (existingProvider.isPresent()) {
+                    PortfolioProviderEntity entity = existingProvider.get();
                     entity.setStatus("error");
                     entity.setErrorMessage(e.getMessage());
-                    updateProviderIntegrationRepository.updateWithUserId(entity, userId);
-                    log.info("Updated Schwab integration status to error for user: {}", userId);
+                    portfolioProviderRepository.save(entity, userId);
+                    log.info("Updated Schwab provider status to error for user: {}", userId);
                 }
             } catch (Exception updateError) {
                 log.error("Failed to update error status for user: {}", userId, updateError);
@@ -265,10 +252,10 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
      * Retrieves access token from Vault and fetches latest portfolio data from Schwab.
      *
      * @param userId The user ID
-     * @return ProviderDataEntity with synced data
+     * @return ProviderHoldingsEntity with synced data
      * @throws RuntimeException if sync fails
      */
-    public ProviderDataEntity syncProviderData(String userId) {
+    public ProviderHoldingsEntity syncProviderData(String userId) {
         log.info("Syncing Schwab provider data for user: {}", userId);
 
         try {
@@ -278,12 +265,12 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             // Fetch and store portfolio data
             fetchAndStorePortfolioData(userId, accessToken);
 
-            // Retrieve and return the stored data
-            ProviderDataEntity providerData = readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+            // Retrieve and return the stored data from new structure
+            Optional<ProviderHoldingsEntity> holdings = providerHoldingsRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
 
-            if (providerData != null) {
+            if (holdings.isPresent()) {
                 log.info("Successfully synced Schwab data for user: {}", userId);
-                return providerData;
+                return holdings.get();
             } else {
                 log.warn("No provider data found after sync for user: {}", userId);
                 throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND,
@@ -374,29 +361,28 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     }
 
     /**
-     * Fetch portfolio data from Schwab and store in provider_data collection.
+     * Fetch portfolio data from Schwab and store in new portfolio structure.
+     * Path: users/{userId}/portfolio/providers/{providerId}/holdings/current
      * This includes positions, balances, and transaction history for cost basis calculation.
      */
     private void fetchAndStorePortfolioData(String userId, String accessToken) {
         log.info("Fetching Schwab portfolio data for user: {}", userId);
 
-        if (createProviderDataRepository == null) {
-            log.warn("Provider data repository not available - skipping portfolio data fetch");
-            return;
-        }
-
         try {
             // Fetch accounts with positions from Schwab
             List<Map<String, Object>> accountsWithPositions = schwabClient.getAccountsWithPositions(accessToken);
 
-            // Transform to ProviderDataEntity with Holdings
-            ProviderDataEntity portfolioData = transformToProviderDataEntity(accountsWithPositions, userId, accessToken);
+            // Transform to ProviderHoldingsEntity
+            ProviderHoldingsEntity holdingsEntity = transformToProviderHoldingsEntity(accountsWithPositions, userId, accessToken);
 
-            // Store in Firestore
-            storeProviderData(userId, portfolioData);
+            // Store holdings in subcollection
+            providerHoldingsRepository.save(userId, PROVIDER_ID, holdingsEntity);
+
+            // Update provider summary (lightweight doc for fast queries)
+            updateProviderSummary(userId, holdingsEntity);
 
             log.info("Successfully stored Schwab portfolio data for user: {} with {} holdings",
-                userId, portfolioData.getHoldings() != null ? portfolioData.getHoldings().size() : 0);
+                userId, holdingsEntity.getHoldings() != null ? holdingsEntity.getHoldings().size() : 0);
 
         } catch (Exception e) {
             log.error("Failed to fetch and store Schwab portfolio data for user: {}", userId, e);
@@ -405,23 +391,57 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     }
 
     /**
-     * Transform Schwab API accounts response to ProviderDataEntity.
+     * Update the provider summary document with totals from holdings.
+     * This keeps the provider doc lightweight for fast Connect Providers page loads.
+     */
+    private void updateProviderSummary(String userId, ProviderHoldingsEntity holdings) {
+        try {
+            Optional<PortfolioProviderEntity> providerOpt = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+
+            if (providerOpt.isPresent()) {
+                PortfolioProviderEntity provider = providerOpt.get();
+
+                // Update summary fields
+                provider.setTotalValue(holdings.getTotalValue());
+                provider.setDayChange(holdings.getDayChange());
+                provider.setDayChangePercent(holdings.getDayChangePercent());
+                provider.setCashBalance(holdings.getCashBalance());
+                provider.setHoldingsCount(holdings.getHoldings() != null ? holdings.getHoldings().size() : 0);
+                provider.setLastSyncedAt(Instant.now());
+                provider.setSyncStatus("success");
+
+                portfolioProviderRepository.save(provider, userId);
+                log.debug("Updated Schwab provider summary for user: {}", userId);
+            }
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Schwab data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update provider summary for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Transform Schwab API accounts response to ProviderHoldingsEntity.
      * Schwab returns account data with securitiesAccount nested structure.
      *
      * Note: Schwab provides averagePrice directly in position data, so we don't need
      * to fetch transactions separately for cost basis calculation.
      */
-    private ProviderDataEntity transformToProviderDataEntity(List<Map<String, Object>> accounts,
-                                                             String userId, String accessToken) {
-        ProviderDataEntity entity = new ProviderDataEntity();
-        entity.setProviderId(PROVIDER_ID);
-        entity.setProviderName(PROVIDER_NAME);
-        entity.setProviderType(PROVIDER_TYPE);
-        entity.setProviderCategory(PROVIDER_CATEGORY);
+    private ProviderHoldingsEntity transformToProviderHoldingsEntity(List<Map<String, Object>> accounts,
+                                                                      String userId, String accessToken) {
+        ProviderHoldingsEntity entity = new ProviderHoldingsEntity(PROVIDER_ID, userId);
         entity.setSyncStatus("success");
         entity.setLastUpdatedAt(Instant.now());
 
-        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        List<ProviderHoldingsEntity.Holding> holdings = new ArrayList<>();
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal cashBalance = BigDecimal.ZERO;
         BigDecimal totalProfitLoss = BigDecimal.ZERO;
@@ -476,7 +496,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
                 // Process each position - Schwab provides averagePrice directly
                 for (Map<String, Object> position : positions) {
                     try {
-                        ProviderDataEntity.Holding holding = transformPosition(position);
+                        ProviderHoldingsEntity.Holding holding = transformPosition(position);
                         if (holding != null) {
                             holdings.add(holding);
 
@@ -512,7 +532,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
 
         // Add cash as a visible holding if there's a cash balance
         if (cashBalance.compareTo(BigDecimal.ZERO) > 0) {
-            ProviderDataEntity.Holding cashHolding = new ProviderDataEntity.Holding();
+            ProviderHoldingsEntity.Holding cashHolding = new ProviderHoldingsEntity.Holding();
             cashHolding.setAsset("CASH");
             cashHolding.setName("Cash & Money Market");
             cashHolding.setAssetType("cash");
@@ -533,7 +553,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
 
         // Calculate total P&L percent
         BigDecimal totalCostBasis = holdings.stream()
-            .map(ProviderDataEntity.Holding::getCostBasis)
+            .map(ProviderHoldingsEntity.Holding::getCostBasis)
             .filter(cb -> cb != null)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -551,7 +571,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
      * Transform a single Schwab position to a Holding.
      * Schwab provides averagePrice directly in position data for cost basis calculation.
      */
-    private ProviderDataEntity.Holding transformPosition(Map<String, Object> position) {
+    private ProviderHoldingsEntity.Holding transformPosition(Map<String, Object> position) {
         Map<String, Object> instrument = (Map<String, Object>) position.get("instrument");
         if (instrument == null) {
             return null;
@@ -604,7 +624,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         BigDecimal currentDayProfitLossPercent = extractBigDecimal(position, "currentDayProfitLossPercentage");
 
         // Create Holding
-        ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
+        ProviderHoldingsEntity.Holding holding = new ProviderHoldingsEntity.Holding();
         holding.setAsset(symbol);
         holding.setName((String) instrument.get("description"));
         holding.setQuantity(quantity.setScale(8, RoundingMode.HALF_UP));
@@ -706,12 +726,12 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     /**
      * Update holdings with real-time quote data.
      */
-    private void updateHoldingsWithQuotes(List<ProviderDataEntity.Holding> holdings, Map<String, Object> quotes) {
+    private void updateHoldingsWithQuotes(List<ProviderHoldingsEntity.Holding> holdings, Map<String, Object> quotes) {
         if (quotes == null || quotes.isEmpty()) {
             return;
         }
 
-        for (ProviderDataEntity.Holding holding : holdings) {
+        for (ProviderHoldingsEntity.Holding holding : holdings) {
             String symbol = holding.getAsset();
             if (symbol == null || !quotes.containsKey(symbol)) {
                 continue;
@@ -764,9 +784,9 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     /**
      * Recalculate total value from holdings.
      */
-    private BigDecimal recalculateTotalValue(List<ProviderDataEntity.Holding> holdings, BigDecimal cashBalance) {
+    private BigDecimal recalculateTotalValue(List<ProviderHoldingsEntity.Holding> holdings, BigDecimal cashBalance) {
         BigDecimal total = cashBalance != null ? cashBalance : BigDecimal.ZERO;
-        for (ProviderDataEntity.Holding holding : holdings) {
+        for (ProviderHoldingsEntity.Holding holding : holdings) {
             if (holding.getCurrentValue() != null) {
                 total = total.add(holding.getCurrentValue());
             }
@@ -821,42 +841,6 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         }
     }
 
-    private void storeProviderData(String userId, ProviderDataEntity entity) {
-        try {
-            log.info("=== SCHWAB PROVIDER DATA STORAGE ===");
-            log.info("User ID: {}", userId);
-            log.info("Provider ID: {}", PROVIDER_ID);
-            log.info("Holdings count: {}", entity.getHoldings() != null ? entity.getHoldings().size() : 0);
-            log.info("Total value: {}", entity.getTotalValue());
-            log.info("Cash balance: {}", entity.getCashBalance());
-
-            if (entity.getHoldings() != null && !entity.getHoldings().isEmpty()) {
-                log.info("First holding: asset={}, quantity={}, value={}",
-                    entity.getHoldings().get(0).getAsset(),
-                    entity.getHoldings().get(0).getQuantity(),
-                    entity.getHoldings().get(0).getCurrentValue());
-            }
-
-            // Use createOrReplace to handle both create and update
-            createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
-            log.info("Successfully stored Schwab provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
-
-            // Refresh portfolio summary to include this provider's data
-            if (portfolioSummaryManager != null) {
-                try {
-                    portfolioSummaryManager.refreshPortfolioSummary(userId);
-                    log.info("Refreshed portfolio summary after storing Schwab data for user: {}", userId);
-                } catch (Exception e) {
-                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to store Schwab provider data for user: {}", userId, e);
-            throw e;
-        }
-    }
-
     private void validateOAuthConfiguration() {
         if (clientId == null || clientId.trim().isEmpty()) {
             throw new StrategizException(ErrorCode.VALIDATION_ERROR,
@@ -899,13 +883,17 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         log.info("Creating Charles Schwab integration for user: {}", userId);
 
         try {
-            // Create simplified provider integration entity for Firestore
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+            // Create provider entity in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            PortfolioProviderEntity entity = new PortfolioProviderEntity(PROVIDER_ID, "oauth", userId);
+            entity.setProviderName(PROVIDER_NAME);
+            entity.setProviderType(PROVIDER_TYPE);
+            entity.setProviderCategory(PROVIDER_CATEGORY);
             entity.setStatus("disconnected"); // Not enabled until OAuth is complete
 
             // Save to Firestore
-            ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
-            log.info("Created pending Charles Schwab provider integration for user: {}", userId);
+            portfolioProviderRepository.save(entity, userId);
+            log.info("Created pending Charles Schwab provider for user: {}", userId);
 
             // Generate OAuth URL for the response
             String state = generateSecureState(userId);

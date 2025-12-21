@@ -7,15 +7,10 @@ import io.strategiz.business.provider.alpaca.model.AlpacaTokenRefreshResult;
 import io.strategiz.client.alpaca.client.AlpacaClient;
 import io.strategiz.client.alpaca.client.AlpacaDataClient;
 import io.strategiz.client.alpaca.auth.AlpacaOAuthClient;
-import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.entity.ProviderStatus;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.CreateProviderDataRepository;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
-import io.strategiz.data.provider.repository.UpdateProviderDataRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -61,12 +56,8 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     private final AlpacaClient alpacaClient;
     private final AlpacaDataClient alpacaDataClient;
     private final AlpacaOAuthClient alpacaOAuthClient;
-    private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
-    private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
-    private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
-    private final CreateProviderDataRepository createProviderDataRepository;
-    private final ReadProviderDataRepository readProviderDataRepository;
-    private final UpdateProviderDataRepository updateProviderDataRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
+    private final ProviderHoldingsRepository providerHoldingsRepository;
     private final SecretManager secretManager;
 
     @Autowired(required = false)
@@ -93,22 +84,14 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             AlpacaClient alpacaClient,
             AlpacaDataClient alpacaDataClient,
             AlpacaOAuthClient alpacaOAuthClient,
-            CreateProviderIntegrationRepository createProviderIntegrationRepository,
-            ReadProviderIntegrationRepository readProviderIntegrationRepository,
-            UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
-            @Autowired(required = false) CreateProviderDataRepository createProviderDataRepository,
-            @Autowired(required = false) ReadProviderDataRepository readProviderDataRepository,
-            @Autowired(required = false) UpdateProviderDataRepository updateProviderDataRepository,
+            PortfolioProviderRepository portfolioProviderRepository,
+            ProviderHoldingsRepository providerHoldingsRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.alpacaClient = alpacaClient;
         this.alpacaDataClient = alpacaDataClient;
         this.alpacaOAuthClient = alpacaOAuthClient;
-        this.createProviderIntegrationRepository = createProviderIntegrationRepository;
-        this.readProviderIntegrationRepository = readProviderIntegrationRepository;
-        this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
-        this.createProviderDataRepository = createProviderDataRepository;
-        this.readProviderDataRepository = readProviderDataRepository;
-        this.updateProviderDataRepository = updateProviderDataRepository;
+        this.portfolioProviderRepository = portfolioProviderRepository;
+        this.providerHoldingsRepository = providerHoldingsRepository;
         this.secretManager = secretManager;
     }
 
@@ -505,14 +488,17 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
         // For OAuth providers, we don't store credentials during signup
         // Instead, we'll initiate the OAuth flow
         try {
-            // Create simplified provider integration entity for Firestore
-            // Only store essential fields: providerId, connectionType, isEnabled
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+            // Create provider entity in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            PortfolioProviderEntity entity = new PortfolioProviderEntity(PROVIDER_ID, "oauth", userId);
+            entity.setProviderName(PROVIDER_NAME);
+            entity.setProviderType(PROVIDER_TYPE);
+            entity.setProviderCategory(PROVIDER_CATEGORY);
             entity.setStatus("disconnected"); // Not connected until OAuth is complete
             entity.setEnvironment(environment); // Store which environment (paper/live)
 
             // Save to Firestore
-            ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
+            portfolioProviderRepository.save(entity, userId);
             log.info("Created pending Alpaca {} provider integration for user: {}", environment, userId);
 
             // Generate OAuth URL for the response
@@ -564,26 +550,29 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             // Store tokens in Vault with environment suffix
             storeTokensInVault(userId, environment, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
 
-            // Create or update provider integration in Firestore
-            Optional<ProviderIntegrationEntity> existingIntegration = readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            // Create or update provider in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            Optional<PortfolioProviderEntity> existingProvider = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
 
-            if (existingIntegration.isPresent()) {
-                // Update existing integration - just enable it
-                ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.setStatus("connected"); // Mark as connected
-                entity.setEnvironment(environment); // Store environment
-
-                updateProviderIntegrationRepository.updateWithUserId(entity, userId);
-                log.info("Updated Alpaca {} integration status to connected for user: {}", environment, userId);
+            PortfolioProviderEntity entity;
+            if (existingProvider.isPresent()) {
+                // Update existing provider - mark as connected
+                entity = existingProvider.get();
+                entity.setStatus("connected");
+                entity.setEnvironment(environment);
+                log.info("Updating existing Alpaca {} provider to connected for user: {}", environment, userId);
             } else {
-                // Create new integration with simplified entity
-                ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
-                entity.setStatus("connected"); // Mark as connected
-                entity.setEnvironment(environment); // Store environment
-
-                ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
-                log.info("Created new Alpaca {} integration for user: {}", environment, userId);
+                // Create new provider entity
+                entity = new PortfolioProviderEntity(PROVIDER_ID, "oauth", userId);
+                entity.setProviderName(PROVIDER_NAME);
+                entity.setProviderType(PROVIDER_TYPE);
+                entity.setProviderCategory(PROVIDER_CATEGORY);
+                entity.setStatus("connected");
+                entity.setEnvironment(environment);
+                log.info("Creating new Alpaca {} provider for user: {}", environment, userId);
             }
+
+            portfolioProviderRepository.save(entity, userId);
 
             // Fetch and store portfolio data after OAuth completion (synchronous, like Coinbase)
             try {
@@ -605,10 +594,10 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
      * Retrieves access token from Vault and fetches latest portfolio data from Alpaca
      *
      * @param userId The user ID
-     * @return ProviderDataEntity with synced data
+     * @return ProviderHoldingsEntity with synced data
      * @throws RuntimeException if sync fails
      */
-    public ProviderDataEntity syncProviderData(String userId) {
+    public ProviderHoldingsEntity syncProviderData(String userId) {
         log.info("Syncing Alpaca provider data for user: {}", userId);
 
         try {
@@ -630,12 +619,12 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             // Fetch and store portfolio data (same process as during provider connection)
             fetchAndStorePortfolioData(userId, accessToken);
 
-            // Retrieve and return the stored data
-            ProviderDataEntity providerData = readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+            // Retrieve and return the stored data from new structure
+            Optional<ProviderHoldingsEntity> holdings = providerHoldingsRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
 
-            if (providerData != null) {
+            if (holdings.isPresent()) {
                 log.info("Successfully synced Alpaca data for user: {}", userId);
-                return providerData;
+                return holdings.get();
             } else {
                 log.warn("No provider data found after sync for user: {}", userId);
                 throw new StrategizException(AlpacaProviderErrorDetails.NO_DATA_AFTER_SYNC, "business-provider-alpaca", userId);
@@ -650,16 +639,12 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     }
 
     /**
-     * Fetch portfolio data from Alpaca and store in provider_data collection
+     * Fetch portfolio data from Alpaca and store in new portfolio structure.
+     * Path: users/{userId}/portfolio/providers/{providerId}/holdings/current
      * This is called after OAuth completion to pre-populate the dashboard
      */
     private void fetchAndStorePortfolioData(String userId, String accessToken) {
         log.info("Fetching Alpaca portfolio data for user: {}", userId);
-
-        if (createProviderDataRepository == null) {
-            log.warn("Provider data repository not available - skipping portfolio data fetch");
-            return;
-        }
 
         try {
             // Fetch account info from Alpaca
@@ -668,14 +653,17 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
             // Fetch positions from Alpaca
             List<Map<String, Object>> positions = alpacaDataClient.getPositions(accessToken);
 
-            // Transform to ProviderDataEntity with Holdings
-            ProviderDataEntity portfolioData = transformToProviderDataEntity(accountInfo, positions, userId, accessToken);
+            // Transform to ProviderHoldingsEntity
+            ProviderHoldingsEntity holdingsEntity = transformToProviderHoldingsEntity(accountInfo, positions, userId, accessToken);
 
-            // Store in Firestore
-            storeProviderData(userId, portfolioData);
+            // Store holdings in subcollection
+            providerHoldingsRepository.save(userId, PROVIDER_ID, holdingsEntity);
+
+            // Update provider summary (lightweight doc for fast queries)
+            updateProviderSummary(userId, holdingsEntity);
 
             log.info("Successfully stored Alpaca portfolio data for user: {} with {} holdings",
-                userId, portfolioData.getHoldings() != null ? portfolioData.getHoldings().size() : 0);
+                userId, holdingsEntity.getHoldings() != null ? holdingsEntity.getHoldings().size() : 0);
 
         } catch (Exception e) {
             log.error("Failed to fetch and store Alpaca portfolio data for user: {}", userId, e);
@@ -684,25 +672,59 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
     }
 
     /**
-     * Transform Alpaca API response to ProviderDataEntity
+     * Update the provider summary document with totals from holdings.
+     * This keeps the provider doc lightweight for fast Connect Providers page loads.
+     */
+    private void updateProviderSummary(String userId, ProviderHoldingsEntity holdings) {
+        try {
+            Optional<PortfolioProviderEntity> providerOpt = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+
+            if (providerOpt.isPresent()) {
+                PortfolioProviderEntity provider = providerOpt.get();
+
+                // Update summary fields
+                provider.setTotalValue(holdings.getTotalValue());
+                provider.setDayChange(holdings.getDayChange());
+                provider.setDayChangePercent(holdings.getDayChangePercent());
+                provider.setCashBalance(holdings.getCashBalance());
+                provider.setHoldingsCount(holdings.getHoldings() != null ? holdings.getHoldings().size() : 0);
+                provider.setLastSyncedAt(Instant.now());
+                provider.setSyncStatus("success");
+
+                portfolioProviderRepository.save(provider, userId);
+                log.debug("Updated Alpaca provider summary for user: {}", userId);
+            }
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Alpaca data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update provider summary for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Transform Alpaca API response to ProviderHoldingsEntity
      * @param accountInfo The account info response from Alpaca API
      * @param positions The positions response from Alpaca API
      * @param userId The user ID
      * @param accessToken OAuth access token
      */
-    private ProviderDataEntity transformToProviderDataEntity(Map<String, Object> accountInfo,
-                                                             List<Map<String, Object>> positions,
-                                                             String userId,
-                                                             String accessToken) {
-        ProviderDataEntity entity = new ProviderDataEntity();
-        entity.setProviderId(PROVIDER_ID);
-        entity.setProviderName(PROVIDER_NAME);
-        entity.setProviderType(PROVIDER_TYPE);
-        entity.setProviderCategory(PROVIDER_CATEGORY);
+    private ProviderHoldingsEntity transformToProviderHoldingsEntity(Map<String, Object> accountInfo,
+                                                                      List<Map<String, Object>> positions,
+                                                                      String userId,
+                                                                      String accessToken) {
+        ProviderHoldingsEntity entity = new ProviderHoldingsEntity(PROVIDER_ID, userId);
         entity.setSyncStatus("success");
         entity.setLastUpdatedAt(Instant.now());
 
-        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        List<ProviderHoldingsEntity.Holding> holdings = new ArrayList<>();
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal cashBalance = BigDecimal.ZERO;
 
@@ -751,7 +773,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
                     }
 
                     // Create Holding
-                    ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
+                    ProviderHoldingsEntity.Holding holding = new ProviderHoldingsEntity.Holding();
                     holding.setAsset(symbol);
                     holding.setName(symbol); // Alpaca uses symbol as name
                     holding.setQuantity(quantity);
@@ -830,7 +852,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
 
         // Calculate total profit/loss from holdings
         BigDecimal totalProfitLoss = BigDecimal.ZERO;
-        for (ProviderDataEntity.Holding holding : holdings) {
+        for (ProviderHoldingsEntity.Holding holding : holdings) {
             if (holding.getProfitLoss() != null) {
                 totalProfitLoss = totalProfitLoss.add(holding.getProfitLoss());
             }
@@ -839,7 +861,7 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
 
         // Calculate total profit/loss percentage
         BigDecimal totalCostBasis = BigDecimal.ZERO;
-        for (ProviderDataEntity.Holding holding : holdings) {
+        for (ProviderHoldingsEntity.Holding holding : holdings) {
             if (holding.getCostBasis() != null) {
                 totalCostBasis = totalCostBasis.add(holding.getCostBasis());
             }
@@ -853,46 +875,6 @@ public class AlpacaProviderBusiness implements ProviderIntegrationHandler {
         }
 
         return entity;
-    }
-
-    /**
-     * Store provider data entity in Firestore
-     */
-    private void storeProviderData(String userId, ProviderDataEntity entity) {
-        try {
-            log.info("=== ALPACA PROVIDER DATA STORAGE ===");
-            log.info("User ID: {}", userId);
-            log.info("Provider ID: {}", PROVIDER_ID);
-            log.info("Holdings count: {}", entity.getHoldings() != null ? entity.getHoldings().size() : 0);
-            log.info("Total value: ${}", entity.getTotalValue());
-            log.info("Cash balance: ${}", entity.getCashBalance());
-            log.info("Total P/L: ${}", entity.getTotalProfitLoss());
-
-            if (entity.getHoldings() != null && !entity.getHoldings().isEmpty()) {
-                log.info("First holding: asset={}, quantity={}, value=${}",
-                    entity.getHoldings().get(0).getAsset(),
-                    entity.getHoldings().get(0).getQuantity(),
-                    entity.getHoldings().get(0).getCurrentValue());
-            }
-
-            // Use createOrReplace to handle both create and update
-            createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
-            log.info("Successfully stored Alpaca provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
-
-            // Refresh portfolio summary to include this provider's data
-            if (portfolioSummaryManager != null) {
-                try {
-                    portfolioSummaryManager.refreshPortfolioSummary(userId);
-                    log.info("Refreshed portfolio summary after storing Alpaca data for user: {}", userId);
-                } catch (Exception e) {
-                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to store Alpaca provider data for user: {}", userId, e);
-            throw e;
-        }
     }
 
     private void storeTokensInVault(String userId, String environment, String accessToken, String refreshToken, Instant expiresAt) {

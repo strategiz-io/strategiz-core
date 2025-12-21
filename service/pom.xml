@@ -32,5 +32,6 @@
         <module>service-live-strategies</module>
         <module>service-walletaddress</module>
         <module>service-learn</module>
+        <module>service-console</module>
     </modules>
 </project>

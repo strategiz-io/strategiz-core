@@ -3,7 +3,7 @@ package io.strategiz.business.provider.kraken.helper;
 import io.strategiz.business.provider.kraken.constants.KrakenConstants;
 import io.strategiz.business.provider.kraken.exception.KrakenProviderErrorDetails;
 import io.strategiz.business.provider.kraken.enrichment.model.EnrichedKrakenData;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Component responsible for transforming Kraken API responses into ProviderDataEntity.
+ * Component responsible for transforming Kraken API responses into ProviderHoldingsEntity.
  * Handles data normalization, calculation of portfolio metrics, and data structure conversion.
  * 
  * @author Strategiz Platform
@@ -30,15 +30,15 @@ public class KrakenDataTransformer {
     private static final String MODULE_NAME = "business-provider-kraken";
     
     /**
-     * Transform Kraken API data into ProviderDataEntity
+     * Transform Kraken API data into ProviderHoldingsEntity
      * 
      * @param userId User ID for audit fields
      * @param balanceResponse Raw balance response from Kraken API
      * @param tradesResponse Raw trades response from Kraken API
      * @param currentPrices Current market prices for assets
-     * @return Transformed ProviderDataEntity ready for storage
+     * @return Transformed ProviderHoldingsEntity ready for storage
      */
-    public ProviderDataEntity transformKrakenData(String userId,
+    public ProviderHoldingsEntity transformKrakenData(String userId,
                                                   Map<String, Object> balanceResponse,
                                                   Map<String, Object> tradesResponse,
                                                   Map<String, BigDecimal> currentPrices) {
@@ -46,22 +46,16 @@ public class KrakenDataTransformer {
         log.debug("Transforming Kraken data for user: {}", userId);
         
         try {
-            // Create entity - audit fields will be set by repository
-            ProviderDataEntity data = new ProviderDataEntity();
-            
-            // Set basic provider information
-            data.setProviderId(KrakenConstants.PROVIDER_ID);
-            data.setProviderName(KrakenConstants.PROVIDER_NAME);
-            data.setProviderType(KrakenConstants.PROVIDER_TYPE);
-            data.setProviderCategory(KrakenConstants.PROVIDER_CATEGORY);
-            data.setDocumentId(KrakenConstants.PROVIDER_ID); // Use provider ID as document ID
+            // Create entity - ProviderHoldingsEntity only contains holdings data
+            // Provider metadata (name, type, category) is stored in PortfolioProviderEntity
+            ProviderHoldingsEntity data = new ProviderHoldingsEntity(KrakenConstants.PROVIDER_ID, userId);
             
             // Extract and process balances
             Map<String, Object> balances = extractBalances(balanceResponse);
             data.setBalances(balances);
             
             // Transform balances into holdings with valuation
-            List<ProviderDataEntity.Holding> holdings = createHoldings(balances, currentPrices, tradesResponse);
+            List<ProviderHoldingsEntity.Holding> holdings = createHoldings(balances, currentPrices, tradesResponse);
             data.setHoldings(holdings);
             
             // Calculate portfolio totals
@@ -112,11 +106,11 @@ public class KrakenDataTransformer {
     /**
      * Create holdings from balance data and current prices
      */
-    private List<ProviderDataEntity.Holding> createHoldings(Map<String, Object> balances,
+    private List<ProviderHoldingsEntity.Holding> createHoldings(Map<String, Object> balances,
                                                             Map<String, BigDecimal> currentPrices,
                                                             Map<String, Object> tradesResponse) {
         
-        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        List<ProviderHoldingsEntity.Holding> holdings = new ArrayList<>();
         
         for (Map.Entry<String, Object> entry : balances.entrySet()) {
             String assetCode = entry.getKey();
@@ -131,7 +125,7 @@ public class KrakenDataTransformer {
                 
                 // Only include assets with non-zero balance
                 if (quantity.compareTo(BigDecimal.ZERO) > 0) {
-                    ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
+                    ProviderHoldingsEntity.Holding holding = new ProviderHoldingsEntity.Holding();
                     
                     // Normalize asset name at storage time for consistency
                     String normalizedAsset = normalizeAssetName(assetCode);
@@ -222,12 +216,12 @@ public class KrakenDataTransformer {
     /**
      * Calculate total portfolio value including cash
      */
-    private BigDecimal calculateTotalValue(List<ProviderDataEntity.Holding> holdings,
+    private BigDecimal calculateTotalValue(List<ProviderHoldingsEntity.Holding> holdings,
                                           Map<String, Object> balances) {
         
         // Sum up holding values
         BigDecimal holdingsValue = holdings.stream()
-            .map(ProviderDataEntity.Holding::getCurrentValue)
+            .map(ProviderHoldingsEntity.Holding::getCurrentValue)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         // Add cash balances
@@ -325,30 +319,24 @@ public class KrakenDataTransformer {
     }
     
     /**
-     * Transform enriched Kraken data into ProviderDataEntity.
+     * Transform enriched Kraken data into ProviderHoldingsEntity.
      * This method uses pre-enriched data from the enrichment service.
      * 
      * @param userId User ID for audit fields
      * @param enrichedData Enriched data from the enrichment service
      * @param tradesResponse Raw trades response for transaction history
-     * @return Transformed ProviderDataEntity ready for storage
+     * @return Transformed ProviderHoldingsEntity ready for storage
      */
-    public ProviderDataEntity transformEnrichedData(String userId,
+    public ProviderHoldingsEntity transformEnrichedData(String userId,
                                                     EnrichedKrakenData enrichedData,
                                                     Map<String, Object> tradesResponse) {
         
         log.debug("Transforming enriched Kraken data for user: {}", userId);
         
         try {
-            // Create entity
-            ProviderDataEntity data = new ProviderDataEntity();
-            
-            // Set basic provider information
-            data.setProviderId(KrakenConstants.PROVIDER_ID);
-            data.setProviderName(KrakenConstants.PROVIDER_NAME);
-            data.setProviderType(KrakenConstants.PROVIDER_TYPE);
-            data.setProviderCategory(KrakenConstants.PROVIDER_CATEGORY);
-            data.setDocumentId(KrakenConstants.PROVIDER_ID);
+            // Create entity - ProviderHoldingsEntity only contains holdings data
+            // Provider metadata (name, type, category) is stored in PortfolioProviderEntity
+            ProviderHoldingsEntity data = new ProviderHoldingsEntity(KrakenConstants.PROVIDER_ID, userId);
 
             // Store raw balances for reference
             Map<String, Object> rawBalances = new HashMap<>();
@@ -363,7 +351,7 @@ public class KrakenDataTransformer {
             data.setBalances(rawBalances);
             
             // Transform enriched asset info into holdings
-            List<ProviderDataEntity.Holding> holdings = createEnrichedHoldings(enrichedData, tradesResponse);
+            List<ProviderHoldingsEntity.Holding> holdings = createEnrichedHoldings(enrichedData, tradesResponse);
             data.setHoldings(holdings);
             
             // Calculate portfolio totals
@@ -407,10 +395,10 @@ public class KrakenDataTransformer {
     /**
      * Create holdings from enriched asset information
      */
-    private List<ProviderDataEntity.Holding> createEnrichedHoldings(EnrichedKrakenData enrichedData,
+    private List<ProviderHoldingsEntity.Holding> createEnrichedHoldings(EnrichedKrakenData enrichedData,
                                                                     Map<String, Object> tradesResponse) {
         
-        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        List<ProviderHoldingsEntity.Holding> holdings = new ArrayList<>();
         
         for (EnrichedKrakenData.AssetInfo assetInfo : enrichedData.getAssetInfo().values()) {
             // Skip cash assets in holdings
@@ -423,7 +411,7 @@ public class KrakenDataTransformer {
                 continue;
             }
             
-            ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
+            ProviderHoldingsEntity.Holding holding = new ProviderHoldingsEntity.Holding();
             
             // Basic asset information
             holding.setAsset(assetInfo.getNormalizedSymbol());
@@ -485,11 +473,11 @@ public class KrakenDataTransformer {
     /**
      * Calculate total value from holdings and cash
      */
-    private BigDecimal calculateTotalValueFromHoldings(List<ProviderDataEntity.Holding> holdings,
+    private BigDecimal calculateTotalValueFromHoldings(List<ProviderHoldingsEntity.Holding> holdings,
                                                        EnrichedKrakenData enrichedData) {
         // Sum up holding values
         BigDecimal holdingsValue = holdings.stream()
-            .map(ProviderDataEntity.Holding::getCurrentValue)
+            .map(ProviderHoldingsEntity.Holding::getCurrentValue)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         
         // Add cash balance
@@ -520,14 +508,14 @@ public class KrakenDataTransformer {
     /**
      * Calculate overall portfolio profit/loss
      */
-    private void calculateProfitLoss(ProviderDataEntity data, Map<String, Object> tradesResponse) {
+    private void calculateProfitLoss(ProviderHoldingsEntity data, Map<String, Object> tradesResponse) {
         
         // Calculate total P&L from holdings
         BigDecimal totalProfitLoss = BigDecimal.ZERO;
         BigDecimal totalCostBasis = BigDecimal.ZERO;
         
         if (data.getHoldings() != null) {
-            for (ProviderDataEntity.Holding holding : data.getHoldings()) {
+            for (ProviderHoldingsEntity.Holding holding : data.getHoldings()) {
                 if (holding.getProfitLoss() != null) {
                     totalProfitLoss = totalProfitLoss.add(holding.getProfitLoss());
                 }

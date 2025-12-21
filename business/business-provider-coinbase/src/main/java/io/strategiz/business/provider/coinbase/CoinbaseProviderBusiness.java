@@ -7,15 +7,10 @@ import io.strategiz.business.provider.coinbase.model.CoinbaseTokenRefreshResult;
 import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.client.coinbase.CoinbaseDataClient;
 import io.strategiz.client.coinbase.CoinbaseOAuthClient;
-import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.entity.ProviderStatus;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.CreateProviderDataRepository;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
-import io.strategiz.data.provider.repository.UpdateProviderDataRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -64,12 +59,8 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     private final CoinbaseClient coinbaseClient;
     private final CoinbaseDataClient coinbaseDataClient;
     private final CoinbaseOAuthClient coinbaseOAuthClient;
-    private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
-    private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
-    private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
-    private final CreateProviderDataRepository createProviderDataRepository;
-    private final ReadProviderDataRepository readProviderDataRepository;
-    private final UpdateProviderDataRepository updateProviderDataRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
+    private final ProviderHoldingsRepository providerHoldingsRepository;
     private final SecretManager secretManager;
 
     @Autowired(required = false)
@@ -96,22 +87,14 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             CoinbaseClient coinbaseClient,
             CoinbaseDataClient coinbaseDataClient,
             CoinbaseOAuthClient coinbaseOAuthClient,
-            CreateProviderIntegrationRepository createProviderIntegrationRepository,
-            ReadProviderIntegrationRepository readProviderIntegrationRepository,
-            UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
-            @Autowired(required = false) CreateProviderDataRepository createProviderDataRepository,
-            @Autowired(required = false) ReadProviderDataRepository readProviderDataRepository,
-            @Autowired(required = false) UpdateProviderDataRepository updateProviderDataRepository,
+            PortfolioProviderRepository portfolioProviderRepository,
+            ProviderHoldingsRepository providerHoldingsRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.coinbaseClient = coinbaseClient;
         this.coinbaseDataClient = coinbaseDataClient;
         this.coinbaseOAuthClient = coinbaseOAuthClient;
-        this.createProviderIntegrationRepository = createProviderIntegrationRepository;
-        this.readProviderIntegrationRepository = readProviderIntegrationRepository;
-        this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
-        this.createProviderDataRepository = createProviderDataRepository;
-        this.readProviderDataRepository = readProviderDataRepository;
-        this.updateProviderDataRepository = updateProviderDataRepository;
+        this.portfolioProviderRepository = portfolioProviderRepository;
+        this.providerHoldingsRepository = providerHoldingsRepository;
         this.secretManager = secretManager;
     }
 
@@ -480,27 +463,30 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     @Override
     public ProviderIntegrationResult createIntegration(CreateProviderIntegrationRequest request, String userId) {
         log.info("Creating Coinbase integration for user: {}", userId);
-        log.info("OAuth configuration - clientId: {}, redirectUri: {}", 
-                clientId != null ? "configured" : "null", 
+        log.info("OAuth configuration - clientId: {}, redirectUri: {}",
+                clientId != null ? "configured" : "null",
                 redirectUri != null ? redirectUri : "null");
-        
+
         // For OAuth providers, we don't store credentials during signup
         // Instead, we'll initiate the OAuth flow
         try {
-            // Create simplified provider integration entity for Firestore
-            // Only store essential fields: providerId, connectionType, isEnabled
-            ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
+            // Create provider entity in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            PortfolioProviderEntity entity = new PortfolioProviderEntity(PROVIDER_ID, "oauth", userId);
+            entity.setProviderName(PROVIDER_NAME);
+            entity.setProviderType(PROVIDER_TYPE);
+            entity.setProviderCategory(PROVIDER_CATEGORY);
             entity.setStatus("disconnected"); // Not connected until OAuth is complete
-            
+
             // Save to Firestore
-            ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
+            portfolioProviderRepository.save(entity, userId);
             log.info("Created pending Coinbase provider integration for user: {}", userId);
-            
+
             // Generate OAuth URL for the response
             String state = generateSecureState(userId);
             String authUrl = generateAuthorizationUrl(userId, state);
             log.info("Generated OAuth URL: {}", authUrl);
-            
+
             // Build result with OAuth URL
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("oauthUrl", authUrl);
@@ -509,13 +495,13 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             metadata.put("oauthRequired", true);
             metadata.put("authMethod", "oauth2");
             metadata.put("scope", scope);
-            
+
             ProviderIntegrationResult result = new ProviderIntegrationResult();
             result.setSuccess(true);
             result.setMessage("OAuth URL generated successfully");
             result.setMetadata(metadata);
             return result;
-                
+
         } catch (Exception e) {
             log.error("Error creating Coinbase integration for user: {}", userId, e);
             throw new StrategizException(CoinbaseProviderErrorDetails.INTEGRATION_CREATION_FAILED, "business-provider-coinbase", e, userId);
@@ -540,32 +526,29 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Store tokens in Vault
             storeTokensInVault(userId, result.getAccessToken(), result.getRefreshToken(), result.getExpiresAt());
 
-            // Create or update provider integration in Firestore
-            Optional<ProviderIntegrationEntity> existingIntegration = readProviderIntegrationRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+            // Create or update provider in new portfolio structure
+            // Path: users/{userId}/portfolio/providers/{providerId}
+            Optional<PortfolioProviderEntity> existingProvider = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
 
-            if (existingIntegration.isPresent()) {
-                // Update existing integration - just enable it
-                ProviderIntegrationEntity entity = existingIntegration.get();
-                entity.setStatus("connected"); // Mark as connected
-
-                // We don't store tokens or metadata in the entity anymore
-                // Those should be stored securely elsewhere (e.g., Vault)
-
-                updateProviderIntegrationRepository.updateWithUserId(entity, userId);
-                log.info("Updated Coinbase integration status to connected for user: {}", userId);
+            PortfolioProviderEntity entity;
+            if (existingProvider.isPresent()) {
+                // Update existing provider - mark as connected
+                entity = existingProvider.get();
+                entity.setStatus("connected");
+                log.info("Updating existing Coinbase provider to connected for user: {}", userId);
             } else {
-                // Create new integration with simplified entity
-                ProviderIntegrationEntity entity = new ProviderIntegrationEntity(PROVIDER_ID, "oauth", userId);
-                entity.setStatus("connected"); // Mark as connected
-
-                // We don't store tokens or metadata in the entity anymore
-                // Those should be stored securely elsewhere (e.g., Vault)
-
-                ProviderIntegrationEntity savedEntity = createProviderIntegrationRepository.createForUser(entity, userId);
-                log.info("Created new Coinbase integration for user: {}", userId);
+                // Create new provider entity
+                entity = new PortfolioProviderEntity(PROVIDER_ID, "oauth", userId);
+                entity.setProviderName(PROVIDER_NAME);
+                entity.setProviderType(PROVIDER_TYPE);
+                entity.setProviderCategory(PROVIDER_CATEGORY);
+                entity.setStatus("connected");
+                log.info("Creating new Coinbase provider for user: {}", userId);
             }
 
-            // Fetch and store portfolio data after OAuth completion (synchronous, like Kraken)
+            portfolioProviderRepository.save(entity, userId);
+
+            // Fetch and store portfolio data after OAuth completion (synchronous)
             // This MUST succeed for the signup flow to complete properly
             fetchAndStorePortfolioData(userId, result.getAccessToken());
             log.info("Successfully fetched and stored Coinbase portfolio data during OAuth for user: {}", userId);
@@ -581,10 +564,10 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
      * Retrieves access token from Vault and fetches latest portfolio data from Coinbase
      *
      * @param userId The user ID
-     * @return ProviderDataEntity with synced data
+     * @return ProviderHoldingsEntity with synced data
      * @throws RuntimeException if sync fails
      */
-    public ProviderDataEntity syncProviderData(String userId) {
+    public ProviderHoldingsEntity syncProviderData(String userId) {
         log.info("Syncing Coinbase provider data for user: {}", userId);
 
         try {
@@ -606,12 +589,12 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
             // Fetch and store portfolio data (same process as during provider connection)
             fetchAndStorePortfolioData(userId, accessToken);
 
-            // Retrieve and return the stored data
-            ProviderDataEntity providerData = readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+            // Retrieve and return the stored data from new structure
+            Optional<ProviderHoldingsEntity> holdings = providerHoldingsRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
 
-            if (providerData != null) {
+            if (holdings.isPresent()) {
                 log.info("Successfully synced Coinbase data for user: {}", userId);
-                return providerData;
+                return holdings.get();
             } else {
                 log.warn("No provider data found after sync for user: {}", userId);
                 throw new StrategizException(CoinbaseProviderErrorDetails.NO_DATA_AFTER_SYNC, "business-provider-coinbase", userId);
@@ -654,29 +637,28 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     }
 
     /**
-     * Fetch portfolio data from Coinbase and store in provider_data collection
+     * Fetch portfolio data from Coinbase and store in new portfolio structure.
+     * Path: users/{userId}/portfolio/providers/{providerId}/holdings/current
      * This is called after OAuth completion to pre-populate the dashboard
      */
     private void fetchAndStorePortfolioData(String userId, String accessToken) {
         log.info("Fetching Coinbase portfolio data for user: {}", userId);
 
-        if (createProviderDataRepository == null) {
-            log.warn("Provider data repository not available - skipping portfolio data fetch");
-            return;
-        }
-
         try {
             // Fetch accounts from Coinbase
             Map<String, Object> accountsResponse = coinbaseClient.getAccounts(accessToken);
 
-            // Transform to ProviderDataEntity with Holdings (pass access token for price fetching)
-            ProviderDataEntity portfolioData = transformToProviderDataEntity(accountsResponse, userId, accessToken);
+            // Transform to ProviderHoldingsEntity (pass access token for price fetching)
+            ProviderHoldingsEntity holdingsEntity = transformToProviderHoldingsEntity(accountsResponse, userId, accessToken);
 
-            // Store in Firestore
-            storeProviderData(userId, portfolioData);
+            // Store holdings in subcollection
+            providerHoldingsRepository.save(userId, PROVIDER_ID, holdingsEntity);
+
+            // Update provider summary (lightweight doc for fast queries)
+            updateProviderSummary(userId, holdingsEntity);
 
             log.info("Successfully stored Coinbase portfolio data for user: {} with {} holdings",
-                userId, portfolioData.getHoldings() != null ? portfolioData.getHoldings().size() : 0);
+                userId, holdingsEntity.getHoldings() != null ? holdingsEntity.getHoldings().size() : 0);
 
         } catch (Exception e) {
             log.error("Failed to fetch and store Coinbase portfolio data for user: {}", userId, e);
@@ -685,21 +667,55 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
     }
 
     /**
-     * Transform Coinbase API accounts response to ProviderDataEntity
+     * Update the provider summary document with totals from holdings.
+     * This keeps the provider doc lightweight for fast Connect Providers page loads.
+     */
+    private void updateProviderSummary(String userId, ProviderHoldingsEntity holdings) {
+        try {
+            Optional<PortfolioProviderEntity> providerOpt = portfolioProviderRepository.findByUserIdAndProviderId(userId, PROVIDER_ID);
+
+            if (providerOpt.isPresent()) {
+                PortfolioProviderEntity provider = providerOpt.get();
+
+                // Update summary fields
+                provider.setTotalValue(holdings.getTotalValue());
+                provider.setDayChange(holdings.getDayChange());
+                provider.setDayChangePercent(holdings.getDayChangePercent());
+                provider.setCashBalance(holdings.getCashBalance());
+                provider.setHoldingsCount(holdings.getHoldings() != null ? holdings.getHoldings().size() : 0);
+                provider.setLastSyncedAt(Instant.now());
+                provider.setSyncStatus("success");
+
+                portfolioProviderRepository.save(provider, userId);
+                log.debug("Updated Coinbase provider summary for user: {}", userId);
+            }
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Coinbase data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update provider summary for user {}: {}", userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Transform Coinbase API accounts response to ProviderHoldingsEntity
      * @param accountsResponse The accounts response from Coinbase API
      * @param userId The user ID
      * @param accessToken OAuth access token for fetching prices
      */
-    private ProviderDataEntity transformToProviderDataEntity(Map<String, Object> accountsResponse, String userId, String accessToken) {
-        ProviderDataEntity entity = new ProviderDataEntity();
-        entity.setProviderId(PROVIDER_ID);
-        entity.setProviderName(PROVIDER_NAME);
-        entity.setProviderType(PROVIDER_TYPE);
-        entity.setProviderCategory(PROVIDER_CATEGORY);
+    private ProviderHoldingsEntity transformToProviderHoldingsEntity(Map<String, Object> accountsResponse, String userId, String accessToken) {
+        ProviderHoldingsEntity entity = new ProviderHoldingsEntity(PROVIDER_ID, userId);
         entity.setSyncStatus("success");
         entity.setLastUpdatedAt(Instant.now());
 
-        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        List<ProviderHoldingsEntity.Holding> holdings = new ArrayList<>();
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal cashBalance = BigDecimal.ZERO;
 
@@ -715,11 +731,6 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
 
         for (Map<String, Object> account : accounts) {
             try {
-                // DEBUG: Log the entire account object to see what fields are available
-                log.info("=== COINBASE ACCOUNT DATA ===");
-                log.info("Account fields: {}", account.keySet());
-                log.info("Full account data: {}", account);
-
                 // Extract account data - currency can be either String or Object
                 String currency = null;
                 Object currencyObj = account.get("currency");
@@ -755,7 +766,7 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
                 }
 
                 // Create Holding
-                ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
+                ProviderHoldingsEntity.Holding holding = new ProviderHoldingsEntity.Holding();
                 holding.setAsset(currency);
 
                 // Clean up the name - remove "Staked " prefix and " Wallet" suffix
@@ -827,44 +838,6 @@ public class CoinbaseProviderBusiness implements ProviderIntegrationHandler {
         return symbol != null &&
                (symbol.equals("USD") || symbol.equals("EUR") || symbol.equals("GBP") ||
                 symbol.equals("CAD") || symbol.equals("JPY") || symbol.equals("AUD"));
-    }
-
-    /**
-     * Store provider data entity in Firestore
-     */
-    private void storeProviderData(String userId, ProviderDataEntity entity) {
-        try {
-            log.info("=== COINBASE PROVIDER DATA STORAGE ===");
-            log.info("User ID: {}", userId);
-            log.info("Provider ID: {}", PROVIDER_ID);
-            log.info("Holdings count: {}", entity.getHoldings() != null ? entity.getHoldings().size() : 0);
-            log.info("Total value: {}", entity.getTotalValue());
-            log.info("Cash balance: {}", entity.getCashBalance());
-
-            if (entity.getHoldings() != null && !entity.getHoldings().isEmpty()) {
-                log.info("First holding: asset={}, quantity={}",
-                    entity.getHoldings().get(0).getAsset(),
-                    entity.getHoldings().get(0).getQuantity());
-            }
-
-            // Use createOrReplace to handle both create and update
-            createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
-            log.info("Successfully stored Coinbase provider data at path: users/{}/provider_data/{}", userId, PROVIDER_ID);
-
-            // Refresh portfolio summary to include this provider's data
-            if (portfolioSummaryManager != null) {
-                try {
-                    portfolioSummaryManager.refreshPortfolioSummary(userId);
-                    log.info("Refreshed portfolio summary after storing Coinbase data for user: {}", userId);
-                } catch (Exception e) {
-                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to store Coinbase provider data for user: {}", userId, e);
-            throw e;
-        }
     }
 
     /**

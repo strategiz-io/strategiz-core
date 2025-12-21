@@ -94,6 +94,7 @@
         <module>service/service-marketing</module>
         <module>service/service-marketdata</module>
         <module>service/service-learn</module>
+        <module>service/service-console</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
 
@@ -383,7 +384,12 @@
                 <artifactId>service-marketing</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Framework Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>

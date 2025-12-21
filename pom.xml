@@ -108,8 +108,8 @@
 
 
         <!-- Application Modules (Build Last) -->
-        <module>application-core</module>
-        <module>application-console</module>
+        <module>application-api</module>
+        <!-- application-console removed - admin endpoints now served by application-api -->
     </modules>
 
     <properties>

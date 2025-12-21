@@ -62,8 +62,8 @@ public class ReadProviderService {
 
                     providerResponse.setConnectionType(provider.getConnectionType());
                     providerResponse.setStatus(provider.getStatus());
-                    providerResponse.setConnectedAt(provider.getCreatedAt() != null ?
-                        provider.getCreatedAt() : Instant.now());
+                    providerResponse.setConnectedAt(provider.getCreatedDate() != null ?
+                        provider.getCreatedDate().toDate().toInstant() : Instant.now());
 
                     // Build account info
                     Map<String, Object> providerAccountInfo = new HashMap<>();

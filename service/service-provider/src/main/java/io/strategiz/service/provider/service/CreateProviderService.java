@@ -308,21 +308,27 @@ public class CreateProviderService {
         response.setMessage(result.getMessage());
         
         // Pass through all metadata from the business layer
-        response.setConnectionData(result.getMetadata());
-        
+        Map<String, Object> connectionData = result.getMetadata() != null
+            ? new HashMap<>(result.getMetadata())
+            : new HashMap<>();
+
         // Check if this is an OAuth flow by looking for OAuth URL in metadata
         if (result.getMetadata() != null && result.getMetadata().containsKey("oauthUrl")) {
             // OAuth flow - set status to pending and extract OAuth URL
             response.setStatus("pending");
-            response.setAuthorizationUrl(result.getMetadata().get("oauthUrl").toString());
+            String oauthUrl = result.getMetadata().get("oauthUrl").toString();
+            response.setAuthorizationUrl(oauthUrl);
             response.setFlowType("oauth");
-            
+
+            // Also add authorizationUrl to connectionData for frontend compatibility
+            connectionData.put("authorizationUrl", oauthUrl);
+
             // Also set state if available
             if (result.getMetadata().containsKey("state")) {
                 response.setState(result.getMetadata().get("state").toString());
             }
-            
-            log.info("OAuth flow initiated for provider: {}, URL: {}", 
+
+            log.info("OAuth flow initiated for provider: {}, URL: {}",
                     request.getProviderId(), response.getAuthorizationUrl());
         } else {
             // Non-OAuth flow or completed flow
@@ -332,7 +338,10 @@ public class CreateProviderService {
                 response.setStatus("failed");
             }
         }
-        
+
+        // Set connectionData on response
+        response.setConnectionData(connectionData);
+
         return response;
     }
     

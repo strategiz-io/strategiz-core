@@ -5,7 +5,7 @@ import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 // import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
@@ -61,7 +61,7 @@ public class SyncProviderService {
         log.info("Syncing provider {} for user: {}", providerId, userId);
 
         try {
-            ProviderDataEntity syncedData = null;
+            ProviderHoldingsEntity syncedData = null;
 
             // Route to appropriate provider business logic
             switch (providerId.toLowerCase()) {

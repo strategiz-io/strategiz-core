@@ -74,6 +74,13 @@
             <artifactId>service-monitoring</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Console admin module for admin APIs -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-console</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

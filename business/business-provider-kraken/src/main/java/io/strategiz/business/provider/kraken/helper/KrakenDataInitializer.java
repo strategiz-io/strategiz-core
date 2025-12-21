@@ -6,8 +6,10 @@ import io.strategiz.business.provider.kraken.enrichment.KrakenDataEnrichmentServ
 import io.strategiz.business.provider.kraken.enrichment.model.EnrichedKrakenData;
 import io.strategiz.client.kraken.auth.KrakenApiAuthClient;
 import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.repository.CreateProviderDataRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 
@@ -52,31 +54,34 @@ public class KrakenDataInitializer {
     
     private final KrakenApiAuthClient krakenClient;
     private final KrakenDataTransformer dataTransformer;
-    private final CreateProviderDataRepository createProviderDataRepo;
+    private final PortfolioProviderRepository portfolioProviderRepository;
+    private final ProviderHoldingsRepository providerHoldingsRepository;
     private final KrakenDataEnrichmentService enrichmentService;
     private final YahooFinancePriceService yahooFinancePriceService;
 
     @Autowired(required = false)
     private PortfolioSummaryManager portfolioSummaryManager;
-    
+
     @Autowired
     public KrakenDataInitializer(KrakenApiAuthClient krakenClient,
                                  KrakenDataTransformer dataTransformer,
-                                 CreateProviderDataRepository createProviderDataRepo,
+                                 PortfolioProviderRepository portfolioProviderRepository,
+                                 ProviderHoldingsRepository providerHoldingsRepository,
                                  @Autowired(required = false) KrakenDataEnrichmentService enrichmentService,
                                  @Autowired(required = false) YahooFinancePriceService yahooFinancePriceService) {
         this.krakenClient = krakenClient;
         this.dataTransformer = dataTransformer;
-        this.createProviderDataRepo = createProviderDataRepo;
+        this.portfolioProviderRepository = portfolioProviderRepository;
+        this.providerHoldingsRepository = providerHoldingsRepository;
         this.enrichmentService = enrichmentService;
         this.yahooFinancePriceService = yahooFinancePriceService;
-        
+
         if (enrichmentService == null) {
             log.error("WARNING: KrakenDataEnrichmentService is NULL - enrichment will not work!");
         } else {
             log.info("KrakenDataEnrichmentService successfully injected");
         }
-        
+
         if (yahooFinancePriceService == null) {
             log.warn("YahooFinancePriceService is NULL - falling back to Kraken ticker API");
         } else {
@@ -87,27 +92,27 @@ public class KrakenDataInitializer {
     /**
      * Initialize and store provider data for a user.
      * Fetches account balance, trade history, and current prices, then transforms and stores the data.
-     * 
+     *
      * @param userId User ID
      * @param apiKey Kraken API key
      * @param apiSecret Kraken API secret
      * @param otp Optional OTP for 2FA
-     * @return Stored ProviderDataEntity
+     * @return Stored ProviderHoldingsEntity
      */
-    public ProviderDataEntity initializeAndStoreData(String userId, String apiKey, String apiSecret, String otp) {
+    public ProviderHoldingsEntity initializeAndStoreData(String userId, String apiKey, String apiSecret, String otp) {
         log.info("Initializing Kraken portfolio data for user: {}", userId);
-        
+
         try {
             // 1. Fetch account balance
             Map<String, Object> balanceResponse = fetchAccountBalance(apiKey, apiSecret, otp);
-            log.debug("Fetched balance data for user: {}, assets count: {}", 
-                     userId, balanceResponse.get("result") != null ? 
+            log.debug("Fetched balance data for user: {}, assets count: {}",
+                     userId, balanceResponse.get("result") != null ?
                      ((Map)balanceResponse.get("result")).size() : 0);
-            
+
             // 2. Fetch trade history for cost basis calculation
             Map<String, Object> tradesResponse = fetchTradeHistory(apiKey, apiSecret, otp);
             log.debug("Fetched trade history for user: {}", userId);
-            
+
             // 3. Fetch current prices and 24h changes for portfolio valuation
             Map<String, PriceData> priceDataMap = fetchCurrentPricesWithChanges(balanceResponse);
             Map<String, BigDecimal> currentPrices = new HashMap<>();
@@ -115,10 +120,10 @@ public class KrakenDataInitializer {
                 currentPrices.put(entry.getKey(), entry.getValue().price);
             }
             log.debug("Fetched price data for {} assets", priceDataMap.size());
-            
+
             // 4. Extract raw balances from response
             Map<String, Object> rawBalances = extractRawBalances(balanceResponse);
-            
+
             // 5. Enrich the data using enrichment service
             EnrichedKrakenData enrichedData;
             if (enrichmentService != null) {
@@ -130,7 +135,7 @@ public class KrakenDataInitializer {
                     PriceData data = entry.getValue();
                     // Find matching asset in enriched data and set 24h change
                     for (EnrichedKrakenData.AssetInfo assetInfo : enrichedData.getAssetInfo().values()) {
-                        if (asset.equals(assetInfo.getOriginalSymbol()) || 
+                        if (asset.equals(assetInfo.getOriginalSymbol()) ||
                             asset.equals(assetInfo.getNormalizedSymbol())) {
                             assetInfo.setPriceChange24h(data.change24h);
                             break;
@@ -154,32 +159,23 @@ public class KrakenDataInitializer {
                 }
                 enrichedData.setAssetInfo(assetInfoMap);
             }
-            
-            // 6. Transform enriched data to ProviderDataEntity
-            ProviderDataEntity data = dataTransformer.transformEnrichedData(
+
+            // 6. Transform enriched data to ProviderHoldingsEntity
+            ProviderHoldingsEntity holdingsEntity = dataTransformer.transformEnrichedData(
                 userId, enrichedData, tradesResponse
             );
-            
-            // 7. Store in Firestore
-            ProviderDataEntity savedData = createProviderDataRepo.createOrReplaceProviderData(
-                userId, KrakenConstants.PROVIDER_ID, data
-            );
-            
+
+            // 7. Store holdings in subcollection
+            providerHoldingsRepository.save(userId, KrakenConstants.PROVIDER_ID, holdingsEntity);
+
+            // 8. Update provider summary
+            updateProviderSummary(userId, holdingsEntity);
+
             log.info("Successfully initialized and stored Kraken data for user: {}, total value: {}",
-                    userId, savedData.getTotalValue());
+                    userId, holdingsEntity.getTotalValue());
 
-            // Refresh portfolio summary to include this provider's data
-            if (portfolioSummaryManager != null) {
-                try {
-                    portfolioSummaryManager.refreshPortfolioSummary(userId);
-                    log.info("Refreshed portfolio summary after storing Kraken data for user: {}", userId);
-                } catch (Exception e) {
-                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
-                }
-            }
+            return holdingsEntity;
 
-            return savedData;
-            
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -191,6 +187,43 @@ public class KrakenDataInitializer {
                 userId,
                 e.getMessage()
             );
+        }
+    }
+
+    /**
+     * Update the provider summary document with totals from holdings.
+     */
+    private void updateProviderSummary(String userId, ProviderHoldingsEntity holdings) {
+        try {
+            java.util.Optional<PortfolioProviderEntity> providerOpt = portfolioProviderRepository.findByUserIdAndProviderId(userId, KrakenConstants.PROVIDER_ID);
+
+            if (providerOpt.isPresent()) {
+                PortfolioProviderEntity provider = providerOpt.get();
+
+                // Update summary fields
+                provider.setTotalValue(holdings.getTotalValue());
+                provider.setDayChange(holdings.getDayChange());
+                provider.setDayChangePercent(holdings.getDayChangePercent());
+                provider.setCashBalance(holdings.getCashBalance());
+                provider.setHoldingsCount(holdings.getHoldings() != null ? holdings.getHoldings().size() : 0);
+                provider.setLastSyncedAt(java.time.Instant.now());
+                provider.setSyncStatus("success");
+
+                portfolioProviderRepository.save(provider, userId);
+                log.debug("Updated Kraken provider summary for user: {}", userId);
+            }
+
+            // Refresh portfolio summary to include this provider's data
+            if (portfolioSummaryManager != null) {
+                try {
+                    portfolioSummaryManager.refreshPortfolioSummary(userId);
+                    log.info("Refreshed portfolio summary after storing Kraken data for user: {}", userId);
+                } catch (Exception e) {
+                    log.warn("Failed to refresh portfolio summary for user {}: {}", userId, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update provider summary for user {}: {}", userId, e.getMessage());
         }
     }
     

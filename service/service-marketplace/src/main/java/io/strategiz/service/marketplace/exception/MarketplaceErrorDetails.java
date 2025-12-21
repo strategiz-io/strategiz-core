@@ -27,7 +27,18 @@ public enum MarketplaceErrorDetails implements ErrorDetails {
 
     // Apply errors
     APPLY_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketplace-apply-failed"),
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "marketplace-user-not-found");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "marketplace-user-not-found"),
+
+    // Comment errors
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "marketplace-comment-not-found"),
+    STRATEGY_NOT_PUBLISHED(HttpStatus.FORBIDDEN, "marketplace-strategy-not-published"),
+    INVALID_OPERATION(HttpStatus.BAD_REQUEST, "marketplace-invalid-operation"),
+
+    // Subscription errors
+    SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "marketplace-subscription-not-found"),
+    ALREADY_SUBSCRIBED(HttpStatus.CONFLICT, "marketplace-already-subscribed"),
+    SUBSCRIPTION_EXPIRED(HttpStatus.PAYMENT_REQUIRED, "marketplace-subscription-expired"),
+    CANNOT_SUBSCRIBE_OWN(HttpStatus.BAD_REQUEST, "marketplace-cannot-subscribe-own");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

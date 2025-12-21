@@ -35,7 +35,9 @@ public class UserProfileEntity {
     @NotNull(message = "Demo mode is required")
     @JsonProperty("demoMode")
     private Boolean demoMode = true; // true for demo, false for live
-    
+
+    @JsonProperty("role")
+    private String role = "USER"; // USER, ADMIN
 
     // Constructors
     public UserProfileEntity() {
@@ -107,6 +109,13 @@ public class UserProfileEntity {
         this.demoMode = demoMode;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -118,12 +127,13 @@ public class UserProfileEntity {
                Objects.equals(photoURL, that.photoURL) &&
                Objects.equals(isEmailVerified, that.isEmailVerified) &&
                Objects.equals(subscriptionTier, that.subscriptionTier) &&
-               Objects.equals(demoMode, that.demoMode);
+               Objects.equals(demoMode, that.demoMode) &&
+               Objects.equals(role, that.role);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, demoMode);
+        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, demoMode, role);
     }
 
     @Override
@@ -135,6 +145,7 @@ public class UserProfileEntity {
                ", isEmailVerified=" + isEmailVerified +
                ", subscriptionTier='" + subscriptionTier + '\'' +
                ", demoMode=" + demoMode +
+               ", role='" + role + '\'' +
                '}';
     }
 }

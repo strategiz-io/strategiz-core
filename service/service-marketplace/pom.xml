@@ -47,5 +47,24 @@
             <artifactId>service-base</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Data modules -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-strategy</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-user</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Framework -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

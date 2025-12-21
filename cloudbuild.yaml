@@ -1,4 +1,4 @@
-# Cloud Build configuration for Strategiz backend
+# Cloud Build configuration for Strategiz API
 # This builds and deploys the application to Cloud Run
 
 steps:
@@ -9,11 +9,11 @@ steps:
 
   # Build the Docker image (with --no-cache to ensure fresh build)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-core', '.']
+    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-api', '.']
 
   # Push the Docker image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-core']
+    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-api']
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -21,9 +21,9 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'strategiz-core'
+      - 'strategiz-api'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/strategiz-core'
+      - 'gcr.io/$PROJECT_ID/strategiz-api'
       - '--region'
       - 'us-east1'
       - '--platform'

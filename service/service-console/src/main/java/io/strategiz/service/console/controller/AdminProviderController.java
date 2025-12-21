@@ -17,7 +17,7 @@ import java.util.List;
  * Admin controller for provider integration status.
  */
 @RestController
-@RequestMapping("/v1/admin/providers")
+@RequestMapping("/v1/console/providers")
 @Tag(name = "Admin - Providers", description = "Provider status endpoints for administrators")
 public class AdminProviderController extends BaseController {
 

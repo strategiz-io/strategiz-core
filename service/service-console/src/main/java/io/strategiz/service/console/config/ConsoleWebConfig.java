@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Web configuration for console module.
- * Registers the AdminAuthInterceptor for /v1/admin/* paths.
+ * Registers the AdminAuthInterceptor for /v1/console/* paths.
  */
 @Configuration
 public class ConsoleWebConfig implements WebMvcConfigurer {
@@ -22,6 +22,6 @@ public class ConsoleWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(adminAuthInterceptor)
-                .addPathPatterns("/v1/admin/**");
+                .addPathPatterns("/v1/console/**");
     }
 }

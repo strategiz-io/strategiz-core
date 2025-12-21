@@ -16,7 +16,7 @@ import java.util.Map;
  * Admin controller for system health and metrics.
  */
 @RestController
-@RequestMapping("/v1/admin/system")
+@RequestMapping("/v1/console/system")
 @Tag(name = "Admin - System", description = "System health and metrics endpoints for administrators")
 public class AdminSystemController extends BaseController {
 

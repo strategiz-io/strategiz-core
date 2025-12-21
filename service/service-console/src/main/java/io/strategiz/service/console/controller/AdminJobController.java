@@ -17,7 +17,7 @@ import java.util.List;
  * Admin controller for managing scheduled jobs.
  */
 @RestController
-@RequestMapping("/v1/admin/jobs")
+@RequestMapping("/v1/console/jobs")
 @Tag(name = "Admin - Jobs", description = "Job management endpoints for administrators")
 public class AdminJobController extends BaseController {
 

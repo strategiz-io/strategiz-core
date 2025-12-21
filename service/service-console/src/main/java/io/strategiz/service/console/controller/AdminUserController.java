@@ -19,7 +19,7 @@ import java.util.Map;
  * Admin controller for user management.
  */
 @RestController
-@RequestMapping("/v1/admin/users")
+@RequestMapping("/v1/console/users")
 @Tag(name = "Admin - Users", description = "User management endpoints for administrators")
 public class AdminUserController extends BaseController {
 

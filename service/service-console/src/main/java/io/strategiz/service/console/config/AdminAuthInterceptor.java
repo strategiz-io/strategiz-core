@@ -16,7 +16,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.util.Optional;
 
 /**
- * Interceptor that validates admin role for /v1/admin/* endpoints.
+ * Interceptor that validates admin role for /v1/console/* endpoints.
  * Requires the user to have ADMIN role in their profile.
  */
 @Component
@@ -39,8 +39,8 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String requestPath = request.getRequestURI();
 
-        // Only intercept /v1/admin/* paths
-        if (!requestPath.startsWith("/v1/admin")) {
+        // Only intercept /v1/console/* paths
+        if (!requestPath.startsWith("/v1/console")) {
             return true;
         }
 

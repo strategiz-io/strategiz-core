@@ -1,16 +1,20 @@
 package io.strategiz.service.profile.controller;
 
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.validation.annotation.Validated;
 
 import io.strategiz.service.profile.service.ProfileService;
+import io.strategiz.service.profile.service.ProfileImageService;
 import io.strategiz.service.profile.model.UpdateProfileRequest;
 import io.strategiz.service.profile.model.ReadProfileResponse;
 import io.strategiz.service.profile.model.UpdateProfileVerificationRequest;
 import io.strategiz.service.profile.model.UpdateDemoModeRequest;
 import io.strategiz.service.profile.model.UpdateDemoModeResponse;
+import io.strategiz.service.profile.model.UploadImageResponse;
 import io.strategiz.service.profile.exception.ProfileErrors;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
@@ -42,9 +46,11 @@ public class ProfileController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
 
     private final ProfileService profileService;
+    private final ProfileImageService profileImageService;
 
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, ProfileImageService profileImageService) {
         this.profileService = profileService;
+        this.profileImageService = profileImageService;
     }
 
     /**
@@ -117,6 +123,36 @@ public class ProfileController extends BaseController {
 
         // Return clean response - headers added by StandardHeadersInterceptor
         return ResponseEntity.ok(profile);
+    }
+
+    /**
+     * Upload profile image for a user.
+     * This endpoint requires authentication and users can only upload to their own profile.
+     *
+     * @param userId The user ID to upload image for (must match authenticated user)
+     * @param image The image file to upload
+     * @param user The authenticated user from token
+     * @return Response with the new image URL
+     */
+    @PostMapping(value = "/users/profiles/{userId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<UploadImageResponse> uploadProfileImage(
+            @PathVariable String userId,
+            @RequestParam("image") MultipartFile image,
+            @AuthUser AuthenticatedUser user) {
+
+        // Users can only upload to their own profile
+        if (!userId.equals(user.getUserId())) {
+            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, ModuleConstants.PROFILE_MODULE, userId);
+        }
+
+        log.info("Uploading profile image for user ID: {}", userId);
+
+        // Upload image and get URL
+        String imageUrl = profileImageService.uploadProfileImage(userId, image);
+
+        // Return clean response - headers added by StandardHeadersInterceptor
+        return ResponseEntity.ok(new UploadImageResponse(imageUrl));
     }
 
     /**

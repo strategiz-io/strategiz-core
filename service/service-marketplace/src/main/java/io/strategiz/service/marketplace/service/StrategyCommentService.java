@@ -10,7 +10,7 @@ import io.strategiz.data.strategy.repository.UpdateStrategyCommentRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
-import io.strategiz.framework.common.exception.StrategizException;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,7 +92,7 @@ public class StrategyCommentService {
 
         // Increment strategy comment count
         strategy.incrementComments();
-        updateStrategyRepo.update(strategy, userId);
+        updateStrategyRepo.update(strategy.getId(), userId, strategy);
 
         log.info("User {} added comment {} to strategy {}", userId, created.getId(), strategyId);
         return created;
@@ -135,7 +135,7 @@ public class StrategyCommentService {
 
         // Increment strategy comment count
         strategy.incrementComments();
-        updateStrategyRepo.update(strategy, userId);
+        updateStrategyRepo.update(strategy.getId(), userId, strategy);
 
         log.info("User {} added reply {} to comment {} on strategy {}", userId, created.getId(), parentCommentId, strategyId);
         return created;
@@ -199,7 +199,7 @@ public class StrategyCommentService {
 
         // Decrement strategy comment count
         strategy.decrementComments();
-        updateStrategyRepo.update(strategy, userId);
+        updateStrategyRepo.update(strategy.getId(), userId, strategy);
 
         // If this was a reply, decrement parent's reply count
         if (comment.isReply()) {

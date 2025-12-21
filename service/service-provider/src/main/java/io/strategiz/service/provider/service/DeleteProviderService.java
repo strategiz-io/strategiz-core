@@ -122,7 +122,7 @@ public class DeleteProviderService extends ProviderBaseService {
             // Path: users/{userId}/portfolio/data/providers/{providerId}
             providerLog.info("Soft deleting provider from Firestore for user: {}, provider: {}",
                            request.getUserId(), request.getProviderId());
-            boolean providerDeleted = portfolioProviderRepository.softDelete(
+            boolean providerDeleted = portfolioProviderRepository.delete(
                     request.getUserId(), request.getProviderId());
             data.put("providerDeleted", providerDeleted);
 

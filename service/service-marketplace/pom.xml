@@ -63,7 +63,7 @@
         <!-- Framework -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>framework-common</artifactId>
+            <artifactId>framework-exception</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

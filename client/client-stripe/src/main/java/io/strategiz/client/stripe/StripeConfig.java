@@ -85,4 +85,29 @@ public class StripeConfig {
 		return secretKey != null && !secretKey.isEmpty();
 	}
 
+	// Setters for Vault configuration injection
+	public void setSecretKey(String secretKey) {
+		this.secretKey = secretKey;
+		// Re-initialize Stripe SDK with new key
+		if (secretKey != null && !secretKey.isEmpty()) {
+			Stripe.apiKey = secretKey;
+		}
+	}
+
+	public void setPublishableKey(String publishableKey) {
+		this.publishableKey = publishableKey;
+	}
+
+	public void setWebhookSecret(String webhookSecret) {
+		this.webhookSecret = webhookSecret;
+	}
+
+	public void setTraderPriceId(String traderPriceId) {
+		this.traderPriceId = traderPriceId;
+	}
+
+	public void setStrategistPriceId(String strategistPriceId) {
+		this.strategistPriceId = strategistPriceId;
+	}
+
 }

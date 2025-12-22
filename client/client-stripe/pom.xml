@@ -53,6 +53,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Framework Secrets (for Vault integration) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

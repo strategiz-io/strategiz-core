@@ -1,7 +1,11 @@
 package io.strategiz.service.learn.controller;
 
 import io.strategiz.business.aichat.AIChatBusiness;
+import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.client.base.llm.model.ModelInfo;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.learn.dto.ChatRequestDto;
 import io.strategiz.service.learn.dto.ChatResponseDto;
 import io.strategiz.service.learn.service.LearnChatService;
@@ -37,12 +41,17 @@ public class LearnChatController {
 
 	private final AIChatBusiness aiChatBusiness;
 
-	public LearnChatController(LearnChatService learnChatService, AIChatBusiness aiChatBusiness) {
+	private final SubscriptionService subscriptionService;
+
+	public LearnChatController(LearnChatService learnChatService, AIChatBusiness aiChatBusiness,
+			SubscriptionService subscriptionService) {
 		this.learnChatService = learnChatService;
 		this.aiChatBusiness = aiChatBusiness;
+		this.subscriptionService = subscriptionService;
 	}
 
 	@PostMapping
+	@RequireAuth(minAcr = "1")
 	@Operation(summary = "Send a chat message", description = "Send a message to the AI assistant and receive a response")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Successful response",
 			content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChatResponseDto.class))),
@@ -50,20 +59,33 @@ public class LearnChatController {
 			@ApiResponse(responseCode = "401", description = "Unauthorized"),
 			@ApiResponse(responseCode = "500", description = "Internal server error") })
 	public Mono<ResponseEntity<ChatResponseDto>> chat(@Valid @RequestBody ChatRequestDto request,
-			@RequestHeader(value = "X-User-Id", required = false) String userId) {
+			@AuthUser AuthenticatedUser user) {
 
+		String userId = user.getUserId();
 		logger.info("Received chat request from user: {}", userId);
 
-		// TODO: Extract userId from authentication token instead of header
-		String authenticatedUserId = userId != null ? userId : "anonymous";
+		// Check if user can send message (within limits)
+		if (!subscriptionService.canSendMessage(userId)) {
+			logger.warn("User {} exceeded daily message limit", userId);
+			return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.body(ChatResponseDto.error("Daily message limit exceeded. Upgrade your plan for more messages.")));
+		}
 
-		return learnChatService.chat(request, authenticatedUserId)
+		return learnChatService.chat(request, userId)
+			.doOnSuccess(response -> {
+				// Record usage after successful response
+				if (response != null && response.getMessage() != null) {
+					subscriptionService.recordMessageUsage(userId);
+					logger.debug("Recorded message usage for user {}", userId);
+				}
+			})
 			.map(response -> ResponseEntity.ok(response))
 			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body(ChatResponseDto.error("Failed to generate response")));
 	}
 
 	@GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@RequireAuth(minAcr = "1")
 	@Operation(summary = "Send a chat message with streaming response",
 			description = "Send a message and receive a streaming response (Server-Sent Events)")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Successful streaming response"),
@@ -73,9 +95,16 @@ public class LearnChatController {
 			@RequestParam(required = false, defaultValue = "learn") String feature,
 			@RequestParam(required = false) String currentPage,
 			@RequestParam(required = false) String model,
-			@RequestHeader(value = "X-User-Id", required = false) String userId) {
+			@AuthUser AuthenticatedUser user) {
 
+		String userId = user.getUserId();
 		logger.info("Received streaming chat request from user: {}, model: {}", userId, model);
+
+		// Check if user can send message (within limits)
+		if (!subscriptionService.canSendMessage(userId)) {
+			logger.warn("User {} exceeded daily message limit", userId);
+			return Flux.just(ChatResponseDto.error("Daily message limit exceeded. Upgrade your plan for more messages."));
+		}
 
 		// Build request from query params
 		ChatRequestDto request = new ChatRequestDto();
@@ -84,9 +113,10 @@ public class LearnChatController {
 		request.setCurrentPage(currentPage);
 		request.setModel(model);
 
-		String authenticatedUserId = userId != null ? userId : "anonymous";
+		// Record usage before streaming (we count the request, not completion)
+		subscriptionService.recordMessageUsage(userId);
 
-		return learnChatService.chatStream(request, authenticatedUserId);
+		return learnChatService.chatStream(request, userId);
 	}
 
 	@GetMapping("/health")

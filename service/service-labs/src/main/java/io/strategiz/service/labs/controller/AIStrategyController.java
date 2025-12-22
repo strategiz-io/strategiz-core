@@ -1,5 +1,9 @@
 package io.strategiz.service.labs.controller;
 
+import io.strategiz.business.preferences.service.SubscriptionService;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
@@ -29,21 +33,41 @@ public class AIStrategyController extends BaseController {
 
 	private final AIStrategyService aiStrategyService;
 
+	private final SubscriptionService subscriptionService;
+
 	@Autowired
-	public AIStrategyController(AIStrategyService aiStrategyService) {
+	public AIStrategyController(AIStrategyService aiStrategyService, SubscriptionService subscriptionService) {
 		this.aiStrategyService = aiStrategyService;
+		this.subscriptionService = subscriptionService;
 	}
 
 	/**
 	 * Generate a new strategy from a natural language prompt.
 	 */
 	@PostMapping("/generate-strategy")
+	@RequireAuth(minAcr = "1")
 	@Operation(summary = "Generate strategy from prompt", description = "Uses AI to generate a trading strategy with both visual configuration and Python code from a natural language prompt")
-	public ResponseEntity<AIStrategyResponse> generateStrategy(@Valid @RequestBody AIStrategyRequest request) {
-		logger.info("Received strategy generation request");
+	public ResponseEntity<AIStrategyResponse> generateStrategy(@Valid @RequestBody AIStrategyRequest request,
+			@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		logger.info("Received strategy generation request from user {}", userId);
+
+		// Check if user can generate strategy (within limits)
+		if (!subscriptionService.canGenerateStrategy(userId)) {
+			logger.warn("User {} exceeded daily strategy generation limit", userId);
+			return ResponseEntity.status(429)
+				.body(AIStrategyResponse.error("Daily strategy generation limit exceeded. Upgrade your plan for more."));
+		}
 
 		try {
 			AIStrategyResponse response = aiStrategyService.generateStrategy(request);
+
+			// Record usage after successful generation
+			if (response != null && response.isSuccess()) {
+				subscriptionService.recordStrategyUsage(userId);
+				logger.debug("Recorded strategy usage for user {}", userId);
+			}
+
 			return ResponseEntity.ok(response);
 		}
 		catch (Exception e) {
@@ -56,12 +80,28 @@ public class AIStrategyController extends BaseController {
 	 * Refine an existing strategy based on user feedback.
 	 */
 	@PostMapping("/refine-strategy")
+	@RequireAuth(minAcr = "1")
 	@Operation(summary = "Refine existing strategy", description = "Uses AI to refine an existing strategy based on user feedback while maintaining consistency between visual config and code")
-	public ResponseEntity<AIStrategyResponse> refineStrategy(@Valid @RequestBody AIStrategyRequest request) {
-		logger.info("Received strategy refinement request");
+	public ResponseEntity<AIStrategyResponse> refineStrategy(@Valid @RequestBody AIStrategyRequest request,
+			@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		logger.info("Received strategy refinement request from user {}", userId);
+
+		// Check if user can generate strategy (refinement counts as generation)
+		if (!subscriptionService.canGenerateStrategy(userId)) {
+			logger.warn("User {} exceeded daily strategy generation limit", userId);
+			return ResponseEntity.status(429)
+				.body(AIStrategyResponse.error("Daily strategy generation limit exceeded. Upgrade your plan for more."));
+		}
 
 		try {
 			AIStrategyResponse response = aiStrategyService.refineStrategy(request);
+
+			// Record usage after successful refinement
+			if (response != null && response.isSuccess()) {
+				subscriptionService.recordStrategyUsage(userId);
+			}
+
 			return ResponseEntity.ok(response);
 		}
 		catch (Exception e) {

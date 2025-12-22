@@ -74,7 +74,7 @@ public class LearnChatController {
 		return learnChatService.chat(request, userId)
 			.doOnSuccess(response -> {
 				// Record usage after successful response
-				if (response != null && response.getMessage() != null) {
+				if (response != null && response.getContent() != null) {
 					subscriptionService.recordMessageUsage(userId);
 					logger.debug("Recorded message usage for user {}", userId);
 				}

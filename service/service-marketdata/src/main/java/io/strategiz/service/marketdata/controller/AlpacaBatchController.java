@@ -521,6 +521,115 @@ public class AlpacaBatchController {
     }
 
     /**
+     * Execute S&P 500 7-year historical backfill across 4 timeframes
+     *
+     * POST /api/admin/alpaca/backfill/sp500-7year
+     * Request body (optional):
+     * {
+     *   "timeframes": ["1Day", "1Hour", "1Week", "1Month"],
+     *   "years": 7
+     * }
+     *
+     * This is the main endpoint for populating the TimescaleDB with S&P 500 historical data.
+     * Expected storage: ~632 MB compressed (fits in free tier)
+     *
+     * WARNING: This is a long-running operation that may take several hours.
+     * Consider running during off-peak hours.
+     */
+    @PostMapping("/backfill/sp500-7year")
+    public ResponseEntity<Map<String, Object>> executeSP500SevenYearBackfill(
+            @RequestBody(required = false) SP500BackfillRequest request) {
+
+        // Default timeframes for free tier storage optimization
+        List<String> timeframes = request != null && request.timeframes != null && !request.timeframes.isEmpty()
+                ? request.timeframes
+                : Arrays.asList("1Day", "1Hour", "1Week", "1Month");
+
+        int years = request != null && request.years > 0 ? request.years : 7;
+
+        log.info("=== Admin API: S&P 500 {}-Year Backfill Request ===", years);
+        log.info("Timeframes: {}", timeframes);
+
+        long startTime = System.currentTimeMillis();
+
+        // Aggregate results
+        int totalSymbolsProcessed = 0;
+        int totalDataPointsStored = 0;
+        int totalErrors = 0;
+        List<Map<String, Object>> timeframeResults = new ArrayList<>();
+
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusYears(years);
+
+        log.info("Date range: {} to {}", startDate, endDate);
+
+        for (String timeframe : timeframes) {
+            try {
+                log.info("--- Starting backfill for timeframe: {} ---", timeframe);
+                long tfStartTime = System.currentTimeMillis();
+
+                AlpacaCollectionService.CollectionResult result =
+                        collectionService.backfillIntradayData(startDate, endDate, timeframe);
+
+                long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
+
+                totalSymbolsProcessed += result.totalSymbolsProcessed;
+                totalDataPointsStored += result.totalDataPointsStored;
+                totalErrors += result.errorCount;
+
+                Map<String, Object> tfResult = new HashMap<>();
+                tfResult.put("timeframe", timeframe);
+                tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
+                tfResult.put("dataPointsStored", result.totalDataPointsStored);
+                tfResult.put("errors", result.errorCount);
+                tfResult.put("durationSeconds", tfDuration);
+                timeframeResults.add(tfResult);
+
+                log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---",
+                        timeframe, tfDuration, result.totalSymbolsProcessed,
+                        result.totalDataPointsStored, result.errorCount);
+
+            } catch (Exception e) {
+                log.error("Failed to backfill timeframe {}: {}", timeframe, e.getMessage(), e);
+                totalErrors++;
+
+                Map<String, Object> tfResult = new HashMap<>();
+                tfResult.put("timeframe", timeframe);
+                tfResult.put("error", e.getMessage());
+                timeframeResults.add(tfResult);
+            }
+        }
+
+        long totalDuration = (System.currentTimeMillis() - startTime) / 1000;
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", totalErrors == 0 ? "success" : "partial_success");
+        response.put("message", String.format("S&P 500 %d-year backfill completed", years));
+        response.put("years", years);
+        response.put("timeframes", timeframes);
+        response.put("startDate", startDate.toString());
+        response.put("endDate", endDate.toString());
+        response.put("totalSymbolsProcessed", totalSymbolsProcessed);
+        response.put("totalDataPointsStored", totalDataPointsStored);
+        response.put("totalErrors", totalErrors);
+        response.put("totalDurationSeconds", totalDuration);
+        response.put("timeframeResults", timeframeResults);
+
+        log.info("=== S&P 500 {}-Year Backfill Completed in {}s ===", years, totalDuration);
+        log.info("Total: {} symbols, {} bars, {} errors", totalSymbolsProcessed, totalDataPointsStored, totalErrors);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Request DTO for S&P 500 7-year backfill
+     */
+    public static class SP500BackfillRequest {
+        public List<String> timeframes;
+        public int years = 7;
+    }
+
+    /**
      * Request DTO for custom backfill
      */
     public static class CustomBackfillRequest {

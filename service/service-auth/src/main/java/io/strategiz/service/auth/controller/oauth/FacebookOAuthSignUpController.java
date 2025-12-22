@@ -76,7 +76,7 @@ public class FacebookOAuthSignUpController extends BaseController {
         logger.info("Received OAuth sign-up callback JSON with state: {}", state);
 
         try {
-            Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, null);
+            Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, null, true);
 
             // Set HTTP-only cookies for session management
             String accessToken = (String) result.get("accessToken");

@@ -9,6 +9,8 @@ import io.strategiz.client.stripe.StripeService.CheckoutResult;
 import io.strategiz.client.stripe.StripeService.SubscriptionUpdate;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.data.preferences.entity.UserSubscription;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
@@ -42,9 +44,13 @@ public class SubscriptionController extends BaseController {
 
 	private final StripeService stripeService;
 
-	public SubscriptionController(SubscriptionService subscriptionService, StripeService stripeService) {
+	private final UserRepository userRepository;
+
+	public SubscriptionController(SubscriptionService subscriptionService, StripeService stripeService,
+			UserRepository userRepository) {
 		this.subscriptionService = subscriptionService;
 		this.stripeService = stripeService;
+		this.userRepository = userRepository;
 	}
 
 	@Override
@@ -220,8 +226,15 @@ public class SubscriptionController extends BaseController {
 			return ResponseEntity.badRequest().body(Map.of("error", "Already on this tier"));
 		}
 
+		// Get user email from profile
+		UserEntity userEntity = userRepository.findById(userId).orElse(null);
+		if (userEntity == null || userEntity.getProfile() == null) {
+			return ResponseEntity.badRequest().body(Map.of("error", "User profile not found"));
+		}
+		String userEmail = userEntity.getProfile().getEmail();
+
 		try {
-			CheckoutResult result = stripeService.createCheckoutSession(userId, user.getEmail(), tierId,
+			CheckoutResult result = stripeService.createCheckoutSession(userId, userEmail, tierId,
 					currentSub.getStripeCustomerId());
 
 			logger.info("Created checkout session for user {} tier {}", userId, tierId);

@@ -101,7 +101,7 @@ public class OAuthAuthenticationManager {
 
     private AuthenticationMethodEntity buildOAuthMethodEntity(UserEntity user, String provider, String providerId, String email, AuthenticationMethodType oauthType) {
         AuthenticationMethodEntity entity = new AuthenticationMethodEntity();
-        entity.setId(UUID.randomUUID().toString());
+        // Don't set ID - let the repository generate it so audit fields are initialized
         entity.setAuthenticationMethod(oauthType);
         entity.setName(getDisplayNameForProvider(provider));
         entity.setIsActive(true);

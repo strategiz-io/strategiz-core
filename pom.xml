@@ -37,6 +37,7 @@
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
         <module>business/business-preferences</module>
+        <module>business/business-infrastructure-costs</module>
 
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -53,6 +54,7 @@
         <module>data/data-marketdata</module>
         <module>data/data-marketdata-timescale</module>
         <module>data/data-symbol</module>
+        <module>data/data-infrastructure-costs</module>
 
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->
@@ -74,6 +76,9 @@
         <module>client/client-robinhood</module>
         <module>client/client-sms</module>
         <module>client/client-claude-vertex</module>
+        <module>client/client-gcp-billing</module>
+        <module>client/client-timescale-billing</module>
+        <module>client/client-stripe</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -468,7 +473,12 @@
                 <artifactId>client-yahoofinance</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-stripe</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- API Modules -->
             <!-- All API modules were consolidated into their respective service modules -->
             <!-- api-auth -> service-auth -->

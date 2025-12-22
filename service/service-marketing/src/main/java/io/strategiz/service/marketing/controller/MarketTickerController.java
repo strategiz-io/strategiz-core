@@ -35,7 +35,7 @@ public class MarketTickerController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(MarketTickerController.class);
     
     // Popular symbols to display
-    private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH", "SOL", "BNB", "ADA", "XRP", "DOGE");
+    private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH", "SOL", "DOGE");
     private static final List<String> STOCK_SYMBOLS = Arrays.asList(
         "AAPL", "MSFT", "GOOG", "AMZN", "NVDA", "META", "TSLA", "BRK.B",
         "JPM", "V", "MA", "DIS", "NFLX", "AMD", "CRM", "ORCL"
@@ -119,9 +119,6 @@ public class MarketTickerController extends BaseController {
         symbolToId.put("BTC", "bitcoin");
         symbolToId.put("ETH", "ethereum");
         symbolToId.put("SOL", "solana");
-        symbolToId.put("BNB", "binancecoin");
-        symbolToId.put("ADA", "cardano");
-        symbolToId.put("XRP", "ripple");
         symbolToId.put("DOGE", "dogecoin");
 
         List<String> coinIds = CRYPTO_SYMBOLS.stream()

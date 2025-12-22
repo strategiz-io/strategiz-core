@@ -45,8 +45,8 @@ public class ReadProviderService {
 
         if (portfolioProviderRepository != null) {
             try {
-                // Get all active providers for the user from new portfolio structure
-                // Path: users/{userId}/portfolio/data/providers/
+                // Get all active providers for the user from portfolio structure
+                // Path: users/{userId}/portfolio/{providerId}
                 List<PortfolioProviderEntity> providers = portfolioProviderRepository.findAllByUserId(userId);
 
                 log.info("Found {} active providers for user: {}", providers != null ? providers.size() : "null", userId);

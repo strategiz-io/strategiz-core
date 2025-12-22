@@ -35,6 +35,9 @@
         <module>client-robinhood</module>
         <module>client-sms</module>
         <module>client-claude-vertex</module>
+        <module>client-gcp-billing</module>
+        <module>client-timescale-billing</module>
+        <module>client-stripe</module>
     </modules>
     
     <dependencies>

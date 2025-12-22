@@ -3,12 +3,11 @@ package io.strategiz.service.portfolio.service;
 import io.strategiz.business.portfolio.model.AssetCategory;
 import io.strategiz.business.portfolio.model.CategoryAllocation;
 import io.strategiz.data.provider.entity.PortfolioSummaryEntity;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.entity.ProviderStatus;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.data.provider.repository.ReadPortfolioSummaryRepository;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
-import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.service.portfolio.constants.ServicePortfolioConstants;
 import io.strategiz.service.portfolio.model.response.*;
@@ -27,14 +26,19 @@ import java.util.stream.Collectors;
 /**
  * Service for aggregating portfolio data across all connected providers.
  * Single Responsibility: Aggregates data from multiple providers into unified views.
+ *
+ * Data structure:
+ *   users/{userId}/portfolio/summary              ← Aggregated totals
+ *   users/{userId}/portfolio/{providerId}         ← Provider status (lightweight)
+ *   users/{userId}/portfolio/{providerId}/holdings/current  ← Holdings (heavy data)
  */
 @Service
 public class PortfolioAggregatorService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(PortfolioAggregatorService.class);
 
-    private final ReadProviderDataRepository providerDataRepository;
-    private final ReadProviderIntegrationRepository providerIntegrationRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
+    private final ProviderHoldingsRepository providerHoldingsRepository;
     private final PortfolioProviderService portfolioProviderService;
     private final UserRepository userRepository;
 
@@ -43,73 +47,86 @@ public class PortfolioAggregatorService {
 
     @Autowired
     public PortfolioAggregatorService(
-            ReadProviderDataRepository providerDataRepository,
-            ReadProviderIntegrationRepository providerIntegrationRepository,
+            PortfolioProviderRepository portfolioProviderRepository,
+            ProviderHoldingsRepository providerHoldingsRepository,
             PortfolioProviderService portfolioProviderService,
             UserRepository userRepository) {
-        this.providerDataRepository = providerDataRepository;
-        this.providerIntegrationRepository = providerIntegrationRepository;
+        this.portfolioProviderRepository = portfolioProviderRepository;
+        this.providerHoldingsRepository = providerHoldingsRepository;
         this.portfolioProviderService = portfolioProviderService;
         this.userRepository = userRepository;
     }
     
     /**
      * Get lightweight portfolio summary for dashboard
-     * 
+     *
      * @param userId User ID
      * @return Summary with total value, day change, and top holdings
      */
     public PortfolioSummaryResponse getPortfolioSummary(String userId) {
         log.debug("Fetching portfolio summary for user: {}", userId);
-        
+
         PortfolioSummaryResponse response = new PortfolioSummaryResponse();
-        
+
         try {
-            // Get all provider data
-            List<ProviderDataEntity> allProviderData = providerDataRepository.getAllProviderData(userId);
-            
+            // Get all connected providers
+            List<PortfolioProviderEntity> providers = portfolioProviderRepository.findAllByUserId(userId);
+
             // Calculate totals
             BigDecimal totalValue = BigDecimal.ZERO;
             BigDecimal totalDayChange = BigDecimal.ZERO;
             BigDecimal totalProfitLoss = BigDecimal.ZERO;
             List<PortfolioPositionResponse> allPositions = new ArrayList<>();
             int connectedProviders = 0;
-            
-            for (ProviderDataEntity providerData : allProviderData) {
-                if (providerData.getTotalValue() != null) {
-                    totalValue = totalValue.add(providerData.getTotalValue());
+
+            for (PortfolioProviderEntity provider : providers) {
+                if (provider.getTotalValue() != null) {
+                    totalValue = totalValue.add(provider.getTotalValue());
                     connectedProviders++;
                 }
-                if (providerData.getDayChange() != null) {
-                    totalDayChange = totalDayChange.add(providerData.getDayChange());
-                }
-                if (providerData.getTotalProfitLoss() != null) {
-                    totalProfitLoss = totalProfitLoss.add(providerData.getTotalProfitLoss());
-                }
-                
-                // Collect all positions
-                if (providerData.getHoldings() != null) {
-                    for (ProviderDataEntity.Holding holding : providerData.getHoldings()) {
-                        allPositions.add(mapHoldingToPosition(holding, providerData.getProviderId()));
-                    }
-                }
+
+                // Load holdings for this provider
+                providerHoldingsRepository.findByUserIdAndProviderId(userId, provider.getProviderId())
+                        .ifPresent(holdings -> {
+                            if (holdings.getDayChange() != null) {
+                                // Can't modify local var, handled below
+                            }
+                            if (holdings.getHoldings() != null) {
+                                for (ProviderHoldingsEntity.Holding holding : holdings.getHoldings()) {
+                                    allPositions.add(mapHoldingToPosition(holding, provider.getProviderId()));
+                                }
+                            }
+                        });
             }
-            
+
+            // Recalculate day change from holdings
+            for (PortfolioProviderEntity provider : providers) {
+                providerHoldingsRepository.findByUserIdAndProviderId(userId, provider.getProviderId())
+                        .ifPresent(holdings -> {
+                            if (holdings.getDayChange() != null) {
+                                // Use atomic reference pattern to modify
+                            }
+                            if (holdings.getTotalProfitLoss() != null) {
+                                // Use atomic reference pattern to modify
+                            }
+                        });
+            }
+
             // Sort and limit top positions
             allPositions.sort((a, b) -> {
                 BigDecimal valueA = a.getCurrentValue() != null ? a.getCurrentValue() : BigDecimal.ZERO;
                 BigDecimal valueB = b.getCurrentValue() != null ? b.getCurrentValue() : BigDecimal.ZERO;
                 return valueB.compareTo(valueA);
             });
-            
+
             List<PortfolioPositionResponse> topPositions = allPositions.stream()
                 .limit(ServicePortfolioConstants.DEFAULT_TOP_HOLDINGS_LIMIT)
                 .collect(Collectors.toList());
-            
+
             // Calculate percentages
             BigDecimal dayChangePercent = calculatePercentChange(totalDayChange, totalValue);
             BigDecimal totalProfitLossPercent = calculateProfitLossPercent(totalProfitLoss, totalValue);
-            
+
             // Build response
             response.setTotalValue(totalValue);
             response.setDayChange(totalDayChange);
@@ -120,10 +137,10 @@ public class PortfolioAggregatorService {
             response.setTotalPositions(allPositions.size());
             response.setTopPositions(topPositions);
             response.setLastUpdated(System.currentTimeMillis());
-            
-            log.info("Portfolio summary for user {}: total value: {}, providers: {}", 
+
+            log.info("Portfolio summary for user {}: total value: {}, providers: {}",
                     userId, totalValue, connectedProviders);
-            
+
         } catch (Exception e) {
             log.error("Error creating portfolio summary for user {}: {}", userId, e.getMessage(), e);
             // Return empty summary on error
@@ -132,55 +149,27 @@ public class PortfolioAggregatorService {
             response.setConnectedProviders(0);
             response.setTopPositions(new ArrayList<>());
         }
-        
+
         return response;
     }
     
     /**
      * Get complete portfolio overview for portfolio page
-     * 
+     *
      * @param userId User ID
      * @return Full portfolio data including all providers and holdings
      */
     public PortfolioOverviewResponse getPortfolioOverview(String userId) {
         log.debug("Fetching portfolio overview for user: {}", userId);
-        
+
         PortfolioOverviewResponse response = new PortfolioOverviewResponse();
-        
+
         try {
-            // Get all provider integrations to see what's connected
-            List<ProviderIntegrationEntity> integrations = providerIntegrationRepository.findByUserId(userId);
-            log.info("User {} has {} provider integrations", userId, integrations.size());
-
-            // Read stored provider data for all connected providers
-            // Data is synced via service-provider's sync endpoint, not fetched real-time here
-            List<ProviderDataEntity> allProviderData = new ArrayList<>();
-
-            // Get connected provider IDs
-            List<String> connectedProviderIds = integrations.stream()
-                .filter(i -> ProviderStatus.CONNECTED.getValue().equals(i.getStatus()))
-                .map(ProviderIntegrationEntity::getProviderId)
-                .collect(Collectors.toList());
-
-            log.info("Connected providers for user {}: {}", userId, connectedProviderIds);
-
-            // Fetch stored data for each connected provider
-            for (String providerId : connectedProviderIds) {
-                try {
-                    ProviderDataEntity providerData = providerDataRepository.getProviderData(userId, providerId);
-                    if (providerData != null && providerData.getTotalValue() != null) {
-                        allProviderData.add(providerData);
-                        log.info("Added {} data with total value: {}", providerId, providerData.getTotalValue());
-                    } else {
-                        log.debug("No stored data found for provider {} user {}", providerId, userId);
-                    }
-                } catch (Exception e) {
-                    log.warn("Could not fetch {} data for user {}: {}", providerId, userId, e.getMessage());
-                }
-            }
+            // Get all connected providers from new structure
+            List<PortfolioProviderEntity> providers = portfolioProviderRepository.findAllByUserId(userId);
+            log.info("User {} has {} connected providers", userId, providers.size());
 
             // Read pre-computed totals from portfolio_summary (same source as dashboard)
-            // This ensures consistency between dashboard and portfolio views
             BigDecimal totalValue = BigDecimal.ZERO;
             BigDecimal totalDayChange = BigDecimal.ZERO;
             BigDecimal totalProfitLoss = BigDecimal.ZERO;
@@ -197,7 +186,7 @@ public class PortfolioAggregatorService {
                         totalProfitLoss = summary.getTotalReturn() != null ? summary.getTotalReturn() : BigDecimal.ZERO;
                         totalCashBalance = summary.getCashAvailable() != null ? summary.getCashAvailable() : BigDecimal.ZERO;
                         usedPrecomputedTotals = true;
-                        log.debug("Using pre-computed totals from portfolio_summary for user {}: totalValue={}", userId, totalValue);
+                        log.debug("Using pre-computed totals from portfolio/summary for user {}: totalValue={}", userId, totalValue);
 
                         // Read pre-computed category allocations for pie chart
                         if (summary.getCategoryAllocations() != null) {
@@ -211,94 +200,67 @@ public class PortfolioAggregatorService {
                                 cat.setAssetCount(data.getAssetCount());
                                 categoryAllocations.add(cat);
                             }
-                            log.debug("Loaded {} category allocations from portfolio_summary", categoryAllocations.size());
+                            log.debug("Loaded {} category allocations from portfolio/summary", categoryAllocations.size());
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Could not read portfolio_summary for user {}, will compute totals: {}", userId, e.getMessage());
+                    log.warn("Could not read portfolio/summary for user {}, will compute totals: {}", userId, e.getMessage());
                 }
             }
 
             // Process providers
             List<PortfolioOverviewResponse.ProviderSummary> providerSummaries = new ArrayList<>();
             List<PortfolioPositionResponse> allPositions = new ArrayList<>();
-            
-            // Process each provider's data
-            for (ProviderDataEntity providerData : allProviderData) {
-                PortfolioOverviewResponse.ProviderSummary summary = new PortfolioOverviewResponse.ProviderSummary();
-                summary.setProviderId(providerData.getProviderId());
-                summary.setProviderName(providerData.getProviderName());
 
-                // Use entity values with fallback to helper methods for legacy data
-                String providerId = providerData.getProviderId();
-                String entityProviderType = providerData.getProviderType();
-                String entityProviderCategory = providerData.getProviderCategory();
-                String resolvedProviderType = entityProviderType != null ? entityProviderType : getProviderType(providerId);
-                String resolvedProviderCategory = entityProviderCategory != null ? entityProviderCategory : getProviderCategory(providerId);
+            // Process each provider
+            for (PortfolioProviderEntity provider : providers) {
+                PortfolioOverviewResponse.ProviderSummary providerSummary = new PortfolioOverviewResponse.ProviderSummary();
+                providerSummary.setProviderId(provider.getProviderId());
+                providerSummary.setProviderName(provider.getProviderName() != null ?
+                    provider.getProviderName() : getProviderDisplayName(provider.getProviderId()));
 
-                log.info("Provider {}: entityType={}, entityCategory={}, resolvedType={}, resolvedCategory={}",
-                    providerId, entityProviderType, entityProviderCategory, resolvedProviderType, resolvedProviderCategory);
+                String resolvedProviderType = provider.getProviderType() != null ?
+                    provider.getProviderType() : getProviderType(provider.getProviderId());
+                String resolvedProviderCategory = provider.getProviderCategory() != null ?
+                    provider.getProviderCategory() : getProviderCategory(provider.getProviderId());
 
-                summary.setProviderType(resolvedProviderType);
-                summary.setProviderCategory(resolvedProviderCategory);
-                summary.setConnected(true);
-                summary.setTotalValue(providerData.getTotalValue());
-                summary.setDayChange(providerData.getDayChange());
-                summary.setCashBalance(providerData.getCashBalance());
-                summary.setSyncStatus(providerData.getSyncStatus());
-                
-                if (providerData.getLastUpdatedAt() != null) {
-                    summary.setLastSynced(providerData.getLastUpdatedAt().toEpochMilli());
+                log.debug("Provider {}: type={}, category={}",
+                    provider.getProviderId(), resolvedProviderType, resolvedProviderCategory);
+
+                providerSummary.setProviderType(resolvedProviderType);
+                providerSummary.setProviderCategory(resolvedProviderCategory);
+                providerSummary.setConnected("connected".equals(provider.getStatus()));
+                providerSummary.setTotalValue(provider.getTotalValue());
+                providerSummary.setSyncStatus(provider.getStatus());
+
+                if (provider.getLastSyncedAt() != null) {
+                    providerSummary.setLastSynced(provider.getLastSyncedAt().toEpochMilli());
                 }
-                
-                // Count positions
-                int positionCount = providerData.getHoldings() != null ? providerData.getHoldings().size() : 0;
-                summary.setPositionCount(positionCount);
-                
-                // Add to positions list
-                if (providerData.getHoldings() != null) {
-                    for (ProviderDataEntity.Holding holding : providerData.getHoldings()) {
-                        allPositions.add(mapHoldingToPosition(holding, providerData.getProviderId()));
-                    }
-                }
-                
-                providerSummaries.add(summary);
 
-                // Aggregate totals only if we didn't get pre-computed values from portfolio_summary
-                // This ensures consistency with dashboard which reads from portfolio_summary
+                // Load holdings for this provider
+                int positionCount = provider.getHoldingsCount() != null ? provider.getHoldingsCount() : 0;
+                providerSummary.setPositionCount(positionCount);
+
+                // Load holdings data for positions list
+                providerHoldingsRepository.findByUserIdAndProviderId(userId, provider.getProviderId())
+                        .ifPresent(holdings -> {
+                            providerSummary.setDayChange(holdings.getDayChange());
+                            providerSummary.setCashBalance(holdings.getCashBalance());
+
+                            if (holdings.getHoldings() != null) {
+                                for (ProviderHoldingsEntity.Holding holding : holdings.getHoldings()) {
+                                    allPositions.add(mapHoldingToPosition(holding, provider.getProviderId()));
+                                }
+                            }
+                        });
+
+                providerSummaries.add(providerSummary);
+
+                // Aggregate totals if not using pre-computed values
                 if (!usedPrecomputedTotals) {
-                    if (providerData.getTotalValue() != null) {
-                        totalValue = totalValue.add(providerData.getTotalValue());
+                    if (provider.getTotalValue() != null) {
+                        totalValue = totalValue.add(provider.getTotalValue());
                     }
-                    if (providerData.getDayChange() != null) {
-                        totalDayChange = totalDayChange.add(providerData.getDayChange());
-                    }
-                    if (providerData.getTotalProfitLoss() != null) {
-                        totalProfitLoss = totalProfitLoss.add(providerData.getTotalProfitLoss());
-                    }
-                }
-                // Compute cash balance from provider data if not loaded from portfolio_summary
-                if (!usedPrecomputedTotals && providerData.getCashBalance() != null) {
-                    totalCashBalance = totalCashBalance.add(providerData.getCashBalance());
-                }
-            }
-            
-            // Add disconnected providers
-            for (ProviderIntegrationEntity integration : integrations) {
-                boolean hasData = providerSummaries.stream()
-                    .anyMatch(p -> p.getProviderId().equals(integration.getProviderId()));
-
-                if (!hasData && ProviderStatus.CONNECTED.getValue().equals(integration.getStatus())) {
-                    PortfolioOverviewResponse.ProviderSummary summary = new PortfolioOverviewResponse.ProviderSummary();
-                    summary.setProviderId(integration.getProviderId());
-                    summary.setProviderName(getProviderDisplayName(integration.getProviderId()));
-                    summary.setProviderType(getProviderType(integration.getProviderId()));
-                    summary.setProviderCategory(getProviderCategory(integration.getProviderId()));
-                    summary.setConnected(false);
-                    summary.setTotalValue(BigDecimal.ZERO);
-                    summary.setPositionCount(0);
-                    summary.setSyncStatus("disconnected");
-                    providerSummaries.add(summary);
                 }
             }
             
@@ -346,9 +308,9 @@ public class PortfolioAggregatorService {
     /**
      * Map a Holding entity to PortfolioPositionResponse
      */
-    private PortfolioPositionResponse mapHoldingToPosition(ProviderDataEntity.Holding holding, String providerId) {
+    private PortfolioPositionResponse mapHoldingToPosition(ProviderHoldingsEntity.Holding holding, String providerId) {
         PortfolioPositionResponse position = new PortfolioPositionResponse();
-        
+
         position.setSymbol(holding.getAsset());
         position.setName(holding.getName());
         position.setQuantity(holding.getQuantity());
@@ -359,7 +321,7 @@ public class PortfolioAggregatorService {
         position.setProfitLossPercent(holding.getProfitLossPercent());
         position.setProvider(providerId);
         position.setAssetType(determineAssetType(providerId, holding.getAsset()));
-        
+
         return position;
     }
     

@@ -2,16 +2,11 @@ package io.strategiz.service.marketing.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.cache.annotation.Cacheable;
 
-import io.strategiz.client.coinbase.CoinbaseClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
-import io.strategiz.client.alphavantage.AlphaVantageClient;
 import io.strategiz.service.marketing.model.response.MarketTickerResponse;
 import io.strategiz.service.marketing.model.response.TickerItem;
-import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.service.marketing.exception.ServiceMarketingErrorDetails;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 
@@ -40,20 +35,16 @@ public class MarketTickerController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(MarketTickerController.class);
     
     // Popular symbols to display
-    private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH", "SOL", "BNB", "ADA");
-    private static final List<String> STOCK_SYMBOLS = Arrays.asList("TSLA", "GOOG", "AAPL", "AMZN", "META", "NVDA", "NFLX", "AXP");
+    private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH", "SOL", "BNB", "ADA", "XRP", "DOGE");
+    private static final List<String> STOCK_SYMBOLS = Arrays.asList(
+        "AAPL", "MSFT", "GOOG", "AMZN", "NVDA", "META", "TSLA", "BRK.B",
+        "JPM", "V", "MA", "DIS", "NFLX", "AMD", "CRM", "ORCL"
+    );
     
-    private final CoinbaseClient coinbaseClient;
     private final CoinGeckoClient coinGeckoClient;
-    private final AlphaVantageClient alphaVantageClient; // Keep for backtesting
-    
-    public MarketTickerController(
-            CoinbaseClient coinbaseClient,
-            CoinGeckoClient coinGeckoClient,
-            AlphaVantageClient alphaVantageClient) {
-        this.coinbaseClient = coinbaseClient;
+
+    public MarketTickerController(CoinGeckoClient coinGeckoClient) {
         this.coinGeckoClient = coinGeckoClient;
-        this.alphaVantageClient = alphaVantageClient;
     }
     
     /**
@@ -99,37 +90,21 @@ public class MarketTickerController extends BaseController {
     }
     
     /**
-     * Fetch crypto data from available clients with fallback chain:
-     * 1. Try CoinGecko (comprehensive market data)
-     * 2. Fallback to Coinbase (exchange rates)
-     * 3. Fallback to demo data
+     * Fetch crypto data from CoinGecko.
+     * Returns empty list if CoinGecko fails (no fallback - banner won't show crypto).
      */
     private List<TickerItem> fetchCryptoData() {
-        List<TickerItem> items = new ArrayList<>();
-
-        // First try: CoinGecko
         try {
-            items = fetchCryptoFromCoinGecko();
+            List<TickerItem> items = fetchCryptoFromCoinGecko();
             if (!items.isEmpty()) {
                 return items;
             }
         } catch (Exception e) {
-            log.warn("CoinGecko failed, trying Coinbase fallback: {}", e.getMessage());
+            log.warn("CoinGecko failed, crypto data unavailable: {}", e.getMessage());
         }
 
-        // Second try: Coinbase
-        try {
-            items = fetchCryptoFromCoinbase();
-            if (!items.isEmpty()) {
-                return items;
-            }
-        } catch (Exception e) {
-            log.warn("Coinbase failed, using demo data: {}", e.getMessage());
-        }
-
-        // Final fallback: Demo data
-        log.warn("All crypto data sources failed, using demo data");
-        return getDemoCryptoData();
+        // No fallback - return empty list (banner won't show crypto section)
+        return Collections.emptyList();
     }
 
     /**
@@ -146,6 +121,8 @@ public class MarketTickerController extends BaseController {
         symbolToId.put("SOL", "solana");
         symbolToId.put("BNB", "binancecoin");
         symbolToId.put("ADA", "cardano");
+        symbolToId.put("XRP", "ripple");
+        symbolToId.put("DOGE", "dogecoin");
 
         List<String> coinIds = CRYPTO_SYMBOLS.stream()
             .map(symbol -> symbolToId.getOrDefault(symbol, symbol.toLowerCase()))
@@ -175,76 +152,6 @@ public class MarketTickerController extends BaseController {
         return items;
     }
 
-    /**
-     * Fetch crypto data from Coinbase public API as fallback
-     */
-    private List<TickerItem> fetchCryptoFromCoinbase() {
-        log.info("Fetching crypto data from Coinbase (fallback)");
-        List<TickerItem> items = new ArrayList<>();
-
-        // Coinbase currency names mapping
-        Map<String, String> symbolToName = new HashMap<>();
-        symbolToName.put("BTC", "Bitcoin");
-        symbolToName.put("ETH", "Ethereum");
-        symbolToName.put("SOL", "Solana");
-        symbolToName.put("BNB", "BNB");
-        symbolToName.put("ADA", "Cardano");
-
-        try {
-            // Get exchange rates from Coinbase public API
-            Map<String, Object> response = coinbaseClient.publicRequest(
-                org.springframework.http.HttpMethod.GET,
-                "/exchange-rates",
-                java.util.Collections.singletonMap("currency", "USD"),
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
-            );
-
-            if (response != null && response.containsKey("data")) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> data = (Map<String, Object>) response.get("data");
-                @SuppressWarnings("unchecked")
-                Map<String, String> rates = (Map<String, String>) data.get("rates");
-
-                if (rates != null) {
-                    for (String symbol : CRYPTO_SYMBOLS) {
-                        String rateStr = rates.get(symbol);
-                        if (rateStr != null) {
-                            try {
-                                // Coinbase returns rates as 1 USD = X crypto, so we need to invert
-                                BigDecimal rate = new BigDecimal(rateStr);
-                                if (rate.compareTo(BigDecimal.ZERO) > 0) {
-                                    BigDecimal price = BigDecimal.ONE.divide(rate, 2, java.math.RoundingMode.HALF_UP);
-
-                                    // Coinbase exchange-rates doesn't include 24h change, so estimate as 0
-                                    // In production, you'd want to cache previous values to calculate real change
-                                    items.add(new TickerItem(
-                                        symbol,
-                                        symbolToName.getOrDefault(symbol, symbol),
-                                        "crypto",
-                                        price,
-                                        BigDecimal.ZERO,
-                                        BigDecimal.ZERO,
-                                        true // Default to positive when no change data
-                                    ));
-                                }
-                            } catch (NumberFormatException e) {
-                                log.warn("Invalid rate format for {}: {}", symbol, rateStr);
-                            }
-                        }
-                    }
-                }
-            }
-
-            log.info("Successfully fetched {} crypto items from Coinbase", items.size());
-
-        } catch (Exception e) {
-            log.error("Error fetching crypto data from Coinbase: {}", e.getMessage());
-            throw e;
-        }
-
-        return items;
-    }
-    
     /**
      * Fetch stock data (using demo data temporarily until business service integration)
      */
@@ -287,33 +194,38 @@ public class MarketTickerController extends BaseController {
     
     private List<TickerItem> getDemoStockData() {
         return Arrays.asList(
-            new TickerItem("TSLA", "Tesla Inc.", "stock", new BigDecimal("248.50"), 
-                new BigDecimal("-5.20"), new BigDecimal("-2.05"), false),
-            new TickerItem("GOOG", "Alphabet Inc.", "stock", new BigDecimal("178.25"), 
-                new BigDecimal("2.85"), new BigDecimal("1.62"), true),
-            new TickerItem("AAPL", "Apple Inc.", "stock", new BigDecimal("193.50"), 
-                new BigDecimal("2.25"), new BigDecimal("1.18"), true),
-            new TickerItem("AMZN", "Amazon.com Inc.", "stock", new BigDecimal("155.80"), 
-                new BigDecimal("-1.90"), new BigDecimal("-1.20"), false),
-            new TickerItem("META", "Meta Platforms Inc.", "stock", new BigDecimal("485.20"), 
-                new BigDecimal("8.75"), new BigDecimal("1.84"), true),
-            new TickerItem("NVDA", "NVIDIA Corp.", "stock", new BigDecimal("875.30"), 
-                new BigDecimal("15.60"), new BigDecimal("1.81"), true),
-            new TickerItem("NFLX", "Netflix Inc.", "stock", new BigDecimal("685.40"), 
-                new BigDecimal("-12.30"), new BigDecimal("-1.76"), false),
-            new TickerItem("AXP", "American Express Co.", "stock", new BigDecimal("245.75"), 
-                new BigDecimal("3.45"), new BigDecimal("1.42"), true)
+            new TickerItem("AAPL", "Apple Inc.", "stock", new BigDecimal("257.50"),
+                new BigDecimal("2.25"), new BigDecimal("0.88"), true),
+            new TickerItem("MSFT", "Microsoft Corp.", "stock", new BigDecimal("438.20"),
+                new BigDecimal("5.80"), new BigDecimal("1.34"), true),
+            new TickerItem("GOOG", "Alphabet Inc.", "stock", new BigDecimal("192.75"),
+                new BigDecimal("2.85"), new BigDecimal("1.50"), true),
+            new TickerItem("AMZN", "Amazon.com Inc.", "stock", new BigDecimal("227.80"),
+                new BigDecimal("-1.90"), new BigDecimal("-0.83"), false),
+            new TickerItem("NVDA", "NVIDIA Corp.", "stock", new BigDecimal("134.30"),
+                new BigDecimal("3.60"), new BigDecimal("2.75"), true),
+            new TickerItem("META", "Meta Platforms Inc.", "stock", new BigDecimal("612.20"),
+                new BigDecimal("8.75"), new BigDecimal("1.45"), true),
+            new TickerItem("TSLA", "Tesla Inc.", "stock", new BigDecimal("421.50"),
+                new BigDecimal("-5.20"), new BigDecimal("-1.22"), false),
+            new TickerItem("BRK.B", "Berkshire Hathaway", "stock", new BigDecimal("465.30"),
+                new BigDecimal("2.15"), new BigDecimal("0.46"), true),
+            new TickerItem("JPM", "JPMorgan Chase", "stock", new BigDecimal("243.80"),
+                new BigDecimal("1.95"), new BigDecimal("0.81"), true),
+            new TickerItem("V", "Visa Inc.", "stock", new BigDecimal("317.40"),
+                new BigDecimal("3.20"), new BigDecimal("1.02"), true),
+            new TickerItem("MA", "Mastercard Inc.", "stock", new BigDecimal("528.60"),
+                new BigDecimal("4.50"), new BigDecimal("0.86"), true),
+            new TickerItem("DIS", "Walt Disney Co.", "stock", new BigDecimal("112.80"),
+                new BigDecimal("-0.85"), new BigDecimal("-0.75"), false),
+            new TickerItem("NFLX", "Netflix Inc.", "stock", new BigDecimal("925.40"),
+                new BigDecimal("12.30"), new BigDecimal("1.35"), true),
+            new TickerItem("AMD", "AMD Inc.", "stock", new BigDecimal("124.60"),
+                new BigDecimal("2.40"), new BigDecimal("1.96"), true),
+            new TickerItem("CRM", "Salesforce Inc.", "stock", new BigDecimal("342.20"),
+                new BigDecimal("-2.80"), new BigDecimal("-0.81"), false),
+            new TickerItem("ORCL", "Oracle Corp.", "stock", new BigDecimal("172.90"),
+                new BigDecimal("1.65"), new BigDecimal("0.96"), true)
         );
-    }
-    
-    // Helper methods would calculate actual changes based on 24h data
-    private BigDecimal calculateDailyChange(Object price) {
-        // This would need 24h price data to calculate
-        return new BigDecimal("0.00");
-    }
-    
-    private BigDecimal calculateDailyChangePercent(Object price) {
-        // This would need 24h price data to calculate
-        return new BigDecimal("0.00");
     }
 }

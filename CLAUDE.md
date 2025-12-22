@@ -35,7 +35,7 @@ vault server -dev
 export VAULT_TOKEN=<your-dev-token>
 
 # Run main application
-mvn spring-boot:run -pl application-strategiz
+mvn spring-boot:run -pl application-api
 
 # Application runs on http://localhost:8080
 ```
@@ -97,10 +97,11 @@ The project follows a modular monorepo architecture with six types of modules:
    - Request/response DTOs
    - Note: Recent refactor consolidated API modules into service modules
 
-6. **Application Module** (`application-strategiz`): Main Spring Boot application
-   - Application entry point
+6. **Application Module** (`application-api`): Main Spring Boot application
+   - Application entry point (serves all REST endpoints)
    - Configuration and properties
    - Security configuration
+   - Includes service-console for admin endpoints
 
 #### Key Architectural Patterns
 
@@ -279,11 +280,11 @@ The frontend supports all authentication methods provided by the backend:
 cd strategiz-core
 vault server -dev
 export VAULT_TOKEN=<token>
-mvn spring-boot:run -pl application-strategiz
+mvn spring-boot:run -pl application-api
 
 # Terminal 2: Start frontend
 cd ../strategiz-ui
-npm start
+npm run dev:web
 ```
 
 #### Environment Setup

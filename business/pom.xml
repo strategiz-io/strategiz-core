@@ -31,5 +31,6 @@
         <module>business-ai-chat</module>
         <module>business-marketdata</module>
         <module>business-preferences</module>
+        <module>business-infrastructure-costs</module>
     </modules>
 </project>

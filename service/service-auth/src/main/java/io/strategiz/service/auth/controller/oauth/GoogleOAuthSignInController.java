@@ -76,7 +76,7 @@ public class GoogleOAuthSignInController extends BaseController {
         logger.info("Received OAuth sign-in callback JSON with state: {}", state);
 
         try {
-            Map<String, Object> result = googleOAuthService.handleOAuthCallback(code, state, null);
+            Map<String, Object> result = googleOAuthService.handleOAuthCallback(code, state, null, false);
 
             // Set HTTP-only cookies for session management
             String accessToken = (String) result.get("accessToken");

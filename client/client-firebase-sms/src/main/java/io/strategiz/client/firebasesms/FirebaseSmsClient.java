@@ -53,6 +53,12 @@ public class FirebaseSmsClient {
     
     @PostConstruct
     public void initialize() {
+        // Check if Firebase SMS is enabled before attempting initialization
+        if (!config.isEnabled()) {
+            log.info("Firebase SMS is disabled in configuration. Skipping initialization.");
+            return;
+        }
+
         try {
             if (firebaseCredentialsPath.isEmpty()) {
                 log.warn("Firebase credentials path not configured. SMS service will be unavailable.");

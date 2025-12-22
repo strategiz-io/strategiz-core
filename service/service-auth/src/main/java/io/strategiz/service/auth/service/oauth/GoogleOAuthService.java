@@ -98,33 +98,48 @@ public class GoogleOAuthService {
 
     /**
      * Handle OAuth callback from Google
-     * 
+     *
      * @param code Authorization code from Google
      * @param state State parameter for verification
      * @param deviceId Optional device ID for fingerprinting
      * @return Clean response object based on the operation result
      */
     public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
+        // Determine signup from state for backwards compatibility
+        boolean isSignup = oauthUserManager.isSignupFlow(state);
+        return handleOAuthCallback(code, state, deviceId, isSignup);
+    }
+
+    /**
+     * Handle OAuth callback from Google with explicit signup flag
+     *
+     * @param code Authorization code from Google
+     * @param state State parameter for verification
+     * @param deviceId Optional device ID for fingerprinting
+     * @param isSignup Whether this is a signup flow (determined by calling controller)
+     * @return Clean response object based on the operation result
+     */
+    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId, boolean isSignup) {
         if (!isValidAuthorizationCode(code)) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
-        
+
         GoogleTokenResponse tokenResponse = exchangeCodeForToken(code, state);
         if (tokenResponse == null) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
         }
-        
+
         GoogleUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
         if (userInfo == null) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
         }
-        
-        Object result = processUserAuthentication(userInfo, state);
+
+        Object result = processUserAuthentication(userInfo, isSignup);
         
         // Convert result to Map<String, Object> for consistent JSON response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        
+
         if (result instanceof OAuthSignupResponse) {
             OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
             response.put("type", "signup");
@@ -133,14 +148,17 @@ public class GoogleOAuthService {
             response.put("name", signupResponse.getName());
             response.put("accessToken", signupResponse.getAccessToken());
             response.put("refreshToken", signupResponse.getRefreshToken());
-        } else if (result instanceof ApiTokenResponse) {
-            ApiTokenResponse tokenResponse2 = (ApiTokenResponse) result;
+        } else if (result instanceof LoginFlowResponse) {
+            LoginFlowResponse loginResponse = (LoginFlowResponse) result;
             response.put("type", "login");
-            response.put("accessToken", tokenResponse2.accessToken());
-            response.put("refreshToken", tokenResponse2.refreshToken());
-            response.put("tokenType", tokenResponse2.tokenType());
+            response.put("userId", loginResponse.userId());
+            response.put("email", loginResponse.email());
+            response.put("name", loginResponse.name());
+            response.put("accessToken", loginResponse.tokens().accessToken());
+            response.put("refreshToken", loginResponse.tokens().refreshToken());
+            response.put("tokenType", loginResponse.tokens().tokenType());
         }
-        
+
         return response;
     }
 
@@ -177,20 +195,29 @@ public class GoogleOAuthService {
         return googleClient.getUserInfo(accessToken).orElse(null);
     }
 
-    private Object processUserAuthentication(GoogleUserInfo userInfo, String state) {
-        boolean isSignup = oauthUserManager.isSignupFlow(state);
+    private Object processUserAuthentication(GoogleUserInfo userInfo, boolean isSignup) {
         Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
-        
+
         if (isSignup && existingUser.isPresent()) {
             throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
         }
-        
+
         if (isSignup || !existingUser.isPresent()) {
             return handleSignupFlow(userInfo);
         } else {
             return handleLoginFlow(existingUser.get(), userInfo);
         }
     }
+
+    /**
+     * Response wrapper for login flow that includes user data
+     */
+    public record LoginFlowResponse(
+        ApiTokenResponse tokens,
+        String userId,
+        String email,
+        String name
+    ) {}
 
     private OAuthSignupResponse handleSignupFlow(GoogleUserInfo userInfo) {
         return oauthUserManager.createOAuthUser(
@@ -204,14 +231,14 @@ public class GoogleOAuthService {
         );
     }
 
-    private ApiTokenResponse handleLoginFlow(UserEntity user, GoogleUserInfo userInfo) {
+    private LoginFlowResponse handleLoginFlow(UserEntity user, GoogleUserInfo userInfo) {
         oauthAuthenticationManager.ensureOAuthMethod(
-            user, 
-            "google", 
-            userInfo.getGoogleId(), 
+            user,
+            "google",
+            userInfo.getGoogleId(),
             userInfo.getEmail()
         );
-        
+
         // Generate authentication tokens using unified approach
         SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
             user.getUserId(),
@@ -224,13 +251,26 @@ public class GoogleOAuthService {
             "Google OAuth",
             false // demoMode
         );
-        
+
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
-        
-        return new ApiTokenResponse(
+
+        ApiTokenResponse tokens = new ApiTokenResponse(
             authResult.accessToken(),
             authResult.refreshToken(),
             "bearer"
+        );
+
+        // Get name from user profile, fallback to Google userInfo
+        String userName = userInfo.getName();
+        if (user.getProfile() != null && user.getProfile().getName() != null) {
+            userName = user.getProfile().getName();
+        }
+
+        return new LoginFlowResponse(
+            tokens,
+            user.getUserId(),
+            userInfo.getEmail(),
+            userName
         );
     }
 } 

@@ -15,7 +15,9 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * Repository for ProviderHoldingsEntity.
- * Handles holdings subcollection: users/{userId}/portfolio/providers/{providerId}/holdings/current
+ * Handles holdings subcollection: users/{userId}/portfolio/{providerId}/holdings/current
+ *
+ * Example: users/{userId}/portfolio/coinbase/holdings/current
  *
  * This repository manages the heavy data (positions, balances, transactions) that is
  * stored separately from the lightweight provider status document.
@@ -34,14 +36,15 @@ public class ProviderHoldingsRepository {
 
     /**
      * Get the holdings collection reference for a specific provider.
-     * Path: users/{userId}/portfolio/providers/{providerId}/holdings
+     * Path: users/{userId}/portfolio/{providerId}/holdings
+     *
+     * Holdings are stored as a subcollection under the provider document.
+     * Example: users/{userId}/portfolio/coinbase/holdings/current
      */
     private CollectionReference getHoldingsCollection(String userId, String providerId) {
         return firestore.collection("users")
                 .document(userId)
                 .collection("portfolio")
-                .document("data")
-                .collection("providers")
                 .document(providerId)
                 .collection("holdings");
     }

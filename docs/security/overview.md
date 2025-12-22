@@ -292,6 +292,12 @@ Set-Cookie: strategiz_session=v2.local.eyJ...;
 - [`service-auth/README.md`](../service/service-auth/README.md) - Authentication endpoints
 - [API_ENDPOINTS.md](./API_ENDPOINTS.md) - Service endpoint documentation
 
+### Infrastructure
+- [Infrastructure Overview](../infrastructure/README.md) - Production infrastructure summary
+- [Production Environment](../infrastructure/PRODUCTION.md) - Complete GCP architecture, Cloud Run services, and database setup
+- [Secrets Management](./secrets-management.md) - HashiCorp Vault integration
+- [Vault Setup](./vault-setup.md) - Complete Vault configuration guide
+
 ## 🚀 Quick Start
 
 For developers implementing authentication:

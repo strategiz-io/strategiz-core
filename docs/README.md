@@ -34,6 +34,10 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 - [Vault Token Storage](security/vault-token-storage.md) - Token management best practices
 - [Passkey Debug Info](security/passkey-debug-info.md) - WebAuthn/Passkey troubleshooting
 
+### 🏗️ **Infrastructure**
+- [Infrastructure Overview](infrastructure/README.md) - Production infrastructure summary
+- [Production Environment](infrastructure/PRODUCTION.md) - Complete production architecture and setup
+
 ### 🔌 **Integrations**
 - [Exchange Integrations](integrations/exchanges.md) - Cryptocurrency exchange integrations
 
@@ -67,6 +71,9 @@ docs/
 ├── security/         # Security documentation
 │   ├── overview.md           # Security architecture overview
 │   └── secrets-management.md # Vault integration and secrets
+├── infrastructure/   # Production infrastructure
+│   ├── README.md             # Infrastructure overview
+│   └── PRODUCTION.md         # Complete production setup
 └── integrations/     # Third-party integrations
     └── exchanges.md  # Cryptocurrency exchange integrations
 ```

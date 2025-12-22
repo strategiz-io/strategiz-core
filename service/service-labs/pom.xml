@@ -52,6 +52,11 @@
             <artifactId>business-ai-chat</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-preferences</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring dependencies -->
         <dependency>

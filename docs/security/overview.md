@@ -294,7 +294,7 @@ Set-Cookie: strategiz_session=v2.local.eyJ...;
 
 ### Infrastructure
 - [Infrastructure Overview](../infrastructure/README.md) - Production infrastructure summary
-- [Production Environment](../infrastructure/PRODUCTION.md) - Complete GCP architecture, Cloud Run services, and database setup
+- [Production Environment](../infrastructure/production.md) - Complete GCP architecture, Cloud Run services, and database setup
 - [Secrets Management](./secrets-management.md) - HashiCorp Vault integration
 - [Vault Setup](./vault-setup.md) - Complete Vault configuration guide
 

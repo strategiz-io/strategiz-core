@@ -16,7 +16,7 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 
 ### 🔧 **Development**
 - [Developer Guide](development/developer-guide.md) - Complete development setup and workflow
-- [Development Configuration](DEVELOPMENT-CONFIGURATION.md) - HTTP/HTTPS setup and environment configuration
+- [Development Configuration](development-configuration.md) - HTTP/HTTPS setup and environment configuration
 - [Base Classes Standards](development/base-classes-standards.md) - BaseController and BaseService usage
 - [Naming Conventions](development/naming-conventions.md) - Code and file naming standards
 - [Scripts](development/scripts.md) - Available build and utility scripts
@@ -36,7 +36,7 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 
 ### 🏗️ **Infrastructure**
 - [Infrastructure Overview](infrastructure/README.md) - Production infrastructure summary
-- [Production Environment](infrastructure/PRODUCTION.md) - Complete production architecture and setup
+- [Production Environment](infrastructure/production.md) - Complete production architecture and setup
 
 ### 🔌 **Integrations**
 - [Exchange Integrations](integrations/exchanges.md) - Cryptocurrency exchange integrations
@@ -73,7 +73,7 @@ docs/
 │   └── secrets-management.md # Vault integration and secrets
 ├── infrastructure/   # Production infrastructure
 │   ├── README.md             # Infrastructure overview
-│   └── PRODUCTION.md         # Complete production setup
+│   └── production.md         # Complete production setup
 └── integrations/     # Third-party integrations
     └── exchanges.md  # Cryptocurrency exchange integrations
 ```

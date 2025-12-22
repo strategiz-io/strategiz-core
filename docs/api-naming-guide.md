@@ -80,8 +80,8 @@ service-[module]/
 │   │   ├── [api-slug]-components.drawio
 │   │   └── [api-slug]-components.png
 │   ├── [api-slug].mdx
-│   ├── API_NAMING_GUIDE.md
-│   ├── CONTROLLER_DOCUMENTATION_TEMPLATE.mdx
+│   ├── api-naming-guide.md
+│   ├── controller-documentation-template.mdx
 │   └── README.md
 ```
 

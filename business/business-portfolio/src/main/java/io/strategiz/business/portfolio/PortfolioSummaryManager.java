@@ -1,8 +1,10 @@
 package io.strategiz.business.portfolio;
 
-import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.data.provider.entity.PortfolioSummaryEntity;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.data.provider.repository.CreatePortfolioSummaryRepository;
 import io.strategiz.data.provider.repository.ReadPortfolioSummaryRepository;
 import io.strategiz.data.provider.repository.UpdatePortfolioSummaryRepository;
@@ -19,7 +21,12 @@ import java.util.*;
 
 /**
  * Business component for managing portfolio summary calculations and updates.
- * Aggregates data from all provider_data and maintains portfolio_summary collection.
+ * Aggregates data from all portfolio providers and maintains portfolio summary.
+ *
+ * Data structure:
+ *   users/{userId}/portfolio/summary              ← Aggregated totals
+ *   users/{userId}/portfolio/{providerId}         ← Provider status (lightweight)
+ *   users/{userId}/portfolio/{providerId}/holdings/current  ← Holdings (heavy data)
  *
  * @author Strategiz Team
  * @version 1.0
@@ -30,7 +37,10 @@ public class PortfolioSummaryManager {
     private static final Logger log = LoggerFactory.getLogger(PortfolioSummaryManager.class);
 
     @Autowired(required = false)
-    private ReadProviderDataRepository readProviderDataRepo;
+    private PortfolioProviderRepository portfolioProviderRepository;
+
+    @Autowired(required = false)
+    private ProviderHoldingsRepository providerHoldingsRepository;
 
     @Autowired(required = false)
     private CreatePortfolioSummaryRepository createPortfolioSummaryRepo;
@@ -51,11 +61,18 @@ public class PortfolioSummaryManager {
         log.info("Refreshing portfolio summary for user: {}", userId);
 
         try {
-            // Read all provider data for user
-            List<ProviderDataEntity> providerData = readProviderDataRepo.getAllProviderData(userId);
+            // Read all connected providers for user
+            List<PortfolioProviderEntity> providers = portfolioProviderRepository.findAllByUserId(userId);
 
-            // Calculate summary
-            PortfolioSummaryEntity summary = calculatePortfolioSummary(providerData);
+            // Load holdings for each provider
+            List<ProviderHoldingsEntity> allHoldings = new ArrayList<>();
+            for (PortfolioProviderEntity provider : providers) {
+                providerHoldingsRepository.findByUserIdAndProviderId(userId, provider.getProviderId())
+                        .ifPresent(allHoldings::add);
+            }
+
+            // Calculate summary from providers and holdings
+            PortfolioSummaryEntity summary = calculatePortfolioSummary(providers, allHoldings);
 
             // Check if summary exists
             PortfolioSummaryEntity existing = readPortfolioSummaryRepo.getPortfolioSummary(userId);
@@ -79,17 +96,27 @@ public class PortfolioSummaryManager {
     }
 
     /**
-     * Calculate portfolio summary from provider data.
+     * Calculate portfolio summary from providers and their holdings.
      *
-     * @param providerData List of provider data entities
+     * @param providers List of connected provider entities
+     * @param holdings List of holdings entities (one per provider)
      * @return Calculated portfolio summary
      */
-    private PortfolioSummaryEntity calculatePortfolioSummary(List<ProviderDataEntity> providerData) {
+    private PortfolioSummaryEntity calculatePortfolioSummary(
+            List<PortfolioProviderEntity> providers,
+            List<ProviderHoldingsEntity> holdings) {
+
         PortfolioSummaryEntity summary = new PortfolioSummaryEntity();
 
-        if (providerData == null || providerData.isEmpty()) {
+        if (providers == null || providers.isEmpty()) {
             // Return empty summary
             return createEmptySummary();
+        }
+
+        // Create a map of holdings by providerId for quick lookup
+        Map<String, ProviderHoldingsEntity> holdingsByProvider = new HashMap<>();
+        for (ProviderHoldingsEntity h : holdings) {
+            holdingsByProvider.put(h.getProviderId(), h);
         }
 
         // Calculate total value across all providers
@@ -102,31 +129,35 @@ public class PortfolioSummaryManager {
         Map<String, BigDecimal> valueByType = new HashMap<>();
         Map<String, Integer> assetCountByType = new HashMap<>();
 
-        for (ProviderDataEntity data : providerData) {
-            // Sum total values
-            if (data.getTotalValue() != null) {
-                totalValue = totalValue.add(data.getTotalValue());
-                accountPerformance.put(data.getProviderId(), data.getTotalValue());
+        for (PortfolioProviderEntity provider : providers) {
+            // Use totalValue from provider entity (lightweight summary)
+            if (provider.getTotalValue() != null) {
+                totalValue = totalValue.add(provider.getTotalValue());
+                accountPerformance.put(provider.getProviderId(), provider.getTotalValue());
             }
 
-            // Sum day changes
-            if (data.getDayChange() != null) {
-                dayChange = dayChange.add(data.getDayChange());
-            }
+            // Get holdings for detailed calculations
+            ProviderHoldingsEntity providerHoldings = holdingsByProvider.get(provider.getProviderId());
+            if (providerHoldings != null) {
+                // Sum day changes from holdings
+                if (providerHoldings.getDayChange() != null) {
+                    dayChange = dayChange.add(providerHoldings.getDayChange());
+                }
 
-            // Sum cash balances
-            if (data.getCashBalance() != null) {
-                totalCash = totalCash.add(data.getCashBalance());
-            }
+                // Sum cash balances
+                if (providerHoldings.getCashBalance() != null) {
+                    totalCash = totalCash.add(providerHoldings.getCashBalance());
+                }
 
-            // Aggregate by provider type for asset allocation
-            String providerType = data.getProviderType();
-            if (providerType != null && data.getTotalValue() != null) {
-                valueByType.merge(providerType, data.getTotalValue(), BigDecimal::add);
+                // Aggregate by provider type for asset allocation
+                String providerType = provider.getProviderType();
+                if (providerType != null && provider.getTotalValue() != null) {
+                    valueByType.merge(providerType, provider.getTotalValue(), BigDecimal::add);
 
-                // Count assets (holdings) per type
-                int holdingCount = (data.getHoldings() != null) ? data.getHoldings().size() : 0;
-                assetCountByType.merge(providerType, holdingCount, Integer::sum);
+                    // Count assets (holdings) per type
+                    int holdingCount = provider.getHoldingsCount() != null ? provider.getHoldingsCount() : 0;
+                    assetCountByType.merge(providerType, holdingCount, Integer::sum);
+                }
             }
         }
 
@@ -145,7 +176,7 @@ public class PortfolioSummaryManager {
         summary.setDayChange(dayChange);
         summary.setDayChangePercent(dayChangePercent);
         summary.setAccountPerformance(accountPerformance);
-        summary.setProvidersCount(providerData.size());
+        summary.setProvidersCount(providers.size());
         summary.setLastSyncedAt(Instant.now());
         summary.setCashAvailable(totalCash);
 

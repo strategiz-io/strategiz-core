@@ -19,7 +19,10 @@ import java.util.stream.Collectors;
 
 /**
  * Repository for PortfolioProviderEntity.
- * Handles user-scoped subcollection: users/{userId}/portfolio/providers/{providerId}
+ * Handles user-scoped collection: users/{userId}/portfolio/{providerId}
+ *
+ * Provider documents are stored directly in the portfolio collection with providerId as document ID.
+ * Example: users/{userId}/portfolio/coinbase, users/{userId}/portfolio/alpaca
  *
  * This repository correctly handles delete operations by using the proper collection path.
  */
@@ -35,15 +38,16 @@ public class PortfolioProviderRepository {
     }
 
     /**
-     * Get the collection reference for a user's portfolio providers.
-     * Path: users/{userId}/portfolio/providers
+     * Get the collection reference for a user's portfolio.
+     * Path: users/{userId}/portfolio
+     *
+     * Provider documents are stored directly in this collection with providerId as the document ID.
+     * Example: users/{userId}/portfolio/coinbase
      */
-    private CollectionReference getProvidersCollection(String userId) {
+    private CollectionReference getPortfolioCollection(String userId) {
         return firestore.collection("users")
                 .document(userId)
-                .collection("portfolio")
-                .document("data")
-                .collection("providers");
+                .collection("portfolio");
     }
 
     /**
@@ -66,7 +70,7 @@ public class PortfolioProviderRepository {
             String docId = entity.getProviderId();
             entity.setId(docId);
 
-            getProvidersCollection(userId).document(docId).set(entity).get();
+            getPortfolioCollection(userId).document(docId).set(entity).get();
 
             log.debug("Saved PortfolioProviderEntity for provider {} by user {}", docId, userId);
             return entity;
@@ -87,7 +91,7 @@ public class PortfolioProviderRepository {
      */
     public Optional<PortfolioProviderEntity> findByUserIdAndProviderId(String userId, String providerId) {
         try {
-            DocumentSnapshot doc = getProvidersCollection(userId).document(providerId).get().get();
+            DocumentSnapshot doc = getPortfolioCollection(userId).document(providerId).get().get();
 
             if (doc.exists()) {
                 PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
@@ -116,7 +120,7 @@ public class PortfolioProviderRepository {
         try {
             log.debug("Finding all providers for userId: {}", userId);
 
-            Query query = getProvidersCollection(userId)
+            Query query = getPortfolioCollection(userId)
                     .whereEqualTo("status", "connected")
                     .whereEqualTo("isActive", true);
 
@@ -148,7 +152,7 @@ public class PortfolioProviderRepository {
      */
     public List<PortfolioProviderEntity> findAllByUserIdIncludingDisconnected(String userId) {
         try {
-            Query query = getProvidersCollection(userId)
+            Query query = getPortfolioCollection(userId)
                     .whereEqualTo("isActive", true);
 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
@@ -184,7 +188,7 @@ public class PortfolioProviderRepository {
                 entity._softDelete(userId);
                 entity.setStatus("disconnected");
 
-                getProvidersCollection(userId).document(providerId).set(entity).get();
+                getPortfolioCollection(userId).document(providerId).set(entity).get();
 
                 log.info("Soft deleted provider {} for userId: {}", providerId, userId);
                 return true;
@@ -209,7 +213,7 @@ public class PortfolioProviderRepository {
      */
     public boolean hardDelete(String userId, String providerId) {
         try {
-            getProvidersCollection(userId).document(providerId).delete().get();
+            getPortfolioCollection(userId).document(providerId).delete().get();
             log.info("Hard deleted provider {} for userId: {}", providerId, userId);
             return true;
 

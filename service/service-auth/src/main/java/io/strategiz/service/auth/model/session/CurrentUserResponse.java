@@ -10,5 +10,13 @@ public record CurrentUserResponse(
     @NotBlank String id,
     @NotBlank String email,
     @NotBlank String name,
-    @NotNull Long createdAt
-) {}
+    @NotNull Long createdAt,
+    String role
+) {
+    /**
+     * Constructor without role for backwards compatibility
+     */
+    public CurrentUserResponse(String id, String email, String name, Long createdAt) {
+        this(id, email, name, createdAt, null);
+    }
+}

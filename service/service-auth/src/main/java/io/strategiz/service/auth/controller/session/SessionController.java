@@ -15,6 +15,8 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.repository.UserRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,13 +45,15 @@ public class SessionController extends BaseController {
     }
 
     private static final Logger log = LoggerFactory.getLogger(SessionController.class);
-    
+
     private final SessionService sessionService;
     private final TokenSessionService tokenSessionService;
-    
-    public SessionController(SessionService sessionService, TokenSessionService tokenSessionService) {
+    private final UserRepository userRepository;
+
+    public SessionController(SessionService sessionService, TokenSessionService tokenSessionService, UserRepository userRepository) {
         this.sessionService = sessionService;
         this.tokenSessionService = tokenSessionService;
+        this.userRepository = userRepository;
     }
     
     /**
@@ -253,6 +257,7 @@ public class SessionController extends BaseController {
     /**
      * BEST PRACTICE: Simple session validation from HTTP-only cookie
      * Returns user data if valid session, 401 if not
+     * Includes user role for admin console access
      */
     @GetMapping("/validate-cookie")
     public ResponseEntity<CurrentUserResponse> validateSessionCookie(jakarta.servlet.http.HttpServletRequest httpRequest) {
@@ -267,14 +272,35 @@ public class SessionController extends BaseController {
             }
 
             SessionValidationResult validation = validationOpt.get();
+            String userId = validation.getUserId();
+
+            // Fetch user profile to get role
+            String role = null;
+            String displayName = "User " + userId.substring(0, Math.min(8, userId.length()));
+            try {
+                java.util.Optional<UserEntity> userOpt = userRepository.findById(userId);
+                if (userOpt.isPresent()) {
+                    UserEntity user = userOpt.get();
+                    if (user.getProfile() != null) {
+                        role = user.getProfile().getRole();
+                        if (user.getProfile().getName() != null) {
+                            displayName = user.getProfile().getName();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch user profile for role: {}", e.getMessage());
+            }
+
             CurrentUserResponse response = new CurrentUserResponse(
-                validation.getUserId(),
+                userId,
                 validation.getUserEmail(),
-                "User " + validation.getUserId().substring(0, Math.min(8, validation.getUserId().length())),
-                validation.getLastAccessedAt().getEpochSecond()
+                displayName,
+                validation.getLastAccessedAt().getEpochSecond(),
+                role
             );
 
-            log.info("Valid session found for user: {}", validation.getUserId());
+            log.info("Valid session found for user: {}, role: {}", userId, role);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error validating session cookie: {}", e.getMessage(), e);

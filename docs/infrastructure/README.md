@@ -6,7 +6,7 @@ This folder contains documentation about Strategiz infrastructure and production
 
 | Document | Description |
 |----------|-------------|
-| [PRODUCTION.md](./PRODUCTION.md) | Complete production infrastructure overview |
+| [production.md](./production.md) | Complete production infrastructure overview |
 
 ## Quick Reference
 

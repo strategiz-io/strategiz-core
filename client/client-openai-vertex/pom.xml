@@ -11,9 +11,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>client-openai</artifactId>
+    <artifactId>client-openai-vertex</artifactId>
 
-    <description>OpenAI API client for Strategiz platform</description>
+    <description>OpenAI client via Google Vertex AI for Strategiz platform</description>
 
     <dependencies>
         <!-- Spring Framework -->
@@ -30,6 +30,19 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
+        <!-- Google Cloud Vertex AI SDK -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-vertexai</artifactId>
+            <version>1.8.0</version>
+        </dependency>
+
+        <!-- Google Auth for service account credentials -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+        </dependency>
+
         <!-- Jackson for JSON processing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -40,7 +53,7 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <!-- Client Base -->
+        <!-- Client Base (includes LLMProvider interface) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-base</artifactId>

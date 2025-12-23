@@ -71,14 +71,60 @@ public class AIStrategyPrompts {
 			- crosses_above (for crossover strategies)
 			- crosses_below (for crossunder strategies)
 
-			Python code requirements:
-			- Use pandas and numpy for calculations
-			- Access market data via 'data' DataFrame with columns: open, high, low, close, volume, timestamp
-			- Generate signals using: add_signal(timestamp, 'BUY' | 'SELL', price, reason)
-			- Track indicators using: add_indicator(name, timestamp, value)
-			- Include proper indicator calculations (SMA, EMA, RSI, MACD, Bollinger Bands, etc.)
-			- Add clear comments explaining the logic
-			- Handle edge cases (NaN values, insufficient data)
+			Python code requirements (CRITICAL - MUST follow this exact format):
+
+			1. REQUIRED: Define a SYMBOL constant at the top:
+			   SYMBOL = 'AAPL'  # The symbol to trade
+
+			2. RECOMMENDED: Include risk management constants:
+			   STOP_LOSS = 5         # Stop loss percentage
+			   TAKE_PROFIT = 10      # Take profit percentage
+			   POSITION_SIZE = 5     # Position size as % of portfolio
+
+			3. REQUIRED: Define a strategy(data) function that:
+			   - Takes a pandas DataFrame 'data' with columns: open, high, low, close, volume
+			   - Returns EXACTLY one of these strings: 'BUY', 'SELL', or 'HOLD'
+			   - Uses the LAST row of data (data.iloc[-1] or data['close'].iloc[-1]) for current values
+
+			4. Code structure MUST be:
+			   ```python
+			   import pandas as pd
+			   import numpy as np
+
+			   # Configuration
+			   SYMBOL = 'AAPL'
+			   STOP_LOSS = 5
+			   TAKE_PROFIT = 10
+			   POSITION_SIZE = 5
+
+			   def strategy(data):
+			       # Calculate indicators here
+			       # Example: rsi = calculate_rsi(data['close'])
+
+			       # Entry/exit logic
+			       if <buy_condition>:
+			           return 'BUY'
+			       elif <sell_condition>:
+			           return 'SELL'
+			       else:
+			           return 'HOLD'
+			   ```
+
+			5. DO NOT:
+			   - Download data (data is provided)
+			   - Use yfinance, talib, or external data sources
+			   - Create loops over the entire DataFrame (calculations on columns are OK)
+			   - Use add_signal() or add_indicator() functions (they don't exist)
+			   - Track positions or state between calls
+
+			6. Calculate indicators using pandas/numpy:
+			   - SMA: data['close'].rolling(window=20).mean()
+			   - EMA: data['close'].ewm(span=12).mean()
+			   - RSI: Use standard pandas calculation
+			   - MACD: Use exponential moving averages
+			   - Bollinger Bands: mean ± (std * 2)
+			   - Add clear comments explaining the logic
+			   - Handle edge cases (NaN values, insufficient data)
 
 			IMPORTANT: The visualConfig and pythonCode MUST implement the EXACT SAME trading logic.
 			The visual representation should be a direct mapping of what the code does.

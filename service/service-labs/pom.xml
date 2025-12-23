@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-gemini</artifactId>
+            <artifactId>client-gemini-vertex</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

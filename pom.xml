@@ -125,7 +125,7 @@
 
         <!-- Application Modules (Build Last) -->
         <module>application-api</module>
-        <!-- application-console removed - admin endpoints now served by application-api -->
+        <module>application-console</module>
     </modules>
 
     <properties>

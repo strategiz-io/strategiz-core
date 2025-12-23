@@ -1,0 +1,61 @@
+# Cloud Build configuration for Console API
+# Separate deployment for admin-only endpoints
+
+steps:
+  # Step 1: Build with Maven
+  - name: 'maven:3.9-eclipse-temurin-21'
+    entrypoint: mvn
+    args:
+      - 'clean'
+      - 'package'
+      - '-pl'
+      - 'application-console'
+      - '-am'
+      - '-DskipTests'
+      - '-T'
+      - '2C'  # Parallel build with 2 threads per CPU core
+
+  # Step 2: Build Docker image with Kaniko (with caching)
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - '--destination=gcr.io/$PROJECT_ID/strategiz-console-api'
+      - '--cache=true'
+      - '--cache-ttl=168h'  # Cache for 7 days
+      - '--dockerfile=application-console/Dockerfile'
+      - '--context=dir://application-console'
+
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'strategiz-console-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/strategiz-console-api'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '3'
+      - '--port'
+      - '8080'
+      - '--set-env-vars'
+      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
+      - '--set-secrets'
+      - 'VAULT_TOKEN=vault-root-token:latest'
+
+# Build options
+options:
+  machineType: 'E2_HIGHCPU_8'
+
+# Build timeout
+timeout: '1800s'

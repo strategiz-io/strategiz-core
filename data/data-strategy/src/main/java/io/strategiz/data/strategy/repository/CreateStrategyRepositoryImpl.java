@@ -31,8 +31,8 @@ public class CreateStrategyRepositoryImpl implements CreateStrategyRepository {
             strategy.setStatus("draft");
         }
         
-        // Use BaseRepository's save method (requires userId)
-        return baseRepository.save(strategy, strategy.getUserId());
+        // Use forceCreate since we pre-assign the ID (save() would route to update)
+        return baseRepository.forceCreate(strategy, strategy.getUserId());
     }
     
     @Override

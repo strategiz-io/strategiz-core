@@ -7,12 +7,13 @@ import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/providers/robinhood")
+@RequireAuth(minAcr = "1")
 public class RobinhoodProviderController extends BaseController {
 
     @Override
@@ -37,13 +39,10 @@ public class RobinhoodProviderController extends BaseController {
     }
 
     private final RobinhoodProviderBusiness robinhoodProviderBusiness;
-    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Autowired
-    public RobinhoodProviderController(RobinhoodProviderBusiness robinhoodProviderBusiness,
-                                       SessionAuthBusiness sessionAuthBusiness) {
+    public RobinhoodProviderController(RobinhoodProviderBusiness robinhoodProviderBusiness) {
         this.robinhoodProviderBusiness = robinhoodProviderBusiness;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
 
     /**
@@ -74,10 +73,9 @@ public class RobinhoodProviderController extends BaseController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> initiateLogin(
             @RequestBody Map<String, String> request,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @AuthUser AuthenticatedUser user) {
 
-        String userId = extractUserId(principal, authHeader);
+        String userId = user.getUserId();
         log.info("Robinhood login initiated for user: {}", userId);
 
         String username = request.get("username");
@@ -115,10 +113,9 @@ public class RobinhoodProviderController extends BaseController {
     @PostMapping("/mfa")
     public ResponseEntity<Map<String, Object>> completeMfa(
             @RequestBody Map<String, String> request,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @AuthUser AuthenticatedUser user) {
 
-        String userId = extractUserId(principal, authHeader);
+        String userId = user.getUserId();
         log.info("Robinhood MFA completion for user: {}", userId);
 
         String challengeId = request.get("challengeId");
@@ -152,10 +149,9 @@ public class RobinhoodProviderController extends BaseController {
      */
     @PostMapping("/sync")
     public ResponseEntity<Map<String, Object>> syncData(
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @AuthUser AuthenticatedUser user) {
 
-        String userId = extractUserId(principal, authHeader);
+        String userId = user.getUserId();
         log.info("Robinhood sync requested for user: {}", userId);
 
         robinhoodProviderBusiness.syncProviderData(userId);
@@ -165,36 +161,6 @@ public class RobinhoodProviderController extends BaseController {
         responseData.put("message", "Portfolio data synced successfully");
 
         return ResponseEntity.ok(responseData);
-    }
-
-    /**
-     * Extract user ID from principal or auth header.
-     */
-    private String extractUserId(Principal principal, String authHeader) {
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    log.info("Robinhood request authenticated via Bearer token for user: {}", userId);
-                }
-            } catch (Exception e) {
-                log.warn("Error validating Bearer token for Robinhood: {}", e.getMessage());
-            }
-        }
-
-        if (userId == null) {
-            log.error("No valid authentication session or token for Robinhood operation");
-            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
-                "service-provider", "Authentication required");
-        }
-
-        return userId;
     }
 
     /**

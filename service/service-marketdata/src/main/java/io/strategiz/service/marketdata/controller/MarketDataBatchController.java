@@ -378,6 +378,35 @@ public class MarketDataBatchController {
 	}
 
 	/**
+	 * Get current backfill job status with real-time progress tracking
+	 *
+	 * GET /v1/marketdata/admin/backfill/status
+	 *
+	 * Returns: - status: IDLE, RUNNING, COMPLETED, FAILED - timeframe: Current
+	 * timeframe being processed - symbolsProcessed: Number of symbols completed -
+	 * totalSymbols: Total symbols in job - startTime: Job start time - currentSymbol:
+	 * Symbol currently being processed - errorMessage: Error details if failed
+	 */
+	@GetMapping("/backfill/status")
+	public ResponseEntity<Map<String, Object>> getBackfillStatus() {
+		log.debug("Admin API: Backfill status request");
+
+		io.strategiz.business.marketdata.MarketDataCollectionService.JobStatus jobStatus = collectionService
+			.getCurrentJobStatus();
+
+		Map<String, Object> response = new HashMap<>();
+		response.put("status", jobStatus.getStatus().toString());
+		response.put("timeframe", jobStatus.getTimeframe());
+		response.put("symbolsProcessed", jobStatus.getSymbolsProcessed());
+		response.put("totalSymbols", jobStatus.getTotalSymbols());
+		response.put("startTime", jobStatus.getStartTime() != null ? jobStatus.getStartTime().toString() : null);
+		response.put("currentSymbol", jobStatus.getCurrentSymbol());
+		response.put("errorMessage", jobStatus.getErrorMessage());
+
+		return ResponseEntity.ok(response);
+	}
+
+	/**
 	 * Get status and configuration information
 	 *
 	 * GET /v1/marketdata/admin/status

@@ -8,6 +8,7 @@ import com.google.cloud.firestore.annotation.PropertyName;
 import io.strategiz.data.base.annotation.Collection;
 import io.strategiz.data.base.entity.BaseEntity;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -25,7 +26,9 @@ import java.util.Map;
  * This stores OHLCV (Open, High, Low, Close, Volume) data from various providers
  */
 @Collection("marketdata")
-public class MarketDataEntity extends BaseEntity {
+public class MarketDataEntity extends BaseEntity implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @DocumentId
     @PropertyName("id")

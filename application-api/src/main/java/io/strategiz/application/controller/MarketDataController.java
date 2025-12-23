@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,10 +38,12 @@ public class MarketDataController extends BaseController {
 
     /**
      * Get market data bars for a symbol
+     * GET /v1/market-data/bars?symbol=AAPL&timeframe=1Day&period=7y
      * GET /v1/market-data/bars?symbol=AAPL&timeframe=1Day&startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z
      *
      * @param symbol Stock symbol (required, e.g., "AAPL")
      * @param timeframe Timeframe for the bars (required, e.g., "1Day", "1Hour")
+     * @param period Period shorthand (optional, e.g., "7d", "30d", "90d", "6m", "1y", "2y", "3y", "5y", "7y", "max")
      * @param startDate Start date in ISO 8601 format (optional, e.g., "2024-01-01T00:00:00Z")
      * @param endDate End date in ISO 8601 format (optional, e.g., "2024-12-31T23:59:59Z")
      * @return List of market data bars sorted by timestamp ascending
@@ -47,7 +51,7 @@ public class MarketDataController extends BaseController {
     @GetMapping("/bars")
     @Operation(
         summary = "Get market data bars",
-        description = "Retrieve historical OHLCV market data for a symbol within a date range"
+        description = "Retrieve historical OHLCV market data for a symbol. Use 'period' for common ranges (7d, 30d, 1y, 7y, etc.) or specify startDate/endDate."
     )
     public ResponseEntity<List<MarketDataBarDTO>> getMarketDataBars(
         @Parameter(description = "Stock symbol (e.g., AAPL)", required = true)
@@ -56,6 +60,9 @@ public class MarketDataController extends BaseController {
         @Parameter(description = "Timeframe (e.g., 1Day, 1Hour)", required = true)
         @RequestParam(required = true) String timeframe,
 
+        @Parameter(description = "Period shorthand (e.g., 7d, 30d, 90d, 6m, 1y, 2y, 3y, 5y, 7y, max)")
+        @RequestParam(required = false) String period,
+
         @Parameter(description = "Start date in ISO 8601 format (e.g., 2024-01-01T00:00:00Z)")
         @RequestParam(required = false) String startDate,
 
@@ -63,16 +70,27 @@ public class MarketDataController extends BaseController {
         @RequestParam(required = false) String endDate
     ) {
         try {
-            log.info("GET /v1/market-data/bars - symbol={}, timeframe={}, startDate={}, endDate={}",
-                symbol, timeframe, startDate, endDate);
+            log.info("GET /v1/market-data/bars - symbol={}, timeframe={}, period={}, startDate={}, endDate={}",
+                symbol, timeframe, period, startDate, endDate);
 
             // Validate required parameters
             validateRequiredParam("symbol", symbol);
             validateRequiredParam("timeframe", timeframe);
 
+            // Calculate dates from period if provided (period takes precedence)
+            String calculatedStartDate = startDate;
+            String calculatedEndDate = endDate;
+
+            if (period != null && !period.isEmpty()) {
+                Instant now = Instant.now();
+                calculatedEndDate = now.toString();
+                calculatedStartDate = calculateStartDateFromPeriod(period, now).toString();
+                log.debug("Calculated date range from period={}: {} to {}", period, calculatedStartDate, calculatedEndDate);
+            }
+
             // Fetch market data from service
             List<MarketDataEntity> entities = marketDataService.getMarketDataBars(
-                symbol, timeframe, startDate, endDate
+                symbol, timeframe, calculatedStartDate, calculatedEndDate
             );
 
             // Convert entities to DTOs
@@ -87,6 +105,34 @@ public class MarketDataController extends BaseController {
             log.error("Error fetching market data bars for symbol={}", symbol, e);
             throw handleException(e, "market-data.fetch-failed");
         }
+    }
+
+    /**
+     * Calculate start date from period shorthand
+     * @param period Period string (e.g., "7d", "30d", "1y", "7y", "max")
+     * @param endDate End date to calculate from
+     * @return Calculated start date
+     */
+    private Instant calculateStartDateFromPeriod(String period, Instant endDate) {
+        String normalizedPeriod = period.toLowerCase().trim();
+
+        return switch (normalizedPeriod) {
+            case "7d" -> endDate.minus(7, ChronoUnit.DAYS);
+            case "30d" -> endDate.minus(30, ChronoUnit.DAYS);
+            case "90d" -> endDate.minus(90, ChronoUnit.DAYS);
+            case "6m" -> endDate.minus(180, ChronoUnit.DAYS);
+            case "1y" -> endDate.minus(365, ChronoUnit.DAYS);
+            case "2y" -> endDate.minus(730, ChronoUnit.DAYS);
+            case "3y" -> endDate.minus(1095, ChronoUnit.DAYS);
+            case "5y" -> endDate.minus(1825, ChronoUnit.DAYS);
+            case "7y" -> endDate.minus(2555, ChronoUnit.DAYS);
+            case "10y" -> endDate.minus(3650, ChronoUnit.DAYS);
+            case "all", "max" -> endDate.minus(3650, ChronoUnit.DAYS); // 10 years max
+            default -> {
+                log.warn("Unknown period '{}', defaulting to 1 year", period);
+                yield endDate.minus(365, ChronoUnit.DAYS);
+            }
+        };
     }
 
     /**

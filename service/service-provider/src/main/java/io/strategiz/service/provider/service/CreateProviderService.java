@@ -10,7 +10,7 @@ import io.strategiz.business.provider.binanceus.BinanceUSProviderBusiness;
 import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
-// import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
+import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -65,7 +65,7 @@ public class CreateProviderService {
             AlpacaProviderBusiness alpacaProviderBusiness,
             SchwabProviderBusiness schwabProviderBusiness,
             RobinhoodProviderBusiness robinhoodProviderBusiness,
-            // WebullProviderBusiness webullProviderBusiness, // TODO: Add when webull module is ready
+            WebullProviderBusiness webullProviderBusiness,
             ProfileService profileService,
             ReadProviderIntegrationRepository readProviderIntegrationRepository) {
 
@@ -78,7 +78,7 @@ public class CreateProviderService {
         this.providerHandlers.put("alpaca", alpacaProviderBusiness);
         this.providerHandlers.put("schwab", schwabProviderBusiness);
         this.providerHandlers.put("robinhood", robinhoodProviderBusiness);
-        // this.providerHandlers.put("webull", webullProviderBusiness); // TODO: Add when webull module is ready
+        this.providerHandlers.put("webull", webullProviderBusiness);
 
         this.profileService = profileService;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;
@@ -370,6 +370,8 @@ public class CreateProviderService {
                 return "Charles Schwab";
             case "robinhood":
                 return "Robinhood";
+            case "webull":
+                return "Webull";
             default:
                 return providerId;
         }

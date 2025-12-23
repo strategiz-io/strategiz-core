@@ -38,6 +38,7 @@
         <module>client-gcp-billing</module>
         <module>client-timescale-billing</module>
         <module>client-stripe</module>
+        <module>client-plaid</module>
     </modules>
     
     <dependencies>

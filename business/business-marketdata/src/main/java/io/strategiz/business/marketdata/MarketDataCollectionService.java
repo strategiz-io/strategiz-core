@@ -25,24 +25,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
- * Service for collecting and managing market data from Alpaca API
+ * Service for collecting and managing market data from data providers.
  *
  * Features:
- * - Multi-threaded backfill with configurable concurrency (default 10 threads)
- * - Batch Firestore saves (500 entities per batch)
- * - Comprehensive field mapping from Alpaca to MarketDataEntity
+ * - Multi-threaded backfill with configurable concurrency (default 2 threads)
+ * - Batch saves (500 entities per batch)
+ * - Comprehensive field mapping to MarketDataEntity
  * - Symbol metadata enrichment from Assets API
- * - Intraday support with 1-minute bars
+ * - All timeframe support (1Min, 5Min, 15Min, 1Hour, 1Day, 1Week, 1Month)
  * - Automatic pagination handling
  * - Rate limiting and error recovery
  *
- * Target: ~500 symbols (S&P 500 + top crypto/ETFs)
- * Storage: ~3GB for 3 months of 1Min data
+ * Target: All symbols from Firestore SymbolService
+ * Storage: TimescaleDB (when enabled) or Firestore
  */
 @Service
-public class AlpacaCollectionService {
+public class MarketDataCollectionService {
 
-    private static final Logger log = LoggerFactory.getLogger(AlpacaCollectionService.class);
+    private static final Logger log = LoggerFactory.getLogger(MarketDataCollectionService.class);
     private static final String DATA_SOURCE = "ALPACA";
 
     private final AlpacaHistoricalClient historicalClient;
@@ -60,15 +60,15 @@ public class AlpacaCollectionService {
     private final ExecutorService executorService;
 
     @Autowired
-    public AlpacaCollectionService(
+    public MarketDataCollectionService(
             AlpacaHistoricalClient historicalClient,
             AlpacaAssetsClient assetsClient,
             MarketDataRepository marketDataRepository,
             SymbolService symbolService,
-            @Value("${alpaca.batch.thread-pool-size:2}") int threadPoolSize,
-            @Value("${alpaca.batch.batch-size:500}") int batchSize,
-            @Value("${alpaca.batch.backfill-months:3}") int backfillMonths,
-            @Value("${alpaca.batch.backfill-timeout-minutes:240}") int backfillTimeoutMinutes) {
+            @Value("${marketdata.batch.thread-pool-size:2}") int threadPoolSize,
+            @Value("${marketdata.batch.batch-size:500}") int batchSize,
+            @Value("${marketdata.batch.backfill-months:3}") int backfillMonths,
+            @Value("${marketdata.batch.backfill-timeout-minutes:240}") int backfillTimeoutMinutes) {
 
         this.historicalClient = historicalClient;
         this.assetsClient = assetsClient;
@@ -82,13 +82,13 @@ public class AlpacaCollectionService {
         // Initialize thread pool
         this.executorService = Executors.newFixedThreadPool(threadPoolSize);
 
-        log.info("AlpacaCollectionService initialized with {} threads, batch size {}, timeout {} min",
+        log.info("MarketDataCollectionService initialized with {} threads, batch size {}, timeout {} min",
                 threadPoolSize, batchSize, backfillTimeoutMinutes);
     }
 
     /**
      * Get symbols to collect from Firestore SymbolService.
-     * Returns provider-formatted symbols for Alpaca (e.g., "AAPL", "BTC/USD").
+     * Returns provider-formatted symbols (e.g., "AAPL", "BTC/USD").
      */
     private List<String> getSymbolsToCollect() {
         List<String> symbols = symbolService.getProviderSymbolsForCollection(DATA_SOURCE);
@@ -97,15 +97,15 @@ public class AlpacaCollectionService {
     }
 
     /**
-     * Backfill historical intraday data for all symbols from Firestore.
+     * Backfill historical data for all symbols from Firestore.
      * Uses multi-threading for parallel symbol processing.
      *
-     * @param timeframe Bar interval ("1Min", "5Min", "15Min", "1Hour", "1Day")
+     * @param timeframe Bar interval ("1Min", "5Min", "15Min", "1Hour", "1Day", "1Week", "1Month")
      * @return Collection result with statistics
      */
     public CollectionResult backfillIntradayData(String timeframe) {
         List<String> symbols = getSymbolsToCollect();
-        log.info("Starting Alpaca backfill for {} symbols, timeframe: {}, lookback: {} months",
+        log.info("Starting market data backfill for {} symbols, timeframe: {}, lookback: {} months",
                 symbols.size(), timeframe, backfillMonths);
 
         LocalDateTime endDate = LocalDateTime.now();
@@ -168,7 +168,7 @@ public class AlpacaCollectionService {
         );
 
         try {
-            allFutures.get(backfillTimeoutMinutes, TimeUnit.MINUTES); // Configurable timeout (default 240 min / 4 hours)
+            allFutures.get(backfillTimeoutMinutes, TimeUnit.MINUTES);
 
             // Aggregate results
             for (CompletableFuture<SymbolResult> future : futures) {
@@ -214,7 +214,7 @@ public class AlpacaCollectionService {
             // Convert to MarketDataEntity
             log.info(">>> Converting {} bars to entities for {}", bars.size(), symbol);
             List<MarketDataEntity> entities = bars.stream()
-                    .map(bar -> convertAlpacaBar(symbol, bar, timeframe, assetMetadata))
+                    .map(bar -> convertBar(symbol, bar, timeframe, assetMetadata))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             log.info(">>> Converted to {} entities for {} (filtered out {})", entities.size(), symbol, bars.size() - entities.size());
@@ -249,7 +249,7 @@ public class AlpacaCollectionService {
         Map<String, AlpacaAsset> metadata = new ConcurrentHashMap<>();
 
         try {
-            // Get all tradable US equities from Alpaca
+            // Get all tradable US equities
             List<AlpacaAsset> assets = assetsClient.getNyseNasdaqStocks();
 
             // Build lookup map
@@ -269,9 +269,9 @@ public class AlpacaCollectionService {
     }
 
     /**
-     * Convert AlpacaBar to MarketDataEntity with comprehensive field mapping
+     * Convert bar data to MarketDataEntity with comprehensive field mapping
      */
-    private MarketDataEntity convertAlpacaBar(String symbol, AlpacaBar bar, String timeframe,
+    private MarketDataEntity convertBar(String symbol, AlpacaBar bar, String timeframe,
                                                AlpacaAsset assetMetadata) {
         try {
             MarketDataEntity entity = new MarketDataEntity();
@@ -286,7 +286,7 @@ public class AlpacaCollectionService {
             // Set core identifiers and timestamp (triggers auto-ID generation)
             entity.setSymbol(symbol);
             entity.setTimeframe(timeframe);
-            entity.setTimestampFromLocalDateTime(timestamp);  // Converts LocalDateTime to Timestamp and auto-generates ID
+            entity.setTimestampFromLocalDateTime(timestamp);
 
             // Set OHLCV data
             entity.setOpen(bar.getOpen());
@@ -302,7 +302,7 @@ public class AlpacaCollectionService {
             entity.setDataQuality("HISTORICAL");
 
             // Store additional metadata in metadata field
-            entity.getMetadata().put("dataFeed", "IEX");  // Free tier uses IEX feed
+            entity.getMetadata().put("dataFeed", "IEX");
             entity.getMetadata().put("schemaVersion", "1.0");
 
             // Enrich with asset metadata if available
@@ -311,19 +311,14 @@ public class AlpacaCollectionService {
                 entity.setExchange(assetMetadata.getExchange());
                 entity.getMetadata().put("assetName", assetMetadata.getName());
                 entity.getMetadata().put("status", assetMetadata.getStatus());
-
-                // Trading capabilities - store in metadata
                 entity.getMetadata().put("tradable", assetMetadata.getTradable());
                 entity.getMetadata().put("marginable", assetMetadata.getMarginable());
                 entity.getMetadata().put("shortable", assetMetadata.getShortable());
                 entity.getMetadata().put("easyToBorrow", assetMetadata.getEasyToBorrow());
                 entity.getMetadata().put("fractionable", assetMetadata.getFractionable());
-
-                // Trading constraints - store in metadata
                 entity.getMetadata().put("minOrderSize", assetMetadata.getMinOrderSizeDecimal());
                 entity.getMetadata().put("priceIncrement", assetMetadata.getPriceIncrementDecimal());
             } else {
-                // Default values when metadata unavailable
                 entity.setAssetType("us_equity");
                 entity.setExchange("UNKNOWN");
                 entity.getMetadata().put("status", "active");
@@ -338,7 +333,7 @@ public class AlpacaCollectionService {
     }
 
     /**
-     * Save entities in batches to Firestore
+     * Save entities in batches to storage
      * Batch size configured via application.properties (default 500)
      */
     private int saveBatch(List<MarketDataEntity> entities) {
@@ -354,7 +349,6 @@ public class AlpacaCollectionService {
             List<MarketDataEntity> batch = entities.subList(i, endIndex);
 
             try {
-                // Save batch using repository
                 marketDataRepository.saveAll(batch);
                 totalSaved += batch.size();
 
@@ -383,7 +377,7 @@ public class AlpacaCollectionService {
      * Shutdown thread pool gracefully
      */
     public void shutdown() {
-        log.info("Shutting down AlpacaCollectionService thread pool");
+        log.info("Shutting down MarketDataCollectionService thread pool");
         executorService.shutdown();
         try {
             if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {

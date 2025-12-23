@@ -33,6 +33,8 @@
         <module>business/business-provider-alpaca</module>
         <module>business/business-provider-schwab</module>
         <module>business/business-provider-robinhood</module>
+        <module>business/business-provider-webull</module>
+        <module>business/business-provider-plaid</module>
         <module>business/business-strategy-execution</module>
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
@@ -54,6 +56,7 @@
         <module>data/data-marketdata</module>
         <module>data/data-marketdata-timescale</module>
         <module>data/data-symbol</module>
+        <module>data/data-feature-flags</module>
         <module>data/data-infrastructure-costs</module>
 
         <!-- Auth Modules -->
@@ -79,6 +82,8 @@
         <module>client/client-gcp-billing</module>
         <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>
+        <module>client/client-webull</module>
+        <module>client/client-plaid</module>
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
@@ -277,6 +282,31 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>client-schwab</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-webull</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>business-provider-plaid</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-webull</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>client-plaid</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>data-feature-flags</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

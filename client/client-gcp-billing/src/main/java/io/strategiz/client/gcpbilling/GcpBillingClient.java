@@ -8,6 +8,7 @@ import io.strategiz.client.gcpbilling.model.GcpDailyCost;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +20,11 @@ import java.util.*;
 /**
  * Client for retrieving GCP billing data from BigQuery billing export.
  * Provides cost summaries, daily breakdowns, and service-level cost analysis.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Component
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class GcpBillingClient {
 
     private static final Logger log = LoggerFactory.getLogger(GcpBillingClient.class);

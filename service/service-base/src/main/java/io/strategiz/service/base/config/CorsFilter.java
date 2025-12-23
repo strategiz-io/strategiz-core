@@ -27,9 +27,17 @@ public class CorsFilter implements Filter {
             // Check exact matches first
             if (origin.equals("http://localhost:3000") ||
                 origin.equals("http://localhost:3001") ||
+                origin.equals("http://localhost:3002") ||
+                origin.equals("https://localhost:3000") ||
+                origin.equals("https://localhost:3001") ||
+                origin.equals("https://localhost:3002") ||
                 origin.equals("https://localhost:8443") ||
                 origin.equals("https://strategiz.io") ||
+                origin.equals("https://auth.strategiz.io") ||
+                origin.equals("https://console.strategiz.io") ||
                 origin.equals("https://strategiz-io.web.app") ||
+                origin.equals("https://strategiz-auth.web.app") ||
+                origin.equals("https://strategiz-console.web.app") ||
                 origin.equals("https://strategiz-io.firebaseapp.com")) {
                 response.setHeader("Access-Control-Allow-Origin", origin);
                 response.setHeader("Access-Control-Allow-Credentials", "true");

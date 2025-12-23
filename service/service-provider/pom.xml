@@ -42,13 +42,11 @@
             <artifactId>business-provider-kraken</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Temporarily commented out - webull module not fully implemented
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-provider-webull</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-provider-binanceus</artifactId>
@@ -71,16 +69,24 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-plaid</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-feature-flags</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>client-kraken</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Temporarily commented out - webull module not fully implemented
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-webull</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-binanceus</artifactId>

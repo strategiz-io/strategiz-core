@@ -33,6 +33,9 @@ public class JobResponse {
     @JsonProperty("lastRunDurationMs")
     private Long lastRunDurationMs;
 
+    @JsonProperty("enabled")
+    private boolean enabled = true;
+
     // Constructors
     public JobResponse() {
     }
@@ -107,5 +110,13 @@ public class JobResponse {
 
     public void setLastRunDurationMs(Long lastRunDurationMs) {
         this.lastRunDurationMs = lastRunDurationMs;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

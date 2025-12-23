@@ -166,6 +166,13 @@
             <artifactId>service-console</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Market Data Batch Jobs (for console job management) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>batch-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

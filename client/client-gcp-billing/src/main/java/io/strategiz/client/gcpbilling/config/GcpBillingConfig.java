@@ -7,6 +7,7 @@ import io.strategiz.framework.secrets.service.VaultSecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,8 +16,11 @@ import java.io.IOException;
 /**
  * Configuration for GCP Billing and Monitoring API clients.
  * Loads credentials from Vault for secure access.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Configuration
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class GcpBillingConfig {
 
     private static final Logger log = LoggerFactory.getLogger(GcpBillingConfig.class);

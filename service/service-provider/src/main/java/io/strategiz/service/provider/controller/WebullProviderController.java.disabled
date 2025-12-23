@@ -1,0 +1,218 @@
+package io.strategiz.service.provider.controller;
+
+import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
+import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Controller for Webull provider integration.
+ *
+ * Webull uses API key authentication:
+ * 1. User obtains App Key and App Secret from Webull developer portal
+ * 2. Credentials are stored in Vault
+ * 3. API calls are signed using HMAC-SHA1
+ */
+@RestController
+@RequestMapping("/v1/providers/webull")
+public class WebullProviderController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PROVIDER_MODULE;
+    }
+
+    private final WebullProviderBusiness webullProviderBusiness;
+    private final SessionAuthBusiness sessionAuthBusiness;
+
+    @Autowired
+    public WebullProviderController(WebullProviderBusiness webullProviderBusiness,
+                                    SessionAuthBusiness sessionAuthBusiness) {
+        this.webullProviderBusiness = webullProviderBusiness;
+        this.sessionAuthBusiness = sessionAuthBusiness;
+    }
+
+    /**
+     * Connect Webull account with API credentials.
+     *
+     * Request body:
+     * {
+     *   "appKey": "your-app-key",
+     *   "appSecret": "your-app-secret"
+     * }
+     *
+     * Response:
+     * {
+     *   "status": "SUCCESS",
+     *   "providerId": "webull",
+     *   "providerName": "Webull",
+     *   "message": "Successfully connected to Webull"
+     * }
+     */
+    @PostMapping("/connect")
+    public ResponseEntity<Map<String, Object>> connect(
+            @RequestBody Map<String, String> request,
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Webull connect initiated for user: {}", userId);
+
+        String appKey = request.get("appKey");
+        String appSecret = request.get("appSecret");
+
+        // Also support apiKey/apiSecret naming for consistency with other providers
+        if (appKey == null) {
+            appKey = request.get("apiKey");
+        }
+        if (appSecret == null) {
+            appSecret = request.get("apiSecret");
+        }
+
+        if (appKey == null || appKey.trim().isEmpty()) {
+            throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                "service-provider", "appKey");
+        }
+        if (appSecret == null || appSecret.trim().isEmpty()) {
+            throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                "service-provider", "appSecret");
+        }
+
+        // Test connection first
+        boolean isConnected = webullProviderBusiness.testConnectionWithCredentials(appKey, appSecret);
+
+        if (!isConnected) {
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
+                "service-provider", "Webull");
+        }
+
+        // Create integration using the business layer
+        io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest integrationRequest =
+            new io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest();
+        integrationRequest.setProviderId("webull");
+        integrationRequest.setApiKey(appKey);
+        integrationRequest.setApiSecret(appSecret);
+
+        io.strategiz.business.base.provider.model.ProviderIntegrationResult result =
+            webullProviderBusiness.createIntegration(integrationRequest, userId);
+
+        Map<String, Object> responseData = new HashMap<>();
+        if (result.isSuccess()) {
+            responseData.put("status", "SUCCESS");
+            responseData.put("providerId", "webull");
+            responseData.put("providerName", "Webull");
+            responseData.put("message", "Successfully connected to Webull");
+            if (result.getMetadata() != null) {
+                responseData.put("accountInfo", result.getMetadata());
+            }
+        } else {
+            responseData.put("status", "ERROR");
+            responseData.put("message", result.getMessage());
+        }
+
+        return ResponseEntity.ok(responseData);
+    }
+
+    /**
+     * Test existing Webull connection.
+     */
+    @GetMapping("/test")
+    public ResponseEntity<Map<String, Object>> testConnection(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Webull connection test for user: {}", userId);
+
+        boolean isConnected = webullProviderBusiness.testExistingIntegration(userId);
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("status", isConnected ? "CONNECTED" : "DISCONNECTED");
+        responseData.put("providerId", "webull");
+        responseData.put("providerName", "Webull");
+        responseData.put("message", isConnected ? "Connection active" : "Connection not found or invalid");
+
+        return ResponseEntity.ok(responseData);
+    }
+
+    /**
+     * Sync Webull portfolio data.
+     */
+    @PostMapping("/sync")
+    public ResponseEntity<Map<String, Object>> syncData(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Webull sync requested for user: {}", userId);
+
+        ProviderDataEntity syncedData = webullProviderBusiness.syncProviderData(userId);
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("status", "SUCCESS");
+        responseData.put("message", "Portfolio data synced successfully");
+        responseData.put("totalValue", syncedData.getTotalValue());
+        responseData.put("cashBalance", syncedData.getCashBalance());
+        responseData.put("holdingsCount", syncedData.getHoldings() != null ? syncedData.getHoldings().size() : 0);
+
+        return ResponseEntity.ok(responseData);
+    }
+
+    /**
+     * Disconnect Webull integration.
+     */
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<Map<String, Object>> disconnect(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Webull disconnect requested for user: {}", userId);
+
+        boolean disconnected = webullProviderBusiness.disconnectIntegration(userId);
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("status", disconnected ? "SUCCESS" : "ERROR");
+        responseData.put("message", disconnected ? "Successfully disconnected from Webull" : "Failed to disconnect");
+
+        return ResponseEntity.ok(responseData);
+    }
+
+    /**
+     * Extract user ID from principal or auth header.
+     */
+    private String extractUserId(Principal principal, String authHeader) {
+        String userId = principal != null ? principal.getName() : null;
+
+        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                var validationResult = sessionAuthBusiness.validateToken(token);
+                if (validationResult.isPresent()) {
+                    userId = validationResult.get().getUserId();
+                    log.info("Webull request authenticated via Bearer token for user: {}", userId);
+                }
+            } catch (Exception e) {
+                log.warn("Error validating Bearer token for Webull: {}", e.getMessage());
+            }
+        }
+
+        if (userId == null) {
+            log.error("No valid authentication session or token for Webull operation");
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
+                "service-provider", "Authentication required");
+        }
+
+        return userId;
+    }
+}

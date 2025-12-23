@@ -16,6 +16,7 @@ import io.strategiz.data.infrastructurecosts.repository.DailyCostRepository;
 import io.strategiz.data.infrastructurecosts.repository.FirestoreUsageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -30,8 +31,11 @@ import java.util.stream.Collectors;
 /**
  * Service for aggregating infrastructure costs from GCP and TimescaleDB.
  * Combines data from multiple sources and persists to Firestore for historical tracking.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Service
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class CostAggregationService {
 
     private static final Logger log = LoggerFactory.getLogger(CostAggregationService.class);

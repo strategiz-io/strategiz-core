@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,10 +25,13 @@ import java.util.Map;
  * Admin controller for infrastructure costs tracking and analysis.
  * Provides endpoints for cost summary, daily breakdowns, service costs,
  * Firestore usage, and cost predictions.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @RestController
 @RequestMapping("/v1/console/costs")
 @Tag(name = "Admin - Infrastructure Costs", description = "Infrastructure cost tracking and prediction endpoints")
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class AdminCostsController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminCostsController.class);

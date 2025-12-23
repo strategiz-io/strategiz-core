@@ -7,6 +7,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -19,9 +20,12 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * AOP aspect for tracking Firestore read/write operations.
  * Intercepts repository calls and records usage metrics.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Aspect
 @Component
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class FirestoreUsageTracker {
 
     private static final Logger log = LoggerFactory.getLogger(FirestoreUsageTracker.class);

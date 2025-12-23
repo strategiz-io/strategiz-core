@@ -116,7 +116,7 @@ public class LLMRouter {
 
 		// Claude models (latest first)
 		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));
-		models.add(new ModelInfo("claude-sonnet-4", "Claude Sonnet 4", "anthropic", "Balanced performance"));
+		models.add(new ModelInfo("claude-sonnet-4-5", "Claude Sonnet 4.5", "anthropic", "Balanced performance"));
 		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
 				"Best for coding & agents"));
 

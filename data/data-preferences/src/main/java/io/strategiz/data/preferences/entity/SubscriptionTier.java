@@ -21,7 +21,7 @@ public enum SubscriptionTier {
 
 	STRATEGIST("strategist", "Strategist", 4900, // $49.00 in cents
 			List.of("gemini-3-flash-preview", "gpt-4o-mini", "claude-haiku-4-5", "gpt-4o", "claude-opus-4-5",
-					"claude-sonnet-4", "o1", "o1-mini", "llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
+					"claude-sonnet-4-5", "o1", "o1-mini", "llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
 					"llama-3.1-405b-instruct-maas", "mistral-nemo", "mistral-small", "mistral-large-2", "command-r",
 					"command-r-plus"),
 			500, // Cost protection - not unlimited

@@ -77,6 +77,7 @@
         <module>client/client-schwab</module>
         <module>client/client-alpaca</module>
         <module>client/client-gemini</module>
+        <module>client/client-openai</module>
         <module>client/client-robinhood</module>
         <module>client/client-sms</module>
         <module>client/client-claude-vertex</module>

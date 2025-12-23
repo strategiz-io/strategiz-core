@@ -45,6 +45,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- OpenAI Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-openai</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

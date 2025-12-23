@@ -59,6 +59,9 @@ public class MarketDataCollectionService {
     // Thread pool for concurrent execution
     private final ExecutorService executorService;
 
+    // Job status tracking (volatile for thread-safe reads)
+    private volatile JobStatus currentJobStatus = new JobStatus();
+
     @Autowired
     public MarketDataCollectionService(
             AlpacaHistoricalClient historicalClient,
@@ -141,56 +144,80 @@ public class MarketDataCollectionService {
         log.info("Backfilling {} symbols from {} to {} ({})",
                 symbols.size(), startDate, endDate, timeframe);
 
-        // First, fetch asset metadata for all symbols to enrich market data
-        Map<String, AlpacaAsset> assetMetadata = fetchAssetMetadata(symbols);
-
-        // Atomic counters for thread-safe statistics
-        AtomicInteger symbolsProcessed = new AtomicInteger(0);
-        AtomicInteger dataPointsStored = new AtomicInteger(0);
-        AtomicInteger errorCount = new AtomicInteger(0);
-
-        // Create tasks for each symbol
-        List<CompletableFuture<SymbolResult>> futures = symbols.stream()
-                .map(symbol -> CompletableFuture.supplyAsync(() -> {
-                    try {
-                        return processSymbol(symbol, startDate, endDate, timeframe, assetMetadata.get(symbol));
-                    } catch (Exception e) {
-                        log.error("Error processing symbol {}: {}", symbol, e.getMessage(), e);
-                        errorCount.incrementAndGet();
-                        return new SymbolResult(symbol, 0, false);
-                    }
-                }, executorService))
-                .collect(Collectors.toList());
-
-        // Wait for all tasks to complete
-        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
-                futures.toArray(new CompletableFuture[0])
-        );
+        // Set job status to RUNNING
+        currentJobStatus.setRunning(timeframe, symbols.size());
 
         try {
-            allFutures.get(backfillTimeoutMinutes, TimeUnit.MINUTES);
+            // First, fetch asset metadata for all symbols to enrich market data
+            Map<String, AlpacaAsset> assetMetadata = fetchAssetMetadata(symbols);
 
-            // Aggregate results
-            for (CompletableFuture<SymbolResult> future : futures) {
-                SymbolResult result = future.get();
-                if (result.success) {
-                    symbolsProcessed.incrementAndGet();
-                    dataPointsStored.addAndGet(result.barsStored);
+            // Atomic counters for thread-safe statistics
+            AtomicInteger symbolsProcessed = new AtomicInteger(0);
+            AtomicInteger dataPointsStored = new AtomicInteger(0);
+            AtomicInteger errorCount = new AtomicInteger(0);
+
+            // Create tasks for each symbol
+            List<CompletableFuture<SymbolResult>> futures = symbols.stream()
+                    .map(symbol -> CompletableFuture.supplyAsync(() -> {
+                        try {
+                            // Update current symbol being processed
+                            currentJobStatus.updateProgress(symbolsProcessed.get(), symbol);
+
+                            SymbolResult result = processSymbol(symbol, startDate, endDate, timeframe, assetMetadata.get(symbol));
+
+                            // Update progress after successful processing
+                            if (result.success) {
+                                symbolsProcessed.incrementAndGet();
+                                dataPointsStored.addAndGet(result.barsStored);
+                                currentJobStatus.updateProgress(symbolsProcessed.get(), null);
+                            }
+
+                            return result;
+                        } catch (Exception e) {
+                            log.error("Error processing symbol {}: {}", symbol, e.getMessage(), e);
+                            errorCount.incrementAndGet();
+                            return new SymbolResult(symbol, 0, false);
+                        }
+                    }, executorService))
+                    .collect(Collectors.toList());
+
+            // Wait for all tasks to complete
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                    futures.toArray(new CompletableFuture[0])
+            );
+
+            try {
+                allFutures.get(backfillTimeoutMinutes, TimeUnit.MINUTES);
+
+                // Wait for all futures to complete (they already updated counters in the async tasks)
+                for (CompletableFuture<SymbolResult> future : futures) {
+                    future.get(); // Just wait, counters already updated
                 }
+
+                // Set status to COMPLETED
+                currentJobStatus.setCompleted();
+                log.info("Backfill completed: {} symbols, {} bars stored, {} errors",
+                        symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+
+                return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+
+            } catch (TimeoutException e) {
+                log.error("Backfill timed out after {} minutes", backfillTimeoutMinutes);
+                currentJobStatus.setFailed("Backfill timed out after " + backfillTimeoutMinutes + " minutes");
+                errorCount.incrementAndGet();
+                return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+            } catch (Exception e) {
+                log.error("Error waiting for backfill completion: {}", e.getMessage(), e);
+                currentJobStatus.setFailed("Error: " + e.getMessage());
+                errorCount.incrementAndGet();
+                return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
             }
 
-        } catch (TimeoutException e) {
-            log.error("Backfill timed out after {} minutes", backfillTimeoutMinutes);
-            errorCount.incrementAndGet();
         } catch (Exception e) {
-            log.error("Error waiting for backfill completion: {}", e.getMessage(), e);
-            errorCount.incrementAndGet();
+            log.error("Backfill failed during initialization: {}", e.getMessage(), e);
+            currentJobStatus.setFailed("Initialization failed: " + e.getMessage());
+            return new CollectionResult(0, 0, 1);
         }
-
-        log.info("Backfill completed: {} symbols, {} bars stored, {} errors",
-                symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
-
-        return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
     }
 
     /**
@@ -423,5 +450,71 @@ public class MarketDataCollectionService {
             return String.format("CollectionResult[symbols=%d, dataPoints=%d, errors=%d]",
                     totalSymbolsProcessed, totalDataPointsStored, errorCount);
         }
+    }
+
+    /**
+     * Current job status for real-time tracking
+     */
+    public static class JobStatus {
+        public enum Status { IDLE, RUNNING, COMPLETED, FAILED }
+
+        private volatile Status status = Status.IDLE;
+        private volatile String timeframe;
+        private volatile int symbolsProcessed = 0;
+        private volatile int totalSymbols = 0;
+        private volatile LocalDateTime startTime;
+        private volatile String currentSymbol;
+        private volatile String errorMessage;
+
+        public synchronized void setRunning(String timeframe, int totalSymbols) {
+            this.status = Status.RUNNING;
+            this.timeframe = timeframe;
+            this.totalSymbols = totalSymbols;
+            this.symbolsProcessed = 0;
+            this.startTime = LocalDateTime.now();
+            this.currentSymbol = null;
+            this.errorMessage = null;
+        }
+
+        public synchronized void updateProgress(int symbolsProcessed, String currentSymbol) {
+            this.symbolsProcessed = symbolsProcessed;
+            this.currentSymbol = currentSymbol;
+        }
+
+        public synchronized void setCompleted() {
+            this.status = Status.COMPLETED;
+            this.currentSymbol = null;
+        }
+
+        public synchronized void setFailed(String errorMessage) {
+            this.status = Status.FAILED;
+            this.errorMessage = errorMessage;
+        }
+
+        public synchronized void setIdle() {
+            this.status = Status.IDLE;
+            this.timeframe = null;
+            this.symbolsProcessed = 0;
+            this.totalSymbols = 0;
+            this.startTime = null;
+            this.currentSymbol = null;
+            this.errorMessage = null;
+        }
+
+        // Getters
+        public Status getStatus() { return status; }
+        public String getTimeframe() { return timeframe; }
+        public int getSymbolsProcessed() { return symbolsProcessed; }
+        public int getTotalSymbols() { return totalSymbols; }
+        public LocalDateTime getStartTime() { return startTime; }
+        public String getCurrentSymbol() { return currentSymbol; }
+        public String getErrorMessage() { return errorMessage; }
+    }
+
+    /**
+     * Get current job status for status endpoint
+     */
+    public JobStatus getCurrentJobStatus() {
+        return currentJobStatus;
     }
 }

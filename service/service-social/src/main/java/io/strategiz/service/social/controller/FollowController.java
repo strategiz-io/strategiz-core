@@ -4,6 +4,9 @@ import io.strategiz.data.user.entity.UserFollowEntity;
 import io.strategiz.service.social.service.FollowService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/social/users")
+@RequireAuth(minAcr = "1")
 public class FollowController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(FollowController.class);
@@ -46,13 +50,9 @@ public class FollowController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> followUser(
             @PathVariable String userId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String currentUserId = extractUserIdFromAuthHeader(authHeader);
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String currentUserId = user.getUserId();
 
             UserFollowEntity follow = followService.follow(currentUserId, userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
@@ -72,13 +72,9 @@ public class FollowController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> unfollowUser(
             @PathVariable String userId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String currentUserId = extractUserIdFromAuthHeader(authHeader);
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String currentUserId = user.getUserId();
 
             followService.unfollow(currentUserId, userId);
             return ResponseEntity.ok(Map.of("message", "Successfully unfollowed user"));
@@ -135,13 +131,9 @@ public class FollowController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> getFollowStatus(
             @PathVariable String userId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String currentUserId = extractUserIdFromAuthHeader(authHeader);
-            if (currentUserId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String currentUserId = user.getUserId();
 
             boolean isFollowing = followService.isFollowing(currentUserId, userId);
             return ResponseEntity.ok(Map.of(
@@ -170,15 +162,6 @@ public class FollowController extends BaseController {
     }
 
     // Helper methods
-
-    private String extractUserIdFromAuthHeader(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        // In a real implementation, decode and validate JWT token
-        // For now, return mock user ID
-        return "user123";
-    }
 
     private ResponseEntity<Object> handleException(Exception e) {
         String message = e.getMessage();

@@ -4,6 +4,9 @@ import io.strategiz.data.strategy.entity.StrategySubscriptionEntity;
 import io.strategiz.service.marketplace.service.StrategySubscriptionService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +32,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/v1/subscriptions")
+@RequireAuth(minAcr = "1")
 public class StrategySubscriptionController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(StrategySubscriptionController.class);
@@ -48,13 +52,9 @@ public class StrategySubscriptionController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> subscribe(
             @RequestBody Map<String, String> requestBody,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             String strategyId = requestBody.get("strategyId");
             if (strategyId == null || strategyId.trim().isEmpty()) {
@@ -77,13 +77,9 @@ public class StrategySubscriptionController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> cancelSubscription(
             @PathVariable String subscriptionId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             StrategySubscriptionEntity cancelled = subscriptionService.cancelSubscription(subscriptionId, userId);
             return ResponseEntity.ok(Map.of(
@@ -102,14 +98,10 @@ public class StrategySubscriptionController extends BaseController {
     @GetMapping
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> getMySubscriptions(
-            @RequestHeader("Authorization") String authHeader,
+            @AuthUser AuthenticatedUser user,
             @RequestParam(defaultValue = "50") int limit) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             List<StrategySubscriptionEntity> subscriptions = subscriptionService.getUserSubscriptions(userId, limit);
             return ResponseEntity.ok(Map.of(
@@ -129,13 +121,9 @@ public class StrategySubscriptionController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> getSubscription(
             @PathVariable String subscriptionId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             Optional<StrategySubscriptionEntity> subscription = subscriptionService.getSubscription(subscriptionId);
             if (subscription.isEmpty()) {
@@ -164,13 +152,9 @@ public class StrategySubscriptionController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> checkSubscription(
             @PathVariable String strategyId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             boolean isSubscribed = subscriptionService.hasActiveSubscription(userId, strategyId);
             Optional<StrategySubscriptionEntity> subscription =
@@ -194,13 +178,9 @@ public class StrategySubscriptionController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> checkAccess(
             @PathVariable String strategyId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             boolean canAccess = subscriptionService.canAccessStrategy(userId, strategyId);
             return ResponseEntity.ok(Map.of(
@@ -220,14 +200,10 @@ public class StrategySubscriptionController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> getStrategySubscribers(
             @PathVariable String strategyId,
-            @RequestHeader("Authorization") String authHeader,
+            @AuthUser AuthenticatedUser user,
             @RequestParam(defaultValue = "50") int limit) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             List<StrategySubscriptionEntity> subscribers =
                     subscriptionService.getStrategySubscribers(strategyId, userId, limit);
@@ -242,15 +218,6 @@ public class StrategySubscriptionController extends BaseController {
     }
 
     // Helper methods
-
-    private String extractUserIdFromAuthHeader(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        // In a real implementation, decode and validate JWT token
-        // For now, return mock user ID
-        return "user123";
-    }
 
     private ResponseEntity<Object> handleException(Exception e) {
         String message = e.getMessage();

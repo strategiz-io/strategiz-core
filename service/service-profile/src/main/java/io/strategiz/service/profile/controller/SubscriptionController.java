@@ -79,9 +79,7 @@ public class SubscriptionController extends BaseController {
 		response.setPriceInCents(tier.getPriceInCents());
 		response.setAllowedModels(tier.getAllowedModels());
 		response.setDailyMessageLimit(tier.getDailyMessageLimit());
-		response.setDailyStrategyLimit(tier.getDailyStrategyLimit());
 		response.setDailyMessagesUsed(sub.getDailyMessagesUsed());
-		response.setDailyStrategiesUsed(sub.getDailyStrategiesUsed());
 		response.setCancelAtPeriodEnd(sub.getCancelAtPeriodEnd());
 
 		return ResponseEntity.ok(response);
@@ -104,9 +102,6 @@ public class SubscriptionController extends BaseController {
 		response.setMessagesUsed(sub.getDailyMessagesUsed());
 		response.setMessagesLimit(tier.getDailyMessageLimit());
 		response.setMessagesRemaining(subscriptionService.getRemainingMessages(userId));
-		response.setStrategiesUsed(sub.getDailyStrategiesUsed());
-		response.setStrategiesLimit(tier.getDailyStrategyLimit());
-		response.setStrategiesRemaining(subscriptionService.getRemainingStrategies(userId));
 		response.setResetDate(sub.getUsageResetDate());
 
 		return ResponseEntity.ok(response);
@@ -155,7 +150,7 @@ public class SubscriptionController extends BaseController {
 	}
 
 	/**
-	 * Check if user can generate a strategy.
+	 * Check if user can generate a strategy (same as message limit).
 	 * @param user The authenticated user
 	 * @return Whether the user can generate a strategy
 	 */
@@ -163,8 +158,8 @@ public class SubscriptionController extends BaseController {
 	@RequireAuth(minAcr = "1")
 	public ResponseEntity<Map<String, Object>> canGenerateStrategy(@AuthUser AuthenticatedUser user) {
 		String userId = user.getUserId();
-		boolean canGenerate = subscriptionService.canGenerateStrategy(userId);
-		int remaining = subscriptionService.getRemainingStrategies(userId);
+		boolean canGenerate = subscriptionService.canSendMessage(userId);
+		int remaining = subscriptionService.getRemainingMessages(userId);
 
 		return ResponseEntity.ok(Map.of("allowed", canGenerate, "remaining", remaining));
 	}

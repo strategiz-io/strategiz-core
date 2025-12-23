@@ -1,7 +1,9 @@
 package io.strategiz.service.labs.controller;
 
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
@@ -13,29 +15,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/v1/strategies")
+@RequireAuth(minAcr = "1")
 @Tag(name = "Strategy Reading", description = "Read and list trading strategies")
 public class ReadStrategyController extends BaseController {
     
     private static final Logger logger = LoggerFactory.getLogger(ReadStrategyController.class);
 
     private final ReadStrategyService readStrategyService;
-    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Autowired
-    public ReadStrategyController(ReadStrategyService readStrategyService,
-                                 SessionAuthBusiness sessionAuthBusiness) {
+    public ReadStrategyController(ReadStrategyService readStrategyService) {
         this.readStrategyService = readStrategyService;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     @GetMapping
@@ -43,43 +41,9 @@ public class ReadStrategyController extends BaseController {
     public ResponseEntity<List<StrategyResponse>> getUserStrategies(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String language,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @AuthUser AuthenticatedUser user) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        logger.debug("GetUserStrategies: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
-                userId, authHeader != null, userIdParam);
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    logger.info("Get strategies authenticated via Bearer token for user: {}", userId);
-                } else {
-                    logger.warn("Invalid Bearer token provided for get strategies");
-                }
-            } catch (Exception e) {
-                logger.warn("Error validating Bearer token for get strategies: {}", e.getMessage());
-            }
-        }
-
-        // Use query param userId as fallback for development/testing
-        if (userId == null && userIdParam != null) {
-            userId = userIdParam;
-            logger.warn("Using userId from query parameter for development: {}", userId);
-        }
-
-        // Use anonymous user as last resort
-        if (userId == null) {
-            userId = "anonymous";
-            logger.warn("No authentication found - using anonymous user for development");
-        }
-
+        String userId = user.getUserId();
         logger.info("Fetching strategies for user: {} with status: {} and language: {}",
             userId, status, language);
         
@@ -115,9 +79,9 @@ public class ReadStrategyController extends BaseController {
     @Operation(summary = "Get strategy by ID", description = "Retrieves a specific strategy by its ID")
     public ResponseEntity<StrategyResponse> getStrategyById(
             @PathVariable String strategyId,
-            Authentication authentication) {
-        
-        String userId = authentication.getName();
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         logger.info("Fetching strategy: {} for user: {}", strategyId, userId);
         
         try {

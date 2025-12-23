@@ -1,9 +1,21 @@
-# Multi-stage build - first stage builds the application
+# Multi-stage build with dependency caching optimization
 FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 
-# Copy pom.xml files and source code
+# Step 1: Copy only pom.xml files (changes rarely)
 COPY pom.xml .
+COPY framework/pom.xml framework/pom.xml
+COPY data/pom.xml data/pom.xml
+COPY client/pom.xml client/pom.xml
+COPY business/pom.xml business/pom.xml
+COPY service/pom.xml service/pom.xml
+COPY application-api/pom.xml application-api/pom.xml
+COPY batch/pom.xml batch/pom.xml
+
+# Step 2: Download dependencies (cached unless pom.xml changes)
+RUN mvn dependency:go-offline -DskipTests
+
+# Step 3: Copy source code (changes frequently)
 COPY framework/ framework/
 COPY data/ data/
 COPY client/ client/
@@ -12,21 +24,13 @@ COPY service/ service/
 COPY application-api/ application-api/
 COPY batch/ batch/
 
-# Build the application
-RUN mvn clean install -DskipTests
+# Step 4: Build application (only runs if source changed)
+RUN mvn clean install -DskipTests -o
 
-# Second stage - runtime image
+# Runtime image (unchanged)
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-
-# Copy the built JAR file from the builder stage (API)
 COPY --from=builder /app/application-api/target/application-api-1.0-SNAPSHOT.jar app.jar
-
-# Ensure the service listens on the port provided by Cloud Run
 ENV PORT=8080
-
-# Environment variables for Spring Boot application
 ENV SPRING_PROFILES_ACTIVE=prod
-
-# The command that will be executed when the container starts
 CMD ["java", "-jar", "app.jar"]

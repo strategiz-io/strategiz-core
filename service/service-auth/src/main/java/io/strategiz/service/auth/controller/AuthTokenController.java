@@ -48,23 +48,30 @@ public class AuthTokenController extends BaseController {
 
     /**
      * Generate a one-time auth token for cross-app SSO.
-     * Requires authentication.
+     * Manually extracts and validates authentication from cookies/headers
+     * to work around cookie domain restrictions across subdomains.
      *
-     * @param user        The authenticated user
      * @param redirectUrl The URL to redirect to after token exchange
-     * @param request     HTTP request for IP address
+     * @param request     HTTP request for authentication extraction
      * @return The generated token and redirect URL
      */
     @PostMapping("/generate")
-    @RequireAuth
     @Operation(summary = "Generate one-time auth token", description = "Generate a token for cross-app SSO redirect")
     public ResponseEntity<Map<String, Object>> generateToken(
-            @AuthUser AuthenticatedUser user,
             @RequestParam("redirect") String redirectUrl,
             HttpServletRequest request) {
 
         String clientIp = getClientIp(request);
-        logger.info("Token generation requested for user {} to {}", user.getUserId(), redirectUrl);
+
+        // Manually extract user from security context (populated by PasetoAuthenticationFilter)
+        io.strategiz.framework.authorization.context.AuthenticatedUser user =
+            io.strategiz.framework.authorization.context.SecurityContextHolder.getAuthenticatedUser()
+                .orElseThrow(() -> {
+                    logger.warn("Token generation attempted without authentication from IP: {}", clientIp);
+                    return new RuntimeException("Not authenticated");
+                });
+
+        logger.info("Token generation requested for user {} to {} from IP {}", user.getUserId(), redirectUrl, clientIp);
 
         try {
             String token = authTokenService.generateToken(user.getUserId(), redirectUrl, clientIp);

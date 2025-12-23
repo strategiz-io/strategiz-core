@@ -4,6 +4,9 @@ import io.strategiz.data.strategy.entity.StrategyCommentEntity;
 import io.strategiz.service.marketplace.service.StrategyCommentService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +34,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/strategies/{strategyId}/comments")
+@RequireAuth(minAcr = "1")
 public class StrategyCommentController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(StrategyCommentController.class);
@@ -52,13 +56,9 @@ public class StrategyCommentController extends BaseController {
     public ResponseEntity<Object> addComment(
             @PathVariable String strategyId,
             @RequestBody Map<String, String> requestBody,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             String content = requestBody.get("content");
             if (content == null || content.trim().isEmpty()) {
@@ -103,13 +103,9 @@ public class StrategyCommentController extends BaseController {
             @PathVariable String strategyId,
             @PathVariable String commentId,
             @RequestBody Map<String, String> requestBody,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             String content = requestBody.get("content");
             if (content == null || content.trim().isEmpty()) {
@@ -133,13 +129,9 @@ public class StrategyCommentController extends BaseController {
     public ResponseEntity<Object> deleteComment(
             @PathVariable String strategyId,
             @PathVariable String commentId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             commentService.deleteComment(commentId, userId);
             return ResponseEntity.ok(Map.of("message", "Comment deleted successfully"));
@@ -157,13 +149,9 @@ public class StrategyCommentController extends BaseController {
     public ResponseEntity<Object> likeComment(
             @PathVariable String strategyId,
             @PathVariable String commentId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             commentService.likeComment(commentId, userId);
             return ResponseEntity.ok(Map.of("message", "Comment liked"));
@@ -181,13 +169,9 @@ public class StrategyCommentController extends BaseController {
     public ResponseEntity<Object> unlikeComment(
             @PathVariable String strategyId,
             @PathVariable String commentId,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             commentService.unlikeComment(commentId, userId);
             return ResponseEntity.ok(Map.of("message", "Comment unliked"));
@@ -226,13 +210,9 @@ public class StrategyCommentController extends BaseController {
             @PathVariable String strategyId,
             @PathVariable String commentId,
             @RequestBody Map<String, String> requestBody,
-            @RequestHeader("Authorization") String authHeader) {
+            @AuthUser AuthenticatedUser user) {
         try {
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Unauthorized"));
-            }
+            String userId = user.getUserId();
 
             String content = requestBody.get("content");
             if (content == null || content.trim().isEmpty()) {
@@ -249,15 +229,6 @@ public class StrategyCommentController extends BaseController {
     }
 
     // Helper methods
-
-    private String extractUserIdFromAuthHeader(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        // In a real implementation, decode and validate JWT token
-        // For now, return mock user ID
-        return "user123";
-    }
 
     private ResponseEntity<Object> handleException(Exception e) {
         String message = e.getMessage();

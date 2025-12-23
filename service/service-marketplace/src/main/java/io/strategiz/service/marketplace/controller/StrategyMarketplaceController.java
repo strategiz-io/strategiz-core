@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import io.strategiz.service.marketplace.service.StrategyMarketplaceService;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +23,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/marketplace/strategies")
+@RequireAuth(minAcr = "1")
 public class StrategyMarketplaceController extends BaseController {
 
     @Override
@@ -77,16 +81,11 @@ public class StrategyMarketplaceController extends BaseController {
      */
     @PostMapping
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<Object> createStrategy(@RequestBody Map<String, Object> strategyData, 
-                                                @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<Object> createStrategy(@RequestBody Map<String, Object> strategyData,
+                                                @AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             Map<String, Object> response = strategyService.createStrategy(userId, strategyData);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
@@ -101,17 +100,12 @@ public class StrategyMarketplaceController extends BaseController {
      */
     @PutMapping("/{id}")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<Object> updateStrategy(@PathVariable String id, 
+    public ResponseEntity<Object> updateStrategy(@PathVariable String id,
                                                @RequestBody Map<String, Object> strategyData,
-                                               @RequestHeader("Authorization") String authHeader) {
+                                               @AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             Map<String, Object> response = strategyService.updateStrategy(id, userId, strategyData);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
@@ -134,15 +128,10 @@ public class StrategyMarketplaceController extends BaseController {
     @DeleteMapping("/{id}")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> deleteStrategy(@PathVariable String id,
-                                               @RequestHeader("Authorization") String authHeader) {
+                                               @AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             Map<String, String> result = strategyService.deleteStrategy(id, userId);
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
@@ -165,15 +154,10 @@ public class StrategyMarketplaceController extends BaseController {
     @PostMapping("/{id}/purchase")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> purchaseStrategy(@PathVariable String id,
-                                                 @RequestHeader("Authorization") String authHeader) {
+                                                 @AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             Map<String, Object> result = strategyService.purchaseStrategy(id, userId);
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
@@ -197,15 +181,10 @@ public class StrategyMarketplaceController extends BaseController {
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
     public ResponseEntity<Object> applyStrategy(@PathVariable String id,
                                               @RequestBody Map<String, Object> applicationData,
-                                              @RequestHeader("Authorization") String authHeader) {
+                                              @AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             Map<String, Object> result = strategyService.applyStrategy(id, userId, applicationData);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (RuntimeException e) {
@@ -227,15 +206,10 @@ public class StrategyMarketplaceController extends BaseController {
      */
     @GetMapping("/user/purchases")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<Object> getUserPurchases(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<Object> getUserPurchases(@AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             List<Map<String, Object>> purchasedStrategies = strategyService.getUserPurchases(userId);
             return ResponseEntity.ok(purchasedStrategies);
         } catch (RuntimeException e) {
@@ -254,44 +228,16 @@ public class StrategyMarketplaceController extends BaseController {
      */
     @GetMapping("/user/strategies")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<Object> getUserStrategies(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<Object> getUserStrategies(@AuthUser AuthenticatedUser user) {
         try {
-            // Extract user ID from auth header (simplified for example)
-            String userId = extractUserIdFromAuthHeader(authHeader);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Unauthorized"));
-            }
-            
+            String userId = user.getUserId();
+
             List<Map<String, Object>> strategies = strategyService.getUserStrategies(userId);
             return ResponseEntity.ok(strategies);
         } catch (Exception e) {
             log.error("Error getting user strategies", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to retrieve strategies: " + e.getMessage()));
-        }
-    }
-    
-    /**
-     * Helper method to extract user ID from auth header
-     * In a real application, this would validate the token and extract the user ID
-     */
-    private String extractUserIdFromAuthHeader(String authHeader) {
-        // This is a simplified example
-        // In a real application, you would validate the JWT token and extract the user ID
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
-        }
-        
-        String token = authHeader.substring(7);
-        
-        try {
-            // For demo purposes, just returning a mock user ID
-            // In a real application, you would decode and validate the JWT token
-            return "user123";
-        } catch (Exception e) {
-            log.error("Error extracting user ID from token", e);
-            return null;
         }
     }
 }

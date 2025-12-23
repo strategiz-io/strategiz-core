@@ -7,15 +7,15 @@ import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.security.Principal;
-import java.util.Optional;
 
 /**
  * Controller for creating provider connections and integrations.
@@ -26,6 +26,7 @@ import java.util.Optional;
  */
 @RestController("providerCreateProviderController")
 @RequestMapping("/v1/providers")
+@RequireAuth(minAcr = "1")
 public class CreateProviderController extends BaseController {
     
     @Override
@@ -34,13 +35,10 @@ public class CreateProviderController extends BaseController {
     }
     
     private final CreateProviderService createProviderService;
-    private final SessionAuthBusiness sessionAuthBusiness;
-    
+
     @Autowired
-    public CreateProviderController(CreateProviderService createProviderService,
-                                   SessionAuthBusiness sessionAuthBusiness) {
+    public CreateProviderController(CreateProviderService createProviderService) {
         this.createProviderService = createProviderService;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     /**
@@ -50,41 +48,17 @@ public class CreateProviderController extends BaseController {
      * For API key providers: Validates credentials and creates connection
      *
      * @param request The provider connection request
-     * @param principal The authenticated user principal from session
+     * @param user The authenticated user from HTTP-only cookie
      * @return CreateProviderResponse containing connection details or OAuth URL
      */
     @PostMapping
     public ResponseEntity<CreateProviderResponse> createProvider(
             @Valid @RequestBody CreateProviderRequest request,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+            @AuthUser AuthenticatedUser user) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        log.info("CreateProvider: Principal userId: {}, AuthHeader present: {}",
-                userId, authHeader != null);
+        String userId = user.getUserId();
+        log.info("CreateProvider: userId: {}", userId);
 
-        // If session auth failed, try token-based auth as fallback (for signup flow)
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    log.info("Provider creation authenticated via Bearer token for user: {}", userId);
-                } else {
-                    log.warn("Invalid Bearer token provided for provider creation");
-                }
-            } catch (Exception e) {
-                log.warn("Error validating Bearer token for provider creation: {}", e.getMessage());
-            }
-        }
-
-        if (userId == null) {
-            log.error("No valid authentication session or token for provider creation");
-            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
-                "service-provider", "Authentication required to connect provider");
-        }
         request.setUserId(userId);
         
         log.info("Creating provider connection for user: {}, provider: {}, type: {}", 
@@ -120,19 +94,13 @@ public class CreateProviderController extends BaseController {
     /**
      * Fetches connected providers for the authenticated user.
      *
-     * @param principal The authenticated user principal from session
+     * @param user The authenticated user from HTTP-only cookie
      * @return Response containing the list of connected providers
      */
     @GetMapping("/connected")
-    public ResponseEntity<?> getConnectedProviders(Principal principal) {
+    public ResponseEntity<?> getConnectedProviders(@AuthUser AuthenticatedUser user) {
 
-        String userId = principal != null ? principal.getName() : null;
-        if (userId == null) {
-            log.error("No valid authentication session for fetching providers");
-            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
-                "service-provider", "Authentication required to fetch providers");
-        }
-        
+        String userId = user.getUserId();
         log.info("Fetching connected providers for user: {}", userId);
         
         try {

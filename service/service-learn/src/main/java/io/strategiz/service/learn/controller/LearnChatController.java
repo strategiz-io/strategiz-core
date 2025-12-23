@@ -3,6 +3,7 @@ package io.strategiz.service.learn.controller;
 import io.strategiz.business.aichat.AIChatBusiness;
 import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.client.base.llm.model.ModelInfo;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
@@ -43,11 +44,14 @@ public class LearnChatController {
 
 	private final SubscriptionService subscriptionService;
 
+	private final FeatureFlagService featureFlagService;
+
 	public LearnChatController(LearnChatService learnChatService, AIChatBusiness aiChatBusiness,
-			SubscriptionService subscriptionService) {
+			SubscriptionService subscriptionService, FeatureFlagService featureFlagService) {
 		this.learnChatService = learnChatService;
 		this.aiChatBusiness = aiChatBusiness;
 		this.subscriptionService = subscriptionService;
+		this.featureFlagService = featureFlagService;
 	}
 
 	@PostMapping
@@ -63,6 +67,13 @@ public class LearnChatController {
 
 		String userId = user.getUserId();
 		logger.info("Received chat request from user: {}", userId);
+
+		// Check if Learn AI Chat is enabled
+		if (!featureFlagService.isLearnAIEnabled()) {
+			logger.warn("Learn AI Chat is currently disabled");
+			return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+				.body(ChatResponseDto.error("AI Chat is temporarily unavailable. Please try again later.")));
+		}
 
 		// Check if user can send message (within limits)
 		if (!subscriptionService.canSendMessage(userId)) {
@@ -99,6 +110,12 @@ public class LearnChatController {
 
 		String userId = user.getUserId();
 		logger.info("Received streaming chat request from user: {}, model: {}", userId, model);
+
+		// Check if Learn AI Chat is enabled
+		if (!featureFlagService.isLearnAIEnabled()) {
+			logger.warn("Learn AI Chat is currently disabled");
+			return Flux.just(ChatResponseDto.error("AI Chat is temporarily unavailable. Please try again later."));
+		}
 
 		// Check if user can send message (within limits)
 		if (!subscriptionService.canSendMessage(userId)) {

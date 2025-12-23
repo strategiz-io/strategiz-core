@@ -3,10 +3,10 @@ package io.strategiz.service.labs.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.strategiz.business.aichat.LLMRouter;
 import io.strategiz.business.aichat.prompt.AIStrategyPrompts;
-import io.strategiz.client.gemini.GeminiClient;
-import io.strategiz.client.gemini.model.GeminiRequest;
-import io.strategiz.client.gemini.model.GeminiResponse;
+import io.strategiz.client.base.llm.model.LLMMessage;
+import io.strategiz.client.base.llm.model.LLMResponse;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
 import org.slf4j.Logger;
@@ -31,13 +31,13 @@ public class AIStrategyService {
 
 	private static final Logger logger = LoggerFactory.getLogger(AIStrategyService.class);
 
-	private final GeminiClient geminiClient;
+	private final LLMRouter llmRouter;
 
 	private final ObjectMapper objectMapper;
 
 	@Autowired
-	public AIStrategyService(GeminiClient geminiClient) {
-		this.geminiClient = geminiClient;
+	public AIStrategyService(LLMRouter llmRouter) {
+		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
 	}
 
@@ -56,13 +56,16 @@ public class AIStrategyService {
 
 			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe);
 
-			// Build conversation history for Gemini
-			List<GeminiRequest.Content> history = buildConversationHistory(systemPrompt,
+			// Build conversation history
+			List<LLMMessage> history = buildConversationHistory(systemPrompt,
 					request.getConversationHistory());
 
-			// Call Gemini (blocking)
-			GeminiResponse geminiResponse = geminiClient.generateContent(request.getPrompt(), history).block();
-			return parseGenerationResponse(geminiResponse);
+			// Use model from request, or default to gemini-3-flash-preview
+			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
+
+			// Call LLM via router (blocking)
+			LLMResponse llmResponse = llmRouter.generateContent(request.getPrompt(), history, model).block();
+			return parseGenerationResponse(llmResponse);
 		}
 		catch (Exception e) {
 			logger.error("Error generating strategy", e);
@@ -95,11 +98,14 @@ public class AIStrategyService {
 					request.getContext().getCurrentCode(), request.getPrompt());
 
 			// Build conversation history
-			List<GeminiRequest.Content> history = buildConversationHistory(AIStrategyPrompts.STRATEGY_GENERATION_SYSTEM,
+			List<LLMMessage> history = buildConversationHistory(AIStrategyPrompts.STRATEGY_GENERATION_SYSTEM,
 					request.getConversationHistory());
 
-			GeminiResponse geminiResponse = geminiClient.generateContent(refinementPrompt, history).block();
-			return parseGenerationResponse(geminiResponse);
+			// Use model from request, or default
+			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
+
+			LLMResponse llmResponse = llmRouter.generateContent(refinementPrompt, history, model).block();
+			return parseGenerationResponse(llmResponse);
 		}
 		catch (Exception e) {
 			logger.error("Error refining strategy", e);
@@ -115,10 +121,17 @@ public class AIStrategyService {
 
 		try {
 			String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code);
-			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = geminiResponse.getText();
+
+			if (llmResponse == null || !llmResponse.isSuccess()) {
+				result.setSuccess(false);
+				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				return result;
+			}
+
+			String text = llmResponse.getContent();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -168,10 +181,17 @@ public class AIStrategyService {
 			}
 
 			String prompt = AIStrategyPrompts.buildExplainPrompt(request.getElementToExplain(), contextJson);
-			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = geminiResponse.getText();
+
+			if (llmResponse == null || !llmResponse.isSuccess()) {
+				result.setSuccess(false);
+				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				return result;
+			}
+
+			String text = llmResponse.getContent();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -237,10 +257,17 @@ public class AIStrategyService {
 					bt.getTotalPnL(), bt.getWinRate(), bt.getTotalTrades(), bt.getProfitableTrades(), bt.getAvgWin(),
 					bt.getAvgLoss(), bt.getProfitFactor(), bt.getMaxDrawdown(), bt.getSharpeRatio());
 
-			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = geminiResponse.getText();
+
+			if (llmResponse == null || !llmResponse.isSuccess()) {
+				result.setSuccess(false);
+				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				return result;
+			}
+
+			String text = llmResponse.getContent();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -286,10 +313,17 @@ public class AIStrategyService {
 
 		try {
 			String prompt = AIStrategyPrompts.buildIndicatorPreviewPrompt(partialPrompt);
-			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
-			String text = geminiResponse.getText();
+
+			if (llmResponse == null || !llmResponse.isSuccess()) {
+				result.setSuccess(false);
+				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				return result;
+			}
+
+			String text = llmResponse.getContent();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -347,8 +381,14 @@ public class AIStrategyService {
 			String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
 			String prompt = AIStrategyPrompts.buildBacktestQueryPrompt(query, currentDate);
 
-			GeminiResponse geminiResponse = geminiClient.generateContent(prompt).block();
-			String text = geminiResponse.getText();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+
+			if (llmResponse == null || !llmResponse.isSuccess()) {
+				logger.error("Error response from LLM: {}", llmResponse != null ? llmResponse.getError() : "No response");
+				return new HashMap<>();
+			}
+
+			String text = llmResponse.getContent();
 
 			try {
 				JsonNode json = extractJsonFromResponse(text);
@@ -369,36 +409,36 @@ public class AIStrategyService {
 
 	// Helper methods
 
-	private List<GeminiRequest.Content> buildConversationHistory(String systemPrompt,
+	private List<LLMMessage> buildConversationHistory(String systemPrompt,
 			List<AIStrategyRequest.ChatMessage> conversationHistory) {
-		List<GeminiRequest.Content> history = new ArrayList<>();
+		List<LLMMessage> history = new ArrayList<>();
 
 		// Add system prompt as first user message
-		history.add(new GeminiRequest.Content("user", systemPrompt));
-		history.add(new GeminiRequest.Content("model",
+		history.add(new LLMMessage("user", systemPrompt));
+		history.add(new LLMMessage("assistant",
 				"I understand. I will generate trading strategies as structured JSON with both visual configuration and Python code."));
 
 		// Add conversation history
 		if (conversationHistory != null) {
 			for (AIStrategyRequest.ChatMessage msg : conversationHistory) {
-				String role = "user".equals(msg.getRole()) ? "user" : "model";
-				history.add(new GeminiRequest.Content(role, msg.getContent()));
+				String role = "user".equals(msg.getRole()) ? "user" : "assistant";
+				history.add(new LLMMessage(role, msg.getContent()));
 			}
 		}
 
 		return history;
 	}
 
-	private AIStrategyResponse parseGenerationResponse(GeminiResponse geminiResponse) {
+	private AIStrategyResponse parseGenerationResponse(LLMResponse llmResponse) {
 		AIStrategyResponse result = new AIStrategyResponse();
 
-		if (geminiResponse == null) {
+		if (llmResponse == null || !llmResponse.isSuccess()) {
 			result.setSuccess(false);
-			result.setError("No response from AI");
+			result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
 			return result;
 		}
 
-		String text = geminiResponse.getText();
+		String text = llmResponse.getContent();
 
 		if (text == null || text.isEmpty()) {
 			result.setSuccess(false);

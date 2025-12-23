@@ -56,15 +56,15 @@ public class PlaidConfig {
         ApiClient apiClient = new ApiClient(apiKeys);
 
         // Set base path based on environment
+        // Plaid only supports Sandbox and Production environments
         switch (environment.toLowerCase()) {
             case "production":
                 apiClient.setPlaidAdapter(ApiClient.Production);
                 break;
-            case "development":
-                apiClient.setPlaidAdapter(ApiClient.Development);
-                break;
             case "sandbox":
+            case "development":
             default:
+                // Development uses Sandbox for testing
                 apiClient.setPlaidAdapter(ApiClient.Sandbox);
                 break;
         }

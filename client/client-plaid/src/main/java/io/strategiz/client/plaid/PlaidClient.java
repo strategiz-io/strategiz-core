@@ -75,7 +75,7 @@ public class PlaidClient {
 
         return new PlaidLinkToken(
             body.getLinkToken(),
-            body.getExpiration(),
+            body.getExpiration() != null ? body.getExpiration().toString() : null,
             body.getRequestId()
         );
     }
@@ -276,7 +276,7 @@ public class PlaidClient {
         LinkTokenCreateResponse body = response.body();
         return new PlaidLinkToken(
             body.getLinkToken(),
-            body.getExpiration(),
+            body.getExpiration() != null ? body.getExpiration().toString() : null,
             body.getRequestId()
         );
     }

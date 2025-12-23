@@ -29,6 +29,7 @@
         <module>data-device</module>
         <module>data-marketdata</module>
         <module>data-symbol</module>
+        <module>data-feature-flags</module>
     </modules>
     
     <dependencies>

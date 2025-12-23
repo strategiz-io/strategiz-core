@@ -58,9 +58,32 @@ public class GoogleOAuthService {
      * @return The authorization URL and state
      */
     public Map<String, String> getAuthorizationUrl(boolean isSignup) {
-        String state = UUID.randomUUID().toString();
+        return getAuthorizationUrl(isSignup, null);
+    }
+
+    /**
+     * Get the authorization URL for Google OAuth with optional redirect
+     *
+     * @param isSignup Whether this is for signup flow
+     * @param redirectAfterAuth Optional redirect URL for cross-app SSO
+     * @return The authorization URL and state
+     */
+    public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
+        // Build state: format is "type:uuid:redirectUrl" (redirectUrl is base64 encoded if present)
+        String uuid = UUID.randomUUID().toString();
+        String state;
         if (isSignup) {
-            state = "signup:" + state;
+            state = "signup:" + uuid;
+        } else {
+            state = "signin:" + uuid;
+        }
+
+        // Append redirect URL to state if provided
+        if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
+            String encodedRedirect = java.util.Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(redirectAfterAuth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            state = state + ":" + encodedRedirect;
+            logger.info("Encoded redirectAfterAuth in state: {}", redirectAfterAuth);
         }
 
         AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
@@ -124,6 +147,12 @@ public class GoogleOAuthService {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
         }
 
+        // Extract redirect URL from state if present (format: type:uuid:encodedRedirect)
+        String redirectAfterAuth = extractRedirectFromState(state);
+        if (redirectAfterAuth != null) {
+            logger.info("Extracted redirectAfterAuth from state: {}", redirectAfterAuth);
+        }
+
         GoogleTokenResponse tokenResponse = exchangeCodeForToken(code, state);
         if (tokenResponse == null) {
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
@@ -135,7 +164,7 @@ public class GoogleOAuthService {
         }
 
         Object result = processUserAuthentication(userInfo, isSignup);
-        
+
         // Convert result to Map<String, Object> for consistent JSON response
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -159,7 +188,36 @@ public class GoogleOAuthService {
             response.put("tokenType", loginResponse.tokens().tokenType());
         }
 
+        // Include redirect URL if present (for cross-app SSO)
+        if (redirectAfterAuth != null) {
+            response.put("redirectAfterAuth", redirectAfterAuth);
+        }
+
         return response;
+    }
+
+    /**
+     * Extract redirect URL from OAuth state parameter
+     * State format: type:uuid:encodedRedirect (encodedRedirect is base64 URL encoded)
+     */
+    private String extractRedirectFromState(String state) {
+        if (state == null || state.isEmpty()) {
+            return null;
+        }
+
+        String[] parts = state.split(":", 3);
+        if (parts.length < 3) {
+            return null;
+        }
+
+        try {
+            // Third part is the base64 encoded redirect URL
+            byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[2]);
+            return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.warn("Failed to decode redirect from state: {}", e.getMessage());
+            return null;
+        }
     }
 
     private boolean isValidAuthorizationCode(String code) {

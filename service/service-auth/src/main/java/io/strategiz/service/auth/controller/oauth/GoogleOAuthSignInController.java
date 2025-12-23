@@ -38,12 +38,17 @@ public class GoogleOAuthSignInController extends BaseController {
     
     /**
      * Get Google OAuth authorization URL for sign-in
+     * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
      * @return JSON response with authorization URL
      */
     @GetMapping("/authorization-url")
-    public ResponseEntity<Map<String, String>> getAuthorizationUrl() {
-        Map<String, String> authInfo = googleOAuthService.getAuthorizationUrl(false); // isSignup = false
+    public ResponseEntity<Map<String, String>> getAuthorizationUrl(
+            @RequestParam(required = false) String redirectAfterAuth) {
+        Map<String, String> authInfo = googleOAuthService.getAuthorizationUrl(false, redirectAfterAuth); // isSignup = false
         logger.info("Providing Google OAuth sign-in authorization URL: {}", authInfo.get("url"));
+        if (redirectAfterAuth != null) {
+            logger.info("Cross-app redirect after auth: {}", redirectAfterAuth);
+        }
         return ResponseEntity.ok(authInfo);
     }
 

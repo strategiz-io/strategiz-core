@@ -198,6 +198,25 @@ public class WebullProviderBusiness extends BaseApiKeyProviderHandler {
     }
 
     /**
+     * Test connection with provided credentials (before storing)
+     *
+     * @param appKey App key
+     * @param appSecret App secret
+     * @return true if connection is successful
+     */
+    public boolean testConnectionWithCredentials(String appKey, String appSecret) {
+        log.info("Testing Webull connection with provided credentials");
+
+        try {
+            Boolean isConnected = webullApiAuthClient.testConnection(appKey, appSecret).block();
+            return isConnected != null && isConnected;
+        } catch (Exception e) {
+            log.error("Error testing Webull connection: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Test existing integration for a user
      */
     public boolean testExistingIntegration(String userId) {

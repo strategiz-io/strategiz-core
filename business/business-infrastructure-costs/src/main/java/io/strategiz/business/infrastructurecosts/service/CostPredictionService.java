@@ -5,6 +5,7 @@ import io.strategiz.data.infrastructurecosts.entity.DailyCostEntity;
 import io.strategiz.data.infrastructurecosts.repository.DailyCostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,8 +17,11 @@ import java.util.*;
 /**
  * Service for predicting infrastructure costs using linear regression.
  * Uses weighted recent data to project end-of-month costs.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Service
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class CostPredictionService {
 
     private static final Logger log = LoggerFactory.getLogger(CostPredictionService.class);

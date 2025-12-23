@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -30,8 +31,11 @@ import java.util.Map;
  * - Compute: Based on instance type and hours
  *
  * When TimescaleDB releases a billing API, this client can be updated.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Component
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class TimescaleBillingClient {
 
     private static final Logger log = LoggerFactory.getLogger(TimescaleBillingClient.class);

@@ -7,6 +7,7 @@ import io.strategiz.client.gcpbilling.config.GcpBillingConfig.GcpBillingProperti
 import io.strategiz.client.gcpbilling.model.GcpServiceUsage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +20,11 @@ import java.util.List;
 /**
  * Client for retrieving GCP Cloud Monitoring metrics.
  * Provides real-time usage data for Firestore, Cloud Run, and other services.
+ *
+ * Enable with: gcp.billing.enabled=true
  */
 @Component
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class GcpMonitoringClient {
 
     private static final Logger log = LoggerFactory.getLogger(GcpMonitoringClient.class);

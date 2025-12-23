@@ -1,0 +1,215 @@
+package io.strategiz.service.provider.controller;
+
+import io.strategiz.business.provider.plaid.PlaidProviderBusiness;
+import io.strategiz.business.provider.plaid.model.PlaidConnectionResult;
+import io.strategiz.client.plaid.model.PlaidLinkToken;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
+import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Controller for Plaid provider integration.
+ *
+ * Plaid provides aggregated access to brokerage accounts.
+ * Flow:
+ * 1. GET /link-token - Get a Link token to initialize Plaid Link
+ * 2. User completes Plaid Link in frontend
+ * 3. POST /exchange-token - Exchange public token for access token
+ * 4. POST /sync - Sync holdings
+ * 5. DELETE /disconnect - Remove connection
+ */
+@RestController
+@RequestMapping("/v1/providers/plaid")
+@ConditionalOnProperty(name = "plaid.enabled", havingValue = "true", matchIfMissing = false)
+public class PlaidProviderController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PROVIDER_MODULE;
+    }
+
+    private final PlaidProviderBusiness plaidProviderBusiness;
+    private final SessionAuthBusiness sessionAuthBusiness;
+
+    @Autowired
+    public PlaidProviderController(PlaidProviderBusiness plaidProviderBusiness,
+                                   SessionAuthBusiness sessionAuthBusiness) {
+        this.plaidProviderBusiness = plaidProviderBusiness;
+        this.sessionAuthBusiness = sessionAuthBusiness;
+    }
+
+    /**
+     * Check if Plaid integration is enabled.
+     *
+     * Response:
+     * {
+     *   "enabled": true,
+     *   "hasConnection": false
+     * }
+     */
+    @GetMapping("/status")
+    public ResponseEntity<Map<String, Object>> getStatus(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("enabled", plaidProviderBusiness.isEnabled());
+        response.put("hasConnection", plaidProviderBusiness.hasConnection(userId));
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Create a Plaid Link token for the frontend.
+     *
+     * Response:
+     * {
+     *   "linkToken": "link-sandbox-xxx",
+     *   "expiration": "2024-01-01T12:00:00Z"
+     * }
+     */
+    @GetMapping("/link-token")
+    public ResponseEntity<Map<String, Object>> createLinkToken(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Creating Plaid Link token for user: {}", userId);
+
+        PlaidLinkToken linkToken = plaidProviderBusiness.createLinkToken(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("linkToken", linkToken.getLinkToken());
+        response.put("expiration", linkToken.getExpiration());
+        response.put("requestId", linkToken.getRequestId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Exchange a public token for an access token.
+     * Called after user completes Plaid Link.
+     *
+     * Request body:
+     * {
+     *   "publicToken": "public-sandbox-xxx"
+     * }
+     *
+     * Response:
+     * {
+     *   "status": "SUCCESS",
+     *   "institutionName": "Chase",
+     *   "accounts": [...]
+     * }
+     */
+    @PostMapping("/exchange-token")
+    public ResponseEntity<Map<String, Object>> exchangePublicToken(
+            @RequestBody Map<String, String> request,
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        String publicToken = request.get("publicToken");
+
+        if (publicToken == null || publicToken.trim().isEmpty()) {
+            throw new StrategizException(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                "service-provider", "publicToken");
+        }
+
+        log.info("Exchanging Plaid public token for user: {}", userId);
+
+        PlaidConnectionResult result = plaidProviderBusiness.exchangePublicToken(userId, publicToken);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", result.getStatus().name());
+        response.put("message", result.getMessage());
+        response.put("itemId", result.getItemId());
+        response.put("institutionName", result.getInstitutionName());
+        response.put("accounts", result.getAccounts());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Sync holdings from Plaid.
+     */
+    @PostMapping("/sync")
+    public ResponseEntity<Map<String, Object>> syncHoldings(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Syncing Plaid holdings for user: {}", userId);
+
+        var holdings = plaidProviderBusiness.syncHoldings(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "SUCCESS");
+        response.put("message", "Holdings synced successfully");
+        response.put("totalValue", holdings.getTotalValue());
+        response.put("holdingsCount", holdings.getHoldings().size());
+        response.put("accountsCount", holdings.getAccounts().size());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Disconnect Plaid integration.
+     */
+    @DeleteMapping("/disconnect")
+    public ResponseEntity<Map<String, Object>> disconnect(
+            Principal principal,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+
+        String userId = extractUserId(principal, authHeader);
+        log.info("Disconnecting Plaid for user: {}", userId);
+
+        boolean disconnected = plaidProviderBusiness.disconnect(userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", disconnected ? "SUCCESS" : "ERROR");
+        response.put("message", disconnected ? "Successfully disconnected from Plaid" : "Failed to disconnect");
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Extract user ID from principal or auth header.
+     */
+    private String extractUserId(Principal principal, String authHeader) {
+        String userId = principal != null ? principal.getName() : null;
+
+        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                var validationResult = sessionAuthBusiness.validateToken(token);
+                if (validationResult.isPresent()) {
+                    userId = validationResult.get().getUserId();
+                    log.info("Plaid request authenticated via Bearer token for user: {}", userId);
+                }
+            } catch (Exception e) {
+                log.warn("Error validating Bearer token for Plaid: {}", e.getMessage());
+            }
+        }
+
+        if (userId == null) {
+            log.error("No valid authentication session or token for Plaid operation");
+            throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
+                "service-provider", "Authentication required");
+        }
+
+        return userId;
+    }
+}

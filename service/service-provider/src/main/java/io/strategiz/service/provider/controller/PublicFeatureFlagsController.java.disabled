@@ -1,0 +1,120 @@
+package io.strategiz.service.provider.controller;
+
+import io.strategiz.data.featureflags.service.FeatureFlagService;
+import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.constants.ModuleConstants;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Public endpoint for feature flags that doesn't require authentication.
+ * Used by frontend to check which features are enabled before showing UI.
+ */
+@RestController
+@RequestMapping("/v1/public/features")
+public class PublicFeatureFlagsController extends BaseController {
+
+    @Override
+    protected String getModuleName() {
+        return ModuleConstants.PROVIDER_MODULE;
+    }
+
+    private final FeatureFlagService featureFlagService;
+
+    @Autowired
+    public PublicFeatureFlagsController(FeatureFlagService featureFlagService) {
+        this.featureFlagService = featureFlagService;
+    }
+
+    /**
+     * Get all provider-related feature flags.
+     *
+     * Response:
+     * {
+     *   "plaid_enabled": false,
+     *   "robinhood_enabled": true,
+     *   "trading_enabled": false
+     * }
+     */
+    @GetMapping("/providers")
+    public ResponseEntity<Map<String, Boolean>> getProviderFeatures() {
+        Map<String, Boolean> features = new HashMap<>();
+
+        features.put("plaid_enabled", featureFlagService.isPlaidEnabled());
+        features.put("robinhood_enabled", featureFlagService.isRobinhoodEnabled());
+        features.put("trading_enabled", featureFlagService.isEnabled(FeatureFlagService.FLAG_TRADING_ENABLED));
+
+        return ResponseEntity.ok(features);
+    }
+
+    /**
+     * Get all feature flags (public subset).
+     *
+     * Response:
+     * {
+     *   "providers": {
+     *     "plaid_enabled": false,
+     *     "robinhood_enabled": true
+     *   },
+     *   "trading": {
+     *     "trading_enabled": false
+     *   },
+     *   "ai": {
+     *     "ai_chat_enabled": true
+     *   }
+     * }
+     */
+    @GetMapping
+    public ResponseEntity<Map<String, Map<String, Boolean>>> getAllFeatures() {
+        Map<String, Map<String, Boolean>> allFeatures = new HashMap<>();
+
+        // Provider features
+        Map<String, Boolean> providers = new HashMap<>();
+        providers.put("plaid_enabled", featureFlagService.isPlaidEnabled());
+        providers.put("robinhood_enabled", featureFlagService.isRobinhoodEnabled());
+        allFeatures.put("providers", providers);
+
+        // Trading features
+        Map<String, Boolean> trading = new HashMap<>();
+        trading.put("trading_enabled", featureFlagService.isEnabled(FeatureFlagService.FLAG_TRADING_ENABLED));
+        allFeatures.put("trading", trading);
+
+        // AI features
+        Map<String, Boolean> ai = new HashMap<>();
+        ai.put("ai_chat_enabled", featureFlagService.isEnabled(FeatureFlagService.FLAG_AI_CHAT_ENABLED));
+        allFeatures.put("ai", ai);
+
+        return ResponseEntity.ok(allFeatures);
+    }
+
+    /**
+     * Check a specific feature flag.
+     *
+     * Response:
+     * {
+     *   "flagId": "plaid_enabled",
+     *   "enabled": false
+     * }
+     */
+    @GetMapping("/{flagId}")
+    public ResponseEntity<Map<String, Object>> getFeature(@PathVariable String flagId) {
+        // Only allow checking known public flags
+        boolean enabled = switch (flagId) {
+            case "plaid_enabled" -> featureFlagService.isPlaidEnabled();
+            case "robinhood_enabled" -> featureFlagService.isRobinhoodEnabled();
+            case "trading_enabled" -> featureFlagService.isEnabled(FeatureFlagService.FLAG_TRADING_ENABLED);
+            case "ai_chat_enabled" -> featureFlagService.isEnabled(FeatureFlagService.FLAG_AI_CHAT_ENABLED);
+            default -> false; // Unknown flags are always false (for security)
+        };
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("flagId", flagId);
+        response.put("enabled", enabled);
+
+        return ResponseEntity.ok(response);
+    }
+}

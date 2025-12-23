@@ -5,15 +5,15 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import java.time.Instant;
 
 /**
- * Entity for one-time authentication tokens used for cross-app SSO.
+ * Entity for one-time SSO relay tokens used for cross-app authentication.
  * Tokens are single-use and expire quickly (60 seconds).
  *
- * Stored in Firestore collection: auth_tokens
+ * Stored in Firestore collection: sso_relay_tokens
  *
  * Note: This is a simple entity without BaseEntity lifecycle management
  * since tokens are ephemeral and don't need audit trails or soft deletes.
  */
-public class AuthTokenEntity {
+public class SsoRelayToken {
 
     @DocumentId
     private String token;
@@ -26,12 +26,12 @@ public class AuthTokenEntity {
     private String createdFromIp;
     private long createdAtEpochSecond;
 
-    public AuthTokenEntity() {
+    public SsoRelayToken() {
         this.used = false;
         this.createdAtEpochSecond = Instant.now().getEpochSecond();
     }
 
-    public AuthTokenEntity(String token, String userId, String targetApp, String redirectUrl, int ttlSeconds) {
+    public SsoRelayToken(String token, String userId, String targetApp, String redirectUrl, int ttlSeconds) {
         this();
         this.token = token;
         this.userId = userId;
@@ -113,7 +113,7 @@ public class AuthTokenEntity {
 
     @Override
     public String toString() {
-        return "AuthTokenEntity{" +
+        return "SsoRelayToken{" +
                 "token='" + (token != null ? token.substring(0, Math.min(8, token.length())) + "..." : "null") + '\'' +
                 ", userId='" + userId + '\'' +
                 ", targetApp='" + targetApp + '\'' +

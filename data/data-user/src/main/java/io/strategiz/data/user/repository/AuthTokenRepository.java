@@ -1,11 +1,11 @@
 package io.strategiz.data.user.repository;
 
-import io.strategiz.data.user.entity.AuthTokenEntity;
+import io.strategiz.data.user.entity.SsoRelayToken;
 
 import java.util.Optional;
 
 /**
- * Repository for managing one-time authentication tokens.
+ * Repository for managing one-time SSO relay tokens.
  * Used for cross-app SSO (token relay pattern).
  */
 public interface AuthTokenRepository {
@@ -13,12 +13,12 @@ public interface AuthTokenRepository {
     /**
      * Find a token by its value
      */
-    Optional<AuthTokenEntity> findByToken(String token);
+    Optional<SsoRelayToken> findByToken(String token);
 
     /**
-     * Save a new auth token
+     * Save a new SSO relay token
      */
-    AuthTokenEntity save(AuthTokenEntity token);
+    SsoRelayToken save(SsoRelayToken token);
 
     /**
      * Delete a token (after use or expiration)

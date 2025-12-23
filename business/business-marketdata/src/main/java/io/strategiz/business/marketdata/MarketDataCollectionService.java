@@ -9,7 +9,9 @@ import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
@@ -218,6 +220,34 @@ public class MarketDataCollectionService {
             currentJobStatus.setFailed("Initialization failed: " + e.getMessage());
             return new CollectionResult(0, 0, 1);
         }
+    }
+
+    /**
+     * Start backfill asynchronously for multiple timeframes (non-blocking).
+     * Returns immediately while the job runs in the background.
+     *
+     * Use getBackfillStatus() to check progress.
+     *
+     * @param timeframes List of timeframes to backfill
+     * @param startDate Start date
+     * @param endDate End date
+     */
+    @Async("consoleTaskExecutor")
+    public void backfillIntradayDataAsync(List<String> timeframes, LocalDateTime startDate, LocalDateTime endDate) {
+        log.info("=== Starting async backfill for {} timeframes ===", timeframes.size());
+
+        for (String timeframe : timeframes) {
+            try {
+                log.info("--- Backfilling timeframe: {} ---", timeframe);
+                CollectionResult result = backfillIntradayData(startDate, endDate, timeframe);
+                log.info("--- Timeframe {} completed: {} symbols, {} bars, {} errors ---",
+                        timeframe, result.totalSymbolsProcessed, result.totalDataPointsStored, result.errorCount);
+            } catch (Exception e) {
+                log.error("Failed to backfill timeframe {}: {}", timeframe, e.getMessage(), e);
+            }
+        }
+
+        log.info("=== Async backfill completed for all timeframes ===");
     }
 
     /**

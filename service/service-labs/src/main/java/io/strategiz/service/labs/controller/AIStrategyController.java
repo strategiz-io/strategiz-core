@@ -52,11 +52,11 @@ public class AIStrategyController extends BaseController {
 		String userId = user.getUserId();
 		logger.info("Received strategy generation request from user {}", userId);
 
-		// Check if user can generate strategy (within limits)
-		if (!subscriptionService.canGenerateStrategy(userId)) {
-			logger.warn("User {} exceeded daily strategy generation limit", userId);
+		// Check if user can send AI message (within limits)
+		if (!subscriptionService.canSendMessage(userId)) {
+			logger.warn("User {} exceeded daily AI chat limit", userId);
 			return ResponseEntity.status(429)
-				.body(AIStrategyResponse.error("Daily strategy generation limit exceeded. Upgrade your plan for more."));
+				.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
 		}
 
 		try {
@@ -64,8 +64,8 @@ public class AIStrategyController extends BaseController {
 
 			// Record usage after successful generation
 			if (response != null && response.isSuccess()) {
-				subscriptionService.recordStrategyUsage(userId);
-				logger.debug("Recorded strategy usage for user {}", userId);
+				subscriptionService.recordMessageUsage(userId);
+				logger.debug("Recorded AI chat usage for user {}", userId);
 			}
 
 			return ResponseEntity.ok(response);
@@ -87,11 +87,11 @@ public class AIStrategyController extends BaseController {
 		String userId = user.getUserId();
 		logger.info("Received strategy refinement request from user {}", userId);
 
-		// Check if user can generate strategy (refinement counts as generation)
-		if (!subscriptionService.canGenerateStrategy(userId)) {
-			logger.warn("User {} exceeded daily strategy generation limit", userId);
+		// Check if user can send AI message (refinement counts as AI chat)
+		if (!subscriptionService.canSendMessage(userId)) {
+			logger.warn("User {} exceeded daily AI chat limit", userId);
 			return ResponseEntity.status(429)
-				.body(AIStrategyResponse.error("Daily strategy generation limit exceeded. Upgrade your plan for more."));
+				.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
 		}
 
 		try {
@@ -99,7 +99,7 @@ public class AIStrategyController extends BaseController {
 
 			// Record usage after successful refinement
 			if (response != null && response.isSuccess()) {
-				subscriptionService.recordStrategyUsage(userId);
+				subscriptionService.recordMessageUsage(userId);
 			}
 
 			return ResponseEntity.ok(response);

@@ -52,11 +52,13 @@ public class UserSubscription extends BaseEntity {
 	// Daily usage tracking
 	@PropertyName("dailyMessagesUsed")
 	@JsonProperty("dailyMessagesUsed")
-	private Integer dailyMessagesUsed = 0;
+	private Integer dailyMessagesUsed = 0; // Tracks both Learn chat + Labs strategy generation
 
-	@PropertyName("dailyStrategiesUsed")
-	@JsonProperty("dailyStrategiesUsed")
-	private Integer dailyStrategiesUsed = 0;
+	// DEPRECATED: No longer tracking strategies separately (combined with messages)
+	// Kept for backward compatibility with existing Firestore documents
+	// @PropertyName("dailyStrategiesUsed")
+	// @JsonProperty("dailyStrategiesUsed")
+	// private Integer dailyStrategiesUsed = 0;
 
 	@PropertyName("usageResetDate")
 	@JsonProperty("usageResetDate")
@@ -161,13 +163,14 @@ public class UserSubscription extends BaseEntity {
 		this.dailyMessagesUsed = dailyMessagesUsed;
 	}
 
-	public Integer getDailyStrategiesUsed() {
-		return dailyStrategiesUsed;
-	}
+	// DEPRECATED: Strategy usage now combined with message usage
+	// public Integer getDailyStrategiesUsed() {
+	// 	return dailyStrategiesUsed;
+	// }
 
-	public void setDailyStrategiesUsed(Integer dailyStrategiesUsed) {
-		this.dailyStrategiesUsed = dailyStrategiesUsed;
-	}
+	// public void setDailyStrategiesUsed(Integer dailyStrategiesUsed) {
+	// 	this.dailyStrategiesUsed = dailyStrategiesUsed;
+	// }
 
 	public String getUsageResetDate() {
 		return usageResetDate;

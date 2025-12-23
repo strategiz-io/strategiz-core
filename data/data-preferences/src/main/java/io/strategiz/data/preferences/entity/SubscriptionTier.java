@@ -8,18 +8,17 @@ import java.util.List;
  */
 public enum SubscriptionTier {
 
-	SCOUT("scout", "Scout", 0, List.of("gemini-3-flash-preview", "gemini-2.0-flash"), 20, 5,
+	SCOUT("scout", "Scout", 0, List.of("gemini-2.0-flash", "gpt-4o-mini"), 25, // AI chat messages/day
 			"Free tier - Explore the markets"),
 
 	TRADER("trader", "Trader", 1900, // $19.00 in cents
-			List.of("gemini-3-flash-preview", "gemini-3-pro-preview", "gemini-2.0-flash", "claude-haiku-4-5"), 200, 20,
+			List.of("gemini-2.0-flash", "gpt-4o-mini", "claude-haiku-4-5", "gpt-4o"), 200,
 			"For active traders"),
 
 	STRATEGIST("strategist", "Strategist", 4900, // $49.00 in cents
-			List.of("gemini-3-flash-preview", "gemini-3-pro-preview", "gemini-2.0-flash", "claude-opus-4-5",
-					"claude-sonnet-4", "claude-haiku-4-5"),
-			-1, // unlimited
-			-1, // unlimited
+			List.of("gemini-2.0-flash", "gpt-4o-mini", "claude-haiku-4-5", "gpt-4o", "claude-opus-4-5",
+					"claude-sonnet-4", "o1", "o1-mini"),
+			500, // Cost protection - not unlimited
 			"For power users and serious traders");
 
 	private final String id;
@@ -30,20 +29,17 @@ public enum SubscriptionTier {
 
 	private final List<String> allowedModels;
 
-	private final int dailyMessageLimit; // -1 for unlimited
-
-	private final int dailyStrategyLimit; // -1 for unlimited
+	private final int dailyMessageLimit; // AI chat messages (Learn + Labs)
 
 	private final String description;
 
 	SubscriptionTier(String id, String displayName, int priceInCents, List<String> allowedModels, int dailyMessageLimit,
-			int dailyStrategyLimit, String description) {
+			String description) {
 		this.id = id;
 		this.displayName = displayName;
 		this.priceInCents = priceInCents;
 		this.allowedModels = allowedModels;
 		this.dailyMessageLimit = dailyMessageLimit;
-		this.dailyStrategyLimit = dailyStrategyLimit;
 		this.description = description;
 	}
 
@@ -71,10 +67,6 @@ public enum SubscriptionTier {
 		return dailyMessageLimit;
 	}
 
-	public int getDailyStrategyLimit() {
-		return dailyStrategyLimit;
-	}
-
 	public String getDescription() {
 		return description;
 	}
@@ -84,11 +76,7 @@ public enum SubscriptionTier {
 	}
 
 	public boolean hasUnlimitedMessages() {
-		return dailyMessageLimit == -1;
-	}
-
-	public boolean hasUnlimitedStrategies() {
-		return dailyStrategyLimit == -1;
+		return false; // No tier has unlimited messages for cost protection
 	}
 
 	public static SubscriptionTier fromId(String id) {

@@ -67,12 +67,13 @@ public class MarketDataService {
 
             if (startLocalDate != null && endLocalDate != null) {
                 // Query with date range and timeframe filter at DB level (optimized)
+                // 2600 bars supports 7 years of daily data (7 * 365 = 2555)
                 results = marketDataRepository.findBySymbolAndDateRange(
                     symbol.toUpperCase(),
                     startLocalDate,
                     endLocalDate,
                     normalizedTimeframe,  // Filter at DB level
-                    500  // Limit results for performance
+                    2600  // Support up to 7 years of daily data
                 );
             } else if (timeframe != null && !timeframe.isEmpty()) {
                 // Query by symbol and timeframe only

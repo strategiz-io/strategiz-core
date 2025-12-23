@@ -3,12 +3,15 @@ package io.strategiz.business.preferences.service;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.data.preferences.entity.UserSubscription;
 import io.strategiz.data.preferences.repository.SubscriptionRepository;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -19,10 +22,15 @@ public class SubscriptionService {
 
 	private static final Logger logger = LoggerFactory.getLogger(SubscriptionService.class);
 
+	private static final String ADMIN_ROLE = "ADMIN";
+
 	private final SubscriptionRepository repository;
 
-	public SubscriptionService(SubscriptionRepository repository) {
+	private final UserRepository userRepository;
+
+	public SubscriptionService(SubscriptionRepository repository, UserRepository userRepository) {
 		this.repository = repository;
+		this.userRepository = userRepository;
 	}
 
 	/**
@@ -46,11 +54,18 @@ public class SubscriptionService {
 
 	/**
 	 * Check if a model is allowed for the user's subscription tier.
+	 * ADMIN users have access to all models for testing purposes.
 	 * @param userId The user ID
 	 * @param modelId The model ID
-	 * @return true if the model is allowed
+	 * @return true if the model is allowed or user is admin
 	 */
 	public boolean isModelAllowed(String userId, String modelId) {
+		// Admins can use all models for testing
+		if (isAdmin(userId)) {
+			logger.debug("Admin user {} granted access to model {}", userId, modelId);
+			return true;
+		}
+
 		SubscriptionTier tier = getTier(userId);
 		boolean allowed = tier.isModelAllowed(modelId);
 		if (!allowed) {
@@ -71,10 +86,17 @@ public class SubscriptionService {
 	/**
 	 * Check if user can send a message (within daily limit).
 	 * Covers both Learn AI Chat and Labs Strategy Generation.
+	 * ADMIN users bypass all limits for testing purposes.
 	 * @param userId The user ID
-	 * @return true if within limit
+	 * @return true if within limit or user is admin
 	 */
 	public boolean canSendMessage(String userId) {
+		// Admins bypass all subscription limits for testing
+		if (isAdmin(userId)) {
+			logger.debug("Admin user {} bypassing subscription limits", userId);
+			return true;
+		}
+
 		UserSubscription sub = getSubscription(userId);
 		SubscriptionTier tier = sub.getTierEnum();
 
@@ -161,6 +183,22 @@ public class SubscriptionService {
 	 */
 	public record TierInfo(String id, String name, int priceInCents, String description, List<String> allowedModels,
 			int dailyMessageLimit) {
+	}
+
+	/**
+	 * Check if user has ADMIN role.
+	 * @param userId The user ID
+	 * @return true if user is admin
+	 */
+	private boolean isAdmin(String userId) {
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			return false;
+		}
+
+		UserEntity user = userOpt.get();
+		String role = user.getProfile() != null ? user.getProfile().getRole() : null;
+		return ADMIN_ROLE.equals(role);
 	}
 
 }

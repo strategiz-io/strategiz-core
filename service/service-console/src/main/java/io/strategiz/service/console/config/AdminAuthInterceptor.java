@@ -24,7 +24,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminAuthInterceptor.class);
     private static final String ADMIN_ROLE = "ADMIN";
-    private static final String SESSION_COOKIE_NAME = "session";
+    private static final String ACCESS_TOKEN_COOKIE = "strategiz-access-token";
 
     private final SessionAuthBusiness sessionAuthBusiness;
     private final UserRepository userRepository;
@@ -94,7 +94,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (SESSION_COOKIE_NAME.equals(cookie.getName())) {
+                if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }

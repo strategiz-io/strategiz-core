@@ -1,19 +1,15 @@
-# Cloud Build configuration for Strategiz API
-# This builds and deploys the application to Cloud Run
+# Optimized Cloud Build configuration
+# Removes duplicate Maven build and enables Docker caching
 
 steps:
-  # Build the application using Maven
-  - name: 'maven:3.9.6-eclipse-temurin-21'
-    entrypoint: 'mvn'
-    args: ['clean', 'package', '-DskipTests']
-
-  # Build the Docker image (with --no-cache to ensure fresh build)
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-api', '.']
-
-  # Push the Docker image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-api']
+  # Build Docker image WITH layer caching (removed --no-cache)
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - '--destination=gcr.io/$PROJECT_ID/strategiz-api'
+      - '--cache=true'
+      - '--cache-ttl=168h'  # Cache for 7 days
+      - '--dockerfile=Dockerfile'
+      - '--context=dir://.'
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -44,9 +40,9 @@ steps:
       - '--set-secrets'
       - 'VAULT_TOKEN=vault-root-token:latest'
 
-# Build options - use E2_HIGHCPU_8 for faster builds
+# Build options
 options:
   machineType: 'E2_HIGHCPU_8'
 
-# Build timeout (30 minutes)
+# Build timeout
 timeout: '1800s'

@@ -113,4 +113,17 @@ public class AdminUserController extends BaseController {
         log.info("Session {} for user {} terminated by admin {}", sessionId, userId, adminUserId);
         return ResponseEntity.ok(Map.of("message", "Session terminated"));
     }
+
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "Delete user account", description = "Permanently deletes a user account and all associated data")
+    public ResponseEntity<Map<String, String>> deleteUser(
+            @Parameter(description = "User ID") @PathVariable String userId,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("deleteUser", adminUserId, "targetUserId=" + userId);
+
+        adminUserService.deleteUser(userId, adminUserId);
+        log.warn("User {} permanently deleted by admin {}", userId, adminUserId);
+        return ResponseEntity.ok(Map.of("message", "User permanently deleted"));
+    }
 }

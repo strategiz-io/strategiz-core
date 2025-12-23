@@ -137,6 +137,31 @@ public class AdminUserService {
         logger.info("Session {} has been terminated", sessionId);
     }
 
+    public void deleteUser(String userId, String adminUserId) {
+        logger.info("Deleting user: userId={}, by adminUserId={}", userId, adminUserId);
+
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("User not found: " + userId);
+        }
+
+        // Prevent admin from deleting themselves
+        if (userId.equals(adminUserId)) {
+            throw new IllegalArgumentException("Cannot delete your own account");
+        }
+
+        // Terminate all sessions before deleting user
+        List<SessionEntity> sessions = sessionRepository.findByUserIdAndRevokedFalse(userId);
+        for (SessionEntity session : sessions) {
+            sessionRepository.delete(session.getSessionId());
+        }
+
+        // Delete the user
+        userRepository.delete(userId);
+
+        logger.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
+    }
+
     private AdminUserResponse convertToResponse(UserEntity user) {
         AdminUserResponse response = new AdminUserResponse();
         response.setId(user.getId());

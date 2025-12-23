@@ -112,7 +112,7 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	 */
 	public UserSubscription incrementStrategyUsage(String userId) {
 		UserSubscription sub = getByUserId(userId);
-		sub.setDailyStrategiesUsed(sub.getDailyStrategiesUsed() + 1);
+		sub.setDailyMessagesUsed(sub.getDailyMessagesUsed() + 1);
 		return save(userId, sub);
 	}
 
@@ -124,7 +124,7 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 		if (!today.equals(sub.getUsageResetDate())) {
 			logger.info("Resetting daily usage for user {} (was {})", userId, sub.getUsageResetDate());
 			sub.setDailyMessagesUsed(0);
-			sub.setDailyStrategiesUsed(0);
+			// Strategy usage now combined with message usage (dailyMessagesUsed)
 			sub.setUsageResetDate(today);
 			save(userId, sub);
 		}

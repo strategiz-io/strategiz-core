@@ -13,6 +13,7 @@ import io.strategiz.service.dashboard.model.request.DeleteWatchlistItemRequest;
 import io.strategiz.service.dashboard.model.response.WatchlistCollectionResponse;
 import io.strategiz.service.dashboard.model.response.WatchlistOperationResponse;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistItem;
+import io.strategiz.service.dashboard.service.WatchlistService;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
@@ -60,6 +61,7 @@ public class WatchlistController extends BaseController {
     private final UserRepository userRepository;
     private final CoinGeckoClient coinGeckoClient;
     private final WatchlistBaseRepository watchlistRepository;
+    private final WatchlistService watchlistService;
 
     // Default symbols for new users (when watchlist is empty)
     private static final List<String> DEFAULT_CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH");
@@ -69,10 +71,12 @@ public class WatchlistController extends BaseController {
     @Autowired
     public WatchlistController(UserRepository userRepository,
                               CoinGeckoClient coinGeckoClient,
-                              WatchlistBaseRepository watchlistRepository) {
+                              WatchlistBaseRepository watchlistRepository,
+                              WatchlistService watchlistService) {
         this.userRepository = userRepository;
         this.coinGeckoClient = coinGeckoClient;
         this.watchlistRepository = watchlistRepository;
+        this.watchlistService = watchlistService;
     }
     
     /**
@@ -162,6 +166,9 @@ public class WatchlistController extends BaseController {
             entity.setExchange(request.getExchange());
             entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
             entity.setAlertEnabled(request.getAlertEnabled() != null ? request.getAlertEnabled() : false);
+
+            // Enrich with market data before saving
+            entity = watchlistService.enrichWatchlistItem(entity);
 
             // Save to Firestore
             WatchlistItemEntity savedEntity = watchlistRepository.save(entity, userId);

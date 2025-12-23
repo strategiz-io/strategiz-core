@@ -66,6 +66,20 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Mistral Vertex Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-mistral-vertex</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Cohere Vertex Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-cohere-vertex</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

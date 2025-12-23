@@ -8,16 +8,22 @@ import java.util.List;
  */
 public enum SubscriptionTier {
 
-	SCOUT("scout", "Scout", 0, List.of("gemini-2.0-flash", "gpt-4o-mini"), 25, // AI chat messages/day
+	SCOUT("scout", "Scout", 0,
+			List.of("gemini-2.0-flash", "gpt-4o-mini", "llama-3.1-8b-instruct-maas", "mistral-nemo"),
+			25, // AI chat messages/day
 			"Free tier - Explore the markets"),
 
 	TRADER("trader", "Trader", 1900, // $19.00 in cents
-			List.of("gemini-2.0-flash", "gpt-4o-mini", "claude-haiku-4-5", "gpt-4o"), 200,
-			"For active traders"),
+			List.of("gemini-2.0-flash", "gpt-4o-mini", "claude-haiku-4-5", "gpt-4o",
+					"llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas", "mistral-nemo", "mistral-small",
+					"mistral-large-2", "command-r"),
+			200, "For active traders"),
 
 	STRATEGIST("strategist", "Strategist", 4900, // $49.00 in cents
 			List.of("gemini-2.0-flash", "gpt-4o-mini", "claude-haiku-4-5", "gpt-4o", "claude-opus-4-5",
-					"claude-sonnet-4", "o1", "o1-mini"),
+					"claude-sonnet-4", "o1", "o1-mini", "llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
+					"llama-3.1-405b-instruct-maas", "mistral-nemo", "mistral-small", "mistral-large-2", "command-r",
+					"command-r-plus"),
 			500, // Cost protection - not unlimited
 			"For power users and serious traders");
 

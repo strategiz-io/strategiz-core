@@ -121,6 +121,21 @@ public class LLMRouter {
 		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
 				"Best for coding & agents"));
 
+		// Llama models (Meta)
+		models.add(new ModelInfo("llama-3.1-8b-instruct-maas", "Llama 3.1 8B", "meta", "Fast & efficient"));
+		models.add(new ModelInfo("llama-3.1-70b-instruct-maas", "Llama 3.1 70B", "meta", "Balanced Llama model"));
+		models.add(new ModelInfo("llama-3.1-405b-instruct-maas", "Llama 3.1 405B", "meta",
+				"Largest Llama, best reasoning"));
+
+		// Mistral models
+		models.add(new ModelInfo("mistral-nemo", "Mistral Nemo", "mistral", "Fast & affordable"));
+		models.add(new ModelInfo("mistral-small", "Mistral Small", "mistral", "Balanced performance"));
+		models.add(new ModelInfo("mistral-large-2", "Mistral Large 2", "mistral", "Flagship Mistral model"));
+
+		// Cohere models
+		models.add(new ModelInfo("command-r", "Command R", "cohere", "Balanced Cohere model"));
+		models.add(new ModelInfo("command-r-plus", "Command R+", "cohere", "Best Cohere model"));
+
 		// Mark models as available based on registered providers AND feature flags
 		for (ModelInfo model : models) {
 			boolean providerRegistered = providersByModel.containsKey(model.getId());

@@ -81,6 +81,9 @@
         <module>client/client-robinhood</module>
         <module>client/client-sms</module>
         <module>client/client-claude-vertex</module>
+        <module>client/client-llama-vertex</module>
+        <module>client/client-mistral-vertex</module>
+        <module>client/client-cohere-vertex</module>
         <module>client/client-gcp-billing</module>
         <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>

@@ -5,15 +5,20 @@ import io.strategiz.service.dashboard.model.watchlist.WatchlistAsset;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-// import io.strategiz.service.dashboard.repository.WatchlistRepository;
-// import io.strategiz.service.dashboard.provider.MarketDataProvider;
+import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
+import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
+import io.strategiz.client.coingecko.CoinGeckoClient;
+import io.strategiz.client.coingecko.model.CryptoCurrency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -25,55 +30,52 @@ public class WatchlistService {
 
     private static final Logger log = LoggerFactory.getLogger(WatchlistService.class);
 
-    // private final WatchlistRepository watchlistRepository;
-    // private final MarketDataProvider marketDataProvider;
-    // private final WatchlistTransformer watchlistTransformer;
+    private final YahooFinanceClient yahooFinanceClient;
+    private final CoinGeckoClient coinGeckoClient;
+
+    // Symbol to CoinGecko ID mapping for crypto fallback
+    private static final Map<String, String> CRYPTO_SYMBOL_TO_ID = new HashMap<>();
+    static {
+        CRYPTO_SYMBOL_TO_ID.put("BTC", "bitcoin");
+        CRYPTO_SYMBOL_TO_ID.put("ETH", "ethereum");
+        CRYPTO_SYMBOL_TO_ID.put("SOL", "solana");
+        CRYPTO_SYMBOL_TO_ID.put("BNB", "binancecoin");
+        CRYPTO_SYMBOL_TO_ID.put("ADA", "cardano");
+        CRYPTO_SYMBOL_TO_ID.put("XRP", "ripple");
+        CRYPTO_SYMBOL_TO_ID.put("DOGE", "dogecoin");
+        CRYPTO_SYMBOL_TO_ID.put("DOT", "polkadot");
+        CRYPTO_SYMBOL_TO_ID.put("AVAX", "avalanche-2");
+        CRYPTO_SYMBOL_TO_ID.put("MATIC", "matic-network");
+    }
 
     @Autowired
-    public WatchlistService(/* WatchlistRepository watchlistRepository,
-                          MarketDataProvider marketDataProvider,
-                          WatchlistTransformer watchlistTransformer */) {
-        // this.watchlistRepository = watchlistRepository;
-        // this.marketDataProvider = marketDataProvider;
-        // this.watchlistTransformer = watchlistTransformer;
+    public WatchlistService(YahooFinanceClient yahooFinanceClient,
+                           CoinGeckoClient coinGeckoClient) {
+        this.yahooFinanceClient = yahooFinanceClient;
+        this.coinGeckoClient = coinGeckoClient;
     }
 
     /**
      * Gets watchlist data for the authenticated user
-     * 
+     *
      * @param userId The user ID to fetch watchlist data for
      * @return Watchlist response
      */
     public WatchlistResponse getWatchlist(String userId) {
         log.info("Getting watchlist data for user: {}", userId);
-        
+
         // Validate input
         if (userId == null || userId.trim().isEmpty()) {
             throw new StrategizException(ServiceDashboardErrorDetails.INVALID_PORTFOLIO_DATA, "service-dashboard", "userId", userId, "User ID cannot be null or empty");
         }
-        
+
         try {
             // TODO: Implement when dependencies are available
             WatchlistResponse response = new WatchlistResponse();
             response.setWatchlistItems(Arrays.asList());
             response.setAvailableCategories(Arrays.asList("All", "Crypto", "Stocks", "ETFs"));
             return response;
-            
-            /* 
-            // Get user's watchlist assets
-            List<WatchlistAsset> userAssets = watchlistRepository.getUserWatchlist(userId);
-            
-            if (userAssets == null) {
-                throw new StrategizException(ServiceDashboardErrorDetails.WATCHLIST_NOT_FOUND, "service-dashboard", userId);
-            }
-            
-            // Enrich assets with market data
-            List<WatchlistItem> enrichedItems = enrichWithMarketData(userAssets);
-            
-            // Build and return response
-            return buildWatchlistResponse(enrichedItems);
-            */
-            
+
         } catch (StrategizException e) {
             // Re-throw business exceptions
             throw e;
@@ -84,35 +86,230 @@ public class WatchlistService {
     }
 
     /**
-     * Enriches watchlist assets with real-time market data
+     * Enriches a watchlist item with market data from external APIs.
+     * Strategy: Yahoo Finance primary (supports both stocks and crypto) → CoinGecko fallback for crypto only
+     *
+     * @param entity The watchlist item entity to enrich
+     * @return The enriched entity with market data populated
      */
-    private List<WatchlistItem> enrichWithMarketData(List<WatchlistAsset> assets) {
-        return assets.stream()
-                .map(this::enrichAssetWithMarketData)
-                .collect(Collectors.toList());
-    }
+    public WatchlistItemEntity enrichWatchlistItem(WatchlistItemEntity entity) {
+        String symbol = entity.getSymbol();
+        String type = entity.getType() != null ? entity.getType().toUpperCase() : "STOCK";
 
-    /**
-     * Enriches a single asset with market data
-     */
-    private WatchlistItem enrichAssetWithMarketData(WatchlistAsset asset) {
-        // TODO: Implement when dependencies are available
-        return new WatchlistItem();
-        /* try {
-            return marketDataProvider.getEnrichedWatchlistItem(asset);
+        log.debug("Enriching watchlist item: {} (type: {})", symbol, type);
+
+        // Try Yahoo Finance first (works for both stocks and crypto)
+        try {
+            enrichFromYahooFinance(entity);
+            log.debug("Successfully enriched {} from Yahoo Finance", symbol);
+            return entity;
         } catch (Exception e) {
-            log.warn("Error enriching asset {}: {}", asset.getSymbol(), e.getMessage());
-            return watchlistTransformer.createEmptyWatchlistItem(asset);
-        } */
+            log.warn("Yahoo Finance enrichment failed for {}: {}", symbol, e.getMessage());
+        }
+
+        // If Yahoo Finance failed AND it's crypto, try CoinGecko as fallback
+        if ("CRYPTO".equalsIgnoreCase(type)) {
+            try {
+                enrichFromCoinGecko(entity);
+                log.debug("Successfully enriched {} from CoinGecko fallback", symbol);
+                return entity;
+            } catch (Exception e) {
+                log.warn("CoinGecko fallback failed for {}: {}", symbol, e.getMessage());
+            }
+        }
+
+        // Both APIs failed - log warning and return entity with nulls
+        log.warn("Could not enrich {} with market data from any API", symbol);
+        return entity;
     }
 
     /**
-     * Builds the watchlist response
+     * Enrich entity from Yahoo Finance API (supports both stocks and crypto)
      */
-    private WatchlistResponse buildWatchlistResponse(List<WatchlistItem> items) {
-        WatchlistResponse response = new WatchlistResponse();
-        response.setWatchlistItems(items);
-        response.setAvailableCategories(Arrays.asList("All", "Crypto", "Stocks", "ETFs"));
-        return response;
+    private void enrichFromYahooFinance(WatchlistItemEntity entity) {
+        String symbol = entity.getSymbol();
+        String type = entity.getType() != null ? entity.getType().toUpperCase() : "STOCK";
+
+        // Format symbol for Yahoo Finance
+        String yahooSymbol = symbol;
+        if ("CRYPTO".equalsIgnoreCase(type)) {
+            // Crypto needs -USD suffix for Yahoo Finance
+            yahooSymbol = symbol + "-USD";
+        }
+
+        // Fetch quote from Yahoo Finance
+        Map<String, Object> response = yahooFinanceClient.fetchQuote(yahooSymbol);
+
+        // Parse response - Yahoo Finance has complex nested structure
+        Map<String, Object> quoteSummary = (Map<String, Object>) response.get("quoteSummary");
+        if (quoteSummary == null) {
+            throw new RuntimeException("No quoteSummary in Yahoo Finance response");
+        }
+
+        List<Map<String, Object>> result = (List<Map<String, Object>>) quoteSummary.get("result");
+        if (result == null || result.isEmpty()) {
+            throw new RuntimeException("No result in Yahoo Finance quoteSummary");
+        }
+
+        Map<String, Object> firstResult = result.get(0);
+        Map<String, Object> price = (Map<String, Object>) firstResult.get("price");
+        if (price == null) {
+            throw new RuntimeException("No price data in Yahoo Finance result");
+        }
+
+        // Extract price data from nested structure
+        Object regularMarketPriceObj = price.get("regularMarketPrice");
+        Object regularMarketChangeObj = price.get("regularMarketChange");
+        Object regularMarketChangePercentObj = price.get("regularMarketChangePercent");
+        Object marketCapObj = price.get("marketCap");
+        Object regularMarketVolumeObj = price.get("regularMarketVolume");
+        Object shortNameObj = price.get("shortName");
+        Object longNameObj = price.get("longName");
+
+        // Parse price - can be Map with "raw" key or direct number
+        BigDecimal currentPrice = extractBigDecimal(regularMarketPriceObj);
+        BigDecimal change = extractBigDecimal(regularMarketChangeObj);
+        BigDecimal changePercent = extractBigDecimal(regularMarketChangePercentObj);
+        Long marketCap = extractLong(marketCapObj);
+        Long volume = extractLong(regularMarketVolumeObj);
+
+        // Populate entity
+        if (currentPrice != null) {
+            entity.setCurrentPrice(currentPrice);
+        }
+        if (change != null) {
+            entity.setChange(change);
+        }
+        if (changePercent != null) {
+            entity.setChangePercent(changePercent);
+        }
+        if (volume != null) {
+            entity.setVolume(volume);
+        }
+        if (marketCap != null) {
+            entity.setMarketCap(marketCap);
+        }
+
+        // Set name from Yahoo Finance if not already set
+        if (entity.getName() == null || entity.getName().equals(symbol)) {
+            String name = longNameObj != null ? longNameObj.toString() :
+                         (shortNameObj != null ? shortNameObj.toString() : symbol);
+            entity.setName(name);
+        }
+    }
+
+    /**
+     * Enrich entity from CoinGecko API (crypto only, fallback)
+     */
+    private void enrichFromCoinGecko(WatchlistItemEntity entity) {
+        String symbol = entity.getSymbol();
+
+        // Map symbol to CoinGecko coin ID
+        String coinId = CRYPTO_SYMBOL_TO_ID.get(symbol.toUpperCase());
+        if (coinId == null) {
+            coinId = symbol.toLowerCase(); // Fallback to lowercase symbol
+        }
+
+        // Fetch from CoinGecko
+        List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(
+            Arrays.asList(coinId),
+            "usd"
+        );
+
+        if (cryptoData == null || cryptoData.isEmpty()) {
+            throw new RuntimeException("No data from CoinGecko for " + coinId);
+        }
+
+        CryptoCurrency crypto = cryptoData.get(0);
+
+        // Populate entity from CoinGecko data
+        if (crypto.getCurrentPrice() != null) {
+            entity.setCurrentPrice(crypto.getCurrentPrice());
+        }
+        if (crypto.getPriceChange24h() != null) {
+            entity.setChange(crypto.getPriceChange24h());
+        }
+        if (crypto.getPriceChangePercentage24h() != null) {
+            entity.setChangePercent(crypto.getPriceChangePercentage24h());
+        }
+        if (crypto.getTotalVolume() != null) {
+            entity.setVolume(crypto.getTotalVolume().longValue());
+        }
+        if (crypto.getMarketCap() != null) {
+            entity.setMarketCap(crypto.getMarketCap().longValue());
+        }
+
+        // Set name from CoinGecko if not already set
+        if (entity.getName() == null || entity.getName().equals(symbol)) {
+            entity.setName(crypto.getName());
+        }
+    }
+
+    /**
+     * Extract BigDecimal from Yahoo Finance response (handles both Map with "raw" key and direct numbers)
+     */
+    private BigDecimal extractBigDecimal(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        // If it's a Map, extract "raw" value
+        if (obj instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) obj;
+            Object raw = map.get("raw");
+            if (raw instanceof Number) {
+                return BigDecimal.valueOf(((Number) raw).doubleValue());
+            }
+        }
+
+        // If it's a direct number
+        if (obj instanceof Number) {
+            return BigDecimal.valueOf(((Number) obj).doubleValue());
+        }
+
+        // Try parsing as string
+        if (obj instanceof String) {
+            try {
+                return new BigDecimal((String) obj);
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse BigDecimal from string: {}", obj);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract Long from Yahoo Finance response (handles both Map with "raw" key and direct numbers)
+     */
+    private Long extractLong(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        // If it's a Map, extract "raw" value
+        if (obj instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) obj;
+            Object raw = map.get("raw");
+            if (raw instanceof Number) {
+                return ((Number) raw).longValue();
+            }
+        }
+
+        // If it's a direct number
+        if (obj instanceof Number) {
+            return ((Number) obj).longValue();
+        }
+
+        // Try parsing as string
+        if (obj instanceof String) {
+            try {
+                return Long.parseLong((String) obj);
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse Long from string: {}", obj);
+            }
+        }
+
+        return null;
     }
 }

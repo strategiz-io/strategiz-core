@@ -64,6 +64,11 @@
             <artifactId>service-dashboard</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-watchlist</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Device Service - temporarily disabled due to compilation issues -->
         <!--
         <dependency>

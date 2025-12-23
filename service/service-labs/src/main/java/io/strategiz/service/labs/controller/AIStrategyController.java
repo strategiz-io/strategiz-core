@@ -1,6 +1,7 @@
 package io.strategiz.service.labs.controller;
 
 import io.strategiz.business.preferences.service.SubscriptionService;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
@@ -35,10 +36,14 @@ public class AIStrategyController extends BaseController {
 
 	private final SubscriptionService subscriptionService;
 
+	private final FeatureFlagService featureFlagService;
+
 	@Autowired
-	public AIStrategyController(AIStrategyService aiStrategyService, SubscriptionService subscriptionService) {
+	public AIStrategyController(AIStrategyService aiStrategyService, SubscriptionService subscriptionService,
+			FeatureFlagService featureFlagService) {
 		this.aiStrategyService = aiStrategyService;
 		this.subscriptionService = subscriptionService;
+		this.featureFlagService = featureFlagService;
 	}
 
 	/**
@@ -51,6 +56,13 @@ public class AIStrategyController extends BaseController {
 			@AuthUser AuthenticatedUser user) {
 		String userId = user.getUserId();
 		logger.info("Received strategy generation request from user {}", userId);
+
+		// Check if Labs AI is enabled
+		if (!featureFlagService.isLabsAIEnabled()) {
+			logger.warn("Labs AI Strategy Generator is currently disabled");
+			return ResponseEntity.status(503)
+				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
+		}
 
 		// Check if user can send AI message (within limits)
 		if (!subscriptionService.canSendMessage(userId)) {
@@ -86,6 +98,13 @@ public class AIStrategyController extends BaseController {
 			@AuthUser AuthenticatedUser user) {
 		String userId = user.getUserId();
 		logger.info("Received strategy refinement request from user {}", userId);
+
+		// Check if Labs AI is enabled
+		if (!featureFlagService.isLabsAIEnabled()) {
+			logger.warn("Labs AI Strategy Generator is currently disabled");
+			return ResponseEntity.status(503)
+				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
+		}
 
 		// Check if user can send AI message (refinement counts as AI chat)
 		if (!subscriptionService.canSendMessage(userId)) {

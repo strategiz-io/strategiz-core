@@ -4,6 +4,7 @@ import io.strategiz.client.base.llm.LLMProvider;
 import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
 import io.strategiz.client.base.llm.model.ModelInfo;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,8 +31,11 @@ public class LLMRouter {
 
 	private final List<LLMProvider> providers;
 
-	public LLMRouter(List<LLMProvider> providers) {
+	private final FeatureFlagService featureFlagService;
+
+	public LLMRouter(List<LLMProvider> providers, FeatureFlagService featureFlagService) {
 		this.providers = providers != null ? providers : new ArrayList<>();
+		this.featureFlagService = featureFlagService;
 		this.providersByModel = buildModelProviderMap();
 		logger.info("LLMRouter initialized with {} providers: {}", this.providers.size(),
 				this.providers.stream().map(LLMProvider::getProviderName).toList());
@@ -46,6 +50,12 @@ public class LLMRouter {
 	 */
 	public Mono<LLMResponse> generateContent(String prompt, List<LLMMessage> history, String model) {
 		String targetModel = resolveModel(model);
+
+		// Check if model is enabled via feature flags (provider + model level)
+		if (!featureFlagService.isAIModelEnabled(targetModel)) {
+			logger.warn("Model {} is disabled via feature flags", targetModel);
+			return Mono.just(LLMResponse.error("Model " + targetModel + " is currently unavailable. Please select a different model."));
+		}
 
 		LLMProvider provider = getProviderForModel(targetModel);
 
@@ -67,6 +77,12 @@ public class LLMRouter {
 	 */
 	public Flux<LLMResponse> generateContentStream(String prompt, List<LLMMessage> history, String model) {
 		String targetModel = resolveModel(model);
+
+		// Check if model is enabled via feature flags (provider + model level)
+		if (!featureFlagService.isAIModelEnabled(targetModel)) {
+			logger.warn("Model {} is disabled via feature flags", targetModel);
+			return Flux.just(LLMResponse.error("Model " + targetModel + " is currently unavailable. Please select a different model."));
+		}
 
 		LLMProvider provider = getProviderForModel(targetModel);
 
@@ -105,10 +121,11 @@ public class LLMRouter {
 		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
 				"Best for coding & agents"));
 
-		// Mark models as available based on registered providers
+		// Mark models as available based on registered providers AND feature flags
 		for (ModelInfo model : models) {
 			boolean providerRegistered = providersByModel.containsKey(model.getId());
-			model.setAvailable(providerRegistered);
+			boolean flagEnabled = featureFlagService.isAIModelEnabled(model.getId());
+			model.setAvailable(providerRegistered && flagEnabled);
 		}
 
 		return models;

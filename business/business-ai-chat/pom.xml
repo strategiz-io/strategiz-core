@@ -31,6 +31,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Feature Flags -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-feature-flags</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Gemini Vertex Client -->
         <dependency>
             <groupId>io.strategiz</groupId>
@@ -49,6 +56,13 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-openai-vertex</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Llama Vertex Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-llama-vertex</artifactId>
             <version>${project.version}</version>
         </dependency>
 

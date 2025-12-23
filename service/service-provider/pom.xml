@@ -67,11 +67,13 @@
             <artifactId>business-provider-robinhood</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Temporarily disabled - API mismatches with current entities/repositories
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-provider-plaid</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-feature-flags</artifactId>

@@ -34,7 +34,8 @@
         <module>business/business-provider-schwab</module>
         <module>business/business-provider-robinhood</module>
         <module>business/business-provider-webull</module>
-        <module>business/business-provider-plaid</module>
+        <!-- Temporarily disabled - API mismatches with current entities/repositories -->
+        <!-- <module>business/business-provider-plaid</module> -->
         <module>business/business-strategy-execution</module>
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
@@ -83,7 +84,8 @@
         <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>
         <module>client/client-webull</module>
-        <module>client/client-plaid</module>
+        <!-- Temporarily disabled - API mismatches with current entities/repositories -->
+        <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         

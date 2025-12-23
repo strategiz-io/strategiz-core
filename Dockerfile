@@ -12,8 +12,8 @@ COPY service/ service/
 COPY application-api/ application-api/
 COPY batch/ batch/
 
-# Build the application (exclude service-labs due to dependency issues)
-RUN mvn clean install -DskipTests -pl '!service/service-labs'
+# Build the application
+RUN mvn clean install -DskipTests
 
 # Runtime image
 FROM eclipse-temurin:21-jre

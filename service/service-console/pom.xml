@@ -57,13 +57,12 @@
             <artifactId>business-infrastructure-costs</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Feature flags temporarily disabled
+        <!-- Feature flags -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-feature-flags</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
         <!-- Market data batch jobs (optional - only present when scheduler profile active) -->
         <dependency>
             <groupId>io.strategiz</groupId>

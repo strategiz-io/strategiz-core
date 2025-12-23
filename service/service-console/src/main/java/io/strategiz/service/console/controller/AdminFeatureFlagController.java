@@ -58,7 +58,7 @@ public class AdminFeatureFlagController extends BaseController {
             @PathVariable String category,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("getFlagsByCategory", adminUserId, "category", category);
+        logRequest("getFlagsByCategory", adminUserId, Map.of("category", category));
 
         List<FeatureFlagEntity> flags = featureFlagService.getFlagsByCategory(category);
 
@@ -76,7 +76,7 @@ public class AdminFeatureFlagController extends BaseController {
             @PathVariable String flagId,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("getFlag", adminUserId, "flagId", flagId);
+        logRequest("getFlag", adminUserId, Map.of("flagId", flagId));
 
         return featureFlagService.getFlag(flagId)
             .map(ResponseEntity::ok)
@@ -89,7 +89,7 @@ public class AdminFeatureFlagController extends BaseController {
             @PathVariable String flagId,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("isEnabled", adminUserId, "flagId", flagId);
+        logRequest("isEnabled", adminUserId, Map.of("flagId", flagId));
 
         boolean enabled = featureFlagService.isEnabled(flagId);
 
@@ -106,7 +106,7 @@ public class AdminFeatureFlagController extends BaseController {
             @PathVariable String flagId,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("enableFlag", adminUserId, "flagId", flagId);
+        logRequest("enableFlag", adminUserId, Map.of("flagId", flagId));
 
         FeatureFlagEntity flag = featureFlagService.enableFlag(flagId);
         log.info("Feature flag {} enabled by admin {}", flagId, adminUserId);
@@ -120,7 +120,7 @@ public class AdminFeatureFlagController extends BaseController {
             @PathVariable String flagId,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("disableFlag", adminUserId, "flagId", flagId);
+        logRequest("disableFlag", adminUserId, Map.of("flagId", flagId));
 
         FeatureFlagEntity flag = featureFlagService.disableFlag(flagId);
         log.info("Feature flag {} disabled by admin {}", flagId, adminUserId);
@@ -135,7 +135,7 @@ public class AdminFeatureFlagController extends BaseController {
             @RequestBody FeatureFlagEntity flagUpdate,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("updateFlag", adminUserId, "flagId", flagId);
+        logRequest("updateFlag", adminUserId, Map.of("flagId", flagId));
 
         // Ensure flagId matches
         flagUpdate.setFlagId(flagId);
@@ -151,7 +151,7 @@ public class AdminFeatureFlagController extends BaseController {
             @RequestBody FeatureFlagEntity flag,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("createFlag", adminUserId, "flagId", flag.getFlagId());
+        logRequest("createFlag", adminUserId, Map.of("flagId", flag.getFlagId()));
 
         FeatureFlagEntity created = featureFlagService.createFlag(flag);
         log.info("Feature flag {} created by admin {}", flag.getFlagId(), adminUserId);
@@ -165,7 +165,7 @@ public class AdminFeatureFlagController extends BaseController {
             @PathVariable String flagId,
             HttpServletRequest request) {
         String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("deleteFlag", adminUserId, "flagId", flagId);
+        logRequest("deleteFlag", adminUserId, Map.of("flagId", flagId));
 
         featureFlagService.deleteFlag(flagId);
         log.info("Feature flag {} deleted by admin {}", flagId, adminUserId);

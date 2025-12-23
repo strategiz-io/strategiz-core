@@ -151,13 +151,10 @@ public class AdminUserService {
         }
 
         // Terminate all sessions before deleting user
-        List<SessionEntity> sessions = sessionRepository.findByUserIdAndRevokedFalse(userId);
-        for (SessionEntity session : sessions) {
-            sessionRepository.delete(session.getSessionId());
-        }
+        sessionRepository.deleteByUserId(userId);
 
         // Delete the user
-        userRepository.delete(userId);
+        userRepository.deleteUser(userId);
 
         logger.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
     }

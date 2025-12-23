@@ -85,17 +85,23 @@ public class LLMRouter {
 		List<ModelInfo> models = new ArrayList<>();
 
 		// Gemini models (latest first)
+		models.add(new ModelInfo("gemini-2.0-flash", "Gemini 2.0 Flash", "google", "Fast & capable"));
 		models.add(new ModelInfo("gemini-3-flash-preview", "Gemini 3 Flash", "google",
 				"Frontier intelligence, 3x faster than 2.5 Pro"));
 		models.add(new ModelInfo("gemini-3-pro-preview", "Gemini 3 Pro", "google",
 				"Most intelligent, PhD-level reasoning"));
-		models.add(new ModelInfo("gemini-2.0-flash", "Gemini 2.0 Flash", "google", "Fast & capable"));
+
+		// OpenAI models
+		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
+		models.add(new ModelInfo("gpt-4o", "GPT-4o", "openai", "Powerful multimodal flagship"));
+		models.add(new ModelInfo("o1-mini", "o1 Mini", "openai", "Fast reasoning"));
+		models.add(new ModelInfo("o1", "o1", "openai", "Best reasoning model"));
 
 		// Claude models (latest first)
+		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));
+		models.add(new ModelInfo("claude-sonnet-4", "Claude Sonnet 4", "anthropic", "Balanced performance"));
 		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
 				"Best for coding & agents"));
-		models.add(new ModelInfo("claude-sonnet-4", "Claude Sonnet 4", "anthropic", "Balanced performance"));
-		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));
 
 		// Mark models as available based on registered providers
 		for (ModelInfo model : models) {

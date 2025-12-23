@@ -1,7 +1,7 @@
 package io.strategiz.service.auth.service;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import io.strategiz.data.user.entity.AuthTokenEntity;
+import io.strategiz.data.user.entity.SsoRelayToken;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.AuthTokenRepository;
 import io.strategiz.data.user.repository.UserRepository;
@@ -19,12 +19,12 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Service for managing one-time authentication tokens.
+ * Service for managing one-time SSO relay tokens.
  * Used for cross-app SSO (token relay pattern).
  *
  * Flow:
- * 1. User logs in at strategiz.io
- * 2. If redirect param exists, generate one-time token
+ * 1. User logs in at strategiz.io (or auth.strategiz.io)
+ * 2. If redirect param exists, generate one-time relay token
  * 3. Redirect to target app with token
  * 4. Target app exchanges token for session
  */
@@ -61,7 +61,7 @@ public class AuthTokenService {
     }
 
     /**
-     * Generate a one-time auth token for cross-app SSO
+     * Generate a one-time SSO relay token for cross-app authentication
      *
      * @param userId      The authenticated user's ID
      * @param redirectUrl The URL to redirect to after token exchange
@@ -83,35 +83,35 @@ public class AuthTokenService {
         // Determine target app from redirect URL
         String targetApp = extractDomain(redirectUrl);
 
-        // Create and save token entity
-        AuthTokenEntity tokenEntity = new AuthTokenEntity(token, userId, targetApp, redirectUrl, tokenTtlSeconds);
+        // Create and save SSO relay token
+        SsoRelayToken tokenEntity = new SsoRelayToken(token, userId, targetApp, redirectUrl, tokenTtlSeconds);
         tokenEntity.setCreatedFromIp(clientIp);
         authTokenRepository.save(tokenEntity);
 
-        logger.info("Generated auth token for user {} targeting {}", userId, targetApp);
+        logger.info("Generated SSO relay token for user {} targeting {}", userId, targetApp);
         return token;
     }
 
     /**
-     * Exchange a one-time token for a session
+     * Exchange a one-time SSO relay token for a session
      *
-     * @param token    The auth token
+     * @param token    The SSO relay token
      * @param clientIp The client's IP address
      * @return Session tokens (access token, refresh token)
      */
     public ExchangeResult exchangeToken(String token, String clientIp) {
         // Find token
-        Optional<AuthTokenEntity> tokenOpt = authTokenRepository.findByToken(token);
+        Optional<SsoRelayToken> tokenOpt = authTokenRepository.findByToken(token);
         if (tokenOpt.isEmpty()) {
-            logger.warn("Token exchange failed: token not found");
+            logger.warn("Token exchange failed: SSO relay token not found");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Invalid or expired token");
         }
 
-        AuthTokenEntity tokenEntity = tokenOpt.get();
+        SsoRelayToken tokenEntity = tokenOpt.get();
 
         // Validate token
         if (!tokenEntity.isValid()) {
-            logger.warn("Token exchange failed: token expired or already used for user {}", tokenEntity.getUserId());
+            logger.warn("Token exchange failed: SSO relay token expired or already used for user {}", tokenEntity.getUserId());
             // Delete invalid token
             authTokenRepository.delete(token);
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Token expired or already used");
@@ -136,18 +136,18 @@ public class AuthTokenService {
         SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
                 tokenEntity.getUserId(),
                 email,
-                List.of("token_relay"),
+                List.of("sso_relay"),
                 false, // Not partial auth
                 null, // Device ID
                 null, // Device fingerprint
                 clientIp,
-                "Token Relay from " + tokenEntity.getTargetApp(),
+                "SSO Relay from " + tokenEntity.getTargetApp(),
                 false // demoMode
         );
 
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
 
-        logger.info("Token exchange successful for user {} at {}", tokenEntity.getUserId(), tokenEntity.getTargetApp());
+        logger.info("SSO relay token exchange successful for user {} at {}", tokenEntity.getUserId(), tokenEntity.getTargetApp());
 
         // Delete token after successful exchange
         authTokenRepository.delete(token);

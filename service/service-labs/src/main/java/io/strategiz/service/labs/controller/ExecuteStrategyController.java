@@ -3,9 +3,11 @@ package io.strategiz.service.labs.controller;
 import io.strategiz.business.strategy.execution.model.*;
 import io.strategiz.business.strategy.execution.service.ExecutionEngineService;
 import io.strategiz.business.strategy.execution.service.StrategyExecutionService;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.business.strategy.execution.service.BacktestCalculatorBusiness;
 import io.strategiz.service.labs.model.ExecuteStrategyRequest;
@@ -22,16 +24,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/v1/strategies")
+@RequireAuth(minAcr = "1")
 @Tag(name = "Strategy Execution", description = "Execute and backtest trading strategies")
 public class ExecuteStrategyController extends BaseController {
     
@@ -42,7 +43,6 @@ public class ExecuteStrategyController extends BaseController {
     private final ReadStrategyService readStrategyService;
     private final PythonStrategyExecutor pythonStrategyExecutor;
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
-    private final SessionAuthBusiness sessionAuthBusiness;
     private final MarketDataRepository marketDataRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -52,14 +52,12 @@ public class ExecuteStrategyController extends BaseController {
                                    ReadStrategyService readStrategyService,
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
-                                   SessionAuthBusiness sessionAuthBusiness,
                                    MarketDataRepository marketDataRepository) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
         this.pythonStrategyExecutor = pythonStrategyExecutor;
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
-        this.sessionAuthBusiness = sessionAuthBusiness;
         this.marketDataRepository = marketDataRepository;
     }
     
@@ -68,42 +66,9 @@ public class ExecuteStrategyController extends BaseController {
     public ResponseEntity<ExecuteStrategyResponse> executeStrategy(
             @PathVariable String strategyId,
             @Valid @RequestBody ExecuteStrategyRequest request,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @AuthUser AuthenticatedUser user) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        logger.debug("ExecuteStrategy: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
-                userId, authHeader != null, userIdParam);
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    logger.info("Strategy execution authenticated via Bearer token for user: {}", userId);
-                } else {
-                    logger.warn("Invalid Bearer token provided for strategy execution");
-                }
-            } catch (Exception e) {
-                logger.warn("Error validating Bearer token for strategy execution: {}", e.getMessage());
-            }
-        }
-
-        // Use query param userId as fallback for development/testing
-        if (userId == null && userIdParam != null) {
-            userId = userIdParam;
-            logger.warn("Using userId from query parameter for development: {}", userId);
-        }
-
-        // Require authentication for saved strategy execution (more sensitive operation)
-        if (userId == null) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED);
-        }
-
+        String userId = user.getUserId();
         logger.info("Executing strategy: {} for user: {} with symbol: {}",
             strategyId, userId, request.getSymbol());
         
@@ -136,43 +101,9 @@ public class ExecuteStrategyController extends BaseController {
     @Operation(summary = "Execute code directly", description = "Executes strategy code without saving")
     public ResponseEntity<ExecuteStrategyResponse> executeCode(
             @Valid @RequestBody ExecuteStrategyRequest request,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @AuthUser AuthenticatedUser user) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        logger.debug("ExecuteCode: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
-                userId, authHeader != null, userIdParam);
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    logger.info("Strategy execution authenticated via Bearer token for user: {}", userId);
-                } else {
-                    logger.warn("Invalid Bearer token provided for strategy execution");
-                }
-            } catch (Exception e) {
-                logger.warn("Error validating Bearer token for strategy execution: {}", e.getMessage());
-            }
-        }
-
-        // Use query param userId as fallback for development/testing
-        if (userId == null && userIdParam != null) {
-            userId = userIdParam;
-            logger.warn("Using userId from query parameter for development: {}", userId);
-        }
-
-        // Use anonymous user as last resort
-        if (userId == null) {
-            userId = "anonymous";
-            logger.warn("No authentication found - using anonymous user for development");
-        }
-
+        String userId = user.getUserId();
         logger.info("Executing code for user: {} with language: {} and symbol: {}",
             userId, request.getLanguage(), request.getSymbol());
 

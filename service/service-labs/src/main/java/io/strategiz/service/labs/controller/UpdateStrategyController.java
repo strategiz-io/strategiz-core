@@ -1,7 +1,9 @@
 package io.strategiz.service.labs.controller;
 
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.constants.StrategyConstants;
@@ -17,13 +19,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.security.Principal;
 
 @RestController
 @RequestMapping("/v1/strategies")
+@RequireAuth(minAcr = "1")
 @Tag(name = "Strategy Update", description = "Update existing trading strategies")
 public class UpdateStrategyController extends BaseController {
 
@@ -31,15 +31,12 @@ public class UpdateStrategyController extends BaseController {
 
     private final UpdateStrategyService updateStrategyService;
     private final ReadStrategyService readStrategyService;
-    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Autowired
     public UpdateStrategyController(UpdateStrategyService updateStrategyService,
-                                  ReadStrategyService readStrategyService,
-                                  SessionAuthBusiness sessionAuthBusiness) {
+                                  ReadStrategyService readStrategyService) {
         this.updateStrategyService = updateStrategyService;
         this.readStrategyService = readStrategyService;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
     
     @PutMapping("/{strategyId}")
@@ -47,42 +44,9 @@ public class UpdateStrategyController extends BaseController {
     public ResponseEntity<StrategyResponse> updateStrategy(
             @PathVariable String strategyId,
             @Valid @RequestBody CreateStrategyRequest request,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @AuthUser AuthenticatedUser user) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        logger.debug("UpdateStrategy: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
-                userId, authHeader != null, userIdParam);
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    logger.info("Update strategy authenticated via Bearer token for user: {}", userId);
-                } else {
-                    logger.warn("Invalid Bearer token provided for update strategy");
-                }
-            } catch (Exception e) {
-                logger.warn("Error validating Bearer token for update strategy: {}", e.getMessage());
-            }
-        }
-
-        // Use query param userId as fallback for development/testing
-        if (userId == null && userIdParam != null) {
-            userId = userIdParam;
-            logger.warn("Using userId from query parameter for development: {}", userId);
-        }
-
-        // Require authentication
-        if (userId == null) {
-            throw new IllegalStateException("Authentication required to update strategies");
-        }
-
+        String userId = user.getUserId();
         logger.info("Updating strategy: {} for user: {}", strategyId, userId);
 
         try {
@@ -104,42 +68,9 @@ public class UpdateStrategyController extends BaseController {
     public ResponseEntity<StrategyResponse> updateStrategyStatus(
             @PathVariable String strategyId,
             @RequestParam String status,
-            Principal principal,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @AuthUser AuthenticatedUser user) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        logger.debug("UpdateStrategyStatus: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
-                userId, authHeader != null, userIdParam);
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    logger.info("Update strategy status authenticated via Bearer token for user: {}", userId);
-                } else {
-                    logger.warn("Invalid Bearer token provided for update strategy status");
-                }
-            } catch (Exception e) {
-                logger.warn("Error validating Bearer token for update strategy status: {}", e.getMessage());
-            }
-        }
-
-        // Use query param userId as fallback for development/testing
-        if (userId == null && userIdParam != null) {
-            userId = userIdParam;
-            logger.warn("Using userId from query parameter for development: {}", userId);
-        }
-
-        // Require authentication
-        if (userId == null) {
-            throw new IllegalStateException("Authentication required to update strategy status");
-        }
-
+        String userId = user.getUserId();
         logger.info("Updating strategy {} status to: {} for user: {}",
             strategyId, status, userId);
 

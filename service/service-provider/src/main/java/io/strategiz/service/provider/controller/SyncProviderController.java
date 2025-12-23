@@ -5,12 +5,13 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.time.Instant;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/providers")
+@RequireAuth(minAcr = "1")
 public class SyncProviderController extends BaseController {
 
     @Override
@@ -31,68 +33,27 @@ public class SyncProviderController extends BaseController {
     }
 
     private final SyncProviderService syncProviderService;
-    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Autowired
-    public SyncProviderController(SyncProviderService syncProviderService,
-                                 SessionAuthBusiness sessionAuthBusiness) {
+    public SyncProviderController(SyncProviderService syncProviderService) {
         this.syncProviderService = syncProviderService;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
 
     /**
      * Sync a specific provider's data.
      * This endpoint allows syncing individual providers without affecting others.
      *
-     * @param principal The authenticated user principal (optional)
+     * @param user The authenticated user from HTTP-only cookie
      * @param providerId The provider to sync (e.g., "coinbase", "kraken")
-     * @param authHeader The authorization header (optional)
-     * @param userIdParam The user ID as query parameter (optional, for development/testing)
      * @return Sync result with status and updated data
      */
     @PostMapping("/{providerId}/sync")
     public ResponseEntity<Map<String, Object>> syncProvider(
-            Principal principal,
-            @PathVariable String providerId,
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
+            @AuthUser AuthenticatedUser user,
+            @PathVariable String providerId) {
 
-        // Try to extract user ID from the principal (session-based auth) first
-        String userId = principal != null ? principal.getName() : null;
-        log.info("SyncProvider: Principal userId: {}, AuthHeader present: {}, Query param userId: {}",
-                userId, authHeader != null, userIdParam);
-
-        // If session auth failed, try token-based auth as fallback
-        if (userId == null && authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                var validationResult = sessionAuthBusiness.validateToken(token);
-                if (validationResult.isPresent()) {
-                    userId = validationResult.get().getUserId();
-                    log.info("Provider sync authenticated via Bearer token for user: {}", userId);
-                } else {
-                    log.warn("Invalid Bearer token provided for provider sync");
-                }
-            } catch (Exception e) {
-                log.warn("Error validating Bearer token for provider sync: {}", e.getMessage());
-            }
-        }
-
-        // If both session and token auth failed, try query parameter (for development/testing)
-        if (userId == null && userIdParam != null && !userIdParam.trim().isEmpty()) {
-            userId = userIdParam;
-            log.info("Provider sync using userId from query parameter: {}", userId);
-        }
-
-        if (userId == null) {
-            log.error("No valid authentication session, token, or userId parameter for provider sync");
-            throw new StrategizException(
-                ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
-                getModuleName(),
-                providerId,
-                "User not authenticated"
-            );
-        }
+        String userId = user.getUserId();
+        log.info("SyncProvider: userId: {}, providerId: {}", userId, providerId);
 
         try {
             // Sync the specific provider

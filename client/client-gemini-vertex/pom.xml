@@ -11,9 +11,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>client-gemini</artifactId>
+    <artifactId>client-gemini-vertex</artifactId>
 
-    <description>Google Gemini AI client for Strategiz platform</description>
+    <description>Google Gemini client via Google Vertex AI for Strategiz platform</description>
 
     <dependencies>
         <!-- Spring Framework -->
@@ -30,11 +30,17 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
-        <!-- Google Generative AI (Gemini) SDK -->
+        <!-- Google Cloud Vertex AI SDK -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-vertexai</artifactId>
             <version>1.8.0</version>
+        </dependency>
+
+        <!-- Google Auth for service account credentials -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
         </dependency>
 
         <!-- Jackson for JSON processing -->
@@ -47,7 +53,7 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <!-- Client Base -->
+        <!-- Client Base (includes LLMProvider interface) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-base</artifactId>
@@ -58,13 +64,6 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>framework-exception</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- Framework Secrets for Vault integration -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>framework-secrets</artifactId>
             <version>${project.version}</version>
         </dependency>
 

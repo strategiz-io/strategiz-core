@@ -31,10 +31,10 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Gemini Client -->
+        <!-- Gemini Vertex Client -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-gemini</artifactId>
+            <artifactId>client-gemini-vertex</artifactId>
             <version>${project.version}</version>
         </dependency>
 

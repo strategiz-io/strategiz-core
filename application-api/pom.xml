@@ -107,11 +107,14 @@
             <artifactId>service-provider</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Temporarily disabled due to dependency issues with client-gemini-vertex -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-labs</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-live-strategies</artifactId>

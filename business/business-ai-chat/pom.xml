@@ -45,10 +45,10 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- OpenAI Client -->
+        <!-- OpenAI Vertex Client -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-openai</artifactId>
+            <artifactId>client-openai-vertex</artifactId>
             <version>${project.version}</version>
         </dependency>
 

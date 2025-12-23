@@ -353,7 +353,7 @@ public class SessionController extends BaseController {
 
     /**
      * Get active sessions for current user (new architecture)
-     * 
+     *
      * @param httpRequest HTTP servlet request containing session
      * @return List of active sessions for the user
      */
@@ -361,16 +361,16 @@ public class SessionController extends BaseController {
     public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getUserSessions(
             jakarta.servlet.http.HttpServletRequest httpRequest) {
         log.info("Getting user active sessions");
-        
+
         java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
-        
+
         if (validationOpt.isEmpty()) {
             throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
         }
-        
+
         String userId = validationOpt.get().getUserId();
         java.util.List<io.strategiz.data.session.entity.SessionEntity> sessions = sessionService.getUserActiveSessions(userId);
-        
+
         java.util.List<java.util.Map<String, Object>> sessionList = sessions.stream()
             .map(session -> {
                 java.util.Map<String, Object> sessionMap = new java.util.HashMap<>();
@@ -383,7 +383,48 @@ public class SessionController extends BaseController {
                 return sessionMap;
             })
             .collect(java.util.stream.Collectors.toList());
-        
+
         return ResponseEntity.ok(sessionList);
+    }
+
+    /**
+     * Session heartbeat endpoint - lightweight session refresh
+     *
+     * Called by frontend to:
+     * - Verify session is still valid
+     * - Refresh session expiry on user activity
+     * - Keep active users logged in
+     *
+     * @param httpRequest HTTP servlet request containing session cookie
+     * @return Simple success response if session is valid, 401 if not
+     */
+    @GetMapping("/heartbeat")
+    public ResponseEntity<java.util.Map<String, Object>> sessionHeartbeat(
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        log.debug("Session heartbeat check");
+
+        try {
+            // Validate session - this also updates lastAccessedAt
+            java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+
+            if (validationOpt.isEmpty()) {
+                log.debug("Heartbeat - no valid session");
+                return ResponseEntity.status(401).build();
+            }
+
+            SessionValidationResult validation = validationOpt.get();
+
+            // Return minimal session info
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("status", "active");
+            response.put("userId", validation.getUserId());
+            response.put("expiresAt", validation.getExpiresAt().getEpochSecond());
+            response.put("sessionRefreshed", true);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error processing heartbeat: {}", e.getMessage());
+            return ResponseEntity.status(401).build();
+        }
     }
 }

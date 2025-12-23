@@ -1,0 +1,52 @@
+# Cloud Build configuration for Strategiz API
+# This builds and deploys the application to Cloud Run
+
+steps:
+  # Build the application using Maven
+  - name: 'maven:3.9.6-eclipse-temurin-21'
+    entrypoint: 'mvn'
+    args: ['clean', 'package', '-DskipTests']
+
+  # Build the Docker image (with --no-cache to ensure fresh build)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '--no-cache', '-t', 'gcr.io/$PROJECT_ID/strategiz-api', '.']
+
+  # Push the Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-api']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'strategiz-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/strategiz-api'
+      - '--region'
+      - 'us-east1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '2'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--port'
+      - '8080'
+      - '--set-env-vars'
+      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
+      - '--set-secrets'
+      - 'VAULT_TOKEN=vault-root-token:latest'
+
+# Build options - use E2_HIGHCPU_8 for faster builds
+options:
+  machineType: 'E2_HIGHCPU_8'
+
+# Build timeout (30 minutes)
+timeout: '1800s'

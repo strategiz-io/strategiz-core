@@ -58,7 +58,10 @@ public class PasskeyAuthenticationController extends BaseController {
 
     @Autowired
     private CookieUtil cookieUtil;
-    
+
+    @Autowired
+    private io.strategiz.service.auth.service.AuthTokenService authTokenService;
+
     // Constructor to log controller initialization
     public PasskeyAuthenticationController() {
         log.info("PasskeyAuthenticationController constructor called - endpoints will be registered at /v1/auth/passkeys/*");
@@ -108,11 +111,12 @@ public class PasskeyAuthenticationController extends BaseController {
     public ResponseEntity<AuthenticationResponse> completeAuthentication(
             @PathVariable String authenticationId,
             @RequestBody @Valid PasskeyAuthenticationCompletionRequest request,
+            @RequestParam(value = "redirect", required = false) String redirectUrl,
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) {
 
         logRequest("completeAuthentication", request.credentialId());
-        
+
         // Extract client IP address
         String ipAddress = servletRequest.getRemoteAddr();
         
@@ -171,14 +175,30 @@ public class PasskeyAuthenticationController extends BaseController {
                 // Continue without user data - tokens are more important
             }
         }
-        
-        // Create response with tokens and user data
-        AuthenticationResponse response = AuthenticationResponse.create(
-            result.accessToken(),
-            result.refreshToken(),
-            userInfo
-        );
-        
+
+        // Generate one-time auth token if redirect URL is provided (for cross-app SSO)
+        String tokenRelayUrl = null;
+        if (redirectUrl != null && !redirectUrl.isEmpty()) {
+            try {
+                log.info("Generating one-time auth token for cross-app redirect to: {}", redirectUrl);
+                String token = authTokenService.generateToken(result.userId(), redirectUrl, ipAddress);
+
+                // Build redirect URL with token
+                String separator = redirectUrl.contains("?") ? "&" : "?";
+                tokenRelayUrl = redirectUrl + separator + "auth_token=" + token;
+
+                log.info("One-time auth token generated for user {}, redirect URL: {}", result.userId(), tokenRelayUrl);
+            } catch (Exception e) {
+                log.error("Failed to generate one-time auth token: {}", e.getMessage());
+                // Continue without token - user can still authenticate via cookies
+            }
+        }
+
+        // Create response with tokens, user data, and optional redirect URL
+        AuthenticationResponse response = tokenRelayUrl != null
+            ? AuthenticationResponse.createWithRedirect(result.accessToken(), result.refreshToken(), userInfo, tokenRelayUrl)
+            : AuthenticationResponse.create(result.accessToken(), result.refreshToken(), userInfo);
+
         logRequestSuccess("completeAuthentication", result.userId(), response);
         // Return clean response - headers added by StandardHeadersInterceptor
         return createCleanResponse(response);

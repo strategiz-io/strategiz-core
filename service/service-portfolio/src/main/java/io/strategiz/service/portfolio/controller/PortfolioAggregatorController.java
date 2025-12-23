@@ -5,7 +5,9 @@ import io.strategiz.service.portfolio.constants.ServicePortfolioConstants;
 import io.strategiz.service.portfolio.model.response.PortfolioSummaryResponse;
 import io.strategiz.service.portfolio.model.response.PortfolioOverviewResponse;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.business.tokenauth.SessionAuthBusiness;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 
@@ -15,8 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 /**
  * REST controller for aggregated portfolio data across all connected providers.
  * This controller reads from stored provider_data in Firestore and returns
@@ -25,19 +25,17 @@ import java.util.Optional;
 @RestController
 @RequestMapping(ServicePortfolioConstants.BASE_PATH)
 @CrossOrigin(origins = "${strategiz.cors.allowed-origins:*}")
+@RequireAuth(minAcr = "1")
 public class PortfolioAggregatorController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioAggregatorController.class);
 
     private final PortfolioAggregatorService portfolioAggregatorService;
-    private final SessionAuthBusiness sessionAuthBusiness;
 
     @Autowired
     public PortfolioAggregatorController(
-            PortfolioAggregatorService portfolioAggregatorService,
-            SessionAuthBusiness sessionAuthBusiness) {
+            PortfolioAggregatorService portfolioAggregatorService) {
         this.portfolioAggregatorService = portfolioAggregatorService;
-        this.sessionAuthBusiness = sessionAuthBusiness;
     }
 
     @Override
@@ -48,82 +46,55 @@ public class PortfolioAggregatorController extends BaseController {
     /**
      * Get lightweight portfolio summary for dashboard.
      * Returns only essential data for quick loading.
-     * 
-     * @param authHeader Authorization header with bearer token
+     *
+     * @param user Authenticated user from HTTP-only cookie
      * @return Summary data with total value, day change, and top holdings
      */
     @GetMapping(ServicePortfolioConstants.SUMMARY_PATH)
-    public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        String userId = extractUserIdFromToken(authHeader);
-        if (userId == null) {
-            log.error("No valid authentication token provided for portfolio summary");
-            throw new StrategizException(ErrorCode.AUTHENTICATION_ERROR, 
-                ServicePortfolioConstants.ERROR_NO_AUTH);
-        }
-        
+    public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(@AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
         log.info("Fetching portfolio summary for user: {}", userId);
-        
+
         try {
             PortfolioSummaryResponse summaryData = portfolioAggregatorService.getPortfolioSummary(userId);
             return ResponseEntity.ok(summaryData);
-            
+
         } catch (Exception e) {
             log.error("Error fetching portfolio summary for user {}: {}", userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, 
-                ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
-        }
-    }
-    
-    /**
-     * Get complete portfolio overview for portfolio page.
-     * This endpoint aggregates data from all connected providers.
-     * 
-     * @param authHeader Authorization header with bearer token
-     * @return Full portfolio data including all providers and holdings
-     */
-    @GetMapping(ServicePortfolioConstants.OVERVIEW_PATH)
-    public ResponseEntity<PortfolioOverviewResponse> getPortfolioOverview(
-            @RequestHeader(value = "Authorization", required = false) String authHeader) {
-        
-        String userId = extractUserIdFromToken(authHeader);
-        if (userId == null) {
-            log.error("No valid authentication token provided for portfolio overview");
-            throw new StrategizException(ErrorCode.AUTHENTICATION_ERROR, 
-                ServicePortfolioConstants.ERROR_NO_AUTH);
-        }
-        
-        log.info("Fetching portfolio overview for user: {}", userId);
-        
-        try {
-            PortfolioOverviewResponse portfolioData = portfolioAggregatorService.getPortfolioOverview(userId);
-            
-            // Log summary for debugging
-            if (portfolioData.getProviders() != null) {
-                int providerCount = portfolioData.getProviders().size();
-                log.info("Returning portfolio data for user {} with {} provider(s)", userId, providerCount);
-            }
-            
-            return ResponseEntity.ok(portfolioData);
-            
-        } catch (Exception e) {
-            log.error("Error fetching portfolio overview for user {}: {}", userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR, 
+            throw new StrategizException(ErrorCode.INTERNAL_ERROR,
                 ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
         }
     }
 
     /**
-     * Extract user ID from the authorization token
+     * Get complete portfolio overview for portfolio page.
+     * This endpoint aggregates data from all connected providers.
+     *
+     * @param user Authenticated user from HTTP-only cookie
+     * @return Full portfolio data including all providers and holdings
      */
-    private String extractUserIdFromToken(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return null;
+    @GetMapping(ServicePortfolioConstants.OVERVIEW_PATH)
+    public ResponseEntity<PortfolioOverviewResponse> getPortfolioOverview(@AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
+        log.info("Fetching portfolio overview for user: {}", userId);
+
+        try {
+            PortfolioOverviewResponse portfolioData = portfolioAggregatorService.getPortfolioOverview(userId);
+
+            // Log summary for debugging
+            if (portfolioData.getProviders() != null) {
+                int providerCount = portfolioData.getProviders().size();
+                log.info("Returning portfolio data for user {} with {} provider(s)", userId, providerCount);
+            }
+
+            return ResponseEntity.ok(portfolioData);
+
+        } catch (Exception e) {
+            log.error("Error fetching portfolio overview for user {}: {}", userId, e.getMessage(), e);
+            throw new StrategizException(ErrorCode.INTERNAL_ERROR,
+                ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
         }
-        
-        String token = authHeader.substring(7);
-        Optional<String> userIdOpt = sessionAuthBusiness.validateSession(token);
-        return userIdOpt.orElse(null);
     }
 }

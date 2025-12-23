@@ -76,7 +76,7 @@
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
         <module>client/client-alpaca</module>
-        <module>client/client-gemini</module>
+        <module>client/client-gemini-vertex</module>
         <module>client/client-openai-vertex</module>
         <module>client/client-robinhood</module>
         <module>client/client-sms</module>

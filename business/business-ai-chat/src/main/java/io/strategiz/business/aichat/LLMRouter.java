@@ -46,6 +46,7 @@ public class LLMRouter {
 	 */
 	public Mono<LLMResponse> generateContent(String prompt, List<LLMMessage> history, String model) {
 		String targetModel = resolveModel(model);
+
 		LLMProvider provider = getProviderForModel(targetModel);
 
 		if (provider == null) {
@@ -66,6 +67,7 @@ public class LLMRouter {
 	 */
 	public Flux<LLMResponse> generateContentStream(String prompt, List<LLMMessage> history, String model) {
 		String targetModel = resolveModel(model);
+
 		LLMProvider provider = getProviderForModel(targetModel);
 
 		if (provider == null) {
@@ -105,7 +107,8 @@ public class LLMRouter {
 
 		// Mark models as available based on registered providers
 		for (ModelInfo model : models) {
-			model.setAvailable(providersByModel.containsKey(model.getId()));
+			boolean providerRegistered = providersByModel.containsKey(model.getId());
+			model.setAvailable(providerRegistered);
 		}
 
 		return models;

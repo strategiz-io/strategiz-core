@@ -28,10 +28,32 @@ public class FeatureFlagService {
     private final FeatureFlagRepository repository;
 
     // Well-known feature flag IDs
+
+    // Provider flags
     public static final String FLAG_PLAID_ENABLED = "plaid_enabled";
     public static final String FLAG_ROBINHOOD_ENABLED = "robinhood_enabled";
-    public static final String FLAG_AI_CHAT_ENABLED = "ai_chat_enabled";
     public static final String FLAG_TRADING_ENABLED = "trading_enabled";
+
+    // AI - Holistic level (entire features)
+    public static final String FLAG_AI_LEARN_ENABLED = "ai_learn_enabled";
+    public static final String FLAG_AI_LABS_ENABLED = "ai_labs_enabled";
+
+    // AI - Provider level (all models from a provider)
+    public static final String FLAG_AI_PROVIDER_GEMINI = "ai_provider_gemini_enabled";
+    public static final String FLAG_AI_PROVIDER_CLAUDE = "ai_provider_claude_enabled";
+    public static final String FLAG_AI_PROVIDER_OPENAI = "ai_provider_openai_enabled";
+
+    // AI - Model level (individual models)
+    public static final String FLAG_AI_MODEL_GEMINI_2_FLASH = "ai_model_gemini_2_flash";
+    public static final String FLAG_AI_MODEL_GEMINI_3_FLASH = "ai_model_gemini_3_flash";
+    public static final String FLAG_AI_MODEL_GEMINI_3_PRO = "ai_model_gemini_3_pro";
+    public static final String FLAG_AI_MODEL_GPT_4O_MINI = "ai_model_gpt_4o_mini";
+    public static final String FLAG_AI_MODEL_GPT_4O = "ai_model_gpt_4o";
+    public static final String FLAG_AI_MODEL_O1_MINI = "ai_model_o1_mini";
+    public static final String FLAG_AI_MODEL_O1 = "ai_model_o1";
+    public static final String FLAG_AI_MODEL_CLAUDE_HAIKU_4_5 = "ai_model_claude_haiku_4_5";
+    public static final String FLAG_AI_MODEL_CLAUDE_SONNET_4 = "ai_model_claude_sonnet_4";
+    public static final String FLAG_AI_MODEL_CLAUDE_OPUS_4_5 = "ai_model_claude_opus_4_5";
 
     @Autowired
     public FeatureFlagService(FeatureFlagRepository repository) {
@@ -42,18 +64,65 @@ public class FeatureFlagService {
     public void initializeDefaultFlags() {
         log.info("Initializing default feature flags...");
 
-        // Create default flags if they don't exist
+        // Provider flags
         createDefaultFlag(FLAG_PLAID_ENABLED, "Plaid Integration",
             "Enable Plaid Link for connecting brokerage accounts", false, "providers");
 
         createDefaultFlag(FLAG_ROBINHOOD_ENABLED, "Robinhood Integration",
             "Enable direct Robinhood credential-based integration", true, "providers");
 
-        createDefaultFlag(FLAG_AI_CHAT_ENABLED, "AI Chat",
-            "Enable AI chat features", true, "ai");
-
         createDefaultFlag(FLAG_TRADING_ENABLED, "Live Trading",
             "Enable live trading (paper trading always available)", false, "trading");
+
+        // AI - Holistic level
+        createDefaultFlag(FLAG_AI_LEARN_ENABLED, "AI Learn Chat",
+            "Enable Learn AI Chat assistant for trading education", true, "ai");
+
+        createDefaultFlag(FLAG_AI_LABS_ENABLED, "AI Labs Strategy Generator",
+            "Enable Labs AI-powered strategy generation", true, "ai");
+
+        // AI - Provider level
+        createDefaultFlag(FLAG_AI_PROVIDER_GEMINI, "Gemini Provider",
+            "Enable all Google Gemini models", true, "ai");
+
+        createDefaultFlag(FLAG_AI_PROVIDER_CLAUDE, "Claude Provider",
+            "Enable all Anthropic Claude models via Vertex AI", true, "ai");
+
+        createDefaultFlag(FLAG_AI_PROVIDER_OPENAI, "OpenAI Provider",
+            "Enable all OpenAI models (GPT-4, o1, etc.)", true, "ai");
+
+        // AI - Model level (Gemini)
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_2_FLASH, "Gemini 2.0 Flash",
+            "Fast & capable Gemini model", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_3_FLASH, "Gemini 3 Flash Preview",
+            "Frontier intelligence, 3x faster than 2.5 Pro", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_3_PRO, "Gemini 3 Pro Preview",
+            "Most intelligent, PhD-level reasoning", true, "ai");
+
+        // AI - Model level (OpenAI)
+        createDefaultFlag(FLAG_AI_MODEL_GPT_4O_MINI, "GPT-4o Mini",
+            "Fast & affordable OpenAI model", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_GPT_4O, "GPT-4o",
+            "Powerful multimodal flagship model", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_O1_MINI, "o1 Mini",
+            "Fast reasoning model", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_O1, "o1",
+            "Best reasoning model (expensive)", true, "ai");
+
+        // AI - Model level (Claude)
+        createDefaultFlag(FLAG_AI_MODEL_CLAUDE_HAIKU_4_5, "Claude Haiku 4.5",
+            "Fast & affordable Claude model", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_CLAUDE_SONNET_4, "Claude Sonnet 4",
+            "Balanced performance Claude model", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_CLAUDE_OPUS_4_5, "Claude Opus 4.5",
+            "Best for coding & agents (expensive)", true, "ai");
 
         // Refresh cache after initialization
         refreshCache();
@@ -109,6 +178,77 @@ public class FeatureFlagService {
      */
     public boolean isRobinhoodEnabled() {
         return isEnabled(FLAG_ROBINHOOD_ENABLED);
+    }
+
+    /**
+     * Check if Learn AI Chat is enabled.
+     */
+    public boolean isLearnAIEnabled() {
+        return isEnabled(FLAG_AI_LEARN_ENABLED);
+    }
+
+    /**
+     * Check if Labs AI Strategy Generator is enabled.
+     */
+    public boolean isLabsAIEnabled() {
+        return isEnabled(FLAG_AI_LABS_ENABLED);
+    }
+
+    /**
+     * Check if a specific AI model is enabled (checks both provider and model flags).
+     * Hierarchy: Feature > Provider > Model (all must be enabled)
+     */
+    public boolean isAIModelEnabled(String modelId) {
+        // Determine provider from model ID
+        String providerFlag;
+        String modelFlag;
+
+        if (modelId.startsWith("gemini")) {
+            providerFlag = FLAG_AI_PROVIDER_GEMINI;
+            modelFlag = getModelFlagForId(modelId);
+        } else if (modelId.startsWith("gpt") || modelId.startsWith("o1")) {
+            providerFlag = FLAG_AI_PROVIDER_OPENAI;
+            modelFlag = getModelFlagForId(modelId);
+        } else if (modelId.startsWith("claude")) {
+            providerFlag = FLAG_AI_PROVIDER_CLAUDE;
+            modelFlag = getModelFlagForId(modelId);
+        } else {
+            log.warn("Unknown model provider for: {}", modelId);
+            return false;
+        }
+
+        // Check provider flag first (if provider disabled, all models disabled)
+        if (!isEnabled(providerFlag)) {
+            log.debug("Provider {} disabled for model {}", providerFlag, modelId);
+            return false;
+        }
+
+        // Check model-specific flag
+        if (modelFlag != null && !isEnabled(modelFlag)) {
+            log.debug("Model flag {} disabled", modelFlag);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Map model ID to feature flag constant.
+     */
+    private String getModelFlagForId(String modelId) {
+        return switch (modelId) {
+            case "gemini-2.0-flash" -> FLAG_AI_MODEL_GEMINI_2_FLASH;
+            case "gemini-3-flash-preview" -> FLAG_AI_MODEL_GEMINI_3_FLASH;
+            case "gemini-3-pro-preview" -> FLAG_AI_MODEL_GEMINI_3_PRO;
+            case "gpt-4o-mini" -> FLAG_AI_MODEL_GPT_4O_MINI;
+            case "gpt-4o" -> FLAG_AI_MODEL_GPT_4O;
+            case "o1-mini" -> FLAG_AI_MODEL_O1_MINI;
+            case "o1" -> FLAG_AI_MODEL_O1;
+            case "claude-haiku-4-5" -> FLAG_AI_MODEL_CLAUDE_HAIKU_4_5;
+            case "claude-sonnet-4" -> FLAG_AI_MODEL_CLAUDE_SONNET_4;
+            case "claude-opus-4-5" -> FLAG_AI_MODEL_CLAUDE_OPUS_4_5;
+            default -> null;
+        };
     }
 
     /**

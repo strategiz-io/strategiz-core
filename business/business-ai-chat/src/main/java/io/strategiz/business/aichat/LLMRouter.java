@@ -103,7 +103,6 @@ public class LLMRouter {
 		List<ModelInfo> models = new ArrayList<>();
 
 		// Gemini models (latest first)
-		models.add(new ModelInfo("gemini-2.0-flash", "Gemini 2.0 Flash", "google", "Fast & capable"));
 		models.add(new ModelInfo("gemini-3-flash-preview", "Gemini 3 Flash", "google",
 				"Frontier intelligence, 3x faster than 2.5 Pro"));
 		models.add(new ModelInfo("gemini-3-pro-preview", "Gemini 3 Pro", "google",

@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * DataSource configuration for TimescaleDB.
- * Creates a separate datasource, entity manager, and transaction manager
+ * JPA configuration for TimescaleDB market data.
+ * Creates datasource, entity manager, and transaction manager
  * for market data, isolated from the Firestore configuration.
  */
 @Configuration
@@ -34,14 +34,14 @@ import java.util.Map;
     entityManagerFactoryRef = "timescaleEntityManagerFactory",
     transactionManagerRef = "timescaleTransactionManager"
 )
-public class TimescaleDataSourceConfig {
+public class TimescaleJpaConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(TimescaleDataSourceConfig.class);
+    private static final Logger log = LoggerFactory.getLogger(TimescaleJpaConfig.class);
 
     private final TimescaleProperties properties;
     private final SecretManager secretManager;
 
-    public TimescaleDataSourceConfig(TimescaleProperties properties, SecretManager secretManager) {
+    public TimescaleJpaConfig(TimescaleProperties properties, SecretManager secretManager) {
         this.properties = properties;
         this.secretManager = secretManager;
     }

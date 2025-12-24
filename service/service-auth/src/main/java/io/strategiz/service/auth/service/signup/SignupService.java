@@ -133,11 +133,13 @@ public class SignupService {
         logger.info("Initializing default watchlist for user: {}", userId);
 
         // Define default symbols with types
-        // NOTE: Only crypto is supported currently (Yahoo Finance requires cookies for stocks)
         List<DefaultSymbol> defaultSymbols = Arrays.asList(
-            new DefaultSymbol("BTC", "CRYPTO", "Bitcoin"),
-            new DefaultSymbol("ETH", "CRYPTO", "Ethereum"),
-            new DefaultSymbol("SOL", "CRYPTO", "Solana")
+            new DefaultSymbol("TSLA", "STOCK", "Tesla Inc."),
+            new DefaultSymbol("GOOGL", "STOCK", "Alphabet Inc."),
+            new DefaultSymbol("AMZN", "STOCK", "Amazon.com Inc."),
+            new DefaultSymbol("QQQ", "ETF", "Invesco QQQ Trust"),
+            new DefaultSymbol("SPY", "ETF", "SPDR S&P 500 ETF"),
+            new DefaultSymbol("NVDA", "STOCK", "NVIDIA Corporation")
         );
 
         int successCount = 0;

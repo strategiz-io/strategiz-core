@@ -133,13 +133,11 @@ public class SignupService {
         logger.info("Initializing default watchlist for user: {}", userId);
 
         // Define default symbols with types
+        // NOTE: Only crypto is supported currently (Yahoo Finance requires cookies for stocks)
         List<DefaultSymbol> defaultSymbols = Arrays.asList(
             new DefaultSymbol("BTC", "CRYPTO", "Bitcoin"),
-            new DefaultSymbol("TSLA", "STOCK", "Tesla"),
-            new DefaultSymbol("NVDA", "STOCK", "NVIDIA"),
-            new DefaultSymbol("SPY", "ETF", "S&P 500 ETF"),
-            new DefaultSymbol("AMZN", "STOCK", "Amazon"),
-            new DefaultSymbol("GOOGL", "STOCK", "Alphabet")
+            new DefaultSymbol("ETH", "CRYPTO", "Ethereum"),
+            new DefaultSymbol("SOL", "CRYPTO", "Solana")
         );
 
         int successCount = 0;
@@ -177,33 +175,37 @@ public class SignupService {
     /**
      * Enrich watchlist item with market data.
      * Logic copied from WatchlistService to avoid service-to-service dependency.
+     *
+     * IMPORTANT: This method MUST successfully fetch market data or throw an exception.
+     * Only crypto (CRYPTO type) is supported currently.
+     *
+     * @throws RuntimeException if market data cannot be fetched
      */
     private void enrichWatchlistItem(WatchlistItemEntity entity) {
         String symbol = entity.getSymbol();
         String type = entity.getType().toUpperCase();
 
-        // Try Yahoo Finance first (supports both stocks and crypto)
-        try {
-            enrichFromYahooFinance(entity);
-            logger.debug("Enriched {} from Yahoo Finance", symbol);
-            return;
-        } catch (Exception e) {
-            logger.debug("Yahoo Finance enrichment failed for {}: {}", symbol, e.getMessage());
-        }
-
-        // If Yahoo Finance failed AND it's crypto, try CoinGecko as fallback
+        // Only crypto is supported (stocks require Yahoo Finance cookies)
         if ("CRYPTO".equalsIgnoreCase(type)) {
             try {
                 enrichFromCoinGecko(entity);
-                logger.debug("Enriched {} from CoinGecko fallback", symbol);
+                logger.info("Enriched {} from CoinGecko", symbol);
+
+                // Validate that we actually got the required data
+                if (entity.getCurrentPrice() == null) {
+                    throw new RuntimeException("Market data fetch returned null price for " + symbol);
+                }
+
                 return;
             } catch (Exception e) {
-                logger.debug("CoinGecko fallback failed for {}: {}", symbol, e.getMessage());
+                logger.error("CoinGecko enrichment failed for {}: {}", symbol, e.getMessage());
+                throw new RuntimeException("Cannot fetch market data for " + symbol + ": " + e.getMessage());
             }
         }
 
-        // Both APIs failed - log warning but continue (entity saved with nulls)
-        logger.warn("Could not enrich {} with market data", symbol);
+        // Stocks/ETFs not supported yet - throw exception
+        logger.error("Stock/ETF market data fetch not implemented yet for {}", symbol);
+        throw new RuntimeException("Market data fetch for stocks/ETFs not yet available. Only crypto (CRYPTO type) is supported.");
     }
 
     /**

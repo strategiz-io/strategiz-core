@@ -65,19 +65,33 @@ public class AIStrategyController extends BaseController {
 		}
 
 		// Check if user can send AI message (within limits)
-		if (!subscriptionService.canSendMessage(userId)) {
-			logger.warn("User {} exceeded daily AI chat limit", userId);
-			return ResponseEntity.status(429)
-				.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+		// Gracefully handle subscription check errors - allow request if check fails
+		try {
+			if (!subscriptionService.canSendMessage(userId)) {
+				logger.warn("User {} exceeded daily AI chat limit", userId);
+				return ResponseEntity.status(429)
+					.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+			}
+		}
+		catch (Exception e) {
+			logger.warn("Error checking subscription limits for user {}, allowing request", userId, e);
+			// Continue with request - fail open for subscription checks
 		}
 
 		try {
 			AIStrategyResponse response = aiStrategyService.generateStrategy(request);
 
 			// Record usage after successful generation
+			// Gracefully handle usage recording errors - don't fail the request
 			if (response != null && response.isSuccess()) {
-				subscriptionService.recordMessageUsage(userId);
-				logger.debug("Recorded AI chat usage for user {}", userId);
+				try {
+					subscriptionService.recordMessageUsage(userId);
+					logger.debug("Recorded AI chat usage for user {}", userId);
+				}
+				catch (Exception e) {
+					logger.error("Error recording AI chat usage for user {}", userId, e);
+					// Continue despite recording error
+				}
 			}
 
 			return ResponseEntity.ok(response);
@@ -107,18 +121,33 @@ public class AIStrategyController extends BaseController {
 		}
 
 		// Check if user can send AI message (refinement counts as AI chat)
-		if (!subscriptionService.canSendMessage(userId)) {
-			logger.warn("User {} exceeded daily AI chat limit", userId);
-			return ResponseEntity.status(429)
-				.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+		// Gracefully handle subscription check errors - allow request if check fails
+		try {
+			if (!subscriptionService.canSendMessage(userId)) {
+				logger.warn("User {} exceeded daily AI chat limit", userId);
+				return ResponseEntity.status(429)
+					.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+			}
+		}
+		catch (Exception e) {
+			logger.warn("Error checking subscription limits for user {}, allowing request", userId, e);
+			// Continue with request - fail open for subscription checks
 		}
 
 		try {
 			AIStrategyResponse response = aiStrategyService.refineStrategy(request);
 
 			// Record usage after successful refinement
+			// Gracefully handle usage recording errors - don't fail the request
 			if (response != null && response.isSuccess()) {
-				subscriptionService.recordMessageUsage(userId);
+				try {
+					subscriptionService.recordMessageUsage(userId);
+					logger.debug("Recorded AI chat usage for user {}", userId);
+				}
+				catch (Exception e) {
+					logger.error("Error recording AI chat usage for user {}", userId, e);
+					// Continue despite recording error
+				}
 			}
 
 			return ResponseEntity.ok(response);

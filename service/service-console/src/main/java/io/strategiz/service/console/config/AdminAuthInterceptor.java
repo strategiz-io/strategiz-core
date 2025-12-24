@@ -44,12 +44,12 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        log.debug("Admin auth check for path: {}", requestPath);
+        logger.debug("Admin auth check for path: {}", requestPath);
 
         // Extract session token from cookie
         String sessionToken = extractSessionToken(request);
         if (sessionToken == null) {
-            log.warn("No session token found for admin request: {}", requestPath);
+            logger.warn("No session token found for admin request: {}", requestPath);
             response.sendError(HttpStatus.UNAUTHORIZED.value(), "Authentication required");
             return false;
         }
@@ -57,7 +57,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         // Validate session and get user ID
         Optional<String> userIdOpt = sessionAuthBusiness.validateSession(sessionToken);
         if (userIdOpt.isEmpty()) {
-            log.warn("Invalid session for admin request: {}", requestPath);
+            logger.warn("Invalid session for admin request: {}", requestPath);
             response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired session");
             return false;
         }
@@ -67,7 +67,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         // Check if user has admin role
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            log.warn("User not found for admin request: userId={}", userId);
+            logger.warn("User not found for admin request: userId={}", userId);
             response.sendError(HttpStatus.UNAUTHORIZED.value(), "User not found");
             return false;
         }
@@ -76,7 +76,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         String role = user.getProfile() != null ? user.getProfile().getRole() : null;
 
         if (!ADMIN_ROLE.equals(role)) {
-            log.warn("Non-admin user attempted admin access: userId={}, role={}, path={}",
+            logger.warn("Non-admin user attempted admin access: userId={}, role={}, path={}",
                 userId, role, requestPath);
             response.sendError(HttpStatus.FORBIDDEN.value(), "Admin access required");
             return false;
@@ -84,7 +84,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
         // Set user ID in request attribute for controllers to use
         request.setAttribute("adminUserId", userId);
-        log.info("Admin access granted: userId={}, path={}", userId, requestPath);
+        logger.info("Admin access granted: userId={}, path={}", userId, requestPath);
 
         return true;
     }

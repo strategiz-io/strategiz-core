@@ -42,6 +42,9 @@ public class FeatureFlagService {
     public static final String FLAG_AI_PROVIDER_GEMINI = "ai_provider_gemini_enabled";
     public static final String FLAG_AI_PROVIDER_CLAUDE = "ai_provider_claude_enabled";
     public static final String FLAG_AI_PROVIDER_OPENAI = "ai_provider_openai_enabled";
+    public static final String FLAG_AI_PROVIDER_META = "ai_provider_meta_enabled";
+    public static final String FLAG_AI_PROVIDER_MISTRAL = "ai_provider_mistral_enabled";
+    public static final String FLAG_AI_PROVIDER_COHERE = "ai_provider_cohere_enabled";
 
     // AI - Model level (individual models)
     public static final String FLAG_AI_MODEL_GEMINI_2_FLASH = "ai_model_gemini_2_flash";
@@ -52,7 +55,7 @@ public class FeatureFlagService {
     public static final String FLAG_AI_MODEL_O1_MINI = "ai_model_o1_mini";
     public static final String FLAG_AI_MODEL_O1 = "ai_model_o1";
     public static final String FLAG_AI_MODEL_CLAUDE_HAIKU_4_5 = "ai_model_claude_haiku_4_5";
-    public static final String FLAG_AI_MODEL_CLAUDE_SONNET_4 = "ai_model_claude_sonnet_4";
+    public static final String FLAG_AI_MODEL_CLAUDE_SONNET_4_5 = "ai_model_claude_sonnet_4_5";
     public static final String FLAG_AI_MODEL_CLAUDE_OPUS_4_5 = "ai_model_claude_opus_4_5";
 
     @Autowired
@@ -91,6 +94,15 @@ public class FeatureFlagService {
         createDefaultFlag(FLAG_AI_PROVIDER_OPENAI, "OpenAI Provider",
             "Enable all OpenAI models (GPT-4, o1, etc.)", true, "ai");
 
+        createDefaultFlag(FLAG_AI_PROVIDER_META, "Meta Llama Provider",
+            "Enable all Meta Llama models via Vertex AI", true, "ai");
+
+        createDefaultFlag(FLAG_AI_PROVIDER_MISTRAL, "Mistral AI Provider",
+            "Enable all Mistral AI models via Vertex AI", true, "ai");
+
+        createDefaultFlag(FLAG_AI_PROVIDER_COHERE, "Cohere Provider",
+            "Enable all Cohere models via Vertex AI", true, "ai");
+
         // AI - Model level (Gemini)
         createDefaultFlag(FLAG_AI_MODEL_GEMINI_2_FLASH, "Gemini 2.0 Flash",
             "Fast & capable Gemini model", true, "ai");
@@ -118,7 +130,7 @@ public class FeatureFlagService {
         createDefaultFlag(FLAG_AI_MODEL_CLAUDE_HAIKU_4_5, "Claude Haiku 4.5",
             "Fast & affordable Claude model", true, "ai");
 
-        createDefaultFlag(FLAG_AI_MODEL_CLAUDE_SONNET_4, "Claude Sonnet 4",
+        createDefaultFlag(FLAG_AI_MODEL_CLAUDE_SONNET_4_5, "Claude Sonnet 4.5",
             "Balanced performance Claude model", true, "ai");
 
         createDefaultFlag(FLAG_AI_MODEL_CLAUDE_OPUS_4_5, "Claude Opus 4.5",
@@ -212,6 +224,15 @@ public class FeatureFlagService {
         } else if (modelId.startsWith("claude")) {
             providerFlag = FLAG_AI_PROVIDER_CLAUDE;
             modelFlag = getModelFlagForId(modelId);
+        } else if (modelId.startsWith("llama")) {
+            providerFlag = FLAG_AI_PROVIDER_META;
+            modelFlag = null; // No model-specific flags for Llama yet
+        } else if (modelId.startsWith("mistral")) {
+            providerFlag = FLAG_AI_PROVIDER_MISTRAL;
+            modelFlag = null; // No model-specific flags for Mistral yet
+        } else if (modelId.startsWith("command")) {
+            providerFlag = FLAG_AI_PROVIDER_COHERE;
+            modelFlag = null; // No model-specific flags for Cohere yet
         } else {
             log.warn("Unknown model provider for: {}", modelId);
             return false;
@@ -245,7 +266,7 @@ public class FeatureFlagService {
             case "o1-mini" -> FLAG_AI_MODEL_O1_MINI;
             case "o1" -> FLAG_AI_MODEL_O1;
             case "claude-haiku-4-5" -> FLAG_AI_MODEL_CLAUDE_HAIKU_4_5;
-            case "claude-sonnet-4" -> FLAG_AI_MODEL_CLAUDE_SONNET_4;
+            case "claude-sonnet-4-5" -> FLAG_AI_MODEL_CLAUDE_SONNET_4_5;
             case "claude-opus-4-5" -> FLAG_AI_MODEL_CLAUDE_OPUS_4_5;
             default -> null;
         };

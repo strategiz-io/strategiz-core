@@ -4,6 +4,8 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
@@ -99,10 +101,11 @@ public class PasskeyAuthenticationService extends BaseService {
      */
     public AuthenticationChallenge beginAuthentication() {
         log.info("Beginning passkey authentication");
-        
+
         // Validate real API connection
         if (!validateRealApiConnection("PasskeyAuthenticationService")) {
-            throw new IllegalStateException("Real API connection validation failed");
+            throw new StrategizException(ServiceAuthErrorDetails.CONFIGURATION_ERROR, "service-auth",
+                    "Real API connection validation failed");
         }
         
         // Generate challenge using SYSTEM user for authentication flows
@@ -264,11 +267,12 @@ public class PasskeyAuthenticationService extends BaseService {
         if (userId != null && !userId.isEmpty()) {
             return userId;
         }
-        
+
         // Otherwise, we need to extract from the repository implementation
         // The repository should handle this in the findByPasskeyCredentialId method
         // For now, throw exception as this should be handled by repository
-        throw new IllegalStateException("Unable to extract userId from authentication method. Repository implementation should handle this.");
+        throw new StrategizException(ServiceAuthErrorDetails.PASSKEY_RETRIEVAL_FAILED, "service-auth",
+                "Unable to extract userId from authentication method. Repository implementation should handle this.");
     }
     
     /**

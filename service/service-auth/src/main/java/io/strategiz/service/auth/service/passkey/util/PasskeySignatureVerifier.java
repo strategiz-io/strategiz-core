@@ -301,26 +301,29 @@ public class PasskeySignatureVerifier {
         try {
             // Parse DER structure: SEQUENCE { r INTEGER, s INTEGER }
             if (derSignature[0] != 0x30) {
-                throw new IllegalArgumentException("Not a valid DER sequence");
+                throw new StrategizException(ServiceAuthErrorDetails.PASSKEY_VERIFICATION_FAILED, "service-auth",
+                        "Not a valid DER sequence");
             }
-            
+
             int offset = 2; // Skip SEQUENCE tag and length
-            
+
             // Parse r value
             if (derSignature[offset] != 0x02) {
-                throw new IllegalArgumentException("Expected INTEGER tag for r");
+                throw new StrategizException(ServiceAuthErrorDetails.PASSKEY_VERIFICATION_FAILED, "service-auth",
+                        "Expected INTEGER tag for r");
             }
             offset++; // Skip INTEGER tag
             int rLength = derSignature[offset] & 0xFF;
             offset++; // Skip length byte
-            
+
             byte[] r = new byte[rLength];
             System.arraycopy(derSignature, offset, r, 0, rLength);
             offset += rLength;
-            
+
             // Parse s value
             if (derSignature[offset] != 0x02) {
-                throw new IllegalArgumentException("Expected INTEGER tag for s");
+                throw new StrategizException(ServiceAuthErrorDetails.PASSKEY_VERIFICATION_FAILED, "service-auth",
+                        "Expected INTEGER tag for s");
             }
             offset++; // Skip INTEGER tag
             int sLength = derSignature[offset] & 0xFF;

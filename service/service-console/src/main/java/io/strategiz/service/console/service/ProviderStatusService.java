@@ -1,5 +1,7 @@
 package io.strategiz.service.console.service;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.ProviderStatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +53,8 @@ public class ProviderStatusService {
     public ProviderStatusResponse getProvider(String providerName) {
         ProviderConfig config = KNOWN_PROVIDERS.get(providerName.toLowerCase());
         if (config == null) {
-            throw new IllegalArgumentException("Unknown provider: " + providerName);
+            throw new StrategizException(ServiceConsoleErrorDetails.PROVIDER_NOT_FOUND, "service-console",
+                    providerName);
         }
 
         ProviderStatusResponse response = new ProviderStatusResponse(
@@ -69,7 +72,8 @@ public class ProviderStatusService {
 
         ProviderConfig config = KNOWN_PROVIDERS.get(providerName.toLowerCase());
         if (config == null) {
-            throw new IllegalArgumentException("Unknown provider: " + providerName);
+            throw new StrategizException(ServiceConsoleErrorDetails.PROVIDER_NOT_FOUND, "service-console",
+                    providerName);
         }
 
         // TODO: Trigger actual provider sync via message queue or scheduler

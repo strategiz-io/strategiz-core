@@ -1,8 +1,7 @@
 package io.strategiz.service.auth.service.session;
 
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +14,15 @@ import java.util.Optional;
  * Will be deprecated in favor of server-side session management
  */
 @Service("tokenSessionService")
-public class TokenSessionService {
+public class TokenSessionService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(TokenSessionService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+
     private final SessionAuthBusiness sessionAuthBusiness;
-    
+
     public TokenSessionService(SessionAuthBusiness sessionAuthBusiness) {
         this.sessionAuthBusiness = sessionAuthBusiness;
         log.info("Using SessionAuthBusiness for token management");

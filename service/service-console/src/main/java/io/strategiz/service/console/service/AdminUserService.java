@@ -5,6 +5,8 @@ import io.strategiz.data.session.repository.SessionRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.AdminUserResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +63,7 @@ public class AdminUserService {
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found: " + userId);
+            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
         }
 
         return convertToResponse(userOpt.get());
@@ -72,14 +74,15 @@ public class AdminUserService {
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found: " + userId);
+            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
         }
 
         UserEntity user = userOpt.get();
 
         // Prevent admin from disabling themselves
         if (userId.equals(adminUserId)) {
-            throw new IllegalArgumentException("Cannot disable your own account");
+            throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
+                    "Cannot disable your own account");
         }
 
         // Set user as inactive
@@ -102,7 +105,7 @@ public class AdminUserService {
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found: " + userId);
+            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
         }
 
         UserEntity user = userOpt.get();
@@ -123,12 +126,13 @@ public class AdminUserService {
 
         Optional<SessionEntity> sessionOpt = sessionRepository.findById(sessionId);
         if (sessionOpt.isEmpty()) {
-            throw new IllegalArgumentException("Session not found: " + sessionId);
+            throw new StrategizException(ServiceConsoleErrorDetails.SESSION_NOT_FOUND, "service-console", sessionId);
         }
 
         SessionEntity session = sessionOpt.get();
         if (!session.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("Session does not belong to user");
+            throw new StrategizException(ServiceConsoleErrorDetails.SESSION_USER_MISMATCH, "service-console",
+                    "Session " + sessionId + " does not belong to user " + userId);
         }
 
         session.setRevoked(true);
@@ -142,12 +146,13 @@ public class AdminUserService {
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found: " + userId);
+            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
         }
 
         // Prevent admin from deleting themselves
         if (userId.equals(adminUserId)) {
-            throw new IllegalArgumentException("Cannot delete your own account");
+            throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
+                    "Cannot delete your own account");
         }
 
         // Terminate all sessions before deleting user

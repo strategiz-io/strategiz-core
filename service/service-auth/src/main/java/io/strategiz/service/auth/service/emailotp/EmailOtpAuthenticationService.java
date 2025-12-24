@@ -1,7 +1,6 @@
 package io.strategiz.service.auth.service.emailotp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -23,10 +22,13 @@ import java.util.concurrent.TimeUnit;
  * Use this during user signin/authentication flows.
  */
 @Service
-public class EmailOtpAuthenticationService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(EmailOtpAuthenticationService.class);
-    
+public class EmailOtpAuthenticationService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+
     // In-memory store of OTP codes (for demo purposes)
     // In production, this should use a persistent store
     private final Map<String, OtpEntry> otpCodes = new ConcurrentHashMap<>();
@@ -55,7 +57,7 @@ public class EmailOtpAuthenticationService {
      */
     public boolean sendOtp(String email, String purpose) {
         if (email == null || email.isBlank()) {
-            logger.error("Cannot send OTP to null or empty email");
+            log.error("Cannot send OTP to null or empty email");
             return false;
         }
         
@@ -66,8 +68,8 @@ public class EmailOtpAuthenticationService {
         String key = createKey(email, purpose);
         Instant expiration = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expirationMinutes));
         otpCodes.put(key, new OtpEntry(otpCode, expiration));
-        
-        logger.info("Generated OTP for {}, purpose: {}, expires at: {}", 
+
+        log.info("Generated OTP for {}, purpose: {}, expires at: {}",
                 email, purpose, expiration);
         
         // Send the email
@@ -84,31 +86,31 @@ public class EmailOtpAuthenticationService {
      */
     public boolean verifyOtp(String email, String purpose, String submittedCode) {
         if (email == null || email.isBlank() || submittedCode == null || submittedCode.isBlank()) {
-            logger.error("Cannot verify with null or empty email or code");
+            log.error("Cannot verify with null or empty email or code");
             return false;
         }
-        
+
         String key = createKey(email, purpose);
         OtpEntry entry = otpCodes.get(key);
-        
+
         if (entry == null) {
-            logger.warn("No OTP found for {}, purpose: {}", email, purpose);
+            log.warn("No OTP found for {}, purpose: {}", email, purpose);
             return false;
         }
-        
+
         if (Instant.now().isAfter(entry.expiration())) {
-            logger.warn("OTP expired for {}, purpose: {}", email, purpose);
+            log.warn("OTP expired for {}, purpose: {}", email, purpose);
             otpCodes.remove(key);
             return false;
         }
-        
+
         boolean isValid = entry.code().equals(submittedCode);
-        
+
         if (isValid) {
-            logger.info("OTP verified successfully for {}, purpose: {}", email, purpose);
+            log.info("OTP verified successfully for {}, purpose: {}", email, purpose);
             otpCodes.remove(key); // Remove after successful verification (one-time use)
         } else {
-            logger.warn("Invalid OTP submitted for {}, purpose: {}", email, purpose);
+            log.warn("Invalid OTP submitted for {}, purpose: {}", email, purpose);
         }
         
         return isValid;
@@ -179,7 +181,7 @@ public class EmailOtpAuthenticationService {
     private boolean sendOtpEmail(String email, String otpCode, String purpose) {
         try {
             if (mailSender == null) {
-                logger.warn("Mail sender not configured. Would have sent OTP {} to {}", otpCode, email);
+                log.warn("Mail sender not configured. Would have sent OTP {} to {}", otpCode, email);
                 return true; // Return true for development without email server
             }
             
@@ -222,15 +224,15 @@ public class EmailOtpAuthenticationService {
             
             try {
                 ((JavaMailSender)mailSender).send(message);
-                logger.info("Sent OTP email to {}", email);
+                log.info("Sent OTP email to {}", email);
                 return true;
             } catch (Exception e) {
-                logger.error("Failed to send OTP email: {}", e.getMessage(), e);
+                log.error("Failed to send OTP email: {}", e.getMessage(), e);
                 return false;
             }
-            
+
         } catch (Exception e) {
-            logger.error("Error preparing OTP email: {}", e.getMessage(), e);
+            log.error("Error preparing OTP email: {}", e.getMessage(), e);
             return false;
         }
     }

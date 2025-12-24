@@ -11,8 +11,7 @@ import io.strategiz.service.auth.manager.OAuthUserManager;
 import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
 import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import io.strategiz.framework.exception.StrategizException;
@@ -28,9 +27,12 @@ import java.util.UUID;
  * Service for handling Facebook OAuth flows
  */
 @Service
-public class FacebookOAuthService {
+public class FacebookOAuthService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
 
     private final FacebookClient facebookClient;
     private final OAuthUserManager oauthUserManager;
@@ -65,7 +67,7 @@ public class FacebookOAuthService {
 
         AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         if (facebookConfig == null) {
-            logger.error("Facebook OAuth configuration is not available. Check application.properties for oauth.providers.facebook settings.");
+            log.error("Facebook OAuth configuration is not available. Check application.properties for oauth.providers.facebook settings.");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
         }
 
@@ -164,7 +166,7 @@ public class FacebookOAuthService {
 
     private boolean isValidAuthorizationCode(String code) {
         if (code == null) {
-            logger.error("Missing authorization code");
+            log.error("Missing authorization code");
             return false;
         }
         return true;
@@ -173,7 +175,7 @@ public class FacebookOAuthService {
     private FacebookTokenResponse exchangeCodeForToken(String code, String state) {
         AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
         if (facebookConfig == null) {
-            logger.error("Facebook OAuth configuration is not available during token exchange");
+            log.error("Facebook OAuth configuration is not available during token exchange");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
         }
 

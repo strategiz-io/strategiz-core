@@ -2,10 +2,11 @@ package io.strategiz.service.console.service;
 
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.JobResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -86,7 +87,7 @@ public class JobManagementService {
 	public JobResponse getJob(String jobName) {
 		JobConfig config = KNOWN_JOBS.get(jobName);
 		if (config == null) {
-			throw new IllegalArgumentException("Job not found: " + jobName);
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console", jobName);
 		}
 
 		JobResponse job = new JobResponse();
@@ -114,14 +115,15 @@ public class JobManagementService {
 
 		JobConfig config = KNOWN_JOBS.get(jobName);
 		if (config == null) {
-			throw new IllegalArgumentException("Job not found: " + jobName);
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console", jobName);
 		}
 
 		// Check if already running
 		JobExecutionInfo existing = jobExecutions.get(jobName);
 		if (existing != null && existing.running) {
 			logger.warn("Job {} is already running", jobName);
-			throw new IllegalStateException("Job is already running: " + jobName);
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					jobName);
 		}
 
 		// Mark job as running
@@ -131,8 +133,8 @@ public class JobManagementService {
 		execInfo.status = "RUNNING";
 		jobExecutions.put(jobName, execInfo);
 
-		// Trigger the actual job asynchronously
-		executeJobAsync(jobName);
+		// Execute the job synchronously
+		executeJob(jobName);
 
 		logger.info("Job {} has been triggered", jobName);
 
@@ -140,10 +142,9 @@ public class JobManagementService {
 	}
 
 	/**
-	 * Execute the job asynchronously
+	 * Execute the job
 	 */
-	@Async("consoleTaskExecutor")
-	public void executeJobAsync(String jobName) {
+	public void executeJob(String jobName) {
 		long startTime = System.currentTimeMillis();
 
 		try {
@@ -175,19 +176,21 @@ public class JobManagementService {
 		if (backfillJob.isEmpty()) {
 			logger.warn(
 					"MarketDataBackfillJob bean not available. Start with scheduler profile or restart application.");
-			throw new IllegalStateException(
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Backfill job not available. Ensure scheduler profile is active or job bean is instantiated.");
 		}
 
 		if (backfillJob.get().isRunning()) {
-			throw new IllegalStateException("Backfill job is already running");
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					"marketDataBackfill");
 		}
 
 		logger.info("Executing MarketDataBackfillJob.triggerManualExecution()");
 		MarketDataBackfillJob.BackfillResult result = backfillJob.get().triggerManualExecution();
 
 		if (!result.success) {
-			throw new RuntimeException("Backfill failed: " + result.message);
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
+					"Backfill failed: " + result.message);
 		}
 
 		logger.info("Backfill completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
@@ -198,19 +201,21 @@ public class JobManagementService {
 		if (incrementalJob.isEmpty()) {
 			logger.warn(
 					"MarketDataIncrementalJob bean not available. Start with scheduler profile or restart application.");
-			throw new IllegalStateException(
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Incremental job not available. Ensure scheduler profile is active or job bean is instantiated.");
 		}
 
 		if (incrementalJob.get().isRunning()) {
-			throw new IllegalStateException("Incremental job is already running");
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					"marketDataIncremental");
 		}
 
 		logger.info("Executing MarketDataIncrementalJob.triggerManualExecution()");
 		MarketDataIncrementalJob.IncrementalResult result = incrementalJob.get().triggerManualExecution();
 
 		if (!result.success) {
-			throw new RuntimeException("Incremental collection failed: " + result.message);
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
+					"Incremental collection failed: " + result.message);
 		}
 
 		logger.info("Incremental completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,

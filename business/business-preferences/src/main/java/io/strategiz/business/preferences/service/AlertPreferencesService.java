@@ -1,7 +1,9 @@
 package io.strategiz.business.preferences.service;
 
+import io.strategiz.business.preferences.exception.PreferencesErrorDetails;
 import io.strategiz.data.preferences.entity.AlertNotificationPreferences;
 import io.strategiz.data.preferences.repository.AlertNotificationPreferencesRepository;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -58,7 +60,11 @@ public class AlertPreferencesService {
         if (preferences.getEnabledChannels() != null) {
             for (String channel : preferences.getEnabledChannels()) {
                 if (!VALID_CHANNELS.contains(channel.toLowerCase())) {
-                    throw new IllegalArgumentException("Invalid notification channel: " + channel);
+                    throw new StrategizException(
+                            PreferencesErrorDetails.INVALID_NOTIFICATION_CHANNEL,
+                            "business-preferences",
+                            channel
+                    );
                 }
             }
         }
@@ -66,8 +72,11 @@ public class AlertPreferencesService {
         // Validate phone number format if provided
         if (preferences.getPhoneNumber() != null && !preferences.getPhoneNumber().isEmpty()) {
             if (!isValidE164(preferences.getPhoneNumber())) {
-                throw new IllegalArgumentException(
-                        "Phone number must be in E.164 format (e.g., +14155551234)");
+                throw new StrategizException(
+                        PreferencesErrorDetails.INVALID_PHONE_NUMBER,
+                        "business-preferences",
+                        "Phone number must be in E.164 format (e.g., +14155551234)"
+                );
             }
         }
 
@@ -91,8 +100,11 @@ public class AlertPreferencesService {
         logger.info("Updating phone number for user {}", userId);
 
         if (!isValidE164(phoneNumber)) {
-            throw new IllegalArgumentException(
-                    "Phone number must be in E.164 format (e.g., +14155551234)");
+            throw new StrategizException(
+                    PreferencesErrorDetails.INVALID_PHONE_NUMBER,
+                    "business-preferences",
+                    "Phone number must be in E.164 format (e.g., +14155551234)"
+            );
         }
 
         return repository.updatePhoneNumber(userId, phoneNumber);
@@ -123,7 +135,11 @@ public class AlertPreferencesService {
         // Validate all channels
         for (String channel : channels) {
             if (!VALID_CHANNELS.contains(channel.toLowerCase())) {
-                throw new IllegalArgumentException("Invalid notification channel: " + channel);
+                throw new StrategizException(
+                        PreferencesErrorDetails.INVALID_NOTIFICATION_CHANNEL,
+                        "business-preferences",
+                        channel
+                );
             }
         }
 
@@ -131,8 +147,11 @@ public class AlertPreferencesService {
         if (channels.contains("sms")) {
             AlertNotificationPreferences current = repository.getByUserId(userId);
             if (!current.isSmsConfigured()) {
-                throw new IllegalStateException(
-                        "Cannot enable SMS notifications: phone number not verified");
+                throw new StrategizException(
+                        PreferencesErrorDetails.SMS_NOT_CONFIGURED,
+                        "business-preferences",
+                        "Cannot enable SMS notifications: phone number not verified"
+                );
             }
         }
 
@@ -236,8 +255,11 @@ public class AlertPreferencesService {
 
     private void validateQuietHours(AlertNotificationPreferences prefs) {
         if (prefs.getQuietHoursStart() == null || prefs.getQuietHoursEnd() == null) {
-            throw new IllegalArgumentException(
-                    "Quiet hours start and end times are required when quiet hours are enabled");
+            throw new StrategizException(
+                    PreferencesErrorDetails.INVALID_QUIET_HOURS,
+                    "business-preferences",
+                    "Quiet hours start and end times are required when quiet hours are enabled"
+            );
         }
 
         try {
@@ -245,7 +267,11 @@ public class AlertPreferencesService {
             LocalTime.parse(prefs.getQuietHoursEnd());
         }
         catch (Exception e) {
-            throw new IllegalArgumentException("Invalid time format. Use HH:mm (e.g., 22:00)");
+            throw new StrategizException(
+                    PreferencesErrorDetails.INVALID_TIME_FORMAT,
+                    "business-preferences",
+                    "Invalid time format. Use HH:mm (e.g., 22:00)"
+            );
         }
 
         if (prefs.getQuietHoursTimezone() != null) {
@@ -253,8 +279,11 @@ public class AlertPreferencesService {
                 ZoneId.of(prefs.getQuietHoursTimezone());
             }
             catch (Exception e) {
-                throw new IllegalArgumentException(
-                        "Invalid timezone. Use IANA timezone (e.g., America/New_York)");
+                throw new StrategizException(
+                        PreferencesErrorDetails.INVALID_TIMEZONE,
+                        "business-preferences",
+                        "Invalid timezone. Use IANA timezone (e.g., America/New_York)"
+                );
             }
         }
     }

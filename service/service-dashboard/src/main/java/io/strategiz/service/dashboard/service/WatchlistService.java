@@ -158,18 +158,30 @@ public class WatchlistService {
         // Parse response - Yahoo Finance has complex nested structure
         Map<String, Object> quoteSummary = (Map<String, Object>) response.get("quoteSummary");
         if (quoteSummary == null) {
-            throw new RuntimeException("No quoteSummary in Yahoo Finance response");
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                "service-dashboard",
+                "Yahoo Finance response missing quoteSummary for " + yahooSymbol
+            );
         }
 
         List<Map<String, Object>> result = (List<Map<String, Object>>) quoteSummary.get("result");
         if (result == null || result.isEmpty()) {
-            throw new RuntimeException("No result in Yahoo Finance quoteSummary");
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                "service-dashboard",
+                "Yahoo Finance quoteSummary has no results for " + yahooSymbol
+            );
         }
 
         Map<String, Object> firstResult = result.get(0);
         Map<String, Object> price = (Map<String, Object>) firstResult.get("price");
         if (price == null) {
-            throw new RuntimeException("No price data in Yahoo Finance result");
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                "service-dashboard",
+                "Yahoo Finance result missing price data for " + yahooSymbol
+            );
         }
 
         // Extract price data from nested structure
@@ -232,7 +244,11 @@ public class WatchlistService {
         );
 
         if (cryptoData == null || cryptoData.isEmpty()) {
-            throw new RuntimeException("No data from CoinGecko for " + coinId);
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                "service-dashboard",
+                "No data from CoinGecko for " + coinId
+            );
         }
 
         CryptoCurrency crypto = cryptoData.get(0);

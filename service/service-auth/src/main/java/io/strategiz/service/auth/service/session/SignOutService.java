@@ -1,8 +1,7 @@
 package io.strategiz.service.auth.service.session;
 
 import io.strategiz.service.auth.model.session.SignOutResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,12 +12,15 @@ import jakarta.servlet.http.HttpServletResponse;
  * Manages session cleanup and token revocation
  */
 @Service
-public class SignOutService {
+public class SignOutService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(SignOutService.class);
-    
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+
     private final SessionService sessionService;
-    
+
     public SignOutService(SessionService sessionService) {
         this.sessionService = sessionService;
     }

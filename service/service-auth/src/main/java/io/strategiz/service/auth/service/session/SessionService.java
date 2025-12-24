@@ -4,8 +4,7 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.service.auth.util.CookieUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,9 +21,13 @@ import java.time.Instant;
  * Adapts SessionAuthBusiness for HTTP session management
  */
 @Service("sessionService")
-public class SessionService {
+public class SessionService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(SessionService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+
     private static final String ACCESS_TOKEN_COOKIE = "strategiz-access-token";
     private static final String REFRESH_TOKEN_COOKIE = "strategiz-refresh-token";
 

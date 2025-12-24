@@ -7,8 +7,7 @@ import io.strategiz.data.user.repository.AuthTokenRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -29,9 +28,13 @@ import java.util.Set;
  * 4. Target app exchanges token for session
  */
 @Service
-public class AuthTokenService {
+public class AuthTokenService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthTokenService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+
     private static final int TOKEN_LENGTH = 32; // 256 bits
     private static final int DEFAULT_TTL_SECONDS = 60; // 1 minute
 
@@ -71,7 +74,7 @@ public class AuthTokenService {
     public String generateToken(String userId, String redirectUrl, String clientIp) {
         // Validate redirect URL
         if (!isAllowedRedirect(redirectUrl)) {
-            logger.warn("Blocked token generation for unauthorized redirect: {}", redirectUrl);
+            log.warn("Blocked token generation for unauthorized redirect: {}", redirectUrl);
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Invalid redirect URL");
         }
 
@@ -88,7 +91,7 @@ public class AuthTokenService {
         tokenEntity.setCreatedFromIp(clientIp);
         authTokenRepository.save(tokenEntity);
 
-        logger.info("Generated SSO relay token for user {} targeting {}", userId, targetApp);
+        log.info("Generated SSO relay token for user {} targeting {}", userId, targetApp);
         return token;
     }
 
@@ -103,7 +106,7 @@ public class AuthTokenService {
         // Find token
         Optional<SsoRelayToken> tokenOpt = authTokenRepository.findByToken(token);
         if (tokenOpt.isEmpty()) {
-            logger.warn("Token exchange failed: SSO relay token not found");
+            log.warn("Token exchange failed: SSO relay token not found");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Invalid or expired token");
         }
 
@@ -111,7 +114,7 @@ public class AuthTokenService {
 
         // Validate token
         if (!tokenEntity.isValid()) {
-            logger.warn("Token exchange failed: SSO relay token expired or already used for user {}", tokenEntity.getUserId());
+            log.warn("Token exchange failed: SSO relay token expired or already used for user {}", tokenEntity.getUserId());
             // Delete invalid token
             authTokenRepository.delete(token);
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Token expired or already used");
@@ -123,7 +126,7 @@ public class AuthTokenService {
         // Get user info
         Optional<UserEntity> userOpt = userRepository.findById(tokenEntity.getUserId());
         if (userOpt.isEmpty()) {
-            logger.error("Token exchange failed: user not found {}", tokenEntity.getUserId());
+            log.error("Token exchange failed: user not found {}", tokenEntity.getUserId());
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "User not found");
         }
 
@@ -147,7 +150,7 @@ public class AuthTokenService {
 
         SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
 
-        logger.info("SSO relay token exchange successful for user {} at {}", tokenEntity.getUserId(), tokenEntity.getTargetApp());
+        log.info("SSO relay token exchange successful for user {} at {}", tokenEntity.getUserId(), tokenEntity.getTargetApp());
 
         // Delete token after successful exchange
         authTokenRepository.delete(token);
@@ -188,7 +191,7 @@ public class AuthTokenService {
 
             return false;
         } catch (Exception e) {
-            logger.warn("Invalid redirect URL format: {}", redirectUrl);
+            log.warn("Invalid redirect URL format: {}", redirectUrl);
             return false;
         }
     }

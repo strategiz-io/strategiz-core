@@ -6,8 +6,7 @@ import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -31,10 +30,13 @@ import java.util.concurrent.TimeUnit;
  * Use this during user signup/account setup to register and verify email addresses.
  */
 @Service
-public class EmailOtpRegistrationService {
-    
-    private static final Logger log = LoggerFactory.getLogger(EmailOtpRegistrationService.class);
-    
+public class EmailOtpRegistrationService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
+
     // In-memory store for registration OTP codes (replace with persistent storage in production)
     private final Map<String, RegistrationOtpEntry> registrationOtpCodes = new ConcurrentHashMap<>();
     

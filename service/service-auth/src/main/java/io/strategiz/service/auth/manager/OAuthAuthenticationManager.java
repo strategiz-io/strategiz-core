@@ -5,6 +5,8 @@ import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -54,7 +56,8 @@ public class OAuthAuthenticationManager {
             case "github" -> AuthenticationMethodType.OAUTH_GITHUB;
             case "linkedin" -> AuthenticationMethodType.OAUTH_LINKEDIN;
             case "twitter" -> AuthenticationMethodType.OAUTH_TWITTER;
-            default -> throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
+            default -> throw new StrategizException(ServiceAuthErrorDetails.OAUTH_CONFIGURATION_ERROR,
+                    "service-auth", "Unsupported OAuth provider: " + provider);
         };
     }
 

@@ -3,8 +3,7 @@ package io.strategiz.service.auth.service.oauth;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.config.AuthOAuthConfig;
 import io.strategiz.service.auth.exception.AuthErrors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -15,9 +14,12 @@ import java.util.Map;
  * This service acts as a factory/router for specific OAuth provider services.
  */
 @Service
-public class OAuthProviderService {
+public class OAuthProviderService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(OAuthProviderService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
 
     private final Map<String, OAuthProviderHandler> providerHandlers;
     private final AuthOAuthConfig oauthConfig;
@@ -56,8 +58,8 @@ public class OAuthProviderService {
                 return facebookOAuthService.handleOAuthCallback(code, state, deviceId);
             }
         });
-        
-        logger.info("OAuthProviderService initialized with providers: {}", providerHandlers.keySet());
+
+        log.info("OAuthProviderService initialized with providers: {}", providerHandlers.keySet());
     }
 
     /**
@@ -109,9 +111,9 @@ public class OAuthProviderService {
         
         String normalizedProvider = provider.toLowerCase();
         OAuthProviderHandler handler = providerHandlers.get(normalizedProvider);
-        
+
         if (handler == null) {
-            logger.error("Unsupported OAuth provider: {}", provider);
+            log.error("Unsupported OAuth provider: {}", provider);
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "OAuth provider not supported: " + provider);
         }
         

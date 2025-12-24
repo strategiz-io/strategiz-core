@@ -11,8 +11,7 @@ import io.strategiz.service.auth.manager.OAuthUserManager;
 import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 import io.strategiz.framework.exception.StrategizException;
@@ -28,9 +27,12 @@ import java.util.UUID;
  * Service for handling Google OAuth flows
  */
 @Service
-public class GoogleOAuthService {
+public class GoogleOAuthService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(GoogleOAuthService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
 
     private final GoogleClient googleClient;
     private final OAuthUserManager oauthUserManager;
@@ -83,12 +85,12 @@ public class GoogleOAuthService {
             String encodedRedirect = java.util.Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(redirectAfterAuth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             state = state + ":" + encodedRedirect;
-            logger.info("Encoded redirectAfterAuth in state: {}", redirectAfterAuth);
+            log.info("Encoded redirectAfterAuth in state: {}", redirectAfterAuth);
         }
 
         AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         if (googleConfig == null) {
-            logger.error("Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
+            log.error("Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
         }
 
@@ -150,7 +152,7 @@ public class GoogleOAuthService {
         // Extract redirect URL from state if present (format: type:uuid:encodedRedirect)
         String redirectAfterAuth = extractRedirectFromState(state);
         if (redirectAfterAuth != null) {
-            logger.info("Extracted redirectAfterAuth from state: {}", redirectAfterAuth);
+            log.info("Extracted redirectAfterAuth from state: {}", redirectAfterAuth);
         }
 
         GoogleTokenResponse tokenResponse = exchangeCodeForToken(code, state);
@@ -215,14 +217,14 @@ public class GoogleOAuthService {
             byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[2]);
             return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
         } catch (Exception e) {
-            logger.warn("Failed to decode redirect from state: {}", e.getMessage());
+            log.warn("Failed to decode redirect from state: {}", e.getMessage());
             return null;
         }
     }
 
     private boolean isValidAuthorizationCode(String code) {
         if (code == null) {
-            logger.error("Missing authorization code");
+            log.error("Missing authorization code");
             return false;
         }
         return true;
@@ -231,7 +233,7 @@ public class GoogleOAuthService {
     private GoogleTokenResponse exchangeCodeForToken(String code, String state) {
         AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
         if (googleConfig == null) {
-            logger.error("Google OAuth configuration is not available during token exchange");
+            log.error("Google OAuth configuration is not available during token exchange");
             throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
         }
 

@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -62,11 +61,6 @@ public class WatchlistController extends BaseController {
     private final CoinGeckoClient coinGeckoClient;
     private final WatchlistBaseRepository watchlistRepository;
     private final WatchlistService watchlistService;
-
-    // Default symbols for new users (when watchlist is empty)
-    private static final List<String> DEFAULT_CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH");
-    private static final List<String> DEFAULT_STOCK_SYMBOLS = Arrays.asList("AAPL", "MSFT", "GOOGL", "AMZN");
-    private static final List<String> DEFAULT_ETF_SYMBOLS = Arrays.asList("SPY");
 
     @Autowired
     public WatchlistController(UserRepository userRepository,
@@ -297,10 +291,15 @@ public class WatchlistController extends BaseController {
             List<WatchlistItemEntity> savedItems = watchlistRepository.findAllByUserId(userId);
             log.info("Found {} saved watchlist items for user {}", savedItems.size(), userId);
 
-            // If user has no saved items, use defaults
+            // If user has no saved items, return empty watchlist - NO MOCK DATA
             if (savedItems.isEmpty()) {
-                log.info("No saved items, using default watchlist for user {}", userId);
-                return getDefaultWatchlistData(userId);
+                log.info("No saved items, returning empty watchlist for user {}", userId);
+                WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
+                empty.setItems(new ArrayList<>());
+                empty.setTotalCount(0);
+                empty.setActiveCount(0);
+                empty.setIsEmpty(true);
+                return empty;
             }
 
             // Separate items by type for enrichment
@@ -319,17 +318,28 @@ public class WatchlistController extends BaseController {
                 items.addAll(enrichedCrypto);
             }
 
-            // Enrich stock/ETF items with static data (TODO: integrate Yahoo Finance)
+            // Enrich stock/ETF items with REAL Yahoo Finance data
             for (WatchlistItemEntity entity : stockItems) {
-                items.add(enrichStockItem(entity));
+                try {
+                    WatchlistItemEntity enriched = watchlistService.enrichWatchlistItem(entity);
+                    items.add(convertToWatchlistItem(enriched));
+                } catch (Exception e) {
+                    log.warn("Failed to enrich {}: {}", entity.getSymbol(), e.getMessage());
+                    // Skip failed items - NO MOCK DATA
+                }
             }
 
             log.info("Returning {} enriched watchlist items for user {}", items.size(), userId);
 
         } catch (Exception e) {
             log.error("Error fetching watchlist data for user {}", userId, e);
-            // If real data fails, return defaults
-            return getDefaultWatchlistData(userId);
+            // If real data fails, return empty - NO MOCK DATA
+            WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
+            empty.setItems(new ArrayList<>());
+            empty.setTotalCount(0);
+            empty.setActiveCount(0);
+            empty.setIsEmpty(true);
+            return empty;
         }
 
         // Create response
@@ -343,106 +353,22 @@ public class WatchlistController extends BaseController {
     }
 
     /**
-     * Get default watchlist data for new users
+     * Convert WatchlistItemEntity to WatchlistItem DTO
      */
-    private WatchlistCollectionResponse getDefaultWatchlistData(String userId) {
-        log.info("Fetching default watchlist data");
-        List<WatchlistItem> items = new ArrayList<>();
-
-        try {
-            // Fetch crypto data
-            CompletableFuture<List<WatchlistItem>> cryptoFuture = CompletableFuture.supplyAsync(() -> {
-                try {
-                    Map<String, String> symbolToId = new HashMap<>();
-                    symbolToId.put("BTC", "bitcoin");
-                    symbolToId.put("ETH", "ethereum");
-
-                    List<String> coinIds = DEFAULT_CRYPTO_SYMBOLS.stream()
-                        .map(symbol -> symbolToId.getOrDefault(symbol, symbol.toLowerCase()))
-                        .collect(Collectors.toList());
-
-                    List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
-                    return cryptoData.stream().map(crypto -> {
-                        BigDecimal price = crypto.getCurrentPrice();
-                        BigDecimal change = crypto.getPriceChange24h();
-                        BigDecimal changePercent = crypto.getPriceChangePercentage24h();
-
-                        return new WatchlistItem(
-                            crypto.getSymbol().toLowerCase() + "-default",
-                            crypto.getSymbol().toUpperCase(),
-                            crypto.getName(),
-                            "crypto",
-                            price,
-                            change,
-                            changePercent,
-                            change != null && change.compareTo(BigDecimal.ZERO) > 0,
-                            "/chart/" + crypto.getSymbol().toLowerCase()
-                        );
-                    }).collect(Collectors.toList());
-                } catch (Exception e) {
-                    log.error("Error fetching crypto data", e);
-                    return new ArrayList<WatchlistItem>();
-                }
-            });
-
-            // Fetch stock data
-            CompletableFuture<List<WatchlistItem>> stockFuture = CompletableFuture.supplyAsync(() -> {
-                try {
-                    List<String> allSymbols = new ArrayList<>();
-                    allSymbols.addAll(DEFAULT_STOCK_SYMBOLS);
-                    allSymbols.addAll(DEFAULT_ETF_SYMBOLS);
-
-                    Map<String, Double> staticStockPrices = new HashMap<>();
-                    staticStockPrices.put("AAPL", 182.52);
-                    staticStockPrices.put("MSFT", 338.12);
-                    staticStockPrices.put("GOOGL", 137.14);
-                    staticStockPrices.put("AMZN", 178.22);
-                    staticStockPrices.put("SPY", 504.12);
-
-                    return allSymbols.stream()
-                        .filter(staticStockPrices::containsKey)
-                        .map(symbol -> {
-                            String type = DEFAULT_ETF_SYMBOLS.contains(symbol) ? "etf" : "stock";
-                            BigDecimal price = BigDecimal.valueOf(staticStockPrices.get(symbol));
-                            BigDecimal change = new BigDecimal("1.23");
-                            BigDecimal changePercent = new BigDecimal("0.68");
-
-                            return new WatchlistItem(
-                                symbol.toLowerCase() + "-default",
-                                symbol,
-                                symbol,
-                                type,
-                                price,
-                                change,
-                                changePercent,
-                                true,
-                                "/chart/" + symbol.toLowerCase()
-                            );
-                        }).collect(Collectors.toList());
-                } catch (Exception e) {
-                    log.error("Error creating static stock data", e);
-                    return new ArrayList<WatchlistItem>();
-                }
-            });
-
-            List<WatchlistItem> cryptoItems = cryptoFuture.get();
-            List<WatchlistItem> stockItems = stockFuture.get();
-
-            items.addAll(cryptoItems);
-            items.addAll(stockItems);
-
-        } catch (Exception e) {
-            log.error("Error fetching default market data", e);
-        }
-
-        WatchlistCollectionResponse response = new WatchlistCollectionResponse();
-        response.setItems(items);
-        response.setTotalCount(items.size());
-        response.setActiveCount(items.size());
-        response.setIsEmpty(items.isEmpty());
-
-        return response;
+    private WatchlistItem convertToWatchlistItem(WatchlistItemEntity entity) {
+        return new WatchlistItem(
+            entity.getId(),
+            entity.getSymbol(),
+            entity.getName(),
+            entity.getType() != null ? entity.getType().toLowerCase() : "stock",
+            entity.getCurrentPrice(),
+            entity.getChange(),
+            entity.getChangePercent(),
+            entity.getChange() != null && entity.getChange().compareTo(BigDecimal.ZERO) > 0,
+            "/chart/" + entity.getSymbol().toLowerCase()
+        );
     }
+
 
     /**
      * Fetch crypto market data from CoinGecko for saved symbols
@@ -506,82 +432,6 @@ public class WatchlistController extends BaseController {
         return items;
     }
 
-    /**
-     * Enrich a stock/ETF item with market data (static for now)
-     */
-    private WatchlistItem enrichStockItem(WatchlistItemEntity entity) {
-        // Static prices for demo/fallback purposes
-        Map<String, Double> staticStockPrices = new HashMap<>();
-        staticStockPrices.put("AAPL", 182.52);
-        staticStockPrices.put("MSFT", 338.12);
-        staticStockPrices.put("GOOGL", 137.14);
-        staticStockPrices.put("AMZN", 178.22);
-        staticStockPrices.put("SPY", 504.12);
-        staticStockPrices.put("TSLA", 248.50);
-        staticStockPrices.put("NVDA", 875.30);
-        staticStockPrices.put("META", 485.20);
-        staticStockPrices.put("NFLX", 685.40);
-        staticStockPrices.put("QQQ", 398.77);
-
-        String symbol = entity.getSymbol().toUpperCase();
-        Double priceVal = staticStockPrices.getOrDefault(symbol, 100.0);
-        BigDecimal price = BigDecimal.valueOf(priceVal);
-        BigDecimal change = new BigDecimal("1.23");
-        BigDecimal changePercent = new BigDecimal("0.68");
-
-        return new WatchlistItem(
-            entity.getId(),
-            symbol,
-            entity.getName() != null ? entity.getName() : symbol,
-            entity.getType() != null ? entity.getType().toLowerCase() : "stock",
-            price,
-            change,
-            changePercent,
-            true,
-            "/chart/" + symbol.toLowerCase()
-        );
-    }
-    
-    /**
-     * Get demo watchlist data until proper repository implementation is available
-     */
-    private WatchlistCollectionResponse getDemoWatchlistData(String userId) {
-        // Create more realistic demo watchlist items
-        List<WatchlistItem> demoItems = Arrays.asList(
-            // Cryptocurrencies
-            new WatchlistItem("btc-1", "BTC", "Bitcoin", "crypto", 
-                new BigDecimal("56241.92"), new BigDecimal("1542.34"), 
-                new BigDecimal("2.82"), true, "/chart/btc"),
-            new WatchlistItem("eth-1", "ETH", "Ethereum", "crypto", 
-                new BigDecimal("3025.18"), new BigDecimal("87.52"), 
-                new BigDecimal("2.98"), true, "/chart/eth"),
-            
-            // Stocks
-            new WatchlistItem("aapl-1", "AAPL", "Apple Inc.", "stock", 
-                new BigDecimal("182.52"), new BigDecimal("1.23"), 
-                new BigDecimal("0.68"), true, "/chart/aapl"),
-            new WatchlistItem("msft-1", "MSFT", "Microsoft Corporation", "stock", 
-                new BigDecimal("338.12"), new BigDecimal("-0.87"), 
-                new BigDecimal("-0.26"), false, "/chart/msft"),
-            new WatchlistItem("googl-1", "GOOGL", "Alphabet Inc.", "stock", 
-                new BigDecimal("137.14"), new BigDecimal("0.54"), 
-                new BigDecimal("0.40"), true, "/chart/googl"),
-            new WatchlistItem("amzn-1", "AMZN", "Amazon.com Inc.", "stock", 
-                new BigDecimal("178.22"), new BigDecimal("-1.12"), 
-                new BigDecimal("-0.62"), false, "/chart/amzn"),
-            
-            // ETF
-            new WatchlistItem("spy-1", "SPY", "SPDR S&P 500 ETF", "etf", 
-                new BigDecimal("504.12"), new BigDecimal("2.34"), 
-                new BigDecimal("0.47"), true, "/chart/spy")
-        );
-        
-        WatchlistCollectionResponse response = new WatchlistCollectionResponse(userId, demoItems);
-        response.setDemoMode(true);
-        
-        return response;
-    }
-    
     /**
      * Get user trading mode, defaulting to demo if not found
      */

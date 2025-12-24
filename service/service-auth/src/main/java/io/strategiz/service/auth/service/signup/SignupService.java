@@ -5,6 +5,9 @@ import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
 import io.strategiz.data.watchlist.repository.WatchlistBaseRepository;
+import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
@@ -17,6 +20,7 @@ import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +53,7 @@ public class SignupService extends BaseService {
     private final WatchlistBaseRepository watchlistRepository;
     private final YahooFinanceClient yahooFinanceClient;
     private final CoinGeckoClient coinGeckoClient;
+    private final AuthenticationMethodRepository authenticationMethodRepository;
 
     public SignupService(
         UserRepository userRepository,
@@ -57,7 +62,8 @@ public class SignupService extends BaseService {
         FirestoreTransactionTemplate transactionTemplate,
         WatchlistBaseRepository watchlistRepository,
         YahooFinanceClient yahooFinanceClient,
-        CoinGeckoClient coinGeckoClient
+        CoinGeckoClient coinGeckoClient,
+        AuthenticationMethodRepository authenticationMethodRepository
     ) {
         this.userRepository = userRepository;
         this.userFactory = userFactory;
@@ -66,6 +72,7 @@ public class SignupService extends BaseService {
         this.watchlistRepository = watchlistRepository;
         this.yahooFinanceClient = yahooFinanceClient;
         this.coinGeckoClient = coinGeckoClient;
+        this.authenticationMethodRepository = authenticationMethodRepository;
     }
 
     /**
@@ -100,6 +107,10 @@ public class SignupService extends BaseService {
 
             log.info("OAuth user created successfully in transaction: {}", createdUser.getUserId());
 
+            // Initialize OAuth authentication method in security subcollection
+            // This follows the same pattern as all other authentication methods
+            initializeOAuthAuthenticationMethod(createdUser.getUserId(), request.getAuthMethod(), createdBy);
+
             // Initialize default watchlist asynchronously (non-blocking)
             initializeDefaultWatchlist(createdUser.getUserId());
 
@@ -119,6 +130,73 @@ public class SignupService extends BaseService {
         } catch (Exception e) {
             log.error("Unexpected error during OAuth signup for {}: {}", request.getEmail(), e.getMessage(), e);
             throw new StrategizException(AuthErrors.SIGNUP_FAILED, "OAuth signup failed due to internal error");
+        }
+    }
+
+    /**
+     * Initialize OAuth authentication method in security subcollection.
+     * Creates a document in users/{userId}/security to track the OAuth provider.
+     *
+     * @param userId The user ID
+     * @param authMethod The OAuth provider (e.g., "google", "facebook")
+     * @param createdBy Email of the user who created this
+     */
+    private void initializeOAuthAuthenticationMethod(String userId, String authMethod, String createdBy) {
+        log.info("Initializing OAuth authentication method for user: {} with provider: {}", userId, authMethod);
+
+        try {
+            // Determine the authentication method type based on the auth method
+            AuthenticationMethodType authType;
+            String displayName;
+
+            switch (authMethod.toLowerCase()) {
+                case "google":
+                    authType = AuthenticationMethodType.OAUTH_GOOGLE;
+                    displayName = "Google Account";
+                    break;
+                case "facebook":
+                    authType = AuthenticationMethodType.OAUTH_FACEBOOK;
+                    displayName = "Facebook Account";
+                    break;
+                case "microsoft":
+                    authType = AuthenticationMethodType.OAUTH_MICROSOFT;
+                    displayName = "Microsoft Account";
+                    break;
+                case "github":
+                    authType = AuthenticationMethodType.OAUTH_GITHUB;
+                    displayName = "GitHub Account";
+                    break;
+                default:
+                    log.warn("Unknown OAuth provider: {}, defaulting to OAUTH_GOOGLE", authMethod);
+                    authType = AuthenticationMethodType.OAUTH_GOOGLE;
+                    displayName = "OAuth Account";
+            }
+
+            // Create authentication method entity
+            AuthenticationMethodEntity authMethodEntity = new AuthenticationMethodEntity();
+            authMethodEntity.setAuthenticationMethod(authType);
+            authMethodEntity.setName(displayName);
+            authMethodEntity.setCreatedBy(createdBy);
+            authMethodEntity.setModifiedBy(createdBy);
+            authMethodEntity.setIsActive(true);
+            authMethodEntity.setLastUsedAt(Instant.now());
+
+            // Add metadata
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("provider", authMethod.toLowerCase());
+            metadata.put("registeredAt", Instant.now().toString());
+            authMethodEntity.setMetadata(metadata);
+
+            // Save to Firestore security subcollection
+            authenticationMethodRepository.saveForUser(userId, authMethodEntity);
+
+            log.info("Successfully created OAuth authentication method for user {} with provider {}", userId, authMethod);
+
+        } catch (Exception e) {
+            log.error("Failed to create OAuth authentication method for user {} with provider {}: {}",
+                userId, authMethod, e.getMessage(), e);
+            // Don't throw - this is not critical for signup to succeed
+            // The user can still use the system, but they won't see their OAuth method in security settings
         }
     }
 

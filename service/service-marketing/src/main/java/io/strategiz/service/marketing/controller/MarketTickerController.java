@@ -62,10 +62,10 @@ public class MarketTickerController extends BaseController {
             List<TickerItem> cryptoItems = fetchCryptoData();
             List<TickerItem> stockItems = fetchStockData();
 
-            // Combine results
+            // Combine results - stocks first, then crypto
             List<TickerItem> allItems = new ArrayList<>();
-            allItems.addAll(cryptoItems);
             allItems.addAll(stockItems);
+            allItems.addAll(cryptoItems);
             
             // Create response
             MarketTickerResponse response = new MarketTickerResponse(
@@ -162,9 +162,9 @@ public class MarketTickerController extends BaseController {
      */
     private MarketTickerResponse getDemoTickerData() {
         List<TickerItem> items = new ArrayList<>();
-        items.addAll(getDemoCryptoData());
         items.addAll(getDemoStockData());
-        
+        items.addAll(getDemoCryptoData());
+
         return new MarketTickerResponse(
             items,
             System.currentTimeMillis(),

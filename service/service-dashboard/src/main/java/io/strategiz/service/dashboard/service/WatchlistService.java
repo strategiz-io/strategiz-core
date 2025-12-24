@@ -5,12 +5,11 @@ import io.strategiz.service.dashboard.model.watchlist.WatchlistAsset;
 import io.strategiz.service.dashboard.model.watchlist.WatchlistResponse;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
 import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,12 +25,37 @@ import java.util.stream.Collectors;
  * Single responsibility: Orchestrates watchlist data retrieval and composition.
  */
 @Service
-public class WatchlistService {
+public class WatchlistService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(WatchlistService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-dashboard";
+    }
 
     private final YahooFinanceClient yahooFinanceClient;
     private final CoinGeckoClient coinGeckoClient;
+
+    // Default watchlist symbols for new users
+    public static class DefaultSymbol {
+        public final String symbol;
+        public final String type;
+        public final String name;
+
+        public DefaultSymbol(String symbol, String type, String name) {
+            this.symbol = symbol;
+            this.type = type;
+            this.name = name;
+        }
+    }
+
+    private static final List<DefaultSymbol> DEFAULT_WATCHLIST_SYMBOLS = Arrays.asList(
+        new DefaultSymbol("TSLA", "STOCK", "Tesla Inc."),
+        new DefaultSymbol("GOOGL", "STOCK", "Alphabet Inc."),
+        new DefaultSymbol("AMZN", "STOCK", "Amazon.com Inc."),
+        new DefaultSymbol("QQQ", "ETF", "Invesco QQQ Trust"),
+        new DefaultSymbol("SPY", "ETF", "SPDR S&P 500 ETF"),
+        new DefaultSymbol("NVDA", "STOCK", "NVIDIA Corporation")
+    );
 
     // Symbol to CoinGecko ID mapping for crypto fallback
     private static final Map<String, String> CRYPTO_SYMBOL_TO_ID = new HashMap<>();
@@ -46,6 +70,14 @@ public class WatchlistService {
         CRYPTO_SYMBOL_TO_ID.put("DOT", "polkadot");
         CRYPTO_SYMBOL_TO_ID.put("AVAX", "avalanche-2");
         CRYPTO_SYMBOL_TO_ID.put("MATIC", "matic-network");
+    }
+
+    /**
+     * Get default watchlist symbols for new users.
+     * This is the single source of truth for default symbols.
+     */
+    public List<DefaultSymbol> getDefaultWatchlistSymbols() {
+        return DEFAULT_WATCHLIST_SYMBOLS;
     }
 
     @Autowired
@@ -128,13 +160,37 @@ public class WatchlistService {
             }
         }
 
-        // For stocks/ETFs, Yahoo Finance requires cookies - not supported yet
-        // Throw exception to prevent saving without market data
-        log.error("Stock/ETF market data fetch not implemented yet for {}", symbol);
+        // For stocks/ETFs, use Yahoo Finance
+        if ("STOCK".equalsIgnoreCase(type) || "ETF".equalsIgnoreCase(type)) {
+            try {
+                enrichFromYahooFinance(entity);
+                log.info("Successfully enriched {} from Yahoo Finance", symbol);
+
+                // Validate that we actually got the required data
+                if (entity.getCurrentPrice() == null) {
+                    throw new StrategizException(
+                        ServiceDashboardErrorDetails.DASHBOARD_ERROR,
+                        "service-dashboard",
+                        "Market data fetch returned null price for " + symbol
+                    );
+                }
+
+                return entity;
+            } catch (Exception e) {
+                log.error("Yahoo Finance enrichment failed for {}: {}", symbol, e.getMessage());
+                throw new StrategizException(
+                    ServiceDashboardErrorDetails.DASHBOARD_ERROR,
+                    "service-dashboard",
+                    "Cannot fetch market data for " + symbol + ": " + e.getMessage()
+                );
+            }
+        }
+
+        // Unknown type
         throw new StrategizException(
             ServiceDashboardErrorDetails.DASHBOARD_ERROR,
             "service-dashboard",
-            "Market data fetch for stocks/ETFs not yet available. Only crypto (CRYPTO type) is supported."
+            "Unknown asset type: " + type + " for symbol " + symbol
         );
     }
 

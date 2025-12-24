@@ -87,40 +87,55 @@ public class WatchlistService {
 
     /**
      * Enriches a watchlist item with market data from external APIs.
-     * Strategy: Yahoo Finance primary (supports both stocks and crypto) → CoinGecko fallback for crypto only
+     * Strategy: CoinGecko for crypto, throws exception if data fetch fails.
+     *
+     * IMPORTANT: This method MUST successfully fetch market data or throw an exception.
+     * The caller should NOT save the entity if this method throws an exception.
      *
      * @param entity The watchlist item entity to enrich
      * @return The enriched entity with market data populated
+     * @throws StrategizException if market data cannot be fetched
      */
     public WatchlistItemEntity enrichWatchlistItem(WatchlistItemEntity entity) {
         String symbol = entity.getSymbol();
         String type = entity.getType() != null ? entity.getType().toUpperCase() : "STOCK";
 
-        log.debug("Enriching watchlist item: {} (type: {})", symbol, type);
+        log.info("Enriching watchlist item: {} (type: {})", symbol, type);
 
-        // Try Yahoo Finance first (works for both stocks and crypto)
-        try {
-            enrichFromYahooFinance(entity);
-            log.debug("Successfully enriched {} from Yahoo Finance", symbol);
-            return entity;
-        } catch (Exception e) {
-            log.warn("Yahoo Finance enrichment failed for {}: {}", symbol, e.getMessage());
-        }
-
-        // If Yahoo Finance failed AND it's crypto, try CoinGecko as fallback
+        // For crypto, use CoinGecko as primary
         if ("CRYPTO".equalsIgnoreCase(type)) {
             try {
                 enrichFromCoinGecko(entity);
-                log.debug("Successfully enriched {} from CoinGecko fallback", symbol);
+                log.info("Successfully enriched {} from CoinGecko", symbol);
+
+                // Validate that we actually got the required data
+                if (entity.getCurrentPrice() == null) {
+                    throw new StrategizException(
+                        ServiceDashboardErrorDetails.DASHBOARD_ERROR,
+                        "service-dashboard",
+                        "Market data fetch returned null price for " + symbol
+                    );
+                }
+
                 return entity;
             } catch (Exception e) {
-                log.warn("CoinGecko fallback failed for {}: {}", symbol, e.getMessage());
+                log.error("CoinGecko enrichment failed for {}: {}", symbol, e.getMessage());
+                throw new StrategizException(
+                    ServiceDashboardErrorDetails.DASHBOARD_ERROR,
+                    "service-dashboard",
+                    "Cannot fetch market data for " + symbol + ": " + e.getMessage()
+                );
             }
         }
 
-        // Both APIs failed - log warning and return entity with nulls
-        log.warn("Could not enrich {} with market data from any API", symbol);
-        return entity;
+        // For stocks/ETFs, Yahoo Finance requires cookies - not supported yet
+        // Throw exception to prevent saving without market data
+        log.error("Stock/ETF market data fetch not implemented yet for {}", symbol);
+        throw new StrategizException(
+            ServiceDashboardErrorDetails.DASHBOARD_ERROR,
+            "service-dashboard",
+            "Market data fetch for stocks/ETFs not yet available. Only crypto (CRYPTO type) is supported."
+        );
     }
 
     /**

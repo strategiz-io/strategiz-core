@@ -175,11 +175,7 @@ public class SignupService {
     }
 
     /**
-     * Enrich watchlist item with market data.
-     * Logic copied from WatchlistService to avoid service-to-service dependency.
-     *
-     * IMPORTANT: This method MUST successfully fetch market data or throw an exception.
-     * Only crypto (CRYPTO type) is supported currently.
+     * Enrich watchlist item with market data from Yahoo Finance or CoinGecko.
      *
      * @throws RuntimeException if market data cannot be fetched
      */
@@ -187,27 +183,27 @@ public class SignupService {
         String symbol = entity.getSymbol();
         String type = entity.getType().toUpperCase();
 
-        // Only crypto is supported (stocks require Yahoo Finance cookies)
-        if ("CRYPTO".equalsIgnoreCase(type)) {
-            try {
+        try {
+            // Use Yahoo Finance for stocks/ETFs
+            if ("STOCK".equalsIgnoreCase(type) || "ETF".equalsIgnoreCase(type)) {
+                enrichFromYahooFinance(entity);
+                logger.info("Enriched {} from Yahoo Finance", symbol);
+            }
+            // Use CoinGecko for crypto
+            else if ("CRYPTO".equalsIgnoreCase(type)) {
                 enrichFromCoinGecko(entity);
                 logger.info("Enriched {} from CoinGecko", symbol);
-
-                // Validate that we actually got the required data
-                if (entity.getCurrentPrice() == null) {
-                    throw new RuntimeException("Market data fetch returned null price for " + symbol);
-                }
-
-                return;
-            } catch (Exception e) {
-                logger.error("CoinGecko enrichment failed for {}: {}", symbol, e.getMessage());
-                throw new RuntimeException("Cannot fetch market data for " + symbol + ": " + e.getMessage());
             }
-        }
 
-        // Stocks/ETFs not supported yet - throw exception
-        logger.error("Stock/ETF market data fetch not implemented yet for {}", symbol);
-        throw new RuntimeException("Market data fetch for stocks/ETFs not yet available. Only crypto (CRYPTO type) is supported.");
+            // Validate that we got the required data
+            if (entity.getCurrentPrice() == null) {
+                throw new RuntimeException("Market data fetch returned null price for " + symbol);
+            }
+
+        } catch (Exception e) {
+            logger.error("Market data enrichment failed for {}: {}", symbol, e.getMessage());
+            throw new RuntimeException("Cannot fetch market data for " + symbol + ": " + e.getMessage());
+        }
     }
 
     /**

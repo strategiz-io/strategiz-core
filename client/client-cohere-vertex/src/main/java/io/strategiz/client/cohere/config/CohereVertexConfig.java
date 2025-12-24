@@ -12,7 +12,7 @@ public class CohereVertexConfig {
 	@Value("${cohere.vertex.project-id:#{null}}")
 	private String projectId;
 
-	@Value("${cohere.vertex.location:us-central1}")
+	@Value("${cohere.vertex.location:us-east1}")
 	private String location;
 
 	@Value("${cohere.vertex.model:command-r}")

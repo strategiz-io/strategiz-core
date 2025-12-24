@@ -12,10 +12,10 @@ public class ClaudeVertexConfig {
 	@Value("${claude.vertex.project-id:#{null}}")
 	private String projectId;
 
-	@Value("${claude.vertex.location:us-east5}")
+	@Value("${claude.vertex.location:us-east1}")
 	private String location;
 
-	@Value("${claude.vertex.model:claude-3-5-sonnet@20241022}")
+	@Value("${claude.vertex.model:claude-haiku-4-5}")
 	private String defaultModel;
 
 	@Value("${claude.vertex.temperature:0.7}")

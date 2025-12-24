@@ -12,7 +12,7 @@ public class MistralVertexConfig {
 	@Value("${mistral.vertex.project-id:#{null}}")
 	private String projectId;
 
-	@Value("${mistral.vertex.location:us-central1}")
+	@Value("${mistral.vertex.location:us-east1}")
 	private String location;
 
 	@Value("${mistral.vertex.model:mistral-nemo}")

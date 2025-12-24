@@ -25,7 +25,7 @@ public class LLMRouter {
 
 	private static final Logger logger = LoggerFactory.getLogger(LLMRouter.class);
 
-	private static final String DEFAULT_MODEL = "gemini-3-flash-preview";
+	private static final String DEFAULT_MODEL = "gemini-2.5-flash";
 
 	private final Map<String, LLMProvider> providersByModel;
 
@@ -102,11 +102,15 @@ public class LLMRouter {
 	public List<ModelInfo> getAvailableModels() {
 		List<ModelInfo> models = new ArrayList<>();
 
-		// Gemini models (latest first)
-		models.add(new ModelInfo("gemini-3-flash-preview", "Gemini 3 Flash", "google",
-				"Frontier intelligence, 3x faster than 2.5 Pro"));
-		models.add(new ModelInfo("gemini-3-pro-preview", "Gemini 3 Pro", "google",
-				"Most intelligent, PhD-level reasoning"));
+		// Gemini models (GA stable versions)
+		models.add(new ModelInfo("gemini-2.5-flash", "Gemini 2.5 Flash", "google",
+				"Fast and capable, balanced performance"));
+		models.add(new ModelInfo("gemini-2.5-pro", "Gemini 2.5 Pro", "google",
+				"High-capability model for complex reasoning"));
+		models.add(new ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "google",
+				"Stable production model"));
+		models.add(new ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "google",
+				"Fast and efficient"));
 
 		// OpenAI models
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));

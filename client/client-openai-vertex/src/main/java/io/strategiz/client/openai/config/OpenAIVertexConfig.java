@@ -12,7 +12,7 @@ public class OpenAIVertexConfig {
 	@Value("${openai.vertex.project-id:#{null}}")
 	private String projectId;
 
-	@Value("${openai.vertex.location:us-east5}")
+	@Value("${openai.vertex.location:us-east1}")
 	private String location;
 
 	@Value("${openai.vertex.model:gpt-4o-mini}")

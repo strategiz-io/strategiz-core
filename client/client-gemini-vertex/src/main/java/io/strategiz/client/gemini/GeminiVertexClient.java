@@ -35,9 +35,9 @@ public class GeminiVertexClient implements LLMProvider {
 
 	private static final String PROVIDER_NAME = "google";
 
-	// Gemini models available on Vertex AI
-	private static final List<String> SUPPORTED_MODELS = List.of("gemini-2.0-flash-exp", "gemini-1.5-pro",
-			"gemini-1.5-flash", "gemini-3-flash-preview", "gemini-3-pro-preview");
+	// Gemini models available on Vertex AI (GA stable versions only)
+	private static final List<String> SUPPORTED_MODELS = List.of("gemini-2.5-flash", "gemini-2.5-pro",
+			"gemini-1.5-pro", "gemini-1.5-flash");
 
 	private final GeminiVertexConfig config;
 

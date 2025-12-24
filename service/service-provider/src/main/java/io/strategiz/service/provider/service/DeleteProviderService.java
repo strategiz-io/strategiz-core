@@ -93,15 +93,27 @@ public class DeleteProviderService extends ProviderBaseService {
      */
     private void validateDeleteRequest(DeleteProviderRequest request) {
         if (request.getUserId() == null || request.getUserId().trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                    "service-provider",
+                    "userId"
+            );
         }
-        
+
         if (request.getProviderId() == null || request.getProviderId().trim().isEmpty()) {
-            throw new IllegalArgumentException("Provider ID is required");
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                    "service-provider",
+                    "providerId"
+            );
         }
-        
+
         if (!isSupportedProvider(request.getProviderId())) {
-            throw new IllegalArgumentException("Provider not supported: " + request.getProviderId());
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED,
+                    "service-provider",
+                    request.getProviderId()
+            );
         }
     }
     

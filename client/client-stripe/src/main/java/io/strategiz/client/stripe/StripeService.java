@@ -7,6 +7,8 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import io.strategiz.client.stripe.exception.StripeErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,48 +40,54 @@ public class StripeService {
 	 * @param customerId Existing Stripe customer ID (optional)
 	 * @return Checkout session details
 	 */
-	public CheckoutResult createCheckoutSession(String userId, String userEmail, String tierId, String customerId)
-			throws StripeException {
+	public CheckoutResult createCheckoutSession(String userId, String userEmail, String tierId, String customerId) {
 
 		if (!config.isConfigured()) {
-			throw new IllegalStateException("Stripe is not configured");
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
 		}
 
 		String priceId = config.getPriceIdForTier(tierId);
 		if (priceId == null || priceId.isEmpty()) {
-			throw new IllegalArgumentException("Invalid tier: " + tierId);
+			throw new StrategizException(StripeErrorDetails.INVALID_TIER, "client-stripe", tierId);
 		}
 
 		logger.info("Creating checkout session for user {} tier {}", userId, tierId);
 
-		// Create or get customer
-		String stripeCustomerId = customerId;
-		if (stripeCustomerId == null || stripeCustomerId.isEmpty()) {
-			stripeCustomerId = createCustomer(userId, userEmail);
-		}
+		try {
+			// Create or get customer
+			String stripeCustomerId = customerId;
+			if (stripeCustomerId == null || stripeCustomerId.isEmpty()) {
+				stripeCustomerId = createCustomer(userId, userEmail);
+			}
 
-		// Build checkout session
-		SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
-			.setMode(SessionCreateParams.Mode.SUBSCRIPTION)
-			.setCustomer(stripeCustomerId)
-			.setSuccessUrl(config.getAppBaseUrl() + "/pricing?success=true&session_id={CHECKOUT_SESSION_ID}")
-			.setCancelUrl(config.getAppBaseUrl() + "/pricing?canceled=true")
-			.addLineItem(SessionCreateParams.LineItem.builder().setPrice(priceId).setQuantity(1L).build())
-			.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
+			// Build checkout session
+			SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
+				.setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+				.setCustomer(stripeCustomerId)
+				.setSuccessUrl(config.getAppBaseUrl() + "/pricing?success=true&session_id={CHECKOUT_SESSION_ID}")
+				.setCancelUrl(config.getAppBaseUrl() + "/pricing?canceled=true")
+				.addLineItem(SessionCreateParams.LineItem.builder().setPrice(priceId).setQuantity(1L).build())
+				.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
+					.putMetadata("userId", userId)
+					.putMetadata("tier", tierId)
+					.build())
 				.putMetadata("userId", userId)
-				.putMetadata("tier", tierId)
-				.build())
-			.putMetadata("userId", userId)
-			.putMetadata("tier", tierId);
+				.putMetadata("tier", tierId);
 
-		// Allow promotion codes
-		paramsBuilder.setAllowPromotionCodes(true);
+			// Allow promotion codes
+			paramsBuilder.setAllowPromotionCodes(true);
 
-		Session session = Session.create(paramsBuilder.build());
+			Session session = Session.create(paramsBuilder.build());
 
-		logger.info("Created checkout session {} for user {}", session.getId(), userId);
+			logger.info("Created checkout session {} for user {}", session.getId(), userId);
 
-		return new CheckoutResult(session.getId(), session.getUrl(), stripeCustomerId);
+			return new CheckoutResult(session.getId(), session.getUrl(), stripeCustomerId);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to create checkout session for user {}: {}", userId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.CHECKOUT_SESSION_CREATION_FAILED, "client-stripe", e,
+					userId);
+		}
 	}
 
 	/**
@@ -88,15 +96,21 @@ public class StripeService {
 	 * @param email The user's email
 	 * @return The Stripe customer ID
 	 */
-	public String createCustomer(String userId, String email) throws StripeException {
-		CustomerCreateParams params = CustomerCreateParams.builder()
-			.setEmail(email)
-			.putMetadata("userId", userId)
-			.build();
+	public String createCustomer(String userId, String email) {
+		try {
+			CustomerCreateParams params = CustomerCreateParams.builder()
+				.setEmail(email)
+				.putMetadata("userId", userId)
+				.build();
 
-		Customer customer = Customer.create(params);
-		logger.info("Created Stripe customer {} for user {}", customer.getId(), userId);
-		return customer.getId();
+			Customer customer = Customer.create(params);
+			logger.info("Created Stripe customer {} for user {}", customer.getId(), userId);
+			return customer.getId();
+		}
+		catch (StripeException e) {
+			logger.error("Failed to create Stripe customer for user {}: {}", userId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.CUSTOMER_CREATION_FAILED, "client-stripe", e, userId);
+		}
 	}
 
 	/**

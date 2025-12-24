@@ -1,5 +1,7 @@
 package io.strategiz.service.provider.service;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.service.provider.model.request.UpdateProviderRequest;
 import io.strategiz.service.provider.model.response.UpdateProviderResponse;
 import io.strategiz.service.base.service.ProviderBaseService;
@@ -56,7 +58,11 @@ public class UpdateProviderService extends ProviderBaseService {
                     response = processConfigUpdate(request, response);
                     break;
                 default:
-                    throw new IllegalArgumentException("Unsupported update action: " + request.getAction());
+                    throw new StrategizException(
+                            ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG,
+                            "service-provider",
+                            request.getAction()
+                    );
             }
             
             // Log successful attempt
@@ -88,23 +94,43 @@ public class UpdateProviderService extends ProviderBaseService {
      */
     private void validateUpdateRequest(UpdateProviderRequest request) {
         if (request.getUserId() == null || request.getUserId().trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID is required");
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                    "service-provider",
+                    "userId"
+            );
         }
-        
+
         if (request.getProviderId() == null || request.getProviderId().trim().isEmpty()) {
-            throw new IllegalArgumentException("Provider ID is required");
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                    "service-provider",
+                    "providerId"
+            );
         }
-        
+
         if (request.getAction() == null || request.getAction().trim().isEmpty()) {
-            throw new IllegalArgumentException("Action is required");
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
+                    "service-provider",
+                    "action"
+            );
         }
-        
+
         if (!isSupportedProvider(request.getProviderId())) {
-            throw new IllegalArgumentException("Provider not supported: " + request.getProviderId());
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED,
+                    "service-provider",
+                    request.getProviderId()
+            );
         }
-        
+
         if (!isSupportedAction(request.getAction())) {
-            throw new IllegalArgumentException("Action not supported: " + request.getAction());
+            throw new StrategizException(
+                    ServiceProviderErrorDetails.INVALID_PROVIDER_CONFIG,
+                    "service-provider",
+                    request.getAction()
+            );
         }
     }
     

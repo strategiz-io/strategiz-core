@@ -38,7 +38,12 @@ public enum MarketplaceErrorDetails implements ErrorDetails {
     SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "marketplace-subscription-not-found"),
     ALREADY_SUBSCRIBED(HttpStatus.CONFLICT, "marketplace-already-subscribed"),
     SUBSCRIPTION_EXPIRED(HttpStatus.PAYMENT_REQUIRED, "marketplace-subscription-expired"),
-    CANNOT_SUBSCRIBE_OWN(HttpStatus.BAD_REQUEST, "marketplace-cannot-subscribe-own");
+    CANNOT_SUBSCRIBE_OWN(HttpStatus.BAD_REQUEST, "marketplace-cannot-subscribe-own"),
+
+    // Pricing errors
+    INVALID_PRICING_TYPE(HttpStatus.BAD_REQUEST, "marketplace-invalid-pricing-type"),
+    INVALID_ONE_TIME_PRICE(HttpStatus.BAD_REQUEST, "marketplace-invalid-one-time-price"),
+    INVALID_MONTHLY_PRICE(HttpStatus.BAD_REQUEST, "marketplace-invalid-monthly-price");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

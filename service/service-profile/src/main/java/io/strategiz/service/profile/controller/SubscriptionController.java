@@ -1,6 +1,5 @@
 package io.strategiz.service.profile.controller;
 
-import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
 import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.business.preferences.service.SubscriptionService.TierInfo;
@@ -14,6 +13,7 @@ import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.profile.model.CheckoutRequest;
@@ -236,13 +236,10 @@ public class SubscriptionController extends BaseController {
 
 			return ResponseEntity.ok(Map.of("sessionId", result.sessionId(), "url", result.url()));
 		}
-		catch (StripeException e) {
-			logger.error("Stripe error creating checkout session: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+		catch (StrategizException e) {
+			logger.error("Error creating checkout session: {}", e.getMessage());
+			return ResponseEntity.status(e.getHttpStatus())
 				.body(Map.of("error", "Failed to create checkout session"));
-		}
-		catch (IllegalArgumentException e) {
-			return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
 		}
 	}
 

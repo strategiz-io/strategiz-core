@@ -66,18 +66,30 @@ public class StrategyPublishService {
                 break;
             case ONE_TIME:
                 if (oneTimePrice == null || oneTimePrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new IllegalArgumentException("One-time price is required and must be positive");
+                    throw new StrategizException(
+                            MarketplaceErrorDetails.INVALID_ONE_TIME_PRICE,
+                            MODULE_NAME,
+                            "One-time price is required and must be positive"
+                    );
                 }
                 pricing = StrategyPricing.oneTime(oneTimePrice, "USD");
                 break;
             case SUBSCRIPTION:
                 if (monthlyPrice == null || monthlyPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new IllegalArgumentException("Monthly price is required and must be positive");
+                    throw new StrategizException(
+                            MarketplaceErrorDetails.INVALID_MONTHLY_PRICE,
+                            MODULE_NAME,
+                            "Monthly price is required and must be positive"
+                    );
                 }
                 pricing = StrategyPricing.subscription(monthlyPrice, "USD", null);
                 break;
             default:
-                throw new IllegalArgumentException("Invalid pricing type: " + pricingType);
+                throw new StrategizException(
+                        MarketplaceErrorDetails.INVALID_PRICING_TYPE,
+                        MODULE_NAME,
+                        pricingType.toString()
+                );
         }
 
         // Update strategy and publish
@@ -129,18 +141,30 @@ public class StrategyPublishService {
                 break;
             case ONE_TIME:
                 if (oneTimePrice == null || oneTimePrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new IllegalArgumentException("One-time price is required and must be positive");
+                    throw new StrategizException(
+                            MarketplaceErrorDetails.INVALID_ONE_TIME_PRICE,
+                            MODULE_NAME,
+                            "One-time price is required and must be positive"
+                    );
                 }
                 pricing = StrategyPricing.oneTime(oneTimePrice, "USD");
                 break;
             case SUBSCRIPTION:
                 if (monthlyPrice == null || monthlyPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new IllegalArgumentException("Monthly price is required and must be positive");
+                    throw new StrategizException(
+                            MarketplaceErrorDetails.INVALID_MONTHLY_PRICE,
+                            MODULE_NAME,
+                            "Monthly price is required and must be positive"
+                    );
                 }
                 pricing = StrategyPricing.subscription(monthlyPrice, "USD", null);
                 break;
             default:
-                throw new IllegalArgumentException("Invalid pricing type: " + pricingType);
+                throw new StrategizException(
+                        MarketplaceErrorDetails.INVALID_PRICING_TYPE,
+                        MODULE_NAME,
+                        pricingType.toString()
+                );
         }
 
         strategy.setPricing(pricing);

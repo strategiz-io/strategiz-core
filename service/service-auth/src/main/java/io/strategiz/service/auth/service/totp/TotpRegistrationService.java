@@ -40,13 +40,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for handling TOTP registration operations
  * Manages the generation of TOTP secrets, QR codes, and TOTP setup/disabling
  */
 @Service
-public class TotpRegistrationService {
+public class TotpRegistrationService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }
     
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TotpRegistrationService.class);
     

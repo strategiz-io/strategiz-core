@@ -2,8 +2,7 @@ package io.strategiz.service.exchange.coinbase;
 
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,13 +18,16 @@ import java.util.Map;
  * Service for interacting with the Coinbase API
  * This service handles all communication with the Coinbase API and provides
  * methods for accessing account data and other information.
- * 
+ *
  * IMPORTANT: This service always uses real API data, never mock responses.
  */
 @Service
-public class CoinbaseService {
+public class CoinbaseService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(CoinbaseService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-exchange";
+    }
 
     private static final String COINBASE_API_URL = "https://api.coinbase.com";
     

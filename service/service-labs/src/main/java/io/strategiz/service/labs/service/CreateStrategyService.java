@@ -2,10 +2,11 @@ package io.strategiz.service.labs.service;
 
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.repository.CreateStrategyRepository;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.labs.constants.StrategyConstants;
+import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import io.strategiz.service.labs.model.CreateStrategyRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +16,14 @@ import java.util.UUID;
  * Service for creating strategies
  */
 @Service
-public class CreateStrategyService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(CreateStrategyService.class);
-    
+public class CreateStrategyService extends BaseService {
+
     private final CreateStrategyRepository createStrategyRepository;
+
+    @Override
+    protected String getModuleName() {
+        return "service-labs";
+    }
     
     @Autowired
     public CreateStrategyService(CreateStrategyRepository createStrategyRepository) {
@@ -34,11 +38,11 @@ public class CreateStrategyService {
      * @return The created strategy
      */
     public Strategy createStrategy(CreateStrategyRequest request, String userId) {
-        logger.info("Creating strategy: {} for user: {}", request.getName(), userId);
-        
+        log.info("Creating strategy: {} for user: {}", request.getName(), userId);
+
         // Validate request
         validateCreateRequest(request);
-        
+
         // Convert request to entity
         Strategy strategy = new Strategy();
         strategy.setName(request.getName());
@@ -49,11 +53,11 @@ public class CreateStrategyService {
         strategy.setTags(request.getTags());
         strategy.setParameters(request.getParameters());
         strategy.setPublic(request.isPublic());
-        
+
         // Save using CRUD repository
         Strategy created = createStrategyRepository.createWithUserId(strategy, userId);
-        
-        logger.info("Successfully created strategy: {} for user: {}", created.getId(), userId);
+
+        log.info("Successfully created strategy: {} for user: {}", created.getId(), userId);
         return created;
     }
     
@@ -63,32 +67,38 @@ public class CreateStrategyService {
     private void validateCreateRequest(CreateStrategyRequest request) {
         // Validate name length
         if (request.getName() != null && request.getName().length() > StrategyConstants.MAX_NAME_LENGTH) {
-            throw new IllegalArgumentException("Strategy name exceeds maximum length of " + StrategyConstants.MAX_NAME_LENGTH);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NAME_TOO_LONG,
+                    "Strategy name exceeds maximum length of " + StrategyConstants.MAX_NAME_LENGTH);
         }
-        
+
         // Validate description length
         if (request.getDescription() != null && request.getDescription().length() > StrategyConstants.MAX_DESCRIPTION_LENGTH) {
-            throw new IllegalArgumentException("Strategy description exceeds maximum length of " + StrategyConstants.MAX_DESCRIPTION_LENGTH);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_DESCRIPTION_TOO_LONG,
+                    "Strategy description exceeds maximum length of " + StrategyConstants.MAX_DESCRIPTION_LENGTH);
         }
-        
+
         // Validate code length
         if (request.getCode() != null && request.getCode().length() > StrategyConstants.MAX_CODE_LENGTH) {
-            throw new IllegalArgumentException("Strategy code exceeds maximum length of " + StrategyConstants.MAX_CODE_LENGTH);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_CODE_TOO_LONG,
+                    "Strategy code exceeds maximum length of " + StrategyConstants.MAX_CODE_LENGTH);
         }
-        
+
         // Validate language
         if (!isValidLanguage(request.getLanguage())) {
-            throw new IllegalArgumentException("Invalid language: " + request.getLanguage());
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_LANGUAGE,
+                    "Invalid language: " + request.getLanguage());
         }
-        
+
         // Validate type if provided
         if (request.getType() != null && !isValidType(request.getType())) {
-            throw new IllegalArgumentException("Invalid type: " + request.getType());
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_TYPE,
+                    "Invalid type: " + request.getType());
         }
-        
+
         // Validate tags count
         if (request.getTags() != null && request.getTags().size() > StrategyConstants.MAX_TAGS) {
-            throw new IllegalArgumentException("Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_TOO_MANY_TAGS,
+                    "Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
         }
     }
     

@@ -9,9 +9,8 @@ import com.google.cloud.firestore.SetOptions;
 import com.google.cloud.firestore.WriteBatch;
 import com.google.firebase.cloud.FirestoreClient;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -26,9 +25,12 @@ import java.util.concurrent.ExecutionException;
  * Handles business logic related to creating, listing, purchasing, and applying strategies
  */
 @Service
-public class StrategyMarketplaceService {
+public class StrategyMarketplaceService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(StrategyMarketplaceService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-marketplace";
+    }
 
     /**
      * List all public strategies in the marketplace

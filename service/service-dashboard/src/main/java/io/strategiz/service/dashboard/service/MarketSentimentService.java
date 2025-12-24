@@ -5,12 +5,11 @@ import io.strategiz.business.portfolio.model.PortfolioData;
 // import io.strategiz.client.alphavantage.AlphaVantageClient;
 // import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.dashboard.model.marketsentiment.MarketSentimentResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -27,9 +26,12 @@ import java.time.LocalDateTime;
  * This service provides fear & greed index, trending assets, and sentiment indicators.
  */
 @Service
-public class MarketSentimentService {
+public class MarketSentimentService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(MarketSentimentService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-dashboard";
+    }
 
     private final PortfolioManager portfolioManager;
     // private final CoinGeckoClient coinGeckoClient;

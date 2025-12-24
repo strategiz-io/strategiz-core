@@ -9,8 +9,6 @@ import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,15 +20,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for AI-powered strategy generation, explanation, and optimization.
  */
 @Service
-public class AIStrategyService {
+public class AIStrategyService extends BaseService {
 
-	private static final Logger logger = LoggerFactory.getLogger(AIStrategyService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "unknown";
+    }
 	private final LLMRouter llmRouter;
 
 	private final ObjectMapper objectMapper;
@@ -45,7 +46,7 @@ public class AIStrategyService {
 	 * Generate a new strategy from a natural language prompt.
 	 */
 	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
-		logger.info("Generating strategy from prompt: {}",
+		log.info("Generating strategy from prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
 
 		try {
@@ -68,7 +69,7 @@ public class AIStrategyService {
 			return parseGenerationResponse(llmResponse);
 		}
 		catch (Exception e) {
-			logger.error("Error generating strategy", e);
+			log.error("Error generating strategy", e);
 			return AIStrategyResponse.error("Failed to generate strategy: " + e.getMessage());
 		}
 	}
@@ -77,7 +78,7 @@ public class AIStrategyService {
 	 * Refine an existing strategy based on user feedback.
 	 */
 	public AIStrategyResponse refineStrategy(AIStrategyRequest request) {
-		logger.info("Refining strategy with prompt: {}",
+		log.info("Refining strategy with prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
 
 		if (request.getContext() == null || request.getContext().getCurrentCode() == null) {
@@ -108,7 +109,7 @@ public class AIStrategyService {
 			return parseGenerationResponse(llmResponse);
 		}
 		catch (Exception e) {
-			logger.error("Error refining strategy", e);
+			log.error("Error refining strategy", e);
 			return AIStrategyResponse.error("Failed to refine strategy: " + e.getMessage());
 		}
 	}
@@ -117,7 +118,7 @@ public class AIStrategyService {
 	 * Parse Python code to extract visual configuration.
 	 */
 	public AIStrategyResponse parseCodeToVisual(String code) {
-		logger.info("Parsing code to visual config");
+		log.info("Parsing code to visual config");
 
 		try {
 			String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code);
@@ -152,7 +153,7 @@ public class AIStrategyService {
 				result.setSuccess(true);
 			}
 			catch (Exception e) {
-				logger.error("Error parsing code-to-visual response", e);
+				log.error("Error parsing code-to-visual response", e);
 				result.setSuccess(false);
 				result.setError("Failed to parse code: " + e.getMessage());
 				result.setCanRepresentVisually(false);
@@ -161,7 +162,7 @@ public class AIStrategyService {
 			return result;
 		}
 		catch (Exception e) {
-			logger.error("Error parsing code to visual", e);
+			log.error("Error parsing code to visual", e);
 			return AIStrategyResponse.error("Failed to parse code: " + e.getMessage());
 		}
 	}
@@ -170,7 +171,7 @@ public class AIStrategyService {
 	 * Explain a specific element (rule, condition, or code section).
 	 */
 	public AIStrategyResponse explainElement(AIStrategyRequest request) {
-		logger.info("Explaining element: {}",
+		log.info("Explaining element: {}",
 				request.getElementToExplain().substring(0, Math.min(50, request.getElementToExplain().length())));
 
 		try {
@@ -222,7 +223,7 @@ public class AIStrategyService {
 			return result;
 		}
 		catch (Exception e) {
-			logger.error("Error explaining element", e);
+			log.error("Error explaining element", e);
 			return AIStrategyResponse.error("Failed to explain element: " + e.getMessage());
 		}
 	}
@@ -231,7 +232,7 @@ public class AIStrategyService {
 	 * Get optimization suggestions based on backtest results.
 	 */
 	public AIStrategyResponse optimizeFromBacktest(AIStrategyRequest request) {
-		logger.info("Generating optimization suggestions from backtest results");
+		log.info("Generating optimization suggestions from backtest results");
 
 		if (request.getBacktestResults() == null) {
 			return AIStrategyResponse.error("Backtest results are required for optimization");
@@ -291,7 +292,7 @@ public class AIStrategyService {
 				result.setSuccess(true);
 			}
 			catch (Exception e) {
-				logger.error("Error parsing optimization response", e);
+				log.error("Error parsing optimization response", e);
 				result.setExplanation(text);
 				result.setSuccess(true);
 			}
@@ -299,7 +300,7 @@ public class AIStrategyService {
 			return result;
 		}
 		catch (Exception e) {
-			logger.error("Error generating optimizations", e);
+			log.error("Error generating optimizations", e);
 			return AIStrategyResponse.error("Failed to generate optimizations: " + e.getMessage());
 		}
 	}
@@ -308,7 +309,7 @@ public class AIStrategyService {
 	 * Detect indicators from a partial prompt (for live preview).
 	 */
 	public AIStrategyResponse previewIndicators(String partialPrompt) {
-		logger.debug("Previewing indicators for partial prompt: {}",
+		log.debug("Previewing indicators for partial prompt: {}",
 				partialPrompt.substring(0, Math.min(30, partialPrompt.length())));
 
 		try {
@@ -355,7 +356,7 @@ public class AIStrategyService {
 				result.setSuccess(true);
 			}
 			catch (Exception e) {
-				logger.error("Error parsing indicator preview response", e);
+				log.error("Error parsing indicator preview response", e);
 				result.setDetectedIndicators(new ArrayList<>());
 				result.setSuccess(true);
 			}
@@ -363,7 +364,7 @@ public class AIStrategyService {
 			return result;
 		}
 		catch (Exception e) {
-			logger.error("Error previewing indicators", e);
+			log.error("Error previewing indicators", e);
 			AIStrategyResponse result = new AIStrategyResponse();
 			result.setDetectedIndicators(new ArrayList<>());
 			result.setSuccess(true);
@@ -375,7 +376,7 @@ public class AIStrategyService {
 	 * Parse a natural language backtest query to extract date parameters.
 	 */
 	public Map<String, Object> parseBacktestQuery(String query) {
-		logger.info("Parsing backtest query: {}", query);
+		log.info("Parsing backtest query: {}", query);
 
 		try {
 			String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
@@ -384,7 +385,7 @@ public class AIStrategyService {
 			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
-				logger.error("Error response from LLM: {}", llmResponse != null ? llmResponse.getError() : "No response");
+				log.error("Error response from LLM: {}", llmResponse != null ? llmResponse.getError() : "No response");
 				return new HashMap<>();
 			}
 
@@ -397,11 +398,11 @@ public class AIStrategyService {
 				}
 			}
 			catch (Exception e) {
-				logger.error("Error parsing backtest query response", e);
+				log.error("Error parsing backtest query response", e);
 			}
 		}
 		catch (Exception e) {
-			logger.error("Error parsing backtest query", e);
+			log.error("Error parsing backtest query", e);
 		}
 
 		return new HashMap<>();
@@ -505,7 +506,7 @@ public class AIStrategyService {
 			}
 		}
 		catch (Exception e) {
-			logger.error("Error parsing generation response", e);
+			log.error("Error parsing generation response", e);
 			result.setSuccess(false);
 			result.setError("Failed to parse response: " + e.getMessage());
 		}
@@ -526,7 +527,7 @@ public class AIStrategyService {
 				return objectMapper.readTree(matcher.group(1));
 			}
 			catch (JsonProcessingException e) {
-				logger.debug("Failed to parse JSON from code block", e);
+				log.debug("Failed to parse JSON from code block", e);
 			}
 		}
 
@@ -538,7 +539,7 @@ public class AIStrategyService {
 				return objectMapper.readTree(matcher.group(1));
 			}
 			catch (JsonProcessingException e) {
-				logger.debug("Failed to parse raw JSON", e);
+				log.debug("Failed to parse raw JSON", e);
 			}
 		}
 
@@ -547,7 +548,7 @@ public class AIStrategyService {
 			return objectMapper.readTree(text);
 		}
 		catch (JsonProcessingException e) {
-			logger.debug("Failed to parse text as JSON", e);
+			log.debug("Failed to parse text as JSON", e);
 		}
 
 		return null;

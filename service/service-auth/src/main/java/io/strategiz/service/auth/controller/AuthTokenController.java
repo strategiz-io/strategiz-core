@@ -6,7 +6,6 @@ import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.auth.service.AuthTokenService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,7 +42,7 @@ public class AuthTokenController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     /**

@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.strategiz.service.marketplace.service.StrategyMarketplaceService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
@@ -28,7 +27,7 @@ public class StrategyMarketplaceController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.MARKETPLACE_MODULE;
+        return "service-marketplace";
     }
 
     @Autowired

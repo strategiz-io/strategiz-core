@@ -8,7 +8,7 @@ import io.strategiz.data.user.entity.UserEntity;
 public class UserWithDevices {
     
     private UserEntity user;
-    private Object devices; // TODO: Will be typed when data-devices module is updated
+    private Object devices; // TODO: Will be typed when data-device module is updated
     
     // Constructors
     public UserWithDevices() {

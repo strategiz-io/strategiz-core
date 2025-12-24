@@ -3,8 +3,6 @@ package io.strategiz.service.labs.service;
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.repository.CreateStrategyRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for managing strategy versions.
@@ -19,10 +18,12 @@ import java.util.stream.Collectors;
  * while the original stays active with the existing deployment.
  */
 @Service
-public class StrategyVersioningService {
+public class StrategyVersioningService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(StrategyVersioningService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "unknown";
+    }
     private final ReadStrategyRepository readStrategyRepository;
     private final CreateStrategyRepository createStrategyRepository;
 
@@ -45,7 +46,7 @@ public class StrategyVersioningService {
      * @throws IllegalStateException if strategy is not deployed
      */
     public Strategy createVersion(String strategyId, String userId) {
-        logger.info("Creating new version of strategy {} for user {}", strategyId, userId);
+        log.info("Creating new version of strategy {} for user {}", strategyId, userId);
 
         // Load the original strategy
         Optional<Strategy> originalOpt = readStrategyRepository.findById(strategyId);
@@ -104,7 +105,7 @@ public class StrategyVersioningService {
         // Save the new version
         Strategy created = createStrategyRepository.createWithUserId(newStrategy, userId);
 
-        logger.info("Created new version {} of strategy {} as {}", newVersion, strategyId, created.getId());
+        log.info("Created new version {} of strategy {} as {}", newVersion, strategyId, created.getId());
         return created;
     }
 
@@ -116,7 +117,7 @@ public class StrategyVersioningService {
      * @return List of all versions, sorted by version number descending
      */
     public List<Strategy> getVersionHistory(String strategyId, String userId) {
-        logger.info("Fetching version history for strategy {} for user {}", strategyId, userId);
+        log.info("Fetching version history for strategy {} for user {}", strategyId, userId);
 
         // Load the requested strategy to get the parent ID
         Optional<Strategy> strategyOpt = readStrategyRepository.findById(strategyId);

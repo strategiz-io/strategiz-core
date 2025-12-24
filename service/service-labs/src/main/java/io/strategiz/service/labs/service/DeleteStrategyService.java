@@ -2,8 +2,7 @@ package io.strategiz.service.labs.service;
 
 import io.strategiz.data.strategy.repository.DeleteStrategyRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,18 +10,21 @@ import org.springframework.stereotype.Service;
  * Service for deleting strategies
  */
 @Service
-public class DeleteStrategyService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(DeleteStrategyService.class);
-    
+public class DeleteStrategyService extends BaseService {
+
     private final DeleteStrategyRepository deleteStrategyRepository;
     private final ReadStrategyRepository readStrategyRepository;
-    
+
     @Autowired
     public DeleteStrategyService(DeleteStrategyRepository deleteStrategyRepository,
                                ReadStrategyRepository readStrategyRepository) {
         this.deleteStrategyRepository = deleteStrategyRepository;
         this.readStrategyRepository = readStrategyRepository;
+    }
+
+    @Override
+    protected String getModuleName() {
+        return "service-labs";
     }
     
     /**
@@ -33,7 +35,7 @@ public class DeleteStrategyService {
      * @return true if deleted successfully
      */
     public boolean deleteStrategy(String strategyId, String userId) {
-        logger.info("Deleting strategy: {} for user: {}", strategyId, userId);
+        log.info("Deleting strategy: {} for user: {}", strategyId, userId);
         
         // Check if strategy exists and user has access
         boolean hasAccess = readStrategyRepository.findById(strategyId)
@@ -41,16 +43,16 @@ public class DeleteStrategyService {
                 .orElse(false);
         
         if (!hasAccess) {
-            logger.warn("User {} does not have access to delete strategy {}", userId, strategyId);
+            log.warn("User {} does not have access to delete strategy {}", userId, strategyId);
             return false;
         }
         
         boolean deleted = deleteStrategyRepository.deleteByIdAndUserId(strategyId, userId);
         
         if (deleted) {
-            logger.info("Successfully deleted strategy: {} for user: {}", strategyId, userId);
+            log.info("Successfully deleted strategy: {} for user: {}", strategyId, userId);
         } else {
-            logger.error("Failed to delete strategy: {} for user: {}", strategyId, userId);
+            log.error("Failed to delete strategy: {} for user: {}", strategyId, userId);
         }
         
         return deleted;
@@ -64,11 +66,11 @@ public class DeleteStrategyService {
      * @return The number of strategies deleted
      */
     public int deleteAllUserStrategies(String userId) {
-        logger.warn("Deleting ALL strategies for user: {}", userId);
+        log.warn("Deleting ALL strategies for user: {}", userId);
         
         int deletedCount = deleteStrategyRepository.deleteAllByUserId(userId);
         
-        logger.info("Deleted {} strategies for user: {}", deletedCount, userId);
+        log.info("Deleted {} strategies for user: {}", deletedCount, userId);
         return deletedCount;
     }
 }

@@ -3,7 +3,6 @@ package io.strategiz.service.social.controller;
 import io.strategiz.data.user.entity.UserFollowEntity;
 import io.strategiz.service.social.service.FollowService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;

@@ -1,6 +1,6 @@
-# Data Providers Module
+# Data Provider Module
 
-The data-providers module provides repository interfaces and entity definitions for the connected providers subcollection in Firebase Firestore. This module manages the user's connections to various trading platforms, brokers, and financial service providers.
+The data-provider module provides repository interfaces and entity definitions for the connected providers subcollection in Firebase Firestore. This module manages the user's connections to various trading platforms, brokers, and financial service providers.
 
 ## Architecture
 

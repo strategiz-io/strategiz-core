@@ -19,7 +19,7 @@
         <!-- Internal Dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-base</artifactId>
+            <artifactId>data-framework-base</artifactId>
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>

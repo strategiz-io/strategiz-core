@@ -17,7 +17,6 @@ import io.strategiz.service.profile.model.UpdateDemoModeResponse;
 import io.strategiz.service.profile.model.UploadImageResponse;
 import io.strategiz.service.profile.exception.ProfileErrors;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
@@ -40,7 +39,7 @@ public class ProfileController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.PROFILE_MODULE;
+        return "service-profile";
     }
 
     private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
@@ -86,7 +85,7 @@ public class ProfileController extends BaseController {
         ReadProfileResponse profile = profileService.getProfile(userId);
 
         if (profile == null) {
-            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ModuleConstants.PROFILE_MODULE, userId);
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "service-profile", userId);
         }
 
         // Return clean response - headers added by StandardHeadersInterceptor
@@ -109,7 +108,7 @@ public class ProfileController extends BaseController {
 
         // Users can only access their own profile
         if (!userId.equals(user.getUserId())) {
-            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, ModuleConstants.PROFILE_MODULE, userId);
+            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, "service-profile", userId);
         }
 
         log.info("Retrieving profile for user ID: {}", userId);
@@ -118,7 +117,7 @@ public class ProfileController extends BaseController {
         ReadProfileResponse profile = profileService.getProfile(userId);
 
         if (profile == null) {
-            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, ModuleConstants.PROFILE_MODULE, userId);
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "service-profile", userId);
         }
 
         // Return clean response - headers added by StandardHeadersInterceptor
@@ -143,7 +142,7 @@ public class ProfileController extends BaseController {
 
         // Users can only upload to their own profile
         if (!userId.equals(user.getUserId())) {
-            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, ModuleConstants.PROFILE_MODULE, userId);
+            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, "service-profile", userId);
         }
 
         log.info("Uploading profile image for user ID: {}", userId);

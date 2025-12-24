@@ -127,10 +127,10 @@
             <artifactId>service-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- TimescaleDB Market Data Module -->
+        <!-- TimescaleDB Framework Module -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-marketdata-timescale</artifactId>
+            <artifactId>data-framework-timescale</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

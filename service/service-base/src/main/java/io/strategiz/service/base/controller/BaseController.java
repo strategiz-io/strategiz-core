@@ -10,7 +10,6 @@ import io.strategiz.framework.exception.ErrorDetails;
 import io.strategiz.framework.exception.ErrorMessageService;
 import io.strategiz.framework.exception.StandardErrorResponse;
 import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.Contact;
@@ -563,7 +562,135 @@ public abstract class BaseController {
         headers.add("X-Error-Module", "unknown");
         
         MDC.put("traceId", traceId);
-        
+
         return ResponseEntity.internalServerError().headers(headers).body(errorResponse);
+    }
+
+    // === STRUCTURED LOGGING HELPERS ===
+    // These methods provide HTTP-specific logging using the StructuredLogger from framework-logging
+
+    /**
+     * Log incoming HTTP request with details.
+     *
+     * @param method HTTP method (GET, POST, etc.)
+     * @param endpoint The endpoint path
+     * @param userId The authenticated user ID (null if unauthenticated)
+     * @param requestData Additional request data to log
+     */
+    protected void logHttpRequest(String method, String endpoint, String userId, Map<String, Object> requestData) {
+        Map<String, Object> data = new java.util.HashMap<>(requestData != null ? requestData : Map.of());
+        data.put("httpMethod", method);
+        data.put("endpoint", endpoint);
+
+        io.strategiz.framework.logging.StructuredLogger.info()
+            .operation("http_request")
+            .component(getModuleName())
+            .userId(userId)
+            .fields(data)
+            .log("HTTP Request: " + method + " " + endpoint);
+    }
+
+    /**
+     * Log HTTP response with status and duration.
+     *
+     * @param method HTTP method
+     * @param endpoint The endpoint path
+     * @param userId The authenticated user ID
+     * @param statusCode HTTP status code
+     * @param durationMs Request duration in milliseconds
+     * @param responseData Additional response data to log
+     */
+    protected void logHttpResponse(String method, String endpoint, String userId,
+                                   int statusCode, long durationMs, Map<String, Object> responseData) {
+        Map<String, Object> data = new java.util.HashMap<>(responseData != null ? responseData : Map.of());
+        data.put("httpMethod", method);
+        data.put("endpoint", endpoint);
+        data.put("statusCode", statusCode);
+
+        io.strategiz.framework.logging.StructuredLogger.performance()
+            .operation("http_response")
+            .component(getModuleName())
+            .userId(userId)
+            .duration(durationMs)
+            .status(statusCode)
+            .fields(data)
+            .log("HTTP Response: " + method + " " + endpoint + " - " + statusCode);
+    }
+
+    /**
+     * Log API authentication attempts.
+     *
+     * @param authMethod The authentication method used (PASETO, OAuth, API Key, etc.)
+     * @param userId The user ID attempting authentication
+     * @param success Whether authentication succeeded
+     * @param authData Additional authentication data
+     */
+    protected void logApiAuth(String authMethod, String userId, boolean success, Map<String, Object> authData) {
+        Map<String, Object> data = new java.util.HashMap<>(authData != null ? authData : Map.of());
+        data.put("authMethod", authMethod);
+        data.put("success", success);
+
+        io.strategiz.framework.logging.StructuredLogger.security()
+            .operation("api_authentication")
+            .component(getModuleName())
+            .userId(userId)
+            .fields(data)
+            .log("API Authentication: " + authMethod + " - " + (success ? "SUCCESS" : "FAILED"));
+    }
+
+    /**
+     * Log API authorization checks.
+     *
+     * @param userId The user ID
+     * @param operation The operation being authorized
+     * @param resourceId The resource being accessed
+     * @param success Whether authorization succeeded
+     * @param authzData Additional authorization data
+     */
+    protected void logApiAuthz(String userId, String operation, String resourceId,
+                               boolean success, Map<String, Object> authzData) {
+        Map<String, Object> data = new java.util.HashMap<>(authzData != null ? authzData : Map.of());
+        data.put("operation", operation);
+        data.put("resourceId", resourceId);
+        data.put("success", success);
+
+        io.strategiz.framework.logging.StructuredLogger.security()
+            .operation("api_authorization")
+            .component(getModuleName())
+            .userId(userId)
+            .fields(data)
+            .log("API Authorization: " + operation + " on " + resourceId + " - " + (success ? "ALLOWED" : "DENIED"));
+    }
+
+    /**
+     * Log validation errors from request processing.
+     *
+     * @param userId The user ID
+     * @param operation The operation being validated
+     * @param validationErrors Map of field names to error messages
+     */
+    protected void logValidationError(String userId, String operation, Map<String, Object> validationErrors) {
+        io.strategiz.framework.logging.StructuredLogger.warn()
+            .operation("validation_error")
+            .component(getModuleName())
+            .userId(userId)
+            .fields(validationErrors)
+            .log("Validation error: " + operation);
+    }
+
+    /**
+     * Log rate limiting events.
+     *
+     * @param userId The user ID being rate limited
+     * @param operation The operation being rate limited
+     * @param rateLimitData Rate limit data (limit, remaining, resetTime)
+     */
+    protected void logRateLimit(String userId, String operation, Map<String, Object> rateLimitData) {
+        io.strategiz.framework.logging.StructuredLogger.warn()
+            .operation("rate_limit")
+            .component(getModuleName())
+            .userId(userId)
+            .fields(rateLimitData)
+            .log("Rate limit exceeded: " + operation);
     }
 }

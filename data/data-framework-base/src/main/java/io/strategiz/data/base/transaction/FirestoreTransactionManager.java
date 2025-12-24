@@ -11,8 +11,8 @@ import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 import org.springframework.transaction.support.DefaultTransactionStatus;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Spring PlatformTransactionManager implementation for Google Cloud Firestore.
@@ -62,27 +62,32 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
 
         try {
             // Start a new Firestore transaction
-            // We use a CompletableFuture to bridge Firestore's callback-based API
-            CompletableFuture<Void> transactionFuture = new CompletableFuture<>();
+            // We use a CountDownLatch to coordinate between Spring and Firestore transaction lifecycle
+            CountDownLatch latch = new CountDownLatch(1);
+            AtomicReference<Throwable> errorRef = new AtomicReference<>();
 
             firestore.runTransaction(firestoreTransaction -> {
                 // Store the transaction in ThreadLocal for repository access
                 FirestoreTransactionHolder.setTransaction(firestoreTransaction);
                 txObject.setTransaction(firestoreTransaction);
-                txObject.setTransactionFuture(transactionFuture);
+                txObject.setTransactionLatch(latch);
+                txObject.setTransactionError(errorRef);
 
                 log.debug("Firestore transaction started and stored in ThreadLocal");
 
                 // Wait for the Spring transaction to complete (commit or rollback)
                 // This keeps the Firestore transaction open until Spring says we're done
                 try {
-                    transactionFuture.get();
+                    latch.await();
+
+                    // Check if an error occurred during commit
+                    Throwable error = errorRef.get();
+                    if (error != null) {
+                        throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_TRANSACTION_FAILED, error, "Transaction");
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "Transaction");
-                } catch (ExecutionException e) {
-                    // Rollback case - throw to abort the Firestore transaction
-                    throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_TRANSACTION_FAILED, e.getCause(), "Transaction");
                 }
 
                 return null;
@@ -101,8 +106,8 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
 
         try {
             // Signal the Firestore transaction to complete successfully
-            if (txObject.getTransactionFuture() != null) {
-                txObject.getTransactionFuture().complete(null);
+            if (txObject.getTransactionLatch() != null) {
+                txObject.getTransactionLatch().countDown();
             }
         } finally {
             FirestoreTransactionHolder.clear();
@@ -115,11 +120,12 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
         FirestoreTransactionObject txObject = (FirestoreTransactionObject) status.getTransaction();
 
         try {
-            // Signal the Firestore transaction to abort
-            if (txObject.getTransactionFuture() != null) {
-                txObject.getTransactionFuture().completeExceptionally(
+            // Signal the Firestore transaction to abort by setting an error and counting down
+            if (txObject.getTransactionLatch() != null && txObject.getTransactionError() != null) {
+                txObject.getTransactionError().set(
                     new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_TRANSACTION_FAILED, "Transaction", "rolled back by Spring")
                 );
+                txObject.getTransactionLatch().countDown();
             }
         } finally {
             FirestoreTransactionHolder.clear();
@@ -143,7 +149,8 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
     private static class FirestoreTransactionObject {
         private Transaction existingTransaction;
         private Transaction transaction;
-        private CompletableFuture<Void> transactionFuture;
+        private CountDownLatch transactionLatch;
+        private AtomicReference<Throwable> transactionError;
         private boolean rollbackOnly = false;
 
         public Transaction getExistingTransaction() {
@@ -162,12 +169,20 @@ public class FirestoreTransactionManager extends AbstractPlatformTransactionMana
             this.transaction = transaction;
         }
 
-        public CompletableFuture<Void> getTransactionFuture() {
-            return transactionFuture;
+        public CountDownLatch getTransactionLatch() {
+            return transactionLatch;
         }
 
-        public void setTransactionFuture(CompletableFuture<Void> transactionFuture) {
-            this.transactionFuture = transactionFuture;
+        public void setTransactionLatch(CountDownLatch transactionLatch) {
+            this.transactionLatch = transactionLatch;
+        }
+
+        public AtomicReference<Throwable> getTransactionError() {
+            return transactionError;
+        }
+
+        public void setTransactionError(AtomicReference<Throwable> transactionError) {
+            this.transactionError = transactionError;
         }
 
         public boolean isRollbackOnly() {

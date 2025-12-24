@@ -30,7 +30,20 @@
             <artifactId>framework-exception</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
+        <!-- Framework Logging -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-logging</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Transaction -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

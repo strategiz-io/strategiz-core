@@ -4,9 +4,8 @@ import io.strategiz.data.user.entity.UserFollowEntity;
 import io.strategiz.data.user.repository.UserFollowRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.social.exception.SocialErrorDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,9 +21,13 @@ import java.util.Map;
  * - Duplicate follows are idempotent (no error, returns existing)
  */
 @Service
-public class FollowService {
+public class FollowService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(FollowService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-social";
+    }
+
     private static final String MODULE_NAME = "service-social";
 
     private final UserFollowRepository followRepository;

@@ -10,9 +10,9 @@ public class UserAggregateData {
     
     private UserEntity user;
     private Object authMethods; // TODO: Will be typed when data-auth module is updated
-    private Object watchlist; // TODO: Will be typed when data-watchlist module is updated  
-    private Object providers; // TODO: Will be typed when data-providers module is updated
-    private Object devices; // TODO: Will be typed when data-devices module is updated
+    private Object watchlist; // TODO: Will be typed when data-watchlist module is updated
+    private Object providers; // TODO: Will be typed when data-provider module is updated
+    private Object devices; // TODO: Will be typed when data-device module is updated
     private Object preferences; // TODO: Will be typed when data-preferences module is updated
     
     // Constructors

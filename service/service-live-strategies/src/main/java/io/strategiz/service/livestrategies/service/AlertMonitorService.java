@@ -12,8 +12,6 @@ import io.strategiz.data.strategy.repository.CreateStrategyAlertHistoryRepositor
 import io.strategiz.data.strategy.repository.ReadStrategyAlertRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyAlertRepository;
 import com.google.cloud.Timestamp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Scheduled service that monitors active alerts and detects trading signals.
@@ -54,10 +53,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Component
 @ConditionalOnProperty(name = "alert.monitor.enabled", havingValue = "true", matchIfMissing = true)
-public class AlertMonitorService {
+public class AlertMonitorService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AlertMonitorService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "unknown";
+    }
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private Instant lastRunTime;
     private int lastAlertCount = 0;
@@ -142,13 +143,13 @@ public class AlertMonitorService {
         // Use tier-specific lock to allow parallel tier processing
         // For simplicity, we use a global lock here - can be optimized later
         if (!isRunning.compareAndSet(false, true)) {
-            logger.debug("Alert monitoring already running, skipping {} tier", tier);
+            log.debug("Alert monitoring already running, skipping {} tier", tier);
             return;
         }
 
         try {
-            logger.info("======== {} Tier Alert Monitoring ========", tier);
-            logger.info("Time: {} | Frequency: {} min", Instant.now(), frequencyMinutes);
+            log.info("======== {} Tier Alert Monitoring ========", tier);
+            log.info("Time: {} | Frequency: {} min", Instant.now(), frequencyMinutes);
 
             lastRunTime = Instant.now();
             int alertsProcessed = 0;
@@ -160,14 +161,14 @@ public class AlertMonitorService {
 
             // Fetch active alerts for this tier (ALERT deployment type only)
             List<StrategyAlert> tierAlerts = readAlertRepository.findActiveAlertsByTier(tier);
-            logger.info("Found {} active {} alerts to monitor", tierAlerts.size(), tier);
+            log.info("Found {} active {} alerts to monitor", tierAlerts.size(), tier);
 
             // Process each alert
             for (StrategyAlert alert : tierAlerts) {
                 try {
                     // Skip BOT deployment types (future feature)
                     if (!alert.isAlertDeployment()) {
-                        logger.debug("Skipping non-alert deployment: {}", alert.getId());
+                        log.debug("Skipping non-alert deployment: {}", alert.getId());
                         continue;
                     }
 
@@ -176,7 +177,7 @@ public class AlertMonitorService {
 
                     // Check rate limit
                     if (alert.isDailyLimitReached()) {
-                        logger.debug("Alert {} has reached daily limit", alert.getId());
+                        log.debug("Alert {} has reached daily limit", alert.getId());
                         skippedRateLimit++;
                         continue;
                     }
@@ -193,7 +194,7 @@ public class AlertMonitorService {
                     }
 
                 } catch (Exception e) {
-                    logger.error("Error processing alert {}: {}", alert.getId(), e.getMessage(), e);
+                    log.error("Error processing alert {}: {}", alert.getId(), e.getMessage(), e);
                     errors++;
                     handleAlertError(alert, e);
                 }
@@ -203,13 +204,13 @@ public class AlertMonitorService {
             lastAlertCount = alertsProcessed;
             lastSignalCount = signalsDetected;
 
-            logger.info("======== {} Tier COMPLETED ========", tier);
-            logger.info("Processed: {} | Signals: {} | Errors: {}", alertsProcessed, signalsDetected, errors);
-            logger.info("Skipped - Cooldown: {} | RateLimit: {} | Dedup: {}",
+            log.info("======== {} Tier COMPLETED ========", tier);
+            log.info("Processed: {} | Signals: {} | Errors: {}", alertsProcessed, signalsDetected, errors);
+            log.info("Skipped - Cooldown: {} | RateLimit: {} | Dedup: {}",
                     skippedCooldown, skippedRateLimit, skippedDedup);
 
         } catch (Exception e) {
-            logger.error("Fatal error in {} tier monitoring", tier, e);
+            log.error("Fatal error in {} tier monitoring", tier, e);
         } finally {
             isRunning.set(false);
         }
@@ -233,7 +234,7 @@ public class AlertMonitorService {
      * Process alert with cooldown and deduplication checks.
      */
     private ProcessResult processAlertWithChecks(StrategyAlert alert) {
-        logger.debug("Processing alert: {} (strategy: {})", alert.getAlertName(), alert.getStrategyId());
+        log.debug("Processing alert: {} (strategy: {})", alert.getAlertName(), alert.getStrategyId());
 
         int signalCount = 0;
 
@@ -242,7 +243,7 @@ public class AlertMonitorService {
             try {
                 // Check cooldown for this symbol
                 if (isInCooldown(alert, symbol)) {
-                    logger.debug("Alert {} symbol {} in cooldown, skipping", alert.getId(), symbol);
+                    log.debug("Alert {} symbol {} in cooldown, skipping", alert.getId(), symbol);
                     return new ProcessResult(ProcessOutcome.SKIPPED_COOLDOWN, 0);
                 }
 
@@ -250,11 +251,11 @@ public class AlertMonitorService {
                 Double currentPrice = getLatestPriceFromCache(symbol);
 
                 if (currentPrice == null) {
-                    logger.warn("No cached price data for symbol: {} - batch job may not have collected it yet", symbol);
+                    log.warn("No cached price data for symbol: {} - batch job may not have collected it yet", symbol);
                     continue;
                 }
 
-                logger.debug("Cached price for {}: ${}", symbol, currentPrice);
+                log.debug("Cached price for {}: ${}", symbol, currentPrice);
 
                 // Update last checked timestamp
                 updateAlertRepository.updateLastCheckedAt(alert.getId(), alert.getUserId(), Timestamp.now());
@@ -267,7 +268,7 @@ public class AlertMonitorService {
                 );
 
                 if (!"SUCCESS".equals(result.getStatus())) {
-                    logger.warn("Strategy execution failed for alert {}: {}",
+                    log.warn("Strategy execution failed for alert {}: {}",
                         alert.getId(), result.getMessage());
                     continue;
                 }
@@ -286,7 +287,7 @@ public class AlertMonitorService {
 
                             // Check deduplication: skip if same signal type as last
                             if (isDuplicateSignal(alert, signal.getType(), symbol)) {
-                                logger.debug("Duplicate signal {} for {} on alert {}, skipping",
+                                log.debug("Duplicate signal {} for {} on alert {}, skipping",
                                         signal.getType(), symbol, alert.getId());
                                 return new ProcessResult(ProcessOutcome.SKIPPED_DEDUP, 0);
                             }
@@ -309,14 +310,14 @@ public class AlertMonitorService {
                                     symbol
                             );
 
-                            logger.info("Alert {} triggered {} signal for {} at ${}",
+                            log.info("Alert {} triggered {} signal for {} at ${}",
                                     alert.getId(), signal.getType(), symbol, currentPrice);
                         }
                     }
                 }
 
             } catch (Exception e) {
-                logger.error("Error processing symbol {} for alert {}: {}",
+                log.error("Error processing symbol {} for alert {}: {}",
                     symbol, alert.getId(), e.getMessage());
                 return new ProcessResult(ProcessOutcome.ERROR, 0);
             }
@@ -385,7 +386,7 @@ public class AlertMonitorService {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
 
         if (lastResetDate.isBefore(today)) {
-            logger.debug("Resetting daily trigger count for alert {} (last reset: {})",
+            log.debug("Resetting daily trigger count for alert {} (last reset: {})",
                     alert.getId(), lastResetDate);
             updateAlertRepository.resetDailyTriggerCount(alert.getId(), alert.getUserId());
         }
@@ -408,11 +409,11 @@ public class AlertMonitorService {
 
             // Check if circuit breaker tripped (status changed to ERROR)
             if (alert.shouldTripCircuitBreaker()) {
-                logger.warn("Circuit breaker tripped for alert {} after {} consecutive errors",
+                log.warn("Circuit breaker tripped for alert {} after {} consecutive errors",
                         alert.getId(), alert.getConsecutiveErrors());
             }
         } catch (Exception updateError) {
-            logger.error("Failed to update alert error state", updateError);
+            log.error("Failed to update alert error state", updateError);
         }
     }
 
@@ -444,12 +445,12 @@ public class AlertMonitorService {
                                 Instant.now()
                         );
                         if (ageMinutes > 30) {
-                            logger.warn("Cached data for {} is {} minutes old (batch may be delayed)",
+                            log.warn("Cached data for {} is {} minutes old (batch may be delayed)",
                                     symbol, ageMinutes);
                         }
                     }
 
-                    logger.debug("Using cached price for {}: ${} (source: {}, timeframe: {})",
+                    log.debug("Using cached price for {}: ${} (source: {}, timeframe: {})",
                             symbol, closePrice, data.getDataSource(), data.getTimeframe());
                     return closePrice.doubleValue();
                 }
@@ -457,16 +458,16 @@ public class AlertMonitorService {
 
             // Cache miss - try Yahoo Finance fallback if available
             if (yahooFinanceClient != null) {
-                logger.info("Cache miss for {}, falling back to Yahoo Finance", symbol);
+                log.info("Cache miss for {}, falling back to Yahoo Finance", symbol);
                 Map<String, Object> response = yahooFinanceClient.fetchQuote(symbol);
                 return extractPriceFromResponse(response);
             }
 
-            logger.warn("No cached data for {} and no fallback available", symbol);
+            log.warn("No cached data for {} and no fallback available", symbol);
             return null;
 
         } catch (Exception e) {
-            logger.error("Error getting price for {}: {}", symbol, e.getMessage());
+            log.error("Error getting price for {}: {}", symbol, e.getMessage());
             return null;
         }
     }
@@ -507,11 +508,11 @@ public class AlertMonitorService {
                 }
             }
 
-            logger.warn("Could not find price in Yahoo Finance response format");
+            log.warn("Could not find price in Yahoo Finance response format");
             return null;
 
         } catch (Exception e) {
-            logger.error("Error extracting price from response: {}", e.getMessage());
+            log.error("Error extracting price from response: {}", e.getMessage());
             return null;
         }
     }
@@ -548,7 +549,7 @@ public class AlertMonitorService {
             createHistoryRepository.createWithUserId(history, alert.getUserId());
 
         } catch (Exception e) {
-            logger.error("Failed to create history entry for alert {}: {}",
+            log.error("Failed to create history entry for alert {}: {}",
                 alert.getId(), e.getMessage(), e);
         }
     }

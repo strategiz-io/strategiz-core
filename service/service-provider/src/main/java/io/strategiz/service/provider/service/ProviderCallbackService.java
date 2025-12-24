@@ -11,8 +11,7 @@ import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.profile.service.ProfileService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,14 +23,17 @@ import java.util.Map;
 /**
  * Service for processing OAuth callbacks from provider integrations.
  * Handles OAuth code exchange and provider connection completion.
- * 
+ *
  * @author Strategiz Team
  * @version 1.0
  */
 @Service
-public class ProviderCallbackService {
-    
-    private static final Logger log = LoggerFactory.getLogger(ProviderCallbackService.class);
+public class ProviderCallbackService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-provider";
+    }
     
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
     private final AlpacaProviderBusiness alpacaProviderBusiness;

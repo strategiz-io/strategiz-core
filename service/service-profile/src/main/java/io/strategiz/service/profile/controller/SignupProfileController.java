@@ -11,7 +11,6 @@ import io.strategiz.service.profile.service.SignupProfileService;
 import io.strategiz.service.profile.model.CreateProfileRequest;
 import io.strategiz.service.profile.model.CreateProfileResponse;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ public class SignupProfileController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.PROFILE_MODULE;
+        return "service-profile";
     }
 
     private static final Logger log = LoggerFactory.getLogger(SignupProfileController.class);

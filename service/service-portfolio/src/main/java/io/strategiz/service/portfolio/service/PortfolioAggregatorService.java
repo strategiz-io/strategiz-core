@@ -12,8 +12,6 @@ import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.service.portfolio.constants.ServicePortfolioConstants;
 import io.strategiz.service.portfolio.model.response.*;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +20,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for aggregating portfolio data across all connected providers.
@@ -33,10 +32,12 @@ import java.util.stream.Collectors;
  *   users/{userId}/portfolio/{providerId}/holdings/current  ← Holdings (heavy data)
  */
 @Service
-public class PortfolioAggregatorService {
+public class PortfolioAggregatorService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(PortfolioAggregatorService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "service-portfolio";
+    }
     private final PortfolioProviderRepository portfolioProviderRepository;
     private final ProviderHoldingsRepository providerHoldingsRepository;
     private final PortfolioProviderService portfolioProviderService;

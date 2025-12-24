@@ -17,9 +17,9 @@ import java.util.Objects;
  * 
  * Subcollections (handled by other modules):
  * - auth-methods: Authentication methods (data-auth module)
- * - watchlist: User's market watchlist items (data-watchlist module)  
- * - providers: Connected trading providers (data-providers module)
- * - devices: User devices (data-devices module)
+ * - watchlist: User's market watchlist items (data-watchlist module)
+ * - providers: Connected trading providers (data-provider module)
+ * - devices: User devices (data-device module)
  * - preferences: User preferences and settings (data-preferences module)
  */
 @Collection("users")

@@ -18,14 +18,13 @@ import dev.samstevens.totp.code.DefaultCodeVerifier;
 import dev.samstevens.totp.code.HashingAlgorithm;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for handling TOTP authentication operations
@@ -33,10 +32,12 @@ import java.util.Optional;
  */
 @Service
 @DomainService(domain = "auth")
-public class TotpAuthenticationService {
-    
-    private static final Logger log = LoggerFactory.getLogger(TotpAuthenticationService.class);
-    
+public class TotpAuthenticationService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }    
     private final UserRepository userRepository;
     private final AuthenticationMethodRepository authMethodRepository;
     private final CodeVerifier codeVerifier;

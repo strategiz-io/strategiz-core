@@ -4,8 +4,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -29,9 +28,12 @@ import java.util.UUID;
  * This service handles JWT token generation and authentication with the Coinbase API
  */
 @Service
-public class CoinbaseCloudService {
+public class CoinbaseCloudService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(CoinbaseCloudService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-exchange";
+    }
 
     private static final String COINBASE_API_URL = "https://api.coinbase.com";
     private static final long TOKEN_EXPIRATION_TIME = 60 * 1000; // 60 seconds

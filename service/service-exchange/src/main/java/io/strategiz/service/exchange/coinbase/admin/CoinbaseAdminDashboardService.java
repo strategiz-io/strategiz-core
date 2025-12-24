@@ -1,8 +1,7 @@
 package io.strategiz.service.exchange.coinbase.admin;
 
 import io.strategiz.service.exchange.coinbase.FirestoreService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -12,8 +11,12 @@ import org.springframework.stereotype.Service;
  * Provides methods for retrieving and processing Coinbase account data for admin purposes
  */
 @Service
-public class CoinbaseAdminDashboardService {
-    private static final Logger log = LoggerFactory.getLogger(CoinbaseAdminDashboardService.class);
+public class CoinbaseAdminDashboardService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-exchange";
+    }
 
     @Autowired
     private FirestoreService firestoreService;

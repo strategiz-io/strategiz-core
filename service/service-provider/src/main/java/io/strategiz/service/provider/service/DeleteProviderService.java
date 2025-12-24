@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for deleting provider connections and data.

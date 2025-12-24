@@ -5,7 +5,6 @@ import io.strategiz.service.provider.model.response.ProviderCallbackResponse;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.auth.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,7 +30,7 @@ public class ProviderCallbackController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.PROVIDER_MODULE;
+        return "service-provider";
     }
     
     private final ProviderCallbackService providerCallbackService;

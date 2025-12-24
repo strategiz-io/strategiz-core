@@ -9,8 +9,6 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.client.firebasesms.FirebaseSmsClient;
 import io.strategiz.service.auth.config.SmsOtpConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
+import io.strategiz.service.base.BaseService;
 
 /**
  * SMS OTP Registration Service
@@ -30,10 +29,12 @@ import java.util.Optional;
  * Use this during user signup/account setup to register phone numbers.
  */
 @Service
-public class SmsOtpRegistrationService {
-    
-    private static final Logger log = LoggerFactory.getLogger(SmsOtpRegistrationService.class);
-    
+public class SmsOtpRegistrationService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }    
     @Autowired
     private SmsOtpConfig smsOtpConfig;
     

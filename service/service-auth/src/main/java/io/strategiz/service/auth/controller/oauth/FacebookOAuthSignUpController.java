@@ -3,7 +3,6 @@ package io.strategiz.service.auth.controller.oauth;
 import io.strategiz.service.auth.service.oauth.FacebookOAuthService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ public class FacebookOAuthSignUpController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     private static final Logger logger = LoggerFactory.getLogger(FacebookOAuthSignUpController.class);

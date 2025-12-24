@@ -2,21 +2,22 @@ package io.strategiz.service.auth.service.passkey;
 
 import io.strategiz.data.auth.model.passkey.PasskeyChallenge;
 import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Debug service to help diagnose passkey challenge issues
  */
 @Service
-public class PasskeyChallengeDebugService {
-    
-    private static final Logger log = LoggerFactory.getLogger(PasskeyChallengeDebugService.class);
-    
+public class PasskeyChallengeDebugService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }    
     private final PasskeyChallengeRepository challengeRepository;
     
     public PasskeyChallengeDebugService(PasskeyChallengeRepository challengeRepository) {

@@ -11,8 +11,6 @@ import io.strategiz.service.portfolio.model.response.PortfolioPositionResponse;
 import io.strategiz.service.portfolio.model.response.ProviderPortfolioResponse;
 import io.strategiz.service.portfolio.constants.ServicePortfolioConstants;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,16 +22,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for handling provider-specific portfolio operations.
  * Single Responsibility: Manages individual provider portfolio data.
  */
 @Service
-public class PortfolioProviderService {
-    
-    private static final Logger log = LoggerFactory.getLogger(PortfolioProviderService.class);
-    
+public class PortfolioProviderService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-portfolio";
+    }    
     private final ReadProviderDataRepository providerDataRepository;
     private final UserRepository userRepository;
     private final PortfolioEnhancementOrchestrator portfolioEnhancer;

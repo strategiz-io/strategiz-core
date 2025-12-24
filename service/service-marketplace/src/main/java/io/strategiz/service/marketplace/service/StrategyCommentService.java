@@ -11,8 +11,7 @@ import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +27,13 @@ import java.util.Optional;
  * - Users can only edit/delete their own comments
  */
 @Service
-public class StrategyCommentService {
+public class StrategyCommentService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(StrategyCommentService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-marketplace";
+    }
+
     private static final String MODULE_NAME = "service-marketplace";
 
     private final CreateStrategyCommentRepository createCommentRepo;

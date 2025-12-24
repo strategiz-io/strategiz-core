@@ -21,9 +21,9 @@ import java.util.Optional;
  * 
  * Subcollection operations are delegated to specific data modules:
  * - data-auth: Authentication methods subcollection
- * - data-watchlist: Watchlist subcollection  
- * - data-providers: Connected providers subcollection
- * - data-devices: User devices subcollection
+ * - data-watchlist: Watchlist subcollection
+ * - data-provider: Connected providers subcollection
+ * - data-device: User devices subcollection
  * - data-preferences: User preferences subcollections
  */
 public interface UserRepository {
@@ -96,13 +96,13 @@ public interface UserRepository {
     
     /**
      * Get user with connected providers
-     * Delegates to data-providers repository
+     * Delegates to data-provider repository
      */
     UserWithProviders getUserWithProviders(String userId);
     
     /**
      * Get user with devices
-     * Delegates to data-devices repository
+     * Delegates to data-device repository
      */
     UserWithDevices getUserWithDevices(String userId);
     

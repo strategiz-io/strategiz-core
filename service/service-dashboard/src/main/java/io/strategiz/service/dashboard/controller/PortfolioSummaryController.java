@@ -13,7 +13,6 @@ import io.strategiz.service.dashboard.model.portfoliosummary.PortfolioSummaryRes
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +32,7 @@ public class PortfolioSummaryController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.DASHBOARD_MODULE;
+        return "service-dashboard";
     }
     
     private final PortfolioSummaryService portfolioSummaryService;

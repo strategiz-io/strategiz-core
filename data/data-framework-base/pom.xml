@@ -9,8 +9,8 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>data-base</artifactId>
-    <description>Base module for all data modules in Strategiz</description>
+    <artifactId>data-framework-base</artifactId>
+    <description>Base framework module for all data modules in Strategiz</description>
 
     <dependencies>
         <!-- External dependencies -->

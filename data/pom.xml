@@ -16,7 +16,7 @@
     <description>Data access and repository modules</description>
 
     <modules>
-        <module>data-base</module>
+        <module>data-framework-base</module>
         <module>data-auth</module>
         <module>data-session</module>
         <module>data-watchlist</module>

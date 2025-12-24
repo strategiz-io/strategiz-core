@@ -2,19 +2,22 @@ package io.strategiz.service.exchange.coinbase.advanced;
 
 import io.strategiz.service.exchange.coinbase.FirestoreService;
 import io.strategiz.client.coinbase.advanced.CoinbaseAdvancedTradeClient;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Service for Coinbase Advanced Trade API
  * Provides methods for interacting with the Coinbase Advanced Trade API
  */
 @Service
-public class CoinbaseAdvancedTradeService {
-    private static final Logger log = LoggerFactory.getLogger(CoinbaseAdvancedTradeService.class);
+public class CoinbaseAdvancedTradeService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-exchange";
+    }
 
     @Autowired
     private FirestoreService firestoreService;

@@ -44,7 +44,7 @@
 
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
-        <module>data/data-base</module>
+        <module>data/data-framework-base</module>
         <module>data/data-device</module>
         <module>data/data-session</module>
         <module>data/data-watchlist</module>
@@ -55,7 +55,7 @@
         <module>data/data-strategy</module>
         <module>data/data-user</module>
         <module>data/data-marketdata</module>
-        <module>data/data-marketdata-timescale</module>
+        <module>data/data-framework-timescale</module>
         <module>data/data-symbol</module>
         <module>data/data-feature-flags</module>
         <module>data/data-infrastructure-costs</module>
@@ -217,13 +217,6 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- TimescaleDB Market Data Module -->
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>data-marketdata-timescale</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- New Auth Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>
@@ -339,7 +332,7 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>data-base</artifactId>
+                <artifactId>data-framework-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -47,9 +47,10 @@ public class FeatureFlagService {
     public static final String FLAG_AI_PROVIDER_COHERE = "ai_provider_cohere_enabled";
 
     // AI - Model level (individual models)
-    public static final String FLAG_AI_MODEL_GEMINI_2_FLASH = "ai_model_gemini_2_flash";
-    public static final String FLAG_AI_MODEL_GEMINI_3_FLASH = "ai_model_gemini_3_flash";
-    public static final String FLAG_AI_MODEL_GEMINI_3_PRO = "ai_model_gemini_3_pro";
+    public static final String FLAG_AI_MODEL_GEMINI_2_5_FLASH = "ai_model_gemini_2_5_flash";
+    public static final String FLAG_AI_MODEL_GEMINI_2_5_PRO = "ai_model_gemini_2_5_pro";
+    public static final String FLAG_AI_MODEL_GEMINI_1_5_FLASH = "ai_model_gemini_1_5_flash";
+    public static final String FLAG_AI_MODEL_GEMINI_1_5_PRO = "ai_model_gemini_1_5_pro";
     public static final String FLAG_AI_MODEL_GPT_4O_MINI = "ai_model_gpt_4o_mini";
     public static final String FLAG_AI_MODEL_GPT_4O = "ai_model_gpt_4o";
     public static final String FLAG_AI_MODEL_O1_MINI = "ai_model_o1_mini";
@@ -104,14 +105,17 @@ public class FeatureFlagService {
             "Enable all Cohere models via Vertex AI", true, "ai");
 
         // AI - Model level (Gemini)
-        createDefaultFlag(FLAG_AI_MODEL_GEMINI_2_FLASH, "Gemini 2.0 Flash",
-            "Fast & capable Gemini model", true, "ai");
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_2_5_FLASH, "Gemini 2.5 Flash",
+            "Fast and capable, balanced performance", true, "ai");
 
-        createDefaultFlag(FLAG_AI_MODEL_GEMINI_3_FLASH, "Gemini 3 Flash Preview",
-            "Frontier intelligence, 3x faster than 2.5 Pro", true, "ai");
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_2_5_PRO, "Gemini 2.5 Pro",
+            "High-capability model for complex reasoning", true, "ai");
 
-        createDefaultFlag(FLAG_AI_MODEL_GEMINI_3_PRO, "Gemini 3 Pro Preview",
-            "Most intelligent, PhD-level reasoning", true, "ai");
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_1_5_FLASH, "Gemini 1.5 Flash",
+            "Fast and efficient", true, "ai");
+
+        createDefaultFlag(FLAG_AI_MODEL_GEMINI_1_5_PRO, "Gemini 1.5 Pro",
+            "Stable production model", true, "ai");
 
         // AI - Model level (OpenAI)
         createDefaultFlag(FLAG_AI_MODEL_GPT_4O_MINI, "GPT-4o Mini",
@@ -258,9 +262,10 @@ public class FeatureFlagService {
      */
     private String getModelFlagForId(String modelId) {
         return switch (modelId) {
-            case "gemini-2.0-flash" -> FLAG_AI_MODEL_GEMINI_2_FLASH;
-            case "gemini-3-flash-preview" -> FLAG_AI_MODEL_GEMINI_3_FLASH;
-            case "gemini-3-pro-preview" -> FLAG_AI_MODEL_GEMINI_3_PRO;
+            case "gemini-2.5-flash" -> FLAG_AI_MODEL_GEMINI_2_5_FLASH;
+            case "gemini-2.5-pro" -> FLAG_AI_MODEL_GEMINI_2_5_PRO;
+            case "gemini-1.5-flash" -> FLAG_AI_MODEL_GEMINI_1_5_FLASH;
+            case "gemini-1.5-pro" -> FLAG_AI_MODEL_GEMINI_1_5_PRO;
             case "gpt-4o-mini" -> FLAG_AI_MODEL_GPT_4O_MINI;
             case "gpt-4o" -> FLAG_AI_MODEL_GPT_4O;
             case "o1-mini" -> FLAG_AI_MODEL_O1_MINI;

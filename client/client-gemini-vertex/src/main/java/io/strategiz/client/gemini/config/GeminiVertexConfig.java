@@ -12,10 +12,10 @@ public class GeminiVertexConfig {
 	@Value("${gemini.vertex.project-id:#{null}}")
 	private String projectId;
 
-	@Value("${gemini.vertex.location:us-central1}")
+	@Value("${gemini.vertex.location:us-east1}")
 	private String location;
 
-	@Value("${gemini.vertex.model:gemini-2.0-flash-exp}")
+	@Value("${gemini.vertex.model:gemini-2.5-flash}")
 	private String defaultModel;
 
 	@Value("${gemini.vertex.temperature:0.7}")

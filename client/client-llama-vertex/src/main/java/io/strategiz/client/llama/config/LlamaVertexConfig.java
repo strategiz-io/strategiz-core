@@ -12,7 +12,7 @@ public class LlamaVertexConfig {
 	@Value("${llama.vertex.project-id:#{null}}")
 	private String projectId;
 
-	@Value("${llama.vertex.location:us-central1}")
+	@Value("${llama.vertex.location:us-east1}")
 	private String location;
 
 	@Value("${llama.vertex.model:llama-3.1-8b-instruct-maas}")

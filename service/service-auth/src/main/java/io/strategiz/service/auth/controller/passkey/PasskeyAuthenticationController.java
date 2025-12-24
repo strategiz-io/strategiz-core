@@ -11,7 +11,6 @@ import io.strategiz.service.auth.model.passkey.*;
 import io.strategiz.service.auth.service.passkey.PasskeyAuthenticationService;
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -44,7 +43,7 @@ public class PasskeyAuthenticationController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     @Autowired

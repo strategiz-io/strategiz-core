@@ -2,7 +2,6 @@ package io.strategiz.service.device.controller.authenticated;
 
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.device.model.DeviceRequest;
 import io.strategiz.service.device.service.authenticated.UpdateAuthenticatedDeviceService;
 import org.slf4j.Logger;
@@ -37,7 +36,7 @@ public class UpdateAuthenticatedDeviceController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.DEVICE_MODULE;
+        return "service-device";
     }
     
     /**

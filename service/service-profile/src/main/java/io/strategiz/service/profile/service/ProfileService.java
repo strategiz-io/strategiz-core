@@ -14,10 +14,7 @@ import io.strategiz.service.profile.model.UpdateProfileRequest;
 import io.strategiz.service.profile.model.UpdateProfileResponse;
 import io.strategiz.service.profile.model.UpdateDemoModeResponse;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -25,15 +22,12 @@ import java.util.Optional;
  * Service for managing user profiles
  */
 @Service
-@Transactional
 public class ProfileService extends BaseService {
 
     @Override
     protected String getModuleName() {
         return "service-profile";
     }
-
-    private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
     private final UserRepository userRepository;
     private final SessionAuthBusiness sessionAuthBusiness;

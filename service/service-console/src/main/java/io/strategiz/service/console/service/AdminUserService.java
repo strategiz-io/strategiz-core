@@ -6,10 +6,9 @@ import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.AdminUserResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,9 +21,12 @@ import java.util.Optional;
  * Service for admin user management operations.
  */
 @Service
-public class AdminUserService {
+public class AdminUserService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AdminUserService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-console";
+    }
 
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
@@ -36,7 +38,7 @@ public class AdminUserService {
     }
 
     public List<AdminUserResponse> listUsers(int page, int pageSize) {
-        logger.info("Listing users: page={}, pageSize={}", page, pageSize);
+        log.info("Listing users: page={}, pageSize={}", page, pageSize);
 
         // TODO: Implement pagination at the repository level
         List<UserEntity> allUsers = userRepository.findAll();
@@ -59,7 +61,7 @@ public class AdminUserService {
     }
 
     public AdminUserResponse getUser(String userId) {
-        logger.info("Getting user details: userId={}", userId);
+        log.info("Getting user details: userId={}", userId);
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -70,7 +72,7 @@ public class AdminUserService {
     }
 
     public AdminUserResponse disableUser(String userId, String adminUserId) {
-        logger.info("Disabling user: userId={}, by adminUserId={}", userId, adminUserId);
+        log.info("Disabling user: userId={}, by adminUserId={}", userId, adminUserId);
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -96,12 +98,12 @@ public class AdminUserService {
             sessionRepository.save(session);
         }
 
-        logger.info("User {} has been disabled", userId);
+        log.info("User {} has been disabled", userId);
         return convertToResponse(user);
     }
 
     public AdminUserResponse enableUser(String userId) {
-        logger.info("Enabling user: userId={}", userId);
+        log.info("Enabling user: userId={}", userId);
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -112,17 +114,17 @@ public class AdminUserService {
         user.setIsActive(true);
         userRepository.save(user);
 
-        logger.info("User {} has been enabled", userId);
+        log.info("User {} has been enabled", userId);
         return convertToResponse(user);
     }
 
     public List<SessionEntity> getUserSessions(String userId) {
-        logger.info("Getting sessions for user: userId={}", userId);
+        log.info("Getting sessions for user: userId={}", userId);
         return sessionRepository.findByUserIdAndRevokedFalse(userId);
     }
 
     public void terminateSession(String userId, String sessionId) {
-        logger.info("Terminating session: userId={}, sessionId={}", userId, sessionId);
+        log.info("Terminating session: userId={}, sessionId={}", userId, sessionId);
 
         Optional<SessionEntity> sessionOpt = sessionRepository.findById(sessionId);
         if (sessionOpt.isEmpty()) {
@@ -138,11 +140,11 @@ public class AdminUserService {
         session.setRevoked(true);
         sessionRepository.save(session);
 
-        logger.info("Session {} has been terminated", sessionId);
+        log.info("Session {} has been terminated", sessionId);
     }
 
     public void deleteUser(String userId, String adminUserId) {
-        logger.info("Deleting user: userId={}, by adminUserId={}", userId, adminUserId);
+        log.info("Deleting user: userId={}, by adminUserId={}", userId, adminUserId);
 
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -161,7 +163,7 @@ public class AdminUserService {
         // Delete the user
         userRepository.deleteUser(userId);
 
-        logger.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
+        log.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
     }
 
     private AdminUserResponse convertToResponse(UserEntity user) {

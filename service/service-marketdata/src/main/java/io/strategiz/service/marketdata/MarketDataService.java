@@ -3,8 +3,7 @@ package io.strategiz.service.marketdata;
 import io.strategiz.data.marketdata.constants.Timeframe;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -25,9 +24,12 @@ import java.util.stream.Collectors;
  * Provides methods to retrieve historical OHLCV bars for charting and analysis
  */
 @Service
-public class MarketDataService {
+public class MarketDataService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(MarketDataService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-marketdata";
+    }
 
     private final MarketDataRepository marketDataRepository;
 

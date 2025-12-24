@@ -17,8 +17,7 @@ import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.entity.ProviderStatus;import io.strategiz.service.profile.service.ProfileService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,28 +29,31 @@ import java.util.stream.Collectors;
 /**
  * Service that orchestrates provider creation by delegating to appropriate business modules.
  * This is a thin orchestration layer following the delegation pattern:
- * 
+ *
  * Flow for API Key Providers (Kraken, Binance US):
  * 1. Service receives request and validates
  * 2. Service delegates to business module's createIntegration() - which stores credentials in Vault
  * 3. Service delegates to business module's testConnection() - which uses stored credentials
  * 4. Service returns response or handles errors
- * 
+ *
  * Flow for OAuth Providers (Coinbase, Alpaca, Schwab):
  * 1. Service receives request and validates
  * 2. Service delegates to business module's createIntegration() - which generates OAuth URL
  * 3. Service returns OAuth URL to frontend (no connection test until OAuth callback)
- * 
+ *
  * Note: This service does NOT store credentials - it only orchestrates.
  * All actual storage happens in the business modules.
- * 
+ *
  * @author Strategiz Team
  * @version 1.0
  */
 @Service("providerCreateProviderService")
-public class CreateProviderService {
-    
-    private static final Logger log = LoggerFactory.getLogger(CreateProviderService.class);
+public class CreateProviderService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-provider";
+    }
     
     private final Map<String, ProviderIntegrationHandler> providerHandlers;
     private final ProfileService profileService;

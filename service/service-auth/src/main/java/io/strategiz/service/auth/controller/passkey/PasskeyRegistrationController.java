@@ -14,7 +14,6 @@ import io.strategiz.service.auth.service.emailotp.EmailOtpAuthenticationService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
@@ -49,7 +48,7 @@ public class PasskeyRegistrationController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationController.class);

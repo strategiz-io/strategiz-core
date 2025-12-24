@@ -10,7 +10,6 @@ import io.strategiz.service.dashboard.service.AssetAllocationService;
 import io.strategiz.service.dashboard.model.assetallocation.AssetAllocationData;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.framework.exception.StrategizException;
 
 import org.slf4j.Logger;
@@ -30,7 +29,7 @@ public class AssetAllocationController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.DASHBOARD_MODULE;
+        return "service-dashboard";
     }
     
     private static final Logger log = LoggerFactory.getLogger(AssetAllocationController.class);

@@ -2,7 +2,6 @@ package io.strategiz.service.provider.controller;
 
 import io.strategiz.service.provider.service.SyncProviderService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
@@ -29,7 +28,7 @@ public class SyncProviderController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.PROVIDER_MODULE;
+        return "service-provider";
     }
 
     private final SyncProviderService syncProviderService;

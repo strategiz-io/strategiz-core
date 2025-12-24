@@ -8,14 +8,12 @@ import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.service.marketing.model.response.MarketTickerResponse;
 import io.strategiz.service.marketing.model.response.TickerItem;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +27,7 @@ public class MarketTickerController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.MARKETING_MODULE;
+        return "service-marketing";
     }
     
     private static final Logger log = LoggerFactory.getLogger(MarketTickerController.class);
@@ -60,14 +58,10 @@ public class MarketTickerController extends BaseController {
         log.info("Fetching market ticker data");
         
         try {
-            // Fetch data in parallel for better performance
-            CompletableFuture<List<TickerItem>> cryptoFuture = CompletableFuture.supplyAsync(this::fetchCryptoData);
-            CompletableFuture<List<TickerItem>> stockFuture = CompletableFuture.supplyAsync(this::fetchStockData);
-            
-            // Wait for both to complete
-            List<TickerItem> cryptoItems = cryptoFuture.get();
-            List<TickerItem> stockItems = stockFuture.get();
-            
+            // Fetch data sequentially
+            List<TickerItem> cryptoItems = fetchCryptoData();
+            List<TickerItem> stockItems = fetchStockData();
+
             // Combine results
             List<TickerItem> allItems = new ArrayList<>();
             allItems.addAll(cryptoItems);

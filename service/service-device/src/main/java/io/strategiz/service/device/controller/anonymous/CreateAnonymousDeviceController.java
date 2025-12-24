@@ -1,7 +1,6 @@
 package io.strategiz.service.device.controller.anonymous;
 
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.device.model.DeviceRequest;
 import io.strategiz.service.device.model.CreateDeviceResponse;
 import io.strategiz.service.device.service.anonymous.CreateAnonymousDeviceService;
@@ -33,7 +32,7 @@ public class CreateAnonymousDeviceController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.DEVICE_MODULE;
+        return "service-device";
     }
     
     /**

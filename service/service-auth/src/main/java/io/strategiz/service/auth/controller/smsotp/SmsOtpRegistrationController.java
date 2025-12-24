@@ -4,7 +4,6 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.smsotp.SmsOtpRegistrationService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
@@ -33,7 +32,7 @@ public class SmsOtpRegistrationController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
     
     /**

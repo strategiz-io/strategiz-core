@@ -6,8 +6,7 @@ import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.data.provider.entity.PortfolioProviderEntity;
 import io.strategiz.data.provider.repository.PortfolioProviderRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,14 +16,17 @@ import java.time.Instant;
 /**
  * Service for reading provider connections and data.
  * Handles business logic for retrieving provider status, balances, and transaction data.
- * 
+ *
  * @author Strategiz Team
  * @version 1.0
  */
 @Service
-public class ReadProviderService {
-    
-    private static final Logger log = LoggerFactory.getLogger(ReadProviderService.class);
+public class ReadProviderService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-provider";
+    }
     
     @Autowired(required = false)
     private io.strategiz.framework.secrets.service.VaultSecretService vaultSecretService;

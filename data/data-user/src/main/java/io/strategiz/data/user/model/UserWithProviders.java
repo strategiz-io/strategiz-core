@@ -8,7 +8,7 @@ import io.strategiz.data.user.entity.UserEntity;
 public class UserWithProviders {
     
     private UserEntity user;
-    private Object providers; // TODO: Will be typed when data-providers module is updated
+    private Object providers; // TODO: Will be typed when data-provider module is updated
     
     // Constructors
     public UserWithProviders() {

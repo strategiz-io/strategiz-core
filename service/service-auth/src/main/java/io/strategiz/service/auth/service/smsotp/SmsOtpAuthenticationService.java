@@ -11,8 +11,6 @@ import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.config.SmsOtpConfig;
 import io.strategiz.service.auth.exception.AuthErrors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +19,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import io.strategiz.service.base.BaseService;
 
 /**
  * SMS OTP Authentication Service
@@ -29,10 +28,12 @@ import java.util.concurrent.ThreadLocalRandom;
  * Features rate limiting, attempt limiting, and automatic expiration.
  */
 @Service
-public class SmsOtpAuthenticationService {
-    
-    private static final Logger log = LoggerFactory.getLogger(SmsOtpAuthenticationService.class);
-    
+public class SmsOtpAuthenticationService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-auth";
+    }    
     // Temporary in-memory storage for OTP codes (in production, use Redis or similar)
     private final Map<String, OtpSession> otpSessions = new ConcurrentHashMap<>();
     

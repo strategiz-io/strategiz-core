@@ -8,8 +8,7 @@ import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,10 +24,12 @@ import java.util.Map;
  * @version 1.0
  */
 @Service
-public class SyncProviderService {
+public class SyncProviderService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(SyncProviderService.class);
-    private static final String MODULE_NAME = "service-provider";
+    @Override
+    protected String getModuleName() {
+        return "service-provider";
+    }
 
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
@@ -81,7 +82,7 @@ public class SyncProviderService {
                     // TODO: Implement Webull sync when module is ready
                     throw new StrategizException(
                         ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
-                        MODULE_NAME,
+                        getModuleName(),
                         providerId,
                         "Webull sync not yet implemented"
                     );
@@ -90,7 +91,7 @@ public class SyncProviderService {
                     // TODO: Implement Alpaca sync when ready
                     throw new StrategizException(
                         ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
-                        MODULE_NAME,
+                        getModuleName(),
                         providerId,
                         "Alpaca sync not yet implemented"
                     );
@@ -98,7 +99,7 @@ public class SyncProviderService {
                 default:
                     throw new StrategizException(
                         ServiceProviderErrorDetails.PROVIDER_NOT_FOUND,
-                        MODULE_NAME,
+                        getModuleName(),
                         providerId
                     );
             }
@@ -134,7 +135,7 @@ public class SyncProviderService {
             log.error("Unexpected error syncing provider {} for user {}", providerId, userId, e);
             throw new StrategizException(
                 ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
-                MODULE_NAME,
+                getModuleName(),
                 providerId,
                 e.getMessage()
             );

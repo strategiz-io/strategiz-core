@@ -9,8 +9,6 @@ import io.strategiz.business.aichat.model.ChatResponse;
 import io.strategiz.service.learn.dto.ChatMessageDto;
 import io.strategiz.service.learn.dto.ChatRequestDto;
 import io.strategiz.service.learn.dto.ChatResponseDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -18,15 +16,18 @@ import reactor.core.publisher.Mono;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service layer for Learn chat functionality
  */
 @Service
-public class LearnChatService {
+public class LearnChatService extends BaseService {
 
-	private static final Logger logger = LoggerFactory.getLogger(LearnChatService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "service-learn";
+    }
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
 	private final AIChatBusiness aiChatBusiness;
@@ -49,7 +50,7 @@ public class LearnChatService {
 	 * @return ChatResponseDto
 	 */
 	public Mono<ChatResponseDto> chat(ChatRequestDto request, String userId) {
-		logger.info("Processing chat request for user: {}, feature: {}, model: {}", userId, request.getFeature(),
+		log.info("Processing chat request for user: {}, feature: {}, model: {}", userId, request.getFeature(),
 				request.getModel());
 
 		try {
@@ -63,7 +64,7 @@ public class LearnChatService {
 			return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel()).map(this::convertToDto);
 		}
 		catch (Exception e) {
-			logger.error("Error processing chat request", e);
+			log.error("Error processing chat request", e);
 			return Mono.just(ChatResponseDto.error("Failed to process chat: " + e.getMessage()));
 		}
 	}
@@ -75,7 +76,7 @@ public class LearnChatService {
 	 * @return Flux of ChatResponseDto chunks
 	 */
 	public Flux<ChatResponseDto> chatStream(ChatRequestDto request, String userId) {
-		logger.info("Processing streaming chat request for user: {}, feature: {}, model: {}", userId,
+		log.info("Processing streaming chat request for user: {}, feature: {}, model: {}", userId,
 				request.getFeature(), request.getModel());
 
 		try {
@@ -86,7 +87,7 @@ public class LearnChatService {
 				.map(this::convertToDto);
 		}
 		catch (Exception e) {
-			logger.error("Error processing streaming chat request", e);
+			log.error("Error processing streaming chat request", e);
 			return Flux.just(ChatResponseDto.error("Failed to process streaming chat: " + e.getMessage()));
 		}
 	}

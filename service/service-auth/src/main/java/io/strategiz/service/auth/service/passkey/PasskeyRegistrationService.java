@@ -17,8 +17,6 @@ import com.webauthn4j.data.attestation.authenticator.AuthenticatorData;
 import com.webauthn4j.data.attestation.authenticator.COSEKey;
 import com.webauthn4j.converter.AuthenticatorDataConverter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,10 +34,7 @@ public class PasskeyRegistrationService extends BaseService {
     @Override
     protected String getModuleName() {
         return "service-auth";
-    }
-    
-    private static final Logger log = LoggerFactory.getLogger(PasskeyRegistrationService.class);
-    
+    }    
     @Value("${passkey.rpId:localhost}")
     private String rpId;
     

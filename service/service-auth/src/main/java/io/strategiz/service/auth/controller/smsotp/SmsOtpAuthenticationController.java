@@ -5,7 +5,6 @@ import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.smsotp.SmsOtpAuthenticationService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -38,7 +37,7 @@ public class SmsOtpAuthenticationController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
     
     /**

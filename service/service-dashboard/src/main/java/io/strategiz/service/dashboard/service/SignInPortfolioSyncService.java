@@ -19,15 +19,12 @@ import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -244,61 +241,56 @@ public class SignInPortfolioSyncService extends BaseService {
     }
 
     /**
-     * Sync all providers for user
+     * Sync all providers for user sequentially
      */
-    @Async
     private List<String> syncAllProviders(String userId, List<ProviderIntegrationEntity> providers) {
         log.info("Syncing {} providers for user: {}", providers.size(), userId);
-        
-        List<CompletableFuture<ProviderDataEntity>> futures = providers.stream()
-            .map(provider -> syncProviderAsync(userId, provider))
-            .collect(Collectors.toList());
-        
-        // Wait for all with timeout
-        List<ProviderDataEntity> results = futures.stream()
-            .map(f -> {
-                try {
-                    return f.get(10, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    log.error("Provider sync timeout or error", e);
-                    return null;
+
+        List<ProviderDataEntity> results = new ArrayList<>();
+
+        // Process each provider sequentially
+        for (ProviderIntegrationEntity provider : providers) {
+            try {
+                ProviderDataEntity result = syncProvider(userId, provider);
+                if (result != null) {
+                    results.add(result);
                 }
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-        
+            } catch (Exception e) {
+                log.error("Error syncing provider {}: {}", provider.getProviderId(), e.getMessage());
+            }
+        }
+
         // Calculate and update portfolio summary
         if (!results.isEmpty()) {
             updatePortfolioSummary(userId, results);
         }
-        
+
         return results.stream()
             .map(ProviderDataEntity::getProviderId)
             .collect(Collectors.toList());
     }
 
     /**
-     * Sync individual provider asynchronously
+     * Sync individual provider
      */
-    @Async
-    private CompletableFuture<ProviderDataEntity> syncProviderAsync(String userId, ProviderIntegrationEntity provider) {
+    private ProviderDataEntity syncProvider(String userId, ProviderIntegrationEntity provider) {
         try {
             String providerId = provider.getProviderId();
             log.debug("Syncing provider {} for user: {}", providerId, userId);
-            
+
             // Get credentials from Vault
             Map<String, String> credentials = getProviderCredentials(userId, providerId);
 
             if (credentials == null || credentials.isEmpty()) {
                 log.warn("⚠️ Skipping provider {} for user {} - no credentials found in Vault", providerId, userId);
-                // Return empty future instead of throwing exception
+                // Return null instead of throwing exception
                 // This allows other providers to sync successfully
-                return CompletableFuture.completedFuture(null);
+                return null;
             }
-            
+
             // Fetch data based on provider type
             ProviderDataEntity data = null;
-            
+
             switch (providerId.toLowerCase()) {
                 case "kraken":
                     data = fetchKrakenData(userId, credentials);
@@ -314,24 +306,24 @@ public class SignInPortfolioSyncService extends BaseService {
                 default:
                     log.warn("Unknown provider: {}", providerId);
             }
-            
+
             if (data != null) {
                 // Save or update provider data
                 saveProviderData(userId, providerId, data);
-                return CompletableFuture.completedFuture(data);
+                return data;
             }
-            
+
         } catch (StrategizException e) {
             // Log but don't fail the entire sync for one provider
             log.warn("Provider {} sync failed for user {}: {}", provider.getProviderId(), userId, e.getMessage());
-            return CompletableFuture.completedFuture(null);
+            return null;
         } catch (Exception e) {
             // Log but don't fail the entire sync for one provider
             log.warn("Unexpected error syncing provider {} for user {}: {}", provider.getProviderId(), userId, e.getMessage());
-            return CompletableFuture.completedFuture(null);
+            return null;
         }
 
-        return CompletableFuture.completedFuture(null);
+        return null;
     }
 
     /**

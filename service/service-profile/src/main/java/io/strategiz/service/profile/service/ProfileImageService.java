@@ -7,9 +7,8 @@ import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.profile.exception.ProfileErrors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,9 +23,12 @@ import java.util.UUID;
  * Service for managing profile image uploads to Firebase Storage.
  */
 @Service
-public class ProfileImageService {
+public class ProfileImageService extends BaseService {
 
-	private static final Logger log = LoggerFactory.getLogger(ProfileImageService.class);
+	@Override
+	protected String getModuleName() {
+		return "service-profile";
+	}
 
 	private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -56,13 +58,13 @@ public class ProfileImageService {
 		// Get user and profile
 		Optional<UserEntity> userOpt = userRepository.findById(userId);
 		if (userOpt.isEmpty()) {
-			throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
+			throwModuleException(ProfileErrors.PROFILE_NOT_FOUND, "User not found: " + userId);
 		}
 
 		UserEntity user = userOpt.get();
 		UserProfileEntity profile = user.getProfile();
 		if (profile == null) {
-			throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
+			throwModuleException(ProfileErrors.PROFILE_NOT_FOUND, "Profile not found for user: " + userId);
 		}
 
 		try {

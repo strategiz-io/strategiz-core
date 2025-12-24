@@ -4,7 +4,6 @@ import io.strategiz.service.provider.model.request.DeleteProviderRequest;
 import io.strategiz.service.provider.model.response.DeleteProviderResponse;
 import io.strategiz.service.provider.service.DeleteProviderService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
@@ -30,7 +29,7 @@ public class DeleteProviderController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.PROVIDER_MODULE;
+        return "service-provider";
     }
 
     @Autowired

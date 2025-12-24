@@ -6,7 +6,6 @@ import io.strategiz.service.auth.service.totp.TotpRegistrationService;
 import io.strategiz.service.auth.model.totp.TotpRegistrationRequest;
 import io.strategiz.service.auth.model.totp.TotpRegistrationCompletionRequest;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +37,7 @@ public class TotpRegistrationController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     private static final Logger log = LoggerFactory.getLogger(TotpRegistrationController.class);

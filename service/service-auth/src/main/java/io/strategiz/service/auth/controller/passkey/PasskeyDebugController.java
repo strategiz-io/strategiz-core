@@ -2,7 +2,6 @@ package io.strategiz.service.auth.controller.passkey;
 
 import io.strategiz.service.auth.service.passkey.PasskeyChallengeDebugService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,7 @@ public class PasskeyDebugController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     private static final Logger log = LoggerFactory.getLogger(PasskeyDebugController.class);

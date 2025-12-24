@@ -14,7 +14,6 @@ import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 
@@ -41,7 +40,7 @@ public class SessionController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     private static final Logger log = LoggerFactory.getLogger(SessionController.class);

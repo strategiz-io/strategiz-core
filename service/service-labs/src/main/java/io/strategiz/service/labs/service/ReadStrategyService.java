@@ -2,8 +2,7 @@ package io.strategiz.service.labs.service;
 
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,22 +13,25 @@ import java.util.Optional;
  * Service for reading strategies
  */
 @Service
-public class ReadStrategyService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(ReadStrategyService.class);
-    
+public class ReadStrategyService extends BaseService {
+
     private final ReadStrategyRepository readStrategyRepository;
-    
+
     @Autowired
     public ReadStrategyService(ReadStrategyRepository readStrategyRepository) {
         this.readStrategyRepository = readStrategyRepository;
+    }
+
+    @Override
+    protected String getModuleName() {
+        return "service-labs";
     }
     
     /**
      * Get all strategies for a user
      */
     public List<Strategy> getUserStrategies(String userId) {
-        logger.debug("Fetching strategies for user: {}", userId);
+        log.debug("Fetching strategies for user: {}", userId);
         return readStrategyRepository.findByUserId(userId);
     }
     
@@ -37,7 +39,7 @@ public class ReadStrategyService {
      * Get strategies by status for a user
      */
     public List<Strategy> getUserStrategiesByStatus(String userId, String status) {
-        logger.debug("Fetching strategies for user: {} with status: {}", userId, status);
+        log.debug("Fetching strategies for user: {} with status: {}", userId, status);
         return readStrategyRepository.findByUserIdAndStatus(userId, status);
     }
     
@@ -45,7 +47,7 @@ public class ReadStrategyService {
      * Get strategies by language for a user
      */
     public List<Strategy> getUserStrategiesByLanguage(String userId, String language) {
-        logger.debug("Fetching strategies for user: {} with language: {}", userId, language);
+        log.debug("Fetching strategies for user: {} with language: {}", userId, language);
         return readStrategyRepository.findByUserIdAndLanguage(userId, language);
     }
     
@@ -53,7 +55,7 @@ public class ReadStrategyService {
      * Get a specific strategy by ID and user ID
      */
     public Optional<Strategy> getStrategyById(String strategyId, String userId) {
-        logger.debug("Fetching strategy: {} for user: {}", strategyId, userId);
+        log.debug("Fetching strategy: {} for user: {}", strategyId, userId);
         return readStrategyRepository.findById(strategyId)
                 .filter(s -> userId.equals(s.getUserId()) || s.isPublic());
     }
@@ -62,7 +64,7 @@ public class ReadStrategyService {
      * Get all public strategies
      */
     public List<Strategy> getPublicStrategies() {
-        logger.debug("Fetching public strategies");
+        log.debug("Fetching public strategies");
         return readStrategyRepository.findPublicStrategies();
     }
     
@@ -70,7 +72,7 @@ public class ReadStrategyService {
      * Get public strategies by language
      */
     public List<Strategy> getPublicStrategiesByLanguage(String language) {
-        logger.debug("Fetching public strategies with language: {}", language);
+        log.debug("Fetching public strategies with language: {}", language);
         return readStrategyRepository.findPublicStrategiesByLanguage(language);
     }
     
@@ -79,7 +81,7 @@ public class ReadStrategyService {
      * Note: This requires a custom query since Firestore doesn't support array-contains-any in Spring Data
      */
     public List<Strategy> getPublicStrategiesByTags(List<String> tags) {
-        logger.debug("Fetching public strategies with tags: {}", tags);
+        log.debug("Fetching public strategies with tags: {}", tags);
         return readStrategyRepository.findPublicStrategiesByTags(tags);
     }
     
@@ -87,7 +89,7 @@ public class ReadStrategyService {
      * Search strategies by name
      */
     public List<Strategy> searchStrategiesByName(String userId, String searchTerm) {
-        logger.debug("Searching strategies for user: {} with term: {}", userId, searchTerm);
+        log.debug("Searching strategies for user: {} with term: {}", userId, searchTerm);
         return readStrategyRepository.searchByName(userId, searchTerm);
     }
     

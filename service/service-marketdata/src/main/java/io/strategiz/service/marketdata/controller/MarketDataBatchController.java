@@ -38,12 +38,12 @@ public class MarketDataBatchController {
 	}
 
 	/**
-	 * Execute full backfill - configurable years of data for all symbols (ASYNC)
+	 * Execute full backfill - configurable years of data for all symbols
 	 *
 	 * POST /v1/marketdata/admin/backfill/full Request body: { "timeframes": ["1Day",
 	 * "1Hour", "1Week", "1Month"], "years": 7 } (optional)
 	 *
-	 * Returns immediately. Use GET /v1/marketdata/admin/backfill/status to check progress.
+	 * Processes all timeframes synchronously and returns results when complete.
 	 *
 	 * WARNING: This is resource-intensive and may take several hours
 	 */
@@ -55,7 +55,7 @@ public class MarketDataBatchController {
 
 		int years = request != null && request.years > 0 ? request.years : 7;
 
-		log.info("=== Admin API: Full Backfill Request (ASYNC) ===");
+		log.info("=== Admin API: Full Backfill Request ===");
 		log.info("Timeframes: {}", timeframes);
 		log.info("Years: {}", years);
 
@@ -80,19 +80,67 @@ public class MarketDataBatchController {
 			return ResponseEntity.badRequest().body(errorResponse);
 		}
 
-		// Start async backfill (returns immediately)
-		collectionService.backfillIntradayDataAsync(validTimeframes, startDate, endDate);
+		// Process all timeframes synchronously
+		long overallStartTime = System.currentTimeMillis();
+		int totalSymbolsProcessed = 0;
+		int totalDataPointsStored = 0;
+		int totalErrors = 0;
+		List<Map<String, Object>> timeframeResults = new ArrayList<>();
+
+		for (String timeframe : validTimeframes) {
+			try {
+				log.info("--- Processing timeframe: {} ---", timeframe);
+				long tfStartTime = System.currentTimeMillis();
+
+				MarketDataCollectionService.CollectionResult result = collectionService.backfillIntradayData(
+						startDate, endDate, timeframe);
+
+				long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
+
+				totalSymbolsProcessed += result.totalSymbolsProcessed;
+				totalDataPointsStored += result.totalDataPointsStored;
+				totalErrors += result.errorCount;
+
+				Map<String, Object> tfResult = new HashMap<>();
+				tfResult.put("timeframe", timeframe);
+				tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
+				tfResult.put("dataPointsStored", result.totalDataPointsStored);
+				tfResult.put("errors", result.errorCount);
+				tfResult.put("durationSeconds", tfDuration);
+				timeframeResults.add(tfResult);
+
+				log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---",
+						timeframe, tfDuration, result.totalSymbolsProcessed, result.totalDataPointsStored,
+						result.errorCount);
+
+			} catch (Exception e) {
+				log.error("Failed to process timeframe {}: {}", timeframe, e.getMessage(), e);
+				totalErrors++;
+
+				Map<String, Object> tfResult = new HashMap<>();
+				tfResult.put("timeframe", timeframe);
+				tfResult.put("error", e.getMessage());
+				timeframeResults.add(tfResult);
+			}
+		}
+
+		long overallDuration = (System.currentTimeMillis() - overallStartTime) / 1000;
 
 		Map<String, Object> response = new HashMap<>();
-		response.put("status", "started");
-		response.put("message", String.format("Backfill job started for %d year(s)", years));
+		response.put("status", totalErrors == 0 ? "success" : "partial_success");
+		response.put("message", String.format("Backfill completed for %d year(s)", years));
 		response.put("years", years);
-		response.put("timeframes", validTimeframes);
+		response.put("timeframesProcessed", validTimeframes.size());
 		response.put("startDate", startDate.toString());
 		response.put("endDate", endDate.toString());
-		response.put("statusEndpoint", "GET /v1/marketdata/admin/backfill/status");
+		response.put("totalSymbolsProcessed", totalSymbolsProcessed);
+		response.put("totalDataPointsStored", totalDataPointsStored);
+		response.put("totalErrors", totalErrors);
+		response.put("totalDurationSeconds", overallDuration);
+		response.put("timeframeResults", timeframeResults);
 
-		log.info("=== Backfill job started (async) - check /backfill/status for progress ===");
+		log.info("=== Full backfill completed in {}s: {} timeframes, {} symbols, {} bars, {} errors ===",
+				overallDuration, validTimeframes.size(), totalSymbolsProcessed, totalDataPointsStored, totalErrors);
 
 		return ResponseEntity.ok(response);
 	}

@@ -3,10 +3,9 @@ package io.strategiz.service.console.service;
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.JobResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,9 +20,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * console app.
  */
 @Service
-public class JobManagementService {
+public class JobManagementService extends BaseService {
 
-	private static final Logger logger = LoggerFactory.getLogger(JobManagementService.class);
+	@Override
+	protected String getModuleName() {
+		return "service-console";
+	}
 
 	// Track job execution status
 	private final Map<String, JobExecutionInfo> jobExecutions = new ConcurrentHashMap<>();
@@ -47,12 +49,12 @@ public class JobManagementService {
 		this.backfillJob = backfillJob;
 		this.incrementalJob = incrementalJob;
 
-		logger.info("JobManagementService initialized: backfillJob={}, incrementalJob={}", backfillJob.isPresent(),
+		log.info("JobManagementService initialized: backfillJob={}, incrementalJob={}", backfillJob.isPresent(),
 				incrementalJob.isPresent());
 	}
 
 	public List<JobResponse> listJobs() {
-		logger.info("Listing all scheduled jobs");
+		log.info("Listing all scheduled jobs");
 		List<JobResponse> jobs = new ArrayList<>();
 
 		for (Map.Entry<String, JobConfig> entry : KNOWN_JOBS.entrySet()) {
@@ -111,7 +113,7 @@ public class JobManagementService {
 	}
 
 	public JobResponse triggerJob(String jobName) {
-		logger.info("Triggering job: {}", jobName);
+		log.info("Triggering job: {}", jobName);
 
 		JobConfig config = KNOWN_JOBS.get(jobName);
 		if (config == null) {
@@ -121,7 +123,7 @@ public class JobManagementService {
 		// Check if already running
 		JobExecutionInfo existing = jobExecutions.get(jobName);
 		if (existing != null && existing.running) {
-			logger.warn("Job {} is already running", jobName);
+			log.warn("Job {} is already running", jobName);
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
 					jobName);
 		}
@@ -136,7 +138,7 @@ public class JobManagementService {
 		// Execute the job synchronously
 		executeJob(jobName);
 
-		logger.info("Job {} has been triggered", jobName);
+		log.info("Job {} has been triggered", jobName);
 
 		return getJob(jobName);
 	}
@@ -156,7 +158,7 @@ public class JobManagementService {
 					executeIncrementalJob();
 					break;
 				default:
-					logger.warn("Unknown job: {}", jobName);
+					log.warn("Unknown job: {}", jobName);
 					recordJobCompletion(jobName, false, 0);
 					return;
 			}
@@ -166,7 +168,7 @@ public class JobManagementService {
 
 		}
 		catch (Exception e) {
-			logger.error("Job {} failed: {}", jobName, e.getMessage(), e);
+			log.error("Job {} failed: {}", jobName, e.getMessage(), e);
 			long duration = System.currentTimeMillis() - startTime;
 			recordJobCompletion(jobName, false, duration);
 		}
@@ -174,7 +176,7 @@ public class JobManagementService {
 
 	private void executeBackfillJob() {
 		if (backfillJob.isEmpty()) {
-			logger.warn(
+			log.warn(
 					"MarketDataBackfillJob bean not available. Start with scheduler profile or restart application.");
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Backfill job not available. Ensure scheduler profile is active or job bean is instantiated.");
@@ -185,7 +187,7 @@ public class JobManagementService {
 					"marketDataBackfill");
 		}
 
-		logger.info("Executing MarketDataBackfillJob.triggerManualExecution()");
+		log.info("Executing MarketDataBackfillJob.triggerManualExecution()");
 		MarketDataBackfillJob.BackfillResult result = backfillJob.get().triggerManualExecution();
 
 		if (!result.success) {
@@ -193,13 +195,13 @@ public class JobManagementService {
 					"Backfill failed: " + result.message);
 		}
 
-		logger.info("Backfill completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
+		log.info("Backfill completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
 				result.dataPointsStored, result.errorCount);
 	}
 
 	private void executeIncrementalJob() {
 		if (incrementalJob.isEmpty()) {
-			logger.warn(
+			log.warn(
 					"MarketDataIncrementalJob bean not available. Start with scheduler profile or restart application.");
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Incremental job not available. Ensure scheduler profile is active or job bean is instantiated.");
@@ -210,7 +212,7 @@ public class JobManagementService {
 					"marketDataIncremental");
 		}
 
-		logger.info("Executing MarketDataIncrementalJob.triggerManualExecution()");
+		log.info("Executing MarketDataIncrementalJob.triggerManualExecution()");
 		MarketDataIncrementalJob.IncrementalResult result = incrementalJob.get().triggerManualExecution();
 
 		if (!result.success) {
@@ -218,7 +220,7 @@ public class JobManagementService {
 					"Incremental collection failed: " + result.message);
 		}
 
-		logger.info("Incremental completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
+		log.info("Incremental completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
 				result.dataPointsStored, result.errorCount);
 	}
 
@@ -239,7 +241,7 @@ public class JobManagementService {
 		execInfo.lastRunTime = Instant.now();
 		execInfo.status = success ? "SUCCESS" : "FAILED";
 		execInfo.durationMs = durationMs;
-		logger.info("Job {} completed with status {} in {}ms", jobName, execInfo.status, durationMs);
+		log.info("Job {} completed with status {} in {}ms", jobName, execInfo.status, durationMs);
 	}
 
 	// Internal classes

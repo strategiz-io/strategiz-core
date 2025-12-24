@@ -7,8 +7,6 @@ import io.strategiz.data.auth.repository.passkey.challenge.PasskeyChallengeRepos
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.service.base.BaseService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -30,10 +28,7 @@ public class PasskeyChallengeService extends BaseService {
     @Override
     protected String getModuleName() {
         return "service-auth";
-    }
-    
-    private static final Logger log = LoggerFactory.getLogger(PasskeyChallengeService.class);
-    
+    }    
     private final PasskeyChallengeRepository passkeyChallengeRepository;
     private final ObjectMapper objectMapper;
     

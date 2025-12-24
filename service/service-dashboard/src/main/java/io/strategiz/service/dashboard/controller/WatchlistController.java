@@ -17,7 +17,6 @@ import io.strategiz.service.dashboard.service.WatchlistService;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
@@ -52,7 +51,7 @@ public class WatchlistController extends BaseController {
     
     @Override
     protected String getModuleName() {
-        return ModuleConstants.DASHBOARD_MODULE;
+        return "service-dashboard";
     }
     
     private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
@@ -106,14 +105,18 @@ public class WatchlistController extends BaseController {
             throw e;
         } catch (Exception e) {
             log.error("Error retrieving watchlist for user: {}", userId, e);
-            // Fall back to demo data if real data fails
-            log.warn("Falling back to demo data due to error");
-            WatchlistCollectionResponse watchlist = getDemoWatchlistData(userId);
+            // Return empty watchlist on error - NO MOCK DATA
+            WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
+            empty.setItems(new ArrayList<>());
+            empty.setTotalCount(0);
+            empty.setActiveCount(0);
+            empty.setIsEmpty(true);
+
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("userId", userId);
-            responseData.put("demoMode", "demo");
-            responseData.put("watchlist", formatWatchlistForUI(watchlist));
-            responseData.put("metadata", createMetadata(watchlist, "demo"));
+            responseData.put("demoMode", "real");
+            responseData.put("watchlist", formatWatchlistForUI(empty));
+            responseData.put("metadata", createMetadata(empty, "real"));
             return ResponseEntity.ok(responseData);
         }
     }

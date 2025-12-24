@@ -4,8 +4,6 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import io.strategiz.client.walletaddress.model.WalletAddress;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,15 +11,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for managing wallet address operations using Firestore.
  */
 @Service("walletAddressFirestoreService")
-public class WalletAddressFirestoreService {
+public class WalletAddressFirestoreService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(WalletAddressFirestoreService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "unknown";
+    }
     private static final String USERS_COLLECTION = "users";
     private static final String API_CREDENTIALS_COLLECTION = "api_credentials";
     private static final String WALLET_ADDRESSES_DOC = "wallet_addresses";

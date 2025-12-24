@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for updating provider connections and data.

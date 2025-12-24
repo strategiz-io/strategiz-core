@@ -1,7 +1,6 @@
 package io.strategiz.service.dashboard.controller;
 
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.dashboard.service.SignInPortfolioSyncService;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.business.tokenauth.PasetoTokenProvider;
@@ -38,7 +37,7 @@ public class SignInPortfolioSyncController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.DASHBOARD_MODULE;
+        return "service-dashboard";
     }
 
     /**

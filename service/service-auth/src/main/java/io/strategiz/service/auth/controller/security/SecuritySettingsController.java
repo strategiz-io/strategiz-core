@@ -6,7 +6,6 @@ import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.service.auth.service.passkey.AuthenticatorRegistry;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 
 import com.google.cloud.Timestamp;
 import org.slf4j.Logger;
@@ -41,7 +40,7 @@ public class SecuritySettingsController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.AUTH_MODULE;
+        return "service-auth";
     }
 
     private static final Logger log = LoggerFactory.getLogger(SecuritySettingsController.class);

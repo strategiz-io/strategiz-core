@@ -20,8 +20,8 @@ users/
 │   ├── profile/                       # Embedded UserProfileEntity
 │   └── subcollections/
 │       ├── watchlist/                 # User's market watchlist (data-watchlist module)
-│       ├── providers/                 # Connected trading providers (data-providers module)
-│       ├── devices/                   # Registered devices (data-devices module)
+│       ├── providers/                 # Connected trading providers (data-provider module)
+│       ├── devices/                   # Registered devices (data-device module)
 │       └── preferences/               # User preferences (data-preferences module)
 ```
 
@@ -162,8 +162,8 @@ The data-user module coordinates with other data modules to provide complete use
 
 ### Related Modules
 - **data-watchlist**: `users/{userId}/watchlist` subcollection
-- **data-providers**: `users/{userId}/providers` subcollection  
-- **data-devices**: `users/{userId}/devices` subcollection
+- **data-provider**: `users/{userId}/providers` subcollection
+- **data-device**: `users/{userId}/devices` subcollection
 - **data-preferences**: `users/{userId}/preferences` subcollection
 
 ### Aggregation Strategy
@@ -297,8 +297,8 @@ List<UserEntity> users = userRepository.searchByName("John");
 ### Module Dependencies
 For aggregation operations, this module depends on:
 - `data-watchlist`
-- `data-providers` 
-- `data-devices`
+- `data-provider`
+- `data-device`
 - `data-preferences`
 
 These dependencies are injected at runtime through the implementation layer.

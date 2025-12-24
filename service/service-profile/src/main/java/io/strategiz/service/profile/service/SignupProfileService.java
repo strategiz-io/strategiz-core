@@ -4,13 +4,11 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.profile.constants.ProfileConstants;
 import io.strategiz.service.profile.model.CreateProfileRequest;
 import io.strategiz.service.profile.model.CreateProfileResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -18,11 +16,13 @@ import java.util.Optional;
  * Service for handling user profile creation during signup
  */
 @Service
-@Transactional
-public class SignupProfileService {
-    
-    private static final Logger log = LoggerFactory.getLogger(SignupProfileService.class);
-    
+public class SignupProfileService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "service-profile";
+    }
+
     private final UserRepository userRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
     

@@ -15,9 +15,8 @@ import io.strategiz.service.dashboard.model.portfoliosummary.AssetData;
 import io.strategiz.service.dashboard.model.portfoliosummary.ExchangeData;
 import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import java.math.BigDecimal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,9 +35,12 @@ import java.util.Map;
  *   users/{userId}/portfolio/{providerId}/holdings/current  ← Holdings (heavy data)
  */
 @Service
-public class PortfolioSummaryService {
+public class PortfolioSummaryService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(PortfolioSummaryService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-dashboard";
+    }
 
     private final PortfolioManager portfolioManager;
 

@@ -1,11 +1,10 @@
 package io.strategiz.service.console.service;
 
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.model.response.SystemHealthResponse;
 import io.strategiz.service.console.model.response.SystemHealthResponse.ComponentHealth;
 import io.strategiz.service.console.model.response.SystemHealthResponse.MemoryUsage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,9 +20,12 @@ import java.util.Map;
  * Service for collecting and reporting system metrics and health.
  */
 @Service
-public class SystemMetricsService {
+public class SystemMetricsService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SystemMetricsService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-console";
+    }
 
     private final UserRepository userRepository;
 
@@ -41,7 +43,7 @@ public class SystemMetricsService {
     }
 
     public SystemHealthResponse getSystemHealth() {
-        logger.debug("Collecting system health metrics");
+        log.debug("Collecting system health metrics");
 
         SystemHealthResponse response = new SystemHealthResponse();
 
@@ -73,7 +75,7 @@ public class SystemMetricsService {
             response.setActiveUsers(userRepository.findAll().size());
             response.setActiveSessions(0); // TODO: Add session counting
         } catch (Exception e) {
-            logger.warn("Failed to get user counts: {}", e.getMessage());
+            log.warn("Failed to get user counts: {}", e.getMessage());
             response.setActiveUsers(0);
             response.setActiveSessions(0);
         }

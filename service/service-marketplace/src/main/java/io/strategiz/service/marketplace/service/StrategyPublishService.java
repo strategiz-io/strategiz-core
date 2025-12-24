@@ -7,12 +7,11 @@ import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for managing strategy publishing and pricing.
@@ -23,10 +22,12 @@ import java.math.BigDecimal;
  * - Once published, pricing can be updated but not removed
  */
 @Service
-public class StrategyPublishService {
+public class StrategyPublishService extends BaseService {
 
-    private static final Logger log = LoggerFactory.getLogger(StrategyPublishService.class);
-    private static final String MODULE_NAME = "service-marketplace";
+    @Override
+    protected String getModuleName() {
+        return "service-marketplace";
+    }    private static final String MODULE_NAME = "service-marketplace";
 
     private final ReadStrategyRepository readStrategyRepo;
     private final UpdateStrategyRepository updateStrategyRepo;

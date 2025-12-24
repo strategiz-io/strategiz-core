@@ -4,8 +4,6 @@ import io.strategiz.data.auth.model.passkey.PasskeyCredential;
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
 import io.strategiz.service.auth.converter.PasskeyCredentialConverter;
 import io.strategiz.service.base.BaseService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,9 +35,7 @@ public class PasskeyManagementService extends BaseService {
     @Override
     protected String getModuleName() {
         return "service-auth";
-    }
-    private static final Logger logger = LoggerFactory.getLogger(PasskeyManagementService.class);
-    
+    }    
     private final PasskeyCredentialRepository credentialRepository;
     private final PasskeyCredentialConverter credentialConverter;
     
@@ -96,14 +92,14 @@ public class PasskeyManagementService extends BaseService {
      */
     @Transactional
     public boolean deletePasskey(String userId, String credentialId) {
-        logger.debug("Attempting to delete passkey credential: {} for user: {}", credentialId, userId);
+        log.debug("Attempting to delete passkey credential: {} for user: {}", credentialId, userId);
 
         Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
             credentialRepository.findByCredentialId(credentialId)
         );
 
         if (credentialOpt.isEmpty()) {
-            logger.warn("Passkey deletion failed: Credential not found: {}", credentialId);
+            log.warn("Passkey deletion failed: Credential not found: {}", credentialId);
             return false;
         }
 
@@ -111,12 +107,12 @@ public class PasskeyManagementService extends BaseService {
 
         // Verify user owns the credential
         if (!credential.getUserId().equals(userId)) {
-            logger.warn("Passkey deletion failed: UserEntity {} attempted to delete credential {} belonging to user {}",
+            log.warn("Passkey deletion failed: UserEntity {} attempted to delete credential {} belonging to user {}",
                     userId, credentialId, credential.getUserId());
             return false;
         }
 
-        logger.info("Deleting passkey credential: {} for user: {}", credentialId, userId);
+        log.info("Deleting passkey credential: {} for user: {}", credentialId, userId);
         credentialRepository.delete(credentialConverter.toEntity(credential));
         return true;
     }
@@ -135,14 +131,14 @@ public class PasskeyManagementService extends BaseService {
      */
     @Transactional
     public boolean renamePasskey(String userId, String credentialId, String newName) {
-        logger.debug("Attempting to rename passkey credential: {} for user: {} to: {}", credentialId, userId, newName);
+        log.debug("Attempting to rename passkey credential: {} for user: {} to: {}", credentialId, userId, newName);
 
         Optional<PasskeyCredential> credentialOpt = credentialConverter.toDomainModel(
             credentialRepository.findByCredentialId(credentialId)
         );
 
         if (credentialOpt.isEmpty()) {
-            logger.warn("Passkey rename failed: Credential not found: {}", credentialId);
+            log.warn("Passkey rename failed: Credential not found: {}", credentialId);
             return false;
         }
 
@@ -150,7 +146,7 @@ public class PasskeyManagementService extends BaseService {
 
         // Verify user owns the credential
         if (!credential.getUserId().equals(userId)) {
-            logger.warn("Passkey rename failed: UserEntity {} attempted to rename credential {} belonging to user {}",
+            log.warn("Passkey rename failed: UserEntity {} attempted to rename credential {} belonging to user {}",
                     userId, credentialId, credential.getUserId());
             return false;
         }
@@ -161,7 +157,7 @@ public class PasskeyManagementService extends BaseService {
         // Save the updated credential
         credentialRepository.save(credentialConverter.toEntity(credential));
 
-        logger.info("Successfully renamed passkey credential: {} for user: {} to: {}", credentialId, userId, newName);
+        log.info("Successfully renamed passkey credential: {} for user: {} to: {}", credentialId, userId, newName);
         return true;
     }
     

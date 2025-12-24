@@ -5,7 +5,6 @@ import io.strategiz.business.provider.robinhood.model.RobinhoodConnectionResult;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
@@ -35,7 +34,7 @@ public class RobinhoodProviderController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.PROVIDER_MODULE;
+        return "service-provider";
     }
 
     private final RobinhoodProviderBusiness robinhoodProviderBusiness;

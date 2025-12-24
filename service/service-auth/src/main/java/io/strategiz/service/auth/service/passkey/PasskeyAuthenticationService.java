@@ -10,10 +10,7 @@ import io.strategiz.service.auth.model.passkey.Passkey;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.auth.service.passkey.util.PasskeySignatureVerifier;
 import io.strategiz.service.base.BaseService;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.data.user.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,10 +29,7 @@ public class PasskeyAuthenticationService extends BaseService {
     @Override
     protected String getModuleName() {
         return "service-auth";
-    }
-    
-    private static final Logger log = LoggerFactory.getLogger(PasskeyAuthenticationService.class);
-    
+    }    
     @Value("${passkey.rpId:localhost}")
     private String rpId;
     
@@ -109,7 +103,7 @@ public class PasskeyAuthenticationService extends BaseService {
         }
         
         // Generate challenge using SYSTEM user for authentication flows
-        String challenge = challengeService.createChallenge(ModuleConstants.SYSTEM_USER_ID, PasskeyChallengeType.AUTHENTICATION);
+        String challenge = challengeService.createChallenge("SYSTEM", PasskeyChallengeType.AUTHENTICATION);
         
         // Create authentication options
         Object publicKeyCredentialRequestOptions = createAuthenticationOptions(challenge);

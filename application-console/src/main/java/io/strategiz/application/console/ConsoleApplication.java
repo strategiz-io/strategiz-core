@@ -4,7 +4,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * Console Application - Admin REST API service
@@ -14,7 +13,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
  */
 @SpringBootApplication
 @EnableCaching
-@EnableAsync
 @ComponentScan(basePackages = {
 	"io.strategiz.application.console",
 	"io.strategiz.service.console",

@@ -3,7 +3,6 @@ package io.strategiz.service.marketplace.controller;
 import io.strategiz.data.strategy.entity.StrategyCommentEntity;
 import io.strategiz.service.marketplace.service.StrategyCommentService;
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.base.constants.ModuleConstants;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
@@ -41,7 +40,7 @@ public class StrategyCommentController extends BaseController {
 
     @Override
     protected String getModuleName() {
-        return ModuleConstants.MARKETPLACE_MODULE;
+        return "service-marketplace";
     }
 
     @Autowired

@@ -1,10 +1,9 @@
 package io.strategiz.service.console.service;
 
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.ProviderStatusResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,9 +14,12 @@ import java.util.Map;
  * Service for monitoring provider integrations and status.
  */
 @Service
-public class ProviderStatusService {
+public class ProviderStatusService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProviderStatusService.class);
+    @Override
+    protected String getModuleName() {
+        return "service-console";
+    }
 
     // Known provider configurations
     private static final Map<String, ProviderConfig> KNOWN_PROVIDERS = Map.of(
@@ -32,7 +34,7 @@ public class ProviderStatusService {
     );
 
     public List<ProviderStatusResponse> listProviders() {
-        logger.info("Listing all provider statuses");
+        log.info("Listing all provider statuses");
 
         List<ProviderStatusResponse> responses = new ArrayList<>();
         for (Map.Entry<String, ProviderConfig> entry : KNOWN_PROVIDERS.entrySet()) {
@@ -53,8 +55,7 @@ public class ProviderStatusService {
     public ProviderStatusResponse getProvider(String providerName) {
         ProviderConfig config = KNOWN_PROVIDERS.get(providerName.toLowerCase());
         if (config == null) {
-            throw new StrategizException(ServiceConsoleErrorDetails.PROVIDER_NOT_FOUND, "service-console",
-                    providerName);
+            throwModuleException(ServiceConsoleErrorDetails.PROVIDER_NOT_FOUND, providerName);
         }
 
         ProviderStatusResponse response = new ProviderStatusResponse(
@@ -68,16 +69,15 @@ public class ProviderStatusService {
     }
 
     public ProviderStatusResponse syncProvider(String providerName) {
-        logger.info("Triggering sync for provider: {}", providerName);
+        log.info("Triggering sync for provider: {}", providerName);
 
         ProviderConfig config = KNOWN_PROVIDERS.get(providerName.toLowerCase());
         if (config == null) {
-            throw new StrategizException(ServiceConsoleErrorDetails.PROVIDER_NOT_FOUND, "service-console",
-                    providerName);
+            throwModuleException(ServiceConsoleErrorDetails.PROVIDER_NOT_FOUND, providerName);
         }
 
         // TODO: Trigger actual provider sync via message queue or scheduler
-        logger.info("Provider sync triggered for: {}", providerName);
+        log.info("Provider sync triggered for: {}", providerName);
 
         return getProvider(providerName);
     }

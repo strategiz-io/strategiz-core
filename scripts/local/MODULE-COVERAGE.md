@@ -36,7 +36,7 @@ Complete analysis of which modules are built by each script approach.
 | data-device | ✅ | ✅ | Device management |
 | data-session | ✅ | ✅ | Session management |
 | data-watchlist | ✅ | ✅ | Watchlist data |
-| data-providers | ✅ | ✅ | Provider data |
+| data-provider | ✅ | ✅ | Provider data |
 | data-preferences | ✅ | ✅ | User preferences |
 | data-exchange | ✅ | ✅ | Exchange data |
 | data-portfolio | ✅ | ✅ | Portfolio data |

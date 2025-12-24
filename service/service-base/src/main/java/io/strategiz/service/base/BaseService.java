@@ -10,9 +10,13 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-// Transaction support - uncomment when spring-tx is available
-// import org.springframework.transaction.annotation.Transactional;
-// import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 
@@ -20,6 +24,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,38 +58,41 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
     
     // Application event publisher for domain events
     private ApplicationEventPublisher eventPublisher;
-    
+
+    // Transaction template for programmatic transaction control
+    private TransactionTemplate transactionTemplate;
+
+    // Platform transaction manager (injected by Spring)
+    private PlatformTransactionManager transactionManager;
+
     // Connection validation cache to avoid repeated checks
     private static final Map<String, Instant> connectionValidationCache = new ConcurrentHashMap<>();
     private static final Duration VALIDATION_CACHE_DURATION = Duration.ofMinutes(5);
-    
+
     // Circuit breaker state management
     private static final Map<String, CircuitBreakerState> circuitBreakerStates = new ConcurrentHashMap<>();
-    
+
     // Performance metrics
     private static final Map<String, AtomicLong> operationCounters = new ConcurrentHashMap<>();
     private static final Map<String, AtomicLong> operationDurations = new ConcurrentHashMap<>();
-    
+
     @Value("${strategiz.environment:production}")
     protected String environment;
-    
+
     @Value("${strategiz.api.validation.enabled:true}")
     protected boolean apiValidationEnabled;
-    
+
     @Value("${strategiz.circuit-breaker.enabled:true}")
     protected boolean circuitBreakerEnabled;
-    
+
     @Value("${strategiz.circuit-breaker.failure-threshold:5}")
     protected int circuitBreakerFailureThreshold;
-    
+
     @Value("${strategiz.circuit-breaker.timeout:60000}")
     protected long circuitBreakerTimeoutMs;
-    
+
     // Validation support
     private Validator validator;
-    
-    // Transaction template for programmatic transactions - uncomment when spring-tx is available
-    // private TransactionTemplate transactionTemplate;
     
     /**
      * Default constructor.
@@ -110,34 +118,399 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
     public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
     }
-    
+
     /**
-     * Execute operation with transaction management - uncomment when spring-tx is available
+     * Set the transaction manager (optional - for programmatic transactions)
      */
-    // @Transactional
-    // protected <T> T executeWithTransaction(String operation, Supplier<T> serviceOperation) {
-    //     return executeWithLogging(operation, "transactional", () -> serviceOperation.get());
-    // }
-    
+    public void setTransactionManager(PlatformTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+        if (transactionManager != null) {
+            this.transactionTemplate = new TransactionTemplate(transactionManager);
+        }
+    }
+
+    // === TRANSACTION MANAGEMENT ===
+    // IMPORTANT: Transactions should ONLY be used in the SERVICE layer
+    // - Controllers: NO transactions (HTTP boundary)
+    // - Services: YES transactions (business operation boundary)
+    // - Business modules: NO transactions (pure domain logic)
+    // - Repositories: NO transactions (participate in service transaction)
+
     /**
-     * Execute operation with programmatic transaction - uncomment when spring-tx is available
+     * Execute with read-write transaction (default).
+     * Use for: Create, Update, Delete operations in services.
+     *
+     * Example:
+     * <pre>
+     * public Strategy createStrategy(String userId, CreateStrategyRequest request) {
+     *     return executeWithTransaction("create_strategy", () -> {
+     *         Strategy strategy = strategyRepository.save(new Strategy(request));
+     *         logBusinessEvent("strategy_created", userId);
+     *         return strategy;
+     *     });
+     * }
+     * </pre>
      */
-    // protected <T> T executeWithProgrammaticTransaction(String operation, Supplier<T> serviceOperation) {
-    //     if (transactionTemplate == null) {
-    //         log.warn("TransactionTemplate not configured, executing without transaction");
-    //         return serviceOperation.get();
-    //     }
-    //     
-    //     return transactionTemplate.execute(status -> {
-    //         try {
-    //             return executeWithLogging(operation, "programmatic-tx", serviceOperation::get);
-    //         } catch (Exception e) {
-    //             status.setRollbackOnly();
-    //             throw new RuntimeException(e);
-    //         }
-    //     });
-    // }
-    
+    @Transactional
+    protected <T> T executeWithTransaction(String operation, Supplier<T> serviceOperation) {
+        try {
+            long start = System.currentTimeMillis();
+            T result = serviceOperation.get();
+            long duration = System.currentTimeMillis() - start;
+
+            logPerformance(operation, duration, Map.of("type", "transaction"));
+            return result;
+        } catch (RuntimeException e) {
+            log.error("[{}] Transaction failed for operation: {}", getModuleName(), operation, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Execute with read-only transaction.
+     * Use for: Read operations, reports, queries.
+     * Performance benefit: Database can optimize for read-only access.
+     *
+     * Example:
+     * <pre>
+     * public PortfolioReport generateReport(String userId) {
+     *     return executeWithReadOnlyTransaction("generate_report", () -> {
+     *         Portfolio portfolio = portfolioRepository.findByUser(userId);
+     *         List<Holding> holdings = holdingsRepository.findByUser(userId);
+     *         return new PortfolioReport(portfolio, holdings);
+     *     });
+     * }
+     * </pre>
+     */
+    @Transactional(readOnly = true)
+    protected <T> T executeWithReadOnlyTransaction(String operation, Supplier<T> serviceOperation) {
+        try {
+            long start = System.currentTimeMillis();
+            T result = serviceOperation.get();
+            long duration = System.currentTimeMillis() - start;
+
+            logPerformance(operation, duration, Map.of("type", "read-only-transaction"));
+            return result;
+        } catch (RuntimeException e) {
+            log.error("[{}] Read-only transaction failed for operation: {}", getModuleName(), operation, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Execute with transaction + retry on failure.
+     * Use for: Operations that may fail due to optimistic locking, deadlocks, temporary issues.
+     *
+     * Example:
+     * <pre>
+     * public Portfolio syncPortfolio(String userId, String providerId) {
+     *     return executeWithTransactionAndRetry("sync_portfolio", () -> {
+     *         ProviderData data = providerClient.fetchData(providerId);
+     *         return portfolioRepository.update(userId, data);
+     *     }, 3);
+     * }
+     * </pre>
+     */
+    @Transactional
+    protected <T> T executeWithTransactionAndRetry(String operation, Supplier<T> serviceOperation, int maxRetries) {
+        return executeWithRetry(operation, serviceOperation, maxRetries);
+    }
+
+    /**
+     * Execute with REQUIRES_NEW propagation (always creates new transaction).
+     * Use for: Audit logging, notifications that must commit regardless of parent transaction.
+     *
+     * Example:
+     * <pre>
+     * public void processPayment(String userId, PaymentRequest request) {
+     *     executeWithTransaction("process_payment", () -> {
+     *         Payment payment = paymentRepository.save(request);
+     *
+     *         // Audit log ALWAYS commits (even if payment fails)
+     *         executeWithNewTransaction("audit_payment", () -> {
+     *             auditRepository.log("payment_attempt", userId, payment.getId());
+     *             return null;
+     *         });
+     *
+     *         stripeService.charge(payment);
+     *         return payment;
+     *     });
+     * }
+     * </pre>
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    protected <T> T executeWithNewTransaction(String operation, Supplier<T> serviceOperation) {
+        try {
+            long start = System.currentTimeMillis();
+            T result = serviceOperation.get();
+            long duration = System.currentTimeMillis() - start;
+
+            logPerformance(operation, duration, Map.of("type", "new-transaction"));
+            return result;
+        } catch (RuntimeException e) {
+            log.error("[{}] New transaction failed for operation: {}", getModuleName(), operation, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Execute with SERIALIZABLE isolation (strictest consistency).
+     * Use for: Financial transactions, critical data consistency requirements.
+     *
+     * Example:
+     * <pre>
+     * public Transfer transferFunds(String fromUserId, String toUserId, BigDecimal amount) {
+     *     return executeWithSerializableTransaction("transfer_funds", () -> {
+     *         Account from = accountRepository.findById(fromUserId);
+     *         Account to = accountRepository.findById(toUserId);
+     *
+     *         from.withdraw(amount);
+     *         to.deposit(amount);
+     *
+     *         accountRepository.save(from);
+     *         accountRepository.save(to);
+     *
+     *         return new Transfer(from, to, amount);
+     *     });
+     * }
+     * </pre>
+     */
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    protected <T> T executeWithSerializableTransaction(String operation, Supplier<T> serviceOperation) {
+        try {
+            long start = System.currentTimeMillis();
+            T result = serviceOperation.get();
+            long duration = System.currentTimeMillis() - start;
+
+            logPerformance(operation, duration, Map.of("type", "serializable-transaction"));
+            return result;
+        } catch (RuntimeException e) {
+            log.error("[{}] Serializable transaction failed for operation: {}", getModuleName(), operation, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Execute multiple operations in same transaction (batch).
+     * Use for: Bulk operations, data migrations.
+     *
+     * Example:
+     * <pre>
+     * public void bulkUpdateStrategies(List<Strategy> strategies) {
+     *     executeInBatch("bulk_update_strategies",
+     *         strategies.stream()
+     *             .map(s -> (Runnable) () -> strategyRepository.update(s))
+     *             .collect(Collectors.toList())
+     *     );
+     * }
+     * </pre>
+     */
+    @Transactional
+    protected void executeInBatch(String operation, List<Runnable> operations) {
+        try {
+            long start = System.currentTimeMillis();
+
+            for (int i = 0; i < operations.size(); i++) {
+                operations.get(i).run();
+
+                // Log progress for large batches
+                if ((i + 1) % 100 == 0) {
+                    log.debug("[{}] Batch progress: {}/{}", getModuleName(), i + 1, operations.size());
+                }
+            }
+
+            long duration = System.currentTimeMillis() - start;
+            logPerformance(operation, duration, Map.of(
+                "batchSize", operations.size(),
+                "avgTimePerOp", duration / operations.size()
+            ));
+        } catch (Exception e) {
+            log.error("[{}] Batch transaction failed for operation: {}", getModuleName(), operation, e);
+            throw e;
+        }
+    }
+
+    /**
+     * Execute with programmatic transaction control.
+     * Use for: Dynamic commit/rollback logic, conditional transactions.
+     *
+     * Example:
+     * <pre>
+     * public SubscriptionResult upgradeSubscription(String userId, String tierId) {
+     *     return executeWithProgrammaticTransaction("upgrade_subscription", (status) -> {
+     *         Subscription current = subscriptionRepository.findByUser(userId);
+     *
+     *         if (current.getTier().equals(tierId)) {
+     *             status.setRollbackOnly(); // No changes needed
+     *             return SubscriptionResult.noChange();
+     *         }
+     *
+     *         try {
+     *             paymentService.charge(userId, getPriceForTier(tierId));
+     *             current.setTier(tierId);
+     *             subscriptionRepository.update(current);
+     *             return SubscriptionResult.success(current);
+     *         } catch (PaymentException e) {
+     *             status.setRollbackOnly();
+     *             return SubscriptionResult.paymentFailed(e.getMessage());
+     *         }
+     *     });
+     * }
+     * </pre>
+     */
+    protected <T> T executeWithProgrammaticTransaction(String operation, TransactionCallback<T> transactionCallback) {
+        if (transactionTemplate == null) {
+            log.warn("[{}] TransactionTemplate not configured, executing without transaction: {}",
+                getModuleName(), operation);
+            throw new IllegalStateException("TransactionManager not configured. " +
+                "Add @Autowired setTransactionManager() or use declarative @Transactional");
+        }
+
+        try {
+            long start = System.currentTimeMillis();
+            T result = transactionTemplate.execute(transactionCallback);
+            long duration = System.currentTimeMillis() - start;
+
+            logPerformance(operation, duration, Map.of());
+            return result;
+        } catch (Exception e) {
+            log.error("[{}] Programmatic transaction failed for operation: {}", getModuleName(), operation, e);
+            throw e;
+        }
+    }
+
+    // === STRUCTURED LOGGING HELPERS ===
+    // These methods provide specialized logging using the StructuredLogger from framework-logging
+
+    /**
+     * Log performance metrics for an operation.
+     *
+     * @param operation The operation name
+     * @param durationMs Duration in milliseconds
+     * @param metrics Additional metrics to log
+     */
+    protected void logPerformance(String operation, long durationMs, Map<String, Object> metrics) {
+        io.strategiz.framework.logging.StructuredLogger.performance()
+            .operation(operation)
+            .component(getModuleName())
+            .duration(durationMs)
+            .fields(metrics)
+            .log("Performance metric: " + operation);
+    }
+
+    /**
+     * Log security-related events (auth, authz, access control).
+     *
+     * @param event The security event type
+     * @param userId The user ID involved
+     * @param eventData Additional event data
+     */
+    protected void logSecurityEvent(String event, String userId, Map<String, Object> eventData) {
+        io.strategiz.framework.logging.StructuredLogger.security()
+            .operation(event)
+            .component(getModuleName())
+            .userId(userId)
+            .fields(eventData)
+            .log("Security event: " + event);
+    }
+
+    /**
+     * Log business events (strategy created, subscription upgraded, etc.).
+     *
+     * @param operation The business operation
+     * @param userId The user ID involved
+     * @param eventData Additional event data
+     */
+    protected void logBusinessEvent(String operation, String userId, Map<String, Object> eventData) {
+        io.strategiz.framework.logging.StructuredLogger.business()
+            .operation(operation)
+            .component(getModuleName())
+            .userId(userId)
+            .fields(eventData)
+            .log("Business event: " + operation);
+    }
+
+    /**
+     * Log audit trail events for compliance and debugging.
+     *
+     * @param operation The operation being audited
+     * @param userId The user ID involved
+     * @param auditData Audit trail data
+     */
+    protected void logAuditEvent(String operation, String userId, Map<String, Object> auditData) {
+        io.strategiz.framework.logging.StructuredLogger.audit()
+            .operation(operation)
+            .component(getModuleName())
+            .userId(userId)
+            .fields(auditData)
+            .log("Audit event: " + operation);
+    }
+
+    /**
+     * Log external API calls (Alpaca, CoinGecko, etc.).
+     *
+     * @param apiName The API name
+     * @param endpoint The endpoint called
+     * @param durationMs Duration in milliseconds
+     * @param statusCode HTTP status code
+     * @param additionalData Additional data to log
+     */
+    protected void logExternalApiCall(String apiName, String endpoint, long durationMs,
+                                      int statusCode, Map<String, Object> additionalData) {
+        Map<String, Object> data = new java.util.HashMap<>(additionalData);
+        data.put("api", apiName);
+        data.put("endpoint", endpoint);
+        data.put("statusCode", statusCode);
+
+        logPerformance("external_api_call", durationMs, data);
+    }
+
+    /**
+     * Log database query operations.
+     *
+     * @param collection The collection/table name
+     * @param operation The operation type (read, write, update, delete)
+     * @param durationMs Duration in milliseconds
+     * @param queryData Additional query data
+     */
+    protected void logDatabaseQuery(String collection, String operation, long durationMs,
+                                    Map<String, Object> queryData) {
+        Map<String, Object> data = new java.util.HashMap<>(queryData);
+        data.put("collection", collection);
+        data.put("dbOperation", operation);
+
+        logPerformance("database_query", durationMs, data);
+    }
+
+    /**
+     * Log cache operations (hit, miss, eviction).
+     *
+     * @param cacheName The cache name
+     * @param operation The cache operation (hit, miss, evict)
+     * @param key The cache key
+     */
+    protected void logCacheOperation(String cacheName, String operation, String key) {
+        log.debug("[{}] Cache {} for key {} in cache {}", getModuleName(), operation, key, cacheName);
+    }
+
+    /**
+     * Log async operation tracking.
+     *
+     * @param operation The async operation name
+     * @param status The status (started, completed, failed)
+     * @param metadata Additional metadata
+     */
+    protected void logAsyncOperation(String operation, String status, Map<String, Object> metadata) {
+        Map<String, Object> data = new java.util.HashMap<>(metadata);
+        data.put("asyncStatus", status);
+
+        io.strategiz.framework.logging.StructuredLogger.business()
+            .operation(operation)
+            .component(getModuleName())
+            .fields(data)
+            .log("Async operation: " + operation + " - " + status);
+    }
+
     /**
      * Execute operation with circuit breaker pattern
      */

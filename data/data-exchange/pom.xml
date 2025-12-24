@@ -19,7 +19,7 @@
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-base</artifactId>
+            <artifactId>data-framework-base</artifactId>
             <version>${project.version}</version>
         </dependency>
         

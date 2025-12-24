@@ -6,13 +6,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for aggregating user data from multiple data modules.
  * Handles cross-cutting concerns where you need both user identity and watchlist data.
  */
 @Service
-public class UserAggregateService {
+public class UserAggregateService extends BaseService {
+
+    @Override
+    protected String getModuleName() {
+        return "unknown";
+    }
 
     @Autowired
     private UserRepository userRepository;

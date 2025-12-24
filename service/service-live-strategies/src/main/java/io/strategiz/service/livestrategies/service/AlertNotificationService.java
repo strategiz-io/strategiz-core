@@ -17,8 +17,6 @@ import io.strategiz.client.sms.SmsProvider;
 import io.strategiz.client.sms.model.SmsDeliveryResult;
 import io.strategiz.client.sms.model.SmsMessage;
 import io.strategiz.data.strategy.entity.StrategyAlert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,16 +24,19 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import io.strategiz.service.base.BaseService;
 
 /**
  * Service for sending alert notifications through multiple channels.
  * Supports email (SendGrid), push notifications (FCM), and in-app notifications (Firestore).
  */
 @Service
-public class AlertNotificationService {
+public class AlertNotificationService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AlertNotificationService.class);
-
+    @Override
+    protected String getModuleName() {
+        return "unknown";
+    }
     @Value("${sendgrid.api.key:}")
     private String sendGridApiKey;
 
@@ -79,7 +80,7 @@ public class AlertNotificationService {
             String symbol,
             Double currentPrice) {
 
-        logger.info("Sending {} signal notification for alert {} (symbol: {}, price: ${})",
+        log.info("Sending {} signal notification for alert {} (symbol: {}, price: ${})",
             signal.getType(), alert.getAlertName(), symbol, currentPrice);
 
         // Send to each configured notification channel
@@ -100,10 +101,10 @@ public class AlertNotificationService {
                         sendInAppNotification(alert, signal, symbol, currentPrice);
                         break;
                     default:
-                        logger.warn("Unknown notification channel: {}", channel);
+                        log.warn("Unknown notification channel: {}", channel);
                 }
             } catch (Exception e) {
-                logger.error("Failed to send {} notification for alert {}: {}",
+                log.error("Failed to send {} notification for alert {}: {}",
                     channel, alert.getId(), e.getMessage(), e);
             }
         }
@@ -119,7 +120,7 @@ public class AlertNotificationService {
             Double currentPrice) {
 
         if (sendGridApiKey == null || sendGridApiKey.isEmpty()) {
-            logger.warn("SendGrid API key not configured, skipping email notification");
+            log.warn("SendGrid API key not configured, skipping email notification");
             return;
         }
 
@@ -196,15 +197,15 @@ public class AlertNotificationService {
             Response response = sg.api(request);
 
             if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                logger.info("Email notification sent successfully to {} for {} signal on {}",
+                log.info("Email notification sent successfully to {} for {} signal on {}",
                           userEmail, signal.getType(), symbol);
             } else {
-                logger.error("Failed to send email notification. Status: {}, Body: {}",
+                log.error("Failed to send email notification. Status: {}, Body: {}",
                            response.getStatusCode(), response.getBody());
             }
 
         } catch (Exception e) {
-            logger.error("Error sending email notification", e);
+            log.error("Error sending email notification", e);
         }
     }
 
@@ -218,7 +219,7 @@ public class AlertNotificationService {
             Double currentPrice) {
 
         if (smsProvider == null || !smsProvider.isAvailable()) {
-            logger.warn("SMS provider not available, skipping SMS notification");
+            log.warn("SMS provider not available, skipping SMS notification");
             return;
         }
 
@@ -230,19 +231,19 @@ public class AlertNotificationService {
             }
 
             if (userPhone == null || userPhone.isEmpty()) {
-                logger.warn("User {} has no verified phone number configured for SMS alerts", alert.getUserId());
+                log.warn("User {} has no verified phone number configured for SMS alerts", alert.getUserId());
                 return;
             }
 
             // Check quiet hours
             if (alertPreferencesService != null && alertPreferencesService.isInQuietHours(alert.getUserId())) {
-                logger.info("Skipping SMS for user {} - currently in quiet hours", alert.getUserId());
+                log.info("Skipping SMS for user {} - currently in quiet hours", alert.getUserId());
                 return;
             }
 
             // Check rate limit
             if (alertPreferencesService != null && !alertPreferencesService.canSendAlert(alert.getUserId())) {
-                logger.warn("Rate limit exceeded for user {} - skipping SMS", alert.getUserId());
+                log.warn("Rate limit exceeded for user {} - skipping SMS", alert.getUserId());
                 return;
             }
 
@@ -274,7 +275,7 @@ public class AlertNotificationService {
             SmsDeliveryResult result = smsProvider.sendSms(smsMessage);
 
             if (result.isSuccess()) {
-                logger.info("SMS notification sent successfully to {} for {} signal on {}. MessageId: {}",
+                log.info("SMS notification sent successfully to {} for {} signal on {}. MessageId: {}",
                         maskPhoneNumber(userPhone), signal.getType(), symbol, result.getMessageId());
 
                 // Record alert sent for rate limiting
@@ -282,12 +283,12 @@ public class AlertNotificationService {
                     alertPreferencesService.recordAlertSent(alert.getUserId());
                 }
             } else {
-                logger.error("Failed to send SMS notification. Status: {}, Error: {}",
+                log.error("Failed to send SMS notification. Status: {}, Error: {}",
                         result.getStatus(), result.getErrorMessage());
             }
 
         } catch (Exception e) {
-            logger.error("Error sending SMS notification", e);
+            log.error("Error sending SMS notification", e);
         }
     }
 
@@ -311,7 +312,7 @@ public class AlertNotificationService {
             Double currentPrice) {
 
         if (firebaseMessaging == null) {
-            logger.warn("Firebase Messaging not configured, skipping push notification");
+            log.warn("Firebase Messaging not configured, skipping push notification");
             return;
         }
 
@@ -347,11 +348,11 @@ public class AlertNotificationService {
             //     .build();
             // firebaseMessaging.send(message);
 
-            logger.info("Push notification would be sent for {} signal on {} (device tokens not yet fetched)",
+            log.info("Push notification would be sent for {} signal on {} (device tokens not yet fetched)",
                       signal.getType(), symbol);
 
         } catch (Exception e) {
-            logger.error("Error sending push notification", e);
+            log.error("Error sending push notification", e);
         }
     }
 
@@ -384,11 +385,11 @@ public class AlertNotificationService {
                     .add(notification)
                     .get(); // Wait for completion
 
-            logger.info("In-app notification created for user {} - {} signal on {}",
+            log.info("In-app notification created for user {} - {} signal on {}",
                       alert.getUserId(), signal.getType(), symbol);
 
         } catch (Exception e) {
-            logger.error("Error creating in-app notification", e);
+            log.error("Error creating in-app notification", e);
         }
     }
 
@@ -396,7 +397,7 @@ public class AlertNotificationService {
      * Send test notification (used by POST /v1/alerts/{id}/test endpoint)
      */
     public void sendTestNotification(StrategyAlert alert) {
-        logger.info("Sending test notification for alert {}", alert.getAlertName());
+        log.info("Sending test notification for alert {}", alert.getAlertName());
 
         ExecutionResult.Signal testSignal = new ExecutionResult.Signal();
         testSignal.setType("BUY");

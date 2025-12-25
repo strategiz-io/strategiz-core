@@ -34,8 +34,12 @@ public class GrokDirectClient implements LLMProvider {
 
 	private static final String PROVIDER_NAME = "xai";
 
-	// Grok models available via direct API
-	private static final List<String> SUPPORTED_MODELS = List.of("grok-2-1212", "grok-2-vision-1212");
+	// Grok models available via direct API (as of Dec 2025)
+	// grok-4.1-fast: Best tool-calling model with 2M context (released Nov 2025)
+	// grok-4: Advanced reasoning, coding, visual processing
+	// grok-3: General purpose model
+	// grok-3-mini: Fast and economical
+	private static final List<String> SUPPORTED_MODELS = List.of("grok-4.1-fast", "grok-4", "grok-3", "grok-3-mini");
 
 	private final GrokDirectConfig config;
 
@@ -140,12 +144,8 @@ public class GrokDirectClient implements LLMProvider {
 		if (model == null || model.isEmpty()) {
 			return config.getDefaultModel();
 		}
-		// Map user-friendly names if needed
-		return switch (model.toLowerCase()) {
-			case "grok-2" -> "grok-2-1212";
-			case "grok-2-vision" -> "grok-2-vision-1212";
-			default -> model;
-		};
+		// Models use exact API names, no mapping needed
+		return model;
 	}
 
 	/**

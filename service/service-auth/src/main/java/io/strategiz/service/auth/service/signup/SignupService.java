@@ -95,6 +95,7 @@ public class SignupService extends BaseService {
 
             // Execute user creation within a Firestore transaction
             // This ensures atomic check-and-create to prevent duplicate users
+            // CRITICAL: Security subcollection is created INSIDE transaction for atomicity
             UserEntity createdUser = transactionTemplate.execute(transaction -> {
                 // Check if user already exists (within transaction for consistency)
                 if (userRepository.getUserByEmail(request.getEmail()).isPresent()) {
@@ -102,20 +103,34 @@ public class SignupService extends BaseService {
                 }
 
                 // Create user - this will use the transaction from ThreadLocal
-                return userRepository.createUser(user);
+                UserEntity created = userRepository.createUser(user);
+
+                // Create security subcollection INSIDE transaction for atomicity
+                // SubcollectionRepository is now transaction-aware and will use the active transaction
+                log.info("=====> SECURITY_INIT: Creating OAuth authentication method inside transaction for user: {}", created.getUserId());
+                AuthenticationMethodEntity authMethod = buildOAuthAuthenticationMethod(request.getAuthMethod(), createdBy);
+                authMethodRepository.saveForUser(created.getUserId(), authMethod);
+                log.info("=====> SECURITY_INIT: Successfully saved OAuth authentication method for user: {}", created.getUserId());
+
+                return created;
             });
 
-            log.info("=====> SIGNUP SERVICE: OAuth user created successfully in transaction: {}", createdUser.getUserId());
-
-            // Initialize OAuth authentication method in security subcollection
-            // This follows the same pattern as all other authentication methods
-            log.info("=====> SIGNUP SERVICE: Calling initializeOAuthAuthenticationMethod for user: {}", createdUser.getUserId());
-            initializeOAuthAuthenticationMethod(createdUser.getUserId(), request.getAuthMethod(), createdBy);
+            log.info("=====> SIGNUP SERVICE: OAuth user created successfully in transaction with security subcollection: {}", createdUser.getUserId());
 
             // Initialize default watchlist asynchronously (non-blocking)
-            log.info("=====> SIGNUP SERVICE: Calling initializeDefaultWatchlist for user: {}", createdUser.getUserId());
-            initializeDefaultWatchlist(createdUser.getUserId());
-            log.info("=====> SIGNUP SERVICE: Completed initialization for user: {}", createdUser.getUserId());
+            // CRITICAL: Watchlist failures must NOT break user creation
+            try {
+                log.info("=====> WATCHLIST_INIT: Starting watchlist initialization for userId: [{}]", createdUser.getUserId());
+                initializeDefaultWatchlist(createdUser.getUserId());
+                log.info("=====> WATCHLIST_INIT_SUCCESS: Default watchlist initialized for userId: [{}]", createdUser.getUserId());
+            } catch (Exception e) {
+                // Log but DO NOT throw - watchlist failure should not break OAuth signup
+                log.error("=====> WATCHLIST_INIT_FAILED: Failed to initialize default watchlist for userId: [{}]", createdUser.getUserId(), e);
+                log.error("=====> WATCHLIST_INIT_FAILED: User creation succeeded, but watchlist is empty");
+                log.error("=====> WATCHLIST_INIT_FAILED: User will need to manually add symbols to their watchlist");
+                log.error("=====> WATCHLIST_INIT_FAILED: Error type: {}, Message: {}", e.getClass().getName(), e.getMessage());
+                // User creation continues successfully despite watchlist failure
+            }
 
             // Build success response with tokens (outside transaction - tokens don't need atomicity)
             List<String> authMethods = List.of(authMethod);
@@ -137,71 +152,57 @@ public class SignupService extends BaseService {
     }
 
     /**
-     * Initialize OAuth authentication method in security subcollection.
-     * Creates a document in users/{userId}/security to track the OAuth provider.
+     * Build OAuth authentication method entity (pure function - no I/O).
+     * This method is called INSIDE a transaction to ensure atomicity.
      *
-     * @param userId The user ID
      * @param authMethod The OAuth provider (e.g., "google", "facebook")
      * @param createdBy Email of the user who created this
+     * @return AuthenticationMethodEntity ready to be saved
      */
-    private void initializeOAuthAuthenticationMethod(String userId, String authMethod, String createdBy) {
-        log.info("=====> SECURITY INIT: Initializing OAuth authentication method for user: {} with provider: {}", userId, authMethod);
+    private AuthenticationMethodEntity buildOAuthAuthenticationMethod(String authMethod, String createdBy) {
+        // Determine the authentication method type based on the auth method
+        AuthenticationMethodType authType;
+        String displayName;
 
-        try {
-            // Determine the authentication method type based on the auth method
-            AuthenticationMethodType authType;
-            String displayName;
-
-            switch (authMethod.toLowerCase()) {
-                case "google":
-                    authType = AuthenticationMethodType.OAUTH_GOOGLE;
-                    displayName = "Google Account";
-                    break;
-                case "facebook":
-                    authType = AuthenticationMethodType.OAUTH_FACEBOOK;
-                    displayName = "Facebook Account";
-                    break;
-                case "microsoft":
-                    authType = AuthenticationMethodType.OAUTH_MICROSOFT;
-                    displayName = "Microsoft Account";
-                    break;
-                case "github":
-                    authType = AuthenticationMethodType.OAUTH_GITHUB;
-                    displayName = "GitHub Account";
-                    break;
-                default:
-                    log.warn("Unknown OAuth provider: {}, defaulting to OAUTH_GOOGLE", authMethod);
-                    authType = AuthenticationMethodType.OAUTH_GOOGLE;
-                    displayName = "OAuth Account";
-            }
-
-            // Create authentication method entity
-            AuthenticationMethodEntity authMethodEntity = new AuthenticationMethodEntity();
-            authMethodEntity.setAuthenticationMethod(authType);
-            authMethodEntity.setName(displayName);
-            authMethodEntity.setCreatedBy(createdBy);
-            authMethodEntity.setModifiedBy(createdBy);
-            authMethodEntity.setIsActive(true);
-            authMethodEntity.setLastUsedAt(Instant.now());
-
-            // Add metadata
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("provider", authMethod.toLowerCase());
-            metadata.put("registeredAt", Instant.now().toString());
-            authMethodEntity.setMetadata(metadata);
-
-            // Save to Firestore security subcollection
-            log.info("=====> SECURITY INIT: About to save auth method to Firestore for user: {}", userId);
-            authenticationMethodRepository.saveForUser(userId, authMethodEntity);
-
-            log.info("=====> SECURITY INIT: Successfully created OAuth authentication method for user {} with provider {}", userId, authMethod);
-
-        } catch (Exception e) {
-            log.error("=====> SECURITY INIT ERROR: Failed to create OAuth authentication method for user {} with provider {}: {}",
-                userId, authMethod, e.getMessage(), e);
-            // Don't throw - this is not critical for signup to succeed
-            // The user can still use the system, but they won't see their OAuth method in security settings
+        switch (authMethod.toLowerCase()) {
+            case "google":
+                authType = AuthenticationMethodType.OAUTH_GOOGLE;
+                displayName = "Google Account";
+                break;
+            case "facebook":
+                authType = AuthenticationMethodType.OAUTH_FACEBOOK;
+                displayName = "Facebook Account";
+                break;
+            case "microsoft":
+                authType = AuthenticationMethodType.OAUTH_MICROSOFT;
+                displayName = "Microsoft Account";
+                break;
+            case "github":
+                authType = AuthenticationMethodType.OAUTH_GITHUB;
+                displayName = "GitHub Account";
+                break;
+            default:
+                log.warn("Unknown OAuth provider: {}, defaulting to OAUTH_GOOGLE", authMethod);
+                authType = AuthenticationMethodType.OAUTH_GOOGLE;
+                displayName = "OAuth Account";
         }
+
+        // Create authentication method entity
+        AuthenticationMethodEntity authMethodEntity = new AuthenticationMethodEntity();
+        authMethodEntity.setAuthenticationMethod(authType);
+        authMethodEntity.setName(displayName);
+        authMethodEntity.setCreatedBy(createdBy);
+        authMethodEntity.setModifiedBy(createdBy);
+        authMethodEntity.setIsActive(true);
+        authMethodEntity.setLastUsedAt(Instant.now());
+
+        // Add metadata
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("provider", authMethod.toLowerCase());
+        metadata.put("registeredAt", Instant.now().toString());
+        authMethodEntity.setMetadata(metadata);
+
+        return authMethodEntity;
     }
 
     /**

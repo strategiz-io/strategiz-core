@@ -80,19 +80,30 @@ public abstract class SubcollectionRepository<T extends BaseEntity> extends Base
     public T saveInSubcollection(String parentId, T entity, String userId) {
         try {
             validateInputs(entity, userId);
-            
+
             boolean isCreate = (entity.getId() == null || entity.getId().isEmpty());
-            
+
             if (isCreate) {
                 entity.setId(getSubcollection(parentId).document().getId());
                 entity._initAudit(userId);
             } else {
                 entity._updateAudit(userId);
             }
-            
+
             entity._validate();
 
-            getSubcollection(parentId).document(entity.getId()).set(entity).get();
+            // Check if we're within a Firestore transaction
+            if (io.strategiz.data.base.transaction.FirestoreTransactionHolder.isTransactionActive()) {
+                com.google.cloud.firestore.Transaction transaction =
+                    io.strategiz.data.base.transaction.FirestoreTransactionHolder.getTransaction();
+                log.debug("Saving {} in subcollection within ACTIVE transaction for parent {}",
+                    entityClass.getSimpleName(), parentId);
+                transaction.set(getSubcollection(parentId).document(entity.getId()), entity);
+            } else {
+                log.debug("Saving {} in subcollection outside transaction for parent {}",
+                    entityClass.getSimpleName(), parentId);
+                getSubcollection(parentId).document(entity.getId()).set(entity).get();
+            }
 
             log.debug("Saved {} in subcollection under parent {} by user {}",
                 entityClass.getSimpleName(), parentId, userId);

@@ -6,6 +6,11 @@ import io.strategiz.business.infrastructurecosts.model.DailyCost;
 import io.strategiz.business.infrastructurecosts.model.FirestoreUsage;
 import io.strategiz.business.infrastructurecosts.service.CostAggregationService;
 import io.strategiz.business.infrastructurecosts.service.CostPredictionService;
+import io.strategiz.client.gcpbilling.GcpAssetInventoryClient;
+import io.strategiz.client.gcpbilling.AiCostsAggregationService;
+import io.strategiz.client.gcpbilling.model.GcpInfrastructureSummary;
+import io.strategiz.client.gcpbilling.model.GcpResource;
+import io.strategiz.client.gcpbilling.model.AiCostsSummary;
 import io.strategiz.service.base.controller.BaseController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Admin controller for infrastructure costs tracking and analysis.
+ * Admin controller for operating costs tracking and analysis.
  * Provides endpoints for cost summary, daily breakdowns, service costs,
  * Firestore usage, and cost predictions.
  *
@@ -30,7 +35,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/console/costs")
-@Tag(name = "Admin - Infrastructure Costs", description = "Infrastructure cost tracking and prediction endpoints")
+@Tag(name = "Admin - Operating Costs", description = "Operating cost tracking and prediction endpoints")
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class AdminCostsController extends BaseController {
 
@@ -39,12 +44,18 @@ public class AdminCostsController extends BaseController {
 
     private final CostAggregationService costAggregationService;
     private final CostPredictionService costPredictionService;
+    private final GcpAssetInventoryClient assetInventoryClient;
+    private final AiCostsAggregationService aiCostsService;
 
     public AdminCostsController(
             CostAggregationService costAggregationService,
-            CostPredictionService costPredictionService) {
+            CostPredictionService costPredictionService,
+            GcpAssetInventoryClient assetInventoryClient,
+            AiCostsAggregationService aiCostsService) {
         this.costAggregationService = costAggregationService;
         this.costPredictionService = costPredictionService;
+        this.assetInventoryClient = assetInventoryClient;
+        this.aiCostsService = aiCostsService;
     }
 
     @Override
@@ -156,5 +167,112 @@ public class AdminCostsController extends BaseController {
         // Return fresh summary
         CostSummary summary = costAggregationService.getCurrentMonthSummary();
         return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Get comprehensive infrastructure inventory
+     */
+    @GetMapping("/infrastructure")
+    @Operation(
+            summary = "Get infrastructure inventory",
+            description = "Returns comprehensive inventory of all GCP resources with estimated costs (uses FREE Cloud Asset API)"
+    )
+    public ResponseEntity<GcpInfrastructureSummary> getInfrastructure(HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        log.info("Admin {} requesting infrastructure inventory", adminUserId);
+
+        GcpInfrastructureSummary summary = assetInventoryClient.getInfrastructureSummary();
+        return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Get resources filtered by type
+     */
+    @GetMapping("/infrastructure/by-type/{resourceType}")
+    @Operation(
+            summary = "Get resources by type",
+            description = "Returns all resources of a specific type (e.g., 'Cloud Run', 'Firestore', 'Cloud Storage')"
+    )
+    public ResponseEntity<List<GcpResource>> getResourcesByType(
+            HttpServletRequest request,
+            @Parameter(description = "Resource type (e.g., 'Cloud Run', 'Firestore')")
+            @PathVariable String resourceType) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        log.info("Admin {} requesting resources of type: {}", adminUserId, resourceType);
+
+        List<GcpResource> resources = assetInventoryClient.getResourcesByType(resourceType);
+        return ResponseEntity.ok(resources);
+    }
+
+    /**
+     * Get resources filtered by region
+     */
+    @GetMapping("/infrastructure/by-region/{region}")
+    @Operation(
+            summary = "Get resources by region",
+            description = "Returns all resources in a specific GCP region (e.g., 'us-central1', 'us-east1')"
+    )
+    public ResponseEntity<List<GcpResource>> getResourcesByRegion(
+            HttpServletRequest request,
+            @Parameter(description = "GCP region (e.g., 'us-central1', 'us-east1')")
+            @PathVariable String region) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        log.info("Admin {} requesting resources in region: {}", adminUserId, region);
+
+        List<GcpResource> resources = assetInventoryClient.getResourcesByRegion(region);
+        return ResponseEntity.ok(resources);
+    }
+
+    /**
+     * Get AI/LLM costs summary
+     */
+    @GetMapping("/ai-costs/summary")
+    @Operation(
+            summary = "Get AI/LLM costs summary",
+            description = "Returns aggregated AI costs from Anthropic Claude, OpenAI, xAI Grok, and personal dev accounts"
+    )
+    public ResponseEntity<AiCostsSummary> getAiCostsSummary(HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        log.info("Admin {} requesting AI costs summary", adminUserId);
+
+        AiCostsSummary summary = aiCostsService.getCurrentMonthAiCosts();
+        return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Get AI costs breakdown by model
+     */
+    @GetMapping("/ai-costs/by-model")
+    @Operation(
+            summary = "Get AI costs by model",
+            description = "Returns current month AI costs grouped by model (gpt-4, claude-opus-4, grok-4, etc.)"
+    )
+    public ResponseEntity<Map<String, BigDecimal>> getAiCostsByModel(HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        log.info("Admin {} requesting AI costs by model", adminUserId);
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
+        Map<String, BigDecimal> costsByModel = aiCostsService.getCostsByModel(startOfMonth, today);
+        return ResponseEntity.ok(costsByModel);
+    }
+
+    /**
+     * Get daily AI costs for trend analysis
+     */
+    @GetMapping("/ai-costs/daily")
+    @Operation(
+            summary = "Get daily AI costs",
+            description = "Returns daily AI cost breakdown for the specified number of days"
+    )
+    public ResponseEntity<List<Map<String, Object>>> getDailyAiCosts(
+            HttpServletRequest request,
+            @Parameter(description = "Number of days to retrieve (default: 30)")
+            @RequestParam(defaultValue = "30") int days) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        log.info("Admin {} requesting daily AI costs for {} days", adminUserId, days);
+
+        List<Map<String, Object>> dailyCosts = aiCostsService.getDailyAiCosts(days);
+        return ResponseEntity.ok(dailyCosts);
     }
 }

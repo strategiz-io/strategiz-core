@@ -3,6 +3,8 @@ package io.strategiz.data.provider.repository;
 import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.data.provider.exception.DataProviderErrorDetails;
 import io.strategiz.data.provider.exception.ProviderIntegrationException;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
@@ -156,13 +158,16 @@ public class ProviderHoldingsRepository {
 
     private void validateInputs(ProviderHoldingsEntity entity, String userId, String providerId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Entity cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                "ProviderHoldingsEntity", "Entity cannot be null");
         }
         if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                "ProviderHoldingsEntity", "User ID cannot be null or empty");
         }
         if (providerId == null || providerId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Provider ID cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                "ProviderHoldingsEntity", "Provider ID cannot be null or empty");
         }
     }
 }

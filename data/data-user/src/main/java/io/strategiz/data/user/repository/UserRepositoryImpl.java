@@ -144,7 +144,8 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
         String email = user.getProfile() != null ? user.getProfile().getEmail() : null;
 
         if (email == null || email.isEmpty()) {
-            throw new IllegalArgumentException("User email cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                "UserEntity", "User email cannot be null or empty");
         }
 
         log.info("Attempting atomic user creation for email: {}", email);
@@ -293,7 +294,8 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     @Override
     public Object readUserWatchlist(String userId) {
         // TODO: Delegate to watchlist repository
-        throw new UnsupportedOperationException("Watchlist operations should be delegated to data-watchlist module");
+        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
+            "UserEntity", "Watchlist operations should be delegated to data-watchlist module");
     }
 
     @Override
@@ -305,12 +307,14 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     @Override
     public Object createWatchlistItem(String userId, Object request) {
         // TODO: Delegate to watchlist repository
-        throw new UnsupportedOperationException("Watchlist operations should be delegated to data-watchlist module");
+        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
+            "UserEntity", "Watchlist operations should be delegated to data-watchlist module");
     }
 
     @Override
     public Object deleteWatchlistItem(String userId, Object request) {
         // TODO: Delegate to watchlist repository
-        throw new UnsupportedOperationException("Watchlist operations should be delegated to data-watchlist module");
+        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
+            "UserEntity", "Watchlist operations should be delegated to data-watchlist module");
     }
 }

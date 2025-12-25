@@ -26,6 +26,8 @@ public enum DataRepositoryErrorDetails implements ErrorDetails {
 	QUERY_INVALID_PARAMETERS(HttpStatus.BAD_REQUEST, "query-invalid-parameters"),
 
 	// === Validation Errors ===
+	INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "invalid-argument"),
+	INVALID_ENTITY_STATE(HttpStatus.BAD_REQUEST, "invalid-entity-state"),
 	ENTITY_NULL(HttpStatus.BAD_REQUEST, "entity-null"),
 	USER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "user-id-required"),
 	ENTITY_ID_REQUIRED(HttpStatus.BAD_REQUEST, "entity-id-required"),
@@ -51,7 +53,10 @@ public enum DataRepositoryErrorDetails implements ErrorDetails {
 
 	// === Conversion Errors ===
 	ENTITY_CONVERSION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "entity-conversion-failed"),
-	DOCUMENT_PARSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "document-parse-failed");
+	DOCUMENT_PARSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "document-parse-failed"),
+
+	// === Operation Errors ===
+	OPERATION_NOT_SUPPORTED(HttpStatus.NOT_IMPLEMENTED, "operation-not-supported");
 
 	private final HttpStatus httpStatus;
 

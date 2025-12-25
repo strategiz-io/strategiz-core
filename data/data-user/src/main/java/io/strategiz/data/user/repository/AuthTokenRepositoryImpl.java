@@ -3,6 +3,8 @@ package io.strategiz.data.user.repository;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import io.strategiz.data.user.entity.SsoRelayToken;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -61,7 +63,7 @@ public class AuthTokenRepositoryImpl implements AuthTokenRepository {
             return token;
         } catch (Exception e) {
             logger.error("Error saving SSO relay token: {}", e.getMessage());
-            throw new RuntimeException("Failed to save SSO relay token", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "SsoRelayToken");
         }
     }
 

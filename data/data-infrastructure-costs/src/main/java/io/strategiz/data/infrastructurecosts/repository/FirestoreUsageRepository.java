@@ -7,6 +7,8 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QuerySnapshot;
 import io.strategiz.data.infrastructurecosts.entity.FirestoreUsageEntity;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -52,7 +54,7 @@ public class FirestoreUsageRepository {
         } catch (InterruptedException | ExecutionException e) {
             logger.error("Error saving Firestore usage: {}", e.getMessage(), e);
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to save Firestore usage", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "FirestoreUsageEntity");
         }
     }
 

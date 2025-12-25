@@ -1,6 +1,8 @@
 package io.strategiz.data.strategy.repository;
 
 import io.strategiz.data.strategy.entity.StrategySubscriptionEntity;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -64,7 +66,8 @@ public class StrategySubscriptionRepositoryImpl implements StrategySubscriptionR
     public StrategySubscriptionEntity cancel(String subscriptionId, String userId) {
         Optional<StrategySubscriptionEntity> optional = baseRepository.findById(subscriptionId);
         if (optional.isEmpty()) {
-            throw new RuntimeException("Subscription not found: " + subscriptionId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND,
+                "StrategySubscriptionEntity", subscriptionId);
         }
 
         StrategySubscriptionEntity subscription = optional.get();

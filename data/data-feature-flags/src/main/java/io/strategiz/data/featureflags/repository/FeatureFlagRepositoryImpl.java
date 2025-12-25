@@ -1,6 +1,8 @@
 package io.strategiz.data.featureflags.repository;
 
 import io.strategiz.data.featureflags.entity.FeatureFlagEntity;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -102,7 +104,8 @@ public class FeatureFlagRepositoryImpl implements FeatureFlagRepository {
         try {
             String flagId = flag.getFlagId();
             if (flagId == null || flagId.isEmpty()) {
-                throw new IllegalArgumentException("Flag ID is required");
+                throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                    "FeatureFlagEntity", "Flag ID is required");
             }
 
             // Set audit fields using BaseEntity methods
@@ -118,7 +121,7 @@ public class FeatureFlagRepositoryImpl implements FeatureFlagRepository {
         } catch (InterruptedException | ExecutionException e) {
             log.error("Error saving feature flag: {}", flag.getFlagId(), e);
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to save feature flag", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "FeatureFlagEntity");
         }
     }
 

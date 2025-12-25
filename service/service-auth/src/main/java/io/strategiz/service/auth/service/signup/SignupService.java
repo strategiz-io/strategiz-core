@@ -86,7 +86,7 @@ public class SignupService extends BaseService {
      */
     public OAuthSignupResponse processSignup(OAuthSignupRequest request, String deviceId, String ipAddress) {
         String authMethod = request.getAuthMethod().toLowerCase();
-        log.info("Processing OAuth signup for email: {} with auth method: {}", request.getEmail(), authMethod);
+        log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", request.getEmail(), authMethod);
 
         try {
             // Create the user entity with profile information using the factory
@@ -105,14 +105,17 @@ public class SignupService extends BaseService {
                 return userRepository.createUser(user);
             });
 
-            log.info("OAuth user created successfully in transaction: {}", createdUser.getUserId());
+            log.info("=====> SIGNUP SERVICE: OAuth user created successfully in transaction: {}", createdUser.getUserId());
 
             // Initialize OAuth authentication method in security subcollection
             // This follows the same pattern as all other authentication methods
+            log.info("=====> SIGNUP SERVICE: Calling initializeOAuthAuthenticationMethod for user: {}", createdUser.getUserId());
             initializeOAuthAuthenticationMethod(createdUser.getUserId(), request.getAuthMethod(), createdBy);
 
             // Initialize default watchlist asynchronously (non-blocking)
+            log.info("=====> SIGNUP SERVICE: Calling initializeDefaultWatchlist for user: {}", createdUser.getUserId());
             initializeDefaultWatchlist(createdUser.getUserId());
+            log.info("=====> SIGNUP SERVICE: Completed initialization for user: {}", createdUser.getUserId());
 
             // Build success response with tokens (outside transaction - tokens don't need atomicity)
             List<String> authMethods = List.of(authMethod);
@@ -142,7 +145,7 @@ public class SignupService extends BaseService {
      * @param createdBy Email of the user who created this
      */
     private void initializeOAuthAuthenticationMethod(String userId, String authMethod, String createdBy) {
-        log.info("Initializing OAuth authentication method for user: {} with provider: {}", userId, authMethod);
+        log.info("=====> SECURITY INIT: Initializing OAuth authentication method for user: {} with provider: {}", userId, authMethod);
 
         try {
             // Determine the authentication method type based on the auth method
@@ -188,12 +191,13 @@ public class SignupService extends BaseService {
             authMethodEntity.setMetadata(metadata);
 
             // Save to Firestore security subcollection
+            log.info("=====> SECURITY INIT: About to save auth method to Firestore for user: {}", userId);
             authenticationMethodRepository.saveForUser(userId, authMethodEntity);
 
-            log.info("Successfully created OAuth authentication method for user {} with provider {}", userId, authMethod);
+            log.info("=====> SECURITY INIT: Successfully created OAuth authentication method for user {} with provider {}", userId, authMethod);
 
         } catch (Exception e) {
-            log.error("Failed to create OAuth authentication method for user {} with provider {}: {}",
+            log.error("=====> SECURITY INIT ERROR: Failed to create OAuth authentication method for user {} with provider {}: {}",
                 userId, authMethod, e.getMessage(), e);
             // Don't throw - this is not critical for signup to succeed
             // The user can still use the system, but they won't see their OAuth method in security settings
@@ -208,7 +212,7 @@ public class SignupService extends BaseService {
      * @param userId The user ID to initialize watchlist for
      */
     private void initializeDefaultWatchlist(String userId) {
-        log.info("Initializing default watchlist for user: {}", userId);
+        log.info("=====> WATCHLIST INIT: Initializing default watchlist for user: {}", userId);
 
         // Define default symbols with types
         List<DefaultSymbol> defaultSymbols = Arrays.asList(
@@ -225,6 +229,7 @@ public class SignupService extends BaseService {
 
         for (DefaultSymbol defaultSymbol : defaultSymbols) {
             try {
+                log.info("=====> WATCHLIST INIT: Processing symbol {} for user {}", defaultSymbol.symbol, userId);
                 WatchlistItemEntity entity = new WatchlistItemEntity();
                 entity.setSymbol(defaultSymbol.symbol);
                 entity.setName(defaultSymbol.name);
@@ -232,21 +237,24 @@ public class SignupService extends BaseService {
                 entity.setSortOrder(successCount);
 
                 // Enrich with market data (Yahoo Finance primary, CoinGecko fallback for crypto)
+                log.info("=====> WATCHLIST INIT: Enriching {} for user {}", defaultSymbol.symbol, userId);
                 enrichWatchlistItem(entity);
+                log.info("=====> WATCHLIST INIT: Enrichment successful for {} (price: {})", defaultSymbol.symbol, entity.getCurrentPrice());
 
                 // Save to Firestore
+                log.info("=====> WATCHLIST INIT: Saving {} to Firestore for user {}", defaultSymbol.symbol, userId);
                 watchlistRepository.save(entity, userId);
                 successCount++;
-                log.debug("Created default watchlist item {} for user {}", defaultSymbol.symbol, userId);
+                log.info("=====> WATCHLIST INIT: Successfully saved {} for user {}", defaultSymbol.symbol, userId);
 
             } catch (Exception e) {
                 failCount++;
-                log.warn("Failed to create default watchlist item {} for user {}: {}",
-                    defaultSymbol.symbol, userId, e.getMessage());
+                log.error("=====> WATCHLIST INIT ERROR: Failed to create default watchlist item {} for user {}: {}",
+                    defaultSymbol.symbol, userId, e.getMessage(), e);
             }
         }
 
-        log.info("Default watchlist initialization completed for user {}: {} success, {} failed",
+        log.info("=====> WATCHLIST INIT: Default watchlist initialization completed for user {}: {} success, {} failed",
             userId, successCount, failCount);
     }
 

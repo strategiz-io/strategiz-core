@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install dependencies
-COPY requirements.txt .
+COPY application-strategy-execution/requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Generate gRPC code from proto
@@ -30,7 +30,7 @@ WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 
 # Copy application code
-COPY strategiz_execution/ strategiz_execution/
+COPY application-strategy-execution/strategiz_execution/ strategiz_execution/
 
 # Copy generated gRPC code from builder
 COPY --from=builder /app/strategiz_execution/generated/ strategiz_execution/generated/

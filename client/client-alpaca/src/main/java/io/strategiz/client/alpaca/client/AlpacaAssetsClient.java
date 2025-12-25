@@ -55,7 +55,8 @@ public class AlpacaAssetsClient {
         // Load credentials from Vault ONLY - no fallback to properties files
         if (vaultSecretService == null) {
             log.error("VaultSecretService not available! Cannot load Alpaca credentials.");
-            throw new IllegalStateException("VaultSecretService is required but not available");
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "VaultSecretService is required but not available");
         }
 
         try {
@@ -75,7 +76,8 @@ public class AlpacaAssetsClient {
             log.info("Successfully loaded Alpaca trading credentials from Vault for Assets API");
         } catch (Exception e) {
             log.error("Failed to load Alpaca trading credentials from Vault: {}", e.getMessage());
-            throw new IllegalStateException("Failed to load required Alpaca trading credentials from Vault", e);
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR, e,
+                MODULE_NAME, "Failed to load required Alpaca trading credentials from Vault");
         }
 
         // Set default URL if not in Vault
@@ -90,7 +92,8 @@ public class AlpacaAssetsClient {
 
         if (apiKey == null || apiKey.isEmpty() || apiSecret == null || apiSecret.isEmpty()) {
             log.error("Alpaca API credentials are not configured!");
-            throw new IllegalStateException("Alpaca API credentials must be configured in Vault");
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "Alpaca API credentials must be configured in Vault");
         }
     }
 

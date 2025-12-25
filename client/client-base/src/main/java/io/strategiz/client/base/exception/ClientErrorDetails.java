@@ -38,6 +38,7 @@ public enum ClientErrorDetails implements ErrorDetails {
 	// === Configuration Errors ===
 	CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "client-configuration-error"),
 	NOT_INITIALIZED(HttpStatus.INTERNAL_SERVER_ERROR, "client-not-initialized"),
+	INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "client-invalid-argument"),
 
 	// === Signature Errors ===
 	SIGNATURE_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "client-signature-failed"),

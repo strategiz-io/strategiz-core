@@ -65,7 +65,8 @@ public class WebullApiAuthClient {
         try {
             if (appSecret == null || appSecret.trim().isEmpty()) {
                 log.error("App secret is null or empty");
-                throw new IllegalArgumentException("App secret is null or empty");
+                throw new StrategizException(ClientErrorDetails.MISSING_CREDENTIALS,
+                    "webull-api", "App secret is null or empty");
             }
 
             log.debug("Creating signature for path: {}, method: {}", path, method);

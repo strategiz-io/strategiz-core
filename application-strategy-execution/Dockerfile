@@ -1,5 +1,5 @@
 # Multi-stage build for Python gRPC service
-FROM python:3.11-slim as builder
+FROM python:3.12-slim as builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN python -m grpc_tools.protoc \
     proto/strategy_execution.proto
 
 # Production stage
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 

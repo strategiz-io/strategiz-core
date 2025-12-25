@@ -37,23 +37,33 @@ public class FacebookOAuthSignInController extends BaseController {
     
     /**
      * Get Facebook OAuth authorization URL for sign-in
+     * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
      * @return JSON response with authorization URL
      */
     @GetMapping("/authorization-url")
-    public ResponseEntity<Map<String, String>> getAuthorizationUrl() {
-        Map<String, String> authInfo = facebookOAuthService.getAuthorizationUrl(false); // isSignup = false
+    public ResponseEntity<Map<String, String>> getAuthorizationUrl(
+            @RequestParam(required = false) String redirectAfterAuth) {
+        Map<String, String> authInfo = facebookOAuthService.getAuthorizationUrl(false, redirectAfterAuth); // isSignup = false
         logger.info("Providing Facebook OAuth sign-in authorization URL: {}", authInfo.get("url"));
+        if (redirectAfterAuth != null) {
+            logger.info("Cross-app redirect after auth: {}", redirectAfterAuth);
+        }
         return ResponseEntity.ok(authInfo);
     }
 
     /**
      * Initiates the Facebook OAuth sign-in flow with direct redirect
+     * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
      * @return Redirect to Facebook's authorization URL
      */
     @GetMapping("/auth")
-    public RedirectView initiateOAuth() {
-        Map<String, String> authInfo = facebookOAuthService.getAuthorizationUrl(false); // isSignup = false
+    public RedirectView initiateOAuth(
+            @RequestParam(required = false) String redirectAfterAuth) {
+        Map<String, String> authInfo = facebookOAuthService.getAuthorizationUrl(false, redirectAfterAuth); // isSignup = false
         logger.info("Redirecting to Facebook OAuth sign-in: {}", authInfo.get("url"));
+        if (redirectAfterAuth != null) {
+            logger.info("Cross-app redirect after auth: {}", redirectAfterAuth);
+        }
         return new RedirectView(authInfo.get("url"));
     }
     

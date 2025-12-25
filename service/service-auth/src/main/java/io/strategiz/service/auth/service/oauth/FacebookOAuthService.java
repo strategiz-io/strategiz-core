@@ -17,6 +17,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,9 +62,30 @@ public class FacebookOAuthService extends BaseService {
      * @return The authorization URL and state
      */
     public Map<String, String> getAuthorizationUrl(boolean isSignup) {
-        String state = UUID.randomUUID().toString();
-        if (isSignup) {
-            state = "signup:" + state;
+        return getAuthorizationUrl(isSignup, null);
+    }
+
+    /**
+     * Get the authorization URL for Facebook OAuth with optional cross-app redirect
+     *
+     * @param isSignup Whether this is for signup flow
+     * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
+     * @return The authorization URL and state
+     */
+    public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
+        // Build state: format is "type:uuid:redirectUrl" (redirectUrl is base64 encoded if present)
+        String uuid = UUID.randomUUID().toString();
+        String state;
+        if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
+            // Base64 encode the redirect URL to safely include in state
+            String encodedRedirect = Base64.getEncoder().encodeToString(redirectAfterAuth.getBytes(StandardCharsets.UTF_8));
+            state = (isSignup ? "signup:" : "signin:") + uuid + ":" + encodedRedirect;
+            log.info("Built state with redirect: type={}, uuid={}, redirect={}",
+                isSignup ? "signup" : "signin", uuid, redirectAfterAuth);
+        } else {
+            state = (isSignup ? "signup:" : "signin:") + uuid;
+            log.info("Built state without redirect: type={}, uuid={}",
+                isSignup ? "signup" : "signin", uuid);
         }
 
         AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();

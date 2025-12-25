@@ -53,12 +53,17 @@ public class GoogleOAuthSignInController extends BaseController {
 
     /**
      * Initiates the Google OAuth sign-in flow with direct redirect
+     * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
      * @return Redirect to Google's authorization URL
      */
     @GetMapping("/auth")
-    public RedirectView initiateOAuth() {
-        Map<String, String> authInfo = googleOAuthService.getAuthorizationUrl(false); // isSignup = false
+    public RedirectView initiateOAuth(
+            @RequestParam(required = false) String redirectAfterAuth) {
+        Map<String, String> authInfo = googleOAuthService.getAuthorizationUrl(false, redirectAfterAuth); // isSignup = false
         logger.info("Redirecting to Google OAuth sign-in: {}", authInfo.get("url"));
+        if (redirectAfterAuth != null) {
+            logger.info("Cross-app redirect after auth: {}", redirectAfterAuth);
+        }
         return new RedirectView(authInfo.get("url"));
     }
     

@@ -20,6 +20,7 @@ public class AIStrategyPrompts {
 			  "visualConfig": {
 			    "name": "<strategy-name>",
 			    "description": "<brief-description>",
+			    "symbol": "<trading-symbol>",
 			    "rules": [
 			      {
 			        "id": "<unique-id>",
@@ -71,10 +72,15 @@ public class AIStrategyPrompts {
 			- crosses_above (for crossover strategies)
 			- crosses_below (for crossunder strategies)
 
+			Symbol Field:
+			- The "symbol" field in visualConfig specifies which symbol/ticker to trade (e.g., "AAPL", "MSFT", "BTC")
+			- CRITICAL: This MUST match the SYMBOL constant in the Python code
+			- If the user's prompt mentions a specific symbol, use it. Otherwise, choose an appropriate default based on the strategy type
+
 			Python code requirements (CRITICAL - MUST follow this exact format):
 
-			1. REQUIRED: Define a SYMBOL constant at the top:
-			   SYMBOL = 'AAPL'  # The symbol to trade
+			1. REQUIRED: Define a SYMBOL constant at the top that MATCHES the symbol in visualConfig:
+			   SYMBOL = 'AAPL'  # The symbol to trade (must match visualConfig.symbol)
 
 			2. RECOMMENDED: Include risk management constants:
 			   STOP_LOSS = 5         # Stop loss percentage

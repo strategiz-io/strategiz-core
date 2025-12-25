@@ -20,7 +20,8 @@ RUN mkdir -p strategiz_execution/generated && \
     -I proto \
     --python_out=strategiz_execution/generated \
     --grpc_python_out=strategiz_execution/generated \
-    proto/strategy_execution.proto
+    proto/strategy_execution.proto && \
+    sed -i 's/^import strategy_execution_pb2/from . import strategy_execution_pb2/' strategiz_execution/generated/strategy_execution_pb2_grpc.py
 
 # Production stage
 FROM python:3.12-slim

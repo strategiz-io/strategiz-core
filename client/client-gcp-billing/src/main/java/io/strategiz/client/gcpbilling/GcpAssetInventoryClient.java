@@ -76,9 +76,9 @@ public class GcpAssetInventoryClient {
             BigDecimal totalEstimatedCost = BigDecimal.ZERO;
 
             // Iterate through all assets
-            ListAssetsResponse response = client.listAssets(request);
+            AssetServiceClient.ListAssetsPagedResponse pagedResponse = client.listAssets(request);
 
-            for (com.google.cloud.asset.v1.Asset asset : response.getAssetsList()) {
+            for (com.google.cloud.asset.v1.Asset asset : pagedResponse.iterateAll()) {
                 String assetType = asset.getAssetType();
                 String resourceName = extractResourceName(asset.getName());
                 String region = extractRegion(asset.getName());

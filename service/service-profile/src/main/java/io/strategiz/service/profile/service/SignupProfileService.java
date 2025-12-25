@@ -158,7 +158,36 @@ public class SignupProfileService extends BaseService {
 
         // Initialize default watchlist for the new user
         // This ensures all signup methods (Passkey, Email/Password, etc.) get a watchlist
-        initializeDefaultWatchlist(savedUser.getId());
+        // CRITICAL: Watchlist failures must NOT break user creation
+        try {
+            // Validate userId before proceeding
+            if (savedUser.getId() == null || savedUser.getId().isEmpty()) {
+                log.error("=====> WATCHLIST_INIT_FAILED: savedUser.getId() is null or empty - cannot create watchlist");
+                log.error("=====> WATCHLIST_INIT_FAILED: This indicates a critical bug in user creation");
+                return savedUser;
+            }
+
+            // Validate userId is a proper UUID
+            boolean isValidUUID = savedUser.getId().matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+            if (!isValidUUID) {
+                log.error("=====> WATCHLIST_INIT_FAILED: savedUser.getId() [{}] is not a valid UUID", savedUser.getId());
+                log.error("=====> WATCHLIST_INIT_FAILED: Firestore path will be incorrect: users/{}/watchlist", savedUser.getId());
+                return savedUser;
+            }
+
+            log.info("=====> WATCHLIST_INIT: userId validation passed: [{}]", savedUser.getId());
+            log.info("=====> WATCHLIST_INIT: Starting watchlist initialization for userId: [{}]", savedUser.getId());
+            initializeDefaultWatchlist(savedUser.getId());
+            log.info("=====> WATCHLIST_INIT_SUCCESS: Default watchlist initialized for userId: [{}]", savedUser.getId());
+
+        } catch (Exception e) {
+            // CRITICAL: Log but DO NOT throw - watchlist failure should not break user creation
+            log.error("=====> WATCHLIST_INIT_FAILED: Failed to initialize default watchlist for userId: [{}]", savedUser.getId(), e);
+            log.error("=====> WATCHLIST_INIT_FAILED: User creation succeeded, but watchlist is empty");
+            log.error("=====> WATCHLIST_INIT_FAILED: User will need to manually add symbols to their watchlist");
+            log.error("=====> WATCHLIST_INIT_FAILED: Error type: {}, Message: {}", e.getClass().getName(), e.getMessage());
+            // User creation continues successfully despite watchlist failure
+        }
 
         return savedUser;
     }

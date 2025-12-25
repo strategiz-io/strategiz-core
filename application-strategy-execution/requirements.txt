@@ -11,7 +11,7 @@ numpy==1.26.2
 pandas-ta==0.4.71b0
 
 # Security
-RestrictedPython==6.2
+RestrictedPython==8.1
 
 # Observability
 opentelemetry-api==1.22.0

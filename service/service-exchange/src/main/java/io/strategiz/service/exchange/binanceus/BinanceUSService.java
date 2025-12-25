@@ -122,7 +122,8 @@ public class BinanceUSService extends BaseService {
     protected void ensureRealApiData() {
         log.info("Ensuring real API data from Binance US");
         if (!validateRealApiConnection()) {
-            throw new IllegalStateException("Cannot establish connection to Binance US API. Only real API data is allowed.");
+            throwModuleException(ExchangeErrorDetails.CONFIGURATION_ERROR,
+                "Cannot establish connection to Binance US API. Only real API data is allowed.");
         }
     }
     

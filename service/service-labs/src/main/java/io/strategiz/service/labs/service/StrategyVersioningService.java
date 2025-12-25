@@ -3,6 +3,7 @@ package io.strategiz.service.labs.service;
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.repository.CreateStrategyRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
+import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,19 +52,22 @@ public class StrategyVersioningService extends BaseService {
         // Load the original strategy
         Optional<Strategy> originalOpt = readStrategyRepository.findById(strategyId);
         if (originalOpt.isEmpty()) {
-            throw new IllegalArgumentException("Strategy not found: " + strategyId);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND,
+                "Strategy not found: " + strategyId);
         }
 
         Strategy original = originalOpt.get();
 
         // Verify ownership
         if (!userId.equals(original.getUserId())) {
-            throw new IllegalArgumentException("Access denied to strategy: " + strategyId);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
+                "Access denied to strategy: " + strategyId);
         }
 
         // Verify the strategy is deployed
         if (!original.isDeployed()) {
-            throw new IllegalStateException("Cannot create version of non-deployed strategy. Use the update endpoint instead.");
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_VERSION_INVALID_STATE,
+                "Cannot create version of non-deployed strategy. Use the update endpoint instead.");
         }
 
         // Determine the new version number
@@ -122,14 +126,16 @@ public class StrategyVersioningService extends BaseService {
         // Load the requested strategy to get the parent ID
         Optional<Strategy> strategyOpt = readStrategyRepository.findById(strategyId);
         if (strategyOpt.isEmpty()) {
-            throw new IllegalArgumentException("Strategy not found: " + strategyId);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND,
+                "Strategy not found: " + strategyId);
         }
 
         Strategy strategy = strategyOpt.get();
 
         // Verify ownership
         if (!userId.equals(strategy.getUserId())) {
-            throw new IllegalArgumentException("Access denied to strategy: " + strategyId);
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
+                "Access denied to strategy: " + strategyId);
         }
 
         // Determine the root strategy ID

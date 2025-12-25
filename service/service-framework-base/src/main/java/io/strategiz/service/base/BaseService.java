@@ -362,8 +362,8 @@ public abstract class BaseService implements ApplicationEventPublisherAware {
         if (transactionTemplate == null) {
             log.warn("[{}] TransactionTemplate not configured, executing without transaction: {}",
                 getModuleName(), operation);
-            throw new IllegalStateException("TransactionManager not configured. " +
-                "Add @Autowired setTransactionManager() or use declarative @Transactional");
+            throwModuleException(ServiceBaseErrorDetails.CONFIGURATION_ERROR,
+                "TransactionManager not configured. Add @Autowired setTransactionManager() or use declarative @Transactional");
         }
 
         try {

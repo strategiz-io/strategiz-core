@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.framework.authorization.error.AuthorizationErrorDetails;
 import io.strategiz.framework.secrets.service.VaultSecretService;
 
 import jakarta.annotation.PostConstruct;
@@ -121,7 +123,8 @@ public class PasetoTokenProvider {
             log.error("Please configure keys in Vault at:");
             log.error("  - secret/strategiz/tokens/{}/identity-key", env);
             log.error("  - secret/strategiz/tokens/{}/session-key", env);
-            throw new IllegalStateException("Token keys must be configured in Vault");
+            throw new StrategizException(AuthorizationErrorDetails.CONFIGURATION_ERROR,
+                "PasetoTokenProvider", "Token keys must be configured in Vault");
         }
     }
 

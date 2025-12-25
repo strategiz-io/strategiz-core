@@ -16,8 +16,10 @@ public enum ServiceBaseErrorDetails implements ErrorDetails {
     RETRY_EXHAUSTED(HttpStatus.SERVICE_UNAVAILABLE, "retry-exhausted"),
     CACHED_OPERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "cached-operation-failed"),
     RESTTEMPLATE_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "resttemplate-creation-failed"),
-    FIREBASE_INITIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "firebase-initialization-failed");
-    
+    FIREBASE_INITIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "firebase-initialization-failed"),
+    CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "service-base-configuration-error"),
+    OPERATION_NOT_SUPPORTED(HttpStatus.NOT_IMPLEMENTED, "service-base-operation-not-supported");
+
     private final HttpStatus httpStatus;
     private final String propertyKey;
     

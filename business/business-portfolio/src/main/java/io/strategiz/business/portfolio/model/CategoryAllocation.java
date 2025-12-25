@@ -1,5 +1,7 @@
 package io.strategiz.business.portfolio.model;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.business.portfolio.exception.PortfolioErrorDetails;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -147,7 +149,8 @@ public class CategoryAllocation {
 
         public CategoryAllocation build() {
             if (category == null) {
-                throw new IllegalStateException("Category is required");
+                throw new StrategizException(PortfolioErrorDetails.INVALID_ARGUMENT,
+                    "CategoryAllocation", "Category is required");
             }
             return new CategoryAllocation(this);
         }

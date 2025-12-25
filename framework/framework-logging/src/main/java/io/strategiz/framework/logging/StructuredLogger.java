@@ -323,24 +323,26 @@ public class StructuredLogger {
  * Utility methods for structured logging outside of the fluent API
  */
 class LogUtils {
-    
+
     /**
      * Create a key-value pair for structured logging
-     * 
+     *
      * Usage: log.info("User created {}", kv("userId", userId));
      */
     public static String kv(String key, Object value) {
         return key + "=" + value;
     }
-    
+
     /**
      * Create multiple key-value pairs
      */
     public static String kvs(Object... keyValues) {
         if (keyValues.length % 2 != 0) {
-            throw new IllegalArgumentException("keyValues must have an even number of arguments");
+            throw new io.strategiz.framework.exception.StrategizException(
+                io.strategiz.framework.logging.exception.LoggingErrorDetails.INVALID_ARGUMENT,
+                "LogUtils", "keyValues must have an even number of arguments");
         }
-        
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < keyValues.length; i += 2) {
             if (i > 0) {

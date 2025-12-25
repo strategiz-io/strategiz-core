@@ -1,5 +1,8 @@
 package io.strategiz.framework.authorization.context;
 
+import io.strategiz.framework.authorization.error.AuthorizationErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -211,7 +214,8 @@ public final class AuthenticatedUser {
 
         public AuthenticatedUser build() {
             if (userId == null || userId.isBlank()) {
-                throw new IllegalStateException("userId is required");
+                throw new StrategizException(AuthorizationErrorDetails.INVALID_ARGUMENT,
+                    "AuthenticatedUser", "userId is required");
             }
             return new AuthenticatedUser(this);
         }

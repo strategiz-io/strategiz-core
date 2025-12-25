@@ -2,6 +2,8 @@ package io.strategiz.framework.token.issuer;
 
 import dev.paseto.jpaseto.Pasetos;
 import dev.paseto.jpaseto.lang.Keys;
+import io.strategiz.framework.authorization.error.AuthorizationErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.secrets.service.VaultSecretService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -91,7 +93,8 @@ public class PasetoTokenIssuer {
 
         if (identityKey == null || sessionKey == null) {
             log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
-            throw new IllegalStateException("Token keys must be configured in Vault");
+            throw new StrategizException(AuthorizationErrorDetails.CONFIGURATION_ERROR,
+                "PasetoTokenIssuer", "Token keys must be configured in Vault");
         }
     }
 

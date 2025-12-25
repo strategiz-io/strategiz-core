@@ -17,6 +17,13 @@
     <description>Centralized logging infrastructure with structured JSON logging, request correlation, and performance monitoring</description>
 
     <dependencies>
+        <!-- Framework Exception -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot Starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

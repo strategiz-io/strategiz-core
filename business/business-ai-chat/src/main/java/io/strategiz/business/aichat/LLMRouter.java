@@ -116,12 +116,16 @@ public class LLMRouter {
 		// NOTE: Only gpt-4o-mini is available in us-east1 via Vertex AI
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
 
-		// Claude models (via Vertex AI Model Garden)
-		// NOTE: Claude 4.5 models not yet available via Vertex AI - using Claude 3.x
+		// Claude models (via Vertex AI Model Garden - Claude 3.x)
 		models.add(new ModelInfo("claude-3-haiku", "Claude 3 Haiku", "anthropic", "Fast & affordable"));
 		models.add(new ModelInfo("claude-3-5-sonnet", "Claude 3.5 Sonnet", "anthropic", "Best balanced model"));
 		models.add(new ModelInfo("claude-3-opus", "Claude 3 Opus", "anthropic",
 				"Most capable for complex tasks"));
+
+		// Claude models (via Direct Anthropic API - Claude 4.5)
+		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fastest Claude 4.5"));
+		models.add(new ModelInfo("claude-sonnet-4-5", "Claude Sonnet 4.5", "anthropic", "Balanced Claude 4.5"));
+		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic", "Most capable Claude 4.5"));
 
 		// Llama models (Meta)
 		models.add(new ModelInfo("llama-3.1-8b-instruct-maas", "Llama 3.1 8B", "meta", "Fast & efficient"));
@@ -137,6 +141,10 @@ public class LLMRouter {
 		// Cohere models
 		models.add(new ModelInfo("command-r", "Command R", "cohere", "Balanced Cohere model"));
 		models.add(new ModelInfo("command-r-plus", "Command R+", "cohere", "Best Cohere model"));
+
+		// Grok models (xAI via Direct API)
+		models.add(new ModelInfo("grok-2-1212", "Grok 2", "xai", "Latest xAI model"));
+		models.add(new ModelInfo("grok-2-vision-1212", "Grok 2 Vision", "xai", "Grok with vision capabilities"));
 
 		// Mark models as available based on registered providers AND feature flags
 		for (ModelInfo model : models) {

@@ -84,6 +84,8 @@
         <module>client/client-llama-vertex</module>
         <module>client/client-mistral-vertex</module>
         <module>client/client-cohere-vertex</module>
+        <module>client/client-anthropic-direct</module>
+        <module>client/client-grok-direct</module>
         <module>client/client-gcp-billing</module>
         <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>

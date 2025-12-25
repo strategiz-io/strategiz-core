@@ -146,7 +146,7 @@ This covers 99% of real-world API needs without over-engineering.
 - `service-marketing`: ServiceMarketingErrorDetails + service-marketing-errors.properties
 - `service-provider`: ServiceProviderErrorDetails + service-provider-errors.properties
 - `service-strategy`: ServiceStrategyErrorDetails + service-strategy-errors.properties
-- `service-base`: ServiceBaseErrorDetails + service-base-errors.properties
+- `service-framework-base`: ServiceBaseErrorDetails + service-base-errors.properties
 
 ### Service Modules Needing ErrorDetails ❌
 These modules have properties files but need ErrorDetails enums:

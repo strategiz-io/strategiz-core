@@ -206,7 +206,7 @@ public class AcrRegistry {
 {operation}:{resource}
 ```
 
-### **Operations** (from `service-base`)
+### **Operations** (from `service-framework-base`)
 - `read` - GET operations
 - `write` - POST, PUT, PATCH operations  
 - `delete` - DELETE operations

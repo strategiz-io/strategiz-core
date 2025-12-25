@@ -19,7 +19,7 @@
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-base</artifactId>
+            <artifactId>service-framework-base</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -55,6 +55,11 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-preferences</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-strategy-execution</artifactId>
             <version>${project.version}</version>
         </dependency>
 

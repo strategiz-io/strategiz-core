@@ -25,7 +25,7 @@ import java.io.InputStream;
 
 /**
  * Firebase configuration responsible for initializing Firebase app and providing Firestore beans.
- * Moved from service-base to data-base module as Firebase/Firestore is primarily a data storage concern.
+ * Moved from service-framework-base to data-framework-base module as Firebase/Firestore is primarily a data storage concern.
  */
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE) // Ensure this runs before other beans are created

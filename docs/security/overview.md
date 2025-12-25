@@ -96,7 +96,7 @@ Strategiz implements a **progressive authentication system** with **risk-based a
 ### **Core Modules**
 - **`business-token-auth`** - Token creation, claims population, session management
 - **`service-auth`** - Authentication endpoints, signup flow, passkey registration  
-- **`service-base`** - Shared CRUD operation constants
+- **`service-framework-base`** - Shared CRUD operation constants
 - **Individual Services** - Resource-specific access control
 
 ### **Authentication Flow**

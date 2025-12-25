@@ -19,7 +19,7 @@
         <!-- Service Base -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-base</artifactId>
+            <artifactId>service-framework-base</artifactId>
             <version>${project.version}</version>
         </dependency>
 

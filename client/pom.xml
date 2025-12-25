@@ -43,6 +43,7 @@
         <module>client-timescale-billing</module>
         <module>client-stripe</module>
         <module>client-plaid</module>
+        <module>client-sonarqube</module>
     </modules>
     
     <dependencies>

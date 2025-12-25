@@ -41,10 +41,10 @@
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
         </dependency>
-        <!-- Replaced service-common with service-base -->
+        <!-- Replaced service-common with service-framework-base -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-base</artifactId>
+            <artifactId>service-framework-base</artifactId>
             <version>${project.version}</version>
         </dependency>
 

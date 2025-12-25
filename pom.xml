@@ -86,6 +86,7 @@
         <module>client/client-cohere-vertex</module>
         <module>client/client-anthropic-direct</module>
         <module>client/client-grok-direct</module>
+        <module>client/client-openai-direct</module>
         <module>client/client-gcp-billing</module>
         <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>

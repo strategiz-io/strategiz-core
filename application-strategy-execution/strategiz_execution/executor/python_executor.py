@@ -78,19 +78,19 @@ class PythonExecutor:
             safe_globals = self._create_safe_globals(df)
 
             # Compile with RestrictedPython
-            byte_code = compile_restricted(code, '<strategy>', 'exec')
+            compile_result = compile_restricted(code, '<strategy>', 'exec')
 
-            if byte_code.errors:
+            if compile_result.errors:
                 return {
                     'success': False,
-                    'error': f'Compilation errors: {"; ".join(byte_code.errors)}',
+                    'error': f'Compilation errors: {"; ".join(compile_result.errors)}',
                     'signals': [],
                     'indicators': {},
                     'logs': []
                 }
 
             # Execute strategy code
-            exec(byte_code.code, safe_globals)
+            exec(compile_result.code, safe_globals)
 
             # Call strategy function
             if 'strategy' in safe_globals and callable(safe_globals['strategy']):

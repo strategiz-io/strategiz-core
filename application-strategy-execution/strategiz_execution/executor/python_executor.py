@@ -4,9 +4,9 @@ Python Strategy Executor with RestrictedPython Sandbox
 
 import ast
 import logging
-import signal
+import threading
 from typing import Dict, List, Any
-from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 import pandas as pd
 import pandas_ta as ta
@@ -19,10 +19,6 @@ logger = logging.getLogger(__name__)
 class TimeoutException(Exception):
     """Raised when execution timeout is reached"""
     pass
-
-
-def timeout_handler(signum, frame):
-    raise TimeoutException("Execution timeout")
 
 
 class PythonExecutor:
@@ -48,16 +44,7 @@ class PythonExecutor:
 
     def __init__(self, timeout_seconds: int = 10):
         self.timeout_seconds = timeout_seconds
-
-    @contextmanager
-    def time_limit(self, seconds: int):
-        """Context manager for execution timeout"""
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(seconds)
-        try:
-            yield
-        finally:
-            signal.alarm(0)
+        self.executor = ThreadPoolExecutor(max_workers=1)
 
     def execute(
         self,
@@ -80,7 +67,8 @@ class PythonExecutor:
 
         timeout = timeout_seconds or self.timeout_seconds
 
-        try:
+        # Define execution function
+        def _execute_code():
             # Convert market data to pandas DataFrame
             df = pd.DataFrame(market_data)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -89,43 +77,48 @@ class PythonExecutor:
             # Prepare safe execution environment
             safe_globals = self._create_safe_globals(df)
 
-            with self.time_limit(timeout):
-                # Compile with RestrictedPython
-                byte_code = compile_restricted(code, '<strategy>', 'exec')
+            # Compile with RestrictedPython
+            byte_code = compile_restricted(code, '<strategy>', 'exec')
 
-                if byte_code.errors:
-                    return {
-                        'success': False,
-                        'error': f'Compilation errors: {"; ".join(byte_code.errors)}',
-                        'signals': [],
-                        'indicators': {},
-                        'logs': []
-                    }
+            if byte_code.errors:
+                return {
+                    'success': False,
+                    'error': f'Compilation errors: {"; ".join(byte_code.errors)}',
+                    'signals': [],
+                    'indicators': {},
+                    'logs': []
+                }
 
-                # Execute strategy code
-                exec(byte_code.code, safe_globals)
+            # Execute strategy code
+            exec(byte_code.code, safe_globals)
 
-                # Call strategy function
-                if 'strategy' in safe_globals and callable(safe_globals['strategy']):
-                    result = safe_globals['strategy'](df)
+            # Call strategy function
+            if 'strategy' in safe_globals and callable(safe_globals['strategy']):
+                result = safe_globals['strategy'](df)
 
-                    return {
-                        'success': True,
-                        'signals': safe_globals.get('signals', []),
-                        'indicators': safe_globals.get('indicators', {}),
-                        'result': result,
-                        'logs': []
-                    }
-                else:
-                    return {
-                        'success': False,
-                        'error': 'No strategy function found',
-                        'signals': [],
-                        'indicators': {},
-                        'logs': []
-                    }
+                return {
+                    'success': True,
+                    'signals': safe_globals.get('signals', []),
+                    'indicators': safe_globals.get('indicators', {}),
+                    'result': result,
+                    'logs': []
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'No strategy function found',
+                    'signals': [],
+                    'indicators': {},
+                    'logs': []
+                }
 
-        except TimeoutException:
+        try:
+            # Execute with timeout using ThreadPoolExecutor
+            future = self.executor.submit(_execute_code)
+            result = future.result(timeout=timeout)
+            return result
+
+        except TimeoutError:
             logger.error(f"Execution timeout after {timeout}s")
             return {
                 'success': False,

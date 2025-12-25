@@ -52,7 +52,19 @@ public enum AuthorizationErrorDetails implements ErrorDetails {
     /**
      * Action not permitted in demo mode.
      */
-    DEMO_MODE_RESTRICTED(HttpStatus.FORBIDDEN, "demo-mode-restricted");
+    DEMO_MODE_RESTRICTED(HttpStatus.FORBIDDEN, "demo-mode-restricted"),
+
+    // Configuration errors (500 Internal Server Error)
+
+    /**
+     * Token configuration error (missing or invalid keys).
+     */
+    CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "auth-configuration-error"),
+
+    /**
+     * Invalid argument provided to authorization component.
+     */
+    INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "auth-invalid-argument");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

@@ -22,7 +22,8 @@ public enum SecretsErrors implements ErrorDetails {
 	ENCRYPTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "encryption-error"),
 	DECRYPTION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "decryption-error"),
 	INVALID_SECRET_KEY(HttpStatus.BAD_REQUEST, "invalid-secret-key"),
-	SECRET_EXPIRED(HttpStatus.GONE, "secret-expired");
+	SECRET_EXPIRED(HttpStatus.GONE, "secret-expired"),
+	OPERATION_NOT_SUPPORTED(HttpStatus.NOT_IMPLEMENTED, "secrets-operation-not-supported");
 
 	private final HttpStatus httpStatus;
 

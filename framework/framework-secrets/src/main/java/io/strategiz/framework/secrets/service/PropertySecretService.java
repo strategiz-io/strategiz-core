@@ -56,31 +56,37 @@ public class PropertySecretService implements SecretManager {
     
     @Override
     public void createSecret(String key, String value) {
-        throw new UnsupportedOperationException("Cannot store secrets in property-based implementation");
+        throw new StrategizException(SecretsErrors.OPERATION_NOT_SUPPORTED,
+            "PropertySecretService", "Cannot store secrets in property-based implementation");
     }
-    
+
     @Override
     public void createSecret(String key, Map<String, Object> data) {
-        throw new UnsupportedOperationException("Cannot store secrets in property-based implementation");
+        throw new StrategizException(SecretsErrors.OPERATION_NOT_SUPPORTED,
+            "PropertySecretService", "Cannot store secrets in property-based implementation");
     }
-    
+
     @Override
     public Map<String, Object> readSecretAsMap(String key) {
-        throw new UnsupportedOperationException("Complex secret data not supported in property-based implementation");
+        throw new StrategizException(SecretsErrors.OPERATION_NOT_SUPPORTED,
+            "PropertySecretService", "Complex secret data not supported in property-based implementation");
     }
-    
+
     @Override
     public void updateSecret(String key, String value) {
-        throw new UnsupportedOperationException("Cannot update secrets in property-based implementation");
+        throw new StrategizException(SecretsErrors.OPERATION_NOT_SUPPORTED,
+            "PropertySecretService", "Cannot update secrets in property-based implementation");
     }
-    
+
     @Override
     public void updateSecret(String key, Map<String, Object> data) {
-        throw new UnsupportedOperationException("Cannot update secrets in property-based implementation");
+        throw new StrategizException(SecretsErrors.OPERATION_NOT_SUPPORTED,
+            "PropertySecretService", "Cannot update secrets in property-based implementation");
     }
-    
+
     @Override
     public void deleteSecret(String key) {
-        throw new UnsupportedOperationException("Cannot delete secrets in property-based implementation");
+        throw new StrategizException(SecretsErrors.OPERATION_NOT_SUPPORTED,
+            "PropertySecretService", "Cannot delete secrets in property-based implementation");
     }
 }

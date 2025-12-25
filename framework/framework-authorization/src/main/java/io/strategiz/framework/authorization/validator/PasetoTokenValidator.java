@@ -5,6 +5,8 @@ import dev.paseto.jpaseto.PasetoException;
 import dev.paseto.jpaseto.Pasetos;
 import dev.paseto.jpaseto.lang.Keys;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.framework.authorization.error.AuthorizationErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.secrets.service.VaultSecretService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -88,7 +90,8 @@ public class PasetoTokenValidator {
 
         if (identityKey == null || sessionKey == null) {
             log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
-            throw new IllegalStateException("Token keys must be configured in Vault");
+            throw new StrategizException(AuthorizationErrorDetails.CONFIGURATION_ERROR,
+                "PasetoTokenValidator", "Token keys must be configured in Vault");
         }
     }
 

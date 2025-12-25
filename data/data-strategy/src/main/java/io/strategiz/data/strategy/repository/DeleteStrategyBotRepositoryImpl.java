@@ -1,6 +1,8 @@
 package io.strategiz.data.strategy.repository;
 
 import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -37,6 +39,7 @@ public class DeleteStrategyBotRepositoryImpl implements DeleteStrategyBotReposit
     public void hardDelete(String id) {
         // Note: Hard delete not implemented in BaseRepository
         // Use soft delete instead for now
-        throw new UnsupportedOperationException("Hard delete not supported - use soft delete");
+        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
+            "StrategyBot", "Hard delete not supported - use soft delete");
     }
 }

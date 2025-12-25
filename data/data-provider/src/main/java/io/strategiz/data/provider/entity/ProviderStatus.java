@@ -2,6 +2,8 @@ package io.strategiz.data.provider.entity;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 
 /**
  * Enum representing the status of a provider integration
@@ -26,15 +28,16 @@ public enum ProviderStatus {
         if (value == null) {
             return null;
         }
-        
+
         for (ProviderStatus status : values()) {
             // Handle both uppercase (legacy) and lowercase
             if (status.value.equalsIgnoreCase(value) || status.name().equalsIgnoreCase(value)) {
                 return status;
             }
         }
-        
-        throw new IllegalArgumentException("Unknown provider status: " + value);
+
+        throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+            "ProviderStatus", "Unknown provider status: " + value);
     }
     
     @Override

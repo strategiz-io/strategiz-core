@@ -358,19 +358,22 @@ public abstract class BaseRepository<T extends BaseEntity> {
 
     private void prepareForUpdate(T entity, String userId) {
         if (!entity._hasAudit()) {
-            throw new IllegalStateException("Cannot update entity without audit fields");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                entityClass.getSimpleName(), "Cannot update entity without audit fields");
         }
-        
+
         entity._updateAudit(userId);
         entity._validate();
     }
 
     private void validateInputs(T entity, String userId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Entity cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                entityClass.getSimpleName(), "Entity cannot be null");
         }
         if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                entityClass.getSimpleName(), "User ID cannot be null or empty");
         }
     }
 

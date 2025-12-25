@@ -1,5 +1,8 @@
 package io.strategiz.data.auth.entity;
 
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
+
 /**
  * Enum representing different types of authentication methods
  */
@@ -37,7 +40,8 @@ public enum AuthenticationMethodType {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown authentication method type: " + value);
+        throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+            "AuthenticationMethodType", "Unknown authentication method type: " + value);
     }
 
     public boolean isOAuth() {

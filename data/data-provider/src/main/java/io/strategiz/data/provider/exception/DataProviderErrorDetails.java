@@ -28,6 +28,7 @@ public enum DataProviderErrorDetails implements ErrorDetails {
 	REPOSITORY_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "repository-update-failed"),
 
 	// Validation errors
+	INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "validation-invalid-argument"),
 	USER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "validation-user-required"),
 	PROVIDER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "validation-provider-required"),
 	CREDENTIALS_REQUIRED(HttpStatus.BAD_REQUEST, "validation-credentials-required"),

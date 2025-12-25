@@ -2,6 +2,8 @@ package io.strategiz.data.featureflags.service;
 
 import io.strategiz.data.featureflags.entity.FeatureFlagEntity;
 import io.strategiz.data.featureflags.repository.FeatureFlagRepository;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -318,7 +320,8 @@ public class FeatureFlagService {
     public FeatureFlagEntity setFlagEnabled(String flagId, boolean enabled) {
         Optional<FeatureFlagEntity> optFlag = repository.findById(flagId);
         if (optFlag.isEmpty()) {
-            throw new IllegalArgumentException("Feature flag not found: " + flagId);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND,
+                "FeatureFlagEntity", "Feature flag not found: " + flagId);
         }
 
         FeatureFlagEntity flag = optFlag.get();
@@ -337,7 +340,8 @@ public class FeatureFlagService {
      */
     public FeatureFlagEntity createFlag(FeatureFlagEntity flag) {
         if (repository.findById(flag.getFlagId()).isPresent()) {
-            throw new IllegalArgumentException("Feature flag already exists: " + flag.getFlagId());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.DUPLICATE_ENTITY,
+                "FeatureFlagEntity", "Feature flag already exists: " + flag.getFlagId());
         }
 
         FeatureFlagEntity saved = repository.save(flag);
@@ -350,7 +354,8 @@ public class FeatureFlagService {
      */
     public FeatureFlagEntity updateFlag(FeatureFlagEntity flag) {
         if (repository.findById(flag.getFlagId()).isEmpty()) {
-            throw new IllegalArgumentException("Feature flag not found: " + flag.getFlagId());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND,
+                "FeatureFlagEntity", "Feature flag not found: " + flag.getFlagId());
         }
 
         FeatureFlagEntity saved = repository.save(flag);

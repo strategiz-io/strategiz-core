@@ -107,7 +107,8 @@ public class FirebaseConfig {
     @Primary
     public FirebaseApp firebaseApp() {
         if (!firebaseInitialized) {
-            throw new IllegalStateException("Firebase initialization failed. Cannot provide FirebaseApp bean.");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_INITIALIZATION_FAILED,
+                "FirebaseApp", "Firebase initialization failed. Cannot provide FirebaseApp bean.");
         }
         return FirebaseApp.getInstance();
     }
@@ -116,7 +117,8 @@ public class FirebaseConfig {
     @Primary
     public Firestore firestore() {
         if (!firebaseInitialized) {
-            throw new IllegalStateException("Firebase initialization failed. Cannot provide Firestore bean.");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_INITIALIZATION_FAILED,
+                "Firestore", "Firebase initialization failed. Cannot provide Firestore bean.");
         }
         return FirestoreClient.getFirestore();
     }

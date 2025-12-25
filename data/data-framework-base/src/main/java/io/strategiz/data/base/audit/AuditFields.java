@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.annotation.Exclude;
 import com.google.cloud.firestore.annotation.PropertyName;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -137,29 +139,36 @@ public class AuditFields {
 
     /**
      * Validates the audit fields integrity
-     * @throws IllegalStateException if audit fields are in invalid state
+     * @throws DataRepositoryException if audit fields are in invalid state
      */
     public void validate() {
         if (createdBy == null || createdBy.trim().isEmpty()) {
-            throw new IllegalStateException("createdBy cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "createdBy cannot be null or empty");
         }
         if (modifiedBy == null || modifiedBy.trim().isEmpty()) {
-            throw new IllegalStateException("modifiedBy cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "modifiedBy cannot be null or empty");
         }
         if (createdDate == null) {
-            throw new IllegalStateException("createdDate cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "createdDate cannot be null");
         }
         if (modifiedDate == null) {
-            throw new IllegalStateException("modifiedDate cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "modifiedDate cannot be null");
         }
         if (version == null || version < 1) {
-            throw new IllegalStateException("version must be >= 1");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "version must be >= 1");
         }
         if (isActive == null) {
-            throw new IllegalStateException("isActive cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "isActive cannot be null");
         }
         if (modifiedDate.compareTo(createdDate) < 0) {
-            throw new IllegalStateException("modifiedDate cannot be before createdDate");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                "AuditFields", "modifiedDate cannot be before createdDate");
         }
     }
 

@@ -44,14 +44,15 @@ RUN touch strategiz_execution/__init__.py && \
     touch strategiz_execution/generated/__init__.py && \
     touch strategiz_execution/utils/__init__.py
 
+# Security: Run as non-root user
+RUN useradd -m -u 1000 strategiz && \
+    chown -R strategiz:strategiz /app && \
+    chmod -R 755 /root/.local
+USER strategiz
+
 # Make sure scripts in .local are usable
 ENV PATH=/root/.local/bin:$PATH
 ENV PYTHONPATH=/app:$PYTHONPATH
-
-# Security: Run as non-root user
-RUN useradd -m -u 1000 strategiz && \
-    chown -R strategiz:strategiz /app
-USER strategiz
 
 # Environment variables with defaults
 ENV GRPC_PORT=50051

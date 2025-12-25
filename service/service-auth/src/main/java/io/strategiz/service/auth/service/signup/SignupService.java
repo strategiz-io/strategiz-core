@@ -108,8 +108,8 @@ public class SignupService extends BaseService {
                 // Create security subcollection INSIDE transaction for atomicity
                 // SubcollectionRepository is now transaction-aware and will use the active transaction
                 log.info("=====> SECURITY_INIT: Creating OAuth authentication method inside transaction for user: {}", created.getUserId());
-                AuthenticationMethodEntity authMethod = buildOAuthAuthenticationMethod(request.getAuthMethod(), createdBy);
-                authMethodRepository.saveForUser(created.getUserId(), authMethod);
+                AuthenticationMethodEntity authMethodEntity = buildOAuthAuthenticationMethod(request.getAuthMethod(), createdBy);
+                authenticationMethodRepository.saveForUser(created.getUserId(), authMethodEntity);
                 log.info("=====> SECURITY_INIT: Successfully saved OAuth authentication method for user: {}", created.getUserId());
 
                 return created;

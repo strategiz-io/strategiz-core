@@ -15,7 +15,8 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Generate gRPC code from proto
 COPY proto/strategy_execution.proto proto/
-RUN python -m grpc_tools.protoc \
+RUN mkdir -p strategiz_execution/generated && \
+    python -m grpc_tools.protoc \
     -I proto \
     --python_out=strategiz_execution/generated \
     --grpc_python_out=strategiz_execution/generated \

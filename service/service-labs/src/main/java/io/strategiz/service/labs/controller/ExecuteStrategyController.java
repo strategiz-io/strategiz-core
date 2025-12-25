@@ -123,45 +123,46 @@ public class ExecuteStrategyController extends BaseController {
                 throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_LANGUAGE);
             }
 
+            // Temporarily disabled - gRPC execution service
             // For Python execution - use gRPC execution service
-            if ("python".equalsIgnoreCase(request.getLanguage())) {
-                // Validate symbol is provided
-                String symbol = request.getSymbol();
-                if (symbol == null || symbol.trim().isEmpty()) {
-                    throwModuleException(
-                        ServiceStrategyErrorDetails.STRATEGY_EXECUTION_FAILED,
-                        "Symbol is required for strategy execution"
-                    );
-                }
+            // if ("python".equalsIgnoreCase(request.getLanguage())) {
+            //     // Validate symbol is provided
+            //     String symbol = request.getSymbol();
+            //     if (symbol == null || symbol.trim().isEmpty()) {
+            //         throwModuleException(
+            //             ServiceStrategyErrorDetails.STRATEGY_EXECUTION_FAILED,
+            //             "Symbol is required for strategy execution"
+            //         );
+            //     }
+            //
+            //     // Fetch real market data from repository
+            //     List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol);
+            //
+            //     // Convert market data to gRPC format
+            //     List<MarketDataBar> grpcMarketData = marketDataList.stream()
+            //         .map(this::convertToGrpcMarketDataBar)
+            //         .collect(java.util.stream.Collectors.toList());
+            //
+            //     // Build gRPC execution request
+            //     io.strategiz.client.execution.model.ExecutionRequest grpcRequest = io.strategiz.client.execution.model.ExecutionRequest.builder()
+            //         .code(request.getCode())
+            //         .language("python")
+            //         .userId(userId)
+            //         .strategyId("direct-execution-" + System.currentTimeMillis())
+            //         .marketData(grpcMarketData)
+            //         .timeoutSeconds(30)
+            //         .build();
+            //
+            //     // Execute via gRPC
+            //     io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(grpcRequest);
+            //
+            //     // Convert gRPC response to REST response
+            //     ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);
+            //
+            //     return ResponseEntity.ok(response);
+            // }
 
-                // Fetch real market data from repository
-                List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol);
-
-                // Convert market data to gRPC format
-                List<MarketDataBar> grpcMarketData = marketDataList.stream()
-                    .map(this::convertToGrpcMarketDataBar)
-                    .collect(java.util.stream.Collectors.toList());
-
-                // Build gRPC execution request
-                io.strategiz.client.execution.model.ExecutionRequest grpcRequest = io.strategiz.client.execution.model.ExecutionRequest.builder()
-                    .code(request.getCode())
-                    .language("python")
-                    .userId(userId)
-                    .strategyId("direct-execution-" + System.currentTimeMillis())
-                    .marketData(grpcMarketData)
-                    .timeoutSeconds(30)
-                    .build();
-
-                // Execute via gRPC
-                io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(grpcRequest);
-
-                // Convert gRPC response to REST response
-                ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);
-
-                return ResponseEntity.ok(response);
-            }
-
-            // Fallback for other languages (use existing execution engine)
+            // Use existing execution engine for all languages
             io.strategiz.business.strategy.execution.model.ExecutionRequest executionRequest = buildDirectCodeExecutionRequest(request, userId);
             ExecutionResult result = executionEngineService.executeStrategy(executionRequest);
             ExecuteStrategyResponse response = convertToResponse(result, request);
@@ -421,124 +422,125 @@ public class ExecuteStrategyController extends BaseController {
         return performance;
     }
 
-    /**
-     * Convert Map-based market data to gRPC MarketDataBar format
-     */
-    private MarketDataBar convertToGrpcMarketDataBar(Map<String, Object> data) {
-        return MarketDataBar.builder()
-            .timestamp((String) data.get("timestamp"))
-            .open(((Number) data.get("open")).doubleValue())
-            .high(((Number) data.get("high")).doubleValue())
-            .low(((Number) data.get("low")).doubleValue())
-            .close(((Number) data.get("close")).doubleValue())
-            .volume(((Number) data.get("volume")).longValue())
-            .build();
-    }
-
-    /**
-     * Convert gRPC ExecutionResponse to REST ExecuteStrategyResponse
-     */
-    private ExecuteStrategyResponse convertGrpcToRestResponse(
-            io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
-            String symbol) {
-        ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-
-        // Set basic fields
-        response.setSymbol(symbol);
-        response.setExecutionTime(grpcResponse.getExecutionTimeMs());
-        response.setLogs(grpcResponse.getLogs());
-
-        // Handle errors
-        if (!grpcResponse.isSuccess()) {
-            List<String> errors = new java.util.ArrayList<>();
-            if (grpcResponse.getError() != null) {
-                errors.add(grpcResponse.getError());
-            }
-            response.setErrors(errors);
-            return response;
-        }
-
-        // Convert signals
-        if (grpcResponse.getSignals() != null) {
-            List<ExecuteStrategyResponse.Signal> signals = grpcResponse.getSignals().stream()
-                .map(s -> {
-                    ExecuteStrategyResponse.Signal signal = new ExecuteStrategyResponse.Signal();
-                    signal.setTimestamp(s.getTimestamp());
-                    signal.setType(s.getType());
-                    signal.setPrice(s.getPrice());
-                    signal.setQuantity(s.getQuantity());
-                    signal.setReason(s.getReason());
-                    return signal;
-                })
-                .collect(java.util.stream.Collectors.toList());
-            response.setSignals(signals);
-        }
-
-        // Convert indicators
-        if (grpcResponse.getIndicators() != null) {
-            List<ExecuteStrategyResponse.Indicator> indicators = grpcResponse.getIndicators().stream()
-                .map(i -> {
-                    ExecuteStrategyResponse.Indicator indicator = new ExecuteStrategyResponse.Indicator();
-                    indicator.setName(i.getName());
-
-                    List<ExecuteStrategyResponse.Indicator.DataPoint> dataPoints = i.getData().stream()
-                        .map(dp -> {
-                            ExecuteStrategyResponse.Indicator.DataPoint point = new ExecuteStrategyResponse.Indicator.DataPoint();
-                            point.setTime(dp.getTimestamp());
-                            point.setValue(dp.getValue());
-                            return point;
-                        })
-                        .collect(java.util.stream.Collectors.toList());
-                    indicator.setData(dataPoints);
-
-                    return indicator;
-                })
-                .collect(java.util.stream.Collectors.toList());
-            response.setIndicators(indicators);
-        }
-
-        // Convert performance
-        if (grpcResponse.getPerformance() != null) {
-            io.strategiz.client.execution.model.Performance grpcPerf = grpcResponse.getPerformance();
-            ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
-
-            performance.setTotalReturn(grpcPerf.getTotalReturn());
-            performance.setTotalPnL(grpcPerf.getTotalPnl());
-            performance.setWinRate(grpcPerf.getWinRate());
-            performance.setTotalTrades(grpcPerf.getTotalTrades());
-            performance.setProfitableTrades(grpcPerf.getProfitableTrades());
-            performance.setBuyCount(grpcPerf.getBuyCount());
-            performance.setSellCount(grpcPerf.getSellCount());
-            performance.setAvgWin(grpcPerf.getAvgWin());
-            performance.setAvgLoss(grpcPerf.getAvgLoss());
-            performance.setProfitFactor(grpcPerf.getProfitFactor());
-            performance.setMaxDrawdown(grpcPerf.getMaxDrawdown());
-            performance.setSharpeRatio(grpcPerf.getSharpeRatio());
-            performance.setLastTestedAt(grpcPerf.getLastTestedAt());
-
-            // Convert trades
-            if (grpcPerf.getTrades() != null) {
-                List<ExecuteStrategyResponse.Trade> trades = grpcPerf.getTrades().stream()
-                    .map(t -> {
-                        ExecuteStrategyResponse.Trade trade = new ExecuteStrategyResponse.Trade();
-                        trade.setBuyTimestamp(t.getBuyTimestamp());
-                        trade.setSellTimestamp(t.getSellTimestamp());
-                        trade.setBuyPrice(t.getBuyPrice());
-                        trade.setSellPrice(t.getSellPrice());
-                        trade.setPnl(t.getPnl());
-                        trade.setPnlPercent(t.getPnlPercent());
-                        trade.setWin(t.isWin());
-                        trade.setBuyReason(t.getBuyReason());
-                        trade.setSellReason(t.getSellReason());
-                        return trade;
-                    })
-                    .collect(java.util.stream.Collectors.toList());
-                performance.setTrades(trades);
-            }
-
-            response.setPerformance(performance);
-        }
-
-        return response;
-    }
+    // Temporarily disabled - gRPC execution service
+    // /**
+    //  * Convert Map-based market data to gRPC MarketDataBar format
+    //  */
+    // private MarketDataBar convertToGrpcMarketDataBar(Map<String, Object> data) {
+    //     return MarketDataBar.builder()
+    //         .timestamp((String) data.get("timestamp"))
+    //         .open(((Number) data.get("open")).doubleValue())
+    //         .high(((Number) data.get("high")).doubleValue())
+    //         .low(((Number) data.get("low")).doubleValue())
+    //         .close(((Number) data.get("close")).doubleValue())
+    //         .volume(((Number) data.get("volume")).longValue())
+    //         .build();
+    // }
+    //
+    // /**
+    //  * Convert gRPC ExecutionResponse to REST ExecuteStrategyResponse
+    //  */
+    // private ExecuteStrategyResponse convertGrpcToRestResponse(
+    //         io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
+    //         String symbol) {
+    //     ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+    //
+    //     // Set basic fields
+    //     response.setSymbol(symbol);
+    //     response.setExecutionTime(grpcResponse.getExecutionTimeMs());
+    //     response.setLogs(grpcResponse.getLogs());
+    //
+    //     // Handle errors
+    //     if (!grpcResponse.isSuccess()) {
+    //         List<String> errors = new java.util.ArrayList<>();
+    //         if (grpcResponse.getError() != null) {
+    //             errors.add(grpcResponse.getError());
+    //         }
+    //         response.setErrors(errors);
+    //         return response;
+    //     }
+    //
+    //     // Convert signals
+    //     if (grpcResponse.getSignals() != null) {
+    //         List<ExecuteStrategyResponse.Signal> signals = grpcResponse.getSignals().stream()
+    //             .map(s -> {
+    //                 ExecuteStrategyResponse.Signal signal = new ExecuteStrategyResponse.Signal();
+    //                 signal.setTimestamp(s.getTimestamp());
+    //                 signal.setType(s.getType());
+    //                 signal.setPrice(s.getPrice());
+    //                 signal.setQuantity(s.getQuantity());
+    //                 signal.setReason(s.getReason());
+    //                 return signal;
+    //             })
+    //             .collect(java.util.stream.Collectors.toList());
+    //         response.setSignals(signals);
+    //     }
+    //
+    //     // Convert indicators
+    //     if (grpcResponse.getIndicators() != null) {
+    //         List<ExecuteStrategyResponse.Indicator> indicators = grpcResponse.getIndicators().stream()
+    //             .map(i -> {
+    //                 ExecuteStrategyResponse.Indicator indicator = new ExecuteStrategyResponse.Indicator();
+    //                 indicator.setName(i.getName());
+    //
+    //                 List<ExecuteStrategyResponse.Indicator.DataPoint> dataPoints = i.getData().stream()
+    //                     .map(dp -> {
+    //                         ExecuteStrategyResponse.Indicator.DataPoint point = new ExecuteStrategyResponse.Indicator.DataPoint();
+    //                         point.setTime(dp.getTimestamp());
+    //                         point.setValue(dp.getValue());
+    //                         return point;
+    //                     })
+    //                     .collect(java.util.stream.Collectors.toList());
+    //                 indicator.setData(dataPoints);
+    //
+    //                 return indicator;
+    //             })
+    //             .collect(java.util.stream.Collectors.toList());
+    //         response.setIndicators(indicators);
+    //     }
+    //
+    //     // Convert performance
+    //     if (grpcResponse.getPerformance() != null) {
+    //         io.strategiz.client.execution.model.Performance grpcPerf = grpcResponse.getPerformance();
+    //         ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
+    //
+    //         performance.setTotalReturn(grpcPerf.getTotalReturn());
+    //         performance.setTotalPnL(grpcPerf.getTotalPnl());
+    //         performance.setWinRate(grpcPerf.getWinRate());
+    //         performance.setTotalTrades(grpcPerf.getTotalTrades());
+    //         performance.setProfitableTrades(grpcPerf.getProfitableTrades());
+    //         performance.setBuyCount(grpcPerf.getBuyCount());
+    //         performance.setSellCount(grpcPerf.getSellCount());
+    //         performance.setAvgWin(grpcPerf.getAvgWin());
+    //         performance.setAvgLoss(grpcPerf.getAvgLoss());
+    //         performance.setProfitFactor(grpcPerf.getProfitFactor());
+    //         performance.setMaxDrawdown(grpcPerf.getMaxDrawdown());
+    //         performance.setSharpeRatio(grpcPerf.getSharpeRatio());
+    //         performance.setLastTestedAt(grpcPerf.getLastTestedAt());
+    //
+    //         // Convert trades
+    //         if (grpcPerf.getTrades() != null) {
+    //             List<ExecuteStrategyResponse.Trade> trades = grpcPerf.getTrades().stream()
+    //                 .map(t -> {
+    //                     ExecuteStrategyResponse.Trade trade = new ExecuteStrategyResponse.Trade();
+    //                     trade.setBuyTimestamp(t.getBuyTimestamp());
+    //                     trade.setSellTimestamp(t.getSellTimestamp());
+    //                     trade.setBuyPrice(t.getBuyPrice());
+    //                     trade.setSellPrice(t.getSellPrice());
+    //                     trade.setPnl(t.getPnl());
+    //                     trade.setPnlPercent(t.getPnlPercent());
+    //                     trade.setWin(t.isWin());
+    //                     trade.setBuyReason(t.getBuyReason());
+    //                     trade.setSellReason(t.getSellReason());
+    //                     return trade;
+    //                 })
+    //                 .collect(java.util.stream.Collectors.toList());
+    //             performance.setTrades(trades);
+    //         }
+    //
+    //         response.setPerformance(performance);
+    //     }
+    //
+    //     return response;
+    // }
 }

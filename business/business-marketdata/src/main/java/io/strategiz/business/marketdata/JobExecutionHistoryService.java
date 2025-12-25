@@ -1,0 +1,331 @@
+package io.strategiz.business.marketdata;
+
+import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
+import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
+import io.strategiz.data.marketdata.timescale.repository.JobExecutionRepository;
+import io.strategiz.framework.exception.StrategizException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+/**
+ * Service for tracking job execution history in TimescaleDB.
+ *
+ * Records job execution metadata for Market Data backfill and incremental jobs:
+ * - Job start/completion timestamps
+ * - Success/failure status
+ * - Symbols processed and data points stored
+ * - Error tracking for failed jobs
+ *
+ * Provides historical tracking and statistics:
+ * - Execution history with pagination
+ * - Success rate calculations
+ * - Average duration trends
+ * - Error frequency analysis
+ */
+@Service
+public class JobExecutionHistoryService {
+
+    private static final Logger log = LoggerFactory.getLogger(JobExecutionHistoryService.class);
+
+    private final JobExecutionRepository jobExecutionRepository;
+
+    @Autowired
+    public JobExecutionHistoryService(JobExecutionRepository jobExecutionRepository) {
+        this.jobExecutionRepository = jobExecutionRepository;
+    }
+
+    /**
+     * Record the start of a job execution.
+     * Creates an execution record with status=RUNNING.
+     *
+     * @param jobName Name of the job (e.g., "ALPACA_BACKFILL_1Day", "ALPACA_INCREMENTAL_1Hour")
+     * @param timeframes JSON array of timeframes being processed (e.g., ["1Day", "1Hour"])
+     * @return The execution ID for tracking
+     */
+    public String recordJobStart(String jobName, String timeframes) {
+        if (jobName == null || jobName.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "jobName cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        // Generate execution ID with timestamp
+        String executionId = jobName + "_" + Instant.now().getEpochSecond();
+
+        JobExecutionEntity entity = new JobExecutionEntity();
+        entity.setExecutionId(executionId);
+        entity.setJobName(jobName);
+        entity.setStartTime(Instant.now());
+        entity.setStatus("RUNNING");
+        entity.setSymbolsProcessed(0);
+        entity.setDataPointsStored(0L);
+        entity.setErrorCount(0);
+        entity.setTimeframes(timeframes);
+        entity.setCreatedAt(Instant.now());
+
+        jobExecutionRepository.save(entity);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Job execution start recorded in {}ms - jobName: {}, executionId: {}",
+            duration, jobName, executionId);
+
+        log.info("Job execution started: {} (ID: {})", jobName, executionId);
+        return executionId;
+    }
+
+    /**
+     * Record the completion of a job execution.
+     * Updates the execution record with results and final status.
+     *
+     * @param executionId The execution ID from recordJobStart()
+     * @param status Final status ("SUCCESS" or "FAILED")
+     * @param symbolsProcessed Number of symbols processed
+     * @param dataPointsStored Number of data points stored
+     * @param errorCount Number of errors encountered
+     * @param errorDetails JSON array of error details (optional)
+     */
+    public void recordJobCompletion(
+            String executionId,
+            String status,
+            int symbolsProcessed,
+            long dataPointsStored,
+            int errorCount,
+            String errorDetails) {
+
+        if (executionId == null || executionId.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "executionId cannot be null or empty"
+            );
+        }
+        if (status == null || status.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "status cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Optional<JobExecutionEntity> optional = jobExecutionRepository.findById(executionId);
+        if (optional.isEmpty()) {
+            log.warn("Job execution not found for completion: {}", executionId);
+            return;
+        }
+
+        JobExecutionEntity entity = optional.get();
+        Instant endTime = Instant.now();
+        long durationMs = ChronoUnit.MILLIS.between(entity.getStartTime(), endTime);
+
+        entity.setEndTime(endTime);
+        entity.setDurationMs(durationMs);
+        entity.setStatus(status);
+        entity.setSymbolsProcessed(symbolsProcessed);
+        entity.setDataPointsStored(dataPointsStored);
+        entity.setErrorCount(errorCount);
+        entity.setErrorDetails(errorDetails);
+
+        jobExecutionRepository.save(entity);
+
+        long operationDuration = System.currentTimeMillis() - startTime;
+        log.debug("Job completion recorded in {}ms - executionId: {}, status: {}, jobDuration: {}ms",
+            operationDuration, executionId, status, durationMs);
+
+        log.info("Job execution completed: {} - Status: {}, Duration: {}ms, Symbols: {}, Data Points: {}",
+            entity.getJobName(), status, durationMs, symbolsProcessed, dataPointsStored);
+    }
+
+    /**
+     * Get paginated execution history for a specific job.
+     *
+     * @param jobName Name of the job to query
+     * @param page Page number (0-indexed)
+     * @param pageSize Number of records per page
+     * @return Page of execution records, ordered by start time descending
+     */
+    public Page<JobExecutionEntity> getExecutionHistory(String jobName, int page, int pageSize) {
+        if (jobName == null || jobName.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "jobName cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Pageable pageable = PageRequest.of(page, pageSize);
+        Page<JobExecutionEntity> executions = jobExecutionRepository.findByJobNameOrderByStartTimeDesc(jobName, pageable);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Retrieved {} execution records for job {} in {}ms (page {} of {})",
+            executions.getNumberOfElements(), jobName, duration, page, executions.getTotalPages());
+
+        return executions;
+    }
+
+    /**
+     * Get execution statistics for a job within a time window.
+     *
+     * @param jobName Name of the job to analyze
+     * @param sinceDays Number of days to look back (default 30)
+     * @return Map containing: successCount, failureCount, successRate, avgDurationMs
+     */
+    public Map<String, Object> getExecutionStats(String jobName, int sinceDays) {
+        if (jobName == null || jobName.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "jobName cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Instant since = Instant.now().minus(sinceDays, ChronoUnit.DAYS);
+
+        // Get status distribution
+        List<Object[]> statusCounts = jobExecutionRepository.getExecutionStatsByJobName(jobName, since);
+
+        long successCount = 0;
+        long failureCount = 0;
+        for (Object[] row : statusCounts) {
+            String status = (String) row[0];
+            Long count = (Long) row[1];
+            if ("SUCCESS".equals(status)) {
+                successCount = count;
+            } else if ("FAILED".equals(status)) {
+                failureCount = count;
+            }
+        }
+
+        long totalCount = successCount + failureCount;
+        double successRate = (totalCount > 0) ? (double) successCount / totalCount * 100.0 : 0.0;
+
+        // Get average duration for successful executions
+        Long avgDuration = jobExecutionRepository.getAverageDuration(jobName, since);
+        if (avgDuration == null) {
+            avgDuration = 0L;
+        }
+
+        Map<String, Object> stats = Map.of(
+            "successCount", successCount,
+            "failureCount", failureCount,
+            "totalCount", totalCount,
+            "successRate", Math.round(successRate * 100.0) / 100.0, // Round to 2 decimals
+            "avgDurationMs", avgDuration,
+            "periodDays", sinceDays
+        );
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Execution stats for {} calculated in {}ms: {} total, {:.2f}% success",
+            jobName, duration, totalCount, successRate);
+
+        return stats;
+    }
+
+    /**
+     * Get the most recent execution for a job.
+     *
+     * @param jobName Name of the job
+     * @return Optional containing the most recent execution, or empty if none found
+     */
+    public Optional<JobExecutionEntity> getLatestExecution(String jobName) {
+        if (jobName == null || jobName.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "jobName cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Optional<JobExecutionEntity> latest = jobExecutionRepository.findLatestByJobName(jobName);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Latest execution query for {} completed in {}ms, found: {}",
+            jobName, duration, latest.isPresent());
+
+        return latest;
+    }
+
+    /**
+     * Get recent executions across all jobs within a time window.
+     *
+     * @param jobName Name of the job
+     * @param sinceDays Number of days to look back
+     * @return List of recent executions
+     */
+    public List<JobExecutionEntity> getRecentExecutions(String jobName, int sinceDays) {
+        if (jobName == null || jobName.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "jobName cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Instant since = Instant.now().minus(sinceDays, ChronoUnit.DAYS);
+        List<JobExecutionEntity> executions = jobExecutionRepository.findRecentExecutions(jobName, since);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Retrieved {} recent executions for job {} in {}ms (last {} days)",
+            executions.size(), jobName, duration, sinceDays);
+
+        return executions;
+    }
+
+    /**
+     * Count executions by status for a job within a time window.
+     *
+     * @param jobName Name of the job
+     * @param status Status to count ("SUCCESS", "FAILED", "RUNNING")
+     * @param sinceDays Number of days to look back
+     * @return Count of matching executions
+     */
+    public long countExecutionsByStatus(String jobName, String status, int sinceDays) {
+        if (jobName == null || jobName.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "jobName cannot be null or empty"
+            );
+        }
+        if (status == null || status.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "status cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Instant since = Instant.now().minus(sinceDays, ChronoUnit.DAYS);
+        Long count = jobExecutionRepository.countByJobNameAndStatusSince(jobName, status, since);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Count for job {} with status {} in {}ms: {} executions",
+            jobName, status, duration, count);
+
+        return count != null ? count : 0L;
+    }
+}

@@ -57,11 +57,12 @@
             <artifactId>business-preferences</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
+        <!-- Temporarily disabled - gRPC code generation issues -->
+        <!-- <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-strategy-execution</artifactId>
             <version>${project.version}</version>
-        </dependency>
+        </dependency> -->
 
         <!-- Spring dependencies -->
         <dependency>

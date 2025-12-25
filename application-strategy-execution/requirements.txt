@@ -8,7 +8,7 @@ protobuf==4.25.1
 # Data processing
 pandas==2.1.4
 numpy==1.26.2
-pandas-ta==0.3.14b0
+pandas-ta==0.4.71b0
 
 # Security
 RestrictedPython==6.2

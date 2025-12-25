@@ -112,11 +112,9 @@ public class LLMRouter {
 		models.add(new ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "google",
 				"Fast and efficient"));
 
-		// OpenAI models
+		// OpenAI models (via Vertex AI Model Garden)
+		// NOTE: Only gpt-4o-mini is available in us-east1 via Vertex AI
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
-		models.add(new ModelInfo("gpt-4o", "GPT-4o", "openai", "Powerful multimodal flagship"));
-		models.add(new ModelInfo("o1-mini", "o1 Mini", "openai", "Fast reasoning"));
-		models.add(new ModelInfo("o1", "o1", "openai", "Best reasoning model"));
 
 		// Claude models (latest first)
 		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));

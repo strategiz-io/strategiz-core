@@ -37,7 +37,9 @@ public class OpenAIVertexClient implements LLMProvider {
 	private static final String PROVIDER_NAME = "openai";
 
 	// OpenAI models available on Vertex AI
-	private static final List<String> SUPPORTED_MODELS = List.of("gpt-4o", "gpt-4o-mini", "o1", "o1-mini");
+	// NOTE: Only gpt-4o-mini is reliably available across all Vertex AI regions
+	// gpt-4o, o1, and o1-mini are not yet available in us-east1
+	private static final List<String> SUPPORTED_MODELS = List.of("gpt-4o-mini");
 
 	private final OpenAIVertexConfig config;
 

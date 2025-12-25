@@ -37,12 +37,14 @@ public class ClaudeVertexClient implements LLMProvider {
 	private static final String PROVIDER_NAME = "anthropic";
 
 	// Claude models available on Vertex AI (GA stable versions only)
-	private static final List<String> SUPPORTED_MODELS = List.of("claude-opus-4-5", "claude-sonnet-4-5",
-			"claude-haiku-4-5");
+	// NOTE: Claude 4.5 models are not yet available via Vertex AI
+	// Using Claude 3.x models which are the latest available
+	private static final List<String> SUPPORTED_MODELS = List.of("claude-3-5-sonnet", "claude-3-opus",
+			"claude-3-haiku");
 
 	// User-friendly model IDs that map to Vertex AI model names
-	private static final List<String> USER_MODEL_IDS = List.of("claude-opus-4-5", "claude-sonnet-4-5",
-			"claude-haiku-4-5");
+	private static final List<String> USER_MODEL_IDS = List.of("claude-3-5-sonnet", "claude-3-opus",
+			"claude-3-haiku");
 
 	private final ClaudeVertexConfig config;
 

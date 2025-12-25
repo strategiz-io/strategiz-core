@@ -68,8 +68,8 @@ public class KrakenApiAuthClient {
                 log.debug("Successfully decoded API secret, decoded length: {}", decodedSecret.length);
             } catch (Exception e) {
                 log.error("Failed to decode API secret from base64: {}", e.getMessage());
-                throw new StrategizException(ClientErrorDetails.INVALID_CREDENTIALS, e,
-                    "kraken-api", "Invalid base64 API secret");
+                throw new StrategizException(ClientErrorDetails.INVALID_CREDENTIALS,
+                    "kraken-api", e, "Invalid base64 API secret");
             }
             
             // Step 3: Concatenate path and SHA256 hash

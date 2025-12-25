@@ -17,7 +17,10 @@ public enum PortfolioErrorDetails implements ErrorDetails {
     AGGREGATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-aggregation-failed"),
 
     // General errors
-    PORTFOLIO_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-general-error");
+    PORTFOLIO_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-general-error"),
+
+    // Validation errors
+    INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "portfolio-invalid-argument");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

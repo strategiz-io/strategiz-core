@@ -12,6 +12,7 @@ import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.profile.constants.ProfileConstants;
+import io.strategiz.service.profile.exception.ProfileErrors;
 import io.strategiz.service.profile.model.CreateProfileRequest;
 import io.strategiz.service.profile.model.CreateProfileResponse;
 import org.springframework.stereotype.Service;
@@ -264,12 +265,14 @@ public class SignupProfileService extends BaseService {
 
             // Validate that we got the required data
             if (entity.getCurrentPrice() == null) {
-                throw new RuntimeException("Market data fetch returned null price for " + symbol);
+                throw new StrategizException(ProfileErrors.MARKET_DATA_FETCH_FAILED,
+                    "SignupProfileService", "Market data fetch returned null price for " + symbol);
             }
 
         } catch (Exception e) {
             log.error("Market data enrichment failed for {}: {}", symbol, e.getMessage());
-            throw new RuntimeException("Cannot fetch market data for " + symbol + ": " + e.getMessage());
+            throw new StrategizException(ProfileErrors.MARKET_DATA_FETCH_FAILED,
+                "SignupProfileService", "Cannot fetch market data for " + symbol + ": " + e.getMessage());
         }
     }
 
@@ -289,17 +292,20 @@ public class SignupProfileService extends BaseService {
         // Parse nested response structure
         Map<String, Object> quoteSummary = (Map<String, Object>) response.get("quoteSummary");
         if (quoteSummary == null) {
-            throw new RuntimeException("Yahoo Finance response missing quoteSummary for " + yahooSymbol);
+            throw new StrategizException(ProfileErrors.MARKET_DATA_FETCH_FAILED,
+                "SignupProfileService", "Yahoo Finance response missing quoteSummary for " + yahooSymbol);
         }
 
         List<Map<String, Object>> result = (List<Map<String, Object>>) quoteSummary.get("result");
         if (result == null || result.isEmpty()) {
-            throw new RuntimeException("Yahoo Finance quoteSummary has no results for " + yahooSymbol);
+            throw new StrategizException(ProfileErrors.MARKET_DATA_FETCH_FAILED,
+                "SignupProfileService", "Yahoo Finance quoteSummary has no results for " + yahooSymbol);
         }
 
         Map<String, Object> price = (Map<String, Object>) result.get(0).get("price");
         if (price == null) {
-            throw new RuntimeException("Yahoo Finance result missing price data for " + yahooSymbol);
+            throw new StrategizException(ProfileErrors.MARKET_DATA_FETCH_FAILED,
+                "SignupProfileService", "Yahoo Finance result missing price data for " + yahooSymbol);
         }
 
         // Extract and set price data
@@ -332,7 +338,8 @@ public class SignupProfileService extends BaseService {
         );
 
         if (cryptoData == null || cryptoData.isEmpty()) {
-            throw new RuntimeException("No data from CoinGecko for " + coinId);
+            throw new StrategizException(ProfileErrors.MARKET_DATA_FETCH_FAILED,
+                "SignupProfileService", "No data from CoinGecko for " + coinId);
         }
 
         CryptoCurrency crypto = cryptoData.get(0);

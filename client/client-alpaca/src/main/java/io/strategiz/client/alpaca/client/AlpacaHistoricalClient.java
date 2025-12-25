@@ -83,8 +83,8 @@ public class AlpacaHistoricalClient {
             log.info("Successfully loaded Alpaca credentials from Vault");
         } catch (Exception e) {
             log.error("Failed to load Alpaca credentials from Vault: {}", e.getMessage());
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR, e,
-                MODULE_NAME, "Failed to load required Alpaca credentials from Vault");
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, e, "Failed to load required Alpaca credentials from Vault");
         }
 
         // Set defaults only for non-sensitive configuration

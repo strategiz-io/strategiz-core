@@ -76,8 +76,8 @@ public class AlpacaAssetsClient {
             log.info("Successfully loaded Alpaca trading credentials from Vault for Assets API");
         } catch (Exception e) {
             log.error("Failed to load Alpaca trading credentials from Vault: {}", e.getMessage());
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR, e,
-                MODULE_NAME, "Failed to load required Alpaca trading credentials from Vault");
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, e, "Failed to load required Alpaca trading credentials from Vault");
         }
 
         // Set default URL if not in Vault

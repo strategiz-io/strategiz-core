@@ -59,7 +59,8 @@ public class BitcoinTradingAgent {
         // Validate inputs
         if (!TIMEFRAMES.contains(timeframe)) {
             log.error("Invalid timeframe: {}", timeframe);
-            throw new IllegalArgumentException("Invalid timeframe. Supported timeframes: " + String.join(", ", TIMEFRAMES));
+            throw new StrategizException(ExchangeErrorDetails.INVALID_ARGUMENT,
+                "BitcoinTradingAgent", "Invalid timeframe. Supported timeframes: " + String.join(", ", TIMEFRAMES));
         }
         
         try {

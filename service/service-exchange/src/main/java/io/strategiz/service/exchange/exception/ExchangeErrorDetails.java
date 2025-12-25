@@ -25,7 +25,12 @@ public enum ExchangeErrorDetails implements ErrorDetails {
     // Trading agent errors
     NO_HISTORICAL_DATA(HttpStatus.NOT_FOUND, "exchange-no-historical-data"),
     SIGNAL_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "exchange-signal-generation-failed"),
-    AI_RESPONSE_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "exchange-ai-response-failed");
+    AI_RESPONSE_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "exchange-ai-response-failed"),
+
+    // Generic errors
+    INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "exchange-invalid-argument"),
+    CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "exchange-configuration-error"),
+    INVALID_PEM_FORMAT(HttpStatus.BAD_REQUEST, "exchange-invalid-pem-format");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

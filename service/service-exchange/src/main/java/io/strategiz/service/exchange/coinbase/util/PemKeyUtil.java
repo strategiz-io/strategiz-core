@@ -1,5 +1,7 @@
 package io.strategiz.service.exchange.coinbase.util;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.exchange.exception.ExchangeErrorDetails;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.sec.ECPrivateKey;
@@ -29,7 +31,8 @@ public class PemKeyUtil {
             return pem;
         }
         if (!pem.contains("BEGIN EC PRIVATE KEY")) {
-            throw new IllegalArgumentException("Unknown PEM format");
+            throw new StrategizException(ExchangeErrorDetails.INVALID_PEM_FORMAT,
+                "PemKeyUtil", "Unknown PEM format");
         }
         try (PemReader pemReader = new PemReader(new StringReader(pem))) {
             PemObject pemObject = pemReader.readPemObject();

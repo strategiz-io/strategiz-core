@@ -1,15 +1,19 @@
 package io.strategiz.service.profile.constants;
 
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
+
 /**
  * Constants for the Profile Service module
  * Contains all string literals, default values, and configuration constants
  * used throughout the profile service operations.
  */
 public final class ProfileConstants {
-    
+
     // Prevent instantiation
     private ProfileConstants() {
-        throw new UnsupportedOperationException("Constants class cannot be instantiated");
+        throw new StrategizException(ServiceBaseErrorDetails.OPERATION_NOT_SUPPORTED,
+            "ProfileConstants", "Constants class cannot be instantiated");
     }
     
     // Default Values

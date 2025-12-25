@@ -51,8 +51,8 @@ public class MarketDataCoverageRepositoryImpl
     public Optional<MarketDataCoverageEntity> findLatest() {
         try {
             // Query for most recent snapshot by calculatedAt timestamp
+            // Note: No isActive filter to avoid composite index requirement
             Query query = getCollection()
-                .whereEqualTo("isActive", true)
                 .orderBy("calculatedAt", Query.Direction.DESCENDING)
                 .limit(1);
 
@@ -93,8 +93,8 @@ public class MarketDataCoverageRepositoryImpl
     public List<MarketDataCoverageEntity> findByDateRange(Timestamp start, Timestamp end) {
         try {
             // Query for snapshots within date range
+            // Note: No isActive filter to avoid composite index requirement
             Query query = getCollection()
-                .whereEqualTo("isActive", true)
                 .whereGreaterThanOrEqualTo("calculatedAt", start)
                 .whereLessThan("calculatedAt", end)
                 .orderBy("calculatedAt", Query.Direction.DESCENDING);
@@ -142,8 +142,8 @@ public class MarketDataCoverageRepositoryImpl
     public List<MarketDataCoverageEntity> findRecent(int limit) {
         try {
             // Query for N most recent snapshots
+            // Note: No isActive filter to avoid composite index requirement
             Query query = getCollection()
-                .whereEqualTo("isActive", true)
                 .orderBy("calculatedAt", Query.Direction.DESCENDING)
                 .limit(limit);
 
@@ -185,8 +185,8 @@ public class MarketDataCoverageRepositoryImpl
     public int deleteOlderThan(Timestamp cutoff) {
         try {
             // Find all snapshots older than cutoff
+            // Note: No isActive filter to avoid composite index requirement
             Query query = getCollection()
-                .whereEqualTo("isActive", true)
                 .whereLessThan("calculatedAt", cutoff);
 
             List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();

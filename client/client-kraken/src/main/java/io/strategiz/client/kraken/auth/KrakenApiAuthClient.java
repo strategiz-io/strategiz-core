@@ -50,7 +50,8 @@ public class KrakenApiAuthClient {
             // Add validation and logging
             if (apiSecret == null || apiSecret.trim().isEmpty()) {
                 log.error("API secret is null or empty");
-                throw new IllegalArgumentException("API secret is null or empty");
+                throw new StrategizException(ClientErrorDetails.MISSING_CREDENTIALS,
+                    "kraken-api", "API secret is null or empty");
             }
             
             log.debug("Creating signature for path: {}, API secret length: {}", path, apiSecret.length());
@@ -67,7 +68,8 @@ public class KrakenApiAuthClient {
                 log.debug("Successfully decoded API secret, decoded length: {}", decodedSecret.length);
             } catch (Exception e) {
                 log.error("Failed to decode API secret from base64: {}", e.getMessage());
-                throw new IllegalArgumentException("Invalid base64 API secret", e);
+                throw new StrategizException(ClientErrorDetails.INVALID_CREDENTIALS, e,
+                    "kraken-api", "Invalid base64 API secret");
             }
             
             // Step 3: Concatenate path and SHA256 hash

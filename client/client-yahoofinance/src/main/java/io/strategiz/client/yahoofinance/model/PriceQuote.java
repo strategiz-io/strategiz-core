@@ -1,5 +1,8 @@
 package io.strategiz.client.yahoofinance.model;
 
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -129,10 +132,12 @@ public class PriceQuote {
         
         public PriceQuote build() {
             if (symbol == null || symbol.isEmpty()) {
-                throw new IllegalArgumentException("Symbol is required");
+                throw new StrategizException(ClientErrorDetails.INVALID_ARGUMENT,
+                    "yahoo-finance", "Symbol is required");
             }
             if (price == null) {
-                throw new IllegalArgumentException("Price is required");
+                throw new StrategizException(ClientErrorDetails.INVALID_ARGUMENT,
+                    "yahoo-finance", "Price is required");
             }
             if (timestamp == null) {
                 timestamp = Instant.now();

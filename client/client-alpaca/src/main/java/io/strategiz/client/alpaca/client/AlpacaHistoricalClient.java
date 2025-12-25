@@ -70,7 +70,8 @@ public class AlpacaHistoricalClient {
         // Load credentials from Vault ONLY - no fallback to properties files
         if (vaultSecretService == null) {
             log.error("VaultSecretService not available! Cannot load Alpaca credentials.");
-            throw new IllegalStateException("VaultSecretService is required but not available");
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "VaultSecretService is required but not available");
         }
 
         try {
@@ -82,7 +83,8 @@ public class AlpacaHistoricalClient {
             log.info("Successfully loaded Alpaca credentials from Vault");
         } catch (Exception e) {
             log.error("Failed to load Alpaca credentials from Vault: {}", e.getMessage());
-            throw new IllegalStateException("Failed to load required Alpaca credentials from Vault", e);
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR, e,
+                MODULE_NAME, "Failed to load required Alpaca credentials from Vault");
         }
 
         // Set defaults only for non-sensitive configuration
@@ -103,7 +105,8 @@ public class AlpacaHistoricalClient {
 
         if (apiKey == null || apiKey.isEmpty() || apiSecret == null || apiSecret.isEmpty()) {
             log.error("Alpaca API credentials are not configured!");
-            throw new IllegalStateException("Alpaca API credentials must be configured in Vault");
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "Alpaca API credentials must be configured in Vault");
         }
     }
 

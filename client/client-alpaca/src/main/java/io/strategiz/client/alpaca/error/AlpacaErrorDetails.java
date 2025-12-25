@@ -22,7 +22,10 @@ public enum AlpacaErrorDetails implements ErrorDetails {
     INVALID_DATE_RANGE(HttpStatus.BAD_REQUEST, "invalid-date-range"),
 
     // Pagination Errors
-    PAGINATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "pagination-error");
+    PAGINATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "pagination-error"),
+
+    // Configuration Errors
+    CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "configuration-error");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

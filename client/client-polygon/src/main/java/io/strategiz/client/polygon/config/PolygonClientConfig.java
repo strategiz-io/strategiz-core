@@ -1,5 +1,7 @@
 package io.strategiz.client.polygon.config;
 
+import io.strategiz.client.base.exception.ClientErrorDetails;
+import io.strategiz.framework.exception.StrategizException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -50,7 +52,8 @@ public class PolygonClientConfig {
      */
     public String getApiKey() {
         if (apiKey == null || apiKey.isEmpty()) {
-            throw new IllegalStateException("Polygon API key is not configured. " +
+            throw new StrategizException(ClientErrorDetails.CONFIGURATION_ERROR,
+                "polygon-api", "Polygon API key is not configured. " +
                 "Please set polygon.api.key in application.properties or as an environment variable.");
         }
         return apiKey;

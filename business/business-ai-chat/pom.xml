@@ -80,6 +80,20 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Anthropic Direct Client (Claude 4.5 models) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-anthropic-direct</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Grok Direct Client (xAI models) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-grok-direct</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

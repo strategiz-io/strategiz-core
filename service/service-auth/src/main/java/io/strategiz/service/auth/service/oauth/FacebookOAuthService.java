@@ -73,17 +73,29 @@ public class FacebookOAuthService extends BaseService {
      * @return The authorization URL and state
      */
     public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
-        // Build state: format is "type:uuid:redirectUrl" (redirectUrl is base64 encoded if present)
+        // Build state to match original Facebook OAuth format
+        // Signup: "signup:uuid" or "signup:uuid:base64redirect"
+        // Signin: "uuid" or "uuid:base64redirect" (no prefix for backwards compatibility)
         String uuid = UUID.randomUUID().toString();
         String state;
         if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
             // Base64 encode the redirect URL to safely include in state
             String encodedRedirect = Base64.getEncoder().encodeToString(redirectAfterAuth.getBytes(StandardCharsets.UTF_8));
-            state = (isSignup ? "signup:" : "signin:") + uuid + ":" + encodedRedirect;
+            if (isSignup) {
+                state = "signup:" + uuid + ":" + encodedRedirect;
+            } else {
+                // For signin, don't use "signin:" prefix - just uuid:redirect for backwards compatibility
+                state = uuid + ":" + encodedRedirect;
+            }
             log.info("Built state with redirect: type={}, uuid={}, redirect={}",
                 isSignup ? "signup" : "signin", uuid, redirectAfterAuth);
         } else {
-            state = (isSignup ? "signup:" : "signin:") + uuid;
+            // Original format: "signup:uuid" for signup, just "uuid" for signin
+            if (isSignup) {
+                state = "signup:" + uuid;
+            } else {
+                state = uuid;
+            }
             log.info("Built state without redirect: type={}, uuid={}",
                 isSignup ? "signup" : "signin", uuid);
         }

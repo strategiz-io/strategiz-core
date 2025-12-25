@@ -211,10 +211,12 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
 
     private void validateInputs(WatchlistItemEntity entity, String userId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Entity cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                "WatchlistItemEntity", "Entity cannot be null");
         }
         if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                "WatchlistItemEntity", "User ID cannot be null or empty");
         }
     }
 }

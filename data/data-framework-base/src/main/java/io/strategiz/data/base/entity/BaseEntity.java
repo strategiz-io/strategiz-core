@@ -3,6 +3,8 @@ package io.strategiz.data.base.entity;
 import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.annotation.PropertyName;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 
 import jakarta.persistence.MappedSuperclass;
 import jakarta.validation.constraints.NotNull;
@@ -69,7 +71,8 @@ public abstract class BaseEntity {
 
     public void _initAudit(String userId) {
         if (this.createdBy != null) {
-            throw new IllegalStateException("Entity already has audit fields");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "Entity already has audit fields");
         }
         Timestamp now = Timestamp.now();
         this.createdBy = userId;
@@ -82,7 +85,8 @@ public abstract class BaseEntity {
 
     public void _updateAudit(String userId) {
         if (this.createdBy == null) {
-            throw new IllegalStateException("Entity audit fields not initialized");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "Entity audit fields not initialized");
         }
         this.modifiedBy = userId;
         this.modifiedDate = Timestamp.now();
@@ -93,7 +97,8 @@ public abstract class BaseEntity {
 
     public void _softDelete(String userId) {
         if (this.createdBy == null) {
-            throw new IllegalStateException("Entity audit fields not initialized");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "Entity audit fields not initialized");
         }
         this.isActive = false;
         _updateAudit(userId);
@@ -101,7 +106,8 @@ public abstract class BaseEntity {
 
     public void _restore(String userId) {
         if (this.createdBy == null) {
-            throw new IllegalStateException("Entity audit fields not initialized");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "Entity audit fields not initialized");
         }
         this.isActive = true;
         _updateAudit(userId);
@@ -113,19 +119,24 @@ public abstract class BaseEntity {
 
     public void _validate() {
         if (this.createdBy == null || this.createdBy.trim().isEmpty()) {
-            throw new IllegalStateException("createdBy cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "createdBy cannot be null or empty");
         }
         if (this.modifiedBy == null || this.modifiedBy.trim().isEmpty()) {
-            throw new IllegalStateException("modifiedBy cannot be null or empty");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "modifiedBy cannot be null or empty");
         }
         if (this.createdDate == null) {
-            throw new IllegalStateException("createdDate cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "createdDate cannot be null");
         }
         if (this.modifiedDate == null) {
-            throw new IllegalStateException("modifiedDate cannot be null");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "modifiedDate cannot be null");
         }
         if (this.version == null || this.version < 1) {
-            throw new IllegalStateException("version must be >= 1");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ENTITY_STATE,
+                getClass().getSimpleName(), "version must be >= 1");
         }
     }
 

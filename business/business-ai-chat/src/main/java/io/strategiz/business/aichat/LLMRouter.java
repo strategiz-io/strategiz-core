@@ -116,6 +116,12 @@ public class LLMRouter {
 		// NOTE: Only gpt-4o-mini is available in us-east1 via Vertex AI
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
 
+		// OpenAI models (via Direct OpenAI API)
+		models.add(new ModelInfo("gpt-4o", "GPT-4o", "openai", "Most capable GPT-4"));
+		models.add(new ModelInfo("gpt-4-turbo", "GPT-4 Turbo", "openai", "Fast GPT-4"));
+		models.add(new ModelInfo("o1", "o1", "openai", "Advanced reasoning model"));
+		models.add(new ModelInfo("o1-mini", "o1-mini", "openai", "Fast reasoning model"));
+
 		// Claude models (via Vertex AI Model Garden - Claude 3.x)
 		models.add(new ModelInfo("claude-3-haiku", "Claude 3 Haiku", "anthropic", "Fast & affordable"));
 		models.add(new ModelInfo("claude-3-5-sonnet", "Claude 3.5 Sonnet", "anthropic", "Best balanced model"));

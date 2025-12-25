@@ -94,6 +94,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- OpenAI Direct Client (GPT-4o, o1 models) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-openai-direct</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

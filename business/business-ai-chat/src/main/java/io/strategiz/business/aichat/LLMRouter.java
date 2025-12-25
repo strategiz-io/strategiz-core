@@ -149,8 +149,10 @@ public class LLMRouter {
 		models.add(new ModelInfo("command-r-plus", "Command R+", "cohere", "Best Cohere model"));
 
 		// Grok models (xAI via Direct API)
-		models.add(new ModelInfo("grok-2-1212", "Grok 2", "xai", "Latest xAI model"));
-		models.add(new ModelInfo("grok-2-vision-1212", "Grok 2 Vision", "xai", "Grok with vision capabilities"));
+		models.add(new ModelInfo("grok-4.1-fast", "Grok 4.1 Fast", "xai", "Best tool-calling, 2M context"));
+		models.add(new ModelInfo("grok-4", "Grok 4", "xai", "Advanced reasoning & coding"));
+		models.add(new ModelInfo("grok-3", "Grok 3", "xai", "General purpose"));
+		models.add(new ModelInfo("grok-3-mini", "Grok 3 Mini", "xai", "Fast & economical"));
 
 		// Mark models as available based on registered providers AND feature flags
 		for (ModelInfo model : models) {

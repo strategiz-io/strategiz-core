@@ -55,6 +55,12 @@
             <artifactId>google-cloud-bigquery</artifactId>
         </dependency>
 
+        <!-- GCP Cloud Asset Inventory API (FREE) -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-asset</artifactId>
+        </dependency>
+
         <!-- Jackson -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

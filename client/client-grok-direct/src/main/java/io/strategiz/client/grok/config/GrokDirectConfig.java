@@ -16,7 +16,7 @@ public class GrokDirectConfig {
 
 	private String apiUrl = "https://api.x.ai";
 
-	private String defaultModel = "grok-2-1212";
+	private String defaultModel = "grok-4.1-fast";
 
 	private int maxTokens = 4096;
 

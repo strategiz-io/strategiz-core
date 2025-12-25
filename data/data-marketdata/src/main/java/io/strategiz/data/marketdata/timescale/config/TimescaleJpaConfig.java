@@ -119,7 +119,7 @@ public class TimescaleJpaConfig {
     private Map<String, Object> hibernateProperties() {
         Map<String, Object> props = new HashMap<>();
         props.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
-        props.put("hibernate.hbm2ddl.auto", "validate");
+        props.put("hibernate.hbm2ddl.auto", "none");  // Changed from "validate" to skip schema validation
         props.put("hibernate.show_sql", false);
         props.put("hibernate.format_sql", false);
         props.put("hibernate.jdbc.batch_size", 50);

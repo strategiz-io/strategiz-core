@@ -13,7 +13,7 @@ COPY application-api/ application-api/
 COPY batch/ batch/
 
 # Build the application
-RUN mvn clean install -DskipTests
+RUN mvn clean install -DskipTests -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true
 
 # Runtime image
 FROM eclipse-temurin:21-jre

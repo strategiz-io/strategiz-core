@@ -3,6 +3,8 @@ package io.strategiz.data.strategy.repository;
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.strategy.entity.StrategySubscriptionEntity;
 import io.strategiz.data.strategy.entity.SubscriptionStatus;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -93,9 +95,9 @@ public class StrategySubscriptionBaseRepository extends BaseRepository<StrategyS
                     .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to query subscriptions", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "StrategySubscriptionEntity");
         } catch (ExecutionException e) {
-            throw new RuntimeException("Failed to query subscriptions", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "StrategySubscriptionEntity");
         }
     }
 
@@ -126,9 +128,9 @@ public class StrategySubscriptionBaseRepository extends BaseRepository<StrategyS
                     .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to query subscribers", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "StrategySubscriptionEntity");
         } catch (ExecutionException e) {
-            throw new RuntimeException("Failed to query subscribers", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "StrategySubscriptionEntity");
         }
     }
 

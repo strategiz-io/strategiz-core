@@ -2,6 +2,8 @@ package io.strategiz.data.user.repository;
 
 import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.user.entity.UserFollowEntity;
+import io.strategiz.data.base.exception.DataRepositoryException;
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -89,9 +91,9 @@ public class UserFollowBaseRepository extends BaseRepository<UserFollowEntity> {
                     .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to query followers", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserFollowEntity");
         } catch (ExecutionException e) {
-            throw new RuntimeException("Failed to query followers", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserFollowEntity");
         }
     }
 
@@ -118,9 +120,9 @@ public class UserFollowBaseRepository extends BaseRepository<UserFollowEntity> {
                     .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Failed to query following", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserFollowEntity");
         } catch (ExecutionException e) {
-            throw new RuntimeException("Failed to query following", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserFollowEntity");
         }
     }
 }

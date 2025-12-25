@@ -176,10 +176,12 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
     
     private void validateInputs(PortfolioSummaryEntity entity, String userId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Entity cannot be null");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "PortfolioSummaryEntity", "Entity cannot be null");
         }
         if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "PortfolioSummaryEntity", "User ID cannot be null or empty");
         }
     }
 }

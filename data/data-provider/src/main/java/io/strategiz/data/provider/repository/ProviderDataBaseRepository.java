@@ -188,10 +188,12 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
     
     private void validateInputs(ProviderDataEntity entity, String userId) {
         if (entity == null) {
-            throw new IllegalArgumentException("Entity cannot be null");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "ProviderDataEntity", "Entity cannot be null");
         }
         if (userId == null || userId.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID cannot be null or empty");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "ProviderDataEntity", "User ID cannot be null or empty");
         }
     }
 }

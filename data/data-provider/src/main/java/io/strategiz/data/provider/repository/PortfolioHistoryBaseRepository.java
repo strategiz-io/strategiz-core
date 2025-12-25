@@ -54,7 +54,8 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
         }
 
         if (entity.getId() == null || entity.getId().isEmpty()) {
-            throw new IllegalArgumentException("PortfolioHistoryEntity must have snapshotDate or id set");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "PortfolioHistoryEntity", "PortfolioHistoryEntity must have snapshotDate or id set");
         }
 
         // Delegate to base implementation for audit handling

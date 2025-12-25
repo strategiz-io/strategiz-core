@@ -1,6 +1,8 @@
 package io.strategiz.data.provider.repository;
 
 import io.strategiz.data.provider.entity.PortfolioHistoryEntity;
+import io.strategiz.data.provider.exception.DataProviderErrorDetails;
+import io.strategiz.data.provider.exception.ProviderIntegrationException;
 import com.google.cloud.firestore.Firestore;
 import org.springframework.stereotype.Repository;
 
@@ -18,7 +20,8 @@ public class CreatePortfolioHistoryRepositoryImpl extends PortfolioHistoryBaseRe
     @Override
     public PortfolioHistoryEntity createSnapshot(PortfolioHistoryEntity snapshot) {
         if (snapshot.getUserId() == null) {
-            throw new IllegalArgumentException("userId is required to create portfolio history snapshot");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "PortfolioHistoryEntity", "userId is required to create portfolio history snapshot");
         }
         return save(snapshot, snapshot.getUserId());
     }
@@ -26,7 +29,8 @@ public class CreatePortfolioHistoryRepositoryImpl extends PortfolioHistoryBaseRe
     @Override
     public PortfolioHistoryEntity saveSnapshot(PortfolioHistoryEntity snapshot) {
         if (snapshot.getUserId() == null) {
-            throw new IllegalArgumentException("userId is required to save portfolio history snapshot");
+            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
+                "PortfolioHistoryEntity", "userId is required to save portfolio history snapshot");
         }
         return save(snapshot, snapshot.getUserId());
     }

@@ -87,14 +87,16 @@
         <module>client/client-gcp-billing</module>
         <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>
+        <module>client/client-sonarqube</module>
         <module>client/client-webull</module>
+        <module>client/client-strategy-execution</module>
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
         <!-- Service Modules (Build Fifth) -->
-        <module>service/service-base</module>
+        <module>service/service-framework-base</module>
         <module>service/service-labs</module>
         <module>service/service-live-strategies</module>
         <module>service/service-portfolio</module>
@@ -111,6 +113,7 @@
         <module>service/service-marketdata</module>
         <module>service/service-learn</module>
         <module>service/service-console</module>
+        <module>service/service-console-quality</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
 
@@ -354,7 +357,7 @@
             <!-- Service Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>service-base</artifactId>
+                <artifactId>service-framework-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -516,7 +519,7 @@
             <!-- api-monitoring -> service-monitoring -->
             <!-- api-portfolio -> service-portfolio -->
             <!-- api-strategy -> service-strategy -->
-            <!-- api-base -> service-base -->
+            <!-- api-base -> service-framework-base -->
             
             <!-- External Library Versions -->
             <!-- OpenAPI Documentation -->

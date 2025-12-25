@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package strategiz.execution.v1;
+
+option java_package = "io.strategiz.execution.grpc";
+option java_multiple_files = true;
+option java_outer_classname = "StrategyExecutionProto";
+
+// Strategy Execution Service
+service StrategyExecutionService {
+  // Execute a trading strategy with market data
+  rpc ExecuteStrategy(ExecuteStrategyRequest) returns (ExecuteStrategyResponse);
+
+  // Validate strategy code without executing
+  rpc ValidateCode(ValidateCodeRequest) returns (ValidateCodeResponse);
+
+  // Get service health and capabilities
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+}
+
+// Execute Strategy Request
+message ExecuteStrategyRequest {
+  string code = 1;                          // Strategy code to execute
+  string language = 2;                      // "python" | "java" | "javascript"
+  repeated MarketDataBar market_data = 3;   // OHLCV data
+  map<string, string> parameters = 4;       // User-defined parameters
+  int32 timeout_seconds = 5;                // Max execution time (default: 10s)
+  string user_id = 6;                       // For logging/tracking
+  string strategy_id = 7;                   // For logging/tracking
+}
+
+// Market Data Bar (OHLCV)
+message MarketDataBar {
+  string timestamp = 1;                     // ISO 8601: "2024-01-15T09:30:00Z"
+  double open = 2;
+  double high = 3;
+  double low = 4;
+  double close = 5;
+  int64 volume = 6;
+}
+
+// Execute Strategy Response
+message ExecuteStrategyResponse {
+  bool success = 1;                         // Execution succeeded
+  repeated Signal signals = 2;              // Trading signals generated
+  repeated Indicator indicators = 3;        // Indicator values
+  Performance performance = 4;              // Backtest metrics
+  int32 execution_time_ms = 5;              // Execution duration
+  repeated string logs = 6;                 // Execution logs
+  string error = 7;                         // Error message if failed
+}
+
+// Trading Signal
+message Signal {
+  string timestamp = 1;                     // When signal was generated
+  string type = 2;                          // "BUY" | "SELL" | "HOLD"
+  double price = 3;                         // Price at signal
+  int32 quantity = 4;                       // Suggested quantity
+  string reason = 5;                        // Why signal was generated
+}
+
+// Indicator Data
+message Indicator {
+  string name = 1;                          // e.g., "RSI_14", "SMA_20"
+  repeated DataPoint data = 2;              // Time series data
+}
+
+message DataPoint {
+  string timestamp = 1;
+  double value = 2;
+}
+
+// Backtest Performance Metrics
+message Performance {
+  double total_return = 1;                  // Total return %
+  double total_pnl = 2;                     // Total P&L
+  double win_rate = 3;                      // Win rate %
+  int32 total_trades = 4;                   // Number of trades
+  int32 profitable_trades = 5;              // Number of winning trades
+  int32 buy_count = 6;                      // Number of BUY signals
+  int32 sell_count = 7;                     // Number of SELL signals
+  double avg_win = 8;                       // Average win amount
+  double avg_loss = 9;                      // Average loss amount
+  double profit_factor = 10;                // Profit factor
+  double max_drawdown = 11;                 // Maximum drawdown %
+  double sharpe_ratio = 12;                 // Sharpe ratio
+  repeated Trade trades = 13;               // Individual trades
+  string last_tested_at = 14;               // Timestamp
+}
+
+message Trade {
+  string buy_timestamp = 1;
+  string sell_timestamp = 2;
+  double buy_price = 3;
+  double sell_price = 4;
+  double pnl = 5;
+  double pnl_percent = 6;
+  bool win = 7;
+  string buy_reason = 8;
+  string sell_reason = 9;
+}
+
+// Validate Code Request
+message ValidateCodeRequest {
+  string code = 1;
+  string language = 2;
+}
+
+// Validate Code Response
+message ValidateCodeResponse {
+  bool valid = 1;
+  repeated string errors = 2;
+  repeated string warnings = 3;
+  repeated string suggestions = 4;
+}
+
+// Health Check
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;                        // "SERVING" | "NOT_SERVING"
+  repeated string supported_languages = 2;  // ["python", "java"]
+  int32 max_timeout_seconds = 3;
+  int32 max_memory_mb = 4;
+  map<string, string> metadata = 5;         // Version, build info, etc.
+}

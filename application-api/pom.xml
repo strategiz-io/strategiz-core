@@ -172,10 +172,24 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Console Quality Service (quality metrics and SonarQube integration) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-console-quality</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Market Data Batch Jobs (for console job management) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Strategy Execution gRPC Client -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-strategy-execution</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

@@ -17,7 +17,7 @@
 
     <modules>
         <module>service-auth</module>
-        <module>service-base</module>
+        <module>service-framework-base</module>
         <module>service-dashboard</module>
         <module>service-device</module>
         <module>service-exchange</module>
@@ -33,6 +33,7 @@
         <module>service-walletaddress</module>
         <module>service-learn</module>
         <module>service-console</module>
+        <module>service-console-quality</module>
         <module>service-social</module>
     </modules>
 </project>

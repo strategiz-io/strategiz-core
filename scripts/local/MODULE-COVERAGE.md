@@ -71,7 +71,7 @@ Complete analysis of which modules are built by each script approach.
 ### **Service Modules** (11 active modules)
 | Module | Old Script | New Scripts | Notes |
 |--------|-----------|-------------|-------|
-| service-base | ✅ | ✅ | Base service classes |
+| service-framework-base | ✅ | ✅ | Base service classes |
 | service-strategy | ✅ | ✅ | Strategy services |
 | service-portfolio | ✅ | ✅ | Portfolio services |
 | service-exchange | ✅ | ✅ | Exchange services |

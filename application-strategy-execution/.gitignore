@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Generated files
+strategiz_execution/generated/*_pb2.py
+strategiz_execution/generated/*_pb2_grpc.py
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

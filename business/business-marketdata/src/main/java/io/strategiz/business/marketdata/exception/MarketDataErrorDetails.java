@@ -18,6 +18,9 @@ public enum MarketDataErrorDetails implements ErrorDetails {
     // Storage errors
     DATA_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-storage-failed"),
 
+    // Validation errors
+    INVALID_INPUT(HttpStatus.BAD_REQUEST, "marketdata-invalid-input"),
+
     // General errors
     MARKETDATA_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-general-error");
 

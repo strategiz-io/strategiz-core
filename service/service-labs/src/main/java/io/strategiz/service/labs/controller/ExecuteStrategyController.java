@@ -16,8 +16,9 @@ import io.strategiz.service.labs.service.ReadStrategyService;
 import io.strategiz.service.labs.service.PythonStrategyExecutor;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
-import io.strategiz.client.execution.ExecutionServiceClient;
-import io.strategiz.client.execution.model.*;
+// Temporarily disabled - gRPC code generation issues
+// import io.strategiz.client.execution.ExecutionServiceClient;
+// import io.strategiz.client.execution.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,7 +47,8 @@ public class ExecuteStrategyController extends BaseController {
     private final PythonStrategyExecutor pythonStrategyExecutor;
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final MarketDataRepository marketDataRepository;
-    private final ExecutionServiceClient executionServiceClient;
+    // Temporarily disabled - gRPC code generation issues
+    // private final ExecutionServiceClient executionServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
@@ -55,15 +57,15 @@ public class ExecuteStrategyController extends BaseController {
                                    ReadStrategyService readStrategyService,
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
-                                   MarketDataRepository marketDataRepository,
-                                   ExecutionServiceClient executionServiceClient) {
+                                   MarketDataRepository marketDataRepository) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
         this.pythonStrategyExecutor = pythonStrategyExecutor;
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
-        this.executionServiceClient = executionServiceClient;
+        // Temporarily disabled - gRPC code generation issues
+        // this.executionServiceClient = executionServiceClient;
     }
     
     @PostMapping("/{strategyId}/execute")

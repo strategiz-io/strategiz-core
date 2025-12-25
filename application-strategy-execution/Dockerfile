@@ -27,8 +27,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+# Create strategiz user first
+RUN useradd -m -u 1000 strategiz
+
+# Copy Python dependencies from builder to /usr/local (system-wide)
+COPY --from=builder /root/.local /usr/local
 
 # Copy application code
 COPY application-strategy-execution/strategiz_execution/ strategiz_execution/
@@ -36,22 +39,19 @@ COPY application-strategy-execution/strategiz_execution/ strategiz_execution/
 # Copy generated gRPC code from builder
 COPY --from=builder /app/strategiz_execution/generated/ strategiz_execution/generated/
 
-# Create __init__.py files for Python packages
+# Create __init__.py files for Python packages and set ownership
 RUN touch strategiz_execution/__init__.py && \
     touch strategiz_execution/service/__init__.py && \
     touch strategiz_execution/executor/__init__.py && \
     touch strategiz_execution/security/__init__.py && \
     touch strategiz_execution/generated/__init__.py && \
-    touch strategiz_execution/utils/__init__.py
+    touch strategiz_execution/utils/__init__.py && \
+    chown -R strategiz:strategiz /app
 
-# Security: Run as non-root user
-RUN useradd -m -u 1000 strategiz && \
-    chown -R strategiz:strategiz /app && \
-    chmod -R 755 /root/.local
+# Switch to non-root user
 USER strategiz
 
-# Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+# Environment variables
 ENV PYTHONPATH=/app:$PYTHONPATH
 
 # Environment variables with defaults

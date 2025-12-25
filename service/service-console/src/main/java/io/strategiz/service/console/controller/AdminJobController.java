@@ -1,6 +1,10 @@
 package io.strategiz.service.console.controller;
 
+import io.strategiz.business.marketdata.JobExecutionHistoryService;
+import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.console.model.response.JobExecutionHistoryResponse;
+import io.strategiz.service.console.model.response.JobExecutionRecord;
 import io.strategiz.service.console.model.response.JobResponse;
 import io.strategiz.service.console.service.JobManagementService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,10 +12,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Admin controller for managing scheduled jobs.
@@ -24,10 +33,14 @@ public class AdminJobController extends BaseController {
     private static final String MODULE_NAME = "CONSOLE";
 
     private final JobManagementService jobManagementService;
+    private final JobExecutionHistoryService jobExecutionHistoryService;
 
     @Autowired
-    public AdminJobController(JobManagementService jobManagementService) {
+    public AdminJobController(
+            JobManagementService jobManagementService,
+            JobExecutionHistoryService jobExecutionHistoryService) {
         this.jobManagementService = jobManagementService;
+        this.jobExecutionHistoryService = jobExecutionHistoryService;
     }
 
     @Override
@@ -68,5 +81,83 @@ public class AdminJobController extends BaseController {
         JobResponse job = jobManagementService.triggerJob(name);
         log.info("Job {} triggered by admin {}", name, adminUserId);
         return ResponseEntity.ok(job);
+    }
+
+    @GetMapping("/{name}/history")
+    @Operation(summary = "Get job execution history", description = "Returns paginated execution history for a job with statistics")
+    public ResponseEntity<JobExecutionHistoryResponse> getJobHistory(
+            @Parameter(description = "Job name") @PathVariable String name,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "50") int pageSize,
+            @Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("getJobHistory", adminUserId, "jobName=" + name + ", page=" + page);
+
+        // Get paginated execution history
+        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryService.getExecutionHistory(name, page, pageSize);
+
+        // Convert to DTOs
+        List<JobExecutionRecord> executionRecords = executionsPage.getContent().stream()
+            .map(this::convertToJobExecutionRecord)
+            .collect(Collectors.toList());
+
+        // Get statistics for the period
+        Map<String, Object> stats = jobExecutionHistoryService.getExecutionStats(name, sinceDays);
+
+        // Build response
+        JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(
+            executionRecords,
+            stats,
+            page,
+            pageSize,
+            executionsPage.getTotalElements(),
+            executionsPage.getTotalPages()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{name}/stats")
+    @Operation(summary = "Get job statistics", description = "Returns execution statistics for a job over a specified period")
+    public ResponseEntity<Map<String, Object>> getJobStats(
+            @Parameter(description = "Job name") @PathVariable String name,
+            @Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("getJobStats", adminUserId, "jobName=" + name + ", sinceDays=" + sinceDays);
+
+        Map<String, Object> stats = jobExecutionHistoryService.getExecutionStats(name, sinceDays);
+
+        log.debug("Job stats for {}: {}", name, stats);
+        return ResponseEntity.ok(stats);
+    }
+
+    // Converter methods
+
+    /**
+     * Convert JobExecutionEntity to JobExecutionRecord DTO.
+     */
+    private JobExecutionRecord convertToJobExecutionRecord(JobExecutionEntity entity) {
+        JobExecutionRecord record = new JobExecutionRecord();
+        record.setExecutionId(entity.getExecutionId());
+        record.setJobName(entity.getJobName());
+        record.setStartTime(formatInstant(entity.getStartTime()));
+        record.setEndTime(formatInstant(entity.getEndTime()));
+        record.setDurationMs(entity.getDurationMs());
+        record.setStatus(entity.getStatus());
+        record.setSymbolsProcessed(entity.getSymbolsProcessed());
+        record.setDataPointsStored(entity.getDataPointsStored());
+        record.setErrorCount(entity.getErrorCount());
+        record.setErrorDetails(entity.getErrorDetails());
+        record.setTimeframes(entity.getTimeframes());
+        return record;
+    }
+
+    /**
+     * Format Instant to ISO 8601 string.
+     */
+    private Instant formatInstant(Instant instant) {
+        return instant;  // Return as-is, Jackson will serialize to ISO 8601
     }
 }

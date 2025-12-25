@@ -89,7 +89,7 @@
         <module>client/client-stripe</module>
         <module>client/client-sonarqube</module>
         <module>client/client-webull</module>
-        <!-- <module>client/client-strategy-execution</module> --> <!-- Temporarily disabled - missing protobuf generated classes -->
+        <module>client/client-strategy-execution</module>
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->

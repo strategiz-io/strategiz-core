@@ -39,6 +39,7 @@
         <module>business/business-strategy-execution</module>
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
+        <module>business/business-fundamentals</module>
         <module>business/business-preferences</module>
         <module>business/business-infrastructure-costs</module>
 
@@ -127,6 +128,7 @@
 
         <!-- Batch Modules (Build Sixth) -->
         <module>batch/batch-marketdata</module>
+        <module>batch/batch-fundamentals</module>
 
         <!-- API Modules (Build Seventh) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->

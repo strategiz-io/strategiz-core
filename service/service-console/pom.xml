@@ -83,6 +83,18 @@
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
+        <!-- Fundamentals data access -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-fundamentals</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Fundamentals business logic -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-fundamentals</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring dependencies -->
         <dependency>

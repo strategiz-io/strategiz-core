@@ -97,7 +97,10 @@ public class TimescaleJpaConfig {
 
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource);
-        em.setPackagesToScan("io.strategiz.data.marketdata.timescale.entity");
+        em.setPackagesToScan(
+            "io.strategiz.data.marketdata.timescale.entity",
+            "io.strategiz.data.fundamentals.timescale.entity"
+        );
         em.setPersistenceUnitName("timescale");
 
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();

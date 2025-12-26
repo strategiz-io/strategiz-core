@@ -16,6 +16,5 @@
 
     <modules>
         <module>batch-marketdata</module>
-        <module>batch-fundamentals</module>
     </modules>
 </project>

@@ -30,6 +30,7 @@
         <module>client-yahoo-finance</module>
         <module>client-facebook</module>
         <module>client-google</module>
+        <module>client-firebase</module>
         <module>client-firebase-sms</module>
         <module>client-gemini-vertex</module>
         <module>client-openai-vertex</module>

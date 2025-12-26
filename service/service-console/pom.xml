@@ -69,19 +69,17 @@
             <artifactId>service-monitoring</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Market data batch jobs (optional - only present when scheduler profile active) -->
+        <!-- Market data batch jobs -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-marketdata</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
-        <!-- Fundamentals batch jobs (optional - only present when scheduler profile active) -->
+        <!-- Fundamentals batch jobs -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-fundamentals</artifactId>
             <version>${project.version}</version>
-            <optional>true</optional>
         </dependency>
         <!-- Fundamentals data access -->
         <dependency>

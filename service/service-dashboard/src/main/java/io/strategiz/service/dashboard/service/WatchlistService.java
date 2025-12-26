@@ -10,14 +10,19 @@ import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
 import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
+import io.strategiz.client.alpaca.client.AlpacaHistoricalClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +39,8 @@ public class WatchlistService extends BaseService {
 
     private final YahooFinanceClient yahooFinanceClient;
     private final CoinGeckoClient coinGeckoClient;
+    private final io.strategiz.data.watchlist.repository.WatchlistBaseRepository watchlistRepository;
+    private final AlpacaHistoricalClient alpacaHistoricalClient;
 
     // Default watchlist symbols for new users
     public static class DefaultSymbol {
@@ -51,10 +58,10 @@ public class WatchlistService extends BaseService {
     private static final List<DefaultSymbol> DEFAULT_WATCHLIST_SYMBOLS = Arrays.asList(
         new DefaultSymbol("TSLA", "STOCK", "Tesla Inc."),
         new DefaultSymbol("GOOGL", "STOCK", "Alphabet Inc."),
-        new DefaultSymbol("AMZN", "STOCK", "Amazon.com Inc."),
+        new DefaultSymbol("NVDA", "STOCK", "NVIDIA Corporation"),
         new DefaultSymbol("QQQ", "ETF", "Invesco QQQ Trust"),
         new DefaultSymbol("SPY", "ETF", "SPDR S&P 500 ETF"),
-        new DefaultSymbol("NVDA", "STOCK", "NVIDIA Corporation")
+        new DefaultSymbol("BTC", "CRYPTO", "Bitcoin")
     );
 
     // Symbol to CoinGecko ID mapping for crypto fallback
@@ -82,9 +89,13 @@ public class WatchlistService extends BaseService {
 
     @Autowired
     public WatchlistService(YahooFinanceClient yahooFinanceClient,
-                           CoinGeckoClient coinGeckoClient) {
+                           CoinGeckoClient coinGeckoClient,
+                           io.strategiz.data.watchlist.repository.WatchlistBaseRepository watchlistRepository,
+                           AlpacaHistoricalClient alpacaHistoricalClient) {
         this.yahooFinanceClient = yahooFinanceClient;
         this.coinGeckoClient = coinGeckoClient;
+        this.watchlistRepository = watchlistRepository;
+        this.alpacaHistoricalClient = alpacaHistoricalClient;
     }
 
     /**
@@ -114,6 +125,152 @@ public class WatchlistService extends BaseService {
         } catch (Exception e) {
             log.error("Error getting watchlist for user: {}", userId, e);
             throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "get_watchlist", e.getMessage());
+        }
+    }
+
+    /**
+     * Initialize default watchlist for new users with 6 default symbols.
+     * Uses parallel enrichment for performance (~1-2 seconds total).
+     * Partial success strategy: saves symbols that successfully enrich, skips failures.
+     * Idempotent: returns existing items if watchlist already initialized.
+     *
+     * @param userId The user ID to initialize watchlist for
+     * @return List of watchlist items (successfully enriched symbols)
+     */
+    public List<WatchlistItemEntity> initializeDefaultWatchlist(String userId) {
+        log.info("Initializing default watchlist for user: {}", userId);
+
+        // 1. Check if watchlist already has items (idempotency)
+        List<WatchlistItemEntity> existing = watchlistRepository.findAllByUserId(userId);
+        if (!existing.isEmpty()) {
+            log.info("Watchlist already initialized for user {} with {} items", userId, existing.size());
+            return existing;
+        }
+
+        // 2. Create entities for default symbols and enrich in parallel
+        List<CompletableFuture<WatchlistItemEntity>> enrichmentFutures = new ArrayList<>();
+        for (int i = 0; i < DEFAULT_WATCHLIST_SYMBOLS.size(); i++) {
+            DefaultSymbol defaultSymbol = DEFAULT_WATCHLIST_SYMBOLS.get(i);
+            int sortOrder = i;
+
+            // Enrich each symbol in parallel
+            CompletableFuture<WatchlistItemEntity> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    WatchlistItemEntity entity = new WatchlistItemEntity();
+                    entity.setSymbol(defaultSymbol.symbol);
+                    entity.setName(defaultSymbol.name);
+                    entity.setType(defaultSymbol.type);
+                    entity.setSortOrder(sortOrder);
+
+                    // Use Alpaca for stocks/ETFs, CoinGecko for crypto
+                    if ("CRYPTO".equalsIgnoreCase(defaultSymbol.type)) {
+                        enrichFromCoinGecko(entity);
+                    } else {
+                        enrichFromAlpaca(entity);
+                    }
+                    return entity;
+                } catch (Exception e) {
+                    log.warn("Failed to enrich symbol {}: {}", defaultSymbol.symbol, e.getMessage());
+                    return null; // Skip failed symbols
+                }
+            });
+
+            enrichmentFutures.add(future);
+        }
+
+        // 3. Wait for all enrichments to complete
+        CompletableFuture.allOf(enrichmentFutures.toArray(new CompletableFuture[0])).join();
+
+        // 4. Collect successful enrichments and save
+        List<WatchlistItemEntity> enrichedEntities = enrichmentFutures.stream()
+            .map(CompletableFuture::join)
+            .filter(Objects::nonNull) // Filter out nulls (failed enrichments)
+            .collect(Collectors.toList());
+
+        // 5. Save to Firestore
+        for (WatchlistItemEntity entity : enrichedEntities) {
+            watchlistRepository.save(entity, userId);
+        }
+
+        log.info("Initialized watchlist for user {}: {} of {} symbols succeeded",
+            userId, enrichedEntities.size(), DEFAULT_WATCHLIST_SYMBOLS.size());
+
+        return enrichedEntities;
+    }
+
+    /**
+     * Enrich entity from Alpaca API for stocks and ETFs.
+     * Uses Alpaca's historical bars endpoint to get latest price data.
+     *
+     * @param entity The watchlist item entity to enrich
+     * @throws StrategizException if Alpaca data cannot be fetched
+     */
+    private void enrichFromAlpaca(WatchlistItemEntity entity) {
+        String symbol = entity.getSymbol();
+        log.info("Enriching {} from Alpaca", symbol);
+
+        try {
+            // Fetch latest bar from Alpaca (last 2 days to ensure we get data)
+            java.time.LocalDateTime endDate = java.time.LocalDateTime.now();
+            java.time.LocalDateTime startDate = endDate.minusDays(2);
+
+            java.util.List<io.strategiz.client.alpaca.model.AlpacaBar> bars =
+                alpacaHistoricalClient.getBars(symbol, startDate, endDate, "1Day");
+
+            if (bars == null || bars.isEmpty()) {
+                throw new StrategizException(
+                    ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                    "service-dashboard",
+                    "No bar data from Alpaca for " + symbol
+                );
+            }
+
+            // Get the latest bar (most recent)
+            io.strategiz.client.alpaca.model.AlpacaBar latestBar = bars.get(bars.size() - 1);
+
+            // Extract price data
+            BigDecimal close = latestBar.getClose();
+            BigDecimal open = latestBar.getOpen();
+            Long volume = latestBar.getVolume();
+
+            if (close == null) {
+                throw new StrategizException(
+                    ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                    "service-dashboard",
+                    "Alpaca bar missing close price for " + symbol
+                );
+            }
+
+            // Populate entity
+            entity.setCurrentPrice(close);
+
+            // Calculate change and change percentage
+            if (open != null && open.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal change = close.subtract(open);
+                entity.setChange(change);
+
+                BigDecimal changePercent = change
+                    .divide(open, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+                entity.setChangePercent(changePercent);
+            }
+
+            if (volume != null) {
+                entity.setVolume(volume);
+            }
+
+            log.info("Successfully enriched {} from Alpaca: price=${}", symbol, entity.getCurrentPrice());
+
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to enrich {} from Alpaca: {}", symbol, e.getMessage());
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                "service-dashboard",
+                e,
+                "Cannot fetch Alpaca data for " + symbol
+            );
         }
     }
 

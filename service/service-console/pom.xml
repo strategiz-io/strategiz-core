@@ -63,10 +63,23 @@
             <artifactId>data-feature-flags</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Monitoring service for observability metrics -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-monitoring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Market data batch jobs (optional - only present when scheduler profile active) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-marketdata</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <!-- Fundamentals batch jobs (optional - only present when scheduler profile active) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>batch-fundamentals</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
         </dependency>

@@ -57,12 +57,19 @@
             <artifactId>business-preferences</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Temporarily disabled - gRPC code generation issues -->
-        <!-- <dependency>
+        <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-strategy-execution</artifactId>
+            <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
-        </dependency> -->
+        </dependency>
+        <!-- gRPC client for Python execution service -->
+        <!-- TEMPORARILY DISABLED - execution service module is being refactored
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-execution</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        -->
 
         <!-- Spring dependencies -->
         <dependency>

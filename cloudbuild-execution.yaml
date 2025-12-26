@@ -37,7 +37,9 @@ steps:
       - '50051'  # gRPC port
       - '--use-http2'  # Required for gRPC
       - '--set-env-vars'
-      - 'ENVIRONMENT=production,GRPC_PORT=50051,MAX_WORKERS=20,MAX_TIMEOUT_SECONDS=30,MAX_MEMORY_MB=512,LOG_LEVEL=INFO'
+      - 'ENVIRONMENT=production,GRPC_PORT=50051,MAX_WORKERS=20,MAX_TIMEOUT_SECONDS=30,MAX_MEMORY_MB=512,LOG_LEVEL=INFO,GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-central-0.grafana.net/otlp'
+      # Note: Add GRAFANA_OTLP_AUTH_HEADER via Secret Manager after deployment
+      # Run: gcloud run services update strategiz-execution --update-secrets GRAFANA_OTLP_AUTH_HEADER=GRAFANA_OTLP_AUTH:latest
 
 # Build options
 options:

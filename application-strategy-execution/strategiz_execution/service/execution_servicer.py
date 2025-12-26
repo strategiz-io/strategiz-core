@@ -13,6 +13,7 @@ from strategiz_execution.executor.python_executor import PythonExecutor
 from strategiz_execution.executor.validator import CodeValidator
 from strategiz_execution.executor.backtest import BacktestCalculator
 from strategiz_execution.config import Config
+from strategiz_execution.observability import get_observability
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,13 @@ class StrategyExecutionServicer(strategy_execution_pb2_grpc.StrategyExecutionSer
         )
         self.validator = CodeValidator()
         self.backtest_calculator = BacktestCalculator()
+        self.observability = get_observability()
 
     def ExecuteStrategy(self, request, context):
         """Execute a trading strategy"""
 
         start_time = time.time()
+        self.observability.start_execution()
 
         logger.info(
             f"Executing {request.language} strategy for user={request.user_id}, "
@@ -51,23 +54,66 @@ class StrategyExecutionServicer(strategy_execution_pb2_grpc.StrategyExecutionSer
             else:
                 context.set_code(grpc.StatusCode.UNIMPLEMENTED)
                 context.set_details(f'Language {request.language} not supported')
+
+                # Record metrics
+                execution_time = int((time.time() - start_time) * 1000)
+                self.observability.record_execution(
+                    execution_time_ms=execution_time,
+                    language=request.language,
+                    success=False,
+                    error_type="unsupported_language"
+                )
+                self.observability.end_execution()
+
                 return strategy_execution_pb2.ExecuteStrategyResponse()
 
             # Set execution time
             execution_time = int((time.time() - start_time) * 1000)
             result.execution_time_ms = execution_time
 
+            # Record successful execution metrics
+            self.observability.record_execution(
+                execution_time_ms=execution_time,
+                language=request.language,
+                success=result.success,
+                cache_hit=getattr(result, '_cache_hit', False),
+                market_data_bars=len(market_data)
+            )
+
             logger.info(f"Strategy execution completed in {execution_time}ms")
+            self.observability.end_execution()
             return result
 
         except ValueError as e:
+            execution_time = int((time.time() - start_time) * 1000)
             logger.error(f"Invalid request: {e}")
+
+            # Record error metrics
+            self.observability.record_execution(
+                execution_time_ms=execution_time,
+                language=request.language,
+                success=False,
+                error_type="validation_error"
+            )
+            self.observability.end_execution()
+
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details(str(e))
             return strategy_execution_pb2.ExecuteStrategyResponse()
 
         except Exception as e:
+            execution_time = int((time.time() - start_time) * 1000)
             logger.error(f"Strategy execution failed: {e}", exc_info=True)
+
+            # Record error metrics
+            self.observability.record_execution(
+                execution_time_ms=execution_time,
+                language=request.language,
+                success=False,
+                error_type=type(e).__name__
+            )
+            self.observability.end_execution()
+
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f'Execution failed: {str(e)}')
             return strategy_execution_pb2.ExecuteStrategyResponse()

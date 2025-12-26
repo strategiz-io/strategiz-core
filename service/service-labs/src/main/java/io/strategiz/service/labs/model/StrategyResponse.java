@@ -1,6 +1,7 @@
 package io.strategiz.service.labs.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.strategiz.data.strategy.entity.StrategyPerformance;
 
 import java.util.Date;
 import java.util.List;
@@ -43,10 +44,10 @@ public class StrategyResponse {
     
     @JsonProperty("isPublic")
     private boolean isPublic;
-    
+
     @JsonProperty("performance")
-    private Map<String, Object> performance;
-    
+    private StrategyPerformance performance;
+
     @JsonProperty("createdAt")
     private Date createdAt;
     
@@ -166,15 +167,15 @@ public class StrategyResponse {
     public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
     }
-    
-    public Map<String, Object> getPerformance() {
+
+    public StrategyPerformance getPerformance() {
         return performance;
     }
-    
-    public void setPerformance(Map<String, Object> performance) {
+
+    public void setPerformance(StrategyPerformance performance) {
         this.performance = performance;
     }
-    
+
     public Date getCreatedAt() {
         return createdAt;
     }

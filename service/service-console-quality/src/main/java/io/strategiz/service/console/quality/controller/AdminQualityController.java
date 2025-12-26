@@ -3,12 +3,15 @@ package io.strategiz.service.console.quality.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.strategiz.client.sonarqube.model.SonarQubeMetrics;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.console.quality.model.CachedQualityMetrics;
 import io.strategiz.service.console.quality.model.ComplianceBreakdown;
 import io.strategiz.service.console.quality.model.QualityOverview;
 import io.strategiz.service.console.quality.model.ViolationList;
@@ -67,7 +70,7 @@ public class AdminQualityController extends BaseController {
 	}
 
 	/**
-	 * Get SonarQube metrics (proxied from SonarQube API).
+	 * Get SonarQube metrics (proxied from SonarQube API or cached).
 	 * @return SonarQube metrics including bugs, vulnerabilities, code smells
 	 */
 	@GetMapping("/sonarqube")
@@ -75,6 +78,35 @@ public class AdminQualityController extends BaseController {
 		// TODO: Add @RequireAuth annotation once authentication is integrated
 		SonarQubeMetrics metrics = qualityMetricsService.getSonarQubeMetrics();
 		return ResponseEntity.ok(metrics);
+	}
+
+	/**
+	 * Cache quality analysis results from build pipeline (GitHub Actions, Cloud
+	 * Build, etc.). This endpoint is called by CI/CD workflows after running
+	 * analysis tools.
+	 *
+	 * Authentication: Requires Bearer token from Vault (secret/strategiz/ci-cd)
+	 * Validated by CiCdAuthFilter.
+	 *
+	 * @param metrics the analysis results to cache
+	 * @return 200 OK if cached successfully
+	 */
+	@PostMapping("/cache")
+	public ResponseEntity<Void> cacheAnalysisResults(@RequestBody CachedQualityMetrics metrics) {
+		qualityMetricsService.cacheAnalysisResults(metrics);
+		return ResponseEntity.ok().build();
+	}
+
+	/**
+	 * Get the latest cached quality analysis results.
+	 * @return cached metrics if available
+	 */
+	@GetMapping("/cache/latest")
+	public ResponseEntity<CachedQualityMetrics> getLatestCachedMetrics() {
+		// TODO: Add @RequireAuth annotation once authentication is integrated
+		return qualityMetricsService.getLatestCachedMetrics()
+			.map(ResponseEntity::ok)
+			.orElse(ResponseEntity.notFound().build());
 	}
 
 	@Override

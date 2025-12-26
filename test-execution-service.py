@@ -64,9 +64,8 @@ def test_simple_strategy():
         market_data.append(bar)
 
     # Simple RSI strategy code
+    # Note: pd, pandas, ta, etc. are already available in the execution environment
     code = """
-import pandas as pd
-
 SYMBOL = 'AAPL'
 STOP_LOSS = 0.02  # 2%
 TAKE_PROFIT = 0.05  # 5%
@@ -80,6 +79,7 @@ def calculate_rsi(data, period=14):
     return 100 - (100 / (1 + rs))
 
 def strategy(data):
+    # pd is already available in the execution environment
     df = pd.DataFrame(data)
     df['rsi'] = calculate_rsi(df)
 

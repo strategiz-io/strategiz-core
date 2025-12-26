@@ -1,6 +1,7 @@
 package io.strategiz.service.labs.service;
 
 import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.data.strategy.entity.StrategyPerformance;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -62,7 +63,8 @@ public class UpdateStrategyService extends BaseService {
         existing.setTags(request.getTags());
         existing.setParameters(request.getParameters());
         existing.setPublic(request.isPublic());
-        
+        existing.setPerformance(request.getPerformance());
+
         // Validate the updated strategy
         validateUpdateRequest(request);
         
@@ -149,8 +151,18 @@ public class UpdateStrategyService extends BaseService {
      * @param performance The performance metrics
      * @return The updated strategy
      */
-    public Optional<Strategy> updateStrategyPerformance(String strategyId, String userId, Map<String, Object> performance) {
+    public Optional<Strategy> updateStrategyPerformance(String strategyId, String userId, StrategyPerformance performance) {
         log.info("Updating strategy {} performance metrics for user: {}", strategyId, userId);
+
+        // Validate performance data if provided
+        if (performance != null) {
+            // Basic validation - ensure critical fields are present
+            if (performance.getTotalReturn() == null && performance.getTotalTrades() == null) {
+                throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_PERFORMANCE,
+                        "Performance data must include at least totalReturn or totalTrades");
+            }
+        }
+
         return updateStrategyRepository.updatePerformance(strategyId, userId, performance);
     }
 

@@ -32,6 +32,20 @@
 			<version>${project.version}</version>
 		</dependency>
 
+		<!-- Data - Quality (for cached metrics entities and repository interface) -->
+		<dependency>
+			<groupId>io.strategiz</groupId>
+			<artifactId>data-quality</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- Client - Firebase (for Firestore implementation of quality cache repository) -->
+		<dependency>
+			<groupId>io.strategiz</groupId>
+			<artifactId>client-firebase</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
 		<!-- Spring Boot Web -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -42,6 +56,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<!-- Spring Vault (for CI/CD token authentication) -->
+		<dependency>
+			<groupId>org.springframework.vault</groupId>
+			<artifactId>spring-vault-core</artifactId>
 		</dependency>
 
 		<!-- Test Dependencies -->

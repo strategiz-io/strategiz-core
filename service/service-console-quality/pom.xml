@@ -9,6 +9,7 @@
 		<groupId>io.strategiz</groupId>
 		<artifactId>service</artifactId>
 		<version>1.0-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>service-console-quality</artifactId>

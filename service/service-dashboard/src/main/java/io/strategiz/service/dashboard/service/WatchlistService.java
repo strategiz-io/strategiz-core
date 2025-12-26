@@ -11,6 +11,7 @@ import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.client.alpaca.client.AlpacaHistoricalClient;
+import io.strategiz.client.alpaca.model.AlpacaBar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -214,7 +215,7 @@ public class WatchlistService extends BaseService {
             java.time.LocalDateTime endDate = java.time.LocalDateTime.now();
             java.time.LocalDateTime startDate = endDate.minusDays(2);
 
-            java.util.List<io.strategiz.client.alpaca.model.AlpacaBar> bars =
+            List<AlpacaBar> bars =
                 alpacaHistoricalClient.getBars(symbol, startDate, endDate, "1Day");
 
             if (bars == null || bars.isEmpty()) {
@@ -226,7 +227,7 @@ public class WatchlistService extends BaseService {
             }
 
             // Get the latest bar (most recent)
-            io.strategiz.client.alpaca.model.AlpacaBar latestBar = bars.get(bars.size() - 1);
+            AlpacaBar latestBar = bars.get(bars.size() - 1);
 
             // Extract price data
             BigDecimal close = latestBar.getClose();

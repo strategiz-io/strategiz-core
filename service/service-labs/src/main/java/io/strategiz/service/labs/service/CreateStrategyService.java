@@ -54,6 +54,7 @@ public class CreateStrategyService extends BaseService {
         strategy.setTags(request.getTags());
         strategy.setParameters(request.getParameters());
         strategy.setPublic(request.isPublic());
+        strategy.setPerformance(request.getPerformance());
 
         // Save using CRUD repository
         Strategy created = createStrategyRepository.createWithUserId(strategy, userId);

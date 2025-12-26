@@ -41,16 +41,16 @@ public class Strategy extends BaseEntity {
     private String userId;
     
     @JsonProperty("backtestResults")
-    private Map<String, Object> backtestResults;
-    
+    private Map<String, Object> backtestResults; // Deprecated - use performance instead
+
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
-    
+
     @JsonProperty("isPublic")
     private boolean isPublic;
-    
+
     @JsonProperty("performance")
-    private Map<String, Object> performance;
+    private StrategyPerformance performance;
 
     // Versioning fields
     @JsonProperty("version")
@@ -188,16 +188,16 @@ public class Strategy extends BaseEntity {
     public boolean isPublic() {
         return isPublic;
     }
-    
+
     public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
     }
-    
-    public Map<String, Object> getPerformance() {
+
+    public StrategyPerformance getPerformance() {
         return performance;
     }
-    
-    public void setPerformance(Map<String, Object> performance) {
+
+    public void setPerformance(StrategyPerformance performance) {
         this.performance = performance;
     }
 

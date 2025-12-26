@@ -1,7 +1,9 @@
 package io.strategiz.service.console.quality.service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -12,6 +14,9 @@ import org.springframework.stereotype.Service;
 
 import io.strategiz.client.sonarqube.SonarQubeClient;
 import io.strategiz.client.sonarqube.model.SonarQubeMetrics;
+import io.strategiz.data.quality.entity.CachedQualityMetricsEntity;
+import io.strategiz.data.quality.repository.CachedQualityMetricsRepository;
+import io.strategiz.service.console.quality.model.CachedQualityMetrics;
 import io.strategiz.service.console.quality.model.ComplianceBreakdown;
 import io.strategiz.service.console.quality.model.ComplianceViolation;
 import io.strategiz.service.console.quality.model.QualityGrade;
@@ -28,15 +33,21 @@ public class QualityMetricsService {
 
 	private static final Logger log = LoggerFactory.getLogger(QualityMetricsService.class);
 
+	private static final int CACHE_FRESHNESS_HOURS = 24;
+
 	private final ComplianceScanner complianceScanner;
 
 	private final SonarQubeClient sonarQubeClient;
 
+	private final CachedQualityMetricsRepository cacheRepository;
+
 	@Autowired
 	public QualityMetricsService(ComplianceScanner complianceScanner,
-			@Autowired(required = false) SonarQubeClient sonarQubeClient) {
+			@Autowired(required = false) SonarQubeClient sonarQubeClient,
+			CachedQualityMetricsRepository cacheRepository) {
 		this.complianceScanner = complianceScanner;
 		this.sonarQubeClient = sonarQubeClient;
+		this.cacheRepository = cacheRepository;
 	}
 
 	/**
@@ -114,18 +125,123 @@ public class QualityMetricsService {
 	}
 
 	/**
-	 * Get SonarQube metrics.
-	 * @return SonarQube metrics from self-hosted instance
+	 * Get SonarQube metrics from cache (preferred) or live API.
+	 * @return SonarQube metrics including bugs, vulnerabilities, code smells
 	 */
 	public SonarQubeMetrics getSonarQubeMetrics() {
 		log.info("Getting SonarQube metrics...");
 
-		if (sonarQubeClient == null) {
-			log.warn("SonarQubeClient not available - returning empty metrics");
-			return new SonarQubeMetrics(0, 0, 0, 0.0, 0.0, "0h", "N/A");
+		// Try cache first
+		Optional<CachedQualityMetricsEntity> cached = cacheRepository.getLatest();
+		if (cached.isPresent() && isCacheFresh(cached.get())) {
+			log.info("Using cached quality metrics from {}", cached.get().getAnalyzedAt());
+			return convertToSonarQubeMetrics(cached.get());
 		}
 
-		return sonarQubeClient.getProjectMetrics();
+		// Fallback to live SonarQube API
+		if (sonarQubeClient != null) {
+			log.info("Cache miss or stale - fetching from SonarQube API");
+			return sonarQubeClient.getProjectMetrics();
+		}
+
+		// No cache and no SonarQube - return empty
+		log.warn("No cached metrics and SonarQubeClient not available - returning empty metrics");
+		return new SonarQubeMetrics(0, 0, 0, 0.0, 0.0, "0h", "N/A");
+	}
+
+	/**
+	 * Cache analysis results from build pipeline.
+	 * @param metrics the analysis results to cache
+	 */
+	public void cacheAnalysisResults(CachedQualityMetrics metrics) {
+		log.info("Caching analysis results: source={}, commit={}", metrics.getAnalysisSource(),
+				metrics.getGitCommitHash());
+
+		CachedQualityMetricsEntity entity = convertToEntity(metrics);
+		cacheRepository.save(entity);
+
+		log.info("Analysis results cached successfully");
+	}
+
+	/**
+	 * Get the latest cached quality metrics.
+	 * @return latest cached metrics if available
+	 */
+	public Optional<CachedQualityMetrics> getLatestCachedMetrics() {
+		return cacheRepository.getLatest().map(this::convertToModel);
+	}
+
+	/**
+	 * Check if cached metrics are fresh (less than 24 hours old).
+	 */
+	private boolean isCacheFresh(CachedQualityMetricsEntity entity) {
+		if (entity.getAnalyzedAt() == null) {
+			return false;
+		}
+
+		Instant cutoff = Instant.now().minus(CACHE_FRESHNESS_HOURS, ChronoUnit.HOURS);
+		return entity.getAnalyzedAt().isAfter(cutoff);
+	}
+
+	/**
+	 * Convert cached entity to SonarQube metrics format.
+	 */
+	private SonarQubeMetrics convertToSonarQubeMetrics(CachedQualityMetricsEntity entity) {
+		return new SonarQubeMetrics(entity.getBugs(), entity.getVulnerabilities(), entity.getCodeSmells(),
+				entity.getCoverage(), entity.getDuplications(), entity.getTechnicalDebt(),
+				entity.getReliabilityRating());
+	}
+
+	/**
+	 * Convert model to entity for storage.
+	 */
+	private CachedQualityMetricsEntity convertToEntity(CachedQualityMetrics model) {
+		CachedQualityMetricsEntity entity = new CachedQualityMetricsEntity();
+		entity.setAnalysisId(model.getAnalysisId());
+		entity.setAnalyzedAt(model.getAnalyzedAt());
+		entity.setGitCommitHash(model.getGitCommitHash());
+		entity.setGitBranch(model.getGitBranch());
+		entity.setBugs(model.getBugs());
+		entity.setVulnerabilities(model.getVulnerabilities());
+		entity.setCodeSmells(model.getCodeSmells());
+		entity.setCoverage(model.getCoverage());
+		entity.setDuplications(model.getDuplications());
+		entity.setTechnicalDebt(model.getTechnicalDebt());
+		entity.setReliabilityRating(model.getReliabilityRating());
+		entity.setSecurityRating(model.getSecurityRating());
+		entity.setMaintainabilityRating(model.getMaintainabilityRating());
+		entity.setQualityGateStatus(model.getQualityGateStatus());
+		entity.setTotalIssues(model.getTotalIssues());
+		entity.setNewIssues(model.getNewIssues());
+		entity.setAnalysisSource(model.getAnalysisSource());
+		entity.setBuildNumber(model.getBuildNumber());
+		return entity;
+	}
+
+	/**
+	 * Convert entity to model for API response.
+	 */
+	private CachedQualityMetrics convertToModel(CachedQualityMetricsEntity entity) {
+		return CachedQualityMetrics.builder()
+			.analysisId(entity.getAnalysisId())
+			.analyzedAt(entity.getAnalyzedAt())
+			.gitCommitHash(entity.getGitCommitHash())
+			.gitBranch(entity.getGitBranch())
+			.bugs(entity.getBugs())
+			.vulnerabilities(entity.getVulnerabilities())
+			.codeSmells(entity.getCodeSmells())
+			.coverage(entity.getCoverage())
+			.duplications(entity.getDuplications())
+			.technicalDebt(entity.getTechnicalDebt())
+			.reliabilityRating(entity.getReliabilityRating())
+			.securityRating(entity.getSecurityRating())
+			.maintainabilityRating(entity.getMaintainabilityRating())
+			.qualityGateStatus(entity.getQualityGateStatus())
+			.totalIssues(entity.getTotalIssues())
+			.newIssues(entity.getNewIssues())
+			.analysisSource(entity.getAnalysisSource())
+			.buildNumber(entity.getBuildNumber())
+			.build();
 	}
 
 }

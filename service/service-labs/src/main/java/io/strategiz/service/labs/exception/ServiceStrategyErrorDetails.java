@@ -28,7 +28,8 @@ public enum ServiceStrategyErrorDetails implements ErrorDetails {
     STRATEGY_DESCRIPTION_TOO_LONG(HttpStatus.BAD_REQUEST, "strategy-description-too-long"),
     STRATEGY_CODE_TOO_LONG(HttpStatus.BAD_REQUEST, "strategy-code-too-long"),
     STRATEGY_TOO_MANY_TAGS(HttpStatus.BAD_REQUEST, "strategy-too-many-tags"),
-    
+    STRATEGY_INVALID_PERFORMANCE(HttpStatus.BAD_REQUEST, "strategy-invalid-performance"),
+
     // Execution Errors
     STRATEGY_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-execution-failed"),
     STRATEGY_BACKTEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-backtest-failed"),

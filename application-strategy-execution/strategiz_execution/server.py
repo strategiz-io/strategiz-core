@@ -19,6 +19,7 @@ from strategiz_execution.generated import strategy_execution_pb2
 from strategiz_execution.generated import strategy_execution_pb2_grpc
 from strategiz_execution.utils.logging_config import setup_logging
 from strategiz_execution.config import Config
+from strategiz_execution.observability import get_observability
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,12 @@ def serve():
     # Setup logging
     setup_logging(config.log_level)
     logger.info("Starting Strategy Execution Service...")
+
+    # Initialize observability
+    observability = get_observability(
+        service_name="strategiz-execution",
+        environment=config.environment
+    )
 
     # Create gRPC server
     server = grpc.server(
@@ -77,6 +84,9 @@ def serve():
         reflection.SERVICE_NAME,
     )
     reflection.enable_server_reflection(service_names, server)
+
+    # Note: gRPC auto-instrumentation happens via GrpcInstrumentorServer().instrument()
+    # Manual metrics are recorded in the servicer
 
     # Start server
     server.add_insecure_port(f'[::]:{config.port}')

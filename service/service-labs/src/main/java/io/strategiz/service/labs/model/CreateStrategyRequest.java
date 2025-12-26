@@ -1,6 +1,7 @@
 package io.strategiz.service.labs.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.strategiz.data.strategy.entity.StrategyPerformance;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -35,7 +36,10 @@ public class CreateStrategyRequest {
     
     @JsonProperty("isPublic")
     private boolean isPublic = false;
-    
+
+    @JsonProperty("performance")
+    private StrategyPerformance performance;
+
     // Getters and Setters
     public String getName() {
         return name;
@@ -96,8 +100,16 @@ public class CreateStrategyRequest {
     public boolean isPublic() {
         return isPublic;
     }
-    
+
     public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
+    }
+
+    public StrategyPerformance getPerformance() {
+        return performance;
+    }
+
+    public void setPerformance(StrategyPerformance performance) {
+        this.performance = performance;
     }
 }

@@ -3,6 +3,7 @@ package io.strategiz.data.strategy.repository;
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.data.strategy.entity.StrategyPerformance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -63,7 +64,7 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     }
     
     @Override
-    public Optional<Strategy> updatePerformance(String id, String userId, Map<String, Object> performance) {
+    public Optional<Strategy> updatePerformance(String id, String userId, StrategyPerformance performance) {
         return updateField(id, userId, strategy -> strategy.setPerformance(performance));
     }
     

@@ -47,6 +47,7 @@ public class ExecuteStrategyController extends BaseController {
     private final PythonStrategyExecutor pythonStrategyExecutor;
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final MarketDataRepository marketDataRepository;
+    private final UpdateStrategyService updateStrategyService;
     // Temporarily disabled - gRPC code generation issues
     // private final ExecutionServiceClient executionServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -57,13 +58,15 @@ public class ExecuteStrategyController extends BaseController {
                                    ReadStrategyService readStrategyService,
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
-                                   MarketDataRepository marketDataRepository) {
+                                   MarketDataRepository marketDataRepository,
+                                   UpdateStrategyService updateStrategyService) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
         this.pythonStrategyExecutor = pythonStrategyExecutor;
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
+        this.updateStrategyService = updateStrategyService;
         // Temporarily disabled - gRPC code generation issues
         // this.executionServiceClient = executionServiceClient;
     }
@@ -166,6 +169,18 @@ public class ExecuteStrategyController extends BaseController {
             io.strategiz.business.strategy.execution.model.ExecutionRequest executionRequest = buildDirectCodeExecutionRequest(request, userId);
             ExecutionResult result = executionEngineService.executeStrategy(executionRequest);
             ExecuteStrategyResponse response = convertToResponse(result, request);
+
+            // If this execution is for a saved strategy (has strategyId in request), update its performance
+            if (request.getStrategyId() != null && !request.getStrategyId().isEmpty() && response.getPerformance() != null) {
+                try {
+                    Map<String, Object> performanceMap = convertPerformanceToMap(response.getPerformance());
+                    updateStrategyService.updateStrategyPerformance(request.getStrategyId(), userId, performanceMap);
+                    logger.info("Updated performance for strategy: {}", request.getStrategyId());
+                } catch (Exception e) {
+                    logger.warn("Failed to update strategy performance for: {}", request.getStrategyId(), e);
+                    // Don't fail the execution if performance update fails
+                }
+            }
 
             return ResponseEntity.ok(response);
 
@@ -543,4 +558,25 @@ public class ExecuteStrategyController extends BaseController {
     //
     //     return response;
     // }
+
+    /**
+     * Convert Performance object to Map for Firestore storage
+     */
+    private Map<String, Object> convertPerformanceToMap(ExecuteStrategyResponse.Performance performance) {
+        Map<String, Object> map = new java.util.HashMap<>();
+        map.put("totalReturn", performance.getTotalReturn());
+        map.put("totalPnL", performance.getTotalPnL());
+        map.put("winRate", performance.getWinRate());
+        map.put("totalTrades", performance.getTotalTrades());
+        map.put("profitableTrades", performance.getProfitableTrades());
+        map.put("buyCount", performance.getBuyCount());
+        map.put("sellCount", performance.getSellCount());
+        map.put("avgWin", performance.getAvgWin());
+        map.put("avgLoss", performance.getAvgLoss());
+        map.put("profitFactor", performance.getProfitFactor());
+        map.put("maxDrawdown", performance.getMaxDrawdown());
+        map.put("sharpeRatio", performance.getSharpeRatio());
+        map.put("lastTestedAt", performance.getLastTestedAt());
+        return map;
+    }
 }

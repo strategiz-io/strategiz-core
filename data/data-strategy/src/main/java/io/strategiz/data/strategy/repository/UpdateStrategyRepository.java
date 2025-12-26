@@ -1,6 +1,7 @@
 package io.strategiz.data.strategy.repository;
 
 import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.data.strategy.entity.StrategyPerformance;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public interface UpdateStrategyRepository {
     /**
      * Update strategy performance metrics
      */
-    Optional<Strategy> updatePerformance(String id, String userId, Map<String, Object> performance);
+    Optional<Strategy> updatePerformance(String id, String userId, StrategyPerformance performance);
     
     /**
      * Update strategy backtest results

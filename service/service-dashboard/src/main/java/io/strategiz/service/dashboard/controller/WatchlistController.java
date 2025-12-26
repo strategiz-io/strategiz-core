@@ -283,6 +283,59 @@ public class WatchlistController extends BaseController {
     }
     
     /**
+     * Initialize watchlist with default symbols for new users.
+     * Auto-populates with 6 default symbols (5 stocks/ETFs + 1 crypto).
+     * Idempotent - returns existing items if already initialized.
+     *
+     * @param user The authenticated user from token
+     * @return Initialized watchlist with default symbols
+     */
+    @PostMapping("/initialize")
+    public ResponseEntity<Map<String, Object>> initializeWatchlist(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
+        log.info("Initializing watchlist for user: {}", userId);
+
+        try {
+            // Call service to initialize default watchlist
+            List<WatchlistItemEntity> entities = watchlistService.initializeDefaultWatchlist(userId);
+
+            // Convert entities to WatchlistItem DTOs
+            List<WatchlistItem> items = entities.stream()
+                .map(this::convertToWatchlistItem)
+                .collect(Collectors.toList());
+
+            // Create collection response
+            WatchlistCollectionResponse watchlist = new WatchlistCollectionResponse();
+            watchlist.setItems(items);
+            watchlist.setTotalCount(items.size());
+            watchlist.setActiveCount(items.size());
+            watchlist.setIsEmpty(items.isEmpty());
+
+            // Format response same as GET endpoint
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("userId", userId);
+            responseData.put("demoMode", getUserDemoMode(userId));
+            responseData.put("watchlist", formatWatchlistForUI(watchlist));
+            responseData.put("metadata", createMetadata(watchlist, "real"));
+
+            log.info("Successfully initialized watchlist for user {} with {} symbols", userId, items.size());
+
+            return ResponseEntity.ok(responseData);
+
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error initializing watchlist for user: {}", userId, e);
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.DASHBOARD_ERROR,
+                "service-dashboard",
+                e,
+                "Failed to initialize watchlist"
+            );
+        }
+    }
+
+    /**
      * Get REAL watchlist data from user's saved items + market APIs
      */
     private WatchlistCollectionResponse getRealWatchlistData(String userId) {

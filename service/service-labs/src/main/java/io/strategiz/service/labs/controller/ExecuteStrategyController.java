@@ -47,7 +47,6 @@ public class ExecuteStrategyController extends BaseController {
     private final PythonStrategyExecutor pythonStrategyExecutor;
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final MarketDataRepository marketDataRepository;
-    private final UpdateStrategyService updateStrategyService;
     // Temporarily disabled - gRPC code generation issues
     // private final ExecutionServiceClient executionServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -58,15 +57,13 @@ public class ExecuteStrategyController extends BaseController {
                                    ReadStrategyService readStrategyService,
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
-                                   MarketDataRepository marketDataRepository,
-                                   UpdateStrategyService updateStrategyService) {
+                                   MarketDataRepository marketDataRepository) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
         this.pythonStrategyExecutor = pythonStrategyExecutor;
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
-        this.updateStrategyService = updateStrategyService;
         // Temporarily disabled - gRPC code generation issues
         // this.executionServiceClient = executionServiceClient;
     }
@@ -170,17 +167,7 @@ public class ExecuteStrategyController extends BaseController {
             ExecutionResult result = executionEngineService.executeStrategy(executionRequest);
             ExecuteStrategyResponse response = convertToResponse(result, request);
 
-            // If this execution is for a saved strategy (has strategyId in request), update its performance
-            if (request.getStrategyId() != null && !request.getStrategyId().isEmpty() && response.getPerformance() != null) {
-                try {
-                    Map<String, Object> performanceMap = convertPerformanceToMap(response.getPerformance());
-                    updateStrategyService.updateStrategyPerformance(request.getStrategyId(), userId, performanceMap);
-                    logger.info("Updated performance for strategy: {}", request.getStrategyId());
-                } catch (Exception e) {
-                    logger.warn("Failed to update strategy performance for: {}", request.getStrategyId(), e);
-                    // Don't fail the execution if performance update fails
-                }
-            }
+            // TODO: Add strategy performance tracking when strategyId is added to request
 
             return ResponseEntity.ok(response);
 

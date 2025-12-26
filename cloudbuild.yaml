@@ -40,9 +40,8 @@ steps:
       - '--set-secrets'
       - 'VAULT_TOKEN=vault-root-token:latest'
 
-# Build options
-options:
-  machine_type: 'E2_HIGHMEM_8'  # 8 vCPUs, 64 GB RAM (was E2_HIGHCPU_8 with 8 GB)
-
-# Build timeout
 timeout: '1800s'
+
+options:
+  machineType: 'E2_HIGHMEM_8'
+  diskSizeGb: 100

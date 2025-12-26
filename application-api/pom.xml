@@ -165,19 +165,19 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Admin Console Service (admin endpoints) - Temporarily disabled -->
-        <!-- <dependency>
+        <!-- Admin Console Service (admin endpoints) -->
+        <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console</artifactId>
             <version>${project.version}</version>
-        </dependency> -->
+        </dependency>
 
-        <!-- Console Quality Service (quality metrics and SonarQube integration) - Temporarily disabled -->
-        <!-- <dependency>
+        <!-- Console Quality Service (quality metrics and SonarQube integration) -->
+        <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console-quality</artifactId>
             <version>${project.version}</version>
-        </dependency> -->
+        </dependency>
 
         <!-- Batch Jobs (for console job management) -->
         <dependency>

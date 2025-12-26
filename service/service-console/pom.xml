@@ -75,24 +75,24 @@
             <artifactId>batch-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Fundamentals batch jobs -->
+        <!-- Fundamentals modules temporarily disabled (FundamentalsTimescaleEntity missing) -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Fundamentals data access -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Fundamentals business logic -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <!-- Spring dependencies -->
         <dependency>

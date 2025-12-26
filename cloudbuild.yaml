@@ -41,7 +41,3 @@ steps:
       - 'VAULT_TOKEN=vault-root-token:latest'
 
 timeout: '1800s'
-
-options:
-  machineType: 'E2_HIGHMEM_8'
-  diskSizeGb: 100

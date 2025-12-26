@@ -71,21 +71,32 @@ public class GoogleOAuthService extends BaseService {
      * @return The authorization URL and state
      */
     public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
-        // Build state: format is "type:uuid:redirectUrl" (redirectUrl is base64 encoded if present)
+        // Build state to match original OAuth format (same as Facebook)
+        // Signup: "signup:uuid" or "signup:uuid:base64redirect"
+        // Signin: "uuid" or "uuid:base64redirect" (no prefix for backwards compatibility)
         String uuid = UUID.randomUUID().toString();
         String state;
-        if (isSignup) {
-            state = "signup:" + uuid;
-        } else {
-            state = "signin:" + uuid;
-        }
-
-        // Append redirect URL to state if provided
         if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
+            // Base64 encode the redirect URL to safely include in state
             String encodedRedirect = java.util.Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(redirectAfterAuth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            state = state + ":" + encodedRedirect;
-            log.info("Encoded redirectAfterAuth in state: {}", redirectAfterAuth);
+            if (isSignup) {
+                state = "signup:" + uuid + ":" + encodedRedirect;
+            } else {
+                // For signin, don't use "signin:" prefix - just uuid:redirect for backwards compatibility
+                state = uuid + ":" + encodedRedirect;
+            }
+            log.info("Built state with redirect: type={}, uuid={}, redirect={}",
+                isSignup ? "signup" : "signin", uuid, redirectAfterAuth);
+        } else {
+            // Original format: "signup:uuid" for signup, just "uuid" for signin
+            if (isSignup) {
+                state = "signup:" + uuid;
+            } else {
+                state = uuid;
+            }
+            log.info("Built state without redirect: type={}, uuid={}",
+                isSignup ? "signup" : "signin", uuid);
         }
 
         AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
@@ -200,7 +211,11 @@ public class GoogleOAuthService extends BaseService {
 
     /**
      * Extract redirect URL from OAuth state parameter
-     * State format: type:uuid:encodedRedirect (encodedRedirect is base64 URL encoded)
+     * State formats:
+     * - Signup with redirect: "signup:uuid:encodedRedirect"
+     * - Signup without redirect: "signup:uuid"
+     * - Signin with redirect: "uuid:encodedRedirect"
+     * - Signin without redirect: "uuid"
      */
     private String extractRedirectFromState(String state) {
         if (state == null || state.isEmpty()) {
@@ -208,14 +223,28 @@ public class GoogleOAuthService extends BaseService {
         }
 
         String[] parts = state.split(":", 3);
-        if (parts.length < 3) {
-            return null;
-        }
+
+        // Determine if this is signup or signin based on prefix
+        boolean isSignup = state.startsWith("signup:");
 
         try {
-            // Third part is the base64 encoded redirect URL
-            byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[2]);
-            return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+            if (isSignup) {
+                // Signup format: signup:uuid:encodedRedirect (3 parts)
+                if (parts.length < 3) {
+                    return null; // No redirect in state
+                }
+                // Third part is the base64 encoded redirect URL
+                byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[2]);
+                return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+            } else {
+                // Signin format: uuid:encodedRedirect (2 parts)
+                if (parts.length < 2) {
+                    return null; // No redirect in state
+                }
+                // Second part is the base64 encoded redirect URL
+                byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[1]);
+                return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+            }
         } catch (Exception e) {
             log.warn("Failed to decode redirect from state: {}", e.getMessage());
             return null;

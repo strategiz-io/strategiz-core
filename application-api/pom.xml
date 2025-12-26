@@ -165,24 +165,19 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Admin Console Service (admin endpoints) - TEMPORARILY DISABLED -->
-        <!-- Batch job dependencies (MarketDataBackfillJob, FundamentalsBackfillJob) not in classpath -->
-        <!--
+        <!-- Admin Console Service (admin endpoints) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
-        <!-- Console Quality Service (quality metrics and SonarQube integration) - TEMPORARILY DISABLED -->
-        <!--
+        <!-- Console Quality Service (quality metrics and SonarQube integration) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console-quality</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Market Data Batch Jobs (for console job management) -->
         <dependency>

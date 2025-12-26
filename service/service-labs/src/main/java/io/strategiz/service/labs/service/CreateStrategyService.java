@@ -102,6 +102,12 @@ public class CreateStrategyService extends BaseService {
             throwModuleException(ServiceStrategyErrorDetails.STRATEGY_TOO_MANY_TAGS,
                     "Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
         }
+
+        // Validate performance data - strategies must be backtested before saving
+        if (request.getPerformance() == null) {
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_MISSING_PERFORMANCE,
+                    "Strategy must be run at least once to generate performance data before saving");
+        }
     }
     
     private boolean isValidLanguage(String language) {

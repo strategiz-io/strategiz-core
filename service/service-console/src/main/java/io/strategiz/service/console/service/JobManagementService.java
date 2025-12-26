@@ -1,7 +1,10 @@
 package io.strategiz.service.console.service;
 
+import io.strategiz.batch.fundamentals.FundamentalsBackfillJob;
+import io.strategiz.batch.fundamentals.FundamentalsIncrementalJob;
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
+import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
@@ -31,9 +34,13 @@ public class JobManagementService extends BaseService {
 	private final Map<String, JobExecutionInfo> jobExecutions = new ConcurrentHashMap<>();
 
 	// Job beans (optional - may not be present if scheduler profile not active)
-	private final Optional<MarketDataBackfillJob> backfillJob;
+	private final Optional<MarketDataBackfillJob> marketDataBackfillJob;
 
-	private final Optional<MarketDataIncrementalJob> incrementalJob;
+	private final Optional<MarketDataIncrementalJob> marketDataIncrementalJob;
+
+	private final Optional<FundamentalsBackfillJob> fundamentalsBackfillJob;
+
+	private final Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob;
 
 	// Known jobs (registered at startup or manually added)
 	private static final Map<String, JobConfig> KNOWN_JOBS = Map.of("marketDataBackfill",
@@ -42,15 +49,28 @@ public class JobManagementService extends BaseService {
 					"Manual trigger only"),
 			"marketDataIncremental",
 			new JobConfig("marketDataIncremental", "Market Data Incremental",
-					"Incremental collection of latest bars across all timeframes", "0 */5 * * * MON-FRI"));
+					"Incremental collection of latest bars across all timeframes", "0 */5 * * * MON-FRI"),
+			"fundamentalsBackfill",
+			new JobConfig("fundamentalsBackfill", "Fundamentals Backfill",
+					"Backfill company fundamentals data from Yahoo Finance for all configured symbols",
+					"Manual trigger only"),
+			"fundamentalsIncremental",
+			new JobConfig("fundamentalsIncremental", "Fundamentals Incremental",
+					"Daily update of company fundamentals data from Yahoo Finance", "0 0 2 * * *"));
 
-	public JobManagementService(Optional<MarketDataBackfillJob> backfillJob,
-			Optional<MarketDataIncrementalJob> incrementalJob) {
-		this.backfillJob = backfillJob;
-		this.incrementalJob = incrementalJob;
+	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
+			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
+			Optional<FundamentalsBackfillJob> fundamentalsBackfillJob,
+			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob) {
+		this.marketDataBackfillJob = marketDataBackfillJob;
+		this.marketDataIncrementalJob = marketDataIncrementalJob;
+		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
+		this.fundamentalsIncrementalJob = fundamentalsIncrementalJob;
 
-		log.info("JobManagementService initialized: backfillJob={}, incrementalJob={}", backfillJob.isPresent(),
-				incrementalJob.isPresent());
+		log.info(
+				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}",
+				marketDataBackfillJob.isPresent(), marketDataIncrementalJob.isPresent(),
+				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent());
 	}
 
 	public List<JobResponse> listJobs() {
@@ -152,10 +172,16 @@ public class JobManagementService extends BaseService {
 		try {
 			switch (jobName) {
 				case "marketDataBackfill":
-					executeBackfillJob();
+					executeMarketDataBackfillJob();
 					break;
 				case "marketDataIncremental":
-					executeIncrementalJob();
+					executeMarketDataIncrementalJob();
+					break;
+				case "fundamentalsBackfill":
+					executeFundamentalsBackfillJob();
+					break;
+				case "fundamentalsIncremental":
+					executeFundamentalsIncrementalJob();
 					break;
 				default:
 					log.warn("Unknown job: {}", jobName);
@@ -174,21 +200,21 @@ public class JobManagementService extends BaseService {
 		}
 	}
 
-	private void executeBackfillJob() {
-		if (backfillJob.isEmpty()) {
+	private void executeMarketDataBackfillJob() {
+		if (marketDataBackfillJob.isEmpty()) {
 			log.warn(
 					"MarketDataBackfillJob bean not available. Start with scheduler profile or restart application.");
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Backfill job not available. Ensure scheduler profile is active or job bean is instantiated.");
 		}
 
-		if (backfillJob.get().isRunning()) {
+		if (marketDataBackfillJob.get().isRunning()) {
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
 					"marketDataBackfill");
 		}
 
 		log.info("Executing MarketDataBackfillJob.triggerManualExecution()");
-		MarketDataBackfillJob.BackfillResult result = backfillJob.get().triggerManualExecution();
+		MarketDataBackfillJob.BackfillResult result = marketDataBackfillJob.get().triggerManualExecution();
 
 		if (!result.success) {
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
@@ -199,21 +225,21 @@ public class JobManagementService extends BaseService {
 				result.dataPointsStored, result.errorCount);
 	}
 
-	private void executeIncrementalJob() {
-		if (incrementalJob.isEmpty()) {
+	private void executeMarketDataIncrementalJob() {
+		if (marketDataIncrementalJob.isEmpty()) {
 			log.warn(
 					"MarketDataIncrementalJob bean not available. Start with scheduler profile or restart application.");
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Incremental job not available. Ensure scheduler profile is active or job bean is instantiated.");
 		}
 
-		if (incrementalJob.get().isRunning()) {
+		if (marketDataIncrementalJob.get().isRunning()) {
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
 					"marketDataIncremental");
 		}
 
 		log.info("Executing MarketDataIncrementalJob.triggerManualExecution()");
-		MarketDataIncrementalJob.IncrementalResult result = incrementalJob.get().triggerManualExecution();
+		MarketDataIncrementalJob.IncrementalResult result = marketDataIncrementalJob.get().triggerManualExecution();
 
 		if (!result.success) {
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
@@ -224,12 +250,66 @@ public class JobManagementService extends BaseService {
 				result.dataPointsStored, result.errorCount);
 	}
 
+	private void executeFundamentalsBackfillJob() {
+		if (fundamentalsBackfillJob.isEmpty()) {
+			log.warn(
+					"FundamentalsBackfillJob bean not available. Start with scheduler profile or restart application.");
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
+					"Fundamentals backfill job not available. Ensure scheduler profile is active or job bean is instantiated.");
+		}
+
+		if (fundamentalsBackfillJob.get().isRunning()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					"fundamentalsBackfill");
+		}
+
+		log.info("Executing FundamentalsBackfillJob.executeBackfill()");
+		CollectionResult result = fundamentalsBackfillJob.get().executeBackfill();
+
+		if (result.getErrorCount() > 0 && result.getSuccessCount() == 0) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
+					"Fundamentals backfill failed: all symbols failed");
+		}
+
+		log.info("Fundamentals backfill completed: {} symbols, {} success, {} errors", result.getTotalSymbols(),
+				result.getSuccessCount(), result.getErrorCount());
+	}
+
+	private void executeFundamentalsIncrementalJob() {
+		if (fundamentalsIncrementalJob.isEmpty()) {
+			log.warn(
+					"FundamentalsIncrementalJob bean not available. Start with scheduler profile or restart application.");
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
+					"Fundamentals incremental job not available. Ensure scheduler profile is active or job bean is instantiated.");
+		}
+
+		if (fundamentalsIncrementalJob.get().isRunning()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					"fundamentalsIncremental");
+		}
+
+		log.info("Executing FundamentalsIncrementalJob.triggerManualExecution()");
+		CollectionResult result = fundamentalsIncrementalJob.get().triggerManualExecution();
+
+		if (result.getErrorCount() > 0 && result.getSuccessCount() == 0) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
+					"Fundamentals incremental failed: all symbols failed");
+		}
+
+		log.info("Fundamentals incremental completed: {} symbols, {} success, {} errors", result.getTotalSymbols(),
+				result.getSuccessCount(), result.getErrorCount());
+	}
+
 	private boolean isJobBeanAvailable(String jobName) {
 		switch (jobName) {
 			case "marketDataBackfill":
-				return backfillJob.isPresent();
+				return marketDataBackfillJob.isPresent();
 			case "marketDataIncremental":
-				return incrementalJob.isPresent();
+				return marketDataIncrementalJob.isPresent();
+			case "fundamentalsBackfill":
+				return fundamentalsBackfillJob.isPresent();
+			case "fundamentalsIncremental":
+				return fundamentalsIncrementalJob.isPresent();
 			default:
 				return false;
 		}

@@ -104,7 +104,11 @@
         <!-- Temporarily commented out due to dependency issues -->
         <!-- <module>client/client-walletaddress</module> -->
         
-        <!-- Service Modules (Build Fifth) -->
+        <!-- Batch Modules (Build Fifth - before services that depend on them) -->
+        <module>batch/batch-marketdata</module>
+        <module>batch/batch-fundamentals</module>
+
+        <!-- Service Modules (Build Sixth) -->
         <module>service/service-framework-base</module>
         <module>service/service-labs</module>
         <module>service/service-live-strategies</module>
@@ -125,10 +129,6 @@
         <module>service/service-console-quality</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
-
-        <!-- Batch Modules (Build Sixth) -->
-        <module>batch/batch-marketdata</module>
-        <module>batch/batch-fundamentals</module>
 
         <!-- API Modules (Build Seventh) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->

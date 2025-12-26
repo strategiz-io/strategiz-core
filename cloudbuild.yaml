@@ -41,3 +41,6 @@ steps:
       - 'VAULT_TOKEN=vault-root-token:latest'
 
 timeout: '1800s'
+options:
+  machineType: 'E2_HIGHCPU_32'  # 32 vCPU, 32 GB memory - needed for large Java builds
+  diskSizeGb: 100

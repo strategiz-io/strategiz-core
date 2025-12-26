@@ -165,24 +165,29 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Admin Console Service (admin endpoints) -->
-        <dependency>
+        <!-- Admin Console Service (admin endpoints) - Temporarily disabled -->
+        <!-- <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console</artifactId>
             <version>${project.version}</version>
-        </dependency>
+        </dependency> -->
 
-        <!-- Console Quality Service (quality metrics and SonarQube integration) -->
-        <dependency>
+        <!-- Console Quality Service (quality metrics and SonarQube integration) - Temporarily disabled -->
+        <!-- <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console-quality</artifactId>
             <version>${project.version}</version>
-        </dependency>
+        </dependency> -->
 
-        <!-- Market Data Batch Jobs (for console job management) -->
+        <!-- Batch Jobs (for console job management) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>batch-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
 

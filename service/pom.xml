@@ -32,8 +32,9 @@
         <module>service-live-strategies</module>
         <module>service-walletaddress</module>
         <module>service-learn</module>
-        <module>service-console</module>
-        <module>service-console-quality</module>
+        <!-- Temporarily disabled - depends on batch-fundamentals which is disabled -->
+        <!-- <module>service-console</module> -->
+        <!-- <module>service-console-quality</module> -->
         <module>service-social</module>
     </modules>
 </project>

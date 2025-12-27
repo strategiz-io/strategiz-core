@@ -191,12 +191,12 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Strategy Execution gRPC Client - Temporarily disabled -->
-        <!-- <dependency>
+        <!-- Strategy Execution gRPC Client -->
+        <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-strategy-execution</artifactId>
+            <artifactId>client-execution</artifactId>
             <version>${project.version}</version>
-        </dependency> -->
+        </dependency>
     </dependencies>
 
     <build>

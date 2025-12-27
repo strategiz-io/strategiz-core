@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copy everything (pom.xml files nested deeply in modules)
 COPY pom.xml .
+COPY proto/ proto/
 COPY framework/ framework/
 COPY data/ data/
 COPY client/ client/

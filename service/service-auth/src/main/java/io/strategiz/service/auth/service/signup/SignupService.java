@@ -151,12 +151,11 @@ public class SignupService extends BaseService {
         }
 
         // Create authentication method entity
+        // NOTE: Do NOT manually set audit fields (createdBy, modifiedBy, isActive)
+        // The repository layer's _initAudit() method will initialize them automatically
         AuthenticationMethodEntity authMethodEntity = new AuthenticationMethodEntity();
         authMethodEntity.setAuthenticationMethod(authType);
         authMethodEntity.setName(displayName);
-        authMethodEntity.setCreatedBy(createdBy);
-        authMethodEntity.setModifiedBy(createdBy);
-        authMethodEntity.setIsActive(true);
         authMethodEntity.setLastUsedAt(Instant.now());
 
         // Add metadata

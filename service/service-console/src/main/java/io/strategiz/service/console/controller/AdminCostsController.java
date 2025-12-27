@@ -31,12 +31,13 @@ import java.util.Map;
  * Provides endpoints for cost summary, daily breakdowns, service costs,
  * Firestore usage, and cost predictions.
  *
- * Enable with: gcp.billing.enabled=true
+ * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
  */
 @RestController
 @RequestMapping("/v1/console/costs")
 @Tag(name = "Admin - Operating Costs", description = "Operating cost tracking and prediction endpoints")
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
 public class AdminCostsController extends BaseController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminCostsController.class);

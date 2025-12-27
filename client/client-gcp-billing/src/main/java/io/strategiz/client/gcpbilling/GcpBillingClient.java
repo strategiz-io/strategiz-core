@@ -38,12 +38,13 @@ public class GcpBillingClient {
     private final BigQuery bigQuery;
     private final GcpBillingProperties properties;
 
-    public GcpBillingClient(BigQuery bigQuery, GcpBillingProperties properties) {
+    public GcpBillingClient(GcpBillingProperties properties, @Autowired(required = false) BigQuery bigQuery) {
         this.bigQuery = bigQuery;
         this.properties = properties;
-        log.info("GcpBillingClient initialized - Project: {}, Mode: {}",
+        log.info("GcpBillingClient initialized - Project: {}, Mode: {}, BigQuery Client: {}",
                 properties.projectId(),
-                properties.useBigQuery() ? "BigQuery" : "Estimated (Billing API)");
+                properties.useBigQuery() ? "BigQuery" : "Estimated (Billing API)",
+                bigQuery != null ? "Available" : "Not Available");
     }
 
     /**
@@ -72,6 +73,11 @@ public class GcpBillingClient {
      * Get cost summary from BigQuery billing export
      */
     private GcpCostSummary getCostSummaryFromBigQuery(LocalDate startDate, LocalDate endDate) {
+        if (bigQuery == null) {
+            log.warn("BigQuery client not available, falling back to estimated costs");
+            return getEstimatedCostSummary(startDate, endDate);
+        }
+
         try {
             String query = String.format("""
                 SELECT
@@ -188,6 +194,11 @@ public class GcpBillingClient {
      * Get daily costs from BigQuery billing export
      */
     private List<GcpDailyCost> getDailyCostsFromBigQuery(LocalDate startDate, LocalDate endDate) {
+        if (bigQuery == null) {
+            log.warn("BigQuery client not available, falling back to estimated costs");
+            return getEstimatedDailyCosts(startDate, endDate);
+        }
+
         try {
             String query = String.format("""
                 SELECT

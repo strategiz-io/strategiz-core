@@ -166,18 +166,25 @@
         </dependency>
 
         <!-- Admin Console Service (admin endpoints) -->
+        <!-- TEMPORARILY DISABLED: Modules fail to build in Cloud Build environment -->
+        <!-- Will investigate and re-enable after OAuth fix is deployed -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <!-- Console Quality Service (quality metrics and SonarQube integration) -->
+        <!-- TEMPORARILY DISABLED: Modules fail to build in Cloud Build environment -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console-quality</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <!-- Batch Jobs (for console job management) -->
         <dependency>

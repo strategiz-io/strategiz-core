@@ -21,10 +21,11 @@ import java.util.List;
  * Client for retrieving GCP Cloud Monitoring metrics.
  * Provides real-time usage data for Firestore, Cloud Run, and other services.
  *
- * Enable with: gcp.billing.enabled=true
+ * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
  */
 @Component
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
 public class GcpMonitoringClient {
 
     private static final Logger log = LoggerFactory.getLogger(GcpMonitoringClient.class);

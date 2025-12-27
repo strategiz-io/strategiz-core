@@ -75,8 +75,7 @@
             <artifactId>batch-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Fundamentals modules temporarily disabled (FundamentalsTimescaleEntity missing) -->
-        <!--
+        <!-- Fundamentals modules enabled -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-fundamentals</artifactId>
@@ -92,7 +91,6 @@
             <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Spring dependencies -->
         <dependency>

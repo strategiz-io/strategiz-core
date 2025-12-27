@@ -249,6 +249,9 @@ public class ExecuteStrategyResponse {
         @JsonProperty("lastTestedAt")
         private String lastTestedAt;
 
+        @JsonProperty("testPeriod")
+        private String testPeriod; // Formatted period (e.g., "5.3Y", "18M", "Since Jan 2020")
+
         // Getters and Setters
         public double getTotalReturn() {
             return totalReturn;
@@ -360,6 +363,14 @@ public class ExecuteStrategyResponse {
 
         public void setLastTestedAt(String lastTestedAt) {
             this.lastTestedAt = lastTestedAt;
+        }
+
+        public String getTestPeriod() {
+            return testPeriod;
+        }
+
+        public void setTestPeriod(String testPeriod) {
+            this.testPeriod = testPeriod;
         }
     }
 

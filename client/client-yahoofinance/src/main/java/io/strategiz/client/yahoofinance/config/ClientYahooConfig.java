@@ -1,4 +1,4 @@
-package io.strategiz.client.yahoo.config;
+package io.strategiz.client.yahoofinance.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;

@@ -1,7 +1,7 @@
-package io.strategiz.client.yahoo;
+package io.strategiz.client.yahoofinance;
 
-import io.strategiz.client.yahoo.error.YahooFinanceErrorDetails;
-import io.strategiz.client.yahoo.model.YahooFundamentals;
+import io.strategiz.client.yahoofinance.error.YahooFinanceErrorDetails;
+import io.strategiz.client.yahoofinance.model.YahooFundamentals;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -76,6 +76,9 @@ public class Strategy extends BaseEntity {
     @JsonProperty("publishedAt")
     private Timestamp publishedAt; // null = private, non-null = public/published
 
+    @JsonProperty("seedFundingDate")
+    private Timestamp seedFundingDate; // Optional custom backtest start date for performance calculations
+
     // Marketplace stats (denormalized for display)
     @JsonProperty("subscriberCount")
     private Integer subscriberCount = 0;
@@ -277,6 +280,14 @@ public class Strategy extends BaseEntity {
 
     public void setPublishedAt(Timestamp publishedAt) {
         this.publishedAt = publishedAt;
+    }
+
+    public Timestamp getSeedFundingDate() {
+        return seedFundingDate;
+    }
+
+    public void setSeedFundingDate(Timestamp seedFundingDate) {
+        this.seedFundingDate = seedFundingDate;
     }
 
     public Integer getSubscriberCount() {

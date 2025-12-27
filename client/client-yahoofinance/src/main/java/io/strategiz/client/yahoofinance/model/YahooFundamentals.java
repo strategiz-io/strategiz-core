@@ -1,4 +1,4 @@
-package io.strategiz.client.yahoo.model;
+package io.strategiz.client.yahoofinance.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

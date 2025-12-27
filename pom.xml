@@ -77,7 +77,6 @@
         <module>client/client-google</module>
         <module>client/client-firebase</module>
         <module>client/client-yahoofinance</module>
-        <module>client/client-yahoo-finance</module>
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
         <module>client/client-alpaca</module>

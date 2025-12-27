@@ -1,4 +1,4 @@
-package io.strategiz.client.yahoofinance.mapper;
+package io.strategiz.client.yahoofinancefinance.mapper;
 
 import org.springframework.stereotype.Component;
 

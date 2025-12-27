@@ -32,5 +32,6 @@
         <module>business-marketdata</module>
         <module>business-preferences</module>
         <module>business-infrastructure-costs</module>
+        <module>business-fundamentals</module>
     </modules>
 </project>

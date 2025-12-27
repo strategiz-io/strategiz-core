@@ -1,4 +1,4 @@
-package io.strategiz.client.yahoofinance;
+package io.strategiz.client.yahoofinance.client;
 
 import io.strategiz.client.yahoofinance.error.YahooFinanceErrorDetails;
 import io.strategiz.client.yahoofinance.model.YahooFundamentals;

@@ -1,4 +1,4 @@
-package io.strategiz.client.yahoofinancefinance.parser;
+package io.strategiz.client.yahoofinance.parser;
 
 import io.strategiz.client.yahoofinance.model.PriceQuote;
 import org.slf4j.Logger;

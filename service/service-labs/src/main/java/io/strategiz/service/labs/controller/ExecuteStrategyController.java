@@ -17,10 +17,9 @@ import io.strategiz.service.labs.service.ReadStrategyService;
 import io.strategiz.service.labs.service.PythonStrategyExecutor;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
-// TEMPORARILY DISABLED - execution service module is being refactored
-// import io.strategiz.client.execution.ExecutionServiceClient;
-// import io.strategiz.client.execution.*;
-// import io.strategiz.execution.grpc.MarketDataBar;
+import io.strategiz.client.execution.ExecutionServiceClient;
+import io.strategiz.client.execution.model.*;
+import io.strategiz.execution.grpc.MarketDataBar;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,8 +49,7 @@ public class ExecuteStrategyController extends BaseController {
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final MarketDataRepository marketDataRepository;
     private final FundamentalsQueryService fundamentalsQueryService;
-    // TEMPORARILY DISABLED - execution service module is being refactored
-    // private final ExecutionServiceClient executionServiceClient;
+    private final ExecutionServiceClient executionServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
@@ -61,9 +59,8 @@ public class ExecuteStrategyController extends BaseController {
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
                                    MarketDataRepository marketDataRepository,
-                                   FundamentalsQueryService fundamentalsQueryService
-                                   /* TEMPORARILY DISABLED - execution service module is being refactored
-                                   , ExecutionServiceClient executionServiceClient */) {
+                                   FundamentalsQueryService fundamentalsQueryService,
+                                   ExecutionServiceClient executionServiceClient) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
@@ -71,8 +68,7 @@ public class ExecuteStrategyController extends BaseController {
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
         this.fundamentalsQueryService = fundamentalsQueryService;
-        // TEMPORARILY DISABLED - execution service module is being refactored
-        // this.executionServiceClient = executionServiceClient;
+        this.executionServiceClient = executionServiceClient;
     }
     
     @PostMapping("/{strategyId}/execute")
@@ -131,9 +127,6 @@ public class ExecuteStrategyController extends BaseController {
             }
 
             // For Python execution - use gRPC execution service
-            // TEMPORARILY DISABLED - execution service module is being refactored
-            // Python execution via gRPC is disabled, falling through to existing execution engine
-            /*
             if ("python".equalsIgnoreCase(request.getLanguage())) {
                 // Validate symbol is provided
                 String symbol = request.getSymbol();
@@ -153,7 +146,7 @@ public class ExecuteStrategyController extends BaseController {
                     .collect(java.util.stream.Collectors.toList());
 
                 // Execute via gRPC
-                io.strategiz.client.execution.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
+                io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
                     request.getCode(),
                     "python",
                     grpcMarketData,
@@ -167,9 +160,8 @@ public class ExecuteStrategyController extends BaseController {
 
                 return ResponseEntity.ok(response);
             }
-            */
 
-            // Use existing execution engine for all languages
+            // Use existing execution engine for other languages
             io.strategiz.business.strategy.execution.model.ExecutionRequest executionRequest = buildDirectCodeExecutionRequest(request, userId);
             ExecutionResult result = executionEngineService.executeStrategy(executionRequest);
             ExecuteStrategyResponse response = convertToResponse(result, request);
@@ -475,11 +467,9 @@ public class ExecuteStrategyController extends BaseController {
 
     /**
      * Convert gRPC ExecutionResponse to REST ExecuteStrategyResponse
-     * TEMPORARILY DISABLED - execution service module is being refactored
      */
-    /*
     private ExecuteStrategyResponse convertGrpcToRestResponse(
-            io.strategiz.client.execution.ExecutionResponse grpcResponse,
+            io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
             String symbol) {
         ExecuteStrategyResponse response = new ExecuteStrategyResponse();
 
@@ -539,7 +529,7 @@ public class ExecuteStrategyController extends BaseController {
 
         // Convert performance
         if (grpcResponse.getPerformance() != null) {
-            io.strategiz.client.execution.Performance grpcPerf = grpcResponse.getPerformance();
+            io.strategiz.client.execution.model.Performance grpcPerf = grpcResponse.getPerformance();
             ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
 
             performance.setTotalReturn(grpcPerf.getTotalReturn());
@@ -581,7 +571,6 @@ public class ExecuteStrategyController extends BaseController {
 
         return response;
     }
-    */
 
     /**
      * Convert Performance object to Map for Firestore storage

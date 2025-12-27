@@ -3,7 +3,7 @@ package io.strategiz.business.fundamentals.service;
 import io.strategiz.business.fundamentals.exception.FundamentalsErrorDetails;
 import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.business.fundamentals.model.SymbolResult;
-import io.strategiz.client.yahoofinance.YahooFundamentalsClient;
+import io.strategiz.client.yahoofinance.client.YahooFundamentalsClient;
 import io.strategiz.business.fundamentals.converter.YahooFundamentalsConverter;
 import io.strategiz.client.yahoofinance.model.YahooFundamentals;
 import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;

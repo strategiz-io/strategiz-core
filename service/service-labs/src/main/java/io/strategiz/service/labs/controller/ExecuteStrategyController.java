@@ -358,13 +358,19 @@ public class ExecuteStrategyController extends BaseController {
 
     /**
      * Fetch market data as a list of maps for both Python execution and backtest calculation.
+     *
+     * @param symbol   Stock or crypto symbol
+     * @param strategy Optional strategy entity (for seedFundingDate override)
      */
-    private List<Map<String, Object>> fetchMarketDataListForSymbol(String symbol) {
+    private List<Map<String, Object>> fetchMarketDataListForSymbol(String symbol, io.strategiz.data.strategy.entity.Strategy strategy) {
         logger.info("Fetching market data for symbol: {}", symbol);
 
-        // Calculate date range (last 365 days for more comprehensive backtesting)
+        // Calculate dynamic date range
         java.time.LocalDate endDate = java.time.LocalDate.now().minusDays(1);
-        java.time.LocalDate startDate = endDate.minusDays(365);
+        java.time.LocalDate startDate = calculateBacktestStartDate(strategy);
+
+        logger.info("Fetching market data from {} to {} ({} days)",
+            startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
 
         // Query Firestore for historical data
         java.util.List<MarketDataEntity> marketData = marketDataRepository
@@ -389,6 +395,41 @@ public class ExecuteStrategyController extends BaseController {
     }
 
     /**
+     * Calculate backtest start date based on strategy's seedFundingDate or 2-year default.
+     *
+     * @param strategy Optional strategy entity (may be null for direct code execution)
+     * @return Start date for market data fetching
+     */
+    private java.time.LocalDate calculateBacktestStartDate(io.strategiz.data.strategy.entity.Strategy strategy) {
+        java.time.LocalDate endDate = java.time.LocalDate.now().minusDays(1);
+
+        // Use seedFundingDate if provided
+        if (strategy != null && strategy.getSeedFundingDate() != null) {
+            try {
+                java.time.Instant instant = java.time.Instant.ofEpochMilli(
+                    strategy.getSeedFundingDate().toDate().getTime()
+                );
+                java.time.LocalDate seedDate = instant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
+
+                // Validate not in future
+                if (seedDate.isAfter(endDate)) {
+                    logger.warn("Seed funding date {} is in the future, using 2-year default", seedDate);
+                    return endDate.minusYears(2);
+                }
+
+                logger.info("Using seed funding date: {}", seedDate);
+                return seedDate;
+            } catch (Exception e) {
+                logger.error("Error parsing seed funding date, using 2-year default", e);
+            }
+        }
+
+        // Default: 2 years back
+        logger.info("No seed funding date, using 2-year default");
+        return endDate.minusYears(2);
+    }
+
+    /**
      * Convert business layer BacktestPerformance to response layer Performance.
      */
     private ExecuteStrategyResponse.Performance convertBacktestPerformance(
@@ -407,6 +448,7 @@ public class ExecuteStrategyController extends BaseController {
         performance.setMaxDrawdown(backtest.getMaxDrawdown());
         performance.setSharpeRatio(backtest.getSharpeRatio());
         performance.setLastTestedAt(backtest.getLastTestedAt());
+        performance.setTestPeriod(backtest.getTestPeriod());
 
         // Convert trades
         if (backtest.getTrades() != null) {

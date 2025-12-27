@@ -1,6 +1,6 @@
-package io.strategiz.client.yahoo.converter;
+package io.strategiz.business.fundamentals.converter;
 
-import io.strategiz.client.yahoo.model.*;
+import io.strategiz.client.yahoofinance.model.*;
 import io.strategiz.data.fundamentals.constants.PeriodType;
 import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;
 import org.slf4j.Logger;

@@ -22,6 +22,12 @@ public class BacktestPerformance {
     private List<BacktestTrade> trades;
     private String lastTestedAt;
 
+    // NEW: Actual backtest period tracking (not hardcoded)
+    private String testPeriod;           // Formatted period (e.g., "5.3Y", "18M", "Since Jan 2020")
+    private String backtestStartDate;    // ISO timestamp of first data point
+    private String backtestEndDate;      // ISO timestamp of last data point
+    private Integer backtestPeriodDays;  // Actual days tested
+
     public BacktestPerformance() {
     }
 
@@ -136,5 +142,37 @@ public class BacktestPerformance {
 
     public void setLastTestedAt(String lastTestedAt) {
         this.lastTestedAt = lastTestedAt;
+    }
+
+    public String getTestPeriod() {
+        return testPeriod;
+    }
+
+    public void setTestPeriod(String testPeriod) {
+        this.testPeriod = testPeriod;
+    }
+
+    public String getBacktestStartDate() {
+        return backtestStartDate;
+    }
+
+    public void setBacktestStartDate(String backtestStartDate) {
+        this.backtestStartDate = backtestStartDate;
+    }
+
+    public String getBacktestEndDate() {
+        return backtestEndDate;
+    }
+
+    public void setBacktestEndDate(String backtestEndDate) {
+        this.backtestEndDate = backtestEndDate;
+    }
+
+    public Integer getBacktestPeriodDays() {
+        return backtestPeriodDays;
+    }
+
+    public void setBacktestPeriodDays(Integer backtestPeriodDays) {
+        this.backtestPeriodDays = backtestPeriodDays;
     }
 }

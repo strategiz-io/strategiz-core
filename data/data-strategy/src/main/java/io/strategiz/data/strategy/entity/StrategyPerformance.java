@@ -58,6 +58,15 @@ public class StrategyPerformance implements Serializable {
     @JsonProperty("testPeriod")
     private String testPeriod; // Period tested (e.g., "7Y", "1Y", "6M")
 
+    @JsonProperty("backtestStartDate")
+    private String backtestStartDate; // ISO timestamp of first data point
+
+    @JsonProperty("backtestEndDate")
+    private String backtestEndDate; // ISO timestamp of last data point
+
+    @JsonProperty("backtestPeriodDays")
+    private Integer backtestPeriodDays; // Actual days tested
+
     // Constructors
     public StrategyPerformance() {
     }
@@ -173,6 +182,30 @@ public class StrategyPerformance implements Serializable {
 
     public void setTestPeriod(String testPeriod) {
         this.testPeriod = testPeriod;
+    }
+
+    public String getBacktestStartDate() {
+        return backtestStartDate;
+    }
+
+    public void setBacktestStartDate(String backtestStartDate) {
+        this.backtestStartDate = backtestStartDate;
+    }
+
+    public String getBacktestEndDate() {
+        return backtestEndDate;
+    }
+
+    public void setBacktestEndDate(String backtestEndDate) {
+        this.backtestEndDate = backtestEndDate;
+    }
+
+    public Integer getBacktestPeriodDays() {
+        return backtestPeriodDays;
+    }
+
+    public void setBacktestPeriodDays(Integer backtestPeriodDays) {
+        this.backtestPeriodDays = backtestPeriodDays;
     }
 
     // Helper methods

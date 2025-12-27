@@ -33,9 +33,12 @@ public class MarketDataService extends BaseService {
 
     private final MarketDataRepository marketDataRepository;
 
-    @Autowired
+    @Autowired(required = false)
     public MarketDataService(MarketDataRepository marketDataRepository) {
         this.marketDataRepository = marketDataRepository;
+        if (marketDataRepository == null) {
+            log.warn("MarketDataRepository not available - market data endpoints will return empty results. Enable TimescaleDB with strategiz.timescale.enabled=true");
+        }
     }
 
     /**
@@ -52,6 +55,11 @@ public class MarketDataService extends BaseService {
     public List<MarketDataEntity> getMarketDataBars(String symbol, String timeframe, String startDate, String endDate) {
         log.info("Fetching market data for symbol={}, timeframe={}, start={}, end={}",
             symbol, timeframe, startDate, endDate);
+
+        if (marketDataRepository == null) {
+            log.warn("MarketDataRepository not available - returning empty list");
+            return Collections.emptyList();
+        }
 
         try {
             // Convert ISO date strings to LocalDate
@@ -110,6 +118,11 @@ public class MarketDataService extends BaseService {
     public MarketDataEntity getLatestMarketData(String symbol) {
         log.info("Fetching latest market data for symbol={}", symbol);
 
+        if (marketDataRepository == null) {
+            log.warn("MarketDataRepository not available - returning null");
+            return null;
+        }
+
         try {
             return marketDataRepository.findLatestBySymbol(symbol.toUpperCase()).orElse(null);
         } catch (Exception e) {
@@ -127,6 +140,11 @@ public class MarketDataService extends BaseService {
     @Cacheable(value = "availableSymbols", key = "'all'")
     public List<String> getAvailableSymbols() {
         log.info("Fetching available symbols");
+
+        if (marketDataRepository == null) {
+            log.warn("MarketDataRepository not available - returning empty list");
+            return Collections.emptyList();
+        }
 
         try {
             return marketDataRepository.findDistinctSymbols();

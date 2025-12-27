@@ -68,17 +68,19 @@ public class GcpBillingConfig {
     public MetricServiceClient metricServiceClient() throws IOException {
         log.info("Initializing GCP Metric Service client");
 
-        // Load service account JSON from Vault
-        String serviceAccountJson = vaultSecretService.readSecret("service-account-json", "gcp");
+        // Load service account JSON from Vault at secret/strategiz/gcp-billing
+        String serviceAccountJsonBase64 = vaultSecretService.readSecret("credentials", "gcp-billing");
 
-        if (serviceAccountJson == null || serviceAccountJson.isEmpty()) {
-            log.warn("No service account JSON found in Vault at secret/strategiz/gcp, using Application Default Credentials");
+        if (serviceAccountJsonBase64 == null || serviceAccountJsonBase64.isEmpty()) {
+            log.warn("No service account credentials found in Vault at secret/strategiz/gcp-billing, using Application Default Credentials");
             return MetricServiceClient.create();
         }
 
         log.info("Using service account credentials from Vault");
+
+        // Decode base64 encoded credentials
+        String serviceAccountJson = new String(java.util.Base64.getDecoder().decode(serviceAccountJsonBase64), StandardCharsets.UTF_8);
         log.debug("Service account JSON length: {} characters", serviceAccountJson.length());
-        log.debug("Service account JSON starts with: {}", serviceAccountJson.substring(0, Math.min(50, serviceAccountJson.length())));
 
         GoogleCredentials credentials = GoogleCredentials.fromStream(
             new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8))

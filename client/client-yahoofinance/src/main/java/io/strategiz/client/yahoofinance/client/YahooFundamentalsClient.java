@@ -1,7 +1,11 @@
 package io.strategiz.client.yahoofinance.client;
 
 import io.strategiz.client.yahoofinance.error.YahooFinanceErrorDetails;
+import io.strategiz.client.yahoofinance.model.YahooBalanceSheet;
+import io.strategiz.client.yahoofinance.model.YahooFinancialData;
 import io.strategiz.client.yahoofinance.model.YahooFundamentals;
+import io.strategiz.client.yahoofinance.model.YahooIncomeStatement;
+import io.strategiz.client.yahoofinance.model.YahooKeyStatistics;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -232,16 +236,31 @@ public class YahooFundamentalsClient {
 
 			// Parse each module if present
 			if (data.containsKey("financialData")) {
-				// TODO: Parse YahooFinancialData from financialData map
+				fundamentals.setFinancialData(parseFinancialData((Map<String, Object>) data.get("financialData")));
 			}
 			if (data.containsKey("defaultKeyStatistics")) {
-				// TODO: Parse YahooKeyStatistics from defaultKeyStatistics map
+				fundamentals.setKeyStatistics(
+						parseKeyStatistics((Map<String, Object>) data.get("defaultKeyStatistics")));
 			}
 			if (data.containsKey("balanceSheetHistory")) {
-				// TODO: Parse YahooBalanceSheet from balanceSheetHistory map
+				Map<String, Object> bsHistory = (Map<String, Object>) data.get("balanceSheetHistory");
+				if (bsHistory != null && bsHistory.containsKey("balanceSheetStatements")) {
+					List<Map<String, Object>> statements = (List<Map<String, Object>>) bsHistory
+						.get("balanceSheetStatements");
+					if (statements != null && !statements.isEmpty()) {
+						fundamentals.setBalanceSheet(parseBalanceSheet(statements.get(0)));
+					}
+				}
 			}
 			if (data.containsKey("incomeStatementHistory")) {
-				// TODO: Parse YahooIncomeStatement from incomeStatementHistory map
+				Map<String, Object> isHistory = (Map<String, Object>) data.get("incomeStatementHistory");
+				if (isHistory != null && isHistory.containsKey("incomeStatementHistory")) {
+					List<Map<String, Object>> statements = (List<Map<String, Object>>) isHistory
+						.get("incomeStatementHistory");
+					if (statements != null && !statements.isEmpty()) {
+						fundamentals.setIncomeStatement(parseIncomeStatement(statements.get(0)));
+					}
+				}
 			}
 
 			return fundamentals;
@@ -250,6 +269,198 @@ public class YahooFundamentalsClient {
 			throw new StrategizException(YahooFinanceErrorDetails.PARSE_ERROR,
 					String.format("Failed to parse response for %s", symbol), ex);
 		}
+	}
+
+	/**
+	 * Parse Financial Data section.
+	 */
+	@SuppressWarnings("unchecked")
+	private YahooFinancialData parseFinancialData(Map<String, Object> data) {
+		YahooFinancialData financialData = new YahooFinancialData();
+
+		financialData.setCurrentPrice(extractBigDecimal(data, "currentPrice"));
+		financialData.setTargetHighPrice(extractBigDecimal(data, "targetHighPrice"));
+		financialData.setTargetLowPrice(extractBigDecimal(data, "targetLowPrice"));
+		financialData.setTargetMeanPrice(extractBigDecimal(data, "targetMeanPrice"));
+		financialData.setRecommendationMean(extractBigDecimal(data, "recommendationMean"));
+		financialData.setNumberOfAnalystOpinions(extractInteger(data, "numberOfAnalystOpinions"));
+		financialData.setTotalCash(extractBigDecimal(data, "totalCash"));
+		financialData.setTotalCashPerShare(extractBigDecimal(data, "totalCashPerShare"));
+		financialData.setEbitda(extractBigDecimal(data, "ebitda"));
+		financialData.setTotalDebt(extractBigDecimal(data, "totalDebt"));
+		financialData.setQuickRatio(extractBigDecimal(data, "quickRatio"));
+		financialData.setCurrentRatio(extractBigDecimal(data, "currentRatio"));
+		financialData.setTotalRevenue(extractBigDecimal(data, "totalRevenue"));
+		financialData.setDebtToEquity(extractBigDecimal(data, "debtToEquity"));
+		financialData.setRevenuePerShare(extractBigDecimal(data, "revenuePerShare"));
+		financialData.setReturnOnAssets(extractBigDecimal(data, "returnOnAssets"));
+		financialData.setReturnOnEquity(extractBigDecimal(data, "returnOnEquity"));
+		financialData.setGrossProfits(extractBigDecimal(data, "grossProfits"));
+		financialData.setFreeCashflow(extractBigDecimal(data, "freeCashflow"));
+		financialData.setOperatingCashflow(extractBigDecimal(data, "operatingCashflow"));
+		financialData.setEarningsGrowth(extractBigDecimal(data, "earningsGrowth"));
+		financialData.setRevenueGrowth(extractBigDecimal(data, "revenueGrowth"));
+		financialData.setGrossMargins(extractBigDecimal(data, "grossMargins"));
+		financialData.setEbitdaMargins(extractBigDecimal(data, "ebitdaMargins"));
+		financialData.setOperatingMargins(extractBigDecimal(data, "operatingMargins"));
+		financialData.setProfitMargins(extractBigDecimal(data, "profitMargins"));
+
+		return financialData;
+	}
+
+	/**
+	 * Parse Key Statistics section.
+	 */
+	@SuppressWarnings("unchecked")
+	private YahooKeyStatistics parseKeyStatistics(Map<String, Object> data) {
+		YahooKeyStatistics keyStats = new YahooKeyStatistics();
+
+		keyStats.setMarketCap(extractBigDecimal(data, "marketCap"));
+		keyStats.setEnterpriseValue(extractBigDecimal(data, "enterpriseValue"));
+		keyStats.setTrailingPE(extractBigDecimal(data, "trailingPE"));
+		keyStats.setForwardPE(extractBigDecimal(data, "forwardPE"));
+		keyStats.setPriceToBook(extractBigDecimal(data, "priceToBook"));
+		keyStats.setPriceToSales(extractBigDecimal(data, "priceToSales"));
+		keyStats.setPegRatio(extractBigDecimal(data, "pegRatio"));
+		keyStats.setEnterpriseToRevenue(extractBigDecimal(data, "enterpriseToRevenue"));
+		keyStats.setEnterpriseToEbitda(extractBigDecimal(data, "enterpriseToEbitda"));
+		keyStats.setSharesOutstanding(extractLong(data, "sharesOutstanding"));
+		keyStats.setFloatShares(extractLong(data, "floatShares"));
+		keyStats.setSharesShort(extractLong(data, "sharesShort"));
+		keyStats.setShortRatio(extractBigDecimal(data, "shortRatio"));
+		keyStats.setShortPercentOfFloat(extractBigDecimal(data, "shortPercentOfFloat"));
+		keyStats.setBeta(extractBigDecimal(data, "beta"));
+		keyStats.setBookValue(extractBigDecimal(data, "bookValue"));
+		keyStats.setPriceToBookValue(extractBigDecimal(data, "priceToBook"));
+		keyStats.setTrailingEps(extractBigDecimal(data, "trailingEps"));
+		keyStats.setForwardEps(extractBigDecimal(data, "forwardEps"));
+		keyStats.setFiftyTwoWeekLow(extractBigDecimal(data, "fiftyTwoWeekLow"));
+		keyStats.setFiftyTwoWeekHigh(extractBigDecimal(data, "fiftyTwoWeekHigh"));
+		keyStats.setFiftyDayAverage(extractBigDecimal(data, "fiftyDayAverage"));
+		keyStats.setTwoHundredDayAverage(extractBigDecimal(data, "twoHundredDayAverage"));
+		keyStats.setDividendRate(extractBigDecimal(data, "dividendRate"));
+		keyStats.setDividendYield(extractBigDecimal(data, "dividendYield"));
+		keyStats.setExDividendDate(extractLong(data, "exDividendDate"));
+		keyStats.setPayoutRatio(extractBigDecimal(data, "payoutRatio"));
+		keyStats.setFiveYearAvgDividendYield(extractBigDecimal(data, "fiveYearAvgDividendYield"));
+
+		return keyStats;
+	}
+
+	/**
+	 * Parse Balance Sheet section.
+	 */
+	@SuppressWarnings("unchecked")
+	private YahooBalanceSheet parseBalanceSheet(Map<String, Object> data) {
+		YahooBalanceSheet balanceSheet = new YahooBalanceSheet();
+
+		balanceSheet.setTotalAssets(extractBigDecimal(data, "totalAssets"));
+		balanceSheet.setTotalLiabilities(extractBigDecimal(data, "totalLiab"));
+		balanceSheet.setTotalStockholderEquity(extractBigDecimal(data, "totalStockholderEquity"));
+		balanceSheet.setTotalCurrentAssets(extractBigDecimal(data, "totalCurrentAssets"));
+		balanceSheet.setTotalCurrentLiabilities(extractBigDecimal(data, "totalCurrentLiabilities"));
+		balanceSheet.setCash(extractBigDecimal(data, "cash"));
+		balanceSheet.setCashAndCashEquivalents(extractBigDecimal(data, "cashAndCashEquivalents"));
+		balanceSheet.setShortTermInvestments(extractBigDecimal(data, "shortTermInvestments"));
+		balanceSheet.setNetReceivables(extractBigDecimal(data, "netReceivables"));
+		balanceSheet.setInventory(extractBigDecimal(data, "inventory"));
+		balanceSheet.setOtherCurrentAssets(extractBigDecimal(data, "otherCurrentAssets"));
+		balanceSheet.setPropertyPlantEquipment(extractBigDecimal(data, "propertyPlantEquipment"));
+		balanceSheet.setGoodWill(extractBigDecimal(data, "goodWill"));
+		balanceSheet.setIntangibleAssets(extractBigDecimal(data, "intangibleAssets"));
+		balanceSheet.setLongTermInvestments(extractBigDecimal(data, "longTermInvestments"));
+		balanceSheet.setOtherAssets(extractBigDecimal(data, "otherAssets"));
+		balanceSheet.setAccountsPayable(extractBigDecimal(data, "accountsPayable"));
+		balanceSheet.setShortLongTermDebt(extractBigDecimal(data, "shortLongTermDebt"));
+		balanceSheet.setOtherCurrentLiabilities(extractBigDecimal(data, "otherCurrentLiab"));
+		balanceSheet.setLongTermDebt(extractBigDecimal(data, "longTermDebt"));
+		balanceSheet.setOtherLiabilities(extractBigDecimal(data, "otherLiab"));
+		balanceSheet.setCommonStock(extractBigDecimal(data, "commonStock"));
+		balanceSheet.setRetainedEarnings(extractBigDecimal(data, "retainedEarnings"));
+		balanceSheet.setTreasuryStock(extractBigDecimal(data, "treasuryStock"));
+		balanceSheet.setCapitalSurplus(extractBigDecimal(data, "capitalSurplus"));
+
+		return balanceSheet;
+	}
+
+	/**
+	 * Parse Income Statement section.
+	 */
+	@SuppressWarnings("unchecked")
+	private YahooIncomeStatement parseIncomeStatement(Map<String, Object> data) {
+		YahooIncomeStatement incomeStatement = new YahooIncomeStatement();
+
+		incomeStatement.setTotalRevenue(extractBigDecimal(data, "totalRevenue"));
+		incomeStatement.setCostOfRevenue(extractBigDecimal(data, "costOfRevenue"));
+		incomeStatement.setGrossProfit(extractBigDecimal(data, "grossProfit"));
+		incomeStatement.setResearchDevelopment(extractBigDecimal(data, "researchDevelopment"));
+		incomeStatement.setSellingGeneralAdministrative(extractBigDecimal(data, "sellingGeneralAdministrative"));
+		incomeStatement.setTotalOperatingExpenses(extractBigDecimal(data, "totalOperatingExpenses"));
+		incomeStatement.setOperatingIncome(extractBigDecimal(data, "operatingIncome"));
+		incomeStatement.setTotalOtherIncomeExpenseNet(extractBigDecimal(data, "totalOtherIncomeExpenseNet"));
+		incomeStatement.setEbit(extractBigDecimal(data, "ebit"));
+		incomeStatement.setInterestExpense(extractBigDecimal(data, "interestExpense"));
+		incomeStatement.setIncomeBeforeTax(extractBigDecimal(data, "incomeBeforeTax"));
+		incomeStatement.setIncomeTaxExpense(extractBigDecimal(data, "incomeTaxExpense"));
+		incomeStatement.setNetIncome(extractBigDecimal(data, "netIncome"));
+		incomeStatement.setNetIncomeApplicableToCommonShares(extractBigDecimal(data, "netIncomeApplicableToCommonShares"));
+		incomeStatement.setDiscontinuedOperations(extractBigDecimal(data, "discontinuedOperations"));
+		incomeStatement.setExtraordinaryItems(extractBigDecimal(data, "extraordinaryItems"));
+		incomeStatement.setEffectOfAccountingCharges(extractBigDecimal(data, "effectOfAccountingCharges"));
+		incomeStatement.setOtherItems(extractBigDecimal(data, "otherItems"));
+		incomeStatement.setMinorityInterest(extractBigDecimal(data, "minorityInterest"));
+
+		return incomeStatement;
+	}
+
+	/**
+	 * Extract BigDecimal from Yahoo Finance response.
+	 * Yahoo returns numeric values as: {"raw": 123.45, "fmt": "123.45"}
+	 */
+	@SuppressWarnings("unchecked")
+	private java.math.BigDecimal extractBigDecimal(Map<String, Object> data, String key) {
+		if (!data.containsKey(key)) {
+			return null;
+		}
+
+		Object value = data.get(key);
+		if (value == null) {
+			return null;
+		}
+
+		// If it's already a number, convert directly
+		if (value instanceof Number) {
+			return new java.math.BigDecimal(value.toString());
+		}
+
+		// If it's a map with "raw" field, extract the raw value
+		if (value instanceof Map) {
+			Map<String, Object> valueMap = (Map<String, Object>) value;
+			Object rawValue = valueMap.get("raw");
+			if (rawValue != null && rawValue instanceof Number) {
+				return new java.math.BigDecimal(rawValue.toString());
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Extract Integer from Yahoo Finance response.
+	 */
+	@SuppressWarnings("unchecked")
+	private Integer extractInteger(Map<String, Object> data, String key) {
+		java.math.BigDecimal decimal = extractBigDecimal(data, key);
+		return decimal != null ? decimal.intValue() : null;
+	}
+
+	/**
+	 * Extract Long from Yahoo Finance response.
+	 */
+	@SuppressWarnings("unchecked")
+	private Long extractLong(Map<String, Object> data, String key) {
+		java.math.BigDecimal decimal = extractBigDecimal(data, key);
+		return decimal != null ? decimal.longValue() : null;
 	}
 
 }

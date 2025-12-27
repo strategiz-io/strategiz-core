@@ -32,7 +32,7 @@ import java.time.Duration;
  */
 @Configuration
 @ConditionalOnProperty(name = "strategiz.yahoo-finance.enabled", havingValue = "true", matchIfMissing = true)
-@ComponentScan(basePackages = "io.strategiz.client.yahoo")
+@ComponentScan(basePackages = "io.strategiz.client.yahoofinance")
 public class ClientYahooConfig {
 
 	/**

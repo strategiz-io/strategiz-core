@@ -40,6 +40,9 @@ public class CreateStrategyRequest {
     @JsonProperty("performance")
     private StrategyPerformance performance;
 
+    @JsonProperty("seedFundingDate")
+    private String seedFundingDate; // ISO timestamp for custom backtest start date
+
     // Getters and Setters
     public String getName() {
         return name;
@@ -111,5 +114,13 @@ public class CreateStrategyRequest {
 
     public void setPerformance(StrategyPerformance performance) {
         this.performance = performance;
+    }
+
+    public String getSeedFundingDate() {
+        return seedFundingDate;
+    }
+
+    public void setSeedFundingDate(String seedFundingDate) {
+        this.seedFundingDate = seedFundingDate;
     }
 }

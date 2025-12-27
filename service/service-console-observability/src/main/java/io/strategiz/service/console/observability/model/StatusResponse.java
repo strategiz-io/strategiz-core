@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.model;
+package io.strategiz.service.console.observability.model;
 
 import java.util.HashMap;
 import java.util.Map;

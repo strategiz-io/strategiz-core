@@ -1,7 +1,7 @@
-package io.strategiz.service.monitoring.controller;
+package io.strategiz.service.console.observability.controller;
 
 import io.strategiz.service.base.controller.BaseController;
-import io.strategiz.service.monitoring.service.ExecutionMetricsService;
+import io.strategiz.service.console.observability.service.ExecutionMetricsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

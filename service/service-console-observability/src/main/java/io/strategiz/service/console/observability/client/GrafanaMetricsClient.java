@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.client;
+package io.strategiz.service.console.observability.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;

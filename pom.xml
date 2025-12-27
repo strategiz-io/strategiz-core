@@ -116,7 +116,7 @@
         <module>service/service-exchange</module>
         <module>service/service-auth</module>
         <module>service/service-marketplace</module>
-        <module>service/service-monitoring</module>
+        <module>service/service-console-observability</module>
         <module>service/service-provider</module>
         <!-- Temporarily commented out due to Firestore dependency issues -->
         <!-- <module>service/service-walletaddress</module> -->
@@ -417,7 +417,7 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>service-monitoring</artifactId>
+                <artifactId>service-console-observability</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -526,7 +526,7 @@
             <!-- api-dashboard -> service-dashboard -->
             <!-- api-profile -> service-profile -->
             <!-- api-exchange -> service-exchange -->
-            <!-- api-monitoring -> service-monitoring -->
+            <!-- api-monitoring -> service-console-observability -->
             <!-- api-portfolio -> service-portfolio -->
             <!-- api-strategy -> service-strategy -->
             <!-- api-base -> service-framework-base -->

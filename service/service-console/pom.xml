@@ -63,10 +63,10 @@
             <artifactId>data-feature-flags</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Monitoring service for observability metrics -->
+        <!-- Console observability for metrics and monitoring -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-monitoring</artifactId>
+            <artifactId>service-console-observability</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Market data batch jobs -->

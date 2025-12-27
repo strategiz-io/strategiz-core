@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.health;
+package io.strategiz.service.console.observability.health;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.Health;

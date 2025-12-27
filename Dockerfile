@@ -20,7 +20,14 @@ RUN mvn clean install -DskipTests -Dcheckstyle.skip=true -Dspotbugs.skip=true -D
 # Runtime image
 FROM eclipse-temurin:21-jre
 WORKDIR /app
+
+# Download OpenTelemetry Java agent for automatic instrumentation
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.11.0/opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
+RUN chmod 644 /app/opentelemetry-javaagent.jar
+
 COPY --from=builder /app/application-api/target/application-api-1.0-SNAPSHOT.jar app.jar
 ENV PORT=8080
 ENV SPRING_PROFILES_ACTIVE=prod
-CMD ["java", "-jar", "app.jar"]
+
+# Attach OpenTelemetry agent with -javaagent flag
+CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]

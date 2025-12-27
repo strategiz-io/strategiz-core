@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,10 +32,13 @@ import java.util.Map;
  * - GET /v1/console/fundamentals/data/{symbol} - Get fundamentals data for symbol
  * - GET /v1/console/fundamentals/status - Get service status
  * </p>
+ *
+ * <p>Note: This controller is only active when fundamentals jobs are configured.</p>
  */
 @RestController
 @RequestMapping("/v1/console/fundamentals")
 @Tag(name = "Admin - Fundamentals", description = "Fundamentals data management endpoints for administrators")
+@ConditionalOnBean(FundamentalsIncrementalJob.class)
 public class AdminFundamentalsController extends BaseController {
 
 	private static final String MODULE_NAME = "CONSOLE";

@@ -1,8 +1,10 @@
 package io.strategiz.client.gcpbilling.config;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.monitoring.v3.MetricServiceClient;
+import com.google.cloud.monitoring.v3.MetricServiceSettings;
 import io.strategiz.framework.secrets.service.VaultSecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +13,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Configuration for GCP Billing and Monitoring API clients.
@@ -60,9 +64,31 @@ public class GcpBillingConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
     public MetricServiceClient metricServiceClient() throws IOException {
         log.info("Initializing GCP Metric Service client");
-        return MetricServiceClient.create();
+
+        // Load service account JSON from Vault
+        String serviceAccountJson = vaultSecretService.readSecret("service-account-json", "gcp");
+
+        if (serviceAccountJson == null || serviceAccountJson.isEmpty()) {
+            log.warn("No service account JSON found in Vault at secret/strategiz/gcp, using Application Default Credentials");
+            return MetricServiceClient.create();
+        }
+
+        log.info("Using service account credentials from Vault");
+        log.debug("Service account JSON length: {} characters", serviceAccountJson.length());
+        log.debug("Service account JSON starts with: {}", serviceAccountJson.substring(0, Math.min(50, serviceAccountJson.length())));
+
+        GoogleCredentials credentials = GoogleCredentials.fromStream(
+            new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8))
+        );
+
+        MetricServiceSettings settings = MetricServiceSettings.newBuilder()
+            .setCredentialsProvider(() -> credentials)
+            .build();
+
+        return MetricServiceClient.create(settings);
     }
 
     @Bean

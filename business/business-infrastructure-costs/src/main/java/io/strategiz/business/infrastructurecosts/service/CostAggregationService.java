@@ -32,10 +32,11 @@ import java.util.stream.Collectors;
  * Service for aggregating infrastructure costs from GCP and TimescaleDB.
  * Combines data from multiple sources and persists to Firestore for historical tracking.
  *
- * Enable with: gcp.billing.enabled=true
+ * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
  */
 @Service
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
 public class CostAggregationService {
 
     private static final Logger log = LoggerFactory.getLogger(CostAggregationService.class);

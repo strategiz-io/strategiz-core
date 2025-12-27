@@ -50,6 +50,7 @@ public class GcpBillingConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "gcp.billing.use-bigquery", havingValue = "true", matchIfMissing = false)
     public BigQuery bigQueryClient() {
         log.info("Initializing BigQuery client for project: {}", projectId);
         return BigQueryOptions.newBuilder()

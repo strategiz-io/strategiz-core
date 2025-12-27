@@ -56,6 +56,21 @@ public class CreateStrategyService extends BaseService {
         strategy.setPublic(request.isPublic());
         strategy.setPerformance(request.getPerformance());
 
+        // Parse and set seedFundingDate if provided
+        if (request.getSeedFundingDate() != null && !request.getSeedFundingDate().isEmpty()) {
+            try {
+                java.time.Instant instant = java.time.Instant.parse(request.getSeedFundingDate());
+                strategy.setSeedFundingDate(com.google.cloud.Timestamp.fromProto(
+                    com.google.protobuf.Timestamp.newBuilder()
+                        .setSeconds(instant.getEpochSecond())
+                        .setNanos(instant.getNano())
+                        .build()
+                ));
+            } catch (Exception e) {
+                log.warn("Invalid seedFundingDate format, skipping: {}", request.getSeedFundingDate());
+            }
+        }
+
         // Save using CRUD repository
         Strategy created = createStrategyRepository.createWithUserId(strategy, userId);
 

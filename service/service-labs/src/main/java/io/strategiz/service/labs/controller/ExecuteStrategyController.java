@@ -144,8 +144,8 @@ public class ExecuteStrategyController extends BaseController {
                     );
                 }
 
-                // Fetch real market data from repository
-                List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol);
+                // Fetch real market data from repository (null strategy = uses 2-year default)
+                List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol, null);
 
                 // Convert market data to gRPC format
                 List<MarketDataBar> grpcMarketData = marketDataList.stream()

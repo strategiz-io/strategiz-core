@@ -65,6 +65,21 @@ public class UpdateStrategyService extends BaseService {
         existing.setPublic(request.isPublic());
         existing.setPerformance(request.getPerformance());
 
+        // Parse and set seedFundingDate if provided
+        if (request.getSeedFundingDate() != null && !request.getSeedFundingDate().isEmpty()) {
+            try {
+                java.time.Instant instant = java.time.Instant.parse(request.getSeedFundingDate());
+                existing.setSeedFundingDate(com.google.cloud.Timestamp.fromProto(
+                    com.google.protobuf.Timestamp.newBuilder()
+                        .setSeconds(instant.getEpochSecond())
+                        .setNanos(instant.getNano())
+                        .build()
+                ));
+            } catch (Exception e) {
+                log.warn("Invalid seedFundingDate format, skipping: {}", request.getSeedFundingDate());
+            }
+        }
+
         // Validate the updated strategy
         validateUpdateRequest(request);
         

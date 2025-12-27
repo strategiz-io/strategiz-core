@@ -69,16 +69,26 @@ public class GcpBillingConfig {
         log.info("Initializing GCP Metric Service client");
 
         // Load service account JSON from Vault at secret/strategiz/gcp-billing
-        // Note: VaultSecretService automatically decodes base64 values, so credentials are returned as JSON string
-        String serviceAccountJson = vaultSecretService.readSecret("credentials", "gcp-billing");
+        // Credentials are stored base64-encoded in Vault
+        String serviceAccountBase64 = vaultSecretService.readSecret("credentials", "gcp-billing");
 
-        if (serviceAccountJson == null || serviceAccountJson.isEmpty()) {
+        if (serviceAccountBase64 == null || serviceAccountBase64.isEmpty()) {
             log.warn("No service account credentials found in Vault at secret/strategiz/gcp-billing, using Application Default Credentials");
             return MetricServiceClient.create();
         }
 
         log.info("Using service account credentials from Vault");
-        log.debug("Service account JSON length: {} characters", serviceAccountJson.length());
+
+        // Decode base64 credentials
+        String serviceAccountJson;
+        try {
+            byte[] decodedBytes = java.util.Base64.getDecoder().decode(serviceAccountBase64);
+            serviceAccountJson = new String(decodedBytes, StandardCharsets.UTF_8);
+            log.debug("Decoded service account JSON length: {} characters", serviceAccountJson.length());
+        } catch (IllegalArgumentException e) {
+            log.error("Failed to decode base64 credentials from Vault: {}", e.getMessage());
+            throw new IOException("Invalid base64 credentials in Vault", e);
+        }
 
         GoogleCredentials credentials = GoogleCredentials.fromStream(
             new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8))

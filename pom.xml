@@ -125,9 +125,8 @@
         <module>service/service-marketing</module>
         <module>service/service-marketdata</module>
         <module>service/service-learn</module>
-        <!-- Temporarily disabled - batch job dependencies not in application-api classpath -->
-        <!-- <module>service/service-console</module> -->
-        <!-- <module>service/service-console-quality</module> -->
+        <module>service/service-console</module>
+        <module>service/service-console-quality</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
 

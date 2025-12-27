@@ -27,10 +27,7 @@ public class Strategy extends BaseEntity {
     
     @JsonProperty("language")
     private String language; // python, java, pinescript
-
-    @JsonProperty("timeframe")
-    private String timeframe; // "1Min", "5Min", "15Min", "1H", "4H", "1D", "1W", "1M"
-
+    
     @JsonProperty("type")
     private String type; // technical, fundamental, hybrid
     
@@ -83,9 +80,6 @@ public class Strategy extends BaseEntity {
     @JsonProperty("subscriberCount")
     private Integer subscriberCount = 0;
 
-    @JsonProperty("deploymentCount")
-    private Integer deploymentCount = 0;
-
     @JsonProperty("commentCount")
     private Integer commentCount = 0;
 
@@ -94,22 +88,6 @@ public class Strategy extends BaseEntity {
 
     @JsonProperty("reviewCount")
     private Integer reviewCount = 0;
-
-    @JsonProperty("category")
-    private String category; // momentum, mean-reversion, trend, volatility, hybrid, ai
-
-    // Marketplace badges
-    @JsonProperty("isBestSeller")
-    private Boolean isBestSeller = false;
-
-    @JsonProperty("isTrending")
-    private Boolean isTrending = false;
-
-    @JsonProperty("isNew")
-    private Boolean isNew = false;
-
-    @JsonProperty("isFeatured")
-    private Boolean isFeatured = false;
 
     // Constructors
     public Strategy() {
@@ -158,15 +136,7 @@ public class Strategy extends BaseEntity {
     public void setLanguage(String language) {
         this.language = language;
     }
-
-    public String getTimeframe() {
-        return timeframe;
-    }
-
-    public void setTimeframe(String timeframe) {
-        this.timeframe = timeframe;
-    }
-
+    
     public String getType() {
         return type;
     }
@@ -322,54 +292,6 @@ public class Strategy extends BaseEntity {
         this.reviewCount = reviewCount;
     }
 
-    public Integer getDeploymentCount() {
-        return deploymentCount;
-    }
-
-    public void setDeploymentCount(Integer deploymentCount) {
-        this.deploymentCount = deploymentCount;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public Boolean getIsBestSeller() {
-        return isBestSeller;
-    }
-
-    public void setIsBestSeller(Boolean isBestSeller) {
-        this.isBestSeller = isBestSeller;
-    }
-
-    public Boolean getIsTrending() {
-        return isTrending;
-    }
-
-    public void setIsTrending(Boolean isTrending) {
-        this.isTrending = isTrending;
-    }
-
-    public Boolean getIsNew() {
-        return isNew;
-    }
-
-    public void setIsNew(Boolean isNew) {
-        this.isNew = isNew;
-    }
-
-    public Boolean getIsFeatured() {
-        return isFeatured;
-    }
-
-    public void setIsFeatured(Boolean isFeatured) {
-        this.isFeatured = isFeatured;
-    }
-
     // Helper methods
     public boolean isDeployed() {
         return "deployed".equals(this.status) && this.deploymentId != null;
@@ -434,22 +356,6 @@ public class Strategy extends BaseEntity {
     public void decrementSubscribers() {
         if (this.subscriberCount != null && this.subscriberCount > 0) {
             this.subscriberCount--;
-        }
-    }
-
-    /**
-     * Increment deployment count.
-     */
-    public void incrementDeployments() {
-        this.deploymentCount = (this.deploymentCount != null ? this.deploymentCount : 0) + 1;
-    }
-
-    /**
-     * Decrement deployment count.
-     */
-    public void decrementDeployments() {
-        if (this.deploymentCount != null && this.deploymentCount > 0) {
-            this.deploymentCount--;
         }
     }
 

@@ -1,4 +1,4 @@
-package io.strategiz.service.console.controller;
+package io.strategiz.service.monitoring.controller;
 
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.monitoring.service.ExecutionMetricsService;

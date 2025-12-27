@@ -18,10 +18,11 @@ import java.util.*;
  * Service for predicting infrastructure costs using linear regression.
  * Uses weighted recent data to project end-of-month costs.
  *
- * Enable with: gcp.billing.enabled=true
+ * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
  */
 @Service
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
 public class CostPredictionService {
 
     private static final Logger log = LoggerFactory.getLogger(CostPredictionService.class);

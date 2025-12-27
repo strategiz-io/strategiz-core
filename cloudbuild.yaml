@@ -36,9 +36,9 @@ steps:
       - '--port'
       - '8080'
       - '--set-env-vars'
-      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
+      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app,GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp'
       - '--set-secrets'
-      - 'VAULT_TOKEN=vault-root-token:latest'
+      - 'VAULT_TOKEN=vault-root-token:latest,GRAFANA_OTLP_AUTH_HEADER=GRAFANA_OTLP_AUTH:latest,GRAFANA_PROMETHEUS_AUTH=GRAFANA_PROMETHEUS_AUTH:latest'
 
 timeout: '1800s'
 options:

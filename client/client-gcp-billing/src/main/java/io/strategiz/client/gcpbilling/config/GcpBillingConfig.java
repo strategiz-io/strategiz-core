@@ -74,17 +74,18 @@ public class GcpBillingConfig {
 
         try {
             if (vaultSecretService != null) {
-                String vaultAccountId = vaultSecretService.readSecret("gcp-billing.billing-account-id", null);
+                // Read from Vault path: secret/strategiz/gcp-billing
+                String vaultAccountId = vaultSecretService.readSecret("billing-account-id", "gcp-billing");
                 if (vaultAccountId != null && !vaultAccountId.isEmpty()) {
                     vaultBillingAccountId = vaultAccountId;
                 }
 
-                String useBillingApiStr = vaultSecretService.readSecret("gcp-billing.use-billing-api", null);
+                String useBillingApiStr = vaultSecretService.readSecret("use-billing-api", "gcp-billing");
                 if (useBillingApiStr != null) {
                     vaultUseBillingApi = Boolean.parseBoolean(useBillingApiStr);
                 }
 
-                String useBigQueryStr = vaultSecretService.readSecret("gcp-billing.use-bigquery", null);
+                String useBigQueryStr = vaultSecretService.readSecret("use-bigquery", "gcp-billing");
                 if (useBigQueryStr != null) {
                     vaultUseBigQuery = Boolean.parseBoolean(useBigQueryStr);
                 }

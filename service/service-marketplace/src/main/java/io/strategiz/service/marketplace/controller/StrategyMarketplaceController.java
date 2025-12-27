@@ -43,11 +43,17 @@ public class StrategyMarketplaceController extends BaseController {
     public ResponseEntity<Object> listPublicStrategies(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(required = false, defaultValue = "20") int limit) {
-        
+            @RequestParam(required = false, defaultValue = "20") int limit,
+            @RequestParam(required = false) Boolean featured) {
+
         try {
-            List<Map<String, Object>> strategies = strategyService.listPublicStrategies(category, sortBy, limit);
-            return ResponseEntity.ok(strategies);
+            List<Map<String, Object>> strategies = strategyService.listPublicStrategies(category, sortBy, limit, featured);
+
+            // Return response wrapped in "strategies" key to match frontend expectation
+            Map<String, Object> response = new HashMap<>();
+            response.put("strategies", strategies);
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error listing strategies", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -172,7 +178,36 @@ public class StrategyMarketplaceController extends BaseController {
                 .body(Map.of("error", "Failed to purchase strategy: " + e.getMessage()));
         }
     }
-    
+
+    /**
+     * Create Stripe checkout session for strategy purchase
+     */
+    @PostMapping("/{id}/checkout")
+    @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
+    public ResponseEntity<Object> createCheckoutSession(@PathVariable String id,
+                                                       @AuthUser AuthenticatedUser user) {
+        try {
+            String userId = user.getUserId();
+
+            Map<String, String> result = strategyService.createStrategyCheckout(id, userId);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            log.error("Error creating checkout session", e);
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+            } else if (e.getMessage().contains("not available")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+            } else if (e.getMessage().contains("pricing")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to create checkout session: " + e.getMessage()));
+        }
+    }
+
     /**
      * Apply a strategy to a user's portfolio
      */

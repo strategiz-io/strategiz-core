@@ -89,6 +89,25 @@ public class Strategy extends BaseEntity {
     @JsonProperty("reviewCount")
     private Integer reviewCount = 0;
 
+    @JsonProperty("deploymentCount")
+    private Integer deploymentCount = 0;
+
+    @JsonProperty("category")
+    private String category; // momentum, mean-reversion, trend, volatility, hybrid, ai
+
+    // Marketplace badges
+    @JsonProperty("isBestSeller")
+    private Boolean isBestSeller = false;
+
+    @JsonProperty("isTrending")
+    private Boolean isTrending = false;
+
+    @JsonProperty("isNew")
+    private Boolean isNew = false;
+
+    @JsonProperty("isFeatured")
+    private Boolean isFeatured = false;
+
     // Constructors
     public Strategy() {
         super();
@@ -373,5 +392,72 @@ public class Strategy extends BaseEntity {
         if (this.commentCount != null && this.commentCount > 0) {
             this.commentCount--;
         }
+    }
+
+    // Deployment count getters/setters
+    public Integer getDeploymentCount() {
+        return deploymentCount;
+    }
+
+    public void setDeploymentCount(Integer deploymentCount) {
+        this.deploymentCount = deploymentCount;
+    }
+
+    /**
+     * Increment deployment count.
+     */
+    public void incrementDeployments() {
+        this.deploymentCount = (this.deploymentCount != null ? this.deploymentCount : 0) + 1;
+    }
+
+    /**
+     * Decrement deployment count.
+     */
+    public void decrementDeployments() {
+        if (this.deploymentCount != null && this.deploymentCount > 0) {
+            this.deploymentCount--;
+        }
+    }
+
+    // Category getters/setters
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    // Badge getters/setters
+    public Boolean getIsBestSeller() {
+        return isBestSeller;
+    }
+
+    public void setIsBestSeller(Boolean isBestSeller) {
+        this.isBestSeller = isBestSeller;
+    }
+
+    public Boolean getIsTrending() {
+        return isTrending;
+    }
+
+    public void setIsTrending(Boolean isTrending) {
+        this.isTrending = isTrending;
+    }
+
+    public Boolean getIsNew() {
+        return isNew;
+    }
+
+    public void setIsNew(Boolean isNew) {
+        this.isNew = isNew;
+    }
+
+    public Boolean getIsFeatured() {
+        return isFeatured;
+    }
+
+    public void setIsFeatured(Boolean isFeatured) {
+        this.isFeatured = isFeatured;
     }
 }

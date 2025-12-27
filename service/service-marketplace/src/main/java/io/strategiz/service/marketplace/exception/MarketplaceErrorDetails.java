@@ -43,7 +43,11 @@ public enum MarketplaceErrorDetails implements ErrorDetails {
     // Pricing errors
     INVALID_PRICING_TYPE(HttpStatus.BAD_REQUEST, "marketplace-invalid-pricing-type"),
     INVALID_ONE_TIME_PRICE(HttpStatus.BAD_REQUEST, "marketplace-invalid-one-time-price"),
-    INVALID_MONTHLY_PRICE(HttpStatus.BAD_REQUEST, "marketplace-invalid-monthly-price");
+    INVALID_MONTHLY_PRICE(HttpStatus.BAD_REQUEST, "marketplace-invalid-monthly-price"),
+    INVALID_PRICING(HttpStatus.BAD_REQUEST, "marketplace-invalid-pricing"),
+
+    // Checkout errors
+    CHECKOUT_SESSION_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketplace-checkout-session-creation-failed");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

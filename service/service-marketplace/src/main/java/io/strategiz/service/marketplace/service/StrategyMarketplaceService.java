@@ -8,11 +8,19 @@ import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.SetOptions;
 import com.google.cloud.firestore.WriteBatch;
 import com.google.firebase.cloud.FirestoreClient;
+import io.strategiz.client.stripe.StripeService;
+import io.strategiz.data.strategy.entity.Strategy;
+import io.strategiz.data.strategy.entity.StrategyPerformance;
+import io.strategiz.data.strategy.entity.StrategyPricing;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +35,9 @@ import java.util.concurrent.ExecutionException;
 @Service
 public class StrategyMarketplaceService extends BaseService {
 
+    @Autowired
+    private StripeService stripeService;
+
     @Override
     protected String getModuleName() {
         return "service-marketplace";
@@ -34,30 +45,45 @@ public class StrategyMarketplaceService extends BaseService {
 
     /**
      * List all public strategies in the marketplace
-     * 
+     *
      * @param category Optional category filter
      * @param sortBy Optional sort field
      * @param limit Maximum number of results to return
-     * @return List of strategies
+     * @param featured Optional featured filter
+     * @return List of strategies with creator information
      */
-    public List<Map<String, Object>> listPublicStrategies(String category, String sortBy, int limit) {
+    public List<Map<String, Object>> listPublicStrategies(String category, String sortBy, int limit, Boolean featured) {
         try {
             Firestore firestore = FirestoreClient.getFirestore();
             List<Map<String, Object>> strategies = new ArrayList<>();
-            
-            // Query for public strategies
-            QuerySnapshot querySnapshot = firestore.collection("strategies")
-                .whereEqualTo("isPublic", true)
-                .limit(limit)
-                .get()
-                .get();
-            
-            querySnapshot.getDocuments().forEach(doc -> {
-                Map<String, Object> strategy = doc.getData();
-                strategy.put("id", doc.getId());
-                strategies.add(strategy);
-            });
-            
+
+            // Build query for published strategies
+            var query = firestore.collection("strategies")
+                .whereNotEqualTo("publishedAt", null);
+
+            // Add category filter if specified
+            if (category != null && !category.isEmpty()) {
+                query = query.whereEqualTo("category", category);
+            }
+
+            // Add featured filter if specified
+            if (featured != null && featured) {
+                query = query.whereEqualTo("isFeatured", true);
+            }
+
+            // Execute query with limit
+            QuerySnapshot querySnapshot = query.limit(limit).get().get();
+
+            // Convert each strategy document to marketplace format
+            for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                Strategy strategy = doc.toObject(Strategy.class);
+                if (strategy != null) {
+                    strategy.setId(doc.getId());
+                    Map<String, Object> marketplaceStrategy = convertToMarketplaceStrategy(strategy, firestore);
+                    strategies.add(marketplaceStrategy);
+                }
+            }
+
             return strategies;
         } catch (Exception e) {
             log.error("Error listing strategies", e);
@@ -386,5 +412,151 @@ public class StrategyMarketplaceService extends BaseService {
             log.error("Error getting user strategies", e);
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_RETRIEVAL_FAILED, "service-marketplace", e, userId);
         }
+    }
+
+    /**
+     * Create Stripe checkout session for strategy purchase
+     *
+     * @param id Strategy ID
+     * @param userId User ID
+     * @return Checkout session details
+     */
+    public Map<String, String> createStrategyCheckout(String id, String userId) {
+        try {
+            Firestore firestore = FirestoreClient.getFirestore();
+            DocumentReference strategyRef = firestore.collection("strategies").document(id);
+            DocumentSnapshot strategyDoc = strategyRef.get().get();
+
+            if (!strategyDoc.exists()) {
+                throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, "service-marketplace", id);
+            }
+
+            // Convert to Strategy entity
+            Strategy strategy = strategyDoc.toObject(Strategy.class);
+            if (strategy == null) {
+                throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, "service-marketplace", id);
+            }
+
+            // Validate strategy is published
+            if (!strategy.isPublished()) {
+                throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_AVAILABLE, "service-marketplace", id);
+            }
+
+            // Validate pricing
+            StrategyPricing pricing = strategy.getPricing();
+            if (pricing == null || pricing.isFree()) {
+                throw new StrategizException(MarketplaceErrorDetails.INVALID_PRICING, "service-marketplace",
+                        "Strategy is free, use purchaseStrategy instead");
+            }
+
+            // Fetch user email
+            String userEmail = null;
+            DocumentSnapshot userDoc = firestore.collection("users").document(userId).get().get();
+            if (userDoc.exists()) {
+                UserEntity user = userDoc.toObject(UserEntity.class);
+                if (user != null && user.getProfile() != null) {
+                    userEmail = user.getProfile().getEmail();
+                }
+            }
+
+            // Create Stripe checkout
+            long priceInCents = pricing.getOneTimePrice().multiply(BigDecimal.valueOf(100)).longValue();
+            StripeService.CheckoutResult result = stripeService.createStrategyCheckoutSession(
+                    userId, userEmail, id, strategy.getName(), priceInCents,
+                    pricing.getCurrency(), null
+            );
+
+            return Map.of("sessionId", result.sessionId(), "checkoutUrl", result.url());
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error creating checkout session", e);
+            throw new StrategizException(MarketplaceErrorDetails.CHECKOUT_SESSION_CREATION_FAILED, "service-marketplace", e, id);
+        }
+    }
+
+    /**
+     * Convert Strategy entity to marketplace response format with creator information
+     *
+     * @param strategy Strategy entity
+     * @param firestore Firestore instance
+     * @return Marketplace strategy map
+     */
+    private Map<String, Object> convertToMarketplaceStrategy(Strategy strategy, Firestore firestore) throws ExecutionException, InterruptedException {
+        Map<String, Object> result = new HashMap<>();
+
+        // Basic fields
+        result.put("id", strategy.getId());
+        result.put("name", strategy.getName());
+        result.put("description", strategy.getDescription());
+        result.put("creatorId", strategy.getUserId());
+
+        // Fetch creator information from User entity
+        try {
+            DocumentSnapshot userDoc = firestore.collection("users").document(strategy.getUserId()).get().get();
+            if (userDoc.exists()) {
+                UserEntity user = userDoc.toObject(UserEntity.class);
+                if (user != null && user.getProfile() != null) {
+                    UserProfileEntity profile = user.getProfile();
+                    result.put("creatorName", profile.getName());
+                    result.put("creatorEmail", profile.getEmail());
+                    result.put("creatorPhotoURL", profile.getPhotoURL());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch creator info for strategy " + strategy.getId(), e);
+            result.put("creatorName", "Unknown");
+            result.put("creatorEmail", "");
+            result.put("creatorPhotoURL", null);
+        }
+
+        // Pricing information
+        StrategyPricing pricing = strategy.getPricing();
+        if (pricing != null) {
+            result.put("pricingModel", pricing.getPricingType().toString());
+            result.put("price", pricing.getOneTimePrice() != null ? pricing.getOneTimePrice().doubleValue() : null);
+            result.put("monthlyPrice", pricing.getMonthlyPrice() != null ? pricing.getMonthlyPrice().doubleValue() : null);
+            result.put("currency", pricing.getCurrency());
+        } else {
+            result.put("pricingModel", "FREE");
+            result.put("price", null);
+            result.put("monthlyPrice", null);
+            result.put("currency", "USD");
+        }
+
+        // Stats
+        result.put("deploymentCount", strategy.getDeploymentCount() != null ? strategy.getDeploymentCount() : 0);
+        result.put("rating", strategy.getAverageRating());
+        result.put("reviewCount", strategy.getReviewCount() != null ? strategy.getReviewCount() : 0);
+
+        // Performance metrics
+        StrategyPerformance performance = strategy.getPerformance();
+        if (performance != null && performance.hasData()) {
+            Map<String, Object> perfMap = new HashMap<>();
+            perfMap.put("winRate", performance.getWinRate());
+            perfMap.put("totalReturn", performance.getTotalReturn());
+            perfMap.put("profitFactor", performance.getProfitFactor());
+            perfMap.put("sharpeRatio", performance.getSharpeRatio());
+            perfMap.put("maxDrawdown", performance.getMaxDrawdown());
+            perfMap.put("lastUpdated", performance.getLastTestedAt());
+            result.put("performance", perfMap);
+        }
+
+        // Status
+        result.put("isPublished", strategy.isPublished());
+        result.put("publishedAt", strategy.getPublishedAt());
+        result.put("createdAt", strategy.getCreatedDate() != null ? strategy.getCreatedDate().toString() : null);
+        result.put("updatedAt", strategy.getModifiedDate() != null ? strategy.getModifiedDate().toString() : null);
+
+        // Badges
+        result.put("isBestSeller", strategy.getIsBestSeller() != null ? strategy.getIsBestSeller() : false);
+        result.put("isTrending", strategy.getIsTrending() != null ? strategy.getIsTrending() : false);
+        result.put("isNew", strategy.getIsNew() != null ? strategy.getIsNew() : false);
+        result.put("isFeatured", strategy.getIsFeatured() != null ? strategy.getIsFeatured() : false);
+
+        // Category
+        result.put("category", strategy.getCategory());
+
+        return result;
     }
 }

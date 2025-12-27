@@ -11,8 +11,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>service-monitoring</artifactId>
-    <description>System monitoring and health check services</description>
+    <artifactId>service-console-observability</artifactId>
+    <description>Admin console observability and metrics endpoints</description>
     
     <dependencies>
         <!-- Common service dependencies -->

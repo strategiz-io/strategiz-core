@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.config;
+package io.strategiz.service.console.observability.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;

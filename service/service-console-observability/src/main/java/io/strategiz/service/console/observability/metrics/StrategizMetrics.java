@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.metrics;
+package io.strategiz.service.console.observability.metrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;

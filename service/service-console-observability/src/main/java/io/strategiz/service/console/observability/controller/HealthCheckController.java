@@ -1,6 +1,6 @@
-package io.strategiz.service.monitoring.controller;
+package io.strategiz.service.console.observability.controller;
 
-import io.strategiz.service.monitoring.model.StatusResponse;
+import io.strategiz.service.console.observability.model.StatusResponse;
 import io.strategiz.service.base.controller.BaseController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

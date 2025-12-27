@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.config;
+package io.strategiz.service.console.observability.config;
 
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;

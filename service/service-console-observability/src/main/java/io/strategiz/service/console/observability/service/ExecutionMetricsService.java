@@ -1,7 +1,7 @@
-package io.strategiz.service.monitoring.service;
+package io.strategiz.service.console.observability.service;
 
-import io.strategiz.service.monitoring.client.GrafanaMetricsClient;
-import io.strategiz.service.monitoring.client.GrafanaMetricsClient.PrometheusQueryResult;
+import io.strategiz.service.console.observability.client.GrafanaMetricsClient;
+import io.strategiz.service.console.observability.client.GrafanaMetricsClient.PrometheusQueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

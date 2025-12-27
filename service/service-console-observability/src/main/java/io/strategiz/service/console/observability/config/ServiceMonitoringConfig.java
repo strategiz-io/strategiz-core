@@ -1,4 +1,4 @@
-package io.strategiz.service.monitoring.config;
+package io.strategiz.service.console.observability.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;

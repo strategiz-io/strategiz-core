@@ -64,6 +64,7 @@ public class GcpBillingConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
     @ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
     public MetricServiceClient metricServiceClient() throws IOException {
         log.info("Initializing GCP Metric Service client");

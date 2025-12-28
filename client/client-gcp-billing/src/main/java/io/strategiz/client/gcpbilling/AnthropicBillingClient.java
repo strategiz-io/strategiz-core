@@ -2,7 +2,6 @@ package io.strategiz.client.gcpbilling;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.strategiz.client.gcpbilling.config.GcpBillingConfig.GcpBillingProperties;
 import io.strategiz.client.gcpbilling.model.AiProviderCost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +38,7 @@ public class AnthropicBillingClient {
     private final ObjectMapper objectMapper;
     private final String adminApiKey;
 
-    public AnthropicBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper, GcpBillingProperties properties) {
+    public AnthropicBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         // Admin API key should be stored in Vault at secret/strategiz/ai/anthropic/admin-api-key

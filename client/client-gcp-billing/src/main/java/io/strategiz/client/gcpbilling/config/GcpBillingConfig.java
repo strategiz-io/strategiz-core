@@ -78,28 +78,41 @@ public class GcpBillingConfig {
         }
 
         log.info("Using service account credentials from Vault");
+        log.debug("Credentials length: {} characters, first 50 chars: '{}'",
+                serviceAccountBase64.length(),
+                serviceAccountBase64.substring(0, Math.min(50, serviceAccountBase64.length())));
 
         // Try to use credentials - could be raw JSON or base64-encoded
         String serviceAccountJson;
-        if (serviceAccountBase64.trim().startsWith("{")) {
+        String trimmed = serviceAccountBase64.trim();
+
+        if (trimmed.startsWith("{")) {
             // Already decoded JSON
-            log.debug("Credentials appear to be raw JSON (VaultSecretService auto-decoded)");
-            serviceAccountJson = serviceAccountBase64;
+            log.info("Credentials are raw JSON (VaultSecretService auto-decoded)");
+            serviceAccountJson = trimmed;
         } else {
-            // Base64-encoded, need to decode
-            log.debug("Credentials appear to be base64-encoded, decoding...");
+            // Try base64 decoding
+            log.info("Credentials do not start with '{', attempting base64 decode...");
             try {
-                byte[] decodedBytes = java.util.Base64.getDecoder().decode(serviceAccountBase64);
+                byte[] decodedBytes = java.util.Base64.getDecoder().decode(trimmed);
                 serviceAccountJson = new String(decodedBytes, StandardCharsets.UTF_8);
-                log.debug("Successfully decoded base64 credentials");
+                log.info("Successfully decoded base64 credentials, JSON length: {} chars", serviceAccountJson.length());
             } catch (IllegalArgumentException e) {
-                log.error("Failed to decode base64 credentials: {}", e.getMessage());
-                log.error("Credentials do not start with '{{' and are not valid base64");
-                throw new IOException("Invalid service account credentials format in Vault", e);
+                log.error("FAILED to decode base64. First chars of value: '{}'",
+                        trimmed.substring(0, Math.min(100, trimmed.length())));
+                log.error("Base64 decode error: {}", e.getMessage());
+
+                // Last resort: maybe it's already JSON but with leading/trailing whitespace or BOM
+                if (trimmed.contains("\"type\"") && trimmed.contains("\"private_key\"")) {
+                    log.warn("Credentials contain JSON fields but don't start with '{', using as-is after trim");
+                    serviceAccountJson = trimmed;
+                } else {
+                    throw new IOException("Credentials are not valid JSON or base64: " + e.getMessage(), e);
+                }
             }
         }
 
-        log.debug("Service account JSON length: {} characters", serviceAccountJson.length());
+        log.debug("Final service account JSON length: {} characters", serviceAccountJson.length());
 
         GoogleCredentials credentials = GoogleCredentials.fromStream(
             new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8))

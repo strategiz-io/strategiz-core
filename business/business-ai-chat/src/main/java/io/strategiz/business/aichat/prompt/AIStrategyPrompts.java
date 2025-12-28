@@ -79,51 +79,136 @@ public class AIStrategyPrompts {
 
 			Python code requirements (CRITICAL - MUST follow this exact format):
 
-			1. REQUIRED: Define a SYMBOL constant at the top that MATCHES the symbol in visualConfig:
-			   SYMBOL = 'AAPL'  # The symbol to trade (must match visualConfig.symbol)
+			1. EXTRACT CONSTANTS FROM NATURAL LANGUAGE (This is critical!):
 
-			2. RECOMMENDED: Include risk management constants:
-			   STOP_LOSS = 5         # Stop loss percentage
-			   TAKE_PROFIT = 10      # Take profit percentage
-			   POSITION_SIZE = 5     # Position size as % of portfolio
+			   The user will describe strategies in plain English. YOU must intelligently extract these values:
+
+			   a) SYMBOL (REQUIRED):
+			      - Extract from phrases like: "Buy AAPL", "trade Bitcoin", "for MSFT stock"
+			      - If multiple symbols mentioned, use the PRIMARY one being traded
+			      - If NO symbol mentioned, use: "SPY" (for stock strategies) or "BTC" (for crypto strategies)
+			      - Examples:
+			        * "Buy AAPL when RSI is oversold" → SYMBOL = 'AAPL'
+			        * "MACD strategy for Tesla" → SYMBOL = 'TSLA'
+			        * "Bitcoin momentum strategy" → SYMBOL = 'BTC'
+			        * "Buy when RSI crosses 30" (no symbol) → SYMBOL = 'SPY' (default)
+
+			   b) TIMEFRAME (REQUIRED):
+			      - Extract from: "1 minute", "5 min", "hourly", "1 hour", "4H", "daily", "1 day", "weekly", etc.
+			      - Convert to standard format: "1Min", "5Min", "15Min", "1H", "4H", "1D", "1W", "1M"
+			      - If NO timeframe mentioned, default to: "1D" (daily)
+			      - Examples:
+			        * "on the 1 hour chart" → TIMEFRAME = '1H'
+			        * "intraday 15 minute strategy" → TIMEFRAME = '15Min'
+			        * "daily MACD crossover" → TIMEFRAME = '1D'
+			        * No mention → TIMEFRAME = '1D' (default)
+
+			   c) STOP_LOSS (REQUIRED):
+			      - Extract from: "3% stop", "stop loss at 5%", "cut losses at 2.5 percent", "5 point stop"
+			      - Store as PERCENTAGE (not decimal): 3% → 3.0, NOT 0.03
+			      - If NO stop loss mentioned, use intelligent default:
+			        * Momentum strategies: 3.0
+			        * Mean reversion: 2.0
+			        * Trend following: 5.0
+			        * Breakout strategies: 4.0
+			      - Examples:
+			        * "set 3% stop loss" → STOP_LOSS = 3.0
+			        * "cut losses at 2.5%" → STOP_LOSS = 2.5
+			        * No mention (MACD strategy) → STOP_LOSS = 3.0 (momentum default)
+
+			   d) TAKE_PROFIT (REQUIRED):
+			      - Extract from: "8% profit target", "take profit at 10%", "target 15 percent gain"
+			      - Store as PERCENTAGE: 8% → 8.0
+			      - If NO take profit mentioned, use intelligent default (typically 2-3x stop loss):
+			        * If stop_loss = 3%, then take_profit = 9.0 (3:1 ratio)
+			        * Adjust based on strategy type and risk level
+			      - Examples:
+			        * "8% take profit" → TAKE_PROFIT = 8.0
+			        * "target 15% gain" → TAKE_PROFIT = 15.0
+			        * No mention (with STOP_LOSS=3) → TAKE_PROFIT = 9.0 (3:1 ratio)
+
+			   e) POSITION_SIZE (RECOMMENDED):
+			      - Extract from: "5% of portfolio", "allocate 10% per trade", "2% position size"
+			      - Default: 5.0 (5% of portfolio - conservative)
+
+			   EXTRACTION EXAMPLE:
+			   User says: "Create a MACD momentum strategy: Buy AAPL when MACD line crosses above the signal line
+			   while both are below zero. Sell AAPL when MACD line crosses below the signal line while both are
+			   above zero. Set 3% stop loss and 8% take profit, work on timeframe of 1 day"
+
+			   YOU extract:
+			   SYMBOL = 'AAPL'           # From "Buy AAPL"
+			   TIMEFRAME = '1D'          # From "timeframe of 1 day"
+			   STOP_LOSS = 3.0           # From "3% stop loss"
+			   TAKE_PROFIT = 8.0         # From "8% take profit"
+			   POSITION_SIZE = 5         # Not specified, use default
+
+			   Another example - minimal input (users often say very little):
+			   User says: "RSI oversold strategy"
+
+			   YOU extract:
+			   SYMBOL = 'SPY'            # Not specified, default for stocks
+			   TIMEFRAME = '1D'          # Not specified, default daily
+			   STOP_LOSS = 3.0           # Not specified, momentum default
+			   TAKE_PROFIT = 9.0         # Not specified, 3:1 ratio (3.0 * 3)
+			   POSITION_SIZE = 5         # Not specified, use default
+
+			   Even more minimal:
+			   User says: "MACD crossover"
+
+			   YOU extract:
+			   SYMBOL = 'SPY'            # Not specified, default
+			   TIMEFRAME = '1D'          # Not specified, default
+			   STOP_LOSS = 3.0           # MACD is momentum, use 3.0
+			   TAKE_PROFIT = 9.0         # 3:1 ratio
+			   POSITION_SIZE = 5         # Default
+
+			   REMEMBER: Users are NOT programmers! They won't specify constants.
+			   YOU must extract from plain English and fill in intelligent defaults.
+			   NEVER skip these constants - they are REQUIRED for execution.
+
+			2. CODE STRUCTURE (REQUIRED):
+			   The constants MUST appear at the top in this EXACT order:
+
+			   ```python
+			   import pandas as pd
+			   import numpy as np
+
+			   # Configuration (extracted from user's natural language prompt)
+			   SYMBOL = 'AAPL'        # Extracted: "Buy AAPL when..."
+			   TIMEFRAME = '1H'       # Extracted: "on 1 hour chart" OR default '1D'
+			   STOP_LOSS = 3.0        # Extracted: "3% stop loss" OR intelligent default
+			   TAKE_PROFIT = 8.0      # Extracted: "8% take profit" OR 3:1 ratio default
+			   POSITION_SIZE = 5      # Default 5% unless specified
+			   ```
 
 			3. REQUIRED: Define a strategy(data) function that:
 			   - Takes a pandas DataFrame 'data' with columns: open, high, low, close, volume
 			   - Returns EXACTLY one of these strings: 'BUY', 'SELL', or 'HOLD'
 			   - Uses the LAST row of data (data.iloc[-1] or data['close'].iloc[-1]) for current values
+			   - Example structure:
+			     ```python
+			     def strategy(data):
+			         # Calculate indicators
+			         rsi = calculate_rsi(data['close'])
 
-			4. Code structure MUST be:
-			   ```python
-			   import pandas as pd
-			   import numpy as np
+			         # Entry/exit logic
+			         if rsi.iloc[-1] < 30:
+			             return 'BUY'
+			         elif rsi.iloc[-1] > 70:
+			             return 'SELL'
+			         else:
+			             return 'HOLD'
+			     ```
 
-			   # Configuration
-			   SYMBOL = 'AAPL'
-			   STOP_LOSS = 5
-			   TAKE_PROFIT = 10
-			   POSITION_SIZE = 5
-
-			   def strategy(data):
-			       # Calculate indicators here
-			       # Example: rsi = calculate_rsi(data['close'])
-
-			       # Entry/exit logic
-			       if <buy_condition>:
-			           return 'BUY'
-			       elif <sell_condition>:
-			           return 'SELL'
-			       else:
-			           return 'HOLD'
-			   ```
-
-			5. DO NOT:
+			4. DO NOT:
 			   - Download data (data is provided)
 			   - Use yfinance, talib, or external data sources
 			   - Create loops over the entire DataFrame (calculations on columns are OK)
 			   - Use add_signal() or add_indicator() functions (they don't exist)
 			   - Track positions or state between calls
 
-			6. Calculate indicators using pandas/numpy:
+			5. Calculate indicators using pandas/numpy:
 			   - SMA: data['close'].rolling(window=20).mean()
 			   - EMA: data['close'].ewm(span=12).mean()
 			   - RSI: Use standard pandas calculation

@@ -2,11 +2,12 @@
 # Removes duplicate Maven build and enables Docker caching
 
 steps:
-  # Build Docker image WITHOUT caching to force rebuild (temporary)
+  # Build Docker image WITH layer caching (re-enabled)
   - name: 'gcr.io/kaniko-project/executor:latest'
     args:
       - '--destination=gcr.io/$PROJECT_ID/strategiz-api'
-      - '--cache=false'
+      - '--cache=true'
+      - '--cache-ttl=168h'  # Cache for 7 days
       - '--dockerfile=Dockerfile'
       - '--context=dir://.'
 

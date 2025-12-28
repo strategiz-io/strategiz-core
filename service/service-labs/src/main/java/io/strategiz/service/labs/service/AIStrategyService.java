@@ -49,6 +49,8 @@ public class AIStrategyService extends BaseService {
 		log.info("Generating strategy from prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
 
+		log.info("Step 1/4: Analyzing prompt for user strategy request");
+
 		try {
 			// Build the system prompt with context
 			String symbols = request.getContext() != null && request.getContext().getSymbols() != null
@@ -57,6 +59,8 @@ public class AIStrategyService extends BaseService {
 
 			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe);
 
+			log.info("Step 2/4: Preparing strategy generation parameters");
+
 			// Build conversation history
 			List<LLMMessage> history = buildConversationHistory(systemPrompt,
 					request.getConversationHistory());
@@ -64,8 +68,13 @@ public class AIStrategyService extends BaseService {
 			// Use model from request, or default to gemini-3-flash-preview
 			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
 
+			log.info("Step 3/4: Generating strategy with AI model: {}", model);
+
 			// Call LLM via router (blocking)
 			LLMResponse llmResponse = llmRouter.generateContent(request.getPrompt(), history, model).block();
+
+			log.info("Step 4/4: Parsing and validating strategy response");
+
 			return parseGenerationResponse(llmResponse);
 		}
 		catch (Exception e) {
@@ -80,6 +89,8 @@ public class AIStrategyService extends BaseService {
 	public AIStrategyResponse refineStrategy(AIStrategyRequest request) {
 		log.info("Refining strategy with prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
+
+		log.info("Step 1/4: Analyzing refinement request");
 
 		if (request.getContext() == null || request.getContext().getCurrentCode() == null) {
 			return AIStrategyResponse.error("Current strategy context is required for refinement");
@@ -98,6 +109,8 @@ public class AIStrategyService extends BaseService {
 			String refinementPrompt = AIStrategyPrompts.buildRefinementPrompt(visualConfigJson,
 					request.getContext().getCurrentCode(), request.getPrompt());
 
+			log.info("Step 2/4: Preparing refinement parameters");
+
 			// Build conversation history
 			List<LLMMessage> history = buildConversationHistory(AIStrategyPrompts.STRATEGY_GENERATION_SYSTEM,
 					request.getConversationHistory());
@@ -105,7 +118,12 @@ public class AIStrategyService extends BaseService {
 			// Use model from request, or default
 			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
 
+			log.info("Step 3/4: Refining strategy with AI model: {}", model);
+
 			LLMResponse llmResponse = llmRouter.generateContent(refinementPrompt, history, model).block();
+
+			log.info("Step 4/4: Parsing and validating refined strategy");
+
 			return parseGenerationResponse(llmResponse);
 		}
 		catch (Exception e) {

@@ -79,16 +79,27 @@ public class GcpBillingConfig {
 
         log.info("Using service account credentials from Vault");
 
-        // Decode base64 credentials
+        // Try to use credentials - could be raw JSON or base64-encoded
         String serviceAccountJson;
-        try {
-            byte[] decodedBytes = java.util.Base64.getDecoder().decode(serviceAccountBase64);
-            serviceAccountJson = new String(decodedBytes, StandardCharsets.UTF_8);
-            log.debug("Decoded service account JSON length: {} characters", serviceAccountJson.length());
-        } catch (IllegalArgumentException e) {
-            log.error("Failed to decode base64 credentials from Vault: {}", e.getMessage());
-            throw new IOException("Invalid base64 credentials in Vault", e);
+        if (serviceAccountBase64.trim().startsWith("{")) {
+            // Already decoded JSON
+            log.debug("Credentials appear to be raw JSON (VaultSecretService auto-decoded)");
+            serviceAccountJson = serviceAccountBase64;
+        } else {
+            // Base64-encoded, need to decode
+            log.debug("Credentials appear to be base64-encoded, decoding...");
+            try {
+                byte[] decodedBytes = java.util.Base64.getDecoder().decode(serviceAccountBase64);
+                serviceAccountJson = new String(decodedBytes, StandardCharsets.UTF_8);
+                log.debug("Successfully decoded base64 credentials");
+            } catch (IllegalArgumentException e) {
+                log.error("Failed to decode base64 credentials: {}", e.getMessage());
+                log.error("Credentials do not start with '{{' and are not valid base64");
+                throw new IOException("Invalid service account credentials format in Vault", e);
+            }
         }
+
+        log.debug("Service account JSON length: {} characters", serviceAccountJson.length());
 
         GoogleCredentials credentials = GoogleCredentials.fromStream(
             new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8))

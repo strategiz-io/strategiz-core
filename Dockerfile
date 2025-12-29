@@ -14,7 +14,7 @@ COPY application-api/ application-api/
 COPY batch/ batch/
 
 # Build the application and clean up in one layer to reduce snapshot size
-RUN mvn clean install -DskipTests -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+RUN mvn clean install -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
     rm -rf /root/.m2/repository
 
 # Runtime image

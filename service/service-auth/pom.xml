@@ -283,25 +283,24 @@
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
-            <!-- Version managed by root parent pom -->
+            <version>7.20.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-spring</artifactId>
-            <!-- Version managed by root parent pom -->
+            <version>7.20.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-junit-platform-engine</artifactId>
-            <!-- Version managed by root parent pom -->
+            <version>7.20.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-suite</artifactId>
-            <!-- Version managed by root parent pom -->
             <scope>test</scope>
         </dependency>
     </dependencies>

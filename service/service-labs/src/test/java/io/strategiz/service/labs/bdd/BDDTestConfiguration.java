@@ -99,13 +99,13 @@ public class BDDTestConfiguration {
 
             private String extractTimeframe(String prompt) {
                 String lower = prompt.toLowerCase();
+                // Check longer patterns first to avoid substring matches
+                if (lower.contains("15 min") || lower.contains("15 minute")) return "15Min";
+                if (lower.contains("4 hour") || lower.contains("4h")) return "4H";
                 if (lower.contains("1 minute") || lower.contains("1min")) return "1Min";
                 if (lower.contains("5 min")) return "5Min";
-                if (lower.contains("15 min")) return "15Min";
-                if (lower.contains("15 minute")) return "15Min";
                 if (lower.contains("1 hour") || lower.contains("hourly") || lower.contains("1h")) return "1H";
                 if (lower.contains("hourly basis")) return "1H";
-                if (lower.contains("4 hour") || lower.contains("4h")) return "4H";
                 if (lower.contains("daily") || lower.contains("1 day") || lower.contains("1d")) return "1D";
                 if (lower.contains("weekly") || lower.contains("1 week") || lower.contains("1w")) return "1W";
                 if (lower.contains("monthly") || lower.contains("1m")) return "1M";
@@ -114,17 +114,23 @@ public class BDDTestConfiguration {
 
             private double extractStopLoss(String prompt) {
                 String lower = prompt.toLowerCase();
+                // Check specific patterns first
+                if (lower.contains("stop loss of 1.5%")) return 1.5;
                 if (lower.contains("1% stop") || lower.contains("1 percent stop")) return 1.0;
                 if (lower.contains("stop at 1%")) return 1.0;
                 if (lower.contains("1.5% stop")) return 1.5;
                 if (lower.contains("2% stop") || lower.contains("2 percent stop")) return 2.0;
                 if (lower.contains("stop at 2%")) return 2.0;
+                if (lower.contains("cut losses at 2.5%")) return 2.5;
                 if (lower.contains("2.5% stop") || lower.contains("2.5 percent")) return 2.5;
                 if (lower.contains("stop at 2.5 percent")) return 2.5;
                 if (lower.contains("3% stop") || lower.contains("three percent")) return 3.0;
                 if (lower.contains("cut losses at three percent")) return 3.0;
+                if (lower.contains("set stop at three percent")) return 3.0;
+                if (lower.contains("risk 4 percent")) return 4.0;
                 if (lower.contains("4% stop")) return 4.0;
                 if (lower.contains("4% stop loss")) return 4.0;
+                if (lower.contains("stop at 5%")) return 5.0;
                 if (lower.contains("5% stop") || lower.contains("risk 5%")) return 5.0;
                 if (lower.contains("risk 5")) return 5.0;
                 if (lower.contains("mean reversion")) return 2.0; // Tighter for mean reversion
@@ -134,12 +140,22 @@ public class BDDTestConfiguration {
             private double extractTakeProfit(String prompt) {
                 String lower = prompt.toLowerCase();
                 if (lower.contains("2% profit") || lower.contains("2% target")) return 2.0;
+                if (lower.contains("target 2% profit")) return 2.0;
                 if (lower.contains("6% profit")) return 6.0;
                 if (lower.contains("8% profit") || lower.contains("8% target")) return 8.0;
+                if (lower.contains("8% take profit")) return 8.0;
+                if (lower.contains("take profit of nine percent")) return 9.0;
                 if (lower.contains("9% profit") || lower.contains("nine percent")) return 9.0;
+                if (lower.contains("book profits at nine percent")) return 9.0;
+                if (lower.contains("target 10%")) return 10.0;
                 if (lower.contains("10% profit") || lower.contains("10% gain")) return 10.0;
+                if (lower.contains("target 10% gain")) return 10.0;
+                if (lower.contains("book profits at 12%")) return 12.0;
                 if (lower.contains("12% profit")) return 12.0;
+                if (lower.contains("12% take profit")) return 12.0;
                 if (lower.contains("15% profit")) return 15.0;
+                if (lower.contains("15% profit target")) return 15.0;
+                if (lower.contains("exit at 20% gain")) return 20.0;
                 if (lower.contains("20% profit") || lower.contains("20% target")) return 20.0;
                 // Default: 3x stop loss
                 return extractStopLoss(prompt) * 3.0;

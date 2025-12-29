@@ -48,6 +48,9 @@ public class AIStrategyRequest {
 	@JsonProperty("model")
 	private String model; // LLM model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
 
+	@JsonProperty("visualEditorSchema")
+	private String visualEditorSchema; // Schema description for generating valid visual rules
+
 	// Getters and Setters
 
 	public String getPrompt() {
@@ -104,6 +107,14 @@ public class AIStrategyRequest {
 
 	public void setModel(String model) {
 		this.model = model;
+	}
+
+	public String getVisualEditorSchema() {
+		return visualEditorSchema;
+	}
+
+	public void setVisualEditorSchema(String visualEditorSchema) {
+		this.visualEditorSchema = visualEditorSchema;
 	}
 
 	/**

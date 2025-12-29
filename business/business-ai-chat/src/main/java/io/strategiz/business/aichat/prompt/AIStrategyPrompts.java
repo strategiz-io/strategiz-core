@@ -423,7 +423,7 @@ public class AIStrategyPrompts {
 	/**
 	 * Build the full system prompt with optional context.
 	 */
-	public static String buildGenerationPrompt(String symbols, String timeframe) {
+	public static String buildGenerationPrompt(String symbols, String timeframe, String visualEditorSchema) {
 		StringBuilder prompt = new StringBuilder(STRATEGY_GENERATION_SYSTEM);
 
 		if (symbols != null && !symbols.isEmpty()) {
@@ -431,6 +431,9 @@ public class AIStrategyPrompts {
 		}
 		if (timeframe != null && !timeframe.isEmpty()) {
 			prompt.append("\nTimeframe: ").append(timeframe);
+		}
+		if (visualEditorSchema != null && !visualEditorSchema.isEmpty()) {
+			prompt.append("\n\n").append(visualEditorSchema);
 		}
 
 		return prompt.toString();
@@ -440,8 +443,12 @@ public class AIStrategyPrompts {
 	 * Build a refinement prompt with current strategy state.
 	 */
 	public static String buildRefinementPrompt(String currentVisualConfig, String currentCode,
-			String userRefinementRequest) {
-		return String.format(REFINEMENT_PROMPT, currentVisualConfig, currentCode, userRefinementRequest);
+			String userRefinementRequest, String visualEditorSchema) {
+		String basePrompt = String.format(REFINEMENT_PROMPT, currentVisualConfig, currentCode, userRefinementRequest);
+		if (visualEditorSchema != null && !visualEditorSchema.isEmpty()) {
+			return basePrompt + "\n\n" + visualEditorSchema;
+		}
+		return basePrompt;
 	}
 
 	/**

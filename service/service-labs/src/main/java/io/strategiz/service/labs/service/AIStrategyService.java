@@ -56,8 +56,9 @@ public class AIStrategyService extends BaseService {
 			String symbols = request.getContext() != null && request.getContext().getSymbols() != null
 					? String.join(", ", request.getContext().getSymbols()) : null;
 			String timeframe = request.getContext() != null ? request.getContext().getTimeframe() : null;
+			String visualEditorSchema = request.getVisualEditorSchema();
 
-			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe);
+			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe, visualEditorSchema);
 
 			log.info("Step 2/4: Preparing strategy generation parameters");
 
@@ -106,8 +107,9 @@ public class AIStrategyService extends BaseService {
 				visualConfigJson = "{}";
 			}
 
+			String visualEditorSchema = request.getVisualEditorSchema();
 			String refinementPrompt = AIStrategyPrompts.buildRefinementPrompt(visualConfigJson,
-					request.getContext().getCurrentCode(), request.getPrompt());
+					request.getContext().getCurrentCode(), request.getPrompt(), visualEditorSchema);
 
 			log.info("Step 2/4: Preparing refinement parameters");
 

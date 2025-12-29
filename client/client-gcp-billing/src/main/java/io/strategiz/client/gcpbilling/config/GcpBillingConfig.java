@@ -70,8 +70,8 @@ public class GcpBillingConfig {
         log.info("Initializing GCP Metric Service client");
 
         // Load service account JSON from Vault at secret/strategiz/gcp-billing
-        // Credentials are stored base64-encoded in Vault
-        String serviceAccountBase64 = vaultSecretService.readSecret("credentials", "gcp-billing");
+        // Path format: "gcp-billing.credentials" -> path: secret/strategiz/gcp-billing, field: credentials
+        String serviceAccountBase64 = vaultSecretService.readSecret("gcp-billing.credentials");
 
         if (serviceAccountBase64 == null || serviceAccountBase64.isEmpty()) {
             log.warn("No service account credentials found in Vault at secret/strategiz/gcp-billing, using Application Default Credentials");
@@ -136,17 +136,17 @@ public class GcpBillingConfig {
         try {
             if (vaultSecretService != null) {
                 // Read from Vault path: secret/strategiz/gcp-billing
-                String vaultAccountId = vaultSecretService.readSecret("billing-account-id", "gcp-billing");
+                String vaultAccountId = vaultSecretService.readSecret("gcp-billing.billing-account-id");
                 if (vaultAccountId != null && !vaultAccountId.isEmpty()) {
                     vaultBillingAccountId = vaultAccountId;
                 }
 
-                String useBillingApiStr = vaultSecretService.readSecret("use-billing-api", "gcp-billing");
+                String useBillingApiStr = vaultSecretService.readSecret("gcp-billing.use-billing-api");
                 if (useBillingApiStr != null) {
                     vaultUseBillingApi = Boolean.parseBoolean(useBillingApiStr);
                 }
 
-                String useBigQueryStr = vaultSecretService.readSecret("use-bigquery", "gcp-billing");
+                String useBigQueryStr = vaultSecretService.readSecret("gcp-billing.use-bigquery");
                 if (useBigQueryStr != null) {
                     vaultUseBigQuery = Boolean.parseBoolean(useBigQueryStr);
                 }

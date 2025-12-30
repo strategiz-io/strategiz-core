@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Admin controller for operating costs tracking and analysis.
@@ -46,17 +48,17 @@ public class AdminCostsController extends BaseController {
     private final CostAggregationService costAggregationService;
     private final CostPredictionService costPredictionService;
     private final GcpAssetInventoryClient assetInventoryClient;
-    private final AiCostsAggregationService aiCostsService;
+    private final Optional<AiCostsAggregationService> aiCostsService;
 
     public AdminCostsController(
             CostAggregationService costAggregationService,
             CostPredictionService costPredictionService,
             GcpAssetInventoryClient assetInventoryClient,
-            AiCostsAggregationService aiCostsService) {
+            @Autowired(required = false) AiCostsAggregationService aiCostsService) {
         this.costAggregationService = costAggregationService;
         this.costPredictionService = costPredictionService;
         this.assetInventoryClient = assetInventoryClient;
-        this.aiCostsService = aiCostsService;
+        this.aiCostsService = Optional.ofNullable(aiCostsService);
     }
 
     @Override
@@ -236,7 +238,14 @@ public class AdminCostsController extends BaseController {
         String adminUserId = (String) request.getAttribute("adminUserId");
         log.info("Admin {} requesting AI costs summary", adminUserId);
 
-        AiCostsSummary summary = aiCostsService.getCurrentMonthAiCosts();
+        if (aiCostsService.isEmpty()) {
+            log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
+            java.time.LocalDate today = java.time.LocalDate.now();
+            java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
+            return ResponseEntity.ok(AiCostsSummary.empty(startOfMonth, today));
+        }
+
+        AiCostsSummary summary = aiCostsService.get().getCurrentMonthAiCosts();
         return ResponseEntity.ok(summary);
     }
 
@@ -252,9 +261,14 @@ public class AdminCostsController extends BaseController {
         String adminUserId = (String) request.getAttribute("adminUserId");
         log.info("Admin {} requesting AI costs by model", adminUserId);
 
+        if (aiCostsService.isEmpty()) {
+            log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
+            return ResponseEntity.ok(Map.of());
+        }
+
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
-        Map<String, BigDecimal> costsByModel = aiCostsService.getCostsByModel(startOfMonth, today);
+        Map<String, BigDecimal> costsByModel = aiCostsService.get().getCostsByModel(startOfMonth, today);
         return ResponseEntity.ok(costsByModel);
     }
 
@@ -273,7 +287,12 @@ public class AdminCostsController extends BaseController {
         String adminUserId = (String) request.getAttribute("adminUserId");
         log.info("Admin {} requesting daily AI costs for {} days", adminUserId, days);
 
-        List<Map<String, Object>> dailyCosts = aiCostsService.getDailyAiCosts(days);
+        if (aiCostsService.isEmpty()) {
+            log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
+            return ResponseEntity.ok(List.of());
+        }
+
+        List<Map<String, Object>> dailyCosts = aiCostsService.get().getDailyAiCosts(days);
         return ResponseEntity.ok(dailyCosts);
     }
 }

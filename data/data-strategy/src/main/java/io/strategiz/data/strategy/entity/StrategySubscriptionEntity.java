@@ -46,7 +46,12 @@ public class StrategySubscriptionEntity extends BaseEntity {
     @PropertyName("creatorId")
     @JsonProperty("creatorId")
     @NotBlank(message = "Creator ID is required")
-    private String creatorId;
+    private String creatorId; // Original author (for attribution)
+
+    @PropertyName("ownerId")
+    @JsonProperty("ownerId")
+    @NotBlank(message = "Owner ID is required")
+    private String ownerId; // Current rights holder (receives subscription payments)
 
     @PropertyName("subscriptionType")
     @JsonProperty("subscriptionType")
@@ -103,16 +108,21 @@ public class StrategySubscriptionEntity extends BaseEntity {
     @JsonProperty("creatorName")
     private String creatorName;
 
+    @PropertyName("ownerName")
+    @JsonProperty("ownerName")
+    private String ownerName;
+
     // Constructors
     public StrategySubscriptionEntity() {
         super();
     }
 
-    public StrategySubscriptionEntity(String strategyId, String userId, String creatorId, PricingType subscriptionType) {
+    public StrategySubscriptionEntity(String strategyId, String userId, String creatorId, String ownerId, PricingType subscriptionType) {
         super();
         this.strategyId = strategyId;
         this.userId = userId;
         this.creatorId = creatorId;
+        this.ownerId = ownerId;
         this.subscriptionType = subscriptionType;
         this.startedAt = Timestamp.now();
 
@@ -121,6 +131,11 @@ public class StrategySubscriptionEntity extends BaseEntity {
             this.expiresAt = null;
             this.renewalDate = null;
         }
+    }
+
+    // Backward compatibility constructor (assumes creator = owner initially)
+    public StrategySubscriptionEntity(String strategyId, String userId, String creatorId, PricingType subscriptionType) {
+        this(strategyId, userId, creatorId, creatorId, subscriptionType);
     }
 
     // Getters and Setters
@@ -156,6 +171,14 @@ public class StrategySubscriptionEntity extends BaseEntity {
 
     public void setCreatorId(String creatorId) {
         this.creatorId = creatorId;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 
     public PricingType getSubscriptionType() {
@@ -260,6 +283,14 @@ public class StrategySubscriptionEntity extends BaseEntity {
 
     public void setCreatorName(String creatorName) {
         this.creatorName = creatorName;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
     }
 
     // Helper methods

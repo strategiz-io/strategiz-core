@@ -38,8 +38,24 @@ public class Strategy extends BaseEntity {
     private List<String> tags;
     
     @JsonProperty("userId")
-    private String userId;
-    
+    private String userId; // Deprecated - use creatorId or ownerId
+
+    // Owner subscription model fields
+    @JsonProperty("creatorId")
+    private String creatorId; // Original author (immutable)
+
+    @JsonProperty("ownerId")
+    private String ownerId; // Current rights holder (mutable, can be transferred)
+
+    @JsonProperty("publishStatus")
+    private String publishStatus; // DRAFT, PUBLISHED
+
+    @JsonProperty("deploymentStatus")
+    private String deploymentStatus; // UNDEPLOYED, DEPLOYED_ALERT, DEPLOYED_BOT
+
+    @JsonProperty("publicStatus")
+    private String publicStatus; // PRIVATE, SUBSCRIBERS_ONLY, PUBLIC
+
     @JsonProperty("backtestResults")
     private Map<String, Object> backtestResults; // Deprecated - use performance instead
 
@@ -186,11 +202,52 @@ public class Strategy extends BaseEntity {
     public String getUserId() {
         return userId;
     }
-    
+
     public void setUserId(String userId) {
         this.userId = userId;
     }
-    
+
+    // Owner subscription model getters/setters
+    public String getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(String creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public String getPublishStatus() {
+        return publishStatus;
+    }
+
+    public void setPublishStatus(String publishStatus) {
+        this.publishStatus = publishStatus;
+    }
+
+    public String getDeploymentStatus() {
+        return deploymentStatus;
+    }
+
+    public void setDeploymentStatus(String deploymentStatus) {
+        this.deploymentStatus = deploymentStatus;
+    }
+
+    public String getPublicStatus() {
+        return publicStatus;
+    }
+
+    public void setPublicStatus(String publicStatus) {
+        this.publicStatus = publicStatus;
+    }
+
     public Map<String, Object> getBacktestResults() {
         return backtestResults;
     }
@@ -470,5 +527,84 @@ public class Strategy extends BaseEntity {
 
     public void setIsFeatured(Boolean isFeatured) {
         this.isFeatured = isFeatured;
+    }
+
+    // Owner subscription model helper methods
+
+    /**
+     * Check if user is the creator (original author).
+     */
+    public boolean isCreator(String userId) {
+        return userId != null && userId.equals(this.creatorId);
+    }
+
+    /**
+     * Check if user is the current owner (rights holder).
+     */
+    public boolean isOwner(String userId) {
+        return userId != null && userId.equals(this.ownerId);
+    }
+
+    /**
+     * Check if ownership has been transferred (owner differs from creator).
+     */
+    public boolean isOwnershipTransferred() {
+        return creatorId != null && ownerId != null && !creatorId.equals(ownerId);
+    }
+
+    /**
+     * Check if strategy is in DRAFT publish status.
+     */
+    public boolean isDraft() {
+        return "DRAFT".equals(this.publishStatus);
+    }
+
+    /**
+     * Check if strategy is PUBLISHED.
+     */
+    public boolean isPublishedStatus() {
+        return "PUBLISHED".equals(this.publishStatus);
+    }
+
+    /**
+     * Check if strategy is deployed (not UNDEPLOYED).
+     */
+    public boolean isDeployedStatus() {
+        return this.deploymentStatus != null && !"UNDEPLOYED".equals(this.deploymentStatus);
+    }
+
+    /**
+     * Check if strategy is deployed as an ALERT.
+     */
+    public boolean isDeployedAsAlert() {
+        return "DEPLOYED_ALERT".equals(this.deploymentStatus);
+    }
+
+    /**
+     * Check if strategy is deployed as a BOT.
+     */
+    public boolean isDeployedAsBot() {
+        return "DEPLOYED_BOT".equals(this.deploymentStatus);
+    }
+
+    /**
+     * Check if strategy is PRIVATE (only owner can see).
+     */
+    public boolean isPrivateStatus() {
+        return "PRIVATE".equals(this.publicStatus);
+    }
+
+    /**
+     * Check if strategy is SUBSCRIBERS_ONLY.
+     */
+    public boolean isSubscribersOnly() {
+        return "SUBSCRIBERS_ONLY".equals(this.publicStatus);
+    }
+
+    /**
+     * Check if strategy is PUBLIC (anyone can see performance).
+     */
+    public boolean isPublicStatus() {
+        return "PUBLIC".equals(this.publicStatus);
     }
 }

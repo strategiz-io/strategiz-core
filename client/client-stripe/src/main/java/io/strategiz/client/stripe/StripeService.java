@@ -344,6 +344,179 @@ public class StripeService {
 	}
 
 	/**
+	 * Create a Stripe checkout session for strategy subscription (monthly).
+	 * Used when a user subscribes to a strategy owner.
+	 * @param userId The internal user ID (subscriber)
+	 * @param userEmail The user's email
+	 * @param strategyId The strategy ID being subscribed to
+	 * @param strategyName The name of the strategy
+	 * @param ownerId The current owner ID (receives payments)
+	 * @param priceInCents The monthly subscription price in cents (e.g., 1900 for $19.00/mo)
+	 * @param currency The currency code (e.g., "USD")
+	 * @param customerId Existing Stripe customer ID (optional)
+	 * @return Checkout session details
+	 */
+	public CheckoutResult createStrategySubscriptionCheckoutSession(String userId, String userEmail, String strategyId,
+			String strategyName, String ownerId, long priceInCents, String currency, String customerId) {
+
+		if (!config.isConfigured()) {
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+		}
+
+		logger.info("Creating strategy subscription checkout for user {} strategy {} owner {}", userId, strategyId,
+				ownerId);
+
+		try {
+			// Create or get customer
+			String stripeCustomerId = customerId;
+			if (stripeCustomerId == null || stripeCustomerId.isEmpty()) {
+				stripeCustomerId = createCustomer(userId, userEmail);
+			}
+
+			// Build checkout session for recurring subscription
+			SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
+				.setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+				.setCustomer(stripeCustomerId)
+				.setSuccessUrl(config.getAppBaseUrl() + "/marketplace/subscribe-success?session_id={CHECKOUT_SESSION_ID}")
+				.setCancelUrl(config.getAppBaseUrl() + "/marketplace/strategies/" + strategyId + "?canceled=true")
+				.addLineItem(SessionCreateParams.LineItem.builder()
+					.setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+						.setCurrency(currency.toLowerCase())
+						.setUnitAmount(priceInCents)
+						.setRecurring(SessionCreateParams.LineItem.PriceData.Recurring.builder()
+							.setInterval(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH)
+							.build())
+						.setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+							.setName(strategyName + " - Monthly Subscription")
+							.setDescription("Deploy alerts and bots with this strategy")
+							.build())
+						.build())
+					.setQuantity(1L)
+					.build())
+				.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
+					.putMetadata("userId", userId)
+					.putMetadata("strategyId", strategyId)
+					.putMetadata("ownerId", ownerId)
+					.putMetadata("type", "strategy_subscription")
+					.build())
+				.putMetadata("userId", userId)
+				.putMetadata("strategyId", strategyId)
+				.putMetadata("ownerId", ownerId)
+				.putMetadata("type", "strategy_subscription");
+
+			// Allow promotion codes
+			paramsBuilder.setAllowPromotionCodes(true);
+
+			Session session = Session.create(paramsBuilder.build());
+
+			logger.info("Created strategy subscription checkout session {} for user {}", session.getId(), userId);
+
+			return new CheckoutResult(session.getId(), session.getUrl(), stripeCustomerId);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to create strategy subscription checkout for user {}: {}", userId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.CHECKOUT_SESSION_CREATION_FAILED, "client-stripe", e,
+					userId);
+		}
+	}
+
+	/**
+	 * Update subscription metadata. Used when ownership transfers to route payments
+	 * to new owner.
+	 * @param stripeSubscriptionId The Stripe subscription ID
+	 * @param metadata Map of metadata to update
+	 */
+	public void updateSubscriptionMetadata(String stripeSubscriptionId, Map<String, String> metadata) {
+		if (!config.isConfigured()) {
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+		}
+
+		try {
+			Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+
+			Map<String, Object> params = new HashMap<>();
+			params.put("metadata", metadata);
+
+			subscription.update(params);
+
+			logger.info("Updated subscription {} metadata: {}", stripeSubscriptionId, metadata);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to update subscription {} metadata: {}", stripeSubscriptionId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_UPDATE_FAILED, "client-stripe", e,
+					stripeSubscriptionId);
+		}
+	}
+
+	/**
+	 * Retrieve a Stripe subscription by ID.
+	 * @param stripeSubscriptionId The Stripe subscription ID
+	 * @return The Stripe Subscription object
+	 */
+	public Subscription getSubscription(String stripeSubscriptionId) {
+		if (!config.isConfigured()) {
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+		}
+
+		try {
+			return Subscription.retrieve(stripeSubscriptionId);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to retrieve subscription {}: {}", stripeSubscriptionId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_RETRIEVAL_FAILED, "client-stripe", e,
+					stripeSubscriptionId);
+		}
+	}
+
+	/**
+	 * Cancel a Stripe subscription at the end of the billing period.
+	 * @param stripeSubscriptionId The Stripe subscription ID
+	 */
+	public void cancelSubscription(String stripeSubscriptionId) {
+		if (!config.isConfigured()) {
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+		}
+
+		try {
+			Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+
+			Map<String, Object> params = new HashMap<>();
+			params.put("cancel_at_period_end", true);
+
+			subscription.update(params);
+
+			logger.info("Scheduled subscription {} for cancellation at period end", stripeSubscriptionId);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to cancel subscription {}: {}", stripeSubscriptionId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_CANCELLATION_FAILED, "client-stripe", e,
+					stripeSubscriptionId);
+		}
+	}
+
+	/**
+	 * Cancel a Stripe subscription immediately.
+	 * @param stripeSubscriptionId The Stripe subscription ID
+	 */
+	public void cancelSubscriptionImmediately(String stripeSubscriptionId) {
+		if (!config.isConfigured()) {
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+		}
+
+		try {
+			Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+			subscription.cancel();
+
+			logger.info("Canceled subscription {} immediately", stripeSubscriptionId);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to cancel subscription {} immediately: {}", stripeSubscriptionId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_CANCELLATION_FAILED, "client-stripe", e,
+					stripeSubscriptionId);
+		}
+	}
+
+	/**
 	 * Get the publishable key for frontend use.
 	 */
 	public String getPublishableKey() {

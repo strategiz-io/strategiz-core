@@ -25,14 +25,14 @@ public class StrategyAccessService extends BaseService {
     private static final Logger log = LoggerFactory.getLogger(StrategyAccessService.class);
 
     private final ReadStrategyRepository readStrategyRepository;
-    private final StrategySubscriptionService subscriptionService;
+    private final io.strategiz.data.strategy.repository.StrategySubscriptionRepository subscriptionRepository;
 
     @Autowired
     public StrategyAccessService(
             ReadStrategyRepository readStrategyRepository,
-            StrategySubscriptionService subscriptionService) {
+            io.strategiz.data.strategy.repository.StrategySubscriptionRepository subscriptionRepository) {
         this.readStrategyRepository = readStrategyRepository;
-        this.subscriptionService = subscriptionService;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Override
@@ -345,8 +345,6 @@ public class StrategyAccessService extends BaseService {
      * Check if user has active subscription to strategy.
      */
     private boolean hasActiveSubscription(String userId, String strategyId) {
-        // TODO: Implement actual subscription check
-        // return subscriptionService.hasActiveSubscription(userId, strategyId);
-        return false;
+        return subscriptionRepository.hasActiveSubscription(userId, strategyId);
     }
 }

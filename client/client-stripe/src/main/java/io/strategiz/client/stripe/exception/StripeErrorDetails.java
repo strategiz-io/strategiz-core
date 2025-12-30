@@ -31,6 +31,7 @@ public enum StripeErrorDetails implements ErrorDetails {
 	// === Subscription Errors ===
 	SUBSCRIPTION_RETRIEVAL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-subscription-retrieval-failed"),
 	SUBSCRIPTION_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-subscription-update-failed"),
+	SUBSCRIPTION_CANCELLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-subscription-cancellation-failed"),
 
 	// === API Errors ===
 	API_ERROR(HttpStatus.BAD_GATEWAY, "stripe-api-error"),

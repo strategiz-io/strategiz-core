@@ -34,18 +34,18 @@ public class OwnershipTransferService extends BaseService {
 
     private final ReadStrategyRepository readStrategyRepository;
     private final UpdateStrategyRepository updateStrategyRepository;
-    private final StrategySubscriptionService subscriptionService;
+    private final io.strategiz.data.strategy.repository.StrategySubscriptionRepository subscriptionRepository;
     private final StripeService stripeService;
 
     @Autowired
     public OwnershipTransferService(
             ReadStrategyRepository readStrategyRepository,
             UpdateStrategyRepository updateStrategyRepository,
-            StrategySubscriptionService subscriptionService,
+            io.strategiz.data.strategy.repository.StrategySubscriptionRepository subscriptionRepository,
             StripeService stripeService) {
         this.readStrategyRepository = readStrategyRepository;
         this.updateStrategyRepository = updateStrategyRepository;
-        this.subscriptionService = subscriptionService;
+        this.subscriptionRepository = subscriptionRepository;
         this.stripeService = stripeService;
     }
 
@@ -121,16 +121,49 @@ public class OwnershipTransferService extends BaseService {
     public TransferResult transferSubscriptions(String strategyId, String newOwnerId) {
         log.info("Transferring subscriptions for strategy {} to new owner {}", strategyId, newOwnerId);
 
-        // TODO: Implement actual subscription transfer logic
-        // This will require:
         // 1. Query all active subscriptions for this strategy
-        // 2. Update ownerId field for each subscription
-        // 3. Update Stripe subscription metadata
-        // 4. Return counts and revenue totals
+        List<StrategySubscriptionEntity> activeSubscriptions =
+                subscriptionRepository.getStrategySubscribers(strategyId, 10000); // Get all
 
-        // Placeholder implementation
         int subscribersTransferred = 0;
         BigDecimal monthlyRevenueTransferred = BigDecimal.ZERO;
+
+        // 2. Update each subscription
+        for (StrategySubscriptionEntity subscription : activeSubscriptions) {
+            if (!subscription.isValid()) {
+                continue; // Skip inactive/expired subscriptions
+            }
+
+            try {
+                // Update ownerId in Firestore
+                subscription.setOwnerId(newOwnerId);
+                subscriptionRepository.update(subscription, "SYSTEM");
+
+                // Update Stripe subscription metadata (if applicable)
+                if (subscription.getStripeSubscriptionId() != null &&
+                        !subscription.getStripeSubscriptionId().isEmpty()) {
+                    java.util.Map<String, String> metadata = new java.util.HashMap<>();
+                    metadata.put("ownerId", newOwnerId);
+                    stripeService.updateSubscriptionMetadata(subscription.getStripeSubscriptionId(), metadata);
+                }
+
+                // Calculate revenue
+                if (subscription.getPricePaid() != null) {
+                    monthlyRevenueTransferred = monthlyRevenueTransferred.add(subscription.getPricePaid());
+                }
+
+                subscribersTransferred++;
+
+                log.debug("Transferred subscription {} to new owner {}", subscription.getId(), newOwnerId);
+            }
+            catch (Exception e) {
+                log.error("Failed to transfer subscription {}: {}", subscription.getId(), e.getMessage());
+                // Continue with next subscription rather than failing entire transfer
+            }
+        }
+
+        log.info("Successfully transferred {} subscriptions with ${}/mo revenue",
+                subscribersTransferred, monthlyRevenueTransferred);
 
         TransferResult result = new TransferResult();
         result.setSubscribersTransferred(subscribersTransferred);

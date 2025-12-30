@@ -35,11 +35,11 @@ steps:
       - '--port'
       - '8080'
       - '--set-env-vars'
-      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app,GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp'
+      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app,GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp,GCP_BILLING_ENABLED=false,OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp,OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf,OTEL_SERVICE_NAME=strategiz-core,OTEL_RESOURCE_ATTRIBUTES=service.namespace=strategiz;deployment.environment=production;service.version=1.0.0,OTEL_METRICS_EXPORTER=otlp,OTEL_LOGS_EXPORTER=otlp,OTEL_TRACES_EXPORTER=otlp'
       - '--set-secrets'
-      - 'VAULT_TOKEN=vault-root-token:latest,GRAFANA_OTLP_AUTH_HEADER=GRAFANA_OTLP_AUTH:latest,GRAFANA_PROMETHEUS_AUTH=GRAFANA_PROMETHEUS_AUTH:latest'
+      - 'VAULT_TOKEN=vault-root-token:latest,GRAFANA_OTLP_AUTH_HEADER=GRAFANA_OTLP_AUTH:latest,GRAFANA_PROMETHEUS_AUTH=GRAFANA_PROMETHEUS_AUTH:latest,OTEL_EXPORTER_OTLP_HEADERS=GRAFANA_OTLP_AUTH:latest'
 
 timeout: '1800s'
 options:
-  machineType: 'E2_HIGHCPU_32'  # 32 vCPU, 32 GB memory - needed for large Java builds
+  machineType: 'E2_HIGHCPU_8'  # 8 vCPU, 8 GB memory - sufficient for Java builds with quota
   diskSizeGb: 100

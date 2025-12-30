@@ -20,13 +20,18 @@ import java.util.Optional;
 /**
  * Controller for strategy subscriptions.
  *
+ * Owner Subscription Model:
+ * - Users subscribe to the current OWNER of a strategy (not the creator)
+ * - When ownership transfers, subscriptions automatically route payments to new owner
+ * - Original creator keeps attribution but receives no revenue after transfer
+ *
  * Endpoints:
  * - POST   /v1/subscriptions                          - Subscribe to a strategy
  * - DELETE /v1/subscriptions/{id}                     - Cancel subscription
  * - GET    /v1/subscriptions                          - Get my subscriptions
- * - GET    /v1/subscriptions/{id}                     - Get subscription details
+ * - GET    /v1/subscriptions/{id}                     - Get subscription details (subscriber or owner)
  * - GET    /v1/subscriptions/check/{strategyId}       - Check if subscribed
- * - GET    /v1/subscriptions/strategy/{id}/subscribers - Get subscribers (creator only)
+ * - GET    /v1/subscriptions/strategy/{id}/subscribers - Get subscribers (current owner only)
  * - GET    /v1/subscriptions/access/{strategyId}      - Check if can access strategy
  */
 @RestController
@@ -115,6 +120,10 @@ public class StrategySubscriptionController extends BaseController {
 
     /**
      * Get subscription details.
+     *
+     * Access granted to:
+     * - The subscriber (userId)
+     * - The current strategy owner (ownerId) who receives payments
      */
     @GetMapping("/{subscriptionId}")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
@@ -130,9 +139,10 @@ public class StrategySubscriptionController extends BaseController {
                         .body(Map.of("error", "Subscription not found"));
             }
 
-            // Verify ownership
+            // Verify access: subscriber OR current owner (not creator)
+            // In owner subscription model, current owner receives payments and can view subscriptions
             if (!subscription.get().getUserId().equals(userId) &&
-                    !subscription.get().getCreatorId().equals(userId)) {
+                    !subscription.get().getOwnerId().equals(userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Access denied"));
             }
@@ -193,7 +203,10 @@ public class StrategySubscriptionController extends BaseController {
     }
 
     /**
-     * Get subscribers for a strategy (creator only).
+     * Get subscribers for a strategy (current owner only).
+     *
+     * Only the current owner can view subscriber list and revenue data.
+     * Original creator cannot access this after ownership transfer.
      */
     @GetMapping("/strategy/{strategyId}/subscribers")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
@@ -204,6 +217,7 @@ public class StrategySubscriptionController extends BaseController {
         try {
             String userId = user.getUserId();
 
+            // This service method should validate that userId is the current owner
             List<StrategySubscriptionEntity> subscribers =
                     subscriptionService.getStrategySubscribers(strategyId, userId, limit);
             return ResponseEntity.ok(Map.of(

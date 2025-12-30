@@ -30,15 +30,9 @@ public class Strategy extends BaseEntity {
     
     @JsonProperty("type")
     private String type; // technical, fundamental, hybrid
-    
-    @JsonProperty("status")
-    private String status; // draft, active, archived
-    
+
     @JsonProperty("tags")
     private List<String> tags;
-    
-    @JsonProperty("userId")
-    private String userId; // Deprecated - use creatorId or ownerId
 
     // Owner subscription model fields
     @JsonProperty("creatorId")
@@ -50,9 +44,6 @@ public class Strategy extends BaseEntity {
     @JsonProperty("publishStatus")
     private String publishStatus; // DRAFT, PUBLISHED
 
-    @JsonProperty("deploymentStatus")
-    private String deploymentStatus; // UNDEPLOYED, DEPLOYED_ALERT, DEPLOYED_BOT
-
     @JsonProperty("publicStatus")
     private String publicStatus; // PRIVATE, SUBSCRIBERS_ONLY, PUBLIC
 
@@ -61,9 +52,6 @@ public class Strategy extends BaseEntity {
 
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
-
-    @JsonProperty("isPublic")
-    private boolean isPublic;
 
     @JsonProperty("performance")
     private StrategyPerformance performance;
@@ -75,22 +63,9 @@ public class Strategy extends BaseEntity {
     @JsonProperty("parentStrategyId")
     private String parentStrategyId; // Points to original strategy when versioned
 
-    // Deployment tracking fields
-    @JsonProperty("deploymentType")
-    private String deploymentType; // ALERT, BOT, or null if not deployed
-
-    @JsonProperty("deployedAt")
-    private Timestamp deployedAt;
-
-    @JsonProperty("deploymentId")
-    private String deploymentId; // ID of StrategyAlert or StrategyBot
-
     // Pricing and Publishing fields
     @JsonProperty("pricing")
     private StrategyPricing pricing;
-
-    @JsonProperty("publishedAt")
-    private Timestamp publishedAt; // null = private, non-null = public/published
 
     @JsonProperty("seedFundingDate")
     private Timestamp seedFundingDate; // Optional custom backtest start date for performance calculations
@@ -182,29 +157,13 @@ public class Strategy extends BaseEntity {
     public void setType(String type) {
         this.type = type;
     }
-    
-    public String getStatus() {
-        return status;
-    }
-    
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    
+
     public List<String> getTags() {
         return tags;
     }
-    
+
     public void setTags(List<String> tags) {
         this.tags = tags;
-    }
-    
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     // Owner subscription model getters/setters
@@ -232,14 +191,6 @@ public class Strategy extends BaseEntity {
         this.publishStatus = publishStatus;
     }
 
-    public String getDeploymentStatus() {
-        return deploymentStatus;
-    }
-
-    public void setDeploymentStatus(String deploymentStatus) {
-        this.deploymentStatus = deploymentStatus;
-    }
-
     public String getPublicStatus() {
         return publicStatus;
     }
@@ -262,14 +213,6 @@ public class Strategy extends BaseEntity {
     
     public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
-    }
-    
-    public boolean isPublic() {
-        return isPublic;
-    }
-
-    public void setPublic(boolean isPublic) {
-        this.isPublic = isPublic;
     }
 
     public StrategyPerformance getPerformance() {
@@ -298,30 +241,6 @@ public class Strategy extends BaseEntity {
         this.parentStrategyId = parentStrategyId;
     }
 
-    public String getDeploymentType() {
-        return deploymentType;
-    }
-
-    public void setDeploymentType(String deploymentType) {
-        this.deploymentType = deploymentType;
-    }
-
-    public Timestamp getDeployedAt() {
-        return deployedAt;
-    }
-
-    public void setDeployedAt(Timestamp deployedAt) {
-        this.deployedAt = deployedAt;
-    }
-
-    public String getDeploymentId() {
-        return deploymentId;
-    }
-
-    public void setDeploymentId(String deploymentId) {
-        this.deploymentId = deploymentId;
-    }
-
     // Pricing and Publishing getters/setters
     public StrategyPricing getPricing() {
         return pricing;
@@ -329,14 +248,6 @@ public class Strategy extends BaseEntity {
 
     public void setPricing(StrategyPricing pricing) {
         this.pricing = pricing;
-    }
-
-    public Timestamp getPublishedAt() {
-        return publishedAt;
-    }
-
-    public void setPublishedAt(Timestamp publishedAt) {
-        this.publishedAt = publishedAt;
     }
 
     public Timestamp getSeedFundingDate() {
@@ -380,47 +291,22 @@ public class Strategy extends BaseEntity {
     }
 
     // Helper methods
-    public boolean isDeployed() {
-        return "deployed".equals(this.status) && this.deploymentId != null;
-    }
-
-    public boolean isAlertDeployment() {
-        return "ALERT".equals(this.deploymentType);
-    }
-
-    public boolean isBotDeployment() {
-        return "BOT".equals(this.deploymentType);
-    }
-
-    /**
-     * Check if strategy is published (publicly visible in marketplace).
-     */
-    public boolean isPublished() {
-        return publishedAt != null;
-    }
-
-    /**
-     * Check if strategy is private (not published).
-     */
-    public boolean isPrivate() {
-        return publishedAt == null;
-    }
 
     /**
      * Publish the strategy with the given pricing.
      */
     public void publish(StrategyPricing pricing) {
         this.pricing = pricing;
-        this.publishedAt = Timestamp.now();
-        this.isPublic = true;
+        this.publishStatus = "PUBLISHED";
+        this.publicStatus = "PUBLIC";
     }
 
     /**
      * Unpublish the strategy (make private).
      */
     public void unpublish() {
-        this.publishedAt = null;
-        this.isPublic = false;
+        this.publishStatus = "DRAFT";
+        this.publicStatus = "PRIVATE";
     }
 
     /**
@@ -567,24 +453,10 @@ public class Strategy extends BaseEntity {
     }
 
     /**
-     * Check if strategy is deployed (not UNDEPLOYED).
+     * Check if strategy has any active deployments (alerts or bots).
      */
-    public boolean isDeployedStatus() {
-        return this.deploymentStatus != null && !"UNDEPLOYED".equals(this.deploymentStatus);
-    }
-
-    /**
-     * Check if strategy is deployed as an ALERT.
-     */
-    public boolean isDeployedAsAlert() {
-        return "DEPLOYED_ALERT".equals(this.deploymentStatus);
-    }
-
-    /**
-     * Check if strategy is deployed as a BOT.
-     */
-    public boolean isDeployedAsBot() {
-        return "DEPLOYED_BOT".equals(this.deploymentStatus);
+    public boolean isDeployed() {
+        return this.deploymentCount != null && this.deploymentCount > 0;
     }
 
     /**

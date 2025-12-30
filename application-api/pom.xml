@@ -197,6 +197,13 @@
             <artifactId>client-execution</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- GCP Billing Client (for AdminCostsController) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-gcp-billing</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

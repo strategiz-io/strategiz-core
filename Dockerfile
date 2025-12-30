@@ -29,6 +29,5 @@ COPY --from=builder /app/application-api/target/application-api-1.0-SNAPSHOT.jar
 ENV PORT=8080
 ENV SPRING_PROFILES_ACTIVE=prod
 
-# Temporarily disabled OpenTelemetry agent (needs OTLP endpoint config fix)
-# CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]
-CMD ["java", "-jar", "app.jar"]
+# Attach OpenTelemetry agent with -javaagent flag
+CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]

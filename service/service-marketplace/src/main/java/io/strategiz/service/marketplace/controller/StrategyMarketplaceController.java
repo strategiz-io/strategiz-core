@@ -17,8 +17,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller for the Strategy Marketplace
- * Handles operations related to creating, listing, purchasing, and applying strategies
+ * Controller for the Strategy Marketplace.
+ *
+ * Handles operations related to creating, listing, purchasing, and applying strategies.
+ *
+ * Owner Subscription Model:
+ * - Strategies have both creatorId (original author) and ownerId (current rights holder)
+ * - creatorId: Immutable, for attribution and provenance tracking
+ * - ownerId: Mutable, receives subscription revenue, can transfer ownership
+ * - When ownership transfers, ownerId changes but creatorId remains the same
+ *
+ * Strategy responses include both fields so frontend can display:
+ * - "Created by @username" (creatorId)
+ * - "Owned by @username" (ownerId, only shown if different from creator)
  */
 @RestController
 @RequestMapping("/v1/marketplace/strategies")
@@ -36,7 +47,12 @@ public class StrategyMarketplaceController extends BaseController {
     private static final Logger log = LoggerFactory.getLogger(StrategyMarketplaceController.class);
 
     /**
-     * List all public strategies in the marketplace
+     * List all public strategies in the marketplace.
+     *
+     * Each strategy includes:
+     * - creatorId: Original author (for attribution)
+     * - ownerId: Current owner (who receives subscription revenue)
+     * - These may differ if ownership has been transferred
      */
     @GetMapping
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
@@ -82,7 +98,11 @@ public class StrategyMarketplaceController extends BaseController {
     }
     
     /**
-     * Create a new strategy
+     * Create a new strategy.
+     *
+     * Sets both creatorId and ownerId to the creating user:
+     * - creatorId: Set once at creation, never changes (attribution)
+     * - ownerId: Initially same as creator, can change via ownership transfer
      */
     @PostMapping
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
@@ -101,7 +121,10 @@ public class StrategyMarketplaceController extends BaseController {
     }
     
     /**
-     * Update an existing strategy
+     * Update an existing strategy.
+     *
+     * Only the current OWNER can update the strategy (not the original creator).
+     * If ownership has been transferred, the original creator loses edit access.
      */
     @PutMapping("/{id}")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")

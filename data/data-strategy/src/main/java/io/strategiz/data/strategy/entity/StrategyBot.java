@@ -25,6 +25,16 @@ public class StrategyBot extends BaseEntity {
     @JsonProperty("userId")
     private String userId;
 
+    // Owner subscription model fields
+    @JsonProperty("subscriptionId")
+    private String subscriptionId; // Which subscription allows this deployment
+
+    @JsonProperty("strategyOwnerId")
+    private String strategyOwnerId; // Who owned strategy when bot was deployed
+
+    @JsonProperty("strategyCreatorId")
+    private String strategyCreatorId; // Original creator (for attribution)
+
     @JsonProperty("botName")
     private String botName;
 
@@ -142,6 +152,31 @@ public class StrategyBot extends BaseEntity {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    // Owner subscription model getters/setters
+    public String getSubscriptionId() {
+        return subscriptionId;
+    }
+
+    public void setSubscriptionId(String subscriptionId) {
+        this.subscriptionId = subscriptionId;
+    }
+
+    public String getStrategyOwnerId() {
+        return strategyOwnerId;
+    }
+
+    public void setStrategyOwnerId(String strategyOwnerId) {
+        this.strategyOwnerId = strategyOwnerId;
+    }
+
+    public String getStrategyCreatorId() {
+        return strategyCreatorId;
+    }
+
+    public void setStrategyCreatorId(String strategyCreatorId) {
+        this.strategyCreatorId = strategyCreatorId;
     }
 
     public String getBotName() {

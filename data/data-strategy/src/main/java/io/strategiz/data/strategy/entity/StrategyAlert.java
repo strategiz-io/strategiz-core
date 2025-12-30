@@ -78,10 +78,6 @@ public class StrategyAlert extends BaseEntity {
     @JsonProperty("subscriptionTier")
     private String subscriptionTier; // FREE, STARTER, PRO
 
-    // Deployment type (for future bot support)
-    @JsonProperty("deploymentType")
-    private String deploymentType; // ALERT, BOT, PAPER - defaults to ALERT
-
     // Cooldown and deduplication fields
     @JsonProperty("cooldownMinutes")
     private Integer cooldownMinutes; // Min time between alerts (default: 15 for FREE, 5 for STARTER, 1 for PRO)
@@ -277,14 +273,6 @@ public class StrategyAlert extends BaseEntity {
 
     public void setSubscriptionTier(String subscriptionTier) {
         this.subscriptionTier = subscriptionTier;
-    }
-
-    public String getDeploymentType() {
-        return deploymentType;
-    }
-
-    public void setDeploymentType(String deploymentType) {
-        this.deploymentType = deploymentType;
     }
 
     public Integer getCooldownMinutes() {

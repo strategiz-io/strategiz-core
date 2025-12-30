@@ -50,15 +50,25 @@ public class AdminCostsController extends BaseController {
     private final GcpAssetInventoryClient assetInventoryClient;
     private final Optional<AiCostsAggregationService> aiCostsService;
 
+    // Primary constructor with all dependencies
     public AdminCostsController(
             CostAggregationService costAggregationService,
             CostPredictionService costPredictionService,
             GcpAssetInventoryClient assetInventoryClient,
-            @Autowired(required = false) AiCostsAggregationService aiCostsService) {
+            AiCostsAggregationService aiCostsService) {
         this.costAggregationService = costAggregationService;
         this.costPredictionService = costPredictionService;
         this.assetInventoryClient = assetInventoryClient;
         this.aiCostsService = Optional.ofNullable(aiCostsService);
+    }
+
+    // Fallback constructor when AI costs service is not available
+    @Autowired
+    public AdminCostsController(
+            CostAggregationService costAggregationService,
+            CostPredictionService costPredictionService,
+            GcpAssetInventoryClient assetInventoryClient) {
+        this(costAggregationService, costPredictionService, assetInventoryClient, null);
     }
 
     @Override

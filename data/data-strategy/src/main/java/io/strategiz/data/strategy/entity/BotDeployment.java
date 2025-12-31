@@ -13,8 +13,8 @@ import java.util.List;
  * Links to a Strategy entity and defines execution parameters.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Collection("strategyBots")
-public class StrategyBot extends BaseEntity {
+@Collection("botDeployments")
+public class BotDeployment extends BaseEntity {
 
     @JsonProperty("id")
     private String id;
@@ -114,7 +114,7 @@ public class StrategyBot extends BaseEntity {
     private Timestamp lastDailyReset;
 
     // Constructors
-    public StrategyBot() {
+    public BotDeployment() {
         super();
         this.totalTrades = 0;
         this.profitableTrades = 0;

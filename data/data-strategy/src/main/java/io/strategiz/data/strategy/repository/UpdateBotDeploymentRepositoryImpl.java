@@ -1,6 +1,6 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.strategy.entity.BotDeployment;
 import com.google.cloud.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,32 +9,32 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 /**
- * Implementation of UpdateStrategyBotRepository.
+ * Implementation of UpdateBotDeploymentRepository.
  */
 @Service
-public class UpdateStrategyBotRepositoryImpl implements UpdateStrategyBotRepository {
+public class UpdateBotDeploymentRepositoryImpl implements UpdateBotDeploymentRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(UpdateStrategyBotRepositoryImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(UpdateBotDeploymentRepositoryImpl.class);
 
-    private final StrategyBotBaseRepository baseRepository;
+    private final BotDeploymentBaseRepository baseRepository;
 
-    public UpdateStrategyBotRepositoryImpl(StrategyBotBaseRepository baseRepository) {
+    public UpdateBotDeploymentRepositoryImpl(BotDeploymentBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public StrategyBot update(StrategyBot bot) {
+    public BotDeployment update(BotDeployment bot) {
         return baseRepository.save(bot, bot.getUserId());
     }
 
     @Override
     public boolean updateStatus(String id, String userId, String status) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             return false;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
         if (!userId.equals(bot.getUserId())) {
             return false;
         }
@@ -46,13 +46,13 @@ public class UpdateStrategyBotRepositoryImpl implements UpdateStrategyBotReposit
 
     @Override
     public void recordTrade(String id, boolean isProfitable, double pnl) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             logger.warn("Bot not found for trade recording: {}", id);
             return;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
 
         // Update trade counts
         Integer totalTrades = bot.getTotalTrades() != null ? bot.getTotalTrades() : 0;
@@ -83,12 +83,12 @@ public class UpdateStrategyBotRepositoryImpl implements UpdateStrategyBotReposit
 
     @Override
     public void incrementConsecutiveErrors(String id) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             return;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
         Integer errors = bot.getConsecutiveErrors() != null ? bot.getConsecutiveErrors() : 0;
         bot.setConsecutiveErrors(errors + 1);
 
@@ -104,12 +104,12 @@ public class UpdateStrategyBotRepositoryImpl implements UpdateStrategyBotReposit
 
     @Override
     public void resetConsecutiveErrors(String id) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             return;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
         bot.setConsecutiveErrors(0);
         bot.setErrorMessage(null);
         baseRepository.save(bot, bot.getUserId());
@@ -117,12 +117,12 @@ public class UpdateStrategyBotRepositoryImpl implements UpdateStrategyBotReposit
 
     @Override
     public void incrementDailyTradeCount(String id) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             return;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
         Integer count = bot.getDailyTradeCount() != null ? bot.getDailyTradeCount() : 0;
         bot.setDailyTradeCount(count + 1);
         baseRepository.save(bot, bot.getUserId());
@@ -130,12 +130,12 @@ public class UpdateStrategyBotRepositoryImpl implements UpdateStrategyBotReposit
 
     @Override
     public void resetDailyTradeCount(String id) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             return;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
         bot.setDailyTradeCount(0);
         bot.setLastDailyReset(Timestamp.now());
         baseRepository.save(bot, bot.getUserId());

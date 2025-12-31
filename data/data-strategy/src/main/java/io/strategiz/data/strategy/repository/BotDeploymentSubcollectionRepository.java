@@ -2,7 +2,7 @@ package io.strategiz.data.strategy.repository;
 
 import com.google.cloud.firestore.Firestore;
 import io.strategiz.data.base.repository.SubcollectionRepository;
-import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.strategy.entity.BotDeployment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for StrategyBot stored at users/{userId}/strategyBots/{botId}
+ * Repository for BotDeployment stored at users/{userId}/strategyBots/{botId}
  *
  * This is a subcollection repository - bots are owned by users and scoped under their document.
  *
@@ -25,12 +25,12 @@ import java.util.Optional;
  * For cross-user queries (e.g., "find all bots for strategy X"), use collection group queries.
  */
 @Repository
-public class StrategyBotSubcollectionRepository extends SubcollectionRepository<StrategyBot> {
+public class BotDeploymentSubcollectionRepository extends SubcollectionRepository<BotDeployment> {
 
-    private static final Logger logger = LoggerFactory.getLogger(StrategyBotSubcollectionRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(BotDeploymentSubcollectionRepository.class);
 
-    public StrategyBotSubcollectionRepository(Firestore firestore) {
-        super(firestore, StrategyBot.class);
+    public BotDeploymentSubcollectionRepository(Firestore firestore) {
+        super(firestore, BotDeployment.class);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
 
     @Override
     protected String getSubcollectionName() {
-        return "strategyBots";
+        return "botDeployments";
     }
 
     /**
@@ -49,7 +49,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param userId The user ID
      * @return List of bots
      */
-    public List<StrategyBot> getByUserId(String userId) {
+    public List<BotDeployment> getByUserId(String userId) {
         validateParentId(userId);
         return findAllInSubcollection(userId);
     }
@@ -61,7 +61,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param botId The bot ID
      * @return Optional bot
      */
-    public Optional<StrategyBot> getById(String userId, String botId) {
+    public Optional<BotDeployment> getById(String userId, String botId) {
         validateParentId(userId);
         return findByIdInSubcollection(userId, botId);
     }
@@ -73,7 +73,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param bot The bot to save
      * @return The saved bot
      */
-    public StrategyBot save(String userId, StrategyBot bot) {
+    public BotDeployment save(String userId, BotDeployment bot) {
         validateParentId(userId);
         return saveInSubcollection(userId, bot, userId);
     }
@@ -96,7 +96,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param userId The user ID
      * @return List of running bots
      */
-    public List<StrategyBot> getRunningBots(String userId) {
+    public List<BotDeployment> getRunningBots(String userId) {
         validateParentId(userId);
 
         return findAllInSubcollection(userId).stream()
@@ -111,7 +111,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param strategyId The strategy ID
      * @return List of bots for this strategy
      */
-    public List<StrategyBot> getByStrategyId(String userId, String strategyId) {
+    public List<BotDeployment> getByStrategyId(String userId, String strategyId) {
         validateParentId(userId);
 
         return findAllInSubcollection(userId).stream()
@@ -125,7 +125,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param userId The user ID
      * @return List of live bots
      */
-    public List<StrategyBot> getLiveBots(String userId) {
+    public List<BotDeployment> getLiveBots(String userId) {
         validateParentId(userId);
 
         return findAllInSubcollection(userId).stream()
@@ -139,7 +139,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param userId The user ID
      * @return List of paper bots
      */
-    public List<StrategyBot> getPaperBots(String userId) {
+    public List<BotDeployment> getPaperBots(String userId) {
         validateParentId(userId);
 
         return findAllInSubcollection(userId).stream()
@@ -170,7 +170,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
      * @param strategyId The strategy ID
      * @return List of bots for this strategy across all users
      */
-    public List<StrategyBot> getAllBotsForStrategy(String strategyId) {
+    public List<BotDeployment> getAllBotsForStrategy(String strategyId) {
         try {
             return firestore.collectionGroup("strategyBots")
                     .whereEqualTo("strategyId", strategyId)
@@ -180,7 +180,7 @@ public class StrategyBotSubcollectionRepository extends SubcollectionRepository<
                     .getDocuments()
                     .stream()
                     .map(doc -> {
-                        StrategyBot bot = doc.toObject(StrategyBot.class);
+                        BotDeployment bot = doc.toObject(BotDeployment.class);
                         bot.setId(doc.getId());
                         return bot;
                     })

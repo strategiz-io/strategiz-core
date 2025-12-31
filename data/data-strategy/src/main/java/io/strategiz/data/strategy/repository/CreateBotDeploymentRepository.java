@@ -1,20 +1,20 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.strategy.entity.BotDeployment;
 
 /**
  * Repository interface for creating strategy bot entities.
  * Following Single Responsibility Principle - focused only on create operations.
  */
-public interface CreateStrategyBotRepository {
+public interface CreateBotDeploymentRepository {
 
     /**
      * Create a new strategy bot
      */
-    StrategyBot create(StrategyBot bot);
+    BotDeployment create(BotDeployment bot);
 
     /**
      * Create a new strategy bot with user ID
      */
-    StrategyBot createWithUserId(StrategyBot bot, String userId);
+    BotDeployment createWithUserId(BotDeployment bot, String userId);
 }

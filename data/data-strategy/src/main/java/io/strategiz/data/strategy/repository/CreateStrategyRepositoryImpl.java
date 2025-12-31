@@ -21,23 +21,22 @@ public class CreateStrategyRepositoryImpl implements CreateStrategyRepository {
     
     @Override
     public Strategy create(Strategy strategy) {
+        throw new UnsupportedOperationException("Use createWithUserId instead - strategies require userId for subcollection path");
+    }
+
+    @Override
+    public Strategy createWithUserId(Strategy strategy, String userId) {
         // Generate ID if not provided
         if (strategy.getId() == null || strategy.getId().isEmpty()) {
             strategy.setId(UUID.randomUUID().toString());
         }
-        
-        // Set default status if not provided
-        if (strategy.getStatus() == null || strategy.getStatus().isEmpty()) {
-            strategy.setStatus("draft");
+
+        // Set default publishStatus if not provided
+        if (strategy.getPublishStatus() == null || strategy.getPublishStatus().isEmpty()) {
+            strategy.setPublishStatus("DRAFT");
         }
-        
+
         // Use forceCreate since we pre-assign the ID (save() would route to update)
-        return baseRepository.forceCreate(strategy, strategy.getUserId());
-    }
-    
-    @Override
-    public Strategy createWithUserId(Strategy strategy, String userId) {
-        strategy.setUserId(userId);
-        return create(strategy);
+        return baseRepository.forceCreate(strategy, userId);
     }
 }

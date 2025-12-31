@@ -1,6 +1,6 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
 import com.google.cloud.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -10,56 +10,56 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of ReadStrategyAlertHistoryRepository using BaseRepository
+ * Implementation of ReadAlertDeploymentHistoryRepository using BaseRepository
  */
 @Repository
-public class ReadStrategyAlertHistoryRepositoryImpl implements ReadStrategyAlertHistoryRepository {
+public class ReadAlertDeploymentHistoryRepositoryImpl implements ReadAlertDeploymentHistoryRepository {
 
-    private final StrategyAlertHistoryBaseRepository baseRepository;
+    private final AlertDeploymentHistoryBaseRepository baseRepository;
 
     @Autowired
-    public ReadStrategyAlertHistoryRepositoryImpl(StrategyAlertHistoryBaseRepository baseRepository) {
+    public ReadAlertDeploymentHistoryRepositoryImpl(AlertDeploymentHistoryBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public Optional<StrategyAlertHistory> findById(String id) {
+    public Optional<AlertDeploymentHistory> findById(String id) {
         return baseRepository.findById(id);
     }
 
     @Override
-    public List<StrategyAlertHistory> findByUserId(String userId) {
+    public List<AlertDeploymentHistory> findByUserId(String userId) {
         return baseRepository.findAllByUserId(userId);
     }
 
     @Override
-    public List<StrategyAlertHistory> findByAlertId(String alertId) {
+    public List<AlertDeploymentHistory> findByAlertId(String alertId) {
         return baseRepository.findAllByAlertId(alertId);
     }
 
     @Override
-    public List<StrategyAlertHistory> findByAlertIdAndUserId(String alertId, String userId) {
+    public List<AlertDeploymentHistory> findByAlertIdAndUserId(String alertId, String userId) {
         return baseRepository.findAllByAlertId(alertId).stream()
                 .filter(history -> userId.equals(history.getUserId()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyAlertHistory> findBySymbol(String userId, String symbol) {
+    public List<AlertDeploymentHistory> findBySymbol(String userId, String symbol) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(history -> symbol.equals(history.getSymbol()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyAlertHistory> findBySignal(String userId, String signal) {
+    public List<AlertDeploymentHistory> findBySignal(String userId, String signal) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(history -> signal.equals(history.getSignal()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyAlertHistory> findRecentByUserId(String userId, int limit) {
+    public List<AlertDeploymentHistory> findRecentByUserId(String userId, int limit) {
         return baseRepository.findAllByUserId(userId).stream()
                 .sorted((h1, h2) -> {
                     if (h2.getTimestamp() == null) return -1;
@@ -71,7 +71,7 @@ public class ReadStrategyAlertHistoryRepositoryImpl implements ReadStrategyAlert
     }
 
     @Override
-    public List<StrategyAlertHistory> findByTimeRange(String userId, Timestamp startTime, Timestamp endTime) {
+    public List<AlertDeploymentHistory> findByTimeRange(String userId, Timestamp startTime, Timestamp endTime) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(history -> {
                     Timestamp timestamp = history.getTimestamp();
@@ -83,7 +83,7 @@ public class ReadStrategyAlertHistoryRepositoryImpl implements ReadStrategyAlert
     }
 
     @Override
-    public List<StrategyAlertHistory> findUnsentNotifications(String userId) {
+    public List<AlertDeploymentHistory> findUnsentNotifications(String userId) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(history -> Boolean.FALSE.equals(history.getNotificationSent()))
                 .collect(Collectors.toList());

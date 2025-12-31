@@ -17,7 +17,7 @@ import java.util.Map;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Collection("strategyAlertHistory")
-public class StrategyAlertHistory extends BaseEntity {
+public class AlertDeploymentHistory extends BaseEntity {
 
     @JsonProperty("id")
     private String id;
@@ -47,7 +47,7 @@ public class StrategyAlertHistory extends BaseEntity {
     private Map<String, Object> metadata; // Store indicator values (RSI, MACD, etc.)
 
     // Constructors
-    public StrategyAlertHistory() {
+    public AlertDeploymentHistory() {
         super();
         this.timestamp = Timestamp.now();
         this.notificationSent = false;

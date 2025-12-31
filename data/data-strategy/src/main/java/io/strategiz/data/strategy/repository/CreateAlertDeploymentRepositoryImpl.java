@@ -1,26 +1,26 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyAlert;
+import io.strategiz.data.strategy.entity.AlertDeployment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 /**
- * Implementation of CreateStrategyAlertRepository using BaseRepository
+ * Implementation of CreateAlertDeploymentRepository using BaseRepository
  */
 @Repository
-public class CreateStrategyAlertRepositoryImpl implements CreateStrategyAlertRepository {
+public class CreateAlertDeploymentRepositoryImpl implements CreateAlertDeploymentRepository {
 
-    private final StrategyAlertBaseRepository baseRepository;
+    private final AlertDeploymentBaseRepository baseRepository;
 
     @Autowired
-    public CreateStrategyAlertRepositoryImpl(StrategyAlertBaseRepository baseRepository) {
+    public CreateAlertDeploymentRepositoryImpl(AlertDeploymentBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public StrategyAlert create(StrategyAlert strategyAlert) {
+    public AlertDeployment create(AlertDeployment strategyAlert) {
         // Generate ID if not provided
         if (strategyAlert.getId() == null || strategyAlert.getId().isEmpty()) {
             strategyAlert.setId(UUID.randomUUID().toString());
@@ -41,7 +41,7 @@ public class CreateStrategyAlertRepositoryImpl implements CreateStrategyAlertRep
     }
 
     @Override
-    public StrategyAlert createWithUserId(StrategyAlert strategyAlert, String userId) {
+    public AlertDeployment createWithUserId(AlertDeployment strategyAlert, String userId) {
         strategyAlert.setUserId(userId);
         return create(strategyAlert);
     }

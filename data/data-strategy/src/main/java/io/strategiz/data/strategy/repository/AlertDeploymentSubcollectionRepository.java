@@ -2,7 +2,7 @@ package io.strategiz.data.strategy.repository;
 
 import com.google.cloud.firestore.Firestore;
 import io.strategiz.data.base.repository.SubcollectionRepository;
-import io.strategiz.data.strategy.entity.StrategyAlert;
+import io.strategiz.data.strategy.entity.AlertDeployment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for StrategyAlert stored at users/{userId}/strategyAlerts/{alertId}
+ * Repository for AlertDeployment stored at users/{userId}/strategyAlerts/{alertId}
  *
  * This is a subcollection repository - alerts are owned by users and scoped under their document.
  *
@@ -25,12 +25,12 @@ import java.util.Optional;
  * For cross-user queries (e.g., "find all alerts for strategy X"), use collection group queries.
  */
 @Repository
-public class StrategyAlertSubcollectionRepository extends SubcollectionRepository<StrategyAlert> {
+public class AlertDeploymentSubcollectionRepository extends SubcollectionRepository<AlertDeployment> {
 
-    private static final Logger logger = LoggerFactory.getLogger(StrategyAlertSubcollectionRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(AlertDeploymentSubcollectionRepository.class);
 
-    public StrategyAlertSubcollectionRepository(Firestore firestore) {
-        super(firestore, StrategyAlert.class);
+    public AlertDeploymentSubcollectionRepository(Firestore firestore) {
+        super(firestore, AlertDeployment.class);
     }
 
     @Override
@@ -40,7 +40,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
 
     @Override
     protected String getSubcollectionName() {
-        return "strategyAlerts";
+        return "alertDeployments";
     }
 
     /**
@@ -49,7 +49,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
      * @param userId The user ID
      * @return List of alerts
      */
-    public List<StrategyAlert> getByUserId(String userId) {
+    public List<AlertDeployment> getByUserId(String userId) {
         validateParentId(userId);
         return findAllInSubcollection(userId);
     }
@@ -61,7 +61,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
      * @param alertId The alert ID
      * @return Optional alert
      */
-    public Optional<StrategyAlert> getById(String userId, String alertId) {
+    public Optional<AlertDeployment> getById(String userId, String alertId) {
         validateParentId(userId);
         return findByIdInSubcollection(userId, alertId);
     }
@@ -73,7 +73,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
      * @param alert The alert to save
      * @return The saved alert
      */
-    public StrategyAlert save(String userId, StrategyAlert alert) {
+    public AlertDeployment save(String userId, AlertDeployment alert) {
         validateParentId(userId);
         return saveInSubcollection(userId, alert, userId);
     }
@@ -96,7 +96,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
      * @param userId The user ID
      * @return List of active alerts
      */
-    public List<StrategyAlert> getActiveAlerts(String userId) {
+    public List<AlertDeployment> getActiveAlerts(String userId) {
         validateParentId(userId);
 
         return findAllInSubcollection(userId).stream()
@@ -111,7 +111,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
      * @param strategyId The strategy ID
      * @return List of alerts for this strategy
      */
-    public List<StrategyAlert> getByStrategyId(String userId, String strategyId) {
+    public List<AlertDeployment> getByStrategyId(String userId, String strategyId) {
         validateParentId(userId);
 
         return findAllInSubcollection(userId).stream()
@@ -142,9 +142,9 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
      * @param strategyId The strategy ID
      * @return List of alerts for this strategy across all users
      */
-    public List<StrategyAlert> getAllAlertsForStrategy(String strategyId) {
+    public List<AlertDeployment> getAllAlertsForStrategy(String strategyId) {
         try {
-            return firestore.collectionGroup("strategyAlerts")
+            return firestore.collectionGroup("alertDeployments")
                     .whereEqualTo("strategyId", strategyId)
                     .whereEqualTo("isActive", true)
                     .get()
@@ -152,7 +152,7 @@ public class StrategyAlertSubcollectionRepository extends SubcollectionRepositor
                     .getDocuments()
                     .stream()
                     .map(doc -> {
-                        StrategyAlert alert = doc.toObject(StrategyAlert.class);
+                        AlertDeployment alert = doc.toObject(AlertDeployment.class);
                         alert.setId(doc.getId());
                         return alert;
                     })

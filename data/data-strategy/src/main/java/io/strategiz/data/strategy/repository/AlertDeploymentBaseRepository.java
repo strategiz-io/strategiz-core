@@ -3,46 +3,46 @@ package io.strategiz.data.strategy.repository;
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
-import io.strategiz.data.strategy.entity.StrategyAlert;
+import io.strategiz.data.strategy.entity.AlertDeployment;
 import com.google.cloud.firestore.Firestore;
 import org.springframework.stereotype.Repository;
 
 /**
- * Base repository for StrategyAlert entities using Firestore
+ * Base repository for AlertDeployment entities using Firestore
  * Used internally by CRUD repository implementations
  */
 @Repository
-public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
+public class AlertDeploymentBaseRepository extends BaseRepository<AlertDeployment> {
 
-    public StrategyAlertBaseRepository(Firestore firestore) {
-        super(firestore, StrategyAlert.class);
+    public AlertDeploymentBaseRepository(Firestore firestore) {
+        super(firestore, AlertDeployment.class);
     }
 
     /**
      * Find strategy alerts by userId field
      */
-    public java.util.List<StrategyAlert> findAllByUserId(String userId) {
+    public java.util.List<AlertDeployment> findAllByUserId(String userId) {
         return findByField("userId", userId);
     }
 
     /**
      * Find strategy alerts by strategyId field
      */
-    public java.util.List<StrategyAlert> findAllByStrategyId(String strategyId) {
+    public java.util.List<AlertDeployment> findAllByStrategyId(String strategyId) {
         return findByField("strategyId", strategyId);
     }
 
     /**
      * Find strategy alerts by status
      */
-    public java.util.List<StrategyAlert> findAllByStatus(String status) {
+    public java.util.List<AlertDeployment> findAllByStatus(String status) {
         return findByField("status", status);
     }
 
     /**
      * Find strategy alerts by status and subscription tier
      */
-    public java.util.List<StrategyAlert> findAllByStatusAndTier(String status, String subscriptionTier) {
+    public java.util.List<AlertDeployment> findAllByStatusAndTier(String status, String subscriptionTier) {
         try {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", status)
@@ -53,7 +53,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
 
             return docs.stream()
                 .map(doc -> {
-                    StrategyAlert entity = doc.toObject(StrategyAlert.class);
+                    AlertDeployment entity = doc.toObject(AlertDeployment.class);
                     entity.setId(doc.getId());
                     return entity;
                 })
@@ -69,7 +69,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
     /**
      * Find strategy alerts by status and deployment type
      */
-    public java.util.List<StrategyAlert> findAllByStatusAndDeploymentType(String status, String deploymentType) {
+    public java.util.List<AlertDeployment> findAllByStatusAndDeploymentType(String status, String deploymentType) {
         try {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", status)
@@ -80,7 +80,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
 
             return docs.stream()
                 .map(doc -> {
-                    StrategyAlert entity = doc.toObject(StrategyAlert.class);
+                    AlertDeployment entity = doc.toObject(AlertDeployment.class);
                     entity.setId(doc.getId());
                     return entity;
                 })
@@ -96,7 +96,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
     /**
      * Find active alerts by status, deployment type, and subscription tier
      */
-    public java.util.List<StrategyAlert> findActiveAlertsByTierAndType(String subscriptionTier, String deploymentType) {
+    public java.util.List<AlertDeployment> findActiveAlertsByTierAndType(String subscriptionTier, String deploymentType) {
         try {
             com.google.cloud.firestore.Query query = getCollection()
                 .whereEqualTo("status", "ACTIVE")
@@ -108,7 +108,7 @@ public class StrategyAlertBaseRepository extends BaseRepository<StrategyAlert> {
 
             return docs.stream()
                 .map(doc -> {
-                    StrategyAlert entity = doc.toObject(StrategyAlert.class);
+                    AlertDeployment entity = doc.toObject(AlertDeployment.class);
                     entity.setId(doc.getId());
                     return entity;
                 })

@@ -1,6 +1,6 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
 import com.google.cloud.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -8,20 +8,20 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 /**
- * Implementation of CreateStrategyAlertHistoryRepository using BaseRepository
+ * Implementation of CreateAlertDeploymentHistoryRepository using BaseRepository
  */
 @Repository
-public class CreateStrategyAlertHistoryRepositoryImpl implements CreateStrategyAlertHistoryRepository {
+public class CreateAlertDeploymentHistoryRepositoryImpl implements CreateAlertDeploymentHistoryRepository {
 
-    private final StrategyAlertHistoryBaseRepository baseRepository;
+    private final AlertDeploymentHistoryBaseRepository baseRepository;
 
     @Autowired
-    public CreateStrategyAlertHistoryRepositoryImpl(StrategyAlertHistoryBaseRepository baseRepository) {
+    public CreateAlertDeploymentHistoryRepositoryImpl(AlertDeploymentHistoryBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public StrategyAlertHistory create(StrategyAlertHistory alertHistory) {
+    public AlertDeploymentHistory create(AlertDeploymentHistory alertHistory) {
         // Generate ID if not provided
         if (alertHistory.getId() == null || alertHistory.getId().isEmpty()) {
             alertHistory.setId(UUID.randomUUID().toString());
@@ -42,7 +42,7 @@ public class CreateStrategyAlertHistoryRepositoryImpl implements CreateStrategyA
     }
 
     @Override
-    public StrategyAlertHistory createWithUserId(StrategyAlertHistory alertHistory, String userId) {
+    public AlertDeploymentHistory createWithUserId(AlertDeploymentHistory alertHistory, String userId) {
         alertHistory.setUserId(userId);
         return create(alertHistory);
     }

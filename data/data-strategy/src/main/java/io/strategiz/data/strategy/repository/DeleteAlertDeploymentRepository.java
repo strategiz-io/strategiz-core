@@ -4,7 +4,7 @@ package io.strategiz.data.strategy.repository;
  * Repository interface for deleting strategy alert entities
  * Following Single Responsibility Principle - focused only on delete operations
  */
-public interface DeleteStrategyAlertRepository {
+public interface DeleteAlertDeploymentRepository {
 
     /**
      * Soft delete a strategy alert

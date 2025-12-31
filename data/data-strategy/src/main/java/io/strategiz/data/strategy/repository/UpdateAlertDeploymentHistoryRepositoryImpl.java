@@ -2,7 +2,7 @@ package io.strategiz.data.strategy.repository;
 
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.exception.DataRepositoryException;
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -11,24 +11,24 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Implementation of UpdateStrategyAlertHistoryRepository using BaseRepository
+ * Implementation of UpdateAlertDeploymentHistoryRepository using BaseRepository
  */
 @Repository
-public class UpdateStrategyAlertHistoryRepositoryImpl implements UpdateStrategyAlertHistoryRepository {
+public class UpdateAlertDeploymentHistoryRepositoryImpl implements UpdateAlertDeploymentHistoryRepository {
 
-    private final StrategyAlertHistoryBaseRepository baseRepository;
+    private final AlertDeploymentHistoryBaseRepository baseRepository;
 
     @Autowired
-    public UpdateStrategyAlertHistoryRepositoryImpl(StrategyAlertHistoryBaseRepository baseRepository) {
+    public UpdateAlertDeploymentHistoryRepositoryImpl(AlertDeploymentHistoryBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public StrategyAlertHistory update(String id, String userId, StrategyAlertHistory alertHistory) {
+    public AlertDeploymentHistory update(String id, String userId, AlertDeploymentHistory alertHistory) {
         // Verify ownership
-        Optional<StrategyAlertHistory> existing = baseRepository.findById(id);
+        Optional<AlertDeploymentHistory> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "StrategyAlertHistory", id);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "AlertDeploymentHistory", id);
         }
 
         // Ensure ID and userId are set
@@ -39,17 +39,17 @@ public class UpdateStrategyAlertHistoryRepositoryImpl implements UpdateStrategyA
     }
 
     @Override
-    public Optional<StrategyAlertHistory> markNotificationSent(String id, String userId) {
+    public Optional<AlertDeploymentHistory> markNotificationSent(String id, String userId) {
         return updateField(id, userId, history -> history.setNotificationSent(true));
     }
 
     @Override
-    public Optional<StrategyAlertHistory> updateMetadata(String id, String userId, Map<String, Object> metadata) {
+    public Optional<AlertDeploymentHistory> updateMetadata(String id, String userId, Map<String, Object> metadata) {
         return updateField(id, userId, history -> history.setMetadata(metadata));
     }
 
     @Override
-    public Optional<StrategyAlertHistory> addMetadataField(String id, String userId, String key, Object value) {
+    public Optional<AlertDeploymentHistory> addMetadataField(String id, String userId, String key, Object value) {
         return updateField(id, userId, history -> {
             Map<String, Object> metadata = history.getMetadata();
             if (metadata == null) {
@@ -60,13 +60,13 @@ public class UpdateStrategyAlertHistoryRepositoryImpl implements UpdateStrategyA
         });
     }
 
-    private Optional<StrategyAlertHistory> updateField(String id, String userId, java.util.function.Consumer<StrategyAlertHistory> updater) {
-        Optional<StrategyAlertHistory> existing = baseRepository.findById(id);
+    private Optional<AlertDeploymentHistory> updateField(String id, String userId, java.util.function.Consumer<AlertDeploymentHistory> updater) {
+        Optional<AlertDeploymentHistory> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return Optional.empty();
         }
 
-        StrategyAlertHistory history = existing.get();
+        AlertDeploymentHistory history = existing.get();
         updater.accept(history);
 
         return Optional.of(baseRepository.save(history, userId));

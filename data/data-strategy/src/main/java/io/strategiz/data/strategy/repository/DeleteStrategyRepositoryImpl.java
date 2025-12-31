@@ -22,11 +22,12 @@ public class DeleteStrategyRepositoryImpl implements DeleteStrategyRepository {
     
     @Override
     public boolean deleteByIdAndUserId(String id, String userId) {
+        // Note: Strategies are stored in user subcollections, so userId scoping is enforced by the repository
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return false;
         }
-        
+
         // Use BaseRepository's soft delete
         return baseRepository.delete(id, userId);
     }

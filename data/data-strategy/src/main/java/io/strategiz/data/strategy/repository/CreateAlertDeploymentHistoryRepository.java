@@ -1,12 +1,12 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
 
 /**
  * Repository interface for creating strategy alert history entities
  * Following Single Responsibility Principle - focused only on create operations
  */
-public interface CreateStrategyAlertHistoryRepository {
+public interface CreateAlertDeploymentHistoryRepository {
 
     /**
      * Create a new alert history record
@@ -14,7 +14,7 @@ public interface CreateStrategyAlertHistoryRepository {
      * @param alertHistory The alert history to create
      * @return The created alert history
      */
-    StrategyAlertHistory create(StrategyAlertHistory alertHistory);
+    AlertDeploymentHistory create(AlertDeploymentHistory alertHistory);
 
     /**
      * Create a new alert history record with a specific user ID
@@ -23,5 +23,5 @@ public interface CreateStrategyAlertHistoryRepository {
      * @param userId The user ID
      * @return The created alert history
      */
-    StrategyAlertHistory createWithUserId(StrategyAlertHistory alertHistory, String userId);
+    AlertDeploymentHistory createWithUserId(AlertDeploymentHistory alertHistory, String userId);
 }

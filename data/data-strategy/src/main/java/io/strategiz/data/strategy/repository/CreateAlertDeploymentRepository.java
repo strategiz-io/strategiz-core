@@ -1,12 +1,12 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyAlert;
+import io.strategiz.data.strategy.entity.AlertDeployment;
 
 /**
  * Repository interface for creating strategy alert entities
  * Following Single Responsibility Principle - focused only on create operations
  */
-public interface CreateStrategyAlertRepository {
+public interface CreateAlertDeploymentRepository {
 
     /**
      * Create a new strategy alert
@@ -14,7 +14,7 @@ public interface CreateStrategyAlertRepository {
      * @param strategyAlert The strategy alert to create
      * @return The created strategy alert
      */
-    StrategyAlert create(StrategyAlert strategyAlert);
+    AlertDeployment create(AlertDeployment strategyAlert);
 
     /**
      * Create a new strategy alert with a specific user ID
@@ -23,5 +23,5 @@ public interface CreateStrategyAlertRepository {
      * @param userId The user ID
      * @return The created strategy alert
      */
-    StrategyAlert createWithUserId(StrategyAlert strategyAlert, String userId);
+    AlertDeployment createWithUserId(AlertDeployment strategyAlert, String userId);
 }

@@ -1,7 +1,7 @@
 package io.strategiz.data.strategy.repository;
 
 import io.strategiz.data.strategy.entity.DeploymentType;
-import io.strategiz.data.strategy.entity.StrategyAlert;
+import io.strategiz.data.strategy.entity.AlertDeployment;
 import com.google.cloud.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -13,56 +13,56 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of ReadStrategyAlertRepository using BaseRepository
+ * Implementation of ReadAlertDeploymentRepository using BaseRepository
  */
 @Repository
-public class ReadStrategyAlertRepositoryImpl implements ReadStrategyAlertRepository {
+public class ReadAlertDeploymentRepositoryImpl implements ReadAlertDeploymentRepository {
 
-    private final StrategyAlertBaseRepository baseRepository;
+    private final AlertDeploymentBaseRepository baseRepository;
 
     @Autowired
-    public ReadStrategyAlertRepositoryImpl(StrategyAlertBaseRepository baseRepository) {
+    public ReadAlertDeploymentRepositoryImpl(AlertDeploymentBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public Optional<StrategyAlert> findById(String id) {
+    public Optional<AlertDeployment> findById(String id) {
         return baseRepository.findById(id);
     }
 
     @Override
-    public List<StrategyAlert> findByUserId(String userId) {
+    public List<AlertDeployment> findByUserId(String userId) {
         return baseRepository.findAllByUserId(userId);
     }
 
     @Override
-    public List<StrategyAlert> findByUserIdAndStatus(String userId, String status) {
+    public List<AlertDeployment> findByUserIdAndStatus(String userId, String status) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(alert -> status.equals(alert.getStatus()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyAlert> findByStrategyId(String strategyId) {
+    public List<AlertDeployment> findByStrategyId(String strategyId) {
         return baseRepository.findAllByStrategyId(strategyId);
     }
 
     @Override
-    public List<StrategyAlert> findActiveByUserId(String userId) {
+    public List<AlertDeployment> findActiveByUserId(String userId) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(alert -> "ACTIVE".equals(alert.getStatus()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyAlert> findByProviderId(String userId, String providerId) {
+    public List<AlertDeployment> findByProviderId(String userId, String providerId) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(alert -> providerId.equals(alert.getProviderId()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyAlert> findBySubscriptionTier(String userId, String subscriptionTier) {
+    public List<AlertDeployment> findBySubscriptionTier(String userId, String subscriptionTier) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(alert -> subscriptionTier.equals(alert.getSubscriptionTier()))
                 .collect(Collectors.toList());
@@ -81,18 +81,18 @@ public class ReadStrategyAlertRepositoryImpl implements ReadStrategyAlertReposit
     }
 
     @Override
-    public List<StrategyAlert> findAllActive() {
+    public List<AlertDeployment> findAllActive() {
         return baseRepository.findAllByStatus("ACTIVE");
     }
 
     @Override
-    public List<StrategyAlert> findActiveAlertsByTier(String subscriptionTier) {
+    public List<AlertDeployment> findActiveAlertsByTier(String subscriptionTier) {
         // Only return ALERT deployment types (not BOT or PAPER)
         return baseRepository.findActiveAlertsByTierAndType(subscriptionTier, DeploymentType.ALERT.name());
     }
 
     @Override
-    public List<StrategyAlert> findActiveAlertsDueForEvaluation(int maxMinutesSinceLastCheck) {
+    public List<AlertDeployment> findActiveAlertsDueForEvaluation(int maxMinutesSinceLastCheck) {
         // Get all active alerts and filter by last checked time
         // Note: For better performance with large datasets, this should be done
         // at the database level with a Firestore query using timestamps

@@ -34,7 +34,7 @@ public class ReadStrategyRepositoryImpl implements ReadStrategyRepository {
     @Override
     public List<Strategy> findByUserIdAndStatus(String userId, String status) {
         return baseRepository.findAllByUserId(userId).stream()
-                .filter(s -> status.equals(s.getStatus()))
+                .filter(s -> status.equals(s.getPublishStatus()))
                 .collect(Collectors.toList());
     }
     

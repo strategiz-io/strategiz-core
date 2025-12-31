@@ -1,6 +1,6 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -8,22 +8,22 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementation of DeleteStrategyAlertHistoryRepository using BaseRepository
+ * Implementation of DeleteAlertDeploymentHistoryRepository using BaseRepository
  */
 @Repository
-public class DeleteStrategyAlertHistoryRepositoryImpl implements DeleteStrategyAlertHistoryRepository {
+public class DeleteAlertDeploymentHistoryRepositoryImpl implements DeleteAlertDeploymentHistoryRepository {
 
-    private final StrategyAlertHistoryBaseRepository baseRepository;
+    private final AlertDeploymentHistoryBaseRepository baseRepository;
 
     @Autowired
-    public DeleteStrategyAlertHistoryRepositoryImpl(StrategyAlertHistoryBaseRepository baseRepository) {
+    public DeleteAlertDeploymentHistoryRepositoryImpl(AlertDeploymentHistoryBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
     public boolean delete(String id, String userId) {
         // Verify ownership before deleting
-        Optional<StrategyAlertHistory> existing = baseRepository.findById(id);
+        Optional<AlertDeploymentHistory> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId())) {
             return false;
         }
@@ -33,10 +33,10 @@ public class DeleteStrategyAlertHistoryRepositoryImpl implements DeleteStrategyA
 
     @Override
     public int deleteByAlertId(String alertId, String userId) {
-        List<StrategyAlertHistory> historyRecords = baseRepository.findAllByAlertId(alertId);
+        List<AlertDeploymentHistory> historyRecords = baseRepository.findAllByAlertId(alertId);
 
         int deleted = 0;
-        for (StrategyAlertHistory history : historyRecords) {
+        for (AlertDeploymentHistory history : historyRecords) {
             // Verify ownership
             if (userId.equals(history.getUserId())) {
                 if (baseRepository.delete(history.getId(), userId)) {
@@ -51,7 +51,7 @@ public class DeleteStrategyAlertHistoryRepositoryImpl implements DeleteStrategyA
     @Override
     public boolean restore(String id, String userId) {
         // Use BaseRepository's restore method
-        Optional<StrategyAlertHistory> restored = baseRepository.restore(id, userId);
+        Optional<AlertDeploymentHistory> restored = baseRepository.restore(id, userId);
         return restored.isPresent();
     }
 }

@@ -16,8 +16,8 @@ import java.util.List;
  * @version 1.0
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Collection("strategyAlerts")
-public class StrategyAlert extends BaseEntity {
+@Collection("alertDeployments")
+public class AlertDeployment extends BaseEntity {
 
     @JsonProperty("id")
     private String id;
@@ -109,11 +109,10 @@ public class StrategyAlert extends BaseEntity {
     private Timestamp lastDailyReset; // When daily count was reset
 
     // Constructors
-    public StrategyAlert() {
+    public AlertDeployment() {
         super();
         this.triggerCount = 0;
         this.status = "ACTIVE";
-        this.deploymentType = DeploymentType.ALERT.name();
         this.consecutiveErrors = 0;
         this.maxConsecutiveErrors = 5;
         this.dailyTriggerCount = 0;
@@ -351,16 +350,18 @@ public class StrategyAlert extends BaseEntity {
 
     /**
      * Check if this is an ALERT deployment type
+     * AlertDeployment is always an alert deployment
      */
     public boolean isAlertDeployment() {
-        return DeploymentType.ALERT.name().equals(deploymentType);
+        return true;
     }
 
     /**
      * Check if this is a BOT deployment type
+     * AlertDeployment is never a bot deployment
      */
     public boolean isBotDeployment() {
-        return DeploymentType.BOT.name().equals(deploymentType);
+        return false;
     }
 
     /**

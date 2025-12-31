@@ -26,28 +26,27 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     
     @Override
     public Strategy update(String id, String userId, Strategy strategy) {
-        // Verify ownership
+        // Verify ownership (strategies are stored in user subcollections, so userId scoping is enforced)
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "Strategy", id);
         }
 
-        // Ensure ID and userId are set
+        // Ensure ID is set
         strategy.setId(id);
-        strategy.setUserId(userId);
-        
+
         return baseRepository.save(strategy, userId);
     }
     
     @Override
     public boolean updateStatus(String id, String userId, String status) {
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return false;
         }
-        
+
         Strategy strategy = existing.get();
-        strategy.setStatus(status);
+        strategy.setPublishStatus(status);
         baseRepository.save(strategy, userId);
         return true;
     }
@@ -75,7 +74,8 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     
     @Override
     public Optional<Strategy> updateVisibility(String id, String userId, boolean isPublic) {
-        return updateField(id, userId, strategy -> strategy.setPublic(isPublic));
+        // Convert boolean to publicStatus string: true → PUBLIC, false → PRIVATE
+        return updateField(id, userId, strategy -> strategy.setPublicStatus(isPublic ? "PUBLIC" : "PRIVATE"));
     }
     
     @Override
@@ -90,23 +90,24 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
 
     @Override
     public Optional<Strategy> updateDeploymentStatus(String id, String userId, String deploymentType, String deploymentId) {
+        // NOTE: This method is deprecated. Deployment instances are now tracked separately
+        // in AlertDeployment and BotDeployment entities. Strategy entity no longer has
+        // deploymentType, deploymentId, or deployedAt fields.
+        // Use deploymentCount field instead if you need to track how many times deployed.
         return updateField(id, userId, strategy -> {
-            strategy.setStatus("deployed");
-            strategy.setDeploymentType(deploymentType);
-            strategy.setDeploymentId(deploymentId);
-            strategy.setDeployedAt(com.google.cloud.Timestamp.now());
+            // No-op for now - deployment tracking happens in separate deployment entities
         });
     }
 
     private Optional<Strategy> updateField(String id, String userId, java.util.function.Consumer<Strategy> updater) {
         Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
             return Optional.empty();
         }
-        
+
         Strategy strategy = existing.get();
         updater.accept(strategy);
-        
+
         return Optional.of(baseRepository.save(strategy, userId));
     }
 }

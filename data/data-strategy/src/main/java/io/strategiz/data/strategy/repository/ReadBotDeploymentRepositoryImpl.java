@@ -1,6 +1,6 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.strategy.entity.BotDeployment;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -8,53 +8,53 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of ReadStrategyBotRepository.
+ * Implementation of ReadBotDeploymentRepository.
  */
 @Service
-public class ReadStrategyBotRepositoryImpl implements ReadStrategyBotRepository {
+public class ReadBotDeploymentRepositoryImpl implements ReadBotDeploymentRepository {
 
-    private final StrategyBotBaseRepository baseRepository;
+    private final BotDeploymentBaseRepository baseRepository;
 
-    public ReadStrategyBotRepositoryImpl(StrategyBotBaseRepository baseRepository) {
+    public ReadBotDeploymentRepositoryImpl(BotDeploymentBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
-    public Optional<StrategyBot> findById(String id) {
+    public Optional<BotDeployment> findById(String id) {
         return baseRepository.findById(id);
     }
 
     @Override
-    public List<StrategyBot> findByUserId(String userId) {
+    public List<BotDeployment> findByUserId(String userId) {
         return baseRepository.findAllByUserId(userId);
     }
 
     @Override
-    public List<StrategyBot> findByUserIdAndStatus(String userId, String status) {
+    public List<BotDeployment> findByUserIdAndStatus(String userId, String status) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(bot -> status.equals(bot.getStatus()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyBot> findByStrategyId(String strategyId) {
+    public List<BotDeployment> findByStrategyId(String strategyId) {
         return baseRepository.findAllByStrategyId(strategyId);
     }
 
     @Override
-    public List<StrategyBot> findActiveByUserId(String userId) {
+    public List<BotDeployment> findActiveByUserId(String userId) {
         return findByUserIdAndStatus(userId, "ACTIVE");
     }
 
     @Override
-    public List<StrategyBot> findByProviderId(String userId, String providerId) {
+    public List<BotDeployment> findByProviderId(String userId, String providerId) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(bot -> providerId.equals(bot.getProviderId()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<StrategyBot> findByEnvironment(String userId, String environment) {
+    public List<BotDeployment> findByEnvironment(String userId, String environment) {
         return baseRepository.findAllByUserId(userId).stream()
                 .filter(bot -> environment.equals(bot.getEnvironment()))
                 .collect(Collectors.toList());
@@ -71,22 +71,22 @@ public class ReadStrategyBotRepositoryImpl implements ReadStrategyBotRepository 
     }
 
     @Override
-    public List<StrategyBot> findAllActive() {
+    public List<BotDeployment> findAllActive() {
         return baseRepository.findAllByStatus("ACTIVE");
     }
 
     @Override
-    public List<StrategyBot> findActiveBotsByTier(String subscriptionTier) {
+    public List<BotDeployment> findActiveBotsByTier(String subscriptionTier) {
         return baseRepository.findAllByStatusAndTier("ACTIVE", subscriptionTier);
     }
 
     @Override
-    public List<StrategyBot> findActivePaperBots() {
+    public List<BotDeployment> findActivePaperBots() {
         return baseRepository.findAllByStatusAndEnvironment("ACTIVE", "PAPER");
     }
 
     @Override
-    public List<StrategyBot> findActiveLiveBots() {
+    public List<BotDeployment> findActiveLiveBots() {
         return baseRepository.findAllByStatusAndEnvironment("ACTIVE", "LIVE");
     }
 }

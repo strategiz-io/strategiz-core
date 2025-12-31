@@ -4,7 +4,7 @@ package io.strategiz.data.strategy.repository;
  * Repository interface for deleting strategy bot entities.
  * Following Single Responsibility Principle - focused only on delete operations.
  */
-public interface DeleteStrategyBotRepository {
+public interface DeleteBotDeploymentRepository {
 
     /**
      * Delete a strategy bot by ID, verifying ownership

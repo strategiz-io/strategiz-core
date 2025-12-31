@@ -1,6 +1,6 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.strategy.entity.BotDeployment;
 import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.springframework.stereotype.Service;
@@ -8,25 +8,25 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 /**
- * Implementation of DeleteStrategyBotRepository.
+ * Implementation of DeleteBotDeploymentRepository.
  */
 @Service
-public class DeleteStrategyBotRepositoryImpl implements DeleteStrategyBotRepository {
+public class DeleteBotDeploymentRepositoryImpl implements DeleteBotDeploymentRepository {
 
-    private final StrategyBotBaseRepository baseRepository;
+    private final BotDeploymentBaseRepository baseRepository;
 
-    public DeleteStrategyBotRepositoryImpl(StrategyBotBaseRepository baseRepository) {
+    public DeleteBotDeploymentRepositoryImpl(BotDeploymentBaseRepository baseRepository) {
         this.baseRepository = baseRepository;
     }
 
     @Override
     public boolean delete(String id, String userId) {
-        Optional<StrategyBot> existing = baseRepository.findById(id);
+        Optional<BotDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty()) {
             return false;
         }
 
-        StrategyBot bot = existing.get();
+        BotDeployment bot = existing.get();
         if (!userId.equals(bot.getUserId())) {
             return false;
         }

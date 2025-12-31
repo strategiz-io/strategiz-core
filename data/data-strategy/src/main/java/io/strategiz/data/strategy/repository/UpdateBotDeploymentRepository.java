@@ -1,17 +1,17 @@
 package io.strategiz.data.strategy.repository;
 
-import io.strategiz.data.strategy.entity.StrategyBot;
+import io.strategiz.data.strategy.entity.BotDeployment;
 
 /**
  * Repository interface for updating strategy bot entities.
  * Following Single Responsibility Principle - focused only on update operations.
  */
-public interface UpdateStrategyBotRepository {
+public interface UpdateBotDeploymentRepository {
 
     /**
      * Update an existing strategy bot
      */
-    StrategyBot update(StrategyBot bot);
+    BotDeployment update(BotDeployment bot);
 
     /**
      * Update the status of a strategy bot

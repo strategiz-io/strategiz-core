@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @see OAuthProviderController
  * @see BaseIntegrationTest
  */
-@SpringBootTest(classes = io.strategiz.application.Application.class)
+@SpringBootTest(classes = io.strategiz.service.auth.TestApplication.class)
 @ActiveProfiles("test")
 @DisplayName("OAuth Provider Controller Integration Tests")
 public class OAuthProviderControllerIntegrationTest extends BaseIntegrationTest {

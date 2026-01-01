@@ -65,10 +65,10 @@ public class CreateStrategyController extends BaseController {
         response.setCode(strategy.getCode());
         response.setLanguage(strategy.getLanguage());
         response.setType(strategy.getType());
-        response.setStatus(strategy.getStatus());
+        response.setStatus(strategy.getPublishStatus());
         response.setTags(strategy.getTags());
-        response.setUserId(strategy.getUserId());
-        response.setPublic(strategy.isPublic());
+        response.setUserId(strategy.getOwnerId());
+        response.setPublic("PUBLIC".equals(strategy.getPublicStatus()));
         response.setParameters(strategy.getParameters());
         response.setBacktestResults(strategy.getBacktestResults());
         response.setPerformance(strategy.getPerformance());

@@ -141,7 +141,7 @@ public class StrategySubscriptionController extends BaseController {
 
             // Verify access: subscriber OR current owner (not creator)
             // In owner subscription model, current owner receives payments and can view subscriptions
-            if (!subscription.get().getUserId().equals(userId) &&
+            if (!subscription.get().getOwnerId().equals(userId) &&
                     !subscription.get().getOwnerId().equals(userId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Access denied"));

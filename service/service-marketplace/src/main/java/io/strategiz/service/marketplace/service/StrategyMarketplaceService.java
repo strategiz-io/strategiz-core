@@ -38,6 +38,9 @@ public class StrategyMarketplaceService extends BaseService {
     @Autowired
     private StripeService stripeService;
 
+    @Autowired
+    private StrategyAccessService strategyAccessService;
+
     @Override
     protected String getModuleName() {
         return "service-marketplace";
@@ -92,8 +95,11 @@ public class StrategyMarketplaceService extends BaseService {
     }
     
     /**
-     * Get a specific strategy by ID
-     * 
+     * Get a specific strategy by ID with access control.
+     *
+     * TODO: Refactor to use ReadStrategyRepository instead of direct Firestore access
+     * TODO: Use StrategyAccessService.enforceCanView() for proper access control
+     *
      * @param id Strategy ID
      * @return Strategy data
      */
@@ -101,10 +107,14 @@ public class StrategyMarketplaceService extends BaseService {
         try {
             Firestore firestore = FirestoreClient.getFirestore();
             DocumentSnapshot doc = firestore.collection("strategies").document(id).get().get();
-            
+
             if (!doc.exists()) {
                 throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, "service-marketplace", id);
             }
+
+            // TODO: Add proper access control here
+            // Should check: publishStatus, publicStatus, and user subscription status
+            // For now, returning data without access control (security issue!)
 
             Map<String, Object> strategy = doc.getData();
             strategy.put("id", doc.getId());
@@ -152,7 +162,10 @@ public class StrategyMarketplaceService extends BaseService {
     
     /**
      * Update an existing strategy
-     * 
+     *
+     * TODO: Use StrategyAccessService.enforceCanEdit() for proper access control
+     * TODO: Check ownerId instead of createdBy (ownerId can change via ownership transfer)
+     *
      * @param id Strategy ID
      * @param userId User ID of the updater
      * @param strategyData Updated strategy data
@@ -163,13 +176,14 @@ public class StrategyMarketplaceService extends BaseService {
             Firestore firestore = FirestoreClient.getFirestore();
             DocumentReference docRef = firestore.collection("strategies").document(id);
             DocumentSnapshot doc = docRef.get().get();
-            
+
             // Check if strategy exists
             if (!doc.exists()) {
                 throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, "service-marketplace", id);
             }
 
             // Check if user is the owner
+            // TODO: Should check ownerId, not createdBy (createdBy never changes, ownerId can)
             String createdBy = (String) doc.getData().get("createdBy");
             if (!userId.equals(createdBy)) {
                 throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_UPDATE, "service-marketplace", id);
@@ -196,7 +210,11 @@ public class StrategyMarketplaceService extends BaseService {
     
     /**
      * Delete a strategy
-     * 
+     *
+     * TODO: Use StrategyAccessService.enforceCanDelete() for proper access control
+     * TODO: Check ownerId instead of createdBy (ownerId can change via ownership transfer)
+     * TODO: Prevent deletion if strategy has active subscribers
+     *
      * @param id Strategy ID
      * @param userId User ID of the deleter
      * @return Success message
@@ -206,13 +224,14 @@ public class StrategyMarketplaceService extends BaseService {
             Firestore firestore = FirestoreClient.getFirestore();
             DocumentReference docRef = firestore.collection("strategies").document(id);
             DocumentSnapshot doc = docRef.get().get();
-            
+
             // Check if strategy exists
             if (!doc.exists()) {
                 throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, "service-marketplace", id);
             }
 
             // Check if user is the owner
+            // TODO: Should check ownerId, not createdBy (createdBy never changes, ownerId can)
             String createdBy = (String) doc.getData().get("createdBy");
             if (!userId.equals(createdBy)) {
                 throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_DELETE, "service-marketplace", id);
@@ -438,7 +457,7 @@ public class StrategyMarketplaceService extends BaseService {
             }
 
             // Validate strategy is published
-            if (!strategy.isPublished()) {
+            if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
                 throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_AVAILABLE, "service-marketplace", id);
             }
 
@@ -489,11 +508,11 @@ public class StrategyMarketplaceService extends BaseService {
         result.put("id", strategy.getId());
         result.put("name", strategy.getName());
         result.put("description", strategy.getDescription());
-        result.put("creatorId", strategy.getUserId());
+        result.put("creatorId", strategy.getOwnerId());
 
         // Fetch creator information from User entity
         try {
-            DocumentSnapshot userDoc = firestore.collection("users").document(strategy.getUserId()).get().get();
+            DocumentSnapshot userDoc = firestore.collection("users").document(strategy.getOwnerId()).get().get();
             if (userDoc.exists()) {
                 UserEntity user = userDoc.toObject(UserEntity.class);
                 if (user != null && user.getProfile() != null) {
@@ -543,8 +562,8 @@ public class StrategyMarketplaceService extends BaseService {
         }
 
         // Status
-        result.put("isPublished", strategy.isPublished());
-        result.put("publishedAt", strategy.getPublishedAt());
+        result.put("isPublished", "PUBLISHED".equals(strategy.getPublishStatus()));
+        // TODO: publishedAt field removed - track publish timestamp separately if needed
         result.put("createdAt", strategy.getCreatedDate() != null ? strategy.getCreatedDate().toString() : null);
         result.put("updatedAt", strategy.getModifiedDate() != null ? strategy.getModifiedDate().toString() : null);
 

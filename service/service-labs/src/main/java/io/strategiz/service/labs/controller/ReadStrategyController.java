@@ -83,14 +83,23 @@ public class ReadStrategyController extends BaseController {
 
         String userId = user.getUserId();
         logger.info("Fetching strategy: {} for user: {}", strategyId, userId);
-        
+
         try {
+            // First check if strategy exists
+            if (!readStrategyService.strategyExists(strategyId)) {
+                throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND,
+                    "Strategy not found: " + strategyId);
+            }
+
+            // Get strategy with access control
             StrategyResponse response = readStrategyService.getStrategyById(strategyId, userId)
                 .map(this::convertToResponse)
                 .orElse(null);
 
+            // If strategy exists but wasn't returned, user doesn't have access
             if (response == null) {
-                throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, strategyId);
+                throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
+                    "You do not have permission to view this strategy");
             }
 
             return ResponseEntity.ok(response);
@@ -138,10 +147,10 @@ public class ReadStrategyController extends BaseController {
         response.setCode(strategy.getCode());
         response.setLanguage(strategy.getLanguage());
         response.setType(strategy.getType());
-        response.setStatus(strategy.getStatus());
+        response.setStatus(strategy.getPublishStatus());
         response.setTags(strategy.getTags());
-        response.setUserId(strategy.getUserId());
-        response.setPublic(strategy.isPublic());
+        response.setUserId(strategy.getOwnerId());
+        response.setPublic("PUBLIC".equals(strategy.getPublicStatus()));
         response.setParameters(strategy.getParameters());
         response.setBacktestResults(strategy.getBacktestResults());
         response.setPerformance(strategy.getPerformance());

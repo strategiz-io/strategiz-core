@@ -9,7 +9,20 @@ public class StrategyConstants {
     public static final String STATUS_DRAFT = "draft";
     public static final String STATUS_ACTIVE = "active";
     public static final String STATUS_ARCHIVED = "archived";
-    
+
+    // Publish Status constants (marketplace readiness)
+    public static final String PUBLISH_STATUS_DRAFT = "DRAFT";
+    public static final String PUBLISH_STATUS_PUBLISHED = "PUBLISHED";
+
+    // Public Status constants (access control)
+    public static final String PUBLIC_STATUS_PRIVATE = "PRIVATE";
+    public static final String PUBLIC_STATUS_SUBSCRIBERS_ONLY = "SUBSCRIBERS_ONLY";
+    public static final String PUBLIC_STATUS_PUBLIC = "PUBLIC";
+
+    // Listed Status constants (sale listing state)
+    public static final String LISTED_STATUS_NOT_LISTED = "NOT_LISTED";
+    public static final String LISTED_STATUS_LISTED = "LISTED";
+
     // Language constants
     public static final String LANGUAGE_PYTHON = "python";
     public static final String LANGUAGE_JAVA = "java";

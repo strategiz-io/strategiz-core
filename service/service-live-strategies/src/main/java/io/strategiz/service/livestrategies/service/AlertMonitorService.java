@@ -6,11 +6,11 @@ import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import io.strategiz.data.strategy.entity.DeploymentType;
-import io.strategiz.data.strategy.entity.StrategyAlert;
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
-import io.strategiz.data.strategy.repository.CreateStrategyAlertHistoryRepository;
-import io.strategiz.data.strategy.repository.ReadStrategyAlertRepository;
-import io.strategiz.data.strategy.repository.UpdateStrategyAlertRepository;
+import io.strategiz.data.strategy.entity.AlertDeployment;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
+import io.strategiz.data.strategy.repository.CreateAlertDeploymentHistoryRepository;
+import io.strategiz.data.strategy.repository.ReadAlertDeploymentRepository;
+import io.strategiz.data.strategy.repository.UpdateAlertDeploymentRepository;
 import com.google.cloud.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -64,9 +64,9 @@ public class AlertMonitorService extends BaseService {
     private int lastAlertCount = 0;
     private int lastSignalCount = 0;
 
-    private final ReadStrategyAlertRepository readAlertRepository;
-    private final UpdateStrategyAlertRepository updateAlertRepository;
-    private final CreateStrategyAlertHistoryRepository createHistoryRepository;
+    private final ReadAlertDeploymentRepository readAlertRepository;
+    private final UpdateAlertDeploymentRepository updateAlertRepository;
+    private final CreateAlertDeploymentHistoryRepository createHistoryRepository;
     private final StrategyExecutionService strategyExecutionService;
     private final MarketDataRepository marketDataRepository;
     private final YahooFinanceClient yahooFinanceClient; // Fallback for symbols not in cache
@@ -74,9 +74,9 @@ public class AlertMonitorService extends BaseService {
 
     @Autowired
     public AlertMonitorService(
-            ReadStrategyAlertRepository readAlertRepository,
-            UpdateStrategyAlertRepository updateAlertRepository,
-            CreateStrategyAlertHistoryRepository createHistoryRepository,
+            ReadAlertDeploymentRepository readAlertRepository,
+            UpdateAlertDeploymentRepository updateAlertRepository,
+            CreateAlertDeploymentHistoryRepository createHistoryRepository,
             StrategyExecutionService strategyExecutionService,
             MarketDataRepository marketDataRepository,
             @Autowired(required = false) YahooFinanceClient yahooFinanceClient,
@@ -160,11 +160,11 @@ public class AlertMonitorService extends BaseService {
             int errors = 0;
 
             // Fetch active alerts for this tier (ALERT deployment type only)
-            List<StrategyAlert> tierAlerts = readAlertRepository.findActiveAlertsByTier(tier);
+            List<AlertDeployment> tierAlerts = readAlertRepository.findActiveAlertsByTier(tier);
             log.info("Found {} active {} alerts to monitor", tierAlerts.size(), tier);
 
             // Process each alert
-            for (StrategyAlert alert : tierAlerts) {
+            for (AlertDeployment alert : tierAlerts) {
                 try {
                     // Skip BOT deployment types (future feature)
                     if (!alert.isAlertDeployment()) {
@@ -233,7 +233,7 @@ public class AlertMonitorService extends BaseService {
     /**
      * Process alert with cooldown and deduplication checks.
      */
-    private ProcessResult processAlertWithChecks(StrategyAlert alert) {
+    private ProcessResult processAlertWithChecks(AlertDeployment alert) {
         log.debug("Processing alert: {} (strategy: {})", alert.getAlertName(), alert.getStrategyId());
 
         int signalCount = 0;
@@ -337,7 +337,7 @@ public class AlertMonitorService extends BaseService {
      * Check if alert is in cooldown period.
      * Cooldown is per-symbol and based on subscription tier.
      */
-    private boolean isInCooldown(StrategyAlert alert, String symbol) {
+    private boolean isInCooldown(AlertDeployment alert, String symbol) {
         Timestamp lastTriggered = alert.getLastTriggeredAt();
         if (lastTriggered == null) {
             return false; // Never triggered, not in cooldown
@@ -360,7 +360,7 @@ public class AlertMonitorService extends BaseService {
      * Check if this is a duplicate signal (same signal type for same symbol).
      * This prevents spamming the same BUY/SELL signal repeatedly.
      */
-    private boolean isDuplicateSignal(StrategyAlert alert, String signalType, String symbol) {
+    private boolean isDuplicateSignal(AlertDeployment alert, String signalType, String symbol) {
         String lastSignalType = alert.getLastSignalType();
         String lastSignalSymbol = alert.getLastSignalSymbol();
 
@@ -373,7 +373,7 @@ public class AlertMonitorService extends BaseService {
     /**
      * Reset daily trigger count if it's a new day.
      */
-    private void resetDailyCountIfNeeded(StrategyAlert alert) {
+    private void resetDailyCountIfNeeded(AlertDeployment alert) {
         Timestamp lastReset = alert.getLastDailyReset();
         if (lastReset == null) {
             // Never reset, do it now
@@ -399,7 +399,7 @@ public class AlertMonitorService extends BaseService {
     /**
      * Handle alert processing error with circuit breaker logic.
      */
-    private void handleAlertError(StrategyAlert alert, Exception e) {
+    private void handleAlertError(AlertDeployment alert, Exception e) {
         try {
             updateAlertRepository.incrementConsecutiveErrors(
                     alert.getId(),
@@ -521,14 +521,14 @@ public class AlertMonitorService extends BaseService {
      * Create history entry for detected signal
      */
     private void createHistoryEntry(
-            StrategyAlert alert,
+            AlertDeployment alert,
             ExecutionResult.Signal signal,
             String symbol,
             Double price,
             Map<String, Object> metrics) {
 
         try {
-            StrategyAlertHistory history = new StrategyAlertHistory();
+            AlertDeploymentHistory history = new AlertDeploymentHistory();
             history.setAlertId(alert.getId());
             history.setUserId(alert.getUserId());
             history.setSignal(signal.getType());

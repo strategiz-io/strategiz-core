@@ -60,12 +60,12 @@ public class StrategySubscriptionService extends BaseService {
         Strategy strategy = readStrategyRepo.findById(strategyId)
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-        if (!strategy.isPublished()) {
+        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
         }
 
         // Cannot subscribe to own strategy
-        if (strategy.getUserId().equals(userId)) {
+        if (strategy.getOwnerId().equals(userId)) {
             throw new StrategizException(MarketplaceErrorDetails.CANNOT_SUBSCRIBE_OWN, MODULE_NAME);
         }
 
@@ -90,7 +90,7 @@ public class StrategySubscriptionService extends BaseService {
 
         // Create subscription
         StrategySubscriptionEntity subscription = new StrategySubscriptionEntity(
-                strategyId, userId, strategy.getUserId(), pricingType);
+                strategyId, userId, strategy.getOwnerId(), pricingType);
         subscription.setPricePaid(pricePaid);
         subscription.setStrategyName(strategy.getName());
         subscription.setStatus(SubscriptionStatus.ACTIVE);
@@ -113,7 +113,7 @@ public class StrategySubscriptionService extends BaseService {
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.SUBSCRIPTION_NOT_FOUND, MODULE_NAME));
 
         // Verify ownership
-        if (!subscription.getUserId().equals(userId)) {
+        if (!subscription.getOwnerId().equals(userId)) {
             throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_UPDATE, MODULE_NAME);
         }
 
@@ -146,7 +146,7 @@ public class StrategySubscriptionService extends BaseService {
         }
 
         // Owner always has access
-        if (strategy.getUserId().equals(userId)) {
+        if (strategy.getOwnerId().equals(userId)) {
             return true;
         }
 
@@ -174,7 +174,7 @@ public class StrategySubscriptionService extends BaseService {
         Strategy strategy = readStrategyRepo.findById(strategyId)
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-        if (!strategy.getUserId().equals(requestingUserId)) {
+        if (!strategy.getOwnerId().equals(requestingUserId)) {
             throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_UPDATE, MODULE_NAME);
         }
 

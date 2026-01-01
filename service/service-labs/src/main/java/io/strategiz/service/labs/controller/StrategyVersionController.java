@@ -104,7 +104,7 @@ public class StrategyVersionController extends BaseController {
     private StrategyResponse convertToResponse(Strategy strategy) {
         StrategyResponse response = new StrategyResponse();
         response.setId(strategy.getId());
-        response.setUserId(strategy.getUserId());
+        response.setUserId(strategy.getOwnerId());
         response.setName(strategy.getName());
         response.setDescription(strategy.getDescription());
         response.setCode(strategy.getCode());
@@ -114,15 +114,13 @@ public class StrategyVersionController extends BaseController {
         response.setParameters(strategy.getParameters());
         response.setPerformance(strategy.getPerformance());
         response.setBacktestResults(strategy.getBacktestResults());
-        response.setStatus(strategy.getStatus());
-        response.setPublic(strategy.isPublic());
+        response.setStatus(strategy.getPublishStatus());
+        response.setPublic("PUBLIC".equals(strategy.getPublicStatus()));
         // Skip date fields - they'll be null
         // Versioning fields
         response.setVersion(strategy.getVersion());
         response.setParentStrategyId(strategy.getParentStrategyId());
-        response.setDeploymentType(strategy.getDeploymentType());
-        response.setDeploymentId(strategy.getDeploymentId());
-        response.setDeployedAt(strategy.getDeployedAt());
+        // Note: Deployment fields removed - tracked in BotDeployment/AlertDeployment entities
         return response;
     }
 

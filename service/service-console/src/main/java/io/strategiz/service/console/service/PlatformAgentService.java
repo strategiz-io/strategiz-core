@@ -1,10 +1,12 @@
 package io.strategiz.service.console.service;
 
+import io.strategiz.client.github.GitHubAppAuthClient;
+import io.strategiz.client.github.GitHubAppConfig;
 import io.strategiz.service.console.model.AgentHistory;
 import io.strategiz.service.console.model.AgentStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -27,15 +29,19 @@ public class PlatformAgentService {
     private static final Logger log = LoggerFactory.getLogger(PlatformAgentService.class);
 
     private final RestTemplate restTemplate;
-    private final String githubToken;
+    private final GitHubAppAuthClient githubAppAuthClient;
+    private final GitHubAppConfig githubAppConfig;
     private final String githubApiUrl = "https://api.github.com";
 
+    @Autowired
     public PlatformAgentService(
             RestTemplate restTemplate,
-            @Value("${github.token:#{null}}") String githubToken
+            GitHubAppAuthClient githubAppAuthClient,
+            GitHubAppConfig githubAppConfig
     ) {
         this.restTemplate = restTemplate;
-        this.githubToken = githubToken;
+        this.githubAppAuthClient = githubAppAuthClient;
+        this.githubAppConfig = githubAppConfig;
     }
 
     /**
@@ -62,12 +68,7 @@ public class PlatformAgentService {
             String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?per_page=10",
                     githubApiUrl, repository);
 
-            HttpHeaders headers = new HttpHeaders();
-            if (githubToken != null && !githubToken.isEmpty()) {
-                headers.set("Authorization", "Bearer " + githubToken);
-            }
-            headers.set("Accept", "application/vnd.github+json");
-
+            HttpHeaders headers = createAuthHeaders(repository);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 
@@ -130,12 +131,7 @@ public class PlatformAgentService {
             String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?page=%d&per_page=%d",
                     githubApiUrl, repository, page + 1, pageSize);
 
-            HttpHeaders headers = new HttpHeaders();
-            if (githubToken != null && !githubToken.isEmpty()) {
-                headers.set("Authorization", "Bearer " + githubToken);
-            }
-            headers.set("Accept", "application/vnd.github+json");
-
+            HttpHeaders headers = createAuthHeaders(repository);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 
@@ -163,16 +159,15 @@ public class PlatformAgentService {
      */
     public boolean triggerAgent(String agentId, String repository, String triggeredBy) {
         try {
+            if (!githubAppConfig.isConfigured()) {
+                log.error("GitHub App not configured, cannot trigger workflow");
+                return false;
+            }
+
             String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/dispatches",
                     githubApiUrl, repository);
 
-            HttpHeaders headers = new HttpHeaders();
-            if (githubToken == null || githubToken.isEmpty()) {
-                log.error("GitHub token not configured, cannot trigger workflow");
-                return false;
-            }
-            headers.set("Authorization", "Bearer " + githubToken);
-            headers.set("Accept", "application/vnd.github+json");
+            HttpHeaders headers = createAuthHeaders(repository);
             headers.set("Content-Type", "application/json");
 
             Map<String, Object> payload = Map.of(
@@ -281,12 +276,7 @@ public class PlatformAgentService {
             String url = String.format("%s/repos/%s/pulls?state=all&per_page=10&sort=created&direction=desc",
                     githubApiUrl, repository);
 
-            HttpHeaders headers = new HttpHeaders();
-            if (githubToken != null && !githubToken.isEmpty()) {
-                headers.set("Authorization", "Bearer " + githubToken);
-            }
-            headers.set("Accept", "application/vnd.github+json");
-
+            HttpHeaders headers = createAuthHeaders(repository);
             HttpEntity<String> entity = new HttpEntity<>(headers);
             ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
 
@@ -322,5 +312,36 @@ public class PlatformAgentService {
                 new AgentStatus.AgentMetrics(0, 0, 0, 0, 0, 0.0),
                 repository
         );
+    }
+
+    /**
+     * Create HTTP headers with GitHub App authentication
+     */
+    private HttpHeaders createAuthHeaders(String repository) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Accept", "application/vnd.github+json");
+
+        if (githubAppConfig.isConfigured()) {
+            // Parse repository string (format: "owner/repo")
+            String[] parts = repository.split("/");
+            if (parts.length == 2) {
+                String owner = parts[0];
+                String repo = parts[1];
+
+                // Get installation access token from GitHub App
+                String token = githubAppAuthClient.getInstallationToken(owner, repo);
+                if (token != null) {
+                    headers.set("Authorization", "Bearer " + token);
+                } else {
+                    log.warn("Failed to obtain GitHub App installation token for {}", repository);
+                }
+            } else {
+                log.error("Invalid repository format: {}. Expected 'owner/repo'", repository);
+            }
+        } else {
+            log.warn("GitHub App not configured - API calls may fail");
+        }
+
+        return headers;
     }
 }

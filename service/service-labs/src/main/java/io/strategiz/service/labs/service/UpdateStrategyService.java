@@ -47,12 +47,17 @@ public class UpdateStrategyService extends BaseService {
      */
     public Strategy updateStrategy(String strategyId, String userId, CreateStrategyRequest request) {
         log.info("Updating strategy: {} for user: {}", strategyId, userId);
-        
-        // First check if strategy exists and user has access
+
+        // First check if strategy exists
         Strategy existing = readStrategyRepository.findById(strategyId)
-                .filter(s -> userId.equals(s.getUserId()))
                 .orElseThrow(() -> new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, getModuleName(),
-                        "Strategy not found or access denied"));
+                        "Strategy not found: " + strategyId));
+
+        // Check if user is the owner (only owner can edit)
+        if (!existing.isOwner(userId)) {
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_MODIFICATION_DENIED,
+                    "Only the strategy owner can modify this strategy");
+        }
         
         // Update fields from request
         existing.setName(request.getName());
@@ -62,7 +67,14 @@ public class UpdateStrategyService extends BaseService {
         existing.setType(request.getType() != null ? request.getType() : StrategyConstants.DEFAULT_TYPE);
         existing.setTags(request.getTags());
         existing.setParameters(request.getParameters());
-        existing.setPublic(request.isPublic());
+
+        // Validate DRAFT + PUBLIC combination before setting publicStatus
+        String newPublicStatus = request.isPublic() ? "PUBLIC" : "PRIVATE";
+        if ("DRAFT".equals(existing.getPublishStatus()) && "PUBLIC".equals(newPublicStatus)) {
+            throwModuleException(ServiceStrategyErrorDetails.INVALID_STATUS_COMBINATION,
+                    "Cannot set draft strategy to public. Publish the strategy first.");
+        }
+        existing.setPublicStatus(newPublicStatus);
         existing.setPerformance(request.getPerformance());
 
         // Parse and set seedFundingDate if provided

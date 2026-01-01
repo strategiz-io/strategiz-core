@@ -3,13 +3,13 @@ package io.strategiz.service.livestrategies.controller;
 import io.strategiz.data.preferences.entity.AlertNotificationPreferences;
 import io.strategiz.data.preferences.repository.AlertNotificationPreferencesRepository;
 import io.strategiz.data.strategy.entity.Strategy;
-import io.strategiz.data.strategy.entity.StrategyAlert;
-import io.strategiz.data.strategy.entity.StrategyAlertHistory;
-import io.strategiz.data.strategy.repository.ReadStrategyAlertRepository;
-import io.strategiz.data.strategy.repository.ReadStrategyAlertHistoryRepository;
-import io.strategiz.data.strategy.repository.CreateStrategyAlertRepository;
-import io.strategiz.data.strategy.repository.UpdateStrategyAlertRepository;
-import io.strategiz.data.strategy.repository.DeleteStrategyAlertRepository;
+import io.strategiz.data.strategy.entity.AlertDeployment;
+import io.strategiz.data.strategy.entity.AlertDeploymentHistory;
+import io.strategiz.data.strategy.repository.ReadAlertDeploymentRepository;
+import io.strategiz.data.strategy.repository.ReadAlertDeploymentHistoryRepository;
+import io.strategiz.data.strategy.repository.CreateAlertDeploymentRepository;
+import io.strategiz.data.strategy.repository.UpdateAlertDeploymentRepository;
+import io.strategiz.data.strategy.repository.DeleteAlertDeploymentRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.data.user.repository.UserRepository;
@@ -49,11 +49,11 @@ public class AlertController {
 
     private static final Logger logger = LoggerFactory.getLogger(AlertController.class);
 
-    private final ReadStrategyAlertRepository readAlertRepository;
-    private final CreateStrategyAlertRepository createAlertRepository;
-    private final UpdateStrategyAlertRepository updateAlertRepository;
-    private final DeleteStrategyAlertRepository deleteAlertRepository;
-    private final ReadStrategyAlertHistoryRepository readHistoryRepository;
+    private final ReadAlertDeploymentRepository readAlertRepository;
+    private final CreateAlertDeploymentRepository createAlertRepository;
+    private final UpdateAlertDeploymentRepository updateAlertRepository;
+    private final DeleteAlertDeploymentRepository deleteAlertRepository;
+    private final ReadAlertDeploymentHistoryRepository readHistoryRepository;
     private final ReadStrategyRepository readStrategyRepository;
     private final UpdateStrategyRepository updateStrategyRepository;
     private final AlertNotificationPreferencesRepository alertPreferencesRepository;
@@ -61,11 +61,11 @@ public class AlertController {
 
     @Autowired
     public AlertController(
-            ReadStrategyAlertRepository readAlertRepository,
-            CreateStrategyAlertRepository createAlertRepository,
-            UpdateStrategyAlertRepository updateAlertRepository,
-            DeleteStrategyAlertRepository deleteAlertRepository,
-            ReadStrategyAlertHistoryRepository readHistoryRepository,
+            ReadAlertDeploymentRepository readAlertRepository,
+            CreateAlertDeploymentRepository createAlertRepository,
+            UpdateAlertDeploymentRepository updateAlertRepository,
+            DeleteAlertDeploymentRepository deleteAlertRepository,
+            ReadAlertDeploymentHistoryRepository readHistoryRepository,
             ReadStrategyRepository readStrategyRepository,
             UpdateStrategyRepository updateStrategyRepository,
             AlertNotificationPreferencesRepository alertPreferencesRepository,
@@ -92,7 +92,7 @@ public class AlertController {
         logger.info("Fetching all alerts for user: {}", userId);
 
         try {
-            List<StrategyAlert> alerts = readAlertRepository.findByUserId(userId);
+            List<AlertDeployment> alerts = readAlertRepository.findByUserId(userId);
             List<AlertResponse> responses = alerts.stream()
                     .map(this::convertToResponse)
                     .collect(Collectors.toList());
@@ -122,7 +122,7 @@ public class AlertController {
         try {
             // Validate strategy exists and belongs to user
             Optional<Strategy> strategyOpt = readStrategyRepository.findById(request.getStrategyId());
-            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getUserId())) {
+            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getOwnerId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Strategy not found or access denied"));
             }
@@ -171,7 +171,7 @@ public class AlertController {
             }
 
             // Create alert entity
-            StrategyAlert alert = new StrategyAlert();
+            AlertDeployment alert = new AlertDeployment();
             alert.setStrategyId(request.getStrategyId());
             alert.setUserId(userId);
             alert.setAlertName(request.getAlertName());
@@ -186,7 +186,7 @@ public class AlertController {
             alert.setSubscriptionTier(subscriptionTier);
 
             // Save alert
-            StrategyAlert created = createAlertRepository.createWithUserId(alert, userId);
+            AlertDeployment created = createAlertRepository.createWithUserId(alert, userId);
 
             // Update strategy deployment status
             updateStrategyRepository.updateDeploymentStatus(
@@ -270,13 +270,13 @@ public class AlertController {
 
         try {
             // Verify alert belongs to user
-            Optional<StrategyAlert> alert = readAlertRepository.findById(id);
+            Optional<AlertDeployment> alert = readAlertRepository.findById(id);
             if (alert.isEmpty() || !userId.equals(alert.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
             // Fetch history entries
-            List<StrategyAlertHistory> history = readHistoryRepository.findByAlertId(id);
+            List<AlertDeploymentHistory> history = readHistoryRepository.findByAlertId(id);
 
             // Apply limit manually (TODO: add limit parameter to repository method)
             if (history.size() > limit) {
@@ -346,7 +346,7 @@ public class AlertController {
 
         try {
             // Verify alert belongs to user
-            Optional<StrategyAlert> alert = readAlertRepository.findById(id);
+            Optional<AlertDeployment> alert = readAlertRepository.findById(id);
             if (alert.isEmpty() || !userId.equals(alert.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Alert not found or access denied"));
@@ -369,7 +369,7 @@ public class AlertController {
 
     // Helper methods
 
-    private AlertResponse convertToResponse(StrategyAlert alert) {
+    private AlertResponse convertToResponse(AlertDeployment alert) {
         AlertResponse response = new AlertResponse();
         response.setId(alert.getId());
         response.setUserId(alert.getUserId());
@@ -396,9 +396,9 @@ public class AlertController {
 
         // Build last signal info (from most recent history entry)
         try {
-            List<StrategyAlertHistory> history = readHistoryRepository.findByAlertId(alert.getId());
+            List<AlertDeploymentHistory> history = readHistoryRepository.findByAlertId(alert.getId());
             if (!history.isEmpty()) {
-                StrategyAlertHistory latest = history.get(0); // Assuming sorted by timestamp desc
+                AlertDeploymentHistory latest = history.get(0); // Assuming sorted by timestamp desc
                 AlertResponse.LastSignalInfo lastSignal = new AlertResponse.LastSignalInfo();
                 lastSignal.setSignal(latest.getSignal());
                 lastSignal.setSymbol(latest.getSymbol());
@@ -412,7 +412,7 @@ public class AlertController {
         return response;
     }
 
-    private AlertHistoryResponse.HistoryEntry convertToHistoryEntry(StrategyAlertHistory history) {
+    private AlertHistoryResponse.HistoryEntry convertToHistoryEntry(AlertDeploymentHistory history) {
         AlertHistoryResponse.HistoryEntry entry = new AlertHistoryResponse.HistoryEntry();
         entry.setId(history.getId());
         entry.setSignal(history.getSignal());

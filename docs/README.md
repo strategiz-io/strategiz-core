@@ -28,6 +28,7 @@ Welcome to the Strategiz platform documentation! This comprehensive guide covers
 - [Deploy Scripts](deployment/deploy.md) - Automated deployment scripts and commands
 
 ### 🔒 **Security**
+- **[Authorization Standard](security/authorization-standard.md)** - **MANDATORY** for all service developers
 - [Security Overview](security/overview.md) - Security architecture and best practices
 - [Secrets Management](security/secrets-management.md) - HashiCorp Vault integration and secret handling
 - [Vault Setup](security/vault-setup.md) - Complete Vault setup guide
@@ -69,8 +70,9 @@ docs/
 │   ├── guide.md      # Detailed deployment instructions
 │   └── deploy.md     # Deployment scripts and commands
 ├── security/         # Security documentation
-│   ├── overview.md           # Security architecture overview
-│   └── secrets-management.md # Vault integration and secrets
+│   ├── authorization-standard.md # MANDATORY authorization standard
+│   ├── overview.md                # Security architecture overview
+│   └── secrets-management.md      # Vault integration and secrets
 ├── infrastructure/   # Production infrastructure
 │   ├── README.md             # Infrastructure overview
 │   └── production.md         # Complete production setup
@@ -104,9 +106,10 @@ docs/
 
 ### **For New Developers**
 1. [Developer Guide](development/developer-guide.md) - Start here
-2. [Base Classes Standards](development/base-classes-standards.md) - Learn the patterns
-3. [Architecture Overview](architecture/overview.md) - Understand the system
-4. [API Overview](api/overview.md) - API basics
+2. **[Authorization Standard](security/authorization-standard.md)** - **MUST READ** before creating services
+3. [Base Classes Standards](development/base-classes-standards.md) - Learn the patterns
+4. [Architecture Overview](architecture/overview.md) - Understand the system
+5. [API Overview](api/overview.md) - API basics
 
 ### **For DevOps/Deployment**
 1. [Deployment Overview](deployment/overview.md) - Deployment strategy

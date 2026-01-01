@@ -69,9 +69,9 @@ public class StrategyExecutionService {
             }
             
             Strategy strategy = strategyOpt.get();
-            
-            // Verify user owns the strategy
-            if (!userId.equals(strategy.getUserId()) && !strategy.isPublic()) {
+
+            // Verify user owns the strategy or strategy is public
+            if (!userId.equals(strategy.getOwnerId()) && !"PUBLIC".equals(strategy.getPublicStatus())) {
                 return createErrorResult(strategyId, "Access denied to strategy");
             }
             

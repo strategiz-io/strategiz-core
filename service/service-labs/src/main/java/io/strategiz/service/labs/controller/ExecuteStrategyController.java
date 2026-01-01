@@ -84,9 +84,14 @@ public class ExecuteStrategyController extends BaseController {
         String userId = user.getUserId();
         logger.info("Executing strategy: {} for user: {} with symbol: {}",
             strategyId, userId, request.getSymbol());
-        
+
         try {
-            // Get strategy from database
+            // Get strategy from database with access control
+            // Access rules enforced by readStrategyService.getStrategyById():
+            // - DRAFT + PRIVATE: Owner only
+            // - PUBLISHED + PRIVATE: Owner and subscribers
+            // - PUBLISHED + PUBLIC: Everyone (including non-subscribers)
+            // TODO Phase 8: Consider if execution should require subscription even for PUBLIC strategies
             java.util.Optional<io.strategiz.data.strategy.entity.Strategy> strategyOpt = readStrategyService.getStrategyById(strategyId, userId);
             if (!strategyOpt.isPresent()) {
                 throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, strategyId);

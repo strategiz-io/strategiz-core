@@ -47,6 +47,9 @@ public class Strategy extends BaseEntity {
     @JsonProperty("publicStatus")
     private String publicStatus; // PRIVATE, SUBSCRIBERS_ONLY, PUBLIC
 
+    @JsonProperty("listedStatus")
+    private String listedStatus; // NOT_LISTED, LISTED
+
     @JsonProperty("backtestResults")
     private Map<String, Object> backtestResults; // Deprecated - use performance instead
 
@@ -197,6 +200,14 @@ public class Strategy extends BaseEntity {
 
     public void setPublicStatus(String publicStatus) {
         this.publicStatus = publicStatus;
+    }
+
+    public String getListedStatus() {
+        return listedStatus;
+    }
+
+    public void setListedStatus(String listedStatus) {
+        this.listedStatus = listedStatus;
     }
 
     public Map<String, Object> getBacktestResults() {

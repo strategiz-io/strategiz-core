@@ -119,7 +119,22 @@ public class StrategyPublishController extends BaseController {
     }
 
     /**
-     * Update pricing for a published strategy.
+     * Update pricing and listing status for a strategy.
+     *
+     * Supports two request formats:
+     *
+     * Format 1 - Simple (for marketplace listing):
+     * {
+     *   "price": 99.99,              // optional - the sale price
+     *   "listedStatus": "LISTED"     // optional - "LISTED" or "NOT_LISTED"
+     * }
+     *
+     * Format 2 - Full pricing configuration:
+     * {
+     *   "pricingType": "ONE_TIME",   // "FREE", "ONE_TIME", or "SUBSCRIPTION"
+     *   "oneTimePrice": 29.99,       // for ONE_TIME
+     *   "monthlyPrice": 9.99         // for SUBSCRIPTION
+     * }
      */
     @PutMapping("/{strategyId}/pricing")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
@@ -130,27 +145,38 @@ public class StrategyPublishController extends BaseController {
         try {
             String userId = user.getUserId();
 
-            // Parse pricing type
+            // Check for simple format (price + listedStatus)
+            BigDecimal price = parsePrice(requestBody.get("price"));
+            String listedStatus = (String) requestBody.get("listedStatus");
+
+            // Check for full format (pricingType + oneTimePrice/monthlyPrice)
             String pricingTypeStr = (String) requestBody.get("pricingType");
-            if (pricingTypeStr == null) {
+
+            Strategy updated;
+
+            if (price != null || listedStatus != null) {
+                // Simple format - update price and/or listedStatus
+                updated = publishService.updatePricingAndListingStatus(
+                        strategyId, userId, price, listedStatus);
+            } else if (pricingTypeStr != null) {
+                // Full format - legacy pricing update
+                PricingType pricingType;
+                try {
+                    pricingType = PricingType.valueOf(pricingTypeStr.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(Map.of("error", "Invalid pricing type. Must be FREE, ONE_TIME, or SUBSCRIPTION"));
+                }
+
+                BigDecimal oneTimePrice = parsePrice(requestBody.get("oneTimePrice"));
+                BigDecimal monthlyPrice = parsePrice(requestBody.get("monthlyPrice"));
+
+                updated = publishService.updatePricing(
+                        strategyId, userId, pricingType, oneTimePrice, monthlyPrice);
+            } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "Pricing type is required"));
+                        .body(Map.of("error", "Either 'price'/'listedStatus' or 'pricingType' must be provided"));
             }
-
-            PricingType pricingType;
-            try {
-                pricingType = PricingType.valueOf(pricingTypeStr.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "Invalid pricing type. Must be FREE, ONE_TIME, or SUBSCRIPTION"));
-            }
-
-            // Parse prices
-            BigDecimal oneTimePrice = parsePrice(requestBody.get("oneTimePrice"));
-            BigDecimal monthlyPrice = parsePrice(requestBody.get("monthlyPrice"));
-
-            Strategy updated = publishService.updatePricing(
-                    strategyId, userId, pricingType, oneTimePrice, monthlyPrice);
 
             return ResponseEntity.ok(Map.of(
                     "message", "Pricing updated successfully",
@@ -174,13 +200,13 @@ public class StrategyPublishController extends BaseController {
     public ResponseEntity<Object> getPublishStatus(@PathVariable String strategyId) {
         try {
             Strategy strategy = publishService.getStrategyDetails(strategyId);
+            // Note: publishedAt field removed from data model - use createdDate or track separately
             return ResponseEntity.ok(Map.of(
                     "strategyId", strategyId,
-                    "isPublished", strategy.isPublished(),
-                    "publishedAt", strategy.getPublishedAt(),
-                    "pricing", strategy.getPricing(),
-                    "subscriberCount", strategy.getSubscriberCount(),
-                    "commentCount", strategy.getCommentCount()
+                    "isPublished", "PUBLISHED".equals(strategy.getPublishStatus()),
+                    "pricing", strategy.getPricing() != null ? strategy.getPricing() : "FREE",
+                    "subscriberCount", strategy.getSubscriberCount() != null ? strategy.getSubscriberCount() : 0,
+                    "commentCount", strategy.getCommentCount() != null ? strategy.getCommentCount() : 0
             ));
         } catch (Exception e) {
             log.error("Error getting status for strategy {}", strategyId, e);

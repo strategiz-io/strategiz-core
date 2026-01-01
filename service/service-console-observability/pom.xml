@@ -57,11 +57,14 @@
         </dependency>
 
         <!-- Provider service dependencies -->
+        <!-- Temporarily disabled: service-exchange module does not exist -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-exchange</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
     </dependencies>
     
     <build>

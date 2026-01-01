@@ -20,7 +20,8 @@
         <module>service-framework-base</module>
         <module>service-dashboard</module>
         <module>service-device</module>
-        <module>service-exchange</module>
+        <!-- Temporarily disabled: module directory does not exist -->
+        <!-- <module>service-exchange</module> -->
         <module>service-marketing</module>
         <module>service-marketplace</module>
         <module>service-marketdata</module>

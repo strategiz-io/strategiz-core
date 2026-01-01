@@ -193,7 +193,7 @@ public class StrategyCommentService extends BaseService {
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
         // Allow delete if user is comment owner OR strategy owner
-        if (!comment.getUserId().equals(userId) && !strategy.getUserId().equals(userId)) {
+        if (!comment.getUserId().equals(userId) && !strategy.getOwnerId().equals(userId)) {
             throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_DELETE, MODULE_NAME);
         }
 
@@ -247,7 +247,7 @@ public class StrategyCommentService extends BaseService {
         Strategy strategy = readStrategyRepo.findById(strategyId)
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-        if (!strategy.isPublished()) {
+        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
         }
 

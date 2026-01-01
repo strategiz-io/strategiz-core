@@ -18,6 +18,10 @@ public enum MarketplaceErrorDetails implements ErrorDetails {
     // Permission errors
     UNAUTHORIZED_UPDATE(HttpStatus.FORBIDDEN, "marketplace-unauthorized-update"),
     UNAUTHORIZED_DELETE(HttpStatus.FORBIDDEN, "marketplace-unauthorized-delete"),
+    VIEW_ACCESS_DENIED(HttpStatus.FORBIDDEN, "marketplace-view-access-denied"),
+    CODE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "marketplace-code-access-denied"),
+    DEPLOY_ACCESS_DENIED(HttpStatus.FORBIDDEN, "marketplace-deploy-access-denied"),
+    EDIT_ACCESS_DENIED(HttpStatus.FORBIDDEN, "marketplace-edit-access-denied"),
 
     // Purchase errors
     STRATEGY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "marketplace-strategy-not-available"),
@@ -39,6 +43,10 @@ public enum MarketplaceErrorDetails implements ErrorDetails {
     ALREADY_SUBSCRIBED(HttpStatus.CONFLICT, "marketplace-already-subscribed"),
     SUBSCRIPTION_EXPIRED(HttpStatus.PAYMENT_REQUIRED, "marketplace-subscription-expired"),
     CANNOT_SUBSCRIBE_OWN(HttpStatus.BAD_REQUEST, "marketplace-cannot-subscribe-own"),
+
+    // Ownership transfer errors
+    ALREADY_OWNS_STRATEGY(HttpStatus.BAD_REQUEST, "marketplace-already-owns-strategy"),
+    STRATEGY_NOT_FOR_SALE(HttpStatus.BAD_REQUEST, "marketplace-strategy-not-for-sale"),
 
     // Pricing errors
     INVALID_PRICING_TYPE(HttpStatus.BAD_REQUEST, "marketplace-invalid-pricing-type"),

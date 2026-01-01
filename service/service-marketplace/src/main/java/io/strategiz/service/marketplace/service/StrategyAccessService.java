@@ -63,7 +63,7 @@ public class StrategyAccessService extends BaseService {
     /**
      * Check if user can deploy the strategy (as alert or bot).
      *
-     * Owner OR Subscriber can deploy.
+     * Owner OR Subscriber can deploy, but only if strategy is PUBLISHED.
      *
      * @param strategyId The strategy ID
      * @param userId The user requesting access
@@ -76,13 +76,57 @@ public class StrategyAccessService extends BaseService {
 
         Strategy strategy = getStrategy(strategyId);
 
-        // Owner can always deploy
+        // Owner can deploy their own DRAFT or PUBLISHED strategies
         if (strategy.isOwner(userId)) {
             return true;
         }
 
-        // Check if user has active subscription
-        return hasActiveSubscription(userId, strategyId);
+        // Subscribers can only deploy PUBLISHED strategies
+        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+            return false;
+        }
+
+        // Check if user has active subscription to the owner
+        return hasActiveSubscription(userId, strategy.getOwnerId());
+    }
+
+    /**
+     * Check if user can view the strategy at all (name, description, metadata).
+     *
+     * Access rules based on publishStatus and publicStatus:
+     * - DRAFT + PRIVATE: Owner only
+     * - DRAFT + PUBLIC: INVALID (prevented by validation)
+     * - PUBLISHED + PRIVATE: Owner and subscribers only
+     * - PUBLISHED + PUBLIC: Everyone
+     *
+     * @param strategyId The strategy ID
+     * @param userId The user requesting access (can be null for public)
+     * @return true if user can view the strategy
+     */
+    public boolean canViewStrategy(String strategyId, String userId) {
+        Strategy strategy = getStrategy(strategyId);
+
+        // Owner can always view
+        if (userId != null && strategy.isOwner(userId)) {
+            return true;
+        }
+
+        // DRAFT strategies are owner-only
+        if ("DRAFT".equals(strategy.getPublishStatus())) {
+            return false;
+        }
+
+        // PUBLISHED + PUBLIC: Everyone can view
+        if ("PUBLIC".equals(strategy.getPublicStatus())) {
+            return true;
+        }
+
+        // PUBLISHED + PRIVATE: Only subscribers can view (besides owner)
+        if (userId != null) {
+            return hasActiveSubscription(userId, strategy.getOwnerId());
+        }
+
+        return false;
     }
 
     /**
@@ -102,13 +146,19 @@ public class StrategyAccessService extends BaseService {
             return true;
         }
 
-        // Subscribers can view
-        if (userId != null && hasActiveSubscription(userId, strategyId)) {
+        // DRAFT strategies: owner only
+        if ("DRAFT".equals(strategy.getPublishStatus())) {
+            return false;
+        }
+
+        // Subscribers can view published strategies
+        if (userId != null && hasActiveSubscription(userId, strategy.getOwnerId())) {
             return true;
         }
 
-        // Public can view if strategy publicStatus is PUBLIC
-        return "PUBLIC".equals(strategy.getPublicStatus());
+        // Public can view if strategy is PUBLISHED + PUBLIC
+        return "PUBLISHED".equals(strategy.getPublishStatus()) &&
+               "PUBLIC".equals(strategy.getPublicStatus());
     }
 
     /**
@@ -233,7 +283,7 @@ public class StrategyAccessService extends BaseService {
         }
 
         // Strategy must have subscription pricing
-        if (strategy.getPricing() == null || strategy.getPricing().getSubscriptionPrice() == null) {
+        if (strategy.getPricing() == null || strategy.getPricing().getMonthlyPrice() == null) {
             return false;
         }
 
@@ -280,6 +330,22 @@ public class StrategyAccessService extends BaseService {
         }
 
         return true;
+    }
+
+    /**
+     * Enforce that user can view strategy, throw exception if not.
+     *
+     * @param strategyId The strategy ID
+     * @param userId The user requesting access
+     * @throws StrategizException if access denied
+     */
+    public void enforceCanView(String strategyId, String userId) {
+        if (!canViewStrategy(strategyId, userId)) {
+            throw new StrategizException(
+                    MarketplaceErrorDetails.VIEW_ACCESS_DENIED,
+                    getModuleName(),
+                    "You do not have access to view this strategy");
+        }
     }
 
     /**

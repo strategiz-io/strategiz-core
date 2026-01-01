@@ -54,11 +54,21 @@
             <artifactId>data-user</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-social</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Framework -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>framework-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-authorization</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

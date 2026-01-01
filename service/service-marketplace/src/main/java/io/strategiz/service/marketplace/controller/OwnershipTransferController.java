@@ -2,9 +2,9 @@ package io.strategiz.service.marketplace.controller;
 
 import io.strategiz.client.stripe.StripeService;
 import io.strategiz.data.strategy.entity.StrategyOwnershipTransfer;
-import io.strategiz.framework.security.annotation.RequireAuth;
-import io.strategiz.framework.security.model.AuthenticatedUser;
-import io.strategiz.service.base.BaseController;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.marketplace.service.OwnershipTransferService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,6 +43,11 @@ public class OwnershipTransferController extends BaseController {
         this.stripeService = stripeService;
     }
 
+    @Override
+    protected String getModuleName() {
+        return "service-marketplace";
+    }
+
     /**
      * Purchase a strategy (one-time payment for full ownership).
      *
@@ -58,7 +63,7 @@ public class OwnershipTransferController extends BaseController {
             description = "Create Stripe checkout session to purchase strategy ownership")
     public ResponseEntity<PurchaseResponse> purchaseStrategy(
             @PathVariable String strategyId,
-            @io.strategiz.framework.security.annotation.AuthUser AuthenticatedUser user,
+            @io.strategiz.framework.authorization.annotation.AuthUser AuthenticatedUser user,
             @RequestBody(required = false) PurchaseRequest request) {
 
         log.info("User {} initiating purchase of strategy {}", user.getUserId(), strategyId);
@@ -75,9 +80,10 @@ public class OwnershipTransferController extends BaseController {
         long priceInCents = priceInDollars.multiply(new BigDecimal("100")).longValue();
 
         // Create Stripe checkout session
+        // TODO: Get user email from user profile service
         StripeService.CheckoutResult checkoutResult = stripeService.createStrategyCheckoutSession(
                 user.getUserId(),
-                user.getEmail(),
+                null, // Email not in AuthenticatedUser - fetch from user profile if needed
                 strategyId,
                 "Strategy " + strategyId, // TODO: Get actual strategy name
                 priceInCents,
@@ -108,7 +114,7 @@ public class OwnershipTransferController extends BaseController {
             description = "Finalize ownership transfer after payment confirmation")
     public ResponseEntity<OwnershipTransferResponse> completeTransfer(
             @PathVariable String strategyId,
-            @io.strategiz.framework.security.annotation.AuthUser AuthenticatedUser user,
+            @io.strategiz.framework.authorization.annotation.AuthUser AuthenticatedUser user,
             @RequestBody TransferCompletionRequest request) {
 
         log.info("Completing ownership transfer of strategy {} to user {}",
@@ -118,8 +124,8 @@ public class OwnershipTransferController extends BaseController {
         StrategyOwnershipTransfer transfer = ownershipTransferService.transferOwnership(
                 strategyId,
                 user.getUserId(),
-                request.getPurchasePrice(),
-                request.getTransactionId()
+                request.purchasePrice(),
+                request.transactionId()
         );
 
         OwnershipTransferResponse response = new OwnershipTransferResponse(
@@ -176,18 +182,18 @@ public class OwnershipTransferController extends BaseController {
             description = "Transfer ownership without payment (gifts, etc.)")
     public ResponseEntity<OwnershipTransferResponse> manualTransfer(
             @PathVariable String strategyId,
-            @io.strategiz.framework.security.annotation.AuthUser AuthenticatedUser user,
+            @io.strategiz.framework.authorization.annotation.AuthUser AuthenticatedUser user,
             @RequestBody ManualTransferRequest request) {
 
         log.info("User {} transferring strategy {} to user {}",
-                user.getUserId(), strategyId, request.getNewOwnerId());
+                user.getUserId(), strategyId, request.newOwnerId());
 
         // TODO: Validate current user is owner (use StrategyAccessService)
 
         // Execute the ownership transfer (no payment)
         StrategyOwnershipTransfer transfer = ownershipTransferService.transferOwnership(
                 strategyId,
-                request.getNewOwnerId(),
+                request.newOwnerId(),
                 BigDecimal.ZERO, // No payment for manual transfer
                 null // No transaction ID
         );

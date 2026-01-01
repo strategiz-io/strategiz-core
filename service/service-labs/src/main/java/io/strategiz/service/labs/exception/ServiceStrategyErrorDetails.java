@@ -22,6 +22,7 @@ public enum ServiceStrategyErrorDetails implements ErrorDetails {
     STRATEGY_INVALID_LANGUAGE(HttpStatus.BAD_REQUEST, "strategy-invalid-language"),
     STRATEGY_INVALID_TYPE(HttpStatus.BAD_REQUEST, "strategy-invalid-type"),
     STRATEGY_INVALID_STATUS(HttpStatus.BAD_REQUEST, "strategy-invalid-status"),
+    INVALID_STATUS_COMBINATION(HttpStatus.BAD_REQUEST, "invalid-status-combination"),
     STRATEGY_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "strategy-name-required"),
     STRATEGY_CODE_REQUIRED(HttpStatus.BAD_REQUEST, "strategy-code-required"),
     STRATEGY_NAME_TOO_LONG(HttpStatus.BAD_REQUEST, "strategy-name-too-long"),
@@ -39,8 +40,9 @@ public enum ServiceStrategyErrorDetails implements ErrorDetails {
     MARKET_DATA_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "market-data-fetch-failed"),
     
     // Permission Errors
-    STRATEGY_ACCESS_DENIED(HttpStatus.UNAUTHORIZED, "strategy-access-denied"),
-    STRATEGY_MODIFICATION_DENIED(HttpStatus.UNAUTHORIZED, "strategy-modification-denied"),
+    STRATEGY_ACCESS_DENIED(HttpStatus.FORBIDDEN, "strategy-access-denied"),
+    STRATEGY_MODIFICATION_DENIED(HttpStatus.FORBIDDEN, "strategy-modification-denied"),
+    STRATEGY_HAS_SUBSCRIBERS(HttpStatus.CONFLICT, "strategy-has-subscribers"),
     
     // Database Errors
     STRATEGY_DATABASE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-database-error"),

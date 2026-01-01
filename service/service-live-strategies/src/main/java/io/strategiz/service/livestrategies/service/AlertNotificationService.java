@@ -16,7 +16,7 @@ import io.strategiz.business.preferences.service.AlertPreferencesService;
 import io.strategiz.client.sms.SmsProvider;
 import io.strategiz.client.sms.model.SmsDeliveryResult;
 import io.strategiz.client.sms.model.SmsMessage;
-import io.strategiz.data.strategy.entity.StrategyAlert;
+import io.strategiz.data.strategy.entity.AlertDeployment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -75,7 +75,7 @@ public class AlertNotificationService extends BaseService {
      * @param currentPrice Current price of the symbol
      */
     public void sendSignalNotification(
-            StrategyAlert alert,
+            AlertDeployment alert,
             ExecutionResult.Signal signal,
             String symbol,
             Double currentPrice) {
@@ -114,7 +114,7 @@ public class AlertNotificationService extends BaseService {
      * Send email notification via SendGrid
      */
     private void sendEmailNotification(
-            StrategyAlert alert,
+            AlertDeployment alert,
             ExecutionResult.Signal signal,
             String symbol,
             Double currentPrice) {
@@ -213,7 +213,7 @@ public class AlertNotificationService extends BaseService {
      * Send SMS notification via Twilio
      */
     private void sendSmsNotification(
-            StrategyAlert alert,
+            AlertDeployment alert,
             ExecutionResult.Signal signal,
             String symbol,
             Double currentPrice) {
@@ -306,7 +306,7 @@ public class AlertNotificationService extends BaseService {
      * Send push notification via Firebase Cloud Messaging
      */
     private void sendPushNotification(
-            StrategyAlert alert,
+            AlertDeployment alert,
             ExecutionResult.Signal signal,
             String symbol,
             Double currentPrice) {
@@ -360,7 +360,7 @@ public class AlertNotificationService extends BaseService {
      * Send in-app notification via Firestore
      */
     private void sendInAppNotification(
-            StrategyAlert alert,
+            AlertDeployment alert,
             ExecutionResult.Signal signal,
             String symbol,
             Double currentPrice) {
@@ -396,7 +396,7 @@ public class AlertNotificationService extends BaseService {
     /**
      * Send test notification (used by POST /v1/alerts/{id}/test endpoint)
      */
-    public void sendTestNotification(StrategyAlert alert) {
+    public void sendTestNotification(AlertDeployment alert) {
         log.info("Sending test notification for alert {}", alert.getAlertName());
 
         ExecutionResult.Signal testSignal = new ExecutionResult.Signal();

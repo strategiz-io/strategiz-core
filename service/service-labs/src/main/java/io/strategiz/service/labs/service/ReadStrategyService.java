@@ -2,7 +2,10 @@ package io.strategiz.service.labs.service;
 
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
+import io.strategiz.data.strategy.repository.StrategySubscriptionRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
+import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,16 +13,20 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service for reading strategies
+ * Service for reading strategies with proper access control
  */
 @Service
 public class ReadStrategyService extends BaseService {
 
     private final ReadStrategyRepository readStrategyRepository;
+    private final StrategySubscriptionRepository subscriptionRepository;
 
     @Autowired
-    public ReadStrategyService(ReadStrategyRepository readStrategyRepository) {
+    public ReadStrategyService(
+            ReadStrategyRepository readStrategyRepository,
+            StrategySubscriptionRepository subscriptionRepository) {
         this.readStrategyRepository = readStrategyRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Override
@@ -52,12 +59,61 @@ public class ReadStrategyService extends BaseService {
     }
     
     /**
-     * Get a specific strategy by ID and user ID
+     * Get a specific strategy by ID with proper access control.
+     *
+     * Access rules based on publishStatus and publicStatus:
+     * - DRAFT + PRIVATE: Owner only
+     * - DRAFT + PUBLIC: INVALID (prevented by validation)
+     * - PUBLISHED + PRIVATE: Owner and subscribers only
+     * - PUBLISHED + PUBLIC: Everyone
+     *
+     * @param strategyId The strategy ID
+     * @param userId The user requesting access
+     * @return Optional of strategy if user has access
      */
     public Optional<Strategy> getStrategyById(String strategyId, String userId) {
         log.debug("Fetching strategy: {} for user: {}", strategyId, userId);
+
         return readStrategyRepository.findById(strategyId)
-                .filter(s -> userId.equals(s.getUserId()) || s.isPublic());
+                .filter(strategy -> canViewStrategy(strategy, userId));
+    }
+
+    /**
+     * Check if user can view the strategy based on access control rules.
+     *
+     * @param strategy The strategy to check
+     * @param userId The user requesting access (can be null for public access)
+     * @return true if user can view the strategy
+     */
+    private boolean canViewStrategy(Strategy strategy, String userId) {
+        // Owner can always view
+        if (userId != null && strategy.isOwner(userId)) {
+            return true;
+        }
+
+        // DRAFT strategies are owner-only
+        if ("DRAFT".equals(strategy.getPublishStatus())) {
+            return false;
+        }
+
+        // PUBLISHED + PUBLIC: Everyone can view
+        if ("PUBLIC".equals(strategy.getPublicStatus())) {
+            return true;
+        }
+
+        // PUBLISHED + PRIVATE: Only subscribers can view (besides owner)
+        if (userId != null) {
+            return hasActiveSubscription(userId, strategy.getId());
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has active subscription to strategy.
+     */
+    private boolean hasActiveSubscription(String userId, String strategyId) {
+        return subscriptionRepository.hasActiveSubscription(userId, strategyId);
     }
     
     /**

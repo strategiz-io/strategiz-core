@@ -2,6 +2,12 @@
 
 This document outlines the security measures implemented in the Strategiz Core backend to protect user data and API credentials.
 
+## Quick Links
+
+- **[Authorization Standard](./authorization-standard.md)** - **MANDATORY** for all developers creating services
+- [Secrets Management](./secrets-management.md) - Vault integration and secret handling
+- [Vault Setup](./vault-setup.md) - Local and production Vault configuration
+
 ## Authentication
 
 ### Firebase Authentication

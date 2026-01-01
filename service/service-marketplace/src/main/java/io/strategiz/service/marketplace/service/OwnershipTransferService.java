@@ -139,13 +139,10 @@ public class OwnershipTransferService extends BaseService {
                 subscription.setOwnerId(newOwnerId);
                 subscriptionRepository.update(subscription, "SYSTEM");
 
-                // Update Stripe subscription metadata (if applicable)
-                if (subscription.getStripeSubscriptionId() != null &&
-                        !subscription.getStripeSubscriptionId().isEmpty()) {
-                    java.util.Map<String, String> metadata = new java.util.HashMap<>();
-                    metadata.put("ownerId", newOwnerId);
-                    stripeService.updateSubscriptionMetadata(subscription.getStripeSubscriptionId(), metadata);
-                }
+                // TODO: Update payment processor metadata when implemented
+                // Note: Owner subscription model doesn't use Stripe per-strategy subscriptions
+                // Subscriptions are to the OWNER, not individual strategies
+                // Payment routing handled at owner subscription level
 
                 // Calculate revenue
                 if (subscription.getPricePaid() != null) {
@@ -186,7 +183,8 @@ public class OwnershipTransferService extends BaseService {
                         "Strategy not found: " + strategyId));
 
         strategy.setOwnerId(newOwnerId);
-        updateStrategyRepository.updateOwner(strategyId, newOwnerId);
+        // Use standard update method - UpdateStrategyRepository doesn't have updateOwner() method
+        updateStrategyRepository.update(strategyId, newOwnerId, strategy);
 
         log.info("Updated strategy {} owner to {}", strategyId, newOwnerId);
     }

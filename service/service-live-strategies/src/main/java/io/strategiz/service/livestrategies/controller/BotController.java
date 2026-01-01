@@ -3,11 +3,11 @@ package io.strategiz.service.livestrategies.controller;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.strategy.entity.Strategy;
-import io.strategiz.data.strategy.entity.StrategyBot;
-import io.strategiz.data.strategy.repository.ReadStrategyBotRepository;
-import io.strategiz.data.strategy.repository.CreateStrategyBotRepository;
-import io.strategiz.data.strategy.repository.UpdateStrategyBotRepository;
-import io.strategiz.data.strategy.repository.DeleteStrategyBotRepository;
+import io.strategiz.data.strategy.entity.BotDeployment;
+import io.strategiz.data.strategy.repository.ReadBotDeploymentRepository;
+import io.strategiz.data.strategy.repository.CreateBotDeploymentRepository;
+import io.strategiz.data.strategy.repository.UpdateBotDeploymentRepository;
+import io.strategiz.data.strategy.repository.DeleteBotDeploymentRepository;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -46,20 +46,20 @@ public class BotController {
 
     private static final Logger logger = LoggerFactory.getLogger(BotController.class);
 
-    private final ReadStrategyBotRepository readBotRepository;
-    private final CreateStrategyBotRepository createBotRepository;
-    private final UpdateStrategyBotRepository updateBotRepository;
-    private final DeleteStrategyBotRepository deleteBotRepository;
+    private final ReadBotDeploymentRepository readBotRepository;
+    private final CreateBotDeploymentRepository createBotRepository;
+    private final UpdateBotDeploymentRepository updateBotRepository;
+    private final DeleteBotDeploymentRepository deleteBotRepository;
     private final ReadStrategyRepository readStrategyRepository;
     private final UpdateStrategyRepository updateStrategyRepository;
     private final ReadProviderIntegrationRepository providerIntegrationRepository;
 
     @Autowired
     public BotController(
-            ReadStrategyBotRepository readBotRepository,
-            CreateStrategyBotRepository createBotRepository,
-            UpdateStrategyBotRepository updateBotRepository,
-            DeleteStrategyBotRepository deleteBotRepository,
+            ReadBotDeploymentRepository readBotRepository,
+            CreateBotDeploymentRepository createBotRepository,
+            UpdateBotDeploymentRepository updateBotRepository,
+            DeleteBotDeploymentRepository deleteBotRepository,
             ReadStrategyRepository readStrategyRepository,
             UpdateStrategyRepository updateStrategyRepository,
             ReadProviderIntegrationRepository providerIntegrationRepository) {
@@ -83,7 +83,7 @@ public class BotController {
         logger.info("Fetching all bots for user: {}", userId);
 
         try {
-            List<StrategyBot> bots = readBotRepository.findByUserId(userId);
+            List<BotDeployment> bots = readBotRepository.findByUserId(userId);
             List<BotResponse> responses = bots.stream()
                     .map(this::convertToResponse)
                     .collect(Collectors.toList());
@@ -152,7 +152,7 @@ public class BotController {
         logger.info("Fetching bot {} for user: {}", id, userId);
 
         try {
-            Optional<StrategyBot> bot = readBotRepository.findById(id);
+            Optional<BotDeployment> bot = readBotRepository.findById(id);
             if (bot.isEmpty() || !userId.equals(bot.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
@@ -191,7 +191,7 @@ public class BotController {
 
             // Validate strategy exists and belongs to user
             Optional<Strategy> strategyOpt = readStrategyRepository.findById(request.getStrategyId());
-            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getUserId())) {
+            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getOwnerId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Strategy not found or access denied"));
             }
@@ -208,7 +208,7 @@ public class BotController {
             // }
 
             // Create bot entity
-            StrategyBot bot = new StrategyBot();
+            BotDeployment bot = new BotDeployment();
             bot.setStrategyId(request.getStrategyId());
             bot.setUserId(userId);
             bot.setBotName(request.getBotName());
@@ -226,7 +226,7 @@ public class BotController {
             bot.setSimulatedMode(true); // Always simulated until full trading is implemented
 
             // Save bot
-            StrategyBot created = createBotRepository.createWithUserId(bot, userId);
+            BotDeployment created = createBotRepository.createWithUserId(bot, userId);
 
             // Update strategy deployment status
             updateStrategyRepository.updateDeploymentStatus(
@@ -337,12 +337,12 @@ public class BotController {
         logger.info("Fetching performance for bot {} (user: {})", id, userId);
 
         try {
-            Optional<StrategyBot> bot = readBotRepository.findById(id);
+            Optional<BotDeployment> bot = readBotRepository.findById(id);
             if (bot.isEmpty() || !userId.equals(bot.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
-            StrategyBot b = bot.get();
+            BotDeployment b = bot.get();
             BotPerformanceResponse response = new BotPerformanceResponse();
             response.setBotId(id);
             response.setTotalTrades(b.getTotalTrades());
@@ -362,7 +362,7 @@ public class BotController {
 
     // Helper methods
 
-    private BotResponse convertToResponse(StrategyBot bot) {
+    private BotResponse convertToResponse(BotDeployment bot) {
         BotResponse response = new BotResponse();
         response.setId(bot.getId());
         response.setUserId(bot.getUserId());

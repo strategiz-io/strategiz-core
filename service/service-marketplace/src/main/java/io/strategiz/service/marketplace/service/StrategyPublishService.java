@@ -107,7 +107,7 @@ public class StrategyPublishService extends BaseService {
     public Strategy unpublishStrategy(String strategyId, String userId) {
         Strategy strategy = getStrategyAndVerifyOwner(strategyId, userId);
 
-        if (!strategy.isPublished()) {
+        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
             // Already unpublished, no action needed
             return strategy;
         }
@@ -119,7 +119,54 @@ public class StrategyPublishService extends BaseService {
     }
 
     /**
-     * Update pricing for a published strategy.
+     * Update pricing and listing status for a strategy (simplified format).
+     *
+     * This method supports the marketplace "Sell Strategy" flow where:
+     * - Setting a price automatically sets listedStatus to LISTED
+     * - Removing listing sets listedStatus to NOT_LISTED
+     *
+     * @param strategyId    The strategy to update
+     * @param userId        The user (must be owner)
+     * @param price         The sale price (optional - for ONE_TIME ownership purchase)
+     * @param listedStatus  The listing status (optional - "LISTED" or "NOT_LISTED")
+     * @return The updated strategy
+     */
+    public Strategy updatePricingAndListingStatus(
+            String strategyId,
+            String userId,
+            BigDecimal price,
+            String listedStatus) {
+
+        Strategy strategy = getStrategyAndVerifyOwner(strategyId, userId);
+
+        // Update price if provided
+        if (price != null) {
+            if (price.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Price must be greater than zero");
+            }
+            // Create ONE_TIME pricing for ownership purchase
+            StrategyPricing pricing = StrategyPricing.oneTime(price, "USD");
+            strategy.setPricing(pricing);
+            log.info("User {} set price for strategy {} to ${}", userId, strategyId, price);
+        }
+
+        // Update listedStatus if provided
+        if (listedStatus != null) {
+            if (!"LISTED".equals(listedStatus) && !"NOT_LISTED".equals(listedStatus)) {
+                throw new IllegalArgumentException("listedStatus must be 'LISTED' or 'NOT_LISTED'");
+            }
+            strategy.setListedStatus(listedStatus);
+            log.info("User {} updated listedStatus for strategy {} to {}", userId, strategyId, listedStatus);
+        }
+
+        Strategy updated = updateStrategyRepo.update(strategy.getId(), userId, strategy);
+        return updated;
+    }
+
+    /**
+     * Update pricing for a published strategy (full format).
+     *
+     * @deprecated Use updatePricingAndListingStatus for simpler marketplace operations
      */
     public Strategy updatePricing(
             String strategyId,
@@ -130,7 +177,7 @@ public class StrategyPublishService extends BaseService {
 
         Strategy strategy = getStrategyAndVerifyOwner(strategyId, userId);
 
-        if (!strategy.isPublished()) {
+        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
         }
 
@@ -188,7 +235,7 @@ public class StrategyPublishService extends BaseService {
         Strategy strategy = readStrategyRepo.findById(strategyId)
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-        if (!strategy.getUserId().equals(userId)) {
+        if (!strategy.getOwnerId().equals(userId)) {
             throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_UPDATE, MODULE_NAME);
         }
 

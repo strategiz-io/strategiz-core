@@ -36,6 +36,11 @@ public class CreateStrategyRepositoryImpl implements CreateStrategyRepository {
             strategy.setPublishStatus("DRAFT");
         }
 
+        // Set default listedStatus if not provided
+        if (strategy.getListedStatus() == null || strategy.getListedStatus().isEmpty()) {
+            strategy.setListedStatus("NOT_LISTED");
+        }
+
         // Use forceCreate since we pre-assign the ID (save() would route to update)
         return baseRepository.forceCreate(strategy, userId);
     }

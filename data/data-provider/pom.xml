@@ -25,6 +25,10 @@
             <groupId>io.strategiz</groupId>
             <artifactId>data-auth</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-exception</artifactId>
+        </dependency>
 
         <!-- Spring Boot Starter -->
         <dependency>

@@ -59,7 +59,7 @@ public class StrategyVersioningService extends BaseService {
         Strategy original = originalOpt.get();
 
         // Verify ownership
-        if (!userId.equals(original.getUserId())) {
+        if (!userId.equals(original.getOwnerId())) {
             throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
                 "Access denied to strategy: " + strategyId);
         }
@@ -94,17 +94,15 @@ public class StrategyVersioningService extends BaseService {
         newStrategy.setType(original.getType());
         newStrategy.setTags(original.getTags() != null ? List.copyOf(original.getTags()) : null);
         newStrategy.setParameters(original.getParameters());
-        newStrategy.setPublic(original.isPublic());
 
         // Set versioning fields
         newStrategy.setVersion(newVersion);
         newStrategy.setParentStrategyId(original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId);
 
         // New version is a draft (not deployed)
-        newStrategy.setStatus("draft");
-        newStrategy.setDeploymentType(null);
-        newStrategy.setDeploymentId(null);
-        newStrategy.setDeployedAt(null);
+        newStrategy.setPublishStatus("DRAFT");
+        newStrategy.setPublicStatus("PRIVATE");
+        // Note: Deployment fields removed - tracked in BotDeployment/AlertDeployment entities
 
         // Save the new version
         Strategy created = createStrategyRepository.createWithUserId(newStrategy, userId);
@@ -133,7 +131,7 @@ public class StrategyVersioningService extends BaseService {
         Strategy strategy = strategyOpt.get();
 
         // Verify ownership
-        if (!userId.equals(strategy.getUserId())) {
+        if (!userId.equals(strategy.getOwnerId())) {
             throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
                 "Access denied to strategy: " + strategyId);
         }

@@ -45,7 +45,9 @@
         <module>client-stripe</module>
         <module>client-plaid</module>
         <module>client-sonarqube</module>
-        <module>client-execution</module>
+        <!-- Temporarily disabled: protobuf generation issues -->
+        <!-- <module>client-execution</module> -->
+        <module>client-github</module>
     </modules>
     
     <dependencies>

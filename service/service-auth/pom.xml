@@ -279,6 +279,18 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Integration test framework -->
+        <!-- Temporarily disabled: test-jar not published yet -->
+        <!--
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-framework-base</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        -->
+
         <!-- Cucumber BDD Testing -->
         <dependency>
             <groupId>io.cucumber</groupId>

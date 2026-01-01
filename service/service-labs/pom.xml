@@ -63,11 +63,14 @@
             <version>${project.version}</version>
         </dependency>
         <!-- gRPC client for Python execution service -->
+        <!-- Temporarily disabled: protobuf generation issues -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-execution</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <!-- Spring dependencies -->
         <dependency>

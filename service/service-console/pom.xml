@@ -91,14 +91,11 @@
             <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Temporarily disabled: client-github module not in reactor build -->
-        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-github</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Spring dependencies -->
         <dependency>

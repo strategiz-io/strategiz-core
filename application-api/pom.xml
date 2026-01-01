@@ -79,11 +79,6 @@
         -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-exchange</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
             <artifactId>service-marketplace</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -22,10 +22,10 @@
         <module>data-watchlist</module>
         <module>data-provider</module>
         <module>data-preferences</module>
-        <module>data-exchange</module>
         <module>data-portfolio</module>
         <module>data-strategy</module>
         <module>data-user</module>
+        <module>data-social</module>
         <module>data-device</module>
         <module>data-marketdata</module>
         <module>data-fundamentals</module>

@@ -51,7 +51,6 @@
         <module>data/data-watchlist</module>
         <module>data/data-provider</module>
         <module>data/data-preferences</module>
-        <module>data/data-exchange</module>
         <module>data/data-portfolio</module>
         <module>data/data-strategy</module>
         <module>data/data-user</module>
@@ -96,7 +95,8 @@
         <module>client/client-stripe</module>
         <module>client/client-sonarqube</module>
         <module>client/client-webull</module>
-        <module>client/client-execution</module>
+        <!-- Temporarily disabled: protobuf generation issues -->
+        <!-- <module>client/client-execution</module> -->
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->
@@ -111,7 +111,6 @@
         <module>service/service-labs</module>
         <module>service/service-live-strategies</module>
         <module>service/service-portfolio</module>
-        <module>service/service-exchange</module>
         <module>service/service-auth</module>
         <module>service/service-marketplace</module>
         <module>service/service-console-observability</module>
@@ -688,12 +687,12 @@
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-api</artifactId>
-                <version>5.9.2</version>
+                <version>5.12.2</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
-                <version>5.9.2</version>
+                <version>5.12.2</version>
             </dependency>
             <dependency>
                 <groupId>org.hamcrest</groupId>

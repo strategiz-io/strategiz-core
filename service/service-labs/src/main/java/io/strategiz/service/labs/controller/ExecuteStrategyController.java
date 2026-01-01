@@ -17,9 +17,10 @@ import io.strategiz.service.labs.service.ReadStrategyService;
 import io.strategiz.service.labs.service.PythonStrategyExecutor;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
-import io.strategiz.client.execution.ExecutionServiceClient;
-import io.strategiz.client.execution.model.*;
-import io.strategiz.execution.grpc.MarketDataBar;
+// Temporarily disabled: protobuf generation issues
+// import io.strategiz.client.execution.ExecutionServiceClient;
+// import io.strategiz.client.execution.model.*;
+// import io.strategiz.execution.grpc.MarketDataBar;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,7 +50,8 @@ public class ExecuteStrategyController extends BaseController {
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final MarketDataRepository marketDataRepository;
     private final FundamentalsQueryService fundamentalsQueryService;
-    private final ExecutionServiceClient executionServiceClient;
+    // Temporarily disabled: protobuf generation issues
+    // private final ExecutionServiceClient executionServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
@@ -59,8 +61,9 @@ public class ExecuteStrategyController extends BaseController {
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
                                    MarketDataRepository marketDataRepository,
-                                   FundamentalsQueryService fundamentalsQueryService,
-                                   ExecutionServiceClient executionServiceClient) {
+                                   FundamentalsQueryService fundamentalsQueryService) {
+                                   // Temporarily disabled: protobuf generation issues
+                                   // ExecutionServiceClient executionServiceClient) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
@@ -68,7 +71,7 @@ public class ExecuteStrategyController extends BaseController {
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
         this.fundamentalsQueryService = fundamentalsQueryService;
-        this.executionServiceClient = executionServiceClient;
+        // this.executionServiceClient = executionServiceClient;
     }
     
     @PostMapping("/{strategyId}/execute")
@@ -126,40 +129,41 @@ public class ExecuteStrategyController extends BaseController {
                 throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_LANGUAGE);
             }
 
+            // Temporarily disabled: protobuf generation issues
             // For Python execution - use gRPC execution service
-            if ("python".equalsIgnoreCase(request.getLanguage())) {
-                // Validate symbol is provided
-                String symbol = request.getSymbol();
-                if (symbol == null || symbol.trim().isEmpty()) {
-                    throwModuleException(
-                        ServiceStrategyErrorDetails.STRATEGY_EXECUTION_FAILED,
-                        "Symbol is required for strategy execution"
-                    );
-                }
-
-                // Fetch real market data from repository (null strategy = uses 2-year default)
-                List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol, null);
-
-                // Convert market data to gRPC format
-                List<MarketDataBar> grpcMarketData = marketDataList.stream()
-                    .map(ExecutionServiceClient::createMarketDataBar)
-                    .collect(java.util.stream.Collectors.toList());
-
-                // Execute via gRPC
-                io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
-                    request.getCode(),
-                    "python",
-                    grpcMarketData,
-                    userId,
-                    "direct-execution-" + System.currentTimeMillis(),
-                    30  // timeout seconds
-                );
-
-                // Convert gRPC response to REST response
-                ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);
-
-                return ResponseEntity.ok(response);
-            }
+            // if ("python".equalsIgnoreCase(request.getLanguage())) {
+            //     // Validate symbol is provided
+            //     String symbol = request.getSymbol();
+            //     if (symbol == null || symbol.trim().isEmpty()) {
+            //         throwModuleException(
+            //             ServiceStrategyErrorDetails.STRATEGY_EXECUTION_FAILED,
+            //             "Symbol is required for strategy execution"
+            //         );
+            //     }
+            //
+            //     // Fetch real market data from repository (null strategy = uses 2-year default)
+            //     List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol, null);
+            //
+            //     // Convert market data to gRPC format
+            //     List<MarketDataBar> grpcMarketData = marketDataList.stream()
+            //         .map(ExecutionServiceClient::createMarketDataBar)
+            //         .collect(java.util.stream.Collectors.toList());
+            //
+            //     // Execute via gRPC
+            //     io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
+            //         request.getCode(),
+            //         "python",
+            //         grpcMarketData,
+            //         userId,
+            //         "direct-execution-" + System.currentTimeMillis(),
+            //         30  // timeout seconds
+            //     );
+            //
+            //     // Convert gRPC response to REST response
+            //     ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);
+            //
+            //     return ResponseEntity.ok(response);
+            // }
 
             // Use existing execution engine for other languages
             io.strategiz.business.strategy.execution.model.ExecutionRequest executionRequest = buildDirectCodeExecutionRequest(request, userId);
@@ -467,7 +471,9 @@ public class ExecuteStrategyController extends BaseController {
 
     /**
      * Convert gRPC ExecutionResponse to REST ExecuteStrategyResponse
+     * Temporarily disabled: protobuf generation issues
      */
+    /*
     private ExecuteStrategyResponse convertGrpcToRestResponse(
             io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
             String symbol) {
@@ -571,6 +577,7 @@ public class ExecuteStrategyController extends BaseController {
 
         return response;
     }
+    */
 
     /**
      * Convert Performance object to Map for Firestore storage

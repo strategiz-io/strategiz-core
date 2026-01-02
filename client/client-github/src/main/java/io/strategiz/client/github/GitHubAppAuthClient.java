@@ -7,6 +7,7 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -25,8 +26,11 @@ import java.util.Map;
 /**
  * GitHub App authentication client
  * Handles JWT generation and installation token management
+ *
+ * Only created when GitHub App is enabled via github.app.enabled=true
  */
 @Component
+@ConditionalOnProperty(name = "github.app.enabled", havingValue = "true")
 public class GitHubAppAuthClient {
 
     private static final Logger log = LoggerFactory.getLogger(GitHubAppAuthClient.class);

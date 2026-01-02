@@ -2,6 +2,9 @@ package io.strategiz.service.console.observability.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.search.Search;
+import io.strategiz.service.console.observability.model.EndpointMetrics;
+import io.strategiz.service.console.observability.model.ModuleMetrics;
+import io.strategiz.service.console.observability.model.SystemMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

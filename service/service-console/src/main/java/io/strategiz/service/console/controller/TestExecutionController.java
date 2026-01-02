@@ -30,7 +30,6 @@ public class TestExecutionController extends BaseController {
         this.testExecutionService = testExecutionService;
     }
 
-    @Override
     protected String getModuleName() {
         return "TEST_EXECUTION_CONTROLLER";
     }

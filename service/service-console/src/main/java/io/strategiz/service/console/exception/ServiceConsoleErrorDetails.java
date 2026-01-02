@@ -26,6 +26,14 @@ public enum ServiceConsoleErrorDetails implements ErrorDetails {
 	// === Provider Management Errors ===
 	PROVIDER_NOT_FOUND(HttpStatus.NOT_FOUND, "console-provider-not-found"),
 
+	// === Test Management Errors ===
+	TEST_APP_NOT_FOUND(HttpStatus.NOT_FOUND, "console-test-app-not-found"),
+	TEST_MODULE_NOT_FOUND(HttpStatus.NOT_FOUND, "console-test-module-not-found"),
+	TEST_SUITE_NOT_FOUND(HttpStatus.NOT_FOUND, "console-test-suite-not-found"),
+	TEST_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "console-test-case-not-found"),
+	TEST_RUN_NOT_FOUND(HttpStatus.NOT_FOUND, "console-test-run-not-found"),
+	TEST_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "console-test-execution-failed"),
+
 	// === System Errors ===
 	OPERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "console-operation-failed");
 

@@ -10,7 +10,7 @@ import io.strategiz.data.testing.repository.TestModuleRepository;
 import io.strategiz.data.testing.repository.TestSuiteRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
-import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
+import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,25 +69,24 @@ public class TestHierarchyService extends BaseService {
 		log.debug("Fetching detailed info for app: {}", appId);
 
 		TestAppEntity app = testAppRepository.findById(appId)
-			.orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_APP_NOT_FOUND,
 					"Test app not found: " + appId));
 
 		TestAppDetailResponse response = new TestAppDetailResponse();
 		response.setId(app.getId());
-		response.setName(app.getName());
+		response.setName(app.getDisplayName());
 		response.setDescription(app.getDescription());
-		response.setFramework(app.getFramework().name());
-		response.setBasePath(app.getBasePath());
-		response.setModuleCount(app.getModuleCount());
-		response.setSuiteCount(app.getSuiteCount());
-		response.setTotalTestCount(app.getTotalTestCount());
+		response.setFramework(app.getType() != null ? app.getType().name() : null);
+		response.setBasePath(app.getCodeDirectory());
+		response.setModuleCount(app.getTotalModules());
+		response.setSuiteCount(0); // suiteCount not available in entity, would need to be calculated
+		response.setTotalTestCount(app.getTotalTests());
 		response.setEstimatedDurationSeconds(app.getEstimatedDurationSeconds());
-		response.setLastExecutedAt(app.getLastExecutedAt());
-		response.setLastExecutionStatus(
-				app.getLastExecutionStatus() != null ? app.getLastExecutionStatus().name() : null);
-		response.setLastRunId(app.getLastRunId());
-		response.setCreatedAt(app.getCreatedAt());
-		response.setUpdatedAt(app.getUpdatedAt());
+		response.setLastExecutedAt(null); // lastExecutedAt not tracked in TestAppEntity yet
+		response.setLastExecutionStatus(null); // lastExecutionStatus not tracked in TestAppEntity yet
+		response.setLastRunId(null); // lastRunId not tracked in TestAppEntity yet
+		response.setCreatedAt(app.getCreatedDate() != null ? app.getCreatedDate().toDate().toInstant() : null);
+		response.setUpdatedAt(app.getModifiedDate() != null ? app.getModifiedDate().toDate().toInstant() : null);
 		response.setCreatedBy(app.getCreatedBy());
 
 		// Load nested modules
@@ -105,7 +104,7 @@ public class TestHierarchyService extends BaseService {
 
 		// Verify app exists
 		testAppRepository.findById(appId).orElseThrow(() -> new StrategizException(
-				ServiceBaseErrorDetails.RESOURCE_NOT_FOUND, "Test app not found: " + appId));
+				ServiceConsoleErrorDetails.TEST_APP_NOT_FOUND, "Test app not found: " + appId));
 
 		List<TestModuleEntity> modules = testModuleRepository.findByAppId(appId);
 
@@ -120,7 +119,7 @@ public class TestHierarchyService extends BaseService {
 
 		// Verify module exists
 		testModuleRepository.findByAppIdAndModuleId(appId, moduleId)
-			.orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_MODULE_NOT_FOUND,
 					"Test module not found: " + moduleId));
 
 		List<TestSuiteEntity> suites = testSuiteRepository.findByAppIdAndModuleId(appId, moduleId);
@@ -136,7 +135,7 @@ public class TestHierarchyService extends BaseService {
 
 		// Verify suite exists
 		testSuiteRepository.findByAppIdModuleIdAndSuiteId(appId, moduleId, suiteId)
-			.orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_SUITE_NOT_FOUND,
 					"Test suite not found: " + suiteId));
 
 		List<TestCaseEntity> tests = testCaseRepository.findByAppIdAndModuleIdAndSuiteId(appId, moduleId, suiteId);
@@ -148,33 +147,63 @@ public class TestHierarchyService extends BaseService {
 	 * Convert TestAppEntity to TestAppResponse
 	 */
 	private TestAppResponse convertToAppResponse(TestAppEntity app) {
-		return new TestAppResponse(app.getId(), app.getName(), app.getDescription(), app.getFramework().name(),
-				app.getModuleCount(), app.getSuiteCount(), app.getTotalTestCount(),
-				app.getEstimatedDurationSeconds(), app.getLastExecutedAt(),
-				app.getLastExecutionStatus() != null ? app.getLastExecutionStatus().name() : null, app.getCreatedAt(),
-				app.getUpdatedAt());
+		// Convert Google Cloud Timestamp to Instant for API response
+		java.time.Instant createdAt = app.getCreatedDate() != null
+				? app.getCreatedDate().toDate().toInstant()
+				: null;
+		java.time.Instant updatedAt = app.getModifiedDate() != null
+				? app.getModifiedDate().toDate().toInstant()
+				: null;
+
+		return new TestAppResponse(app.getId(), app.getDisplayName(), app.getDescription(),
+				app.getType() != null ? app.getType().name() : null, app.getTotalModules(),
+				0, // suiteCount not available in entity, would need to be calculated
+				app.getTotalTests(), app.getEstimatedDurationSeconds(),
+				null, // lastExecutedAt not tracked in TestAppEntity yet
+				null, // lastExecutionStatus not tracked in TestAppEntity yet
+				createdAt, updatedAt);
 	}
 
 	/**
 	 * Convert TestModuleEntity to TestModuleResponse
 	 */
 	private TestModuleResponse convertToModuleResponse(TestModuleEntity module) {
-		return new TestModuleResponse(module.getId(), module.getAppId(), module.getName(), module.getDescription(),
-				module.getPath(), module.getFramework().name(), module.getSuiteCount(), module.getTotalTestCount(),
-				module.getEstimatedDurationSeconds(), module.getLastExecutedAt(),
-				module.getLastExecutionStatus() != null ? module.getLastExecutionStatus().name() : null,
-				module.getCreatedAt(), module.getUpdatedAt());
+		// Convert Google Cloud Timestamp to Instant for API response
+		java.time.Instant createdAt = module.getCreatedDate() != null
+				? module.getCreatedDate().toDate().toInstant()
+				: null;
+		java.time.Instant updatedAt = module.getModifiedDate() != null
+				? module.getModifiedDate().toDate().toInstant()
+				: null;
+
+		return new TestModuleResponse(module.getId(), module.getAppId(), module.getDisplayName(),
+				module.getDescription(), module.getModulePath(), module.getFramework().name(),
+				module.getTotalSuites(), module.getTotalTests(), module.getEstimatedDurationSeconds(),
+				null, // lastExecutedAt not tracked in TestModuleEntity yet
+				null, // lastExecutionStatus not tracked in TestModuleEntity yet
+				createdAt, updatedAt);
 	}
 
 	/**
 	 * Convert TestSuiteEntity to TestSuiteResponse
 	 */
 	private TestSuiteResponse convertToSuiteResponse(TestSuiteEntity suite) {
-		return new TestSuiteResponse(suite.getId(), suite.getAppId(), suite.getModuleId(), suite.getName(),
-				suite.getDescription(), suite.getFilePath(), suite.getFramework().name(), suite.getTestCount(),
-				suite.getEstimatedDurationSeconds(), suite.getLastExecutedAt(),
-				suite.getLastExecutionStatus() != null ? suite.getLastExecutionStatus().name() : null,
-				suite.getTags(), suite.getCreatedAt(), suite.getUpdatedAt());
+		// Convert Google Cloud Timestamp to Instant for API response
+		java.time.Instant createdAt = suite.getCreatedDate() != null
+				? suite.getCreatedDate().toDate().toInstant()
+				: null;
+		java.time.Instant updatedAt = suite.getModifiedDate() != null
+				? suite.getModifiedDate().toDate().toInstant()
+				: null;
+
+		return new TestSuiteResponse(suite.getId(), suite.getAppId(), suite.getModuleId(), suite.getDisplayName(),
+				suite.getDescription(), suite.getFilePath(),
+				null, // framework not available in TestSuiteEntity
+				suite.getTotalTests(), suite.getEstimatedDurationSeconds(),
+				null, // lastExecutedAt not tracked in TestSuiteEntity yet
+				null, // lastExecutionStatus not tracked in TestSuiteEntity yet
+				null, // tags not available in TestSuiteEntity
+				createdAt, updatedAt);
 	}
 
 	/**
@@ -183,10 +212,9 @@ public class TestHierarchyService extends BaseService {
 	private TestCaseResponse convertToTestCaseResponse(TestCaseEntity test) {
 		return new TestCaseResponse(test.getId(), test.getAppId(), test.getModuleId(), test.getSuiteId(),
 				test.getName(), test.getDescription(), test.getClassName(), test.getMethodName(), test.getFilePath(),
-				test.getLineNumber(), test.getFramework().name(), test.getEstimatedDurationSeconds(),
-				test.getLastExecutedAt(),
-				test.getLastExecutionStatus() != null ? test.getLastExecutionStatus().name() : null, test.getTags(),
-				test.getCreatedAt(), test.getUpdatedAt());
+				test.getLineNumber(), test.getFramework(), // Already a String
+				test.getEstimatedDurationSeconds(), test.getLastExecutedAt(), test.getLastExecutionStatus(), // Already a String
+				test.getTags(), test.getCreatedAt(), test.getUpdatedAt());
 	}
 
 }

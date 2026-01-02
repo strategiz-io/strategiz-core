@@ -25,9 +25,9 @@ import java.util.Map;
  * Manages automated security and maintenance tasks via GitHub Actions workflows
  */
 @Service
-public class PlatformAgentService {
+public class AutomationAgentService {
 
-    private static final Logger log = LoggerFactory.getLogger(PlatformAgentService.class);
+    private static final Logger log = LoggerFactory.getLogger(AutomationAgentService.class);
 
     private final RestTemplate restTemplate;
     private final GitHubAppAuthClient githubAppAuthClient;
@@ -35,7 +35,7 @@ public class PlatformAgentService {
     private final String githubApiUrl = "https://api.github.com";
 
     @Autowired
-    public PlatformAgentService(
+    public AutomationAgentService(
             RestTemplate restTemplate,
             @Autowired(required = false) GitHubAppAuthClient githubAppAuthClient,
             GitHubAppConfig githubAppConfig

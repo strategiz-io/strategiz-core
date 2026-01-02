@@ -2,7 +2,7 @@ package io.strategiz.service.console.controller;
 
 import io.strategiz.service.console.model.AgentHistory;
 import io.strategiz.service.console.model.AgentStatus;
-import io.strategiz.service.console.service.PlatformAgentService;
+import io.strategiz.service.console.service.AutomationAgentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,16 +15,16 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/v1/console/agents")
-public class PlatformAgentController {
+public class AutomationAgentController {
 
-    private final PlatformAgentService agentService;
+    private final AutomationAgentService agentService;
 
     private static final Map<String, String> AGENT_REPOS = Map.of(
             "security-agent-backend", "strategiz-io/strategiz-core",
             "security-agent-frontend", "strategiz-io/strategiz-ui"
     );
 
-    public PlatformAgentController(PlatformAgentService agentService) {
+    public AutomationAgentController(AutomationAgentService agentService) {
         this.agentService = agentService;
     }
 

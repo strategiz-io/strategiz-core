@@ -104,7 +104,7 @@ public class UpdateStrategyController extends BaseController {
         response.setStatus(strategy.getPublishStatus());
         response.setTags(strategy.getTags());
         response.setUserId(strategy.getOwnerId());
-        response.setPublic("PUBLIC".equals(strategy.getPublicStatus()));
+        response.setPublicStatus(strategy.getPublicStatus());
         response.setParameters(strategy.getParameters());
         response.setBacktestResults(strategy.getBacktestResults());
         response.setPerformance(strategy.getPerformance());

@@ -68,13 +68,20 @@ public class UpdateStrategyService extends BaseService {
         existing.setTags(request.getTags());
         existing.setParameters(request.getParameters());
 
-        // Validate DRAFT + PUBLIC combination before setting publicStatus
-        String newPublicStatus = request.isPublic() ? "PUBLIC" : "PRIVATE";
-        if ("DRAFT".equals(existing.getPublishStatus()) && "PUBLIC".equals(newPublicStatus)) {
-            throwModuleException(ServiceStrategyErrorDetails.INVALID_STATUS_COMBINATION,
-                    "Cannot set draft strategy to public. Publish the strategy first.");
+        // Update publish status if provided
+        if (request.getPublishStatus() != null) {
+            existing.setPublishStatus(request.getPublishStatus());
         }
-        existing.setPublicStatus(newPublicStatus);
+
+        // Validate DRAFT + PUBLIC combination before setting publicStatus
+        if (request.getPublicStatus() != null) {
+            if ("DRAFT".equals(existing.getPublishStatus()) && "PUBLIC".equals(request.getPublicStatus())) {
+                throwModuleException(ServiceStrategyErrorDetails.INVALID_STATUS_COMBINATION,
+                        "Cannot set draft strategy to public. Publish the strategy first.");
+            }
+            existing.setPublicStatus(request.getPublicStatus());
+        }
+
         existing.setPerformance(request.getPerformance());
 
         // Parse and set seedFundingDate if provided

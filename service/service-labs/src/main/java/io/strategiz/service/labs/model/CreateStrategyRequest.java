@@ -33,9 +33,12 @@ public class CreateStrategyRequest {
     
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
-    
-    @JsonProperty("isPublic")
-    private boolean isPublic = false;
+
+    @JsonProperty("publishStatus")
+    private String publishStatus = "DRAFT"; // DRAFT, PUBLISHED
+
+    @JsonProperty("publicStatus")
+    private String publicStatus = "PRIVATE"; // PRIVATE, PUBLIC
 
     @JsonProperty("performance")
     private StrategyPerformance performance;
@@ -99,13 +102,21 @@ public class CreateStrategyRequest {
     public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
     }
-    
-    public boolean isPublic() {
-        return isPublic;
+
+    public String getPublishStatus() {
+        return publishStatus;
     }
 
-    public void setPublic(boolean isPublic) {
-        this.isPublic = isPublic;
+    public void setPublishStatus(String publishStatus) {
+        this.publishStatus = publishStatus;
+    }
+
+    public String getPublicStatus() {
+        return publicStatus;
+    }
+
+    public void setPublicStatus(String publicStatus) {
+        this.publicStatus = publicStatus;
     }
 
     public StrategyPerformance getPerformance() {

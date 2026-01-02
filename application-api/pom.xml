@@ -199,6 +199,13 @@
             <artifactId>client-gcp-billing</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- Infrastructure Costs Business Logic (for AdminCostsController) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-infrastructure-costs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

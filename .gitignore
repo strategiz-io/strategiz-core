@@ -97,3 +97,4 @@ Thumbs.db
 vault/data/
 vault/vault-keys.txt
 vault/load-secrets.sh
+.gradle/

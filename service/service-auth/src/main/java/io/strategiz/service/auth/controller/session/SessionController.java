@@ -230,7 +230,7 @@ public class SessionController extends BaseController {
      * Get current user information from server-side session (new architecture)
      *
      * @param httpRequest HTTP servlet request containing session
-     * @return Clean user response with session data
+     * @return Clean user response with session data including role
      */
     @PostMapping("/current-user-server")
     public ResponseEntity<CurrentUserResponse> getCurrentUserFromSession(jakarta.servlet.http.HttpServletRequest httpRequest) {
@@ -243,13 +243,35 @@ public class SessionController extends BaseController {
         }
 
         SessionValidationResult validation = validationOpt.get();
+        String userId = validation.getUserId();
+
+        // Fetch user profile to get role and display name
+        String role = null;
+        String displayName = "User " + userId.substring(0, Math.min(8, userId.length()));
+        try {
+            java.util.Optional<UserEntity> userOpt = userRepository.findById(userId);
+            if (userOpt.isPresent()) {
+                UserEntity user = userOpt.get();
+                if (user.getProfile() != null) {
+                    role = user.getProfile().getRole();
+                    if (user.getProfile().getName() != null) {
+                        displayName = user.getProfile().getName();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not fetch user profile for role: {}", e.getMessage());
+        }
+
         CurrentUserResponse response = new CurrentUserResponse(
-            validation.getUserId(),
+            userId,
             validation.getUserEmail(),
-            "User " + validation.getUserId().substring(0, Math.min(8, validation.getUserId().length())),
-            validation.getLastAccessedAt().getEpochSecond()
+            displayName,
+            validation.getLastAccessedAt().getEpochSecond(),
+            role
         );
 
+        log.info("Valid session found for user: {}, role: {}", userId, role);
         return ResponseEntity.ok(response);
     }
 

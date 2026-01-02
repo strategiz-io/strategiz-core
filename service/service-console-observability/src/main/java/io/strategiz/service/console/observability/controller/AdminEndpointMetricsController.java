@@ -1,8 +1,10 @@
 package io.strategiz.service.console.observability.controller;
 
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.console.observability.model.EndpointMetrics;
+import io.strategiz.service.console.observability.model.ModuleMetrics;
+import io.strategiz.service.console.observability.model.SystemMetrics;
 import io.strategiz.service.console.observability.service.EndpointMetricsService;
-import io.strategiz.service.console.observability.service.EndpointMetricsService.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

@@ -95,8 +95,7 @@
         <module>client/client-stripe</module>
         <module>client/client-sonarqube</module>
         <module>client/client-webull</module>
-        <!-- Temporarily disabled: protobuf generation issues -->
-        <!-- <module>client/client-execution</module> -->
+        <module>client/client-execution</module>
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->

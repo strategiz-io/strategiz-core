@@ -4,7 +4,7 @@ import io.strategiz.data.testing.entity.*;
 import io.strategiz.data.testing.repository.*;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
-import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
+import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.service.tests.executor.TestExecutor;
 import io.strategiz.service.console.service.tests.executor.TestExecutorFactory;
 import io.strategiz.service.console.service.tests.model.TestRunRequest;

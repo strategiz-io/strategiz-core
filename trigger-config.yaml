@@ -1,0 +1,8 @@
+name: strategiz-core-main
+description: Automatic build and deploy for main branch
+github:
+  owner: strategiz-io
+  name: strategiz-core
+  push:
+    branch: ^main$
+filename: cloudbuild.yaml

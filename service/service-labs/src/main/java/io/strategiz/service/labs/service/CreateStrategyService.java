@@ -56,6 +56,10 @@ public class CreateStrategyService extends BaseService {
         strategy.setParameters(request.getParameters());
         strategy.setPerformance(request.getPerformance());
 
+        // Set ownership fields - creator and owner are same user at creation
+        strategy.setCreatorId(userId);
+        strategy.setOwnerId(userId);
+
         // Parse and set seedFundingDate if provided
         if (request.getSeedFundingDate() != null && !request.getSeedFundingDate().isEmpty()) {
             try {

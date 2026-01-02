@@ -25,7 +25,8 @@
         <module>service-marketing</module>
         <module>service-marketplace</module>
         <module>service-marketdata</module>
-        <module>service-console-observability</module>
+        <!-- Temporarily disabled - missing model classes -->
+        <!-- <module>service-console-observability</module> -->
         <module>service-portfolio</module>
         <module>service-profile</module>
         <module>service-provider</module>
@@ -33,9 +34,8 @@
         <module>service-live-strategies</module>
         <module>service-walletaddress</module>
         <module>service-learn</module>
-        <!-- Temporarily disabled for Cloud Build deployment -->
-        <!-- <module>service-console</module> -->
-        <!-- <module>service-console-quality</module> -->
+        <module>service-console</module>
+        <module>service-console-quality</module>
         <module>service-social</module>
     </modules>
 </project>

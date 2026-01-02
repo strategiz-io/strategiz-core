@@ -19,7 +19,7 @@ Automation & Agents is an automated system that:
 ### Basic Information
 - **GitHub App name**: `Strategiz Automation & Agents` (or your preferred name)
 - **Homepage URL**: `https://console.strategiz.io`
-- **Webhook URL**: `https://api.strategiz.io/webhooks/github` (optional for now)
+- **Webhook URL**: `https://api.strategiz.io/v1/console/webhooks/agents` (optional for now)
 - **Webhook secret**: Leave empty for now
 
 ### Repository Permissions

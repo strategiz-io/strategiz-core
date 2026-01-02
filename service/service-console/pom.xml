@@ -92,9 +92,18 @@
             <version>${project.version}</version>
         </dependency>
         <!-- GitHub App client for automation agents -->
+        <!-- Temporarily disabled until GitHub App private key is configured in Vault -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-github</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        -->
+        <!-- Test hierarchy and execution -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-testing</artifactId>
             <version>${project.version}</version>
         </dependency>
 

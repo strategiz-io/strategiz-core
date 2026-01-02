@@ -2,7 +2,7 @@
 set -e
 
 # Script to configure GitHub App credentials in Vault
-# This script helps store GitHub App ID and private key in Vault for Platform Agents
+# This script helps store GitHub App ID and private key in Vault for Automation & Agents
 
 echo "=========================================="
 echo "GitHub App Configuration for Vault"
@@ -142,5 +142,6 @@ echo "  1. Ensure github.app.enabled=true in application-prod.properties"
 echo "  2. Deploy the application"
 echo "  3. Check logs for: 'GitHub App configuration loaded successfully'"
 echo "  4. Test: curl https://api.strategiz.io/v1/console/agents"
+echo "  5. Access console at: https://console.strategiz.io/automation"
 echo ""
 echo "For more information, see: docs/github-app-setup.md"

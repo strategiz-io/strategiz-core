@@ -28,7 +28,7 @@ public class UpdateAlertDeploymentRepositoryImpl implements UpdateAlertDeploymen
         // Verify ownership
         Optional<AlertDeployment> existing = baseRepository.findById(id);
         if (existing.isEmpty() || !userId.equals(existing.get().getUserId()) || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "StrategyAlert", id);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "AlertDeployment", id);
         }
 
         // Ensure ID and userId are set

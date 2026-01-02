@@ -107,6 +107,7 @@
         </dependency>
 
         <!-- Integration test framework -->
+        <!-- Temporarily disabled - test jars not built when using -Dmaven.test.skip=true
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-framework-base</artifactId>
@@ -114,5 +115,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        -->
     </dependencies>
 </project>

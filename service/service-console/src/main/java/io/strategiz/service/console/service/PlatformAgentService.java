@@ -36,12 +36,16 @@ public class PlatformAgentService {
     @Autowired
     public PlatformAgentService(
             RestTemplate restTemplate,
-            GitHubAppAuthClient githubAppAuthClient,
+            @Autowired(required = false) GitHubAppAuthClient githubAppAuthClient,
             GitHubAppConfig githubAppConfig
     ) {
         this.restTemplate = restTemplate;
         this.githubAppAuthClient = githubAppAuthClient;
         this.githubAppConfig = githubAppConfig;
+
+        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+            log.warn("GitHub App not configured - Platform Agents will return default status");
+        }
     }
 
     /**
@@ -63,6 +67,11 @@ public class PlatformAgentService {
      * Get status of a specific agent
      */
     public AgentStatus getAgentStatus(String agentId, String repository) {
+        // Return default status if GitHub App not configured
+        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+            return createDefaultAgentStatus(agentId, repository);
+        }
+
         try {
             // Fetch workflow runs from GitHub API
             String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?per_page=10",
@@ -127,6 +136,11 @@ public class PlatformAgentService {
      * Get execution history for an agent
      */
     public AgentHistory getAgentHistory(String agentId, String repository, int page, int pageSize) {
+        // Return empty history if GitHub App not configured
+        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+            return new AgentHistory(agentId, List.of(), 0, page, pageSize);
+        }
+
         try {
             String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?page=%d&per_page=%d",
                     githubApiUrl, repository, page + 1, pageSize);
@@ -158,11 +172,13 @@ public class PlatformAgentService {
      * Trigger an agent to run now
      */
     public boolean triggerAgent(String agentId, String repository, String triggeredBy) {
+        // Cannot trigger if GitHub App not configured
+        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+            log.error("GitHub App not configured, cannot trigger workflow");
+            return false;
+        }
+
         try {
-            if (!githubAppConfig.isConfigured()) {
-                log.error("GitHub App not configured, cannot trigger workflow");
-                return false;
-            }
 
             String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/dispatches",
                     githubApiUrl, repository);

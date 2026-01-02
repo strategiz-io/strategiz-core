@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service for managing Platform Agents - automated security and maintenance tasks
+ * Service for Automation & Agents
+ * Manages automated security and maintenance tasks via GitHub Actions workflows
  */
 @Service
 public class PlatformAgentService {
@@ -44,7 +45,7 @@ public class PlatformAgentService {
         this.githubAppConfig = githubAppConfig;
 
         if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
-            log.warn("GitHub App not configured - Platform Agents will return default status");
+            log.warn("GitHub App not configured - Automation & Agents will return default status");
         }
     }
 

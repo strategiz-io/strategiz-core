@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * REST Controller for managing Platform Agents
+ * REST Controller for Automation & Agents
+ * Manages automated security and maintenance tasks
  */
 @RestController
 @RequestMapping("/v1/console/agents")

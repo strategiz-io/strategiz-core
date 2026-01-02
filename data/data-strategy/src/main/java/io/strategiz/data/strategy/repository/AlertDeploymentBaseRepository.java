@@ -60,9 +60,9 @@ public class AlertDeploymentBaseRepository extends BaseRepository<AlertDeploymen
                 .collect(java.util.stream.Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "StrategyAlert");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AlertDeployment");
         } catch (java.util.concurrent.ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "StrategyAlert");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AlertDeployment");
         }
     }
 
@@ -87,9 +87,9 @@ public class AlertDeploymentBaseRepository extends BaseRepository<AlertDeploymen
                 .collect(java.util.stream.Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "StrategyAlert");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AlertDeployment");
         } catch (java.util.concurrent.ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "StrategyAlert");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AlertDeployment");
         }
     }
 
@@ -115,9 +115,9 @@ public class AlertDeploymentBaseRepository extends BaseRepository<AlertDeploymen
                 .collect(java.util.stream.Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "StrategyAlert");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AlertDeployment");
         } catch (java.util.concurrent.ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "StrategyAlert");
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AlertDeployment");
         }
     }
 }

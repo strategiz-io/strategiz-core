@@ -1,10 +1,10 @@
-# GitHub App Setup for Platform Agents
+# GitHub App Setup for Automation & Agents
 
-This guide explains how to create and configure a GitHub App for Platform Agents automation.
+This guide explains how to create and configure a GitHub App for the Automation & Agents system.
 
-## What is Platform Agents?
+## What is Automation & Agents?
 
-Platform Agents is an automated system that:
+Automation & Agents is an automated system that:
 - Monitors Maven/NPM dependencies for security vulnerabilities
 - Automatically updates dependencies via GitHub Actions workflows
 - Creates pull requests with dependency updates
@@ -98,7 +98,7 @@ vault kv put secret/strategiz/github-app private-key="$PRIVATE_KEY"
 vault kv get secret/strategiz/github-app
 ```
 
-## Step 5: Enable Platform Agents
+## Step 5: Enable Automation & Agents
 
 Add to `application-api/src/main/resources/application-prod.properties`:
 
@@ -110,7 +110,7 @@ github.app.enabled=true
 ## Step 6: Test the Configuration
 
 1. Deploy the updated application
-2. Check logs for: "GitHub App configuration loaded successfully - Platform Agents enabled"
+2. Check logs for: "GitHub App configuration loaded successfully - Automation & Agents enabled"
 3. Test API endpoint:
 
 ```bash
@@ -135,7 +135,7 @@ You should see agents with real status from GitHub Actions, not just default "ID
 - Check that repository permissions are correctly set
 - Ensure the App ID matches the installed app
 
-### Platform Agents still return default status
+### Automation & Agents still return default status
 - Check that `github.app.enabled=true` is set in application properties
 - Verify Vault credentials are loaded (check application logs)
 - Ensure the GitHub App has the required permissions
@@ -149,7 +149,7 @@ You should see agents with real status from GitHub Actions, not just default "ID
 
 ## GitHub Actions Workflows
 
-The Platform Agents system expects these workflows to exist in your repositories:
+The Automation & Agents system expects these workflows to exist in your repositories:
 
 ### Backend (strategiz-core)
 `.github/workflows/security-agent.yml` - Maven dependency updates

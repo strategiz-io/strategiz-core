@@ -31,6 +31,7 @@
         <module>data-fundamentals</module>
         <module>data-symbol</module>
         <module>data-feature-flags</module>
+        <module>data-testing</module>
     </modules>
     
     <dependencies>

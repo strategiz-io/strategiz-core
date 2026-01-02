@@ -18,7 +18,9 @@ public enum ServiceBaseErrorDetails implements ErrorDetails {
     RESTTEMPLATE_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "resttemplate-creation-failed"),
     FIREBASE_INITIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "firebase-initialization-failed"),
     CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "service-base-configuration-error"),
-    OPERATION_NOT_SUPPORTED(HttpStatus.NOT_IMPLEMENTED, "service-base-operation-not-supported");
+    OPERATION_NOT_SUPPORTED(HttpStatus.NOT_IMPLEMENTED, "service-base-operation-not-supported"),
+    RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "resource-not-found"),
+    INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "invalid-argument");
 
     private final HttpStatus httpStatus;
     private final String propertyKey;

@@ -1,8 +1,6 @@
 package io.strategiz.service.console.observability.service;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.distribution.HistogramSnapshot;
 import io.micrometer.core.instrument.search.Search;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,11 +47,11 @@ public class EndpointMetricsService {
         Map<String, EndpointMetrics> metricsMap = new HashMap<>();
 
         // Query all http.server.requests timers
-        Collection<Timer> timers = Search.in(meterRegistry)
+        Collection<io.micrometer.core.instrument.Timer> timers = Search.in(meterRegistry)
                 .name("http.server.requests")
                 .timers();
 
-        for (Timer timer : timers) {
+        for (io.micrometer.core.instrument.Timer timer : timers) {
             String uri = timer.getId().getTag("uri");
             String method = timer.getId().getTag("method");
             String status = timer.getId().getTag("status");
@@ -254,31 +252,22 @@ public class EndpointMetricsService {
 
     /**
      * Get percentile value from timer.
+     * Note: Simplified implementation - uses max/mean as approximation.
+     * For accurate percentiles, configure percentile histograms in application.properties.
      */
-    private double getPercentile(Timer timer, double percentile) {
+    private double getPercentile(io.micrometer.core.instrument.Timer timer, double percentile) {
         try {
-            // Try to get from percentile histogram if available
-            HistogramSnapshot snapshot = timer.takeSnapshot();
-            if (snapshot != null) {
-                double value = snapshot.percentileValues()[0].percentile() == percentile
-                    ? snapshot.percentileValues()[0].value(TimeUnit.MILLISECONDS)
-                    : 0;
-
-                if (value > 0) {
-                    return value;
-                }
+            // Fallback: use max as approximation for high percentiles
+            if (percentile >= 0.95) {
+                return timer.max(TimeUnit.MILLISECONDS);
             }
+
+            // Use mean for lower percentiles
+            return timer.mean(TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            // Fallback to max if percentiles not configured
+            log.debug("Could not get percentile {} from timer: {}", percentile, e.getMessage());
+            return 0.0;
         }
-
-        // Fallback: use max as approximation for high percentiles
-        if (percentile >= 0.95) {
-            return timer.max(TimeUnit.MILLISECONDS);
-        }
-
-        // Use mean for lower percentiles
-        return timer.mean(TimeUnit.MILLISECONDS);
     }
 
     /**

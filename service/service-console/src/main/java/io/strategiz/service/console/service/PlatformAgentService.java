@@ -44,7 +44,7 @@ public class PlatformAgentService {
 
     public AgentHistory getAgentHistory(String agentId, String repository, int page, int pageSize) {
         log.warn("Platform Agent '{}' history request - temporarily disabled", agentId);
-        return new AgentHistory(new ArrayList<>(), 0, 1, 10, 0);
+        return new AgentHistory(agentId, new ArrayList<>(), 0, page, pageSize);
     }
 
     public boolean triggerAgent(String agentId, String repository, String triggeredBy) {
@@ -59,18 +59,19 @@ public class PlatformAgentService {
 
     private AgentStatus createDefaultAgentStatus(String agentId, String repository) {
         AgentStatus.AgentMetrics metrics = new AgentStatus.AgentMetrics(
-                0, 0, 0, 0, 0.0, 0, 0
+                0, 0, 0, 0, 0, 0.0
         );
 
         return new AgentStatus(
                 agentId,
                 "Platform Agent (" + agentId + ")",
                 "Temporarily disabled",
-                repository,
-                AgentStatus.AgentRunStatus.DISABLED,
+                "DISABLED",
+                false,
                 null,
-                0,
-                metrics
+                null,
+                metrics,
+                repository
         );
     }
 }

@@ -91,14 +91,12 @@
             <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Temporarily disabled - GitHub App credentials not yet configured in production -->
-        <!--
+        <!-- GitHub App client for automation agents -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-github</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Spring dependencies -->
         <dependency>

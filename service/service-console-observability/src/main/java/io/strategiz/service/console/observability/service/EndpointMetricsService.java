@@ -5,12 +5,16 @@ import io.micrometer.core.instrument.search.Search;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -35,19 +39,67 @@ public class EndpointMetricsService {
     private static final Logger log = LoggerFactory.getLogger(EndpointMetricsService.class);
 
     private final MeterRegistry meterRegistry;
+    private final RequestMappingHandlerMapping requestMappingHandlerMapping;
 
-    public EndpointMetricsService(MeterRegistry meterRegistry) {
+    public EndpointMetricsService(MeterRegistry meterRegistry,
+                                   RequestMappingHandlerMapping requestMappingHandlerMapping) {
         this.meterRegistry = meterRegistry;
+        this.requestMappingHandlerMapping = requestMappingHandlerMapping;
     }
 
     /**
      * Get metrics for all discovered REST endpoints.
+     * Discovers ALL registered endpoints from Spring, then merges with actual metrics data.
+     * This ensures endpoints with zero traffic are also visible.
      * @return List of endpoint metrics
      */
     public List<EndpointMetrics> getAllEndpointMetrics() {
         Map<String, EndpointMetrics> metricsMap = new HashMap<>();
 
-        // Query all http.server.requests timers
+        // Step 1: Discover ALL registered endpoints from Spring
+        Map<RequestMappingInfo, HandlerMethod> handlerMethods = requestMappingHandlerMapping.getHandlerMethods();
+        for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : handlerMethods.entrySet()) {
+            RequestMappingInfo mappingInfo = entry.getKey();
+
+            // Get all HTTP methods for this mapping
+            Set<String> methods = mappingInfo.getMethodsCondition().getMethods().stream()
+                    .map(Enum::name)
+                    .collect(Collectors.toSet());
+
+            // Get all patterns (URIs) for this mapping
+            Set<String> patterns = mappingInfo.getPathPatternsCondition() != null
+                    ? mappingInfo.getPathPatternsCondition().getPatternValues()
+                    : (mappingInfo.getPatternsCondition() != null
+                        ? mappingInfo.getPatternsCondition().getPatterns()
+                        : Set.of());
+
+            // Create metrics entry for each method+uri combination
+            for (String method : methods) {
+                for (String pattern : patterns) {
+                    String endpointKey = method + " " + pattern;
+
+                    // Skip actuator endpoints
+                    if (pattern.startsWith("/actuator/")) {
+                        continue;
+                    }
+
+                    // Create metrics object with zero data
+                    EndpointMetrics em = new EndpointMetrics();
+                    em.setMethod(method);
+                    em.setUri(pattern);
+                    em.setEndpoint(endpointKey);
+                    em.setTotalRequests(0L);
+                    em.setSuccessRequests(0L);
+                    em.setErrorRequests(0L);
+                    em.setAvailability(0.0);
+                    em.setErrorRate(0.0);
+
+                    metricsMap.put(endpointKey, em);
+                }
+            }
+        }
+
+        // Step 2: Query all http.server.requests timers and merge actual metrics
         Collection<io.micrometer.core.instrument.Timer> timers = Search.in(meterRegistry)
                 .name("http.server.requests")
                 .timers();
@@ -132,9 +184,11 @@ public class EndpointMetricsService {
             }
         }
 
-        // Sort by total requests (most used endpoints first)
+        // Sort: endpoints with traffic first (by request count desc), then zero-traffic endpoints (alphabetically)
         return metricsMap.values().stream()
-                .sorted(Comparator.comparing(EndpointMetrics::getTotalRequests).reversed())
+                .sorted(Comparator
+                        .comparing(EndpointMetrics::getTotalRequests).reversed()
+                        .thenComparing(EndpointMetrics::getEndpoint))
                 .collect(Collectors.toList());
     }
 
@@ -148,45 +202,45 @@ public class EndpointMetricsService {
         String endpointKey = method + " " + uri;
 
         return getAllEndpointMetrics().stream()
-                .filter(m -> m.getEndpoint().equals(endpointKey))
+                .filter(em -> em.getEndpoint().equals(endpointKey))
                 .findFirst()
                 .orElse(null);
     }
 
     /**
-     * Get aggregated metrics by service module.
-     * @return Map of module name to aggregated metrics
+     * Get metrics grouped by module (first path segment).
+     * @return Map of module name to module metrics
      */
     public Map<String, ModuleMetrics> getMetricsByModule() {
-        Map<String, ModuleMetrics> moduleMap = new HashMap<>();
         List<EndpointMetrics> allMetrics = getAllEndpointMetrics();
+        Map<String, ModuleMetrics> moduleMap = new HashMap<>();
 
-        for (EndpointMetrics metrics : allMetrics) {
-            String module = extractModuleFromUri(metrics.getUri());
+        for (EndpointMetrics em : allMetrics) {
+            String moduleName = extractModuleName(em.getUri());
 
-            ModuleMetrics moduleMetrics = moduleMap.computeIfAbsent(module, k -> {
+            ModuleMetrics module = moduleMap.computeIfAbsent(moduleName, k -> {
                 ModuleMetrics mm = new ModuleMetrics();
-                mm.setModule(k);
+                mm.setModuleName(moduleName);
                 return mm;
             });
 
             // Aggregate counts
-            moduleMetrics.setTotalRequests(moduleMetrics.getTotalRequests() + metrics.getTotalRequests());
-            moduleMetrics.setSuccessRequests(moduleMetrics.getSuccessRequests() + metrics.getSuccessRequests());
-            moduleMetrics.setErrorRequests(moduleMetrics.getErrorRequests() + metrics.getErrorRequests());
-            moduleMetrics.setEndpointCount(moduleMetrics.getEndpointCount() + 1);
+            module.setEndpointCount(module.getEndpointCount() + 1);
+            module.setTotalRequests(module.getTotalRequests() + em.getTotalRequests());
+            module.setSuccessRequests(module.getSuccessRequests() + em.getSuccessRequests());
+            module.setErrorRequests(module.getErrorRequests() + em.getErrorRequests());
 
             // Track worst latency
-            if (metrics.getLatencyP99Ms() > moduleMetrics.getWorstP99LatencyMs()) {
-                moduleMetrics.setWorstP99LatencyMs(metrics.getLatencyP99Ms());
+            if (em.getLatencyP99Ms() > module.getWorstP99LatencyMs()) {
+                module.setWorstP99LatencyMs(em.getLatencyP99Ms());
             }
         }
 
-        // Calculate derived metrics
-        for (ModuleMetrics metrics : moduleMap.values()) {
-            if (metrics.getTotalRequests() > 0) {
-                metrics.setAvailability((double) metrics.getSuccessRequests() / metrics.getTotalRequests());
-                metrics.setErrorRate((double) metrics.getErrorRequests() / metrics.getTotalRequests());
+        // Calculate derived metrics for modules
+        for (ModuleMetrics module : moduleMap.values()) {
+            if (module.getTotalRequests() > 0) {
+                double availability = (double) module.getSuccessRequests() / module.getTotalRequests();
+                module.setAvailability(availability);
             }
         }
 
@@ -194,221 +248,87 @@ public class EndpointMetricsService {
     }
 
     /**
-     * Get overall system health metrics.
-     * @return System-wide metrics
+     * Get system-wide metrics summary.
+     * @return System metrics
      */
     public SystemMetrics getSystemMetrics() {
         List<EndpointMetrics> allMetrics = getAllEndpointMetrics();
 
         SystemMetrics system = new SystemMetrics();
+        system.setTotalEndpoints(allMetrics.size());
 
-        long totalRequests = 0;
-        long successRequests = 0;
-        long errorRequests = 0;
-        double worstP99 = 0;
-        int endpointCount = allMetrics.size();
+        for (EndpointMetrics em : allMetrics) {
+            system.setTotalRequests(system.getTotalRequests() + em.getTotalRequests());
+            system.setSuccessRequests(system.getSuccessRequests() + em.getSuccessRequests());
+            system.setErrorRequests(system.getErrorRequests() + em.getErrorRequests());
 
-        for (EndpointMetrics metrics : allMetrics) {
-            totalRequests += metrics.getTotalRequests();
-            successRequests += metrics.getSuccessRequests();
-            errorRequests += metrics.getErrorRequests();
-            worstP99 = Math.max(worstP99, metrics.getLatencyP99Ms());
+            if (em.getLatencyP99Ms() > system.getWorstP99LatencyMs()) {
+                system.setWorstP99LatencyMs(em.getLatencyP99Ms());
+            }
         }
 
-        system.setTotalEndpoints(endpointCount);
-        system.setTotalRequests(totalRequests);
-        system.setSuccessRequests(successRequests);
-        system.setErrorRequests(errorRequests);
-
-        if (totalRequests > 0) {
-            system.setOverallAvailability((double) successRequests / totalRequests);
-            system.setOverallErrorRate((double) errorRequests / totalRequests);
+        if (system.getTotalRequests() > 0) {
+            double availability = (double) system.getSuccessRequests() / system.getTotalRequests();
+            system.setOverallAvailability(availability);
         }
-
-        system.setWorstP99LatencyMs(worstP99);
 
         return system;
     }
 
     /**
-     * Extract module name from URI pattern.
-     * Examples: /v1/auth/login -> auth, /v1/console/users -> console
+     * Get endpoints with availability < 95% or p99 latency > 500ms.
+     * @return List of unhealthy endpoints
      */
-    private String extractModuleFromUri(String uri) {
-        if (uri == null || uri.isEmpty()) {
-            return "unknown";
-        }
-
-        // Remove leading /v1/ prefix
-        String path = uri.replaceFirst("^/v1/", "");
-
-        // Get first segment
-        int slashIndex = path.indexOf('/');
-        if (slashIndex > 0) {
-            return path.substring(0, slashIndex);
-        }
-
-        return path;
+    public List<EndpointMetrics> getUnhealthyEndpoints() {
+        return getAllEndpointMetrics().stream()
+                .filter(em -> em.getTotalRequests() > 0) // Only consider endpoints with traffic
+                .filter(em -> em.getAvailability() < 0.95 || em.getLatencyP99Ms() > 500)
+                .sorted(Comparator.comparing(EndpointMetrics::getAvailability))
+                .collect(Collectors.toList());
     }
 
-    /**
-     * Get percentile value from timer.
-     * Note: Simplified implementation - uses max/mean as approximation.
-     * For accurate percentiles, configure percentile histograms in application.properties.
-     */
+    // Helper methods
+
+    private String extractModuleName(String uri) {
+        if (uri == null || uri.isEmpty() || "/".equals(uri)) {
+            return "root";
+        }
+
+        // Extract first path segment (e.g., "/v1/auth/session" -> "auth")
+        String[] parts = uri.split("/");
+        for (String part : parts) {
+            if (!part.isEmpty() && !"v1".equalsIgnoreCase(part) && !"v2".equalsIgnoreCase(part)) {
+                return part;
+            }
+        }
+
+        return "other";
+    }
+
     private double getPercentile(io.micrometer.core.instrument.Timer timer, double percentile) {
         try {
-            // Fallback: use max as approximation for high percentiles
-            if (percentile >= 0.95) {
-                return timer.max(TimeUnit.MILLISECONDS);
+            // Try to get from histogram snapshot first (most accurate)
+            io.micrometer.core.instrument.distribution.HistogramSnapshot snapshot = timer.takeSnapshot();
+            io.micrometer.core.instrument.distribution.ValueAtPercentile[] percentiles = snapshot.percentileValues();
+            if (percentiles != null && percentiles.length > 0) {
+                for (io.micrometer.core.instrument.distribution.ValueAtPercentile vap : percentiles) {
+                    if (Math.abs(vap.percentile() - percentile) < 0.01) {
+                        return vap.value(TimeUnit.MILLISECONDS);
+                    }
+                }
             }
 
-            // Use mean for lower percentiles
-            return timer.mean(TimeUnit.MILLISECONDS);
+            // Fallback: use max or mean as approximation
+            if (percentile >= 0.99) {
+                return timer.max(TimeUnit.MILLISECONDS);
+            } else if (percentile >= 0.95) {
+                return (timer.max(TimeUnit.MILLISECONDS) + timer.mean(TimeUnit.MILLISECONDS)) / 2;
+            } else {
+                return timer.mean(TimeUnit.MILLISECONDS);
+            }
         } catch (Exception e) {
-            log.debug("Could not get percentile {} from timer: {}", percentile, e.getMessage());
+            log.warn("Failed to get percentile {} from timer: {}", percentile, e.getMessage());
             return 0.0;
         }
-    }
-
-    /**
-     * Endpoint metrics data class.
-     */
-    public static class EndpointMetrics {
-        private String endpoint;
-        private String method;
-        private String uri;
-        private long totalRequests;
-        private long successRequests;
-        private long errorRequests;
-        private double availability;
-        private double errorRate;
-        private double latencyP50Ms;
-        private double latencyP95Ms;
-        private double latencyP99Ms;
-        private double latencyMaxMs;
-        private double latencyMeanMs;
-        private Map<String, Long> errorsByStatus = new HashMap<>();
-        private Map<String, Long> errorsByException = new HashMap<>();
-
-        // Getters and setters
-        public String getEndpoint() { return endpoint; }
-        public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
-
-        public String getMethod() { return method; }
-        public void setMethod(String method) { this.method = method; }
-
-        public String getUri() { return uri; }
-        public void setUri(String uri) { this.uri = uri; }
-
-        public long getTotalRequests() { return totalRequests; }
-        public void setTotalRequests(long totalRequests) { this.totalRequests = totalRequests; }
-
-        public long getSuccessRequests() { return successRequests; }
-        public void setSuccessRequests(long successRequests) { this.successRequests = successRequests; }
-
-        public long getErrorRequests() { return errorRequests; }
-        public void setErrorRequests(long errorRequests) { this.errorRequests = errorRequests; }
-
-        public double getAvailability() { return availability; }
-        public void setAvailability(double availability) { this.availability = availability; }
-
-        public double getErrorRate() { return errorRate; }
-        public void setErrorRate(double errorRate) { this.errorRate = errorRate; }
-
-        public double getLatencyP50Ms() { return latencyP50Ms; }
-        public void setLatencyP50Ms(double latencyP50Ms) { this.latencyP50Ms = latencyP50Ms; }
-
-        public double getLatencyP95Ms() { return latencyP95Ms; }
-        public void setLatencyP95Ms(double latencyP95Ms) { this.latencyP95Ms = latencyP95Ms; }
-
-        public double getLatencyP99Ms() { return latencyP99Ms; }
-        public void setLatencyP99Ms(double latencyP99Ms) { this.latencyP99Ms = latencyP99Ms; }
-
-        public double getLatencyMaxMs() { return latencyMaxMs; }
-        public void setLatencyMaxMs(double latencyMaxMs) { this.latencyMaxMs = latencyMaxMs; }
-
-        public double getLatencyMeanMs() { return latencyMeanMs; }
-        public void setLatencyMeanMs(double latencyMeanMs) { this.latencyMeanMs = latencyMeanMs; }
-
-        public Map<String, Long> getErrorsByStatus() { return errorsByStatus; }
-        public void setErrorsByStatus(Map<String, Long> errorsByStatus) { this.errorsByStatus = errorsByStatus; }
-
-        public Map<String, Long> getErrorsByException() { return errorsByException; }
-        public void setErrorsByException(Map<String, Long> errorsByException) { this.errorsByException = errorsByException; }
-    }
-
-    /**
-     * Module-level aggregated metrics.
-     */
-    public static class ModuleMetrics {
-        private String module;
-        private int endpointCount;
-        private long totalRequests;
-        private long successRequests;
-        private long errorRequests;
-        private double availability;
-        private double errorRate;
-        private double worstP99LatencyMs;
-
-        // Getters and setters
-        public String getModule() { return module; }
-        public void setModule(String module) { this.module = module; }
-
-        public int getEndpointCount() { return endpointCount; }
-        public void setEndpointCount(int endpointCount) { this.endpointCount = endpointCount; }
-
-        public long getTotalRequests() { return totalRequests; }
-        public void setTotalRequests(long totalRequests) { this.totalRequests = totalRequests; }
-
-        public long getSuccessRequests() { return successRequests; }
-        public void setSuccessRequests(long successRequests) { this.successRequests = successRequests; }
-
-        public long getErrorRequests() { return errorRequests; }
-        public void setErrorRequests(long errorRequests) { this.errorRequests = errorRequests; }
-
-        public double getAvailability() { return availability; }
-        public void setAvailability(double availability) { this.availability = availability; }
-
-        public double getErrorRate() { return errorRate; }
-        public void setErrorRate(double errorRate) { this.errorRate = errorRate; }
-
-        public double getWorstP99LatencyMs() { return worstP99LatencyMs; }
-        public void setWorstP99LatencyMs(double worstP99LatencyMs) { this.worstP99LatencyMs = worstP99LatencyMs; }
-    }
-
-    /**
-     * System-wide metrics.
-     */
-    public static class SystemMetrics {
-        private int totalEndpoints;
-        private long totalRequests;
-        private long successRequests;
-        private long errorRequests;
-        private double overallAvailability;
-        private double overallErrorRate;
-        private double worstP99LatencyMs;
-
-        // Getters and setters
-        public int getTotalEndpoints() { return totalEndpoints; }
-        public void setTotalEndpoints(int totalEndpoints) { this.totalEndpoints = totalEndpoints; }
-
-        public long getTotalRequests() { return totalRequests; }
-        public void setTotalRequests(long totalRequests) { this.totalRequests = totalRequests; }
-
-        public long getSuccessRequests() { return successRequests; }
-        public void setSuccessRequests(long successRequests) { this.successRequests = successRequests; }
-
-        public long getErrorRequests() { return errorRequests; }
-        public void setErrorRequests(long errorRequests) { this.errorRequests = errorRequests; }
-
-        public double getOverallAvailability() { return overallAvailability; }
-        public void setOverallAvailability(double overallAvailability) { this.overallAvailability = overallAvailability; }
-
-        public double getOverallErrorRate() { return overallErrorRate; }
-        public void setOverallErrorRate(double overallErrorRate) { this.overallErrorRate = overallErrorRate; }
-
-        public double getWorstP99LatencyMs() { return worstP99LatencyMs; }
-        public void setWorstP99LatencyMs(double worstP99LatencyMs) { this.worstP99LatencyMs = worstP99LatencyMs; }
     }
 }

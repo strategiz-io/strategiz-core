@@ -45,8 +45,8 @@
         <module>client-stripe</module>
         <module>client-plaid</module>
         <module>client-sonarqube</module>
-        <module>client-execution</module>
         <module>client-github</module>
+        <module>client-execution</module>
     </modules>
     
     <dependencies>

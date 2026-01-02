@@ -87,11 +87,13 @@
             <artifactId>service-marketing</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Temporarily disabled - missing model classes (EndpointMetrics, ModuleMetrics, SystemMetrics)
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console-observability</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-portfolio</artifactId>

@@ -29,6 +29,11 @@ public class TestSuiteRepositoryImpl extends BaseRepository<TestSuiteEntity> imp
         super(firestore, TestSuiteEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-testing";
+    }
+
     // ===============================
     // Basic CRUD Operations (delegate to BaseRepository)
     // ===============================

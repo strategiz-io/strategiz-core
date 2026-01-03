@@ -1,9 +1,9 @@
 package io.strategiz.service.console.controller;
 
-import io.strategiz.business.tokenauth.AuthenticatedUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
-import io.strategiz.service.base.BaseController;
+import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.console.model.response.*;
 import io.strategiz.service.console.service.tests.TestHierarchyService;
 import io.swagger.v3.oas.annotations.Operation;

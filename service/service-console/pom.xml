@@ -102,13 +102,12 @@
             <artifactId>client-github</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Test hierarchy and execution - TEMPORARILY DISABLED: Module not in reactor build
+        <!-- Test hierarchy and execution -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-testing</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Spring dependencies -->
         <dependency>

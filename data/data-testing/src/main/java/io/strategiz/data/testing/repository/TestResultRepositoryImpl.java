@@ -30,6 +30,11 @@ public class TestResultRepositoryImpl extends SubcollectionRepository<TestResult
     }
 
     @Override
+    protected String getModuleName() {
+        return "data-testing";
+    }
+
+    @Override
     protected String getParentCollectionName() {
         return "test-runs";
     }

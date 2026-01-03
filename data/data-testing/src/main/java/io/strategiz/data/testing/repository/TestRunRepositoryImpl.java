@@ -34,6 +34,11 @@ public class TestRunRepositoryImpl extends BaseRepository<TestRunEntity> impleme
         super(firestore, TestRunEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-testing";
+    }
+
     // ===============================
     // Basic CRUD Operations (delegate to BaseRepository)
     // ===============================

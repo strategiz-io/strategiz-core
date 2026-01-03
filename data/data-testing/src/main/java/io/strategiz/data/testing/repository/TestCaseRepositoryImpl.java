@@ -29,6 +29,11 @@ public class TestCaseRepositoryImpl extends BaseRepository<TestCaseEntity> imple
         super(firestore, TestCaseEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-testing";
+    }
+
     // ===============================
     // Basic CRUD Operations (delegate to BaseRepository)
     // ===============================

@@ -62,7 +62,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         } catch (DataRepositoryException e) {
             throw e;
         } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, entityClass.getSimpleName());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, entityClass.getSimpleName(), e.getMessage());
         }
     }
 
@@ -163,7 +163,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         } catch (DataRepositoryException e) {
             throw e;
         } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, entityClass.getSimpleName());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, entityClass.getSimpleName(), e.getMessage());
         }
     }
 

@@ -24,6 +24,11 @@ public class AIPreferencesRepository extends SubcollectionRepository<AIPreferenc
 	}
 
 	@Override
+	protected String getModuleName() {
+		return "data-preferences";
+	}
+
+	@Override
 	protected String getParentCollectionName() {
 		return "users";
 	}

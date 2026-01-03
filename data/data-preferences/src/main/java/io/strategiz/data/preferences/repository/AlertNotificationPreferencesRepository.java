@@ -22,6 +22,11 @@ public class AlertNotificationPreferencesRepository extends SubcollectionReposit
     }
 
     @Override
+    protected String getModuleName() {
+        return "data-preferences";
+    }
+
+    @Override
     protected String getParentCollectionName() {
         return "users";
     }

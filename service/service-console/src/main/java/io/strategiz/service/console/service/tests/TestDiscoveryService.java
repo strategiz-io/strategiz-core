@@ -1,6 +1,7 @@
 package io.strategiz.service.console.service.tests;
 
 import io.strategiz.data.testing.entity.*;
+import io.strategiz.data.testing.entity.TestAppType;
 import io.strategiz.data.testing.repository.*;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
@@ -162,7 +163,7 @@ public class TestDiscoveryService extends BaseService {
 			app.setDisplayName(appDir.getName().substring(0, 1).toUpperCase() + appDir.getName().substring(1)
 					+ " App");
 			app.setDescription("Frontend application with Playwright E2E tests");
-			app.setType(TestFramework.PLAYWRIGHT);
+			app.setType(TestAppType.FRONTEND);
 			app.setCodeDirectory(appDir.getAbsolutePath());
 
 			// Save app
@@ -471,7 +472,7 @@ public class TestDiscoveryService extends BaseService {
 			app.setId(appId);
 			app.setDisplayName("Backend API");
 			app.setDescription("Spring Boot backend with JUnit and Cucumber tests");
-			app.setType(TestFramework.MAVEN);
+			app.setType(TestAppType.BACKEND);
 			app.setCodeDirectory(backendDirectory.getAbsolutePath());
 
 			// Save app
@@ -585,7 +586,7 @@ public class TestDiscoveryService extends BaseService {
 			module.setAppId(appId);
 			module.setDisplayName(moduleDir.getName());
 			module.setDescription("Maven module: " + relativePath);
-			module.setFramework(TestFramework.MAVEN);
+			module.setFramework(TestFramework.JUNIT);
 			module.setModulePath(moduleDir.getAbsolutePath());
 
 			// Count test files
@@ -651,7 +652,7 @@ public class TestDiscoveryService extends BaseService {
 			app.setId(appId);
 			app.setDisplayName("Python Execution Service");
 			app.setDescription("Python gRPC service with Pytest tests");
-			app.setType(TestFramework.PYTEST);
+			app.setType(TestAppType.MICROSERVICE);
 			app.setCodeDirectory(pythonDirectory.getAbsolutePath());
 
 			// Save app

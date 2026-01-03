@@ -34,29 +34,11 @@ public abstract class BaseRepository<T extends BaseEntity> {
 
     protected final Firestore firestore;
     protected final Class<T> entityClass;
-    private final String moduleName;
+    private static final String MODULE_NAME = "data-framework-base";
 
     protected BaseRepository(Firestore firestore, Class<T> entityClass) {
         this.firestore = firestore;
         this.entityClass = entityClass;
-        this.moduleName = extractModuleName(entityClass);
-    }
-
-    /**
-     * Extract module name from entity class package.
-     * Example: io.strategiz.data.strategy.entity.Strategy -> data-strategy
-     */
-    private String extractModuleName(Class<T> entityClass) {
-        String packageName = entityClass.getPackage().getName();
-        // Expected format: io.strategiz.data.<module>.entity
-        if (packageName.startsWith("io.strategiz.data.")) {
-            String[] parts = packageName.split("\\.");
-            if (parts.length >= 4) {
-                return "data-" + parts[3]; // Extract "strategy" from "io.strategiz.data.strategy.entity"
-            }
-        }
-        // Fallback to generic name if pattern doesn't match
-        return "data-repository";
     }
 
     // === ULTRA SIMPLE PUBLIC API ===
@@ -81,7 +63,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         } catch (DataRepositoryException e) {
             throw e;
         } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, moduleName, e, entityClass.getSimpleName(), e.getMessage());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, MODULE_NAME, e, entityClass.getSimpleName(), e.getMessage());
         }
     }
 
@@ -182,7 +164,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         } catch (DataRepositoryException e) {
             throw e;
         } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, moduleName, e, entityClass.getSimpleName(), e.getMessage());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, MODULE_NAME, e, entityClass.getSimpleName(), e.getMessage());
         }
     }
 

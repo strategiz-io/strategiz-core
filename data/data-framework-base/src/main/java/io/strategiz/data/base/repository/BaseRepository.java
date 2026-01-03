@@ -34,12 +34,21 @@ public abstract class BaseRepository<T extends BaseEntity> {
 
     protected final Firestore firestore;
     protected final Class<T> entityClass;
-    private static final String MODULE_NAME = "data-framework-base";
 
     protected BaseRepository(Firestore firestore, Class<T> entityClass) {
         this.firestore = firestore;
         this.entityClass = entityClass;
     }
+
+    /**
+     * Get the module name for this repository.
+     * Each repository must implement this to identify its module.
+     *
+     * Standard approach following BaseService pattern.
+     *
+     * @return Module name (e.g., "data-strategy", "data-user")
+     */
+    protected abstract String getModuleName();
 
     // === ULTRA SIMPLE PUBLIC API ===
 
@@ -63,7 +72,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         } catch (DataRepositoryException e) {
             throw e;
         } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, MODULE_NAME, e, entityClass.getSimpleName(), e.getMessage());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, getModuleName(), e, entityClass.getSimpleName(), e.getMessage());
         }
     }
 
@@ -164,7 +173,7 @@ public abstract class BaseRepository<T extends BaseEntity> {
         } catch (DataRepositoryException e) {
             throw e;
         } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, MODULE_NAME, e, entityClass.getSimpleName(), e.getMessage());
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, getModuleName(), e, entityClass.getSimpleName(), e.getMessage());
         }
     }
 

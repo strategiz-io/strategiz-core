@@ -61,6 +61,7 @@
         <module>data/data-infrastructure-costs</module>
         <module>data/data-quality</module>
         <module>data/data-fundamentals</module>
+        <module>data/data-testing</module>
 
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->

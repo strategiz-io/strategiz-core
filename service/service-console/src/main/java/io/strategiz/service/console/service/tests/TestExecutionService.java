@@ -88,7 +88,7 @@ public class TestExecutionService extends BaseService {
         log.info("Starting app-level test execution for app: {}", appId);
 
         TestAppEntity app = testAppRepository.findById(appId)
-                .orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_APP_NOT_FOUND,
                         "Test app not found: " + appId));
 
         TestRunEntity run = createTestRun(TestExecutionLevel.APP, appId, null, null, null, request, executedBy);
@@ -132,7 +132,7 @@ public class TestExecutionService extends BaseService {
             run.setEndTime(Instant.now());
             run.setDurationMs(run.getEndTime().toEpochMilli() - run.getStartTime().toEpochMilli());
             testRunRepository.save(run, executedBy);
-            throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+            throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                     "Failed to execute app-level tests: " + e.getMessage());
         }
     }
@@ -152,7 +152,7 @@ public class TestExecutionService extends BaseService {
      */
     private TestRunEntity executeModuleTestsSync(String appId, String moduleId, TestRunRequest request, String executedBy) {
         TestModuleEntity module = testModuleRepository.findById(moduleId)
-                .orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_MODULE_NOT_FOUND,
                         "Test module not found: " + moduleId));
 
         TestRunEntity run = createTestRun(TestExecutionLevel.MODULE, appId, moduleId, null, null, request, executedBy);
@@ -181,7 +181,7 @@ public class TestExecutionService extends BaseService {
             boolean completed = process.waitFor(DEFAULT_TIMEOUT_MINUTES, TimeUnit.MINUTES);
             if (!completed) {
                 process.destroy();
-                throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+                throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                         "Test execution timed out after " + DEFAULT_TIMEOUT_MINUTES + " minutes");
             }
 
@@ -225,7 +225,7 @@ public class TestExecutionService extends BaseService {
             run.setEndTime(Instant.now());
             run.setDurationMs(run.getEndTime().toEpochMilli() - run.getStartTime().toEpochMilli());
             testRunRepository.save(run, executedBy);
-            throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+            throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                     "Failed to execute module-level tests: " + e.getMessage());
         }
     }
@@ -238,11 +238,11 @@ public class TestExecutionService extends BaseService {
         log.info("Starting suite-level test execution for suite: {}", suiteId);
 
         TestSuiteEntity suite = testSuiteRepository.findById(suiteId)
-                .orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_SUITE_NOT_FOUND,
                         "Test suite not found: " + suiteId));
 
         TestModuleEntity module = testModuleRepository.findById(moduleId)
-                .orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_MODULE_NOT_FOUND,
                         "Test module not found: " + moduleId));
 
         TestRunEntity run = createTestRun(TestExecutionLevel.SUITE, appId, moduleId, suiteId, null, request, executedBy);
@@ -271,7 +271,7 @@ public class TestExecutionService extends BaseService {
             boolean completed = process.waitFor(DEFAULT_TIMEOUT_MINUTES, TimeUnit.MINUTES);
             if (!completed) {
                 process.destroy();
-                throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+                throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                         "Test execution timed out after " + DEFAULT_TIMEOUT_MINUTES + " minutes");
             }
 
@@ -314,7 +314,7 @@ public class TestExecutionService extends BaseService {
             run.setEndTime(Instant.now());
             run.setDurationMs(run.getEndTime().toEpochMilli() - run.getStartTime().toEpochMilli());
             testRunRepository.save(run, executedBy);
-            throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+            throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                     "Failed to execute suite-level tests: " + e.getMessage());
         }
     }
@@ -328,11 +328,11 @@ public class TestExecutionService extends BaseService {
         log.info("Starting individual test execution for test: {}", testId);
 
         TestCaseEntity testCase = testCaseRepository.findById(testId)
-                .orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_CASE_NOT_FOUND,
                         "Test case not found: " + testId));
 
         TestModuleEntity module = testModuleRepository.findById(moduleId)
-                .orElseThrow(() -> new StrategizException(ServiceBaseErrorDetails.RESOURCE_NOT_FOUND,
+                .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.TEST_MODULE_NOT_FOUND,
                         "Test module not found: " + moduleId));
 
         TestRunEntity run = createTestRun(TestExecutionLevel.TEST, appId, moduleId, suiteId, testId, request, executedBy);
@@ -361,7 +361,7 @@ public class TestExecutionService extends BaseService {
             boolean completed = process.waitFor(DEFAULT_TIMEOUT_MINUTES, TimeUnit.MINUTES);
             if (!completed) {
                 process.destroy();
-                throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+                throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                         "Test execution timed out after " + DEFAULT_TIMEOUT_MINUTES + " minutes");
             }
 
@@ -400,7 +400,7 @@ public class TestExecutionService extends BaseService {
             run.setEndTime(Instant.now());
             run.setDurationMs(run.getEndTime().toEpochMilli() - run.getStartTime().toEpochMilli());
             testRunRepository.save(run, executedBy);
-            throw new StrategizException(ServiceBaseErrorDetails.INTERNAL_ERROR,
+            throw new StrategizException(ServiceConsoleErrorDetails.TEST_EXECUTION_FAILED,
                     "Failed to execute individual test: " + e.getMessage());
         }
     }

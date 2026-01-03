@@ -1,10 +1,10 @@
 package io.strategiz.service.console.controller;
 
-import io.strategiz.business.tokenauth.AuthenticatedUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.data.testing.entity.TestRunEntity;
-import io.strategiz.service.base.BaseController;
+import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.console.service.tests.TestExecutionService;
 import io.strategiz.service.console.service.tests.model.TestRunRequest;
 import io.swagger.v3.oas.annotations.Operation;

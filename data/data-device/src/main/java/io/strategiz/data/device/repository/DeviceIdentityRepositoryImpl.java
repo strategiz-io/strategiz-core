@@ -20,6 +20,11 @@ public class DeviceIdentityRepositoryImpl extends BaseRepository<DeviceIdentity>
     }
 
     @Override
+    protected String getModuleName() {
+        return "data-device";
+    }
+
+    @Override
     public List<DeviceIdentity> findByDeviceId(String deviceId) {
         return findByField("device_id", deviceId);
     }

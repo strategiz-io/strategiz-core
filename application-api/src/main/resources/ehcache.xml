@@ -103,4 +103,17 @@
         </resources>
     </cache>
 
+    <!-- Infrastructure summary cache - for GCP Asset Inventory -->
+    <!-- TTL: 10 minutes - infrastructure doesn't change frequently -->
+    <cache alias="infrastructureSummary">
+        <key-type>java.lang.String</key-type>
+        <value-type>io.strategiz.client.gcpbilling.model.GcpInfrastructureSummary</value-type>
+        <expiry>
+            <ttl unit="minutes">10</ttl>
+        </expiry>
+        <resources>
+            <heap unit="entries">1</heap>
+        </resources>
+    </cache>
+
 </config>

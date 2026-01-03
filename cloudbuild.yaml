@@ -36,7 +36,7 @@ steps:
       - '8080'
       - '--no-traffic'
       - '--set-env-vars'
-      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app,GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp,GRAFANA_PROMETHEUS_URL=https://prometheus-prod-66-prod-us-east-3.grafana.net/api/prom,OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp,OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf,OTEL_SERVICE_NAME=strategiz-core,OTEL_RESOURCE_ATTRIBUTES=service.namespace=strategiz;deployment.environment=production;service.version=1.0.0,OTEL_METRICS_EXPORTER=otlp,OTEL_LOGS_EXPORTER=otlp,OTEL_TRACES_EXPORTER=otlp'
+      - 'SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app,GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp,GRAFANA_PROMETHEUS_URL=https://prometheus-prod-66-prod-us-east-3.grafana.net/api/prom,OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp,OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf,OTEL_SERVICE_NAME=strategiz-core,OTEL_RESOURCE_ATTRIBUTES=service.namespace=strategiz;deployment.environment=production;service.version=1.0.0,OTEL_METRICS_EXPORTER=otlp,OTEL_LOGS_EXPORTER=otlp,OTEL_TRACES_EXPORTER=otlp,DEPLOYMENT_VERSION=2026-01-03-v1'
       - '--set-secrets'
       - 'VAULT_TOKEN=vault-root-token:latest,GRAFANA_OTLP_AUTH_HEADER=GRAFANA_OTLP_AUTH:latest,GRAFANA_PROMETHEUS_AUTH=GRAFANA_PROMETHEUS_AUTH:latest,OTEL_EXPORTER_OTLP_HEADERS=GRAFANA_OTLP_AUTH:latest'
 

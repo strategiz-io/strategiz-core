@@ -1,10 +1,10 @@
 package io.strategiz.data.strategy.repository;
 
 import com.google.cloud.firestore.Firestore;
-import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.SubcollectionRepository;
 import io.strategiz.data.strategy.entity.BotDeployment;
 import io.strategiz.data.strategy.exception.DataStrategyErrorDetails;
+import io.strategiz.data.strategy.exception.DataStrategyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -194,7 +194,7 @@ public class BotDeploymentSubcollectionRepository extends SubcollectionRepositor
                     .collect(java.util.stream.Collectors.toList());
         } catch (Exception e) {
             logger.error("Error querying collection group for strategy {}", strategyId, e);
-            throw new DataRepositoryException(DataStrategyErrorDetails.BOT_QUERY_FAILED, getModuleName(), e, strategyId, e.getMessage());
+            throw new DataStrategyException(DataStrategyErrorDetails.BOT_QUERY_FAILED, getModuleName(), e, strategyId, e.getMessage());
         }
     }
 }

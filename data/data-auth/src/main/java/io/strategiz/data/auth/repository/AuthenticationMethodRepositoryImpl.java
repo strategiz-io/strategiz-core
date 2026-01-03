@@ -47,6 +47,11 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
         return "security";
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-auth";
+    }
+
     // ===============================
     // Subcollection-specific Methods
     // ===============================

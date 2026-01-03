@@ -177,6 +177,7 @@ public class GitHubAppAuthClient {
 
     /**
      * Load private key from PEM format string
+     * Handles both standard PEM format and escaped newlines from Secret Manager
      */
     private PrivateKey loadPrivateKey() {
         try {
@@ -185,15 +186,30 @@ public class GitHubAppAuthClient {
                 throw new IllegalStateException("GitHub App private key not configured");
             }
 
+            // Normalize PEM format - replace literal \n with actual newlines
+            // This handles keys stored in Secret Manager where newlines may be escaped
+            privateKeyPem = privateKeyPem.replace("\\n", "\n");
+
+            // Ensure proper PEM headers/footers
+            if (!privateKeyPem.contains("-----BEGIN")) {
+                throw new IllegalStateException("Private key must be in PEM format with BEGIN/END markers");
+            }
+
             // Parse PEM format
             try (PEMParser pemParser = new PEMParser(new StringReader(privateKeyPem))) {
                 Object object = pemParser.readObject();
+                if (object == null) {
+                    throw new IllegalStateException("Failed to parse private key - PEM parser returned null");
+                }
+
                 JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
 
                 if (object instanceof PrivateKeyInfo) {
-                    return converter.getPrivateKey((PrivateKeyInfo) object);
+                    PrivateKey key = converter.getPrivateKey((PrivateKeyInfo) object);
+                    log.info("Successfully loaded GitHub App private key");
+                    return key;
                 } else {
-                    throw new IllegalStateException("Invalid private key format");
+                    throw new IllegalStateException("Invalid private key format - expected PrivateKeyInfo, got: " + object.getClass().getName());
                 }
             }
 

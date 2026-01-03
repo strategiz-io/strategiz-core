@@ -37,35 +37,51 @@ public class GitHubAppVaultConfig {
     @PostConstruct
     public void loadGitHubAppPropertiesFromVault() {
         try {
-            log.info("Loading GitHub App configuration from Vault...");
+            log.info("Loading GitHub App configuration...");
 
-            // Load GitHub App ID
-            String appId = secretManager.readSecret("github-app.app-id", null);
+            // Try environment variables first (for production/Cloud Run)
+            String appId = System.getenv("GITHUB_APP_ID");
+            String privateKey = System.getenv("GITHUB_APP_PRIVATE_KEY");
+
             if (appId != null && !appId.isEmpty()) {
                 githubAppConfig.setAppId(appId);
-                log.info("Loaded GitHub App ID from Vault: {}", appId);
+                log.info("Loaded GitHub App ID from environment variable: {}", appId);
             } else {
-                log.warn("GitHub App ID not found in Vault - Platform Agents will be disabled");
+                // Fall back to Vault (for local development)
+                log.info("GitHub App ID not in environment, checking Vault...");
+                appId = secretManager.readSecret("github-app.app-id", null);
+                if (appId != null && !appId.isEmpty()) {
+                    githubAppConfig.setAppId(appId);
+                    log.info("Loaded GitHub App ID from Vault: {}", appId);
+                } else {
+                    log.warn("GitHub App ID not found in environment or Vault - Automation & Agents will be disabled");
+                }
             }
 
-            // Load GitHub App private key
-            String privateKey = secretManager.readSecret("github-app.private-key", null);
             if (privateKey != null && !privateKey.isEmpty()) {
                 githubAppConfig.setPrivateKey(privateKey);
-                log.info("Loaded GitHub App private key from Vault");
+                log.info("Loaded GitHub App private key from environment variable");
             } else {
-                log.warn("GitHub App private key not found in Vault - Platform Agents will be disabled");
+                // Fall back to Vault (for local development)
+                log.info("GitHub App private key not in environment, checking Vault...");
+                privateKey = secretManager.readSecret("github-app.private-key", null);
+                if (privateKey != null && !privateKey.isEmpty()) {
+                    githubAppConfig.setPrivateKey(privateKey);
+                    log.info("Loaded GitHub App private key from Vault");
+                } else {
+                    log.warn("GitHub App private key not found in environment or Vault - Automation & Agents will be disabled");
+                }
             }
 
             if (githubAppConfig.isConfigured()) {
-                log.info("GitHub App configuration loaded successfully - Platform Agents enabled");
+                log.info("GitHub App configuration loaded successfully - Automation & Agents enabled");
                 githubAppConfig.setEnabled(true);
             } else {
-                log.warn("GitHub App is not fully configured - Platform Agents will be disabled");
+                log.warn("GitHub App is not fully configured - Automation & Agents will be disabled");
             }
 
         } catch (Exception e) {
-            log.error("Failed to load GitHub App configuration from Vault", e);
+            log.error("Failed to load GitHub App configuration", e);
         }
     }
 

@@ -31,6 +31,11 @@ public class FirestoreSessionRepository extends BaseRepository<SessionEntity> im
         super(firestore, SessionEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-session";
+    }
+
     // ===============================
     // CrudRepository Methods
     // ===============================

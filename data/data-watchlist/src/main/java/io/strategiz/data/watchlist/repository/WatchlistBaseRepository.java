@@ -31,6 +31,11 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
         super(firestore, WatchlistItemEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-watchlist";
+    }
+
     /**
      * Get user-scoped collection for watchlist items
      * Returns users/{userId}/watchlist

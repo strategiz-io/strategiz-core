@@ -32,6 +32,11 @@ public class ProviderIntegrationBaseRepository extends BaseRepository<ProviderIn
     public ProviderIntegrationBaseRepository(Firestore firestore) {
         super(firestore, ProviderIntegrationEntity.class);
     }
+
+    @Override
+    protected String getModuleName() {
+        return "data-provider";
+    }
     
     /**
      * Get user-scoped collection for provider integrations

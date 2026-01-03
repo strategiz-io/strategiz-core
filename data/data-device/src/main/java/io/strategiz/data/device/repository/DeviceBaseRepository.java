@@ -21,6 +21,11 @@ public class DeviceBaseRepository extends BaseRepository<DeviceIdentity> {
     public DeviceBaseRepository(Firestore firestore) {
         super(firestore, DeviceIdentity.class);
     }
+
+    @Override
+    protected String getModuleName() {
+        return "data-device";
+    }
     
     // BaseRepository doesn't have getCollectionPath as abstract method
     // We handle collection paths directly in the implementation methods

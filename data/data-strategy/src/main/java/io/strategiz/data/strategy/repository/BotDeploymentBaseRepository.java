@@ -18,6 +18,11 @@ public class BotDeploymentBaseRepository extends BaseRepository<BotDeployment> {
         super(firestore, BotDeployment.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
+    }
+
     /**
      * Find strategy bots by userId field
      */

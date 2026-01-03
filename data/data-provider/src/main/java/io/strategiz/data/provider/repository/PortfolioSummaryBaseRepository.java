@@ -36,6 +36,11 @@ public class PortfolioSummaryBaseRepository extends BaseRepository<PortfolioSumm
         super(firestore, PortfolioSummaryEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-provider";
+    }
+
     /**
      * Get user-scoped portfolio collection
      * Returns users/{userId}/portfolio

@@ -18,6 +18,11 @@ public class AlertDeploymentBaseRepository extends BaseRepository<AlertDeploymen
         super(firestore, AlertDeployment.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
+    }
+
     /**
      * Find strategy alerts by userId field
      */

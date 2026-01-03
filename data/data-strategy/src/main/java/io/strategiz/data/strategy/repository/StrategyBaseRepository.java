@@ -11,11 +11,16 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class StrategyBaseRepository extends BaseRepository<Strategy> {
-    
+
     public StrategyBaseRepository(Firestore firestore) {
         super(firestore, Strategy.class);
     }
-    
+
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
+    }
+
     /**
      * Find strategies by userId field
      */

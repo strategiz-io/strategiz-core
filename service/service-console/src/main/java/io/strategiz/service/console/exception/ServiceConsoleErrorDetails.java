@@ -34,6 +34,9 @@ public enum ServiceConsoleErrorDetails implements ErrorDetails {
 	TEST_RUN_NOT_FOUND(HttpStatus.NOT_FOUND, "console-test-run-not-found"),
 	TEST_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "console-test-execution-failed"),
 
+	// === Authentication/Authorization Errors ===
+	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "console-unauthorized"),
+
 	// === System Errors ===
 	OPERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "console-operation-failed");
 

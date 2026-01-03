@@ -29,6 +29,11 @@ public class PasskeyChallengeRepositoryImpl extends BaseRepository<PasskeyChalle
     }
 
     @Override
+    protected String getModuleName() {
+        return "data-auth";
+    }
+
+    @Override
     public Optional<PasskeyChallenge> findByChallenge(String challenge) {
         // Use direct query without isActive filter for PasskeyChallenge
         return findByFieldWithoutActiveFilter("challenge", challenge).stream().findFirst();

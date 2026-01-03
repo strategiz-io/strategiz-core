@@ -1,8 +1,10 @@
 package io.strategiz.data.strategy.repository;
 
 import com.google.cloud.firestore.Firestore;
+import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.SubcollectionRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
+import io.strategiz.data.strategy.exception.DataStrategyErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -31,6 +33,11 @@ public class AlertDeploymentSubcollectionRepository extends SubcollectionReposit
 
     public AlertDeploymentSubcollectionRepository(Firestore firestore) {
         super(firestore, AlertDeployment.class);
+    }
+
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
     }
 
     @Override
@@ -159,7 +166,7 @@ public class AlertDeploymentSubcollectionRepository extends SubcollectionReposit
                     .collect(java.util.stream.Collectors.toList());
         } catch (Exception e) {
             logger.error("Error querying collection group for strategy {}", strategyId, e);
-            throw new RuntimeException("Failed to query alerts for strategy", e);
+            throw new DataRepositoryException(DataStrategyErrorDetails.ALERT_QUERY_FAILED, getModuleName(), e, strategyId, e.getMessage());
         }
     }
 }

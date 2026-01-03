@@ -25,6 +25,11 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
     public ProviderDataBaseRepository(Firestore firestore) {
         super(firestore, ProviderDataEntity.class);
     }
+
+    @Override
+    protected String getModuleName() {
+        return "data-provider";
+    }
     
     /**
      * Get user-scoped collection for provider data

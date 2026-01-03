@@ -16,6 +16,11 @@ public class AlertDeploymentHistoryBaseRepository extends BaseRepository<AlertDe
         super(firestore, AlertDeploymentHistory.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
+    }
+
     /**
      * Find alert history by userId field
      */

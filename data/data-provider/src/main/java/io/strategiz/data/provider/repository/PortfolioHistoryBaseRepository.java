@@ -32,6 +32,11 @@ public class PortfolioHistoryBaseRepository extends BaseRepository<PortfolioHist
         super(firestore, PortfolioHistoryEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-provider";
+    }
+
     /**
      * Override to use user-scoped collection for portfolio history.
      * Returns users/{userId}/portfolio_history

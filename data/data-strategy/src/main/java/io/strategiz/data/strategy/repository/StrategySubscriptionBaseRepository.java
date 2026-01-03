@@ -27,6 +27,11 @@ public class StrategySubscriptionBaseRepository extends BaseRepository<StrategyS
         super(firestore, StrategySubscriptionEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
+    }
+
     /**
      * Find all subscriptions for a user.
      */

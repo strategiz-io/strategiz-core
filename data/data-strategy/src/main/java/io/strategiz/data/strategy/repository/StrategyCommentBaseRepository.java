@@ -24,6 +24,11 @@ public class StrategyCommentBaseRepository extends BaseRepository<StrategyCommen
         super(firestore, StrategyCommentEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-strategy";
+    }
+
     /**
      * Find all comments for a strategy.
      */

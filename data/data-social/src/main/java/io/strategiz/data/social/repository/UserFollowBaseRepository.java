@@ -25,6 +25,11 @@ public class UserFollowBaseRepository extends BaseRepository<UserFollowEntity> {
         super(firestore, UserFollowEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-social";
+    }
+
     /**
      * Find all users that a specific user is following.
      */

@@ -36,7 +36,12 @@ public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialReposit
     @Autowired
     public PasskeyCredentialRepositoryImpl(Firestore firestore) {
         this.firestore = firestore;
-        this.baseRepository = new BaseRepository<PasskeyCredentialEntity>(firestore, PasskeyCredentialEntity.class) {};
+        this.baseRepository = new BaseRepository<PasskeyCredentialEntity>(firestore, PasskeyCredentialEntity.class) {
+            @Override
+            protected String getModuleName() {
+                return "data-auth";
+            }
+        };
     }
 
     // ===============================

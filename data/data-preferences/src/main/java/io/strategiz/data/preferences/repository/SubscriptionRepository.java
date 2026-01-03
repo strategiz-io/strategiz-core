@@ -27,6 +27,11 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	}
 
 	@Override
+	protected String getModuleName() {
+		return "data-preferences";
+	}
+
+	@Override
 	protected String getParentCollectionName() {
 		return "users";
 	}

@@ -38,6 +38,11 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
         super(firestore, UserEntity.class);
     }
 
+    @Override
+    protected String getModuleName() {
+        return "data-user";
+    }
+
     // ===============================
     // Main User Document Operations
     // ===============================

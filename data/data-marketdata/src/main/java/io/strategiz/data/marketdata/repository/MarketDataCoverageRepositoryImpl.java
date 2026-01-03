@@ -41,6 +41,11 @@ public class MarketDataCoverageRepositoryImpl
     }
 
     @Override
+    protected String getModuleName() {
+        return "data-marketdata";
+    }
+
+    @Override
     public MarketDataCoverageEntity save(MarketDataCoverageEntity entity, String userId) {
         // Use provided userId for admin-triggered saves, or default to system
         String effectiveUserId = (userId != null && !userId.isEmpty()) ? userId : SYSTEM_USER;

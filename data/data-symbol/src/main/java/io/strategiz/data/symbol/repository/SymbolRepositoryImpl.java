@@ -31,6 +31,11 @@ public class SymbolRepositoryImpl extends BaseRepository<SymbolEntity> implement
     }
 
     @Override
+    protected String getModuleName() {
+        return "data-symbol";
+    }
+
+    @Override
     public SymbolEntity save(SymbolEntity entity) {
         // Ensure ID is uppercase canonical symbol
         if (entity.getId() != null) {

@@ -122,8 +122,11 @@ public class CreateStrategyService extends BaseService {
                     "Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
         }
 
-        // Performance data is optional - users can save drafts without executing first
-        // They can backtest later to generate performance metrics
+        // Validate performance data - strategies must be backtested before saving
+        if (request.getPerformance() == null) {
+            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_MISSING_PERFORMANCE,
+                    "Strategy must be run at least once to generate performance data before saving");
+        }
     }
     
     private boolean isValidLanguage(String language) {

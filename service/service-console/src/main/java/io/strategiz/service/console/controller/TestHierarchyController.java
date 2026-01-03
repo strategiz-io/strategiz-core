@@ -1,7 +1,8 @@
 package io.strategiz.service.console.controller;
 
 import io.strategiz.business.tokenauth.AuthenticatedUser;
-import io.strategiz.business.tokenauth.RequireAuth;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.service.base.BaseController;
 import io.strategiz.service.console.model.response.*;
 import io.strategiz.service.console.service.tests.TestHierarchyService;
@@ -29,7 +30,6 @@ public class TestHierarchyController extends BaseController {
 		this.testHierarchyService = testHierarchyService;
 	}
 
-	@Override
 	protected String getModuleName() {
 		return "TEST_HIERARCHY_CONTROLLER";
 	}

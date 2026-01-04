@@ -21,6 +21,8 @@ import io.strategiz.service.livestrategies.model.request.UpdateAlertStatusReques
 import io.strategiz.service.livestrategies.model.response.AlertResponse;
 import io.strategiz.service.livestrategies.model.response.AlertHistoryResponse;
 import io.strategiz.service.livestrategies.model.response.MessageResponse;
+import io.strategiz.framework.auth.annotation.RequireAuth;
+import io.strategiz.framework.auth.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.google.cloud.Timestamp;
 
@@ -85,10 +86,10 @@ public class AlertController {
      * GET /v1/alerts - List all user's alerts
      * Used by Live Strategies screen to display alert cards
      */
+    @RequireAuth
     @GetMapping
     @Operation(summary = "Get all alerts", description = "Retrieve all alerts for the authenticated user")
-    public ResponseEntity<List<AlertResponse>> getAllAlerts(Authentication authentication) {
-        String userId = authentication.getName();
+    public ResponseEntity<List<AlertResponse>> getAllAlerts(@AuthUser String userId) {
         logger.info("Fetching all alerts for user: {}", userId);
 
         try {
@@ -110,13 +111,13 @@ public class AlertController {
      * POST /v1/alerts - Deploy new alert
      * Called from "Deploy Alert" dialog in Labs screen
      */
+    @RequireAuth
     @PostMapping
     @Operation(summary = "Deploy new alert", description = "Create and deploy a new strategy alert")
     public ResponseEntity<MessageResponse> createAlert(
             @Valid @RequestBody CreateAlertRequest request,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Creating alert '{}' for user: {}", request.getAlertName(), userId);
 
         try {
@@ -215,14 +216,14 @@ public class AlertController {
      * PATCH /v1/alerts/{id}/status - Update alert status
      * Used by pause/resume buttons on alert cards
      */
+    @RequireAuth
     @PatchMapping("/{id}/status")
     @Operation(summary = "Update alert status", description = "Pause, resume, or stop an alert")
     public ResponseEntity<MessageResponse> updateAlertStatus(
             @PathVariable String id,
             @Valid @RequestBody UpdateAlertStatusRequest request,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Updating alert {} status to {} for user: {}", id, request.getStatus(), userId);
 
         try {
@@ -256,6 +257,7 @@ public class AlertController {
      * GET /v1/alerts/{id}/history - Get alert trigger history
      * Used by "View History" side panel
      */
+    @RequireAuth
     @GetMapping("/{id}/history")
     @Operation(summary = "Get alert history", description = "Retrieve trigger history for an alert")
     public ResponseEntity<AlertHistoryResponse> getAlertHistory(
@@ -263,9 +265,8 @@ public class AlertController {
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) Integer days,
             @RequestParam(required = false) String signal,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Fetching history for alert {} (user: {})", id, userId);
 
         try {
@@ -305,13 +306,13 @@ public class AlertController {
      * DELETE /v1/alerts/{id} - Delete alert
      * Called from alert card menu → Delete
      */
+    @RequireAuth
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete alert", description = "Stop and permanently delete an alert")
     public ResponseEntity<MessageResponse> deleteAlert(
             @PathVariable String id,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Deleting alert {} for user: {}", id, userId);
 
         try {
@@ -335,13 +336,13 @@ public class AlertController {
      * POST /v1/alerts/{id}/test - Send test notification
      * Called from alert card menu → Test Alert
      */
+    @RequireAuth
     @PostMapping("/{id}/test")
     @Operation(summary = "Send test notification", description = "Send a test notification for an alert")
     public ResponseEntity<MessageResponse> testAlert(
             @PathVariable String id,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Sending test notification for alert {} (user: {})", id, userId);
 
         try {

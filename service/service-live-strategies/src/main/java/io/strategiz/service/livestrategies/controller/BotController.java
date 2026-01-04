@@ -17,6 +17,8 @@ import io.strategiz.service.livestrategies.model.request.UpdateBotStatusRequest;
 import io.strategiz.service.livestrategies.model.response.BotPrerequisitesResponse;
 import io.strategiz.service.livestrategies.model.response.BotResponse;
 import io.strategiz.service.livestrategies.model.response.MessageResponse;
+import io.strategiz.framework.auth.annotation.RequireAuth;
+import io.strategiz.framework.auth.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -76,10 +77,10 @@ public class BotController {
      * GET /v1/bots - List all user's bots
      * Used by Live Strategies screen to display bot cards
      */
+    @RequireAuth
     @GetMapping
     @Operation(summary = "Get all bots", description = "Retrieve all bots for the authenticated user")
-    public ResponseEntity<List<BotResponse>> getAllBots(Authentication authentication) {
-        String userId = authentication.getName();
+    public ResponseEntity<List<BotResponse>> getAllBots(@AuthUser String userId) {
         logger.info("Fetching all bots for user: {}", userId);
 
         try {
@@ -101,10 +102,10 @@ public class BotController {
      * GET /v1/bots/prerequisites - Check bot deployment prerequisites
      * Returns whether the user can deploy bots (Alpaca connected, etc.)
      */
+    @RequireAuth
     @GetMapping("/prerequisites")
     @Operation(summary = "Check prerequisites", description = "Check if user can deploy bots (provider connection status)")
-    public ResponseEntity<BotPrerequisitesResponse> checkPrerequisites(Authentication authentication) {
-        String userId = authentication.getName();
+    public ResponseEntity<BotPrerequisitesResponse> checkPrerequisites(@AuthUser String userId) {
         logger.info("Checking bot prerequisites for user: {}", userId);
 
         try {
@@ -143,12 +144,12 @@ public class BotController {
     /**
      * GET /v1/bots/{id} - Get a specific bot
      */
+    @RequireAuth
     @GetMapping("/{id}")
     @Operation(summary = "Get bot by ID", description = "Retrieve a specific bot by its ID")
     public ResponseEntity<BotResponse> getBotById(
             @PathVariable String id,
-            Authentication authentication) {
-        String userId = authentication.getName();
+            @AuthUser String userId) {
         logger.info("Fetching bot {} for user: {}", id, userId);
 
         try {
@@ -170,13 +171,13 @@ public class BotController {
      * POST /v1/bots - Deploy new bot
      * Called from "Deploy Bot" dialog in Labs screen
      */
+    @RequireAuth
     @PostMapping
     @Operation(summary = "Deploy new bot", description = "Create and deploy a new strategy bot")
     public ResponseEntity<MessageResponse> createBot(
             @Valid @RequestBody CreateBotRequest request,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Creating bot '{}' for user: {}", request.getBotName(), userId);
 
         try {
@@ -256,14 +257,14 @@ public class BotController {
      * PATCH /v1/bots/{id}/status - Update bot status
      * Used by pause/resume buttons on bot cards
      */
+    @RequireAuth
     @PatchMapping("/{id}/status")
     @Operation(summary = "Update bot status", description = "Pause, resume, or stop a bot")
     public ResponseEntity<MessageResponse> updateBotStatus(
             @PathVariable String id,
             @Valid @RequestBody UpdateBotStatusRequest request,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Updating bot {} status to {} for user: {}", id, request.getStatus(), userId);
 
         try {
@@ -297,13 +298,13 @@ public class BotController {
      * DELETE /v1/bots/{id} - Delete bot
      * Called from bot card menu → Delete
      */
+    @RequireAuth
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete bot", description = "Stop and permanently delete a bot")
     public ResponseEntity<MessageResponse> deleteBot(
             @PathVariable String id,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Deleting bot {} for user: {}", id, userId);
 
         try {
@@ -327,13 +328,13 @@ public class BotController {
      * GET /v1/bots/{id}/performance - Get bot performance metrics
      * Returns detailed trading performance
      */
+    @RequireAuth
     @GetMapping("/{id}/performance")
     @Operation(summary = "Get bot performance", description = "Retrieve trading performance metrics for a bot")
     public ResponseEntity<BotPerformanceResponse> getBotPerformance(
             @PathVariable String id,
-            Authentication authentication) {
+            @AuthUser String userId) {
 
-        String userId = authentication.getName();
         logger.info("Fetching performance for bot {} (user: {})", id, userId);
 
         try {

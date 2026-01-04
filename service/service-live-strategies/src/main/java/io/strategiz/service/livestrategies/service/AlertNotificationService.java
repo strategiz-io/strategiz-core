@@ -17,6 +17,8 @@ import io.strategiz.client.sms.SmsProvider;
 import io.strategiz.client.sms.model.SmsDeliveryResult;
 import io.strategiz.client.sms.model.SmsMessage;
 import io.strategiz.data.strategy.entity.AlertDeployment;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -53,17 +55,20 @@ public class AlertNotificationService extends BaseService {
     private final FirebaseMessaging firebaseMessaging;
     private final SmsProvider smsProvider;
     private final AlertPreferencesService alertPreferencesService;
+    private final UserRepository userRepository;
 
     @Autowired
     public AlertNotificationService(
             Firestore firestore,
             @Autowired(required = false) FirebaseMessaging firebaseMessaging,
             @Autowired(required = false) SmsProvider smsProvider,
-            @Autowired(required = false) AlertPreferencesService alertPreferencesService) {
+            @Autowired(required = false) AlertPreferencesService alertPreferencesService,
+            @Autowired(required = false) UserRepository userRepository) {
         this.firestore = firestore;
         this.firebaseMessaging = firebaseMessaging;
         this.smsProvider = smsProvider;
         this.alertPreferencesService = alertPreferencesService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -125,9 +130,13 @@ public class AlertNotificationService extends BaseService {
         }
 
         try {
-            // Get user email from Firebase Auth or use a default for now
-            // TODO: Fetch actual user email from UserEntity
-            String userEmail = "user@example.com"; // Placeholder
+            // Resolve user email with cascading fallbacks
+            String userEmail = resolveUserEmail(alert);
+            if (userEmail == null || userEmail.isEmpty()) {
+                log.warn("No email address available for user {}, skipping email notification",
+                        alert.getUserId());
+                return;
+            }
 
             Email from = new Email(fromEmail, fromName);
             Email to = new Email(userEmail);
@@ -317,39 +326,49 @@ public class AlertNotificationService extends BaseService {
         }
 
         try {
-            // TODO: Fetch user's FCM device tokens from Firestore
-            // For now, we'll skip if no tokens are available
-            // In production, fetch from /users/{userId}/devices collection
+            // COMING SOON: Push notifications require mobile app with device token registration
+            // To enable push notifications:
+            // 1. User must install Strategiz mobile app (iOS/Android)
+            // 2. App must register FCM device token to /users/{userId}/devices collection
+            // 3. Each device document should contain: { token, platform, appVersion, createdAt }
 
-            String title = String.format("%s Signal: %s", signal.getType(), symbol);
-            String body = String.format("Your alert \"%s\" triggered at $%.2f", alert.getAlertName(), currentPrice);
+            log.info("Push notification SKIPPED - mobile app not yet available. " +
+                     "Would send {} signal for {} to user {}",
+                     signal.getType(), symbol, alert.getUserId());
+            return;
 
-            // Build notification
-            Notification notification = Notification.builder()
-                    .setTitle(title)
-                    .setBody(body)
-                    .build();
-
-            // Add custom data
-            Map<String, String> data = new HashMap<>();
-            data.put("alertId", alert.getId());
-            data.put("signal", signal.getType());
-            data.put("symbol", symbol);
-            data.put("price", String.valueOf(currentPrice));
-            data.put("reason", signal.getReason() != null ? signal.getReason() : "");
-            data.put("timestamp", Instant.now().toString());
-
-            // TODO: Send to user's registered device tokens
-            // Example:
-            // Message message = Message.builder()
-            //     .setNotification(notification)
-            //     .putAllData(data)
-            //     .setToken(deviceToken)
-            //     .build();
-            // firebaseMessaging.send(message);
-
-            log.info("Push notification would be sent for {} signal on {} (device tokens not yet fetched)",
-                      signal.getType(), symbol);
+            // TODO: Uncomment when mobile app is ready:
+            // String title = String.format("%s Signal: %s", signal.getType(), symbol);
+            // String body = String.format("Your alert \"%s\" triggered at $%.2f", alert.getAlertName(), currentPrice);
+            //
+            // Notification notification = Notification.builder()
+            //         .setTitle(title)
+            //         .setBody(body)
+            //         .build();
+            //
+            // Map<String, String> data = new HashMap<>();
+            // data.put("alertId", alert.getId());
+            // data.put("signal", signal.getType());
+            // data.put("symbol", symbol);
+            // data.put("price", String.valueOf(currentPrice));
+            // data.put("reason", signal.getReason() != null ? signal.getReason() : "");
+            // data.put("timestamp", Instant.now().toString());
+            //
+            // List<String> deviceTokens = fetchDeviceTokens(alert.getUserId());
+            // if (deviceTokens.isEmpty()) {
+            //     log.warn("No device tokens found for user {}", alert.getUserId());
+            //     return;
+            // }
+            // for (String token : deviceTokens) {
+            //     Message message = Message.builder()
+            //         .setNotification(notification)
+            //         .putAllData(data)
+            //         .setToken(token)
+            //         .build();
+            //     firebaseMessaging.send(message);
+            //     log.info("Push notification sent to device token ending in ...{}",
+            //              token.substring(Math.max(0, token.length() - 8)));
+            // }
 
         } catch (Exception e) {
             log.error("Error sending push notification", e);
@@ -407,5 +426,51 @@ public class AlertNotificationService extends BaseService {
         String testSymbol = alert.getSymbols().isEmpty() ? "TEST" : alert.getSymbols().get(0);
 
         sendSignalNotification(alert, testSignal, testSymbol, 100.0);
+    }
+
+    /**
+     * Resolve user email for notifications.
+     * Priority: alert.notificationEmail > preferences.emailForAlerts > user.profile.email
+     *
+     * @param alert The alert deployment
+     * @return The email address or null if not available
+     */
+    private String resolveUserEmail(AlertDeployment alert) {
+        // 1. Check if alert has resolved email (set during creation)
+        if (alert.getNotificationEmail() != null && !alert.getNotificationEmail().isEmpty()) {
+            return alert.getNotificationEmail();
+        }
+
+        // 2. Try to get from alert notification preferences
+        if (alertPreferencesService != null) {
+            try {
+                String prefsEmail = alertPreferencesService.getAlertEmail(alert.getUserId());
+                if (prefsEmail != null && !prefsEmail.isEmpty()) {
+                    return prefsEmail;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch alert email from preferences for user {}: {}",
+                        alert.getUserId(), e.getMessage());
+            }
+        }
+
+        // 3. Fall back to user profile email
+        if (userRepository != null) {
+            try {
+                java.util.Optional<UserEntity> userOpt = userRepository.findById(alert.getUserId());
+                if (userOpt.isPresent() && userOpt.get().getProfile() != null) {
+                    String profileEmail = userOpt.get().getProfile().getEmail();
+                    if (profileEmail != null && !profileEmail.isEmpty()) {
+                        return profileEmail;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch user profile email for user {}: {}",
+                        alert.getUserId(), e.getMessage());
+            }
+        }
+
+        // No email available
+        return null;
     }
 }

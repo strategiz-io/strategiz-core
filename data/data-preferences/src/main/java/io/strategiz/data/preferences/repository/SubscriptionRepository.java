@@ -84,7 +84,31 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 			subscription.setUsageResetDate(LocalDate.now().format(DATE_FORMAT));
 		}
 
-		return saveInSubcollection(userId, subscription, userId);
+		// Check if this is a new subscription (doesn't exist in Firestore yet)
+		// This is needed because getByUserId() returns in-memory defaults with ID already set
+		boolean existsInFirestore = findByIdInSubcollection(userId, UserSubscription.SUBSCRIPTION_ID).isPresent();
+
+		if (!existsInFirestore) {
+			// Initialize audit fields for new subscription
+			subscription._initAudit(userId);
+		} else {
+			// Update audit fields for existing subscription
+			subscription._updateAudit(userId);
+		}
+
+		// Validate entity state
+		subscription._validate();
+
+		// Save to Firestore (skip audit updates in saveInSubcollection since we handled them here)
+		try {
+			getSubcollection(userId).document(subscription.getId()).set(subscription).get();
+			logger.debug("Saved UserSubscription for user {}", userId);
+			return subscription;
+		} catch (Exception e) {
+			throw new io.strategiz.data.base.exception.DataRepositoryException(
+				io.strategiz.data.base.exception.DataRepositoryErrorDetails.SUBCOLLECTION_ACCESS_FAILED,
+				e, "UserSubscription", userId);
+		}
 	}
 
 	/**

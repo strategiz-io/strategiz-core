@@ -134,20 +134,36 @@ public class ProviderDataBaseRepository extends BaseRepository<ProviderDataEntit
      */
     public List<ProviderDataEntity> findAllByUserId(String userId) {
         try {
+            String collectionPath = "users/" + userId + "/provider_data";
+            log.info("=====> ProviderDataBaseRepository.findAllByUserId: Querying Firestore path: {}", collectionPath);
+
             List<QueryDocumentSnapshot> docs = getUserScopedCollection(userId)
                 .get().get().getDocuments();
-            
+
+            log.info("=====> ProviderDataBaseRepository.findAllByUserId: Found {} documents in Firestore", docs.size());
+
+            if (!docs.isEmpty()) {
+                log.info("=====> Document IDs found:");
+                for (QueryDocumentSnapshot doc : docs) {
+                    log.info("=====   - Document ID: {}", doc.getId());
+                }
+            }
+
             return docs.stream()
                 .map(doc -> {
                     ProviderDataEntity entity = doc.toObject(ProviderDataEntity.class);
                     entity.setId(doc.getId());
+                    log.info("=====> Mapped document {} to ProviderDataEntity: providerId={}",
+                        doc.getId(), entity.getProviderId());
                     return entity;
                 })
                 .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.error("=====> InterruptedException in findAllByUserId for user: {}", userId, e);
             throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", userId);
         } catch (ExecutionException e) {
+            log.error("=====> ExecutionException in findAllByUserId for user: {}", userId, e);
             throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderDataEntity", userId);
         }
     }

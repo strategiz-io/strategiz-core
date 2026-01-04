@@ -43,18 +43,30 @@ public class PortfolioManager {
      * @return Aggregated portfolio data from all providers
      */
     public PortfolioData getAggregatedPortfolioData(String userId) {
-        log.info("Getting aggregated portfolio data for user: {}", userId);
+        log.info("=====> PortfolioManager.getAggregatedPortfolioData called for userId: {}", userId);
 
         try {
             // 1. Read ALL provider data from Firestore
+            log.info("=====> Calling providerDataRepository.getAllProviderData for userId: {}", userId);
             List<ProviderDataEntity> providers = providerDataRepository.getAllProviderData(userId);
 
+            log.info("=====> providerDataRepository.getAllProviderData returned: {} providers",
+                providers == null ? "null" : providers.size());
+
             if (providers == null || providers.isEmpty()) {
-                log.info("No provider data found for user: {}", userId);
+                log.warn("=====> NO PROVIDER DATA FOUND for user: {} - returning empty portfolio", userId);
                 return createEmptyPortfolioData(userId);
             }
 
-            log.info("Found {} provider(s) for user: {}", providers.size(), userId);
+            log.info("=====> Found {} provider(s) for user: {}", providers.size(), userId);
+
+            // Log each provider ID
+            for (ProviderDataEntity provider : providers) {
+                log.info("=====> Provider found: providerId={}, name={}, totalValue={}",
+                    provider.getProviderId(),
+                    provider.getProviderName(),
+                    provider.getTotalValue());
+            }
 
             // 2. Initialize aggregation variables
             BigDecimal totalValue = BigDecimal.ZERO;

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  */
 public abstract class BaseRepository<T extends BaseEntity> {
 
-    private static final Logger log = LoggerFactory.getLogger(BaseRepository.class);
+    protected static final Logger log = LoggerFactory.getLogger(BaseRepository.class);
 
     protected final Firestore firestore;
     protected final Class<T> entityClass;

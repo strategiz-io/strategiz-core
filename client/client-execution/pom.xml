@@ -72,9 +72,10 @@
                 <artifactId>protobuf-maven-plugin</artifactId>
                 <version>0.6.1</version>
                 <configuration>
-                    <protocArtifact>com.google.protobuf:protoc:3.25.1:exe:${os.detected.classifier}</protocArtifact>
+                    <!-- Use explicit linux-x86_64 for Docker builds, auto-detect otherwise -->
+                    <protocArtifact>com.google.protobuf:protoc:3.25.1:exe:${protoc.os.classifier}</protocArtifact>
                     <pluginId>grpc-java</pluginId>
-                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.60.0:exe:${os.detected.classifier}</pluginArtifact>
+                    <pluginArtifact>io.grpc:protoc-gen-grpc-java:1.60.0:exe:${protoc.os.classifier}</pluginArtifact>
                     <protoSourceRoot>${project.parent.parent.basedir}/proto</protoSourceRoot>
                 </configuration>
                 <executions>
@@ -88,4 +89,25 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Profile for Docker builds - explicitly use linux-x86_64 -->
+        <profile>
+            <id>docker</id>
+            <properties>
+                <protoc.os.classifier>linux-x86_64</protoc.os.classifier>
+            </properties>
+        </profile>
+
+        <!-- Default profile - use auto-detected platform -->
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <protoc.os.classifier>${os.detected.classifier}</protoc.os.classifier>
+            </properties>
+        </profile>
+    </profiles>
 </project>

@@ -459,7 +459,7 @@ public class Strategy extends BaseEntity {
     /**
      * Check if strategy is PUBLISHED.
      */
-    public boolean isPublishedStatus() {
+    public boolean isPublished() {
         return "PUBLISHED".equals(this.publishStatus);
     }
 
@@ -473,7 +473,7 @@ public class Strategy extends BaseEntity {
     /**
      * Check if strategy is PRIVATE (only owner can see).
      */
-    public boolean isPrivateStatus() {
+    public boolean isPrivate() {
         return "PRIVATE".equals(this.publicStatus);
     }
 
@@ -487,7 +487,7 @@ public class Strategy extends BaseEntity {
     /**
      * Check if strategy is PUBLIC (anyone can see performance).
      */
-    public boolean isPublicStatus() {
+    public boolean isPublic() {
         return "PUBLIC".equals(this.publicStatus);
     }
 }

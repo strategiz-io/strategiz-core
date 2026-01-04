@@ -114,7 +114,7 @@ public class AlertController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch alerts for user: {}", userId, e);
-            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_FETCH_FAILED, "service-live-strategies", e, new Object[0]);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_FETCH_FAILED, "service-my-strategies", e, new Object[0]);
         }
     }
 
@@ -237,7 +237,7 @@ public class AlertController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to create alert", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_CREATE_FAILED, "service-live-strategies", e, new Object[0]);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_CREATE_FAILED, "service-my-strategies", e, new Object[0]);
         }
     }
 
@@ -278,7 +278,7 @@ public class AlertController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to update alert status", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_UPDATE_FAILED, "service-live-strategies", e, new Object[0]);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_UPDATE_FAILED, "service-my-strategies", e, new Object[0]);
         }
     }
 
@@ -351,7 +351,7 @@ public class AlertController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch alert history", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_HISTORY_FETCH_FAILED, "service-live-strategies", e, new Object[0]);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_HISTORY_FETCH_FAILED, "service-my-strategies", e, new Object[0]);
         }
     }
 
@@ -381,7 +381,7 @@ public class AlertController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to delete alert", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_DELETE_FAILED, "service-live-strategies", e, new Object[0]);
+            throw new StrategizException(LiveStrategiesErrorDetails.ALERT_DELETE_FAILED, "service-my-strategies", e, new Object[0]);
         }
     }
 
@@ -425,7 +425,7 @@ public class AlertController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to send test notification", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.NOTIFICATION_SEND_FAILED, "service-live-strategies", e, new Object[0]);
+            throw new StrategizException(LiveStrategiesErrorDetails.NOTIFICATION_SEND_FAILED, "service-my-strategies", e, new Object[0]);
         }
     }
 
@@ -524,7 +524,7 @@ public class AlertController {
             );
             throw new StrategizException(
                 LiveStrategiesErrorDetails.ALERT_LIMIT_EXCEEDED,
-                "service-live-strategies",
+                "service-my-strategies",
                 message
             );
         }

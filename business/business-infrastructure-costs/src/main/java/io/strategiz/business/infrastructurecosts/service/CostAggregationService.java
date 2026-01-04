@@ -16,6 +16,7 @@ import io.strategiz.data.infrastructurecosts.repository.DailyCostRepository;
 import io.strategiz.data.infrastructurecosts.repository.FirestoreUsageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,15 @@ public class CostAggregationService {
     private final TimescaleBillingClient timescaleBillingClient;
     private final DailyCostRepository dailyCostRepository;
     private final FirestoreUsageRepository firestoreUsageRepository;
+
+    @Value("${subscriptions.claude.monthly-cost:0}")
+    private BigDecimal claudeMonthlyCost;
+
+    @Value("${subscriptions.claude.name:Claude Pro}")
+    private String claudeName;
+
+    @Value("${subscriptions.claude.enabled:false}")
+    private boolean claudeEnabled;
 
     public CostAggregationService(
             GcpBillingClient gcpBillingClient,
@@ -82,7 +92,11 @@ public class CostAggregationService {
             // Calculate totals
             BigDecimal gcpCost = gcpSummary.totalCost();
             BigDecimal timescaleCost = timescaleSummary.totalCost();
-            BigDecimal totalCost = gcpCost.add(timescaleCost);
+
+            // Calculate subscription costs (prorated for current month)
+            BigDecimal subscriptionCosts = calculateSubscriptionCosts(today);
+
+            BigDecimal totalCost = gcpCost.add(timescaleCost).add(subscriptionCosts);
 
             // Calculate days so far
             int daysSoFar = today.getDayOfMonth();
@@ -96,6 +110,11 @@ public class CostAggregationService {
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
             costByService.put("TimescaleDB", timescaleCost);
 
+            // Add subscription costs if enabled
+            if (claudeEnabled && subscriptionCosts.compareTo(BigDecimal.ZERO) > 0) {
+                costByService.put(claudeName, subscriptionCosts);
+            }
+
             // Get last month for comparison
             String vsLastMonth = getVsLastMonth(totalCost, month);
 
@@ -104,6 +123,7 @@ public class CostAggregationService {
                     totalCost.setScale(2, RoundingMode.HALF_UP),
                     gcpCost.setScale(2, RoundingMode.HALF_UP),
                     timescaleCost.setScale(2, RoundingMode.HALF_UP),
+                    subscriptionCosts.setScale(2, RoundingMode.HALF_UP),
                     "USD",
                     daysSoFar,
                     avgDailyCost,
@@ -142,7 +162,15 @@ public class CostAggregationService {
                 Map<String, BigDecimal> breakdown = new HashMap<>(gcpDaily.costByService());
                 breakdown.put("TimescaleDB", dailyTimescaleCost);
 
-                BigDecimal totalCost = gcpDaily.totalCost().add(dailyTimescaleCost);
+                // Add daily subscription cost
+                BigDecimal dailySubscriptionCost = getDailySubscriptionCost(gcpDaily.date());
+                if (claudeEnabled && dailySubscriptionCost.compareTo(BigDecimal.ZERO) > 0) {
+                    breakdown.put(claudeName, dailySubscriptionCost);
+                }
+
+                BigDecimal totalCost = gcpDaily.totalCost()
+                        .add(dailyTimescaleCost)
+                        .add(dailySubscriptionCost);
 
                 result.add(new DailyCost(
                         gcpDaily.date().format(DATE_FORMAT),
@@ -173,6 +201,12 @@ public class CostAggregationService {
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
             costByService.put("TimescaleDB", timescaleSummary.totalCost());
+
+            // Add subscription costs
+            BigDecimal subscriptionCosts = calculateSubscriptionCosts(LocalDate.now());
+            if (claudeEnabled && subscriptionCosts.compareTo(BigDecimal.ZERO) > 0) {
+                costByService.put(claudeName, subscriptionCosts);
+            }
 
             return costByService;
         } catch (Exception e) {
@@ -256,6 +290,9 @@ public class CostAggregationService {
             // Get TimescaleDB costs
             TimescaleCostSummary timescaleSummary = timescaleBillingClient.getCostSummary(yesterday, yesterday);
 
+            // Get subscription costs
+            BigDecimal subscriptionCost = getDailySubscriptionCost(yesterday);
+
             // Get Firestore metrics
             List<GcpServiceUsage> firestoreMetrics = gcpMonitoringClient.getFirestoreMetrics();
 
@@ -263,11 +300,19 @@ public class CostAggregationService {
             DailyCostEntity entity = new DailyCostEntity(date);
             entity.setGcpCost(gcpSummary.totalCost());
             entity.setTimescaleCost(timescaleSummary.totalCost());
-            entity.setTotalCost(gcpSummary.totalCost().add(timescaleSummary.totalCost()));
+            entity.setTotalCost(gcpSummary.totalCost()
+                    .add(timescaleSummary.totalCost())
+                    .add(subscriptionCost));
             entity.setCurrency("USD");
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
             costByService.put("TimescaleDB", timescaleSummary.totalCost());
+
+            // Add subscription costs
+            if (claudeEnabled && subscriptionCost.compareTo(BigDecimal.ZERO) > 0) {
+                costByService.put(claudeName, subscriptionCost);
+            }
+
             entity.setCostByService(costByService);
 
             // Add Firestore metrics
@@ -303,7 +348,12 @@ public class CostAggregationService {
             GcpCostSummary lastMonthGcp = gcpBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
             TimescaleCostSummary lastMonthTs = timescaleBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
 
-            BigDecimal lastMonthTotal = lastMonthGcp.totalCost().add(lastMonthTs.totalCost());
+            // Calculate last month subscription costs (prorated for same number of days)
+            BigDecimal lastMonthSubscription = calculateSubscriptionCosts(lastMonthSameDay);
+
+            BigDecimal lastMonthTotal = lastMonthGcp.totalCost()
+                    .add(lastMonthTs.totalCost())
+                    .add(lastMonthSubscription);
 
             if (lastMonthTotal.compareTo(BigDecimal.ZERO) == 0) {
                 return "N/A";
@@ -329,5 +379,38 @@ public class CostAggregationService {
         BigDecimal readCost = BigDecimal.valueOf(reads * 0.0000006);
         BigDecimal writeCost = BigDecimal.valueOf(writes * 0.0000018);
         return readCost.add(writeCost).setScale(4, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calculate prorated subscription costs for the current month
+     */
+    private BigDecimal calculateSubscriptionCosts(LocalDate currentDate) {
+        if (!claudeEnabled || claudeMonthlyCost == null || claudeMonthlyCost.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        // Prorate based on days in month
+        int daysInMonth = currentDate.lengthOfMonth();
+        int daysSoFar = currentDate.getDayOfMonth();
+
+        // Calculate prorated cost: (monthly cost / days in month) * days so far
+        return claudeMonthlyCost
+                .divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(daysSoFar))
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calculate daily subscription costs
+     */
+    private BigDecimal getDailySubscriptionCost(LocalDate date) {
+        if (!claudeEnabled || claudeMonthlyCost == null || claudeMonthlyCost.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        int daysInMonth = date.lengthOfMonth();
+        return claudeMonthlyCost
+                .divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }

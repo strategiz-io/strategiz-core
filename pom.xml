@@ -111,7 +111,7 @@
         <!-- Service Modules (Build Sixth) -->
         <module>service/service-framework-base</module>
         <module>service/service-labs</module>
-        <module>service/service-live-strategies</module>
+        <module>service/service-my-strategies</module>
         <module>service/service-portfolio</module>
         <module>service/service-auth</module>
         <module>service/service-marketplace</module>
@@ -376,7 +376,7 @@
             </dependency>
             <dependency>
                 <groupId>io.strategiz</groupId>
-                <artifactId>service-live-strategies</artifactId>
+                <artifactId>service-my-strategies</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

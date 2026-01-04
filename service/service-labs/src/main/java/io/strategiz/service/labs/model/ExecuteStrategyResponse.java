@@ -252,6 +252,16 @@ public class ExecuteStrategyResponse {
         @JsonProperty("testPeriod")
         private String testPeriod; // Formatted period (e.g., "5.3Y", "18M", "Since Jan 2020")
 
+        // NEW: Buy-and-hold comparison metrics
+        @JsonProperty("buyAndHoldReturn")
+        private Double buyAndHoldReturn;         // $ return if just buying and holding
+
+        @JsonProperty("buyAndHoldReturnPercent")
+        private Double buyAndHoldReturnPercent;  // % return if just buying and holding
+
+        @JsonProperty("outperformance")
+        private Double outperformance;           // Strategy return - Buy&Hold return (%)
+
         // Getters and Setters
         public double getTotalReturn() {
             return totalReturn;
@@ -371,6 +381,30 @@ public class ExecuteStrategyResponse {
 
         public void setTestPeriod(String testPeriod) {
             this.testPeriod = testPeriod;
+        }
+
+        public Double getBuyAndHoldReturn() {
+            return buyAndHoldReturn;
+        }
+
+        public void setBuyAndHoldReturn(Double buyAndHoldReturn) {
+            this.buyAndHoldReturn = buyAndHoldReturn;
+        }
+
+        public Double getBuyAndHoldReturnPercent() {
+            return buyAndHoldReturnPercent;
+        }
+
+        public void setBuyAndHoldReturnPercent(Double buyAndHoldReturnPercent) {
+            this.buyAndHoldReturnPercent = buyAndHoldReturnPercent;
+        }
+
+        public Double getOutperformance() {
+            return outperformance;
+        }
+
+        public void setOutperformance(Double outperformance) {
+            this.outperformance = outperformance;
         }
     }
 

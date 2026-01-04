@@ -451,6 +451,11 @@ public class ExecuteStrategyController extends BaseController {
         performance.setLastTestedAt(backtest.getLastTestedAt());
         performance.setTestPeriod(backtest.getTestPeriod());
 
+        // NEW: Buy-and-hold comparison metrics
+        performance.setBuyAndHoldReturn(backtest.getBuyAndHoldReturn());
+        performance.setBuyAndHoldReturnPercent(backtest.getBuyAndHoldReturnPercent());
+        performance.setOutperformance(backtest.getOutperformance());
+
         // Convert trades
         if (backtest.getTrades() != null) {
             List<ExecuteStrategyResponse.Trade> trades = backtest.getTrades().stream()

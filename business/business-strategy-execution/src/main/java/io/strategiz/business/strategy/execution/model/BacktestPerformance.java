@@ -28,6 +28,11 @@ public class BacktestPerformance {
     private String backtestEndDate;      // ISO timestamp of last data point
     private Integer backtestPeriodDays;  // Actual days tested
 
+    // NEW: Buy-and-hold comparison metrics
+    private Double buyAndHoldReturn;         // $ return if just buying and holding
+    private Double buyAndHoldReturnPercent;  // % return if just buying and holding
+    private Double outperformance;           // Strategy return - Buy&Hold return (%)
+
     public BacktestPerformance() {
     }
 
@@ -174,5 +179,29 @@ public class BacktestPerformance {
 
     public void setBacktestPeriodDays(Integer backtestPeriodDays) {
         this.backtestPeriodDays = backtestPeriodDays;
+    }
+
+    public Double getBuyAndHoldReturn() {
+        return buyAndHoldReturn;
+    }
+
+    public void setBuyAndHoldReturn(Double buyAndHoldReturn) {
+        this.buyAndHoldReturn = buyAndHoldReturn;
+    }
+
+    public Double getBuyAndHoldReturnPercent() {
+        return buyAndHoldReturnPercent;
+    }
+
+    public void setBuyAndHoldReturnPercent(Double buyAndHoldReturnPercent) {
+        this.buyAndHoldReturnPercent = buyAndHoldReturnPercent;
+    }
+
+    public Double getOutperformance() {
+        return outperformance;
+    }
+
+    public void setOutperformance(Double outperformance) {
+        this.outperformance = outperformance;
     }
 }

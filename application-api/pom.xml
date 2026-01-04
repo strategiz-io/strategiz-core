@@ -114,7 +114,7 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>service-live-strategies</artifactId>
+            <artifactId>service-my-strategies</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

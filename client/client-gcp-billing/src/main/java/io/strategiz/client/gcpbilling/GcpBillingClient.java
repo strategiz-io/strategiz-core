@@ -129,44 +129,20 @@ public class GcpBillingClient {
     }
 
     /**
-     * Get estimated cost summary based on typical GCP pricing.
-     * This is a fallback when BigQuery billing export is not configured.
-     * Returns estimated costs based on resource usage.
+     * Return zero costs when BigQuery billing export is not configured.
+     * We do NOT return estimates because they are misleading - only real billing data should be shown.
+     * Configure BigQuery billing export to get actual GCP costs including Vertex AI.
      */
     private GcpCostSummary getEstimatedCostSummary(LocalDate startDate, LocalDate endDate) {
-        log.info("Generating estimated cost summary (billing export not configured)");
+        log.error("⚠️  BigQuery billing export is NOT CONFIGURED - returning ZERO costs. " +
+                "This means GCP costs (including Vertex AI) are NOT being tracked. " +
+                "Set use-bigquery=true in Vault and configure billing export to see real costs.");
 
-        // Calculate estimated costs based on typical Strategiz usage patterns
-        // These are rough estimates - actual costs require BigQuery billing export
+        // Return zero costs - NO fake estimates
         Map<String, BigDecimal> costByService = new HashMap<>();
-
-        // Cloud Run: ~$2-5 per day for 3 services (API, Vault, Execution)
-        // Estimate: $0.10/hour * 24 hours * days * 3 services
-        int days = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
-        costByService.put("Cloud Run", BigDecimal.valueOf(2.40 * days)); // $2.40/day avg
-
-        // Cloud Firestore: ~$1-2 per day based on 50k reads/15k writes daily
-        costByService.put("Cloud Firestore", BigDecimal.valueOf(1.50 * days));
-
-        // Cloud Storage: ~$0.50 per day for 10GB stored
-        costByService.put("Cloud Storage", BigDecimal.valueOf(0.50 * days));
-
-        // Cloud Build: ~$0.80 per day (occasional builds)
-        costByService.put("Cloud Build", BigDecimal.valueOf(0.80 * days));
-
-        // Artifact Registry: ~$0.50 per day for image storage
-        costByService.put("Artifact Registry", BigDecimal.valueOf(0.50 * days));
-
-        // Calculate total
-        BigDecimal totalCost = costByService.values().stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Project breakdown (all in strategiz-io project)
         Map<String, BigDecimal> costByProject = new HashMap<>();
-        costByProject.put(properties.projectId(), totalCost);
 
-        log.warn("Returning estimated costs. For accurate billing data, enable BigQuery billing export.");
-        return new GcpCostSummary(startDate, endDate, totalCost, "USD", costByService, costByProject);
+        return new GcpCostSummary(startDate, endDate, BigDecimal.ZERO, "USD", costByService, costByProject);
     }
 
     /**
@@ -261,37 +237,14 @@ public class GcpBillingClient {
     }
 
     /**
-     * Get estimated daily costs when BigQuery export is not configured
+     * Return empty daily costs when BigQuery export is not configured.
+     * NO fake estimates - only real billing data should be shown.
      */
     private List<GcpDailyCost> getEstimatedDailyCosts(LocalDate startDate, LocalDate endDate) {
-        log.info("Generating estimated daily costs (billing export not configured)");
+        log.error("⚠️  BigQuery billing export is NOT CONFIGURED - returning ZERO daily costs.");
 
-        List<GcpDailyCost> dailyCosts = new ArrayList<>();
-        LocalDate currentDate = startDate;
-
-        while (!currentDate.isAfter(endDate)) {
-            Map<String, BigDecimal> serviceCosts = new HashMap<>();
-
-            // Estimated daily costs per service
-            serviceCosts.put("Cloud Run", BigDecimal.valueOf(2.40));
-            serviceCosts.put("Cloud Firestore", BigDecimal.valueOf(1.50));
-            serviceCosts.put("Cloud Storage", BigDecimal.valueOf(0.50));
-            serviceCosts.put("Cloud Build", BigDecimal.valueOf(0.80));
-            serviceCosts.put("Artifact Registry", BigDecimal.valueOf(0.50));
-
-            // Add some variation to make it look more realistic
-            double variation = 0.85 + (Math.random() * 0.3); // 85-115% of base
-            serviceCosts.replaceAll((k, v) -> v.multiply(BigDecimal.valueOf(variation)));
-
-            BigDecimal totalCost = serviceCosts.values().stream()
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            dailyCosts.add(new GcpDailyCost(currentDate, totalCost, "USD", serviceCosts));
-            currentDate = currentDate.plusDays(1);
-        }
-
-        Collections.reverse(dailyCosts); // Most recent first
-        return dailyCosts;
+        // Return empty list - NO fake estimates
+        return Collections.emptyList();
     }
 
     /**

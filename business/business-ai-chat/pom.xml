@@ -24,6 +24,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Business Portfolio (for portfolio context) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-portfolio</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Client Base (LLMProvider interface) -->
         <dependency>
             <groupId>io.strategiz</groupId>

@@ -52,6 +52,8 @@ public class AlertDeployment extends BaseEntity {
 
     @JsonProperty("notificationChannels")
     private List<String> notificationChannels; // email, push, in-app, sms
+    // NOTE: "push" channel is COMING SOON - requires mobile app with FCM registration
+    // Default channels: ["email", "in-app"]
 
     // Resolved contact info for notifications
     @JsonProperty("notificationEmail")

@@ -15,6 +15,7 @@ public enum LiveStrategiesErrorDetails implements ErrorDetails {
     ALERT_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "alert-delete-failed"),
     ALERT_NOT_FOUND(HttpStatus.NOT_FOUND, "alert-not-found"),
     ALERT_HISTORY_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "alert-history-fetch-failed"),
+    ALERT_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "alert-limit-exceeded"),
     NOTIFICATION_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "notification-send-failed"),
 
     // Bot errors

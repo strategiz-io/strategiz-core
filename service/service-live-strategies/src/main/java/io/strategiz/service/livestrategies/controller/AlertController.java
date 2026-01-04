@@ -14,8 +14,11 @@ import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.business.preferences.service.SubscriptionService;
+import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.livestrategies.exception.LiveStrategiesErrorDetails;
+import io.strategiz.service.livestrategies.service.AlertNotificationService;
 import io.strategiz.service.livestrategies.model.request.CreateAlertRequest;
 import io.strategiz.service.livestrategies.model.request.UpdateAlertStatusRequest;
 import io.strategiz.service.livestrategies.model.response.AlertResponse;
@@ -34,6 +37,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.google.cloud.Timestamp;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +64,8 @@ public class AlertController {
     private final UpdateStrategyRepository updateStrategyRepository;
     private final AlertNotificationPreferencesRepository alertPreferencesRepository;
     private final UserRepository userRepository;
+    private final AlertNotificationService alertNotificationService;
+    private final SubscriptionService subscriptionService;
 
     @Autowired
     public AlertController(
@@ -70,7 +77,9 @@ public class AlertController {
             ReadStrategyRepository readStrategyRepository,
             UpdateStrategyRepository updateStrategyRepository,
             AlertNotificationPreferencesRepository alertPreferencesRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            AlertNotificationService alertNotificationService,
+            SubscriptionService subscriptionService) {
         this.readAlertRepository = readAlertRepository;
         this.createAlertRepository = createAlertRepository;
         this.updateAlertRepository = updateAlertRepository;
@@ -80,6 +89,8 @@ public class AlertController {
         this.updateStrategyRepository = updateStrategyRepository;
         this.alertPreferencesRepository = alertPreferencesRepository;
         this.userRepository = userRepository;
+        this.alertNotificationService = alertNotificationService;
+        this.subscriptionService = subscriptionService;
     }
 
     /**
@@ -130,9 +141,9 @@ public class AlertController {
 
             Strategy strategy = strategyOpt.get();
 
-            // TODO: Check subscription tier limits (FREE: 3, STARTER: 10, PRO: unlimited)
+            // Check subscription tier limits (SCOUT: 3, TRADER: 10, STRATEGIST: unlimited)
             int activeCount = readAlertRepository.countActiveByUserId(userId);
-            // For now, allow unlimited - will add tier checking later
+            validateAlertLimit(userId, activeCount);
 
             // Resolve contact info for notifications
             String notificationEmail = null;
@@ -180,6 +191,24 @@ public class AlertController {
             alert.setProviderId(request.getProviderId());
             alert.setExchange(request.getExchange());
             alert.setNotificationChannels(request.getNotificationChannels());
+
+            // If no channels specified, use defaults from preferences or ["email", "in-app"]
+            if (alert.getNotificationChannels() == null || alert.getNotificationChannels().isEmpty()) {
+                AlertNotificationPreferences prefs = alertPreferencesRepository.getByUserId(userId);
+                if (prefs != null && prefs.getEnabledChannels() != null && !prefs.getEnabledChannels().isEmpty()) {
+                    alert.setNotificationChannels(new ArrayList<>(prefs.getEnabledChannels()));
+                } else {
+                    alert.setNotificationChannels(List.of("email", "in-app"));
+                }
+                logger.info("Using default notification channels for alert {}: {}",
+                            alert.getAlertName(), alert.getNotificationChannels());
+            }
+
+            // Log warning if push requested (coming soon feature)
+            if (alert.getNotificationChannels().contains("push")) {
+                logger.warn("Push notifications requested but not yet available - will be ignored");
+            }
+
             alert.setNotificationEmail(notificationEmail);
             alert.setNotificationPhone(notificationPhone);
             alert.setStatus("ACTIVE");
@@ -276,15 +305,39 @@ public class AlertController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
-            // Fetch history entries
-            List<AlertDeploymentHistory> history = readHistoryRepository.findByAlertId(id);
+            // Fetch history entries with filters applied
+            List<AlertDeploymentHistory> history;
 
-            // Apply limit manually (TODO: add limit parameter to repository method)
+            if (signal != null && !signal.isEmpty()) {
+                // Filter by signal type (BUY, SELL, HOLD)
+                history = readHistoryRepository.findBySignal(userId, signal.toUpperCase());
+                // Further filter to this specific alert
+                history = history.stream()
+                    .filter(h -> id.equals(h.getAlertId()))
+                    .collect(Collectors.toList());
+            } else if (days != null && days > 0) {
+                // Filter by time range (last N days)
+                Instant startTime = Instant.now().minus(days, ChronoUnit.DAYS);
+                Timestamp startTimestamp = Timestamp.ofTimeSecondsAndNanos(
+                    startTime.getEpochSecond(),
+                    startTime.getNano()
+                );
+                Timestamp endTimestamp = Timestamp.now();
+
+                history = readHistoryRepository.findByTimeRange(userId, startTimestamp, endTimestamp);
+                // Further filter to this specific alert
+                history = history.stream()
+                    .filter(h -> id.equals(h.getAlertId()))
+                    .collect(Collectors.toList());
+            } else {
+                // No filters - fetch all for this alert
+                history = readHistoryRepository.findByAlertId(id);
+            }
+
+            // Apply limit (always applied last, after other filters)
             if (history.size() > limit) {
                 history = history.subList(0, limit);
             }
-
-            // TODO: Apply filters (days, signal) - for now return all
 
             AlertHistoryResponse response = new AlertHistoryResponse();
             response.setAlertId(id);
@@ -347,19 +400,27 @@ public class AlertController {
 
         try {
             // Verify alert belongs to user
-            Optional<AlertDeployment> alert = readAlertRepository.findById(id);
-            if (alert.isEmpty() || !userId.equals(alert.get().getUserId())) {
+            Optional<AlertDeployment> alertOpt = readAlertRepository.findById(id);
+            if (alertOpt.isEmpty() || !userId.equals(alertOpt.get().getUserId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Alert not found or access denied"));
             }
 
-            // TODO: Implement test notification via AlertNotificationService
-            // For now, just return success
+            AlertDeployment alert = alertOpt.get();
 
-            String channels = String.join(", ", alert.get().getNotificationChannels());
-            return ResponseEntity.ok(
-                    new MessageResponse("Test notification sent to " + channels)
+            // Send test notification through all configured channels
+            alertNotificationService.sendTestNotification(alert);
+
+            // Build response with channel details
+            String channels = String.join(", ", alert.getNotificationChannels());
+            String message = String.format(
+                "Test notification sent to %s. Check your %s for the test alert.",
+                channels,
+                alert.getNotificationChannels().contains("email") ? "inbox" : "notifications"
             );
+
+            return ResponseEntity.ok(new MessageResponse(message));
+
         } catch (StrategizException e) {
             throw e;
         } catch (Exception e) {
@@ -423,5 +484,49 @@ public class AlertController {
         entry.setNotificationSent(history.getNotificationSent());
         entry.setMetadata(history.getMetadata());
         return entry;
+    }
+
+    /**
+     * Get maximum number of alerts allowed for a subscription tier.
+     *
+     * @param tier The subscription tier
+     * @return Maximum alerts (0 = unlimited)
+     */
+    private int getMaxAlertsForTier(SubscriptionTier tier) {
+        return switch (tier) {
+            case SCOUT -> 3;        // FREE tier
+            case TRADER -> 10;      // STARTER tier
+            case STRATEGIST -> 0;   // PRO tier (unlimited)
+        };
+    }
+
+    /**
+     * Check if user can create more alerts based on their subscription tier.
+     *
+     * @param userId The user ID
+     * @param currentActiveCount Current number of active alerts
+     * @throws StrategizException if limit is exceeded
+     */
+    private void validateAlertLimit(String userId, int currentActiveCount) {
+        SubscriptionTier tier = subscriptionService.getTier(userId);
+        int maxAlerts = getMaxAlertsForTier(tier);
+
+        // 0 means unlimited
+        if (maxAlerts == 0) {
+            return;
+        }
+
+        if (currentActiveCount >= maxAlerts) {
+            String message = String.format(
+                "Alert limit reached. Your %s tier allows %d alerts. Upgrade to create more alerts.",
+                tier.getDisplayName(),
+                maxAlerts
+            );
+            throw new StrategizException(
+                LiveStrategiesErrorDetails.ALERT_LIMIT_EXCEEDED,
+                "service-live-strategies",
+                message
+            );
+        }
     }
 }

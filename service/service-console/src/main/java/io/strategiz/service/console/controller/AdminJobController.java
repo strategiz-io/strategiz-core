@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -81,6 +83,62 @@ public class AdminJobController extends BaseController {
         JobResponse job = jobManagementService.triggerJob(name);
         log.info("Job {} triggered by admin {}", name, adminUserId);
         return ResponseEntity.ok(job);
+    }
+
+    @GetMapping("/history")
+    @Operation(summary = "Get all job execution history", description = "Returns paginated execution history across all jobs with statistics")
+    public ResponseEntity<JobExecutionHistoryResponse> getAllJobHistory(
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "50") int pageSize,
+            @Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("getAllJobHistory", adminUserId, "page=" + page);
+
+        // Get paginated execution history across all jobs
+        Pageable pageable = PageRequest.of(page, pageSize);
+        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryService.getAllExecutionHistory(pageable);
+
+        // Convert to DTOs
+        List<JobExecutionRecord> executionRecords = executionsPage.getContent().stream()
+            .map(this::convertToJobExecutionRecord)
+            .collect(Collectors.toList());
+
+        // Calculate aggregate statistics across all jobs
+        Instant since = Instant.ofEpochMilli(System.currentTimeMillis() - sinceDays * 24L * 60L * 60L * 1000L);
+        List<JobExecutionEntity> recentExecutions = jobExecutionHistoryService.getAllExecutionsSince(since);
+
+        long successCount = recentExecutions.stream().filter(e -> "SUCCESS".equals(e.getStatus())).count();
+        long failureCount = recentExecutions.stream().filter(e -> "FAILED".equals(e.getStatus())).count();
+        long totalCount = successCount + failureCount;
+        double successRate = (totalCount > 0) ? (double) successCount / totalCount * 100.0 : 0.0;
+
+        long avgDuration = (long) recentExecutions.stream()
+            .filter(e -> "SUCCESS".equals(e.getStatus()) && e.getDurationMs() != null)
+            .mapToLong(JobExecutionEntity::getDurationMs)
+            .average()
+            .orElse(0.0);
+
+        Map<String, Object> stats = Map.of(
+            "successCount", successCount,
+            "failureCount", failureCount,
+            "totalCount", totalCount,
+            "successRate", Math.round(successRate * 100.0) / 100.0,
+            "avgDurationMs", avgDuration,
+            "periodDays", sinceDays
+        );
+
+        // Build response
+        JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(
+            executionRecords,
+            stats,
+            page,
+            pageSize,
+            executionsPage.getTotalElements(),
+            executionsPage.getTotalPages()
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{name}/history")

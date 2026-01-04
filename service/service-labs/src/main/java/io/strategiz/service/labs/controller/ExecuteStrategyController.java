@@ -172,7 +172,7 @@ public class ExecuteStrategyController extends BaseController {
                     duration,
                     grpcResponse.isSuccess(),
                     grpcResponse.getPerformance() != null
-                        ? grpcResponse.getPerformance().getTradesCount() : 0);
+                        ? grpcResponse.getPerformance().getTotalTrades() : 0);
 
                 // Convert gRPC response to REST response
                 ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);

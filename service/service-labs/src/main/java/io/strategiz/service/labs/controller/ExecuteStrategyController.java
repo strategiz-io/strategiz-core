@@ -171,8 +171,8 @@ public class ExecuteStrategyController extends BaseController {
                 logger.info("✅ Python gRPC microservice execution completed in {}ms - Success: {}, Trades: {}",
                     duration,
                     grpcResponse.isSuccess(),
-                    grpcResponse.getPerformance() != null && grpcResponse.getPerformance().getTrades() != null
-                        ? grpcResponse.getPerformance().getTrades().size() : 0);
+                    grpcResponse.getPerformance() != null
+                        ? grpcResponse.getPerformance().getTradesCount() : 0);
 
                 // Convert gRPC response to REST response
                 ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);

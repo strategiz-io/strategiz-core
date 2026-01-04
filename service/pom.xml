@@ -31,7 +31,7 @@
         <module>service-profile</module>
         <module>service-provider</module>
         <module>service-labs</module>
-        <module>service-live-strategies</module>
+        <module>service-my-strategies</module>
         <module>service-walletaddress</module>
         <module>service-learn</module>
         <module>service-console</module>

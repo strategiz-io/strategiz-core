@@ -84,6 +84,7 @@
         <module>client/client-openai-vertex</module>
         <module>client/client-robinhood</module>
         <module>client/client-sms</module>
+        <module>client/client-sendgrid-billing</module>
         <module>client/client-claude-vertex</module>
         <module>client/client-llama-vertex</module>
         <module>client/client-mistral-vertex</module>

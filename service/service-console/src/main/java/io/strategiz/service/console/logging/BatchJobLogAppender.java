@@ -2,6 +2,7 @@ package io.strategiz.service.console.logging;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
+import io.strategiz.service.console.service.JobLogStreamService;
 import org.springframework.context.ApplicationContext;
 
 import java.time.Instant;

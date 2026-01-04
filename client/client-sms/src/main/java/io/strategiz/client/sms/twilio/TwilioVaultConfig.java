@@ -1,14 +1,13 @@
 package io.strategiz.client.sms.twilio;
 
-import io.strategiz.framework.secrets.SecretManager;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Map;
 
 /**
  * Loads Twilio credentials from Vault and injects them into TwilioSmsConfig.
@@ -20,15 +19,14 @@ import java.util.Map;
 @ConditionalOnProperty(name = "twilio.enabled", havingValue = "true")
 public class TwilioVaultConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(TwilioVaultConfig.class);
-    private static final String VAULT_PATH = "secret/strategiz/twilio";
+    private static final Logger log = LoggerFactory.getLogger(TwilioVaultConfig.class);
 
     private final SecretManager secretManager;
     private final TwilioSmsConfig twilioConfig;
 
     @Autowired
     public TwilioVaultConfig(
-            SecretManager secretManager,
+            @Qualifier("vaultSecretService") SecretManager secretManager,
             TwilioSmsConfig twilioConfig) {
         this.secretManager = secretManager;
         this.twilioConfig = twilioConfig;
@@ -37,26 +35,43 @@ public class TwilioVaultConfig {
     @PostConstruct
     public void loadSecretsFromVault() {
         try {
-            logger.info("Loading Twilio credentials from Vault: {}", VAULT_PATH);
+            log.info("Loading Twilio credentials from Vault...");
 
-            Map<String, String> secrets = secretManager.getSecrets(VAULT_PATH);
-
-            // Load and inject secrets into config
-            String accountSid = secrets.get("account-sid");
-            String authToken = secrets.get("auth-token");
-            String phoneNumber = secrets.get("phone-number");
-
-            if (accountSid != null && authToken != null && phoneNumber != null) {
+            // Load Account SID
+            String accountSid = secretManager.readSecret("twilio.account-sid", null);
+            if (accountSid != null && !accountSid.isEmpty()) {
                 twilioConfig.setAccountSid(accountSid);
-                twilioConfig.setAuthToken(authToken);
-                twilioConfig.setPhoneNumber(phoneNumber);
-                logger.info("Twilio credentials loaded successfully from Vault");
+                log.info("Loaded Twilio Account SID from Vault");
             } else {
-                logger.warn("Twilio credentials incomplete in Vault - missing required fields");
+                log.warn("Twilio Account SID not found in Vault");
+            }
+
+            // Load Auth Token
+            String authToken = secretManager.readSecret("twilio.auth-token", null);
+            if (authToken != null && !authToken.isEmpty()) {
+                twilioConfig.setAuthToken(authToken);
+                log.info("Loaded Twilio Auth Token from Vault");
+            } else {
+                log.warn("Twilio Auth Token not found in Vault");
+            }
+
+            // Load Phone Number
+            String phoneNumber = secretManager.readSecret("twilio.phone-number", null);
+            if (phoneNumber != null && !phoneNumber.isEmpty()) {
+                twilioConfig.setPhoneNumber(phoneNumber);
+                log.info("Loaded Twilio Phone Number from Vault");
+            } else {
+                log.warn("Twilio Phone Number not found in Vault");
+            }
+
+            if (twilioConfig.isConfigured()) {
+                log.info("Twilio SMS configuration loaded successfully from Vault");
+            } else {
+                log.warn("Twilio SMS not fully configured - some fields missing from Vault");
             }
 
         } catch (Exception e) {
-            logger.error("Failed to load Twilio credentials from Vault: {}", e.getMessage());
+            log.error("Failed to load Twilio credentials from Vault", e);
         }
     }
 }

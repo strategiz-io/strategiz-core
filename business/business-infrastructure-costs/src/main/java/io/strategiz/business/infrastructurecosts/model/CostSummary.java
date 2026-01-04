@@ -4,13 +4,14 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Aggregated cost summary combining GCP and TimescaleDB costs
+ * Aggregated cost summary combining GCP, TimescaleDB, and subscription costs
  */
 public record CostSummary(
         String month,
         BigDecimal totalCost,
         BigDecimal gcpCost,
         BigDecimal timescaleCost,
+        BigDecimal subscriptionCosts,
         String currency,
         int daysSoFar,
         BigDecimal avgDailyCost,
@@ -20,6 +21,7 @@ public record CostSummary(
     public static CostSummary empty(String month) {
         return new CostSummary(
                 month,
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,

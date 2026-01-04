@@ -80,7 +80,7 @@ public class AIStrategyService extends BaseService {
 		}
 		catch (Exception e) {
 			log.error("Error generating strategy", e);
-			return AIStrategyResponse.error("Failed to generate strategy: " + e.getMessage());
+			return AIStrategyResponse.error("Our AI assistant is temporarily unavailable. Please try again in a moment.");
 		}
 	}
 
@@ -130,7 +130,7 @@ public class AIStrategyService extends BaseService {
 		}
 		catch (Exception e) {
 			log.error("Error refining strategy", e);
-			return AIStrategyResponse.error("Failed to refine strategy: " + e.getMessage());
+			return AIStrategyResponse.error("Our AI assistant is temporarily unavailable. Please try again in a moment.");
 		}
 	}
 
@@ -148,7 +148,9 @@ public class AIStrategyService extends BaseService {
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
-				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+			log.warn("LLM error occurred: {}", technicalError);
+			result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -175,7 +177,7 @@ public class AIStrategyService extends BaseService {
 			catch (Exception e) {
 				log.error("Error parsing code-to-visual response", e);
 				result.setSuccess(false);
-				result.setError("Failed to parse code: " + e.getMessage());
+				result.setError("Unable to analyze the code. Please try again or contact support.");
 				result.setCanRepresentVisually(false);
 			}
 
@@ -183,7 +185,7 @@ public class AIStrategyService extends BaseService {
 		}
 		catch (Exception e) {
 			log.error("Error parsing code to visual", e);
-			return AIStrategyResponse.error("Failed to parse code: " + e.getMessage());
+			return AIStrategyResponse.error("Unable to analyze the code. Please try again or contact support.");
 		}
 	}
 
@@ -208,7 +210,9 @@ public class AIStrategyService extends BaseService {
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
-				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+			log.warn("LLM error occurred: {}", technicalError);
+			result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -284,7 +288,9 @@ public class AIStrategyService extends BaseService {
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
-				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+			log.warn("LLM error occurred: {}", technicalError);
+			result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -340,7 +346,9 @@ public class AIStrategyService extends BaseService {
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
-				result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+			log.warn("LLM error occurred: {}", technicalError);
+			result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -455,7 +463,9 @@ public class AIStrategyService extends BaseService {
 
 		if (llmResponse == null || !llmResponse.isSuccess()) {
 			result.setSuccess(false);
-			result.setError(llmResponse != null ? llmResponse.getError() : "No response from AI");
+			String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+			log.warn("LLM error during code parsing: {}", technicalError);
+			result.setError(sanitizeErrorMessage(technicalError));
 			return result;
 		}
 
@@ -581,6 +591,53 @@ public class AIStrategyService extends BaseService {
 			return matcher.group(1).trim();
 		}
 		return null;
+	}
+
+	/**
+	 * Sanitize technical LLM error messages to be user-friendly.
+	 * Logs the full technical error for debugging.
+	 */
+	private String sanitizeErrorMessage(String technicalError) {
+		if (technicalError == null) {
+			return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
+		}
+
+		String lowerError = technicalError.toLowerCase();
+
+		// Authentication/authorization errors
+		if (lowerError.contains("401") || lowerError.contains("unauthorized") || lowerError.contains("unauthenticated")
+				|| lowerError.contains("access_token_expired") || lowerError.contains("invalid authentication")) {
+			return "Our AI assistant is experiencing authentication issues. Our team has been notified. Please try again shortly.";
+		}
+
+		// Rate limiting
+		if (lowerError.contains("429") || lowerError.contains("rate limit") || lowerError.contains("quota")) {
+			return "Our AI is currently experiencing high demand. Please try again in a few moments.";
+		}
+
+		// Service unavailable
+		if (lowerError.contains("503") || lowerError.contains("service unavailable")
+				|| lowerError.contains("temporarily unavailable")) {
+			return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
+		}
+
+		// Timeout
+		if (lowerError.contains("timeout") || lowerError.contains("timed out")) {
+			return "The AI took too long to respond. Please try again.";
+		}
+
+		// Network errors
+		if (lowerError.contains("network") || lowerError.contains("connection") || lowerError.contains("unreachable")) {
+			return "Unable to reach our AI service. Please check your connection and try again.";
+		}
+
+		// Model-specific errors
+		if (lowerError.contains("failed to call") || lowerError.contains("api error")) {
+			return "Our AI assistant encountered an error. Please try again or contact support if the issue persists.";
+		}
+
+		// Generic fallback
+		return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
 	}
 
 }

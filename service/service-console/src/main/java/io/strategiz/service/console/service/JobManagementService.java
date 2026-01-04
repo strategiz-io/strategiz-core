@@ -9,6 +9,7 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.JobResponse;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -42,6 +43,9 @@ public class JobManagementService extends BaseService {
 
 	private final Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob;
 
+	// Log streaming service for SSE
+	private final JobLogStreamService jobLogStreamService;
+
 	// Known jobs (registered at startup or manually added)
 	private static final Map<String, JobConfig> KNOWN_JOBS = Map.of("marketDataBackfill",
 			new JobConfig("marketDataBackfill", "Market Data Backfill",
@@ -62,18 +66,17 @@ public class JobManagementService extends BaseService {
 	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
 			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
 			Optional<FundamentalsBackfillJob> fundamentalsBackfillJob,
-			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob
-	) {
+			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob, JobLogStreamService jobLogStreamService) {
 		this.marketDataBackfillJob = marketDataBackfillJob;
 		this.marketDataIncrementalJob = marketDataIncrementalJob;
 		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
 		this.fundamentalsIncrementalJob = fundamentalsIncrementalJob;
+		this.jobLogStreamService = jobLogStreamService;
 
 		log.info(
 				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}",
 				marketDataBackfillJob.isPresent(), marketDataIncrementalJob.isPresent(),
-				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent()
-		);
+				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent());
 	}
 
 	public List<JobResponse> listJobs() {
@@ -172,6 +175,12 @@ public class JobManagementService extends BaseService {
 	public void executeJob(String jobName) {
 		long startTime = System.currentTimeMillis();
 
+		// CREATE LOG STREAM BEFORE JOB STARTS
+		jobLogStreamService.createJobStream(jobName);
+
+		// SET MDC CONTEXT FOR LOG FILTERING
+		MDC.put("jobName", jobName);
+
 		try {
 			switch (jobName) {
 				case "marketDataBackfill":
@@ -200,6 +209,13 @@ public class JobManagementService extends BaseService {
 			log.error("Job {} failed: {}", jobName, e.getMessage(), e);
 			long duration = System.currentTimeMillis() - startTime;
 			recordJobCompletion(jobName, false, duration);
+		}
+		finally {
+			// CLEANUP MDC
+			MDC.remove("jobName");
+
+			// SCHEDULE CLEANUP (after 5 min delay for late viewers)
+			jobLogStreamService.scheduleJobCleanup(jobName);
 		}
 	}
 

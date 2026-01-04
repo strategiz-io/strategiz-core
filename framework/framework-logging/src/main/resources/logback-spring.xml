@@ -161,7 +161,12 @@
         <includeCallerData>false</includeCallerData>
         <appender-ref ref="SECURITY_FILE"/>
     </appender>
-    
+
+    <!-- Batch Job SSE Streaming Appender -->
+    <appender name="BATCH_JOB_SSE" class="io.strategiz.service.console.logging.BatchJobLogAppender">
+        <jobNamePatterns>MarketData.*Job,Fundamentals.*Job</jobNamePatterns>
+    </appender>
+
     <!-- Logger configurations -->
     
     <!-- Strategiz application loggers -->
@@ -176,7 +181,19 @@
         <appender-ref ref="ASYNC_PERFORMANCE"/>
         <appender-ref ref="ASYNC_SECURITY"/>
     </logger>
-    
+
+    <!-- Batch job loggers with SSE streaming -->
+    <logger name="io.strategiz.batch" level="INFO" additivity="false">
+        <springProfile name="local,dev">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!dev">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </springProfile>
+        <appender-ref ref="ASYNC_FILE"/>
+        <appender-ref ref="BATCH_JOB_SSE"/>
+    </logger>
+
     <!-- Spring Boot loggers -->
     <logger name="org.springframework" level="INFO"/>
     <logger name="org.springframework.web" level="DEBUG"/>

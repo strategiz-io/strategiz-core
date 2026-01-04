@@ -31,7 +31,8 @@ public class GlobalMessageSourceConfig {
             "messages/service-profile-errors",
             "messages/service-marketplace-errors",
             "messages/service-monitoring-errors",
-            "messages/service-marketing-errors"
+            "messages/service-marketing-errors",
+            "messages/service-live-strategies-errors"
         );
         
         messageSource.setDefaultEncoding("UTF-8");

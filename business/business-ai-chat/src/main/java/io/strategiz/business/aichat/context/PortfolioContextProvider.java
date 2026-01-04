@@ -86,9 +86,10 @@ public class PortfolioContextProvider {
 
 		// Use metrics to determine allocation if available
 		if (metrics != null && metrics.getAllocation() != null) {
-			allocation.put("crypto", formatPercent(metrics.getAllocation().getCryptoPercent()));
-			allocation.put("stocks", formatPercent(metrics.getAllocation().getStocksPercent()));
-			allocation.put("cash", formatPercent(metrics.getAllocation().getCashPercent()));
+			Map<String, BigDecimal> allocMap = metrics.getAllocation();
+			allocation.put("crypto", formatPercent(allocMap.get("crypto")));
+			allocation.put("stocks", formatPercent(allocMap.get("stocks")));
+			allocation.put("cash", formatPercent(allocMap.get("cash")));
 		} else {
 			// Fallback: calculate simple provider-based allocation
 			int totalProviders = data.getExchanges().size();
@@ -123,8 +124,8 @@ public class PortfolioContextProvider {
 					Map<String, Object> assetMap = new HashMap<>();
 					assetMap.put("symbol", asset.getSymbol() != null ? asset.getSymbol() : "UNKNOWN");
 					assetMap.put("name", asset.getName() != null ? asset.getName() : asset.getSymbol());
-					assetMap.put("value", asset.getCurrentValue() != null ? asset.getCurrentValue() : BigDecimal.ZERO);
-					assetMap.put("profitLoss", asset.getProfitLoss() != null ? asset.getProfitLoss() : BigDecimal.ZERO);
+					assetMap.put("value", asset.getValue() != null ? asset.getValue() : BigDecimal.ZERO);
+					assetMap.put("quantity", asset.getQuantity() != null ? asset.getQuantity() : BigDecimal.ZERO);
 					assetMap.put("provider", exchange.getName());
 					allAssets.add(assetMap);
 				}
@@ -145,7 +146,7 @@ public class PortfolioContextProvider {
 			holding.put("symbol", asset.get("symbol"));
 			holding.put("name", asset.get("name"));
 			holding.put("value", formatCurrency((BigDecimal) asset.get("value")));
-			holding.put("profitLoss", formatCurrency((BigDecimal) asset.get("profitLoss")));
+			holding.put("quantity", asset.get("quantity"));
 			holding.put("provider", asset.get("provider"));
 			topHoldings.add(holding);
 		}
@@ -165,10 +166,11 @@ public class PortfolioContextProvider {
 		}
 
 		// Use metrics risk data
-		riskMetrics.put("concentrationRisk", metrics.getRisk().getConcentrationRisk());
-		riskMetrics.put("diversificationScore", metrics.getRisk().getDiversificationScore());
-		riskMetrics.put("volatilityRisk", metrics.getRisk().getVolatilityRisk());
-		riskMetrics.put("largestPositionPercent", formatPercent(metrics.getRisk().getLargestPositionPercent()));
+		Map<String, BigDecimal> riskMap = metrics.getRisk();
+		riskMetrics.put("concentrationRisk", riskMap.get("concentrationRisk"));
+		riskMetrics.put("diversificationScore", riskMap.get("diversificationScore"));
+		riskMetrics.put("volatilityRisk", riskMap.get("volatilityRisk"));
+		riskMetrics.put("largestPositionPercent", formatPercent(riskMap.get("largestPositionPercent")));
 
 		return riskMetrics;
 	}
@@ -187,8 +189,8 @@ public class PortfolioContextProvider {
 				if (exchange.getAssets() != null) {
 					totalPositions += exchange.getAssets().size();
 					for (PortfolioData.AssetData asset : exchange.getAssets().values()) {
-						if (asset.getCurrentValue() != null && asset.getCurrentValue().compareTo(largestPosition) > 0) {
-							largestPosition = asset.getCurrentValue();
+						if (asset.getValue() != null && asset.getValue().compareTo(largestPosition) > 0) {
+							largestPosition = asset.getValue();
 						}
 					}
 				}

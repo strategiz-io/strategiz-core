@@ -21,8 +21,8 @@ import io.strategiz.service.livestrategies.model.request.UpdateAlertStatusReques
 import io.strategiz.service.livestrategies.model.response.AlertResponse;
 import io.strategiz.service.livestrategies.model.response.AlertHistoryResponse;
 import io.strategiz.service.livestrategies.model.response.MessageResponse;
-import io.strategiz.framework.auth.annotation.RequireAuth;
-import io.strategiz.framework.auth.annotation.AuthUser;
+import io.strategiz.framework.authorization.annotation.RequireAuth;
+import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

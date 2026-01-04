@@ -137,11 +137,11 @@ public class AIStrategyService extends BaseService {
 	/**
 	 * Parse Python code to extract visual configuration.
 	 */
-	public AIStrategyResponse parseCodeToVisual(String code) {
+	public AIStrategyResponse parseCodeToVisual(String code, String visualEditorSchema) {
 		log.info("Parsing code to visual config");
 
 		try {
-			String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code);
+			String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code, visualEditorSchema);
 			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
 
 			AIStrategyResponse result = new AIStrategyResponse();

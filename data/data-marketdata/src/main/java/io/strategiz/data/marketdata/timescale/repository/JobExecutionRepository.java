@@ -140,4 +140,27 @@ public interface JobExecutionRepository extends JpaRepository<JobExecutionEntity
         @Param("endDate") Instant endDate,
         Pageable pageable
     );
+
+    /**
+     * Find all executions across all jobs, ordered by start time descending.
+     * Used for admin console to view all job history.
+     *
+     * @param pageable Pagination parameters
+     * @return Page of execution records
+     */
+    @Query("SELECT j FROM JobExecutionEntity j " +
+           "ORDER BY j.startTime DESC")
+    Page<JobExecutionEntity> findAllOrderByStartTimeDesc(Pageable pageable);
+
+    /**
+     * Find all executions across all jobs since a timestamp.
+     * Used for calculating aggregate statistics.
+     *
+     * @param since Only return executions after this timestamp
+     * @return List of execution records
+     */
+    @Query("SELECT j FROM JobExecutionEntity j " +
+           "WHERE j.startTime >= :since " +
+           "ORDER BY j.startTime DESC")
+    List<JobExecutionEntity> findAllSince(@Param("since") Instant since);
 }

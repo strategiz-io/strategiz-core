@@ -328,4 +328,50 @@ public class JobExecutionHistoryService {
 
         return count != null ? count : 0L;
     }
+
+    /**
+     * Get paginated execution history across ALL jobs.
+     * Used by admin console to view complete job history.
+     *
+     * @param pageable Pagination parameters
+     * @return Page of execution records, ordered by start time descending
+     */
+    public Page<JobExecutionEntity> getAllExecutionHistory(Pageable pageable) {
+        long startTime = System.currentTimeMillis();
+
+        Page<JobExecutionEntity> executions = jobExecutionRepository.findAllOrderByStartTimeDesc(pageable);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Retrieved {} execution records across all jobs in {}ms (page {} of {})",
+            executions.getNumberOfElements(), duration, pageable.getPageNumber(), executions.getTotalPages());
+
+        return executions;
+    }
+
+    /**
+     * Get all executions across all jobs since a timestamp.
+     * Used for calculating aggregate statistics in admin console.
+     *
+     * @param since Only return executions after this timestamp
+     * @return List of execution records
+     */
+    public List<JobExecutionEntity> getAllExecutionsSince(Instant since) {
+        if (since == null) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "since cannot be null"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        List<JobExecutionEntity> executions = jobExecutionRepository.findAllSince(since);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Retrieved {} executions across all jobs since {} in {}ms",
+            executions.size(), since, duration);
+
+        return executions;
+    }
 }

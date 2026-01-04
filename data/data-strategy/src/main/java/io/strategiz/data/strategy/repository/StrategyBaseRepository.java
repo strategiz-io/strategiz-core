@@ -22,10 +22,10 @@ public class StrategyBaseRepository extends BaseRepository<Strategy> {
     }
 
     /**
-     * Find strategies by userId field
+     * Find strategies by ownerId field (owner of the strategy)
      */
     public java.util.List<Strategy> findAllByUserId(String userId) {
-        return findByField("userId", userId);
+        return findByField("ownerId", userId);
     }
 
     /**

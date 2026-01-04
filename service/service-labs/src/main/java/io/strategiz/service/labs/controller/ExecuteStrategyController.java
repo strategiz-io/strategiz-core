@@ -133,6 +133,8 @@ public class ExecuteStrategyController extends BaseController {
 
             // For Python execution - use gRPC execution service for better security and isolation
             if ("python".equalsIgnoreCase(request.getLanguage())) {
+                logger.info("🚀 PYTHON EXECUTION VIA gRPC MICROSERVICE - Starting execution for userId={}", userId);
+
                 // Validate symbol is provided
                 String symbol = request.getSymbol();
                 if (symbol == null || symbol.trim().isEmpty()) {
@@ -142,15 +144,20 @@ public class ExecuteStrategyController extends BaseController {
                     );
                 }
 
+                logger.info("📊 Fetching market data for symbol: {}", symbol);
                 // Fetch real market data from repository (null strategy = uses 2-year default)
                 List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol, null);
+                logger.info("✅ Market data fetched: {} bars", marketDataList.size());
 
                 // Convert market data to gRPC format
                 List<MarketDataBar> grpcMarketData = marketDataList.stream()
                     .map(ExecutionServiceClient::createMarketDataBar)
                     .collect(java.util.stream.Collectors.toList());
 
+                logger.info("🔌 Calling Python gRPC microservice...");
+
                 // Execute via gRPC (isolated Python microservice)
+                long startTime = System.currentTimeMillis();
                 io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
                     request.getCode(),
                     "python",
@@ -159,6 +166,12 @@ public class ExecuteStrategyController extends BaseController {
                     "direct-execution-" + System.currentTimeMillis(),
                     30  // timeout seconds
                 );
+                long duration = System.currentTimeMillis() - startTime;
+
+                logger.info("✅ Python gRPC microservice execution completed in {}ms - Success: {}, Trades: {}",
+                    duration,
+                    grpcResponse.isSuccess(),
+                    grpcResponse.getTrades() != null ? grpcResponse.getTrades().size() : 0);
 
                 // Convert gRPC response to REST response
                 ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);

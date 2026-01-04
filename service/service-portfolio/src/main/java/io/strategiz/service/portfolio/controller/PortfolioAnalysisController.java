@@ -4,7 +4,7 @@ import io.strategiz.business.aichat.PortfolioAnalysisService;
 import io.strategiz.business.aichat.model.ChatResponse;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
-import io.strategiz.framework.authorization.model.AuthenticatedUser;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.base.BaseController;
 import io.strategiz.service.portfolio.model.request.PortfolioAnalysisRequestDto;
 import io.strategiz.service.portfolio.model.request.PortfolioChatRequestDto;

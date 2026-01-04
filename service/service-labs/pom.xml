@@ -62,13 +62,12 @@
             <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- gRPC client for Python execution service - TEMPORARILY DISABLED: Protobuf generation issues
+        <!-- gRPC client for Python execution service -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-execution</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Spring dependencies -->
         <dependency>

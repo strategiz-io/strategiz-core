@@ -9,6 +9,7 @@ import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import io.strategiz.service.labs.model.CreateStrategyRequest;
+import io.strategiz.service.labs.model.CreateStrategyResponse;
 import io.strategiz.service.labs.model.StrategyResponse;
 import io.strategiz.service.labs.service.UpdateStrategyService;
 import io.strategiz.service.labs.service.ReadStrategyService;
@@ -41,7 +42,7 @@ public class UpdateStrategyController extends BaseController {
     
     @PutMapping("/{strategyId}")
     @Operation(summary = "Update a strategy", description = "Updates an existing trading strategy")
-    public ResponseEntity<StrategyResponse> updateStrategy(
+    public ResponseEntity<CreateStrategyResponse> updateStrategy(
             @PathVariable String strategyId,
             @Valid @RequestBody CreateStrategyRequest request,
             @AuthUser AuthenticatedUser user) {
@@ -53,8 +54,14 @@ public class UpdateStrategyController extends BaseController {
             // Update strategy using service
             Strategy updated = updateStrategyService.updateStrategy(strategyId, userId, request);
 
-            // Convert to response
-            StrategyResponse response = convertToResponse(updated);
+            // Return minimal response (just essential fields, not code or performance data)
+            CreateStrategyResponse response = new CreateStrategyResponse();
+            response.setId(updated.getId());
+            response.setName(updated.getName());
+            response.setStatus(updated.getPublishStatus());
+            response.setPublicStatus(updated.getPublicStatus());
+            response.setCreatedDate(updated.getCreatedDate() != null ? updated.getCreatedDate().toString() : null);
+            response.setModifiedDate(updated.getModifiedDate() != null ? updated.getModifiedDate().toString() : null);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -92,7 +99,7 @@ public class UpdateStrategyController extends BaseController {
             throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
         }
     }
-    
+
     private StrategyResponse convertToResponse(Strategy strategy) {
         StrategyResponse response = new StrategyResponse();
         response.setId(strategy.getId());

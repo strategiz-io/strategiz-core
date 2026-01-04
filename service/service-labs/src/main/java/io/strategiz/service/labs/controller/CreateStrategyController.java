@@ -4,6 +4,7 @@ import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.model.CreateStrategyRequest;
+import io.strategiz.service.labs.model.CreateStrategyResponse;
 import io.strategiz.service.labs.model.StrategyResponse;
 import io.strategiz.service.labs.service.CreateStrategyService;
 import io.strategiz.framework.authorization.annotation.RequireAuth;
@@ -36,7 +37,7 @@ public class CreateStrategyController extends BaseController {
     
     @PostMapping
     @Operation(summary = "Create a new strategy", description = "Creates a new trading strategy for the authenticated user")
-    public ResponseEntity<StrategyResponse> createStrategy(
+    public ResponseEntity<CreateStrategyResponse> createStrategy(
             @Valid @RequestBody CreateStrategyRequest request,
             @AuthUser AuthenticatedUser user) {
 
@@ -47,8 +48,14 @@ public class CreateStrategyController extends BaseController {
             // Create strategy using service
             Strategy created = createStrategyService.createStrategy(request, userId);
 
-            // Convert to response
-            StrategyResponse response = convertToResponse(created);
+            // Return minimal response (just essential fields, not code or performance data)
+            CreateStrategyResponse response = new CreateStrategyResponse();
+            response.setId(created.getId());
+            response.setName(created.getName());
+            response.setStatus(created.getPublishStatus());
+            response.setPublicStatus(created.getPublicStatus());
+            response.setCreatedDate(created.getCreatedDate() != null ? created.getCreatedDate().toString() : null);
+            response.setModifiedDate(created.getModifiedDate() != null ? created.getModifiedDate().toString() : null);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
@@ -56,7 +63,7 @@ public class CreateStrategyController extends BaseController {
             throw handleException(e, StrategyConstants.ERROR_STRATEGY_CREATION_FAILED);
         }
     }
-    
+
     private StrategyResponse convertToResponse(Strategy strategy) {
         StrategyResponse response = new StrategyResponse();
         response.setId(strategy.getId());

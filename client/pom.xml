@@ -42,6 +42,7 @@
         <module>client-cohere-vertex</module>
         <module>client-gcp-billing</module>
         <module>client-timescale-billing</module>
+        <module>client-sendgrid-billing</module>
         <module>client-stripe</module>
         <module>client-plaid</module>
         <module>client-sonarqube</module>

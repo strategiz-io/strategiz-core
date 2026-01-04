@@ -302,19 +302,35 @@ public class GeminiVertexClient implements LLMProvider {
 	private String getAccessToken() throws IOException {
 		// Return cached token if still valid
 		if (cachedAccessToken != null && System.currentTimeMillis() < tokenExpirationTime) {
+			logger.debug("Using cached access token");
 			return cachedAccessToken;
 		}
 
-		// Get new access token using Application Default Credentials
-		GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
-			.createScoped("https://www.googleapis.com/auth/cloud-platform");
-		credentials.refreshIfExpired();
+		logger.info("Refreshing Google Cloud access token");
 
-		cachedAccessToken = credentials.getAccessToken().getTokenValue();
-		// Token expires in 1 hour, refresh 5 minutes early
-		tokenExpirationTime = System.currentTimeMillis() + (55 * 60 * 1000);
+		try {
+			// Get new access token using Application Default Credentials
+			GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
+				.createScoped("https://www.googleapis.com/auth/cloud-platform");
 
-		return cachedAccessToken;
+			// Force refresh to get a fresh token
+			credentials.refresh();
+
+			cachedAccessToken = credentials.getAccessToken().getTokenValue();
+			// Token expires in 1 hour, refresh 5 minutes early
+			tokenExpirationTime = System.currentTimeMillis() + (55 * 60 * 1000);
+
+			logger.info("Successfully refreshed access token, expires at: {}",
+				new java.util.Date(tokenExpirationTime));
+
+			return cachedAccessToken;
+		} catch (IOException e) {
+			// Clear cache on failure so we retry next time
+			cachedAccessToken = null;
+			tokenExpirationTime = 0;
+			logger.error("Failed to refresh access token", e);
+			throw e;
+		}
 	}
 
 }

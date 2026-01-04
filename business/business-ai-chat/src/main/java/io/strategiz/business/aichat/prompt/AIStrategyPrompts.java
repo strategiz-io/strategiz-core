@@ -225,6 +225,87 @@ public class AIStrategyPrompts {
 			- MEDIUM: Balanced strategies with moderate stops (5-8%), medium positions (3-5%)
 			- HIGH: Aggressive strategies with tighter stops (8-12%), larger positions (5-10%)
 			- AGGRESSIVE: High-frequency or high-risk strategies with tight stops, large positions
+
+			---
+
+			CRITICAL: Visual Rules and Python Code MUST Match Exactly
+
+			Your response MUST include BOTH visualConfig and pythonCode that represent THE SAME STRATEGY.
+
+			Visual Rules Generation Checklist (MANDATORY):
+			1. ✓ Extract ALL conditions from your Python code into visual rules
+			2. ✓ Use EXACT indicator IDs from schema (e.g., "rsi" NOT "RSI", "sma" NOT "SMA")
+			3. ✓ Include BOTH entry AND exit rules (not just entry)
+			4. ✓ Set logic to "AND" when all conditions must be true, "OR" when any can trigger
+			5. ✓ Generate unique IDs for all rules (format: "rule-entry-1", "rule-exit-1")
+			6. ✓ Generate unique IDs for all conditions (format: "cond-1", "cond-2")
+			7. ✓ Ensure comparator values match Python code exactly (RSI < 30 → comparator: "lt", value: 30)
+			8. ✓ For crossovers, use comparator="crossAbove" or "crossBelow" (not "gt" or "lt")
+			9. ✓ Validate every rule has: id, type, action, logic, conditions[]
+			10. ✓ Validate every condition has: id, indicator, comparator, value, valueType
+
+			Example of Perfect Alignment:
+
+			Python Code:
+			```python
+			if rsi < 30 and price > sma_20:
+			    return "BUY"
+			```
+
+			Visual Rule (CORRECT - exact match):
+			```json
+			{
+			  "id": "rule-entry-1",
+			  "type": "entry",
+			  "action": "BUY",
+			  "logic": "AND",
+			  "conditions": [
+			    {
+			      "id": "cond-1",
+			      "indicator": "rsi",
+			      "comparator": "lt",
+			      "value": 30,
+			      "valueType": "number"
+			    },
+			    {
+			      "id": "cond-2",
+			      "indicator": "price",
+			      "comparator": "gt",
+			      "value": "sma",
+			      "valueType": "indicator",
+			      "secondaryIndicator": "sma"
+			    }
+			  ]
+			}
+			```
+
+			Visual Rule (WRONG - missing conditions or incorrect IDs):
+			```json
+			{
+			  "indicator": "RSI",        // ❌ Wrong! Should be lowercase "rsi"
+			  "comparator": "<",         // ❌ Wrong! Should be "lt"
+			  "logic": "and"            // ❌ Wrong! Should be uppercase "AND"
+			}
+			```
+
+			---
+
+			VERIFICATION STEPS (BEFORE RETURNING RESPONSE):
+
+			Before submitting your response, you MUST:
+			1. Review your Python code line by line
+			2. Review your visual rules line by line
+			3. Verify they represent EXACTLY the same strategy logic
+			4. Check that ALL conditions from code appear in visual rules
+			5. Check that ALL visual rules have corresponding code
+			6. Verify indicator IDs are lowercase and match schema
+			7. Verify comparator IDs are correct (not symbols like "<", ">")
+			8. Verify logic operators are uppercase ("AND", "OR")
+			9. Verify all IDs are generated and unique
+			10. If ANY mismatch found, regenerate the visual rules to match code
+
+			Remember: Users will see BOTH the visual rules and code. If they don't match,
+			the user will notice the inconsistency and lose trust in the system.
 			""";
 
 	/**
@@ -427,6 +508,136 @@ public class AIStrategyPrompts {
 			            "comparator": "lt",
 			            "value": 20,
 			            "valueType": "number"
+			          }
+			        ]
+			      }
+			    ]
+			  },
+			  "canRepresent": true
+			}
+
+			EXAMPLE 5 - Exit Rule:
+			Python Code:
+			```python
+			if price.iloc[-1] <= bb_middle.iloc[-1]:
+			    return 'SELL'
+			```
+
+			Correct JSON Output:
+			{
+			  "visualConfig": {
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "exit",
+			        "action": "SELL",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "price",
+			            "comparator": "lte",
+			            "value": "bb_middle",
+			            "valueType": "indicator",
+			            "secondaryIndicator": "bb_middle"
+			          }
+			        ]
+			      }
+			    ]
+			  },
+			  "canRepresent": true
+			}
+
+			EXAMPLE 6 - Complex Multi-Condition:
+			Python Code:
+			```python
+			if rsi.iloc[-1] < 30 and price.iloc[-1] < bb_lower.iloc[-1] and volume.iloc[-1] > 100000:
+			    return 'BUY'
+			```
+
+			Correct JSON Output:
+			{
+			  "visualConfig": {
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "rsi",
+			            "comparator": "lt",
+			            "value": 30,
+			            "valueType": "number"
+			          },
+			          {
+			            "id": "cond_2",
+			            "indicator": "price",
+			            "comparator": "lt",
+			            "value": "bb_lower",
+			            "valueType": "indicator",
+			            "secondaryIndicator": "bb_lower"
+			          },
+			          {
+			            "id": "cond_3",
+			            "indicator": "volume",
+			            "comparator": "gt",
+			            "value": 100000,
+			            "valueType": "number"
+			          }
+			        ]
+			      }
+			    ]
+			  },
+			  "canRepresent": true
+			}
+
+			EXAMPLE 7 - Complete Strategy with Entry and Exit:
+			Python Code:
+			```python
+			# Entry
+			if price.iloc[-1] > sma_20.iloc[-1] and price.iloc[-2] <= sma_20.iloc[-2]:
+			    return 'BUY'
+			# Exit
+			if price.iloc[-1] < sma_20.iloc[-1] and price.iloc[-2] >= sma_20.iloc[-2]:
+			    return 'SELL'
+			```
+
+			Correct JSON Output:
+			{
+			  "visualConfig": {
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "price",
+			            "comparator": "crossAbove",
+			            "value": "sma",
+			            "valueType": "indicator",
+			            "secondaryIndicator": "sma"
+			          }
+			        ]
+			      },
+			      {
+			        "id": "rule_2",
+			        "type": "exit",
+			        "action": "SELL",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_2",
+			            "indicator": "price",
+			            "comparator": "crossBelow",
+			            "value": "sma",
+			            "valueType": "indicator",
+			            "secondaryIndicator": "sma"
 			          }
 			        ]
 			      }

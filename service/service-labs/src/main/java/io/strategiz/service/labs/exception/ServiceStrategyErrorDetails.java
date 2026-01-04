@@ -31,6 +31,8 @@ public enum ServiceStrategyErrorDetails implements ErrorDetails {
     STRATEGY_TOO_MANY_TAGS(HttpStatus.BAD_REQUEST, "strategy-too-many-tags"),
     STRATEGY_INVALID_PERFORMANCE(HttpStatus.BAD_REQUEST, "strategy-invalid-performance"),
     STRATEGY_MISSING_PERFORMANCE(HttpStatus.BAD_REQUEST, "strategy-missing-performance"),
+    DUPLICATE_STRATEGY_NAME(HttpStatus.CONFLICT, "strategy.duplicate-name"),
+    DUPLICATE_PUBLISHED_NAME(HttpStatus.CONFLICT, "strategy.duplicate-published-name"),
 
     // Execution Errors
     STRATEGY_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "strategy-execution-failed"),

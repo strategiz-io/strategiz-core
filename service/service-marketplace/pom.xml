@@ -60,6 +60,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Service modules -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-labs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Client modules -->
         <dependency>
             <groupId>io.strategiz</groupId>

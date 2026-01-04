@@ -6,6 +6,7 @@ import io.strategiz.data.strategy.entity.StrategyPricing;
 import io.strategiz.data.strategy.repository.ReadStrategyRepository;
 import io.strategiz.data.strategy.repository.UpdateStrategyRepository;
 import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.labs.service.StrategyNameValidationService;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,13 +32,16 @@ public class StrategyPublishService extends BaseService {
 
     private final ReadStrategyRepository readStrategyRepo;
     private final UpdateStrategyRepository updateStrategyRepo;
+    private final StrategyNameValidationService nameValidationService;
 
     @Autowired
     public StrategyPublishService(
             ReadStrategyRepository readStrategyRepo,
-            UpdateStrategyRepository updateStrategyRepo) {
+            UpdateStrategyRepository updateStrategyRepo,
+            StrategyNameValidationService nameValidationService) {
         this.readStrategyRepo = readStrategyRepo;
         this.updateStrategyRepo = updateStrategyRepo;
+        this.nameValidationService = nameValidationService;
     }
 
     /**
@@ -92,6 +96,9 @@ public class StrategyPublishService extends BaseService {
                         pricingType.toString()
                 );
         }
+
+        // Validate global name uniqueness before publishing
+        nameValidationService.validatePublishedNameUniqueness(strategy.getName(), strategyId);
 
         // Update strategy and publish
         strategy.publish(pricing);

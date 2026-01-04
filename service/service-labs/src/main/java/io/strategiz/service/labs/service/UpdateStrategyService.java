@@ -9,6 +9,7 @@ import io.strategiz.service.base.BaseService;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import io.strategiz.service.labs.model.CreateStrategyRequest;
+import io.strategiz.service.labs.utils.StrategyNameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,17 +25,20 @@ public class UpdateStrategyService extends BaseService {
 
     private final UpdateStrategyRepository updateStrategyRepository;
     private final ReadStrategyRepository readStrategyRepository;
+    private final StrategyNameValidationService nameValidationService;
 
     @Override
     protected String getModuleName() {
         return "service-labs";
     }
-    
+
     @Autowired
     public UpdateStrategyService(UpdateStrategyRepository updateStrategyRepository,
-                               ReadStrategyRepository readStrategyRepository) {
+                               ReadStrategyRepository readStrategyRepository,
+                               StrategyNameValidationService nameValidationService) {
         this.updateStrategyRepository = updateStrategyRepository;
         this.readStrategyRepository = readStrategyRepository;
+        this.nameValidationService = nameValidationService;
     }
     
     /**
@@ -58,9 +62,15 @@ public class UpdateStrategyService extends BaseService {
             throwModuleException(ServiceStrategyErrorDetails.STRATEGY_MODIFICATION_DENIED,
                     "Only the strategy owner can modify this strategy");
         }
-        
+
+        // Validate name uniqueness if name changed
+        if (!StrategyNameUtils.areNamesEqual(existing.getName(), request.getName())) {
+            nameValidationService.validateDraftNameUniqueness(userId, request.getName(), strategyId);
+        }
+
         // Update fields from request
         existing.setName(request.getName());
+        existing.setNormalizedName(StrategyNameUtils.normalizeName(request.getName()));
         existing.setDescription(request.getDescription());
         existing.setCode(request.getCode());
         existing.setLanguage(request.getLanguage());

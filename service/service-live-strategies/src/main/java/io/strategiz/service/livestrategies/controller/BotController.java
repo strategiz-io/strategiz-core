@@ -94,7 +94,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch bots for user: {}", userId, e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_FETCH_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_FETCH_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 
@@ -137,7 +137,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to check prerequisites for user: {}", userId, e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_PREREQUISITES_CHECK_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_PREREQUISITES_CHECK_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 
@@ -163,7 +163,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch bot: {}", id, e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_FETCH_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_FETCH_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 
@@ -249,7 +249,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to create bot", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_CREATE_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_CREATE_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 
@@ -290,7 +290,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to update bot status", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_UPDATE_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_UPDATE_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 
@@ -320,7 +320,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to delete bot", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_DELETE_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_DELETE_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 
@@ -357,7 +357,7 @@ public class BotController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to fetch bot performance", e);
-            throw new StrategizException(LiveStrategiesErrorDetails.BOT_PERFORMANCE_FETCH_FAILED, "service-live-strategies", e);
+            throw new StrategizException(LiveStrategiesErrorDetails.BOT_PERFORMANCE_FETCH_FAILED, "service-live-strategies", e, new Object[0]);
         }
     }
 

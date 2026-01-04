@@ -57,6 +57,14 @@ public class BacktestCalculatorBusiness {
         performance.setBacktestEndDate(periodInfo.backtestEndDate);
         performance.setBacktestPeriodDays(periodInfo.backtestPeriodDays);
 
+        // Calculate buy-and-hold comparison metrics
+        BuyAndHoldMetrics buyAndHoldMetrics = calculateBuyAndHold(marketData, initialCapital);
+        if (buyAndHoldMetrics != null) {
+            performance.setBuyAndHoldReturn(buyAndHoldMetrics.buyAndHoldReturn);
+            performance.setBuyAndHoldReturnPercent(buyAndHoldMetrics.buyAndHoldReturnPercent);
+            // Outperformance will be calculated after totalReturn is set
+        }
+
         if (signals == null || signals.isEmpty()) {
             performance.setTrades(new ArrayList<>());
             return performance;
@@ -127,6 +135,12 @@ public class BacktestCalculatorBusiness {
         // Sharpe ratio (simplified - assumes 0% risk-free rate)
         double sharpeRatio = calculateSharpeRatio(trades);
         performance.setSharpeRatio(sharpeRatio);
+
+        // Calculate outperformance now that totalReturn is set
+        if (performance.getBuyAndHoldReturnPercent() != null) {
+            double outperformance = totalPnLPercent - performance.getBuyAndHoldReturnPercent();
+            performance.setOutperformance(outperformance);
+        }
 
         return performance;
     }
@@ -486,6 +500,58 @@ public class BacktestCalculatorBusiness {
     }
 
     /**
+     * Calculate buy-and-hold comparison metrics from market data.
+     * Returns the return if user just bought at first price and sold at last price.
+     *
+     * @param marketData     List of OHLCV data points with timestamp and close price
+     * @param initialCapital Starting capital for comparison
+     * @return BuyAndHoldMetrics or null if calculation not possible
+     */
+    private BuyAndHoldMetrics calculateBuyAndHold(List<Map<String, Object>> marketData, double initialCapital) {
+        if (marketData == null || marketData.size() < 2) {
+            return null;
+        }
+
+        try {
+            // Get first and last close prices
+            Object firstCloseObj = marketData.get(0).get("close");
+            Object lastCloseObj = marketData.get(marketData.size() - 1).get("close");
+
+            if (firstCloseObj == null || lastCloseObj == null) {
+                logger.warn("Missing close prices in market data for buy-and-hold calculation");
+                return null;
+            }
+
+            double firstPrice = ((Number) firstCloseObj).doubleValue();
+            double lastPrice = ((Number) lastCloseObj).doubleValue();
+
+            if (firstPrice <= 0 || lastPrice <= 0) {
+                logger.warn("Invalid prices for buy-and-hold: first={}, last={}", firstPrice, lastPrice);
+                return null;
+            }
+
+            // Calculate buy-and-hold return percentage
+            double buyAndHoldReturnPercent = ((lastPrice - firstPrice) / firstPrice) * 100;
+
+            // Calculate dollar return
+            double buyAndHoldReturn = initialCapital * (buyAndHoldReturnPercent / 100);
+
+            BuyAndHoldMetrics metrics = new BuyAndHoldMetrics();
+            metrics.buyAndHoldReturn = buyAndHoldReturn;
+            metrics.buyAndHoldReturnPercent = buyAndHoldReturnPercent;
+
+            logger.debug("Buy-and-hold calculation: firstPrice={}, lastPrice={}, return={}%",
+                firstPrice, lastPrice, buyAndHoldReturnPercent);
+
+            return metrics;
+
+        } catch (Exception e) {
+            logger.error("Error calculating buy-and-hold metrics", e);
+            return null;
+        }
+    }
+
+    /**
      * Inner class to hold backtest period calculation results.
      */
     private static class BacktestPeriodInfo {
@@ -493,5 +559,13 @@ public class BacktestCalculatorBusiness {
         String backtestStartDate;
         String backtestEndDate;
         Integer backtestPeriodDays;
+    }
+
+    /**
+     * Inner class to hold buy-and-hold calculation results.
+     */
+    private static class BuyAndHoldMetrics {
+        Double buyAndHoldReturn;
+        Double buyAndHoldReturnPercent;
     }
 }

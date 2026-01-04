@@ -257,24 +257,208 @@ public class AIStrategyPrompts {
 			%s
 			```
 
-			Return a JSON object with:
+			CRITICAL INSTRUCTIONS:
+			1. Extract each condition with EXACT values from the Python code
+			2. Python "and" operator → JSON logic: "AND"
+			3. Python "or" operator → JSON logic: "OR"
+			4. For numeric comparisons (rsi < 30): use valueType: "number"
+			5. For indicator comparisons (macd > macd_signal): use valueType: "indicator" with secondaryIndicator
+			6. Detect crossovers: if curr > X and prev <= X → use comparator: "crossAbove"
+			7. Each rule MUST have an "id" field (generate unique IDs like "rule_1", "rule_2")
+			8. Each condition MUST have an "id" field (generate unique IDs like "cond_1", "cond_2")
+
+			EXAMPLE 1 - Simple RSI Strategy:
+			Python Code:
+			```python
+			if rsi.iloc[-1] < 30:
+			    return 'BUY'
+			elif rsi.iloc[-1] > 70:
+			    return 'SELL'
+			```
+
+			Correct JSON Output:
 			{
-			  "visualConfig": { ... },
-			  "canRepresent": true | false,
-			  "warning": "<optional warning if code is too complex for visual representation>",
-			  "extractedIndicators": ["<indicator1>", "<indicator2>"],
-			  "extractedRules": "<plain-English description of the rules>"
+			  "visualConfig": {
+			    "symbol": "AAPL",
+			    "name": "RSI Strategy",
+			    "description": "Buy when RSI below 30, sell when above 70",
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "rsi",
+			            "comparator": "lt",
+			            "value": 30,
+			            "valueType": "number"
+			          }
+			        ]
+			      },
+			      {
+			        "id": "rule_2",
+			        "type": "exit",
+			        "action": "SELL",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_2",
+			            "indicator": "rsi",
+			            "comparator": "gt",
+			            "value": 70,
+			            "valueType": "number"
+			          }
+			        ]
+			      }
+			    ],
+			    "riskSettings": {
+			      "stopLoss": 5.0,
+			      "takeProfit": 10.0,
+			      "positionSize": 5,
+			      "maxPositions": 1
+			    }
+			  },
+			  "canRepresent": true,
+			  "extractedIndicators": ["rsi"]
 			}
 
-			Focus on extracting:
-			- Entry conditions (what triggers BUY signals)
-			- Exit conditions (what triggers SELL signals)
-			- Risk settings if defined (stop loss, take profit, position size)
-			- Logic operators (AND/OR) between conditions
+			EXAMPLE 2 - MACD with AND Logic:
+			Python Code:
+			```python
+			if macd.iloc[-1] > macd_signal.iloc[-1] and macd.iloc[-1] < 0:
+			    return 'BUY'
+			```
 
-			If the code is too complex for visual representation (e.g., uses loops, complex conditionals,
-			or unsupported indicators), set canRepresent to false and provide a warning explaining why.
-			Still extract as much as possible into the visualConfig.
+			Correct JSON Output:
+			{
+			  "visualConfig": {
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "macd",
+			            "comparator": "gt",
+			            "value": "macd_signal",
+			            "valueType": "indicator",
+			            "secondaryIndicator": "macd_signal"
+			          },
+			          {
+			            "id": "cond_2",
+			            "indicator": "macd",
+			            "comparator": "lt",
+			            "value": 0,
+			            "valueType": "number"
+			          }
+			        ]
+			      }
+			    ]
+			  },
+			  "canRepresent": true
+			}
+
+			EXAMPLE 3 - Crossover Detection:
+			Python Code:
+			```python
+			# SMA crossover
+			if sma_20.iloc[-1] > sma_50.iloc[-1] and sma_20.iloc[-2] <= sma_50.iloc[-2]:
+			    return 'BUY'
+			```
+
+			Correct JSON Output:
+			{
+			  "visualConfig": {
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "sma",
+			            "comparator": "crossAbove",
+			            "value": "sma_50",
+			            "valueType": "indicator",
+			            "secondaryIndicator": "sma_50"
+			          }
+			        ]
+			      }
+			    ]
+			  },
+			  "canRepresent": true
+			}
+
+			EXAMPLE 4 - OR Logic:
+			Python Code:
+			```python
+			if rsi.iloc[-1] < 30 or stoch_k.iloc[-1] < 20:
+			    return 'BUY'
+			```
+
+			Correct JSON Output:
+			{
+			  "visualConfig": {
+			    "rules": [
+			      {
+			        "id": "rule_1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "OR",
+			        "conditions": [
+			          {
+			            "id": "cond_1",
+			            "indicator": "rsi",
+			            "comparator": "lt",
+			            "value": 30,
+			            "valueType": "number"
+			          },
+			          {
+			            "id": "cond_2",
+			            "indicator": "stoch_k",
+			            "comparator": "lt",
+			            "value": 20,
+			            "valueType": "number"
+			          }
+			        ]
+			      }
+			    ]
+			  },
+			  "canRepresent": true
+			}
+
+			COMPARATOR MAPPING:
+			- Python < → JSON "lt"
+			- Python <= → JSON "lte"
+			- Python > → JSON "gt"
+			- Python >= → JSON "gte"
+			- Python == → JSON "eq"
+			- Crossover pattern (curr > X and prev <= X) → JSON "crossAbove"
+			- Crossunder pattern (curr < X and prev >= X) → JSON "crossBelow"
+
+			FIELD REQUIREMENTS:
+			- Every rule MUST have: id, type, action, logic, conditions
+			- Every condition MUST have: id, indicator, comparator, value, valueType
+			- indicator must be a valid indicator ID (rsi, macd, sma, ema, etc.)
+			- comparator must be one of: lt, lte, gt, gte, eq, crossAbove, crossBelow
+			- valueType must be either "number" or "indicator"
+			- If valueType is "indicator", include secondaryIndicator field
+
+			TOO COMPLEX SCENARIOS (set canRepresent: false):
+			- Code uses loops (for, while)
+			- Complex nested conditionals (more than 2 levels deep)
+			- Custom functions beyond standard indicators
+			- Unsupported indicators not in the schema
+
+			Now analyze the provided Python code above and return ONLY valid JSON matching these examples.
 			""";
 
 	/**
@@ -454,8 +638,15 @@ public class AIStrategyPrompts {
 	/**
 	 * Build a code-to-visual parsing prompt.
 	 */
-	public static String buildCodeToVisualPrompt(String pythonCode) {
-		return String.format(CODE_TO_VISUAL_PROMPT, pythonCode);
+	public static String buildCodeToVisualPrompt(String pythonCode, String visualEditorSchema) {
+		String basePrompt = String.format(CODE_TO_VISUAL_PROMPT, pythonCode);
+
+		// Append visual editor schema if provided for better AI guidance
+		if (visualEditorSchema != null && !visualEditorSchema.isEmpty()) {
+			return basePrompt + "\n\n" + visualEditorSchema;
+		}
+
+		return basePrompt;
 	}
 
 	/**

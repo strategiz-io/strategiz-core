@@ -26,11 +26,11 @@ import java.util.Map;
  * Uses the TimescaleDB Cloud Console API to get cost and usage metrics.
  *
  * Note: TimescaleDB Cloud doesn't have a public billing API yet.
- * This implementation provides estimated costs based on:
- * - Storage: ~$0.09/GB/month for standard tier
- * - Compute: Based on instance type and hours
+ * This implementation attempts to fetch real billing data from the API.
+ * If the API is unavailable, returns $0.00 (no estimates/fake data).
  *
- * When TimescaleDB releases a billing API, this client can be updated.
+ * When TimescaleDB releases a public billing API, this client will
+ * automatically start returning real cost data.
  *
  * Enable with: gcp.billing.enabled=true
  */
@@ -39,11 +39,6 @@ import java.util.Map;
 public class TimescaleBillingClient {
 
     private static final Logger log = LoggerFactory.getLogger(TimescaleBillingClient.class);
-
-    // TimescaleDB Cloud pricing estimates (USD)
-    private static final BigDecimal STORAGE_PRICE_PER_GB_MONTH = new BigDecimal("0.09");
-    private static final BigDecimal COMPUTE_PRICE_PER_HOUR_SMALL = new BigDecimal("0.07"); // dev tier
-    private static final BigDecimal COMPUTE_PRICE_PER_HOUR_MEDIUM = new BigDecimal("0.28"); // standard
 
     private final RestTemplate restTemplate;
     private final TimescaleBillingProperties properties;
@@ -59,21 +54,21 @@ public class TimescaleBillingClient {
     /**
      * Get cost summary for a date range
      *
-     * Note: Since TimescaleDB Cloud doesn't have a public billing API,
-     * this returns estimated costs based on typical usage patterns.
-     * Configure actual storage/compute values in Vault for accurate estimates.
+     * Note: TimescaleDB Cloud doesn't have a public billing API yet.
+     * This method attempts to fetch real billing data from the API.
+     * If the API is unavailable or returns an error, returns $0.00 (no fake estimates).
      *
      * @param startDate Start date (inclusive)
      * @param endDate End date (inclusive)
-     * @return Cost summary with storage and compute breakdown
+     * @return Cost summary with storage and compute breakdown, or all zeros if unavailable
      */
     @Cacheable(value = "timescaleCostSummary", key = "#startDate.toString() + '-' + #endDate.toString()")
     public TimescaleCostSummary getCostSummary(LocalDate startDate, LocalDate endDate) {
         log.info("Fetching TimescaleDB cost summary from {} to {}", startDate, endDate);
 
         if (!properties.isConfigured()) {
-            log.warn("TimescaleDB billing API not configured - returning estimates");
-            return getEstimatedCosts(startDate, endDate);
+            log.warn("⚠️ TimescaleDB billing API not configured - returning $0.00 (no billing data available)");
+            return TimescaleCostSummary.empty(startDate, endDate);
         }
 
         try {
@@ -99,26 +94,31 @@ public class TimescaleBillingClient {
             );
 
             if (response.getBody() != null) {
+                log.info("✅ Successfully fetched real TimescaleDB billing data from API");
                 return parseBillingResponse(response.getBody(), startDate, endDate);
             }
         } catch (RestClientException e) {
-            log.warn("Could not fetch TimescaleDB billing data: {} - using estimates", e.getMessage());
+            log.warn("⚠️ TimescaleDB billing API not available: {} - returning $0.00 (real data not available)", e.getMessage());
         }
 
-        return getEstimatedCosts(startDate, endDate);
+        return TimescaleCostSummary.empty(startDate, endDate);
     }
 
     /**
      * Get current usage metrics
      *
-     * @return Current usage statistics
+     * Note: Returns real usage from API or empty/zero usage if unavailable.
+     * No estimates are provided.
+     *
+     * @return Current usage statistics, or zeros if unavailable
      */
     @Cacheable(value = "timescaleUsage", key = "'current'")
     public TimescaleUsage getCurrentUsage() {
         log.info("Fetching TimescaleDB current usage");
 
         if (!properties.isConfigured()) {
-            return getEstimatedUsage();
+            log.warn("⚠️ TimescaleDB billing API not configured - returning empty usage data");
+            return getEmptyUsage();
         }
 
         try {
@@ -140,31 +140,14 @@ public class TimescaleBillingClient {
             );
 
             if (response.getBody() != null && !response.getBody().isEmpty()) {
+                log.info("✅ Successfully fetched real TimescaleDB usage data from API");
                 return parseUsageResponse(response.getBody().get(0));
             }
         } catch (RestClientException e) {
-            log.warn("Could not fetch TimescaleDB usage: {} - using estimates", e.getMessage());
+            log.warn("⚠️ TimescaleDB usage API not available: {} - returning empty usage (real data not available)", e.getMessage());
         }
 
-        return getEstimatedUsage();
-    }
-
-    /**
-     * Get estimated monthly cost based on current usage
-     *
-     * @return Estimated monthly cost
-     */
-    public BigDecimal getEstimatedMonthlyCost() {
-        TimescaleUsage usage = getCurrentUsage();
-
-        // Storage cost (per month)
-        BigDecimal storageCost = usage.storageUsedGb().multiply(STORAGE_PRICE_PER_GB_MONTH);
-
-        // Compute cost (24 hours * 30 days = 720 hours per month)
-        BigDecimal computeHoursPerMonth = new BigDecimal("720");
-        BigDecimal computeCost = computeHoursPerMonth.multiply(COMPUTE_PRICE_PER_HOUR_MEDIUM);
-
-        return storageCost.add(computeCost);
+        return getEmptyUsage();
     }
 
     /**
@@ -176,43 +159,20 @@ public class TimescaleBillingClient {
         return properties.isConfigured();
     }
 
-    private TimescaleCostSummary getEstimatedCosts(LocalDate startDate, LocalDate endDate) {
-        // Calculate number of days in the range
-        long days = endDate.toEpochDay() - startDate.toEpochDay() + 1;
-        BigDecimal daysDecimal = BigDecimal.valueOf(days);
-
-        // Estimated storage: ~10GB for development
-        BigDecimal storageGb = new BigDecimal("10");
-        BigDecimal dailyStorageCost = storageGb.multiply(STORAGE_PRICE_PER_GB_MONTH)
-                .divide(BigDecimal.valueOf(30), 4, java.math.RoundingMode.HALF_UP);
-        BigDecimal storageCost = dailyStorageCost.multiply(daysDecimal);
-
-        // Estimated compute: 24 hours/day * $0.07/hour (dev tier)
-        BigDecimal dailyComputeCost = new BigDecimal("24").multiply(COMPUTE_PRICE_PER_HOUR_SMALL);
-        BigDecimal computeCost = dailyComputeCost.multiply(daysDecimal);
-
-        BigDecimal totalCost = storageCost.add(computeCost);
-
-        return new TimescaleCostSummary(
-                startDate,
-                endDate,
-                totalCost.setScale(2, java.math.RoundingMode.HALF_UP),
-                "USD",
-                computeCost.setScale(2, java.math.RoundingMode.HALF_UP),
-                storageCost.setScale(2, java.math.RoundingMode.HALF_UP),
-                storageGb,
-                new BigDecimal("24").multiply(daysDecimal)
-        );
-    }
-
-    private TimescaleUsage getEstimatedUsage() {
+    /**
+     * Returns empty usage data (all zeros) when real API data is unavailable.
+     * No estimates are provided per user requirements.
+     *
+     * @return Empty usage with all values set to zero
+     */
+    private TimescaleUsage getEmptyUsage() {
         return new TimescaleUsage(
-                "estimated",
+                "unavailable",
                 "TimescaleDB Cloud",
-                new BigDecimal("10"), // 10GB storage estimate
-                new BigDecimal("24"), // 24 hours compute/day
-                new BigDecimal("0.5"), // 0.5GB ingested/day estimate
-                BigDecimal.valueOf(10000), // 10k queries/day estimate
+                BigDecimal.ZERO, // No storage data
+                BigDecimal.ZERO, // No compute data
+                BigDecimal.ZERO, // No ingestion data
+                BigDecimal.ZERO, // No query data
                 Instant.now()
         );
     }

@@ -93,4 +93,20 @@ public class ReadStrategyRepositoryImpl implements ReadStrategyRepository {
                     return v1.compareTo(v2);
                 });
     }
+
+    @Override
+    public List<Strategy> findByOwnerIdAndNormalizedName(String ownerId, String normalizedName) {
+        return baseRepository.findAllByUserId(ownerId).stream()
+                .filter(s -> s.getNormalizedName() != null)
+                .filter(s -> s.getNormalizedName().equals(normalizedName))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Strategy> findByNormalizedNameAndPublishStatus(String normalizedName, String publishStatus) {
+        return baseRepository.findAll().stream()
+                .filter(s -> publishStatus.equals(s.getPublishStatus()))
+                .filter(s -> normalizedName.equals(s.getNormalizedName()))
+                .collect(Collectors.toList());
+    }
 }

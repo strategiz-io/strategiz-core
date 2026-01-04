@@ -65,4 +65,24 @@ public interface ReadStrategyRepository {
      * Find the latest version of a strategy
      */
     Optional<Strategy> findLatestVersion(String parentStrategyId);
+
+    /**
+     * Find strategies by owner and normalized name
+     * Used for per-user uniqueness validation
+     *
+     * @param ownerId Owner ID to search for
+     * @param normalizedName Normalized name to match
+     * @return List of strategies matching owner and normalized name
+     */
+    List<Strategy> findByOwnerIdAndNormalizedName(String ownerId, String normalizedName);
+
+    /**
+     * Find strategies by normalized name and publish status
+     * Used for global uniqueness validation (published strategies)
+     *
+     * @param normalizedName Normalized name to match
+     * @param publishStatus Publish status to filter by
+     * @return List of strategies matching normalized name and publish status
+     */
+    List<Strategy> findByNormalizedNameAndPublishStatus(String normalizedName, String publishStatus);
 }

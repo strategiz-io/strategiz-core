@@ -18,7 +18,10 @@ public class Strategy extends BaseEntity {
     
     @JsonProperty("name")
     private String name;
-    
+
+    @JsonProperty("normalizedName")
+    private String normalizedName; // Lowercase, trimmed version for case-insensitive uniqueness checks
+
     @JsonProperty("description")
     private String description;
     
@@ -124,11 +127,19 @@ public class Strategy extends BaseEntity {
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
+    public String getNormalizedName() {
+        return normalizedName;
+    }
+
+    public void setNormalizedName(String normalizedName) {
+        this.normalizedName = normalizedName;
+    }
+
     public String getDescription() {
         return description;
     }

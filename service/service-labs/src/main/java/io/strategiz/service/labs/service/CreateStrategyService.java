@@ -7,6 +7,7 @@ import io.strategiz.service.base.BaseService;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
 import io.strategiz.service.labs.model.CreateStrategyRequest;
+import io.strategiz.service.labs.utils.StrategyNameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,15 +20,18 @@ import java.util.UUID;
 public class CreateStrategyService extends BaseService {
 
     private final CreateStrategyRepository createStrategyRepository;
+    private final StrategyNameValidationService nameValidationService;
 
     @Override
     protected String getModuleName() {
         return "service-labs";
     }
-    
+
     @Autowired
-    public CreateStrategyService(CreateStrategyRepository createStrategyRepository) {
+    public CreateStrategyService(CreateStrategyRepository createStrategyRepository,
+                                  StrategyNameValidationService nameValidationService) {
         this.createStrategyRepository = createStrategyRepository;
+        this.nameValidationService = nameValidationService;
     }
     
     /**
@@ -43,9 +47,13 @@ public class CreateStrategyService extends BaseService {
         // Validate request
         validateCreateRequest(request);
 
+        // Validate name uniqueness
+        nameValidationService.validateDraftNameUniqueness(userId, request.getName(), null);
+
         // Convert request to entity
         Strategy strategy = new Strategy();
         strategy.setName(request.getName());
+        strategy.setNormalizedName(StrategyNameUtils.normalizeName(request.getName()));
         strategy.setDescription(request.getDescription());
         strategy.setCode(request.getCode());
         strategy.setLanguage(request.getLanguage());

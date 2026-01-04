@@ -77,7 +77,9 @@ public class AIChatBusiness {
 				}
 
 				if (!llmResponse.isSuccess()) {
-					response.setError(llmResponse.getError());
+					// Convert technical error to user-friendly message
+					response.setError(sanitizeErrorMessage(llmResponse.getError()));
+					logger.warn("LLM error occurred: {}", llmResponse.getError());
 				}
 
 				logger.info("Chat response generated successfully, model: {}, tokens used: {}", response.getModel(),
@@ -85,12 +87,12 @@ public class AIChatBusiness {
 				return response;
 			}).onErrorResume(error -> {
 				logger.error("Error generating chat response", error);
-				return Mono.just(ChatResponse.error("Failed to generate response: " + error.getMessage()));
+				return Mono.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
 			});
 		}
 		catch (Exception e) {
 			logger.error("Error in chat business logic", e);
-			return Mono.just(ChatResponse.error("An error occurred: " + e.getMessage()));
+			return Mono.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
 		}
 	}
 
@@ -124,15 +126,22 @@ public class AIChatBusiness {
 				response.setContent(llmResponse.getContent());
 				response.setModel(llmResponse.getModel());
 				response.setSuccess(llmResponse.isSuccess());
+
+				// Convert technical error to user-friendly message for streaming too
+				if (!llmResponse.isSuccess()) {
+					response.setError(sanitizeErrorMessage(llmResponse.getError()));
+					logger.warn("LLM streaming error occurred: {}", llmResponse.getError());
+				}
+
 				return response;
 			}).onErrorResume(error -> {
 				logger.error("Error in streaming chat", error);
-				return Flux.just(ChatResponse.error("Stream error: " + error.getMessage()));
+				return Flux.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
 			});
 		}
 		catch (Exception e) {
 			logger.error("Error in streaming chat business logic", e);
-			return Flux.just(ChatResponse.error("An error occurred: " + e.getMessage()));
+			return Flux.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
 		}
 	}
 
@@ -219,6 +228,55 @@ public class AIChatBusiness {
 		}
 
 		return llmHistory;
+	}
+
+	/**
+	 * Sanitize technical error messages to be user-friendly. Logs the full technical
+	 * error for debugging while showing a friendly message to users.
+	 * @param technicalError the raw error from LLM provider
+	 * @return user-friendly error message
+	 */
+	private String sanitizeErrorMessage(String technicalError) {
+		if (technicalError == null) {
+			return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
+		}
+
+		String lowerError = technicalError.toLowerCase();
+
+		// Authentication/authorization errors
+		if (lowerError.contains("401") || lowerError.contains("unauthorized") || lowerError.contains("unauthenticated")
+				|| lowerError.contains("access_token_expired") || lowerError.contains("invalid authentication")) {
+			return "Our AI assistant is experiencing authentication issues. Our team has been notified. Please try again shortly.";
+		}
+
+		// Rate limiting errors
+		if (lowerError.contains("429") || lowerError.contains("rate limit") || lowerError.contains("quota")) {
+			return "Our AI is currently experiencing high demand. Please try again in a few moments.";
+		}
+
+		// Service unavailable errors
+		if (lowerError.contains("503") || lowerError.contains("service unavailable")
+				|| lowerError.contains("temporarily unavailable")) {
+			return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
+		}
+
+		// Timeout errors
+		if (lowerError.contains("timeout") || lowerError.contains("timed out")) {
+			return "The AI took too long to respond. Please try a shorter message or try again.";
+		}
+
+		// Network errors
+		if (lowerError.contains("network") || lowerError.contains("connection") || lowerError.contains("unreachable")) {
+			return "Unable to reach our AI service. Please check your connection and try again.";
+		}
+
+		// Model-specific errors (don't expose which model failed)
+		if (lowerError.contains("failed to call") || lowerError.contains("api error")) {
+			return "Our AI assistant encountered an error. Please try again or contact support if the issue persists.";
+		}
+
+		// Generic fallback
+		return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
 	}
 
 }

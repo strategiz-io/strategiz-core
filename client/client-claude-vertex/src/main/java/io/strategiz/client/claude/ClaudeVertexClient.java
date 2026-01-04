@@ -52,15 +52,23 @@ public class ClaudeVertexClient implements LLMProvider {
 
 	private final WebClient webClient;
 
-	private String cachedAccessToken;
-
-	private long tokenExpirationTime;
+	private GoogleCredentials credentials;
 
 	public ClaudeVertexClient(ClaudeVertexConfig config) {
 		this.config = config;
 		this.objectMapper = new ObjectMapper();
 		this.webClient = WebClient.builder().defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.build();
+
+		// Initialize Google credentials once during construction
+		try {
+			this.credentials = GoogleCredentials.getApplicationDefault()
+				.createScoped("https://www.googleapis.com/auth/cloud-platform");
+			logger.info("Initialized Google Cloud credentials for Vertex AI (Claude)");
+		} catch (IOException e) {
+			logger.error("Failed to initialize Google Cloud credentials. Claude Vertex AI calls will fail.", e);
+			this.credentials = null;
+		}
 	}
 
 	@Override
@@ -318,24 +326,22 @@ public class ClaudeVertexClient implements LLMProvider {
 	}
 
 	/**
-	 * Get access token for Vertex AI API calls
+	 * Get access token for Vertex AI API calls.
+	 * GoogleCredentials handles automatic token refresh and caching.
 	 */
 	private String getAccessToken() throws IOException {
-		// Return cached token if still valid
-		if (cachedAccessToken != null && System.currentTimeMillis() < tokenExpirationTime) {
-			return cachedAccessToken;
+		if (credentials == null) {
+			throw new IOException("Google Cloud credentials not initialized");
 		}
 
-		// Get new access token using Application Default Credentials
-		GoogleCredentials credentials = GoogleCredentials.getApplicationDefault()
-			.createScoped("https://www.googleapis.com/auth/cloud-platform");
+		// GoogleCredentials automatically refreshes expired tokens
 		credentials.refreshIfExpired();
 
-		cachedAccessToken = credentials.getAccessToken().getTokenValue();
-		// Token expires in 1 hour, refresh 5 minutes early
-		tokenExpirationTime = System.currentTimeMillis() + (55 * 60 * 1000);
+		if (credentials.getAccessToken() == null) {
+			throw new IOException("Failed to get access token from Google Cloud credentials");
+		}
 
-		return cachedAccessToken;
+		return credentials.getAccessToken().getTokenValue();
 	}
 
 }

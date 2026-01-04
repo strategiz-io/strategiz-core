@@ -169,10 +169,12 @@ public class AIStrategyController extends BaseController {
 			return ResponseEntity.badRequest().body(AIStrategyResponse.error("Code is required"));
 		}
 
-		logger.info("Received code parsing request");
+		String visualEditorSchema = request.get("visualEditorSchema");
+
+		logger.info("Received code parsing request with schema: {}", visualEditorSchema != null ? "provided" : "not provided");
 
 		try {
-			AIStrategyResponse response = aiStrategyService.parseCodeToVisual(code);
+			AIStrategyResponse response = aiStrategyService.parseCodeToVisual(code, visualEditorSchema);
 			return ResponseEntity.ok(response);
 		}
 		catch (Exception e) {

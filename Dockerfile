@@ -29,7 +29,10 @@ RUN chmod 644 /app/opentelemetry-javaagent.jar
 
 COPY --from=builder /app/application-api/target/application-api-1.0-SNAPSHOT.jar app.jar
 ENV PORT=8080
-ENV SPRING_PROFILES_ACTIVE=prod
+# Enable both prod and scheduler profiles
+# - prod: Production settings (Vault, Firebase, etc.)
+# - scheduler: Batch job beans for dynamic scheduling (MarketDataIncrementalJob, etc.)
+ENV SPRING_PROFILES_ACTIVE=prod,scheduler
 
 # Attach OpenTelemetry agent with -javaagent flag
 CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]

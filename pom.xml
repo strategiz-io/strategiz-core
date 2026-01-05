@@ -137,7 +137,7 @@
 
         <!-- Application Modules (Build Last) -->
         <module>application-api</module>
-        <!-- Note: application-console was consolidated into application-api with service-console module -->
+        <module>application-console</module>
     </modules>
 
     <properties>

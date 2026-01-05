@@ -100,8 +100,9 @@ public class StrategyVersioningService extends BaseService {
         newStrategy.setParentStrategyId(original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId);
 
         // New version is a draft (not deployed)
-        newStrategy.setPublishStatus("DRAFT");
-        newStrategy.setPublicStatus("PRIVATE");
+        newStrategy.setIsPublished(false);
+        newStrategy.setIsPublic(false);
+        newStrategy.setIsListed(false);
         // Note: Deployment fields removed - tracked in BotDeployment/AlertDeployment entities
 
         // Save the new version

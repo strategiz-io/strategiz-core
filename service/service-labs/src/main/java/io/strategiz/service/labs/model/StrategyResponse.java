@@ -26,10 +26,7 @@ public class StrategyResponse {
     
     @JsonProperty("type")
     private String type;
-    
-    @JsonProperty("status")
-    private String status;
-    
+
     @JsonProperty("tags")
     private List<String> tags;
     
@@ -42,11 +39,14 @@ public class StrategyResponse {
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
 
-    @JsonProperty("publishStatus")
-    private String publishStatus;
+    @JsonProperty("isPublished")
+    private Boolean isPublished;
 
-    @JsonProperty("publicStatus")
-    private String publicStatus;
+    @JsonProperty("isPublic")
+    private Boolean isPublic;
+
+    @JsonProperty("isListed")
+    private Boolean isListed;
 
     @JsonProperty("performance")
     private StrategyPerformance performance;
@@ -122,15 +122,7 @@ public class StrategyResponse {
     public void setType(String type) {
         this.type = type;
     }
-    
-    public String getStatus() {
-        return status;
-    }
-    
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    
+
     public List<String> getTags() {
         return tags;
     }
@@ -163,20 +155,28 @@ public class StrategyResponse {
         this.parameters = parameters;
     }
 
-    public String getPublishStatus() {
-        return publishStatus;
+    public Boolean getIsPublished() {
+        return isPublished;
     }
 
-    public void setPublishStatus(String publishStatus) {
-        this.publishStatus = publishStatus;
+    public void setIsPublished(Boolean isPublished) {
+        this.isPublished = isPublished;
     }
 
-    public String getPublicStatus() {
-        return publicStatus;
+    public Boolean getIsPublic() {
+        return isPublic;
     }
 
-    public void setPublicStatus(String publicStatus) {
-        this.publicStatus = publicStatus;
+    public void setIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    public Boolean getIsListed() {
+        return isListed;
+    }
+
+    public void setIsListed(Boolean isListed) {
+        this.isListed = isListed;
     }
 
     public StrategyPerformance getPerformance() {

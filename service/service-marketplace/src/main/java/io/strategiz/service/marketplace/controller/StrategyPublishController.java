@@ -203,7 +203,7 @@ public class StrategyPublishController extends BaseController {
             // Note: publishedAt field removed from data model - use createdDate or track separately
             return ResponseEntity.ok(Map.of(
                     "strategyId", strategyId,
-                    "isPublished", "PUBLISHED".equals(strategy.getPublishStatus()),
+                    "isPublished", Boolean.TRUE.equals(strategy.getIsPublished()),
                     "pricing", strategy.getPricing() != null ? strategy.getPricing() : "FREE",
                     "subscriberCount", strategy.getSubscriberCount() != null ? strategy.getSubscriberCount() : 0,
                     "commentCount", strategy.getCommentCount() != null ? strategy.getCommentCount() : 0

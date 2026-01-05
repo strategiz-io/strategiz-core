@@ -60,7 +60,7 @@ public class StrategySubscriptionService extends BaseService {
         Strategy strategy = readStrategyRepo.findById(strategyId)
                 .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
         }
 

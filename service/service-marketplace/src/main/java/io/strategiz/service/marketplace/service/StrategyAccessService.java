@@ -82,7 +82,7 @@ public class StrategyAccessService extends BaseService {
         }
 
         // Subscribers can only deploy PUBLISHED strategies
-        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             return false;
         }
 
@@ -112,12 +112,12 @@ public class StrategyAccessService extends BaseService {
         }
 
         // DRAFT strategies are owner-only
-        if ("DRAFT".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             return false;
         }
 
         // PUBLISHED + PUBLIC: Everyone can view
-        if ("PUBLIC".equals(strategy.getPublicStatus())) {
+        if (Boolean.TRUE.equals(strategy.getIsPublic())) {
             return true;
         }
 
@@ -147,7 +147,7 @@ public class StrategyAccessService extends BaseService {
         }
 
         // DRAFT strategies: owner only
-        if ("DRAFT".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             return false;
         }
 
@@ -157,8 +157,8 @@ public class StrategyAccessService extends BaseService {
         }
 
         // Public can view if strategy is PUBLISHED + PUBLIC
-        return "PUBLISHED".equals(strategy.getPublishStatus()) &&
-               "PUBLIC".equals(strategy.getPublicStatus());
+        return Boolean.TRUE.equals(strategy.getIsPublished()) &&
+               Boolean.TRUE.equals(strategy.getIsPublic());
     }
 
     /**
@@ -278,7 +278,7 @@ public class StrategyAccessService extends BaseService {
         }
 
         // Strategy must be published
-        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             return false;
         }
 
@@ -320,7 +320,7 @@ public class StrategyAccessService extends BaseService {
         }
 
         // Strategy must be published
-        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             return false;
         }
 

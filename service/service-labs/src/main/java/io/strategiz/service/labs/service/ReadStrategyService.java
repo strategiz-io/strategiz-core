@@ -91,13 +91,13 @@ public class ReadStrategyService extends BaseService {
             return true;
         }
 
-        // DRAFT strategies are owner-only
-        if ("DRAFT".equals(strategy.getPublishStatus())) {
+        // DRAFT strategies are owner-only (isPublished = false)
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             return false;
         }
 
-        // PUBLISHED + PUBLIC: Everyone can view
-        if ("PUBLIC".equals(strategy.getPublicStatus())) {
+        // PUBLISHED + PUBLIC: Everyone can view (isPublished = true, isPublic = true)
+        if (Boolean.TRUE.equals(strategy.getIsPublic())) {
             return true;
         }
 

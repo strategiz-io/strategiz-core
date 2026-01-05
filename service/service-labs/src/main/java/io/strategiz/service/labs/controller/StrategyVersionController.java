@@ -114,8 +114,9 @@ public class StrategyVersionController extends BaseController {
         response.setParameters(strategy.getParameters());
         response.setPerformance(strategy.getPerformance());
         response.setBacktestResults(strategy.getBacktestResults());
-        response.setStatus(strategy.getPublishStatus());
-        response.setPublicStatus(strategy.getPublicStatus());
+        response.setIsPublished(strategy.getIsPublished());
+        response.setIsPublic(strategy.getIsPublic());
+        response.setIsListed(strategy.getIsListed());
         // Skip date fields - they'll be null
         // Versioning fields
         response.setVersion(strategy.getVersion());

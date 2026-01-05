@@ -1,7 +1,7 @@
 package io.strategiz.service.mystrategies.service;
 
 import io.strategiz.business.strategy.execution.model.ExecutionResult;
-import io.strategiz.business.strategy.execution.service.StrategyExecutionService;
+import io.strategiz.business.strategy.execution.service.StrategyExecutionBusiness;
 import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
@@ -67,7 +67,7 @@ public class AlertMonitorService extends BaseService {
     private final ReadAlertDeploymentRepository readAlertRepository;
     private final UpdateAlertDeploymentRepository updateAlertRepository;
     private final CreateAlertDeploymentHistoryRepository createHistoryRepository;
-    private final StrategyExecutionService strategyExecutionService;
+    private final StrategyExecutionBusiness strategyExecutionBusiness;
     private final MarketDataRepository marketDataRepository;
     private final YahooFinanceClient yahooFinanceClient; // Fallback for symbols not in cache
     private final AlertNotificationService notificationService;
@@ -77,14 +77,14 @@ public class AlertMonitorService extends BaseService {
             ReadAlertDeploymentRepository readAlertRepository,
             UpdateAlertDeploymentRepository updateAlertRepository,
             CreateAlertDeploymentHistoryRepository createHistoryRepository,
-            StrategyExecutionService strategyExecutionService,
+            StrategyExecutionBusiness strategyExecutionBusiness,
             MarketDataRepository marketDataRepository,
             @Autowired(required = false) YahooFinanceClient yahooFinanceClient,
             AlertNotificationService notificationService) {
         this.readAlertRepository = readAlertRepository;
         this.updateAlertRepository = updateAlertRepository;
         this.createHistoryRepository = createHistoryRepository;
-        this.strategyExecutionService = strategyExecutionService;
+        this.strategyExecutionBusiness = strategyExecutionBusiness;
         this.marketDataRepository = marketDataRepository;
         this.yahooFinanceClient = yahooFinanceClient;
         this.notificationService = notificationService;
@@ -261,7 +261,7 @@ public class AlertMonitorService extends BaseService {
                 updateAlertRepository.updateLastCheckedAt(alert.getId(), alert.getUserId(), Timestamp.now());
 
                 // 2. Execute strategy to check for signals
-                ExecutionResult result = strategyExecutionService.executeStrategy(
+                ExecutionResult result = strategyExecutionBusiness.executeStrategy(
                     alert.getStrategyId(),
                     alert.getProviderId(),
                     alert.getUserId()

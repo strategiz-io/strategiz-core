@@ -22,22 +22,23 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Core strategy execution service that orchestrates strategy execution
- * using connected provider integrations
+ * Business logic for live strategy execution with connected provider integrations (brokers, exchanges).
+ *
+ * Follows naming convention: Business modules end with "Business" suffix.
  */
 @Service
-public class StrategyExecutionService {
+public class StrategyExecutionBusiness {
 
-    private static final Logger logger = LoggerFactory.getLogger(StrategyExecutionService.class);
+    private static final Logger logger = LoggerFactory.getLogger(StrategyExecutionBusiness.class);
 
     private final ReadStrategyRepository strategyRepository;
     private final ReadProviderIntegrationRepository providerRepository;
     private final ExecutionEngineService executionEngine;
     private final PythonExecutor pythonExecutor;
     private final ObjectMapper objectMapper;
-    
+
     @Autowired
-    public StrategyExecutionService(
+    public StrategyExecutionBusiness(
             ReadStrategyRepository strategyRepository,
             ReadProviderIntegrationRepository providerRepository,
             ExecutionEngineService executionEngine,

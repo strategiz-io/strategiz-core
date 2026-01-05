@@ -3,8 +3,8 @@ package io.strategiz.business.portfolio;
 import io.strategiz.business.portfolio.exception.PortfolioErrorDetails;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.business.portfolio.model.PortfolioMetrics;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +27,12 @@ public class PortfolioManager {
 
     private static final Logger log = LoggerFactory.getLogger(PortfolioManager.class);
 
-    private final ReadProviderDataRepository providerDataRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
 
     @Autowired
-    public PortfolioManager(ReadProviderDataRepository providerDataRepository) {
-        this.providerDataRepository = providerDataRepository;
-        log.info("PortfolioManager initialized with provider data repository");
+    public PortfolioManager(PortfolioProviderRepository portfolioProviderRepository) {
+        this.portfolioProviderRepository = portfolioProviderRepository;
+        log.info("PortfolioManager initialized with portfolio provider repository");
     }
 
     /**
@@ -47,10 +47,10 @@ public class PortfolioManager {
 
         try {
             // 1. Read ALL provider data from Firestore
-            log.info("=====> Calling providerDataRepository.getAllProviderData for userId: {}", userId);
-            List<ProviderDataEntity> providers = providerDataRepository.getAllProviderData(userId);
+            log.info("=====> Calling portfolioProviderRepository.findAllByUserId for userId: {}", userId);
+            List<PortfolioProviderEntity> providers = portfolioProviderRepository.findAllByUserId(userId);
 
-            log.info("=====> providerDataRepository.getAllProviderData returned: {} providers",
+            log.info("=====> portfolioProviderRepository.findAllByUserId returned: {} providers",
                 providers == null ? "null" : providers.size());
 
             if (providers == null || providers.isEmpty()) {
@@ -61,7 +61,7 @@ public class PortfolioManager {
             log.info("=====> Found {} provider(s) for user: {}", providers.size(), userId);
 
             // Log each provider ID
-            for (ProviderDataEntity provider : providers) {
+            for (PortfolioProviderEntity provider : providers) {
                 log.info("=====> Provider found: providerId={}, name={}, totalValue={}",
                     provider.getProviderId(),
                     provider.getProviderName(),
@@ -71,12 +71,11 @@ public class PortfolioManager {
             // 2. Initialize aggregation variables
             BigDecimal totalValue = BigDecimal.ZERO;
             BigDecimal totalDayChange = BigDecimal.ZERO;
-            BigDecimal totalProfitLoss = BigDecimal.ZERO;
             BigDecimal totalCashBalance = BigDecimal.ZERO;
             Map<String, PortfolioData.ExchangeData> exchanges = new HashMap<>();
 
             // 3. Aggregate data from each provider
-            for (ProviderDataEntity provider : providers) {
+            for (PortfolioProviderEntity provider : providers) {
                 try {
                     log.debug("Processing provider: {} for user: {}", provider.getProviderId(), userId);
 
@@ -87,10 +86,6 @@ public class PortfolioManager {
 
                     if (provider.getDayChange() != null) {
                         totalDayChange = totalDayChange.add(provider.getDayChange());
-                    }
-
-                    if (provider.getTotalProfitLoss() != null) {
-                        totalProfitLoss = totalProfitLoss.add(provider.getTotalProfitLoss());
                     }
 
                     if (provider.getCashBalance() != null) {
@@ -113,7 +108,6 @@ public class PortfolioManager {
 
             // 4. Calculate aggregated percentages
             BigDecimal dayChangePercent = calculatePercentage(totalDayChange, totalValue);
-            BigDecimal profitLossPercent = calculatePercentage(totalProfitLoss, totalValue);
 
             // 5. Build aggregated portfolio data
             PortfolioData portfolioData = new PortfolioData();
@@ -135,46 +129,21 @@ public class PortfolioManager {
     }
     
     /**
-     * Builds ExchangeData from ProviderDataEntity
+     * Builds ExchangeData from PortfolioProviderEntity
      *
-     * @param provider Provider data entity from Firestore
+     * @param provider Portfolio provider entity from Firestore
      * @return Exchange data for portfolio response
      */
-    private PortfolioData.ExchangeData buildExchangeData(ProviderDataEntity provider) {
+    private PortfolioData.ExchangeData buildExchangeData(PortfolioProviderEntity provider) {
         PortfolioData.ExchangeData exchangeData = new PortfolioData.ExchangeData();
         exchangeData.setId(provider.getProviderId());
         exchangeData.setName(provider.getProviderName() != null ? provider.getProviderName() : provider.getProviderId());
         exchangeData.setValue(provider.getTotalValue() != null ? provider.getTotalValue() : BigDecimal.ZERO);
 
-        // Convert holdings to assets map
+        // PortfolioProviderEntity is a lightweight document - holdings are in subcollection
+        // For AI insights context, summary data (totalValue, dayChange) is sufficient
+        // Detailed holdings can be fetched separately if needed
         Map<String, PortfolioData.AssetData> assets = new HashMap<>();
-        if (provider.getHoldings() != null) {
-            for (ProviderDataEntity.Holding holding : provider.getHoldings()) {
-                try {
-                    PortfolioData.AssetData assetData = new PortfolioData.AssetData();
-                    assetData.setSymbol(holding.getAsset());
-                    assetData.setName(holding.getName() != null ? holding.getName() : holding.getAsset());
-                    assetData.setQuantity(holding.getQuantity() != null ? holding.getQuantity() : BigDecimal.ZERO);
-                    assetData.setPrice(holding.getCurrentPrice() != null ? holding.getCurrentPrice() : BigDecimal.ZERO);
-                    assetData.setValue(holding.getCurrentValue() != null ? holding.getCurrentValue() : BigDecimal.ZERO);
-
-                    // Calculate allocation percentage
-                    if (provider.getTotalValue() != null && provider.getTotalValue().compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal allocation = assetData.getValue()
-                                .divide(provider.getTotalValue(), 4, RoundingMode.HALF_UP)
-                                .multiply(new BigDecimal("100"));
-                        assetData.setAllocationPercent(allocation);
-                    } else {
-                        assetData.setAllocationPercent(BigDecimal.ZERO);
-                    }
-
-                    assets.put(holding.getAsset(), assetData);
-                } catch (Exception e) {
-                    log.warn("Error converting holding {} from provider {}: {}",
-                            holding.getAsset(), provider.getProviderId(), e.getMessage());
-                }
-            }
-        }
         exchangeData.setAssets(assets);
 
         return exchangeData;

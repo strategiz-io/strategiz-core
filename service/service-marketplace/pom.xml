@@ -61,11 +61,13 @@
         </dependency>
 
         <!-- Service modules -->
+        <!-- Temporarily disabled - compilation error with StrategyExecutionService
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-labs</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
 
         <!-- Client modules -->
         <dependency>

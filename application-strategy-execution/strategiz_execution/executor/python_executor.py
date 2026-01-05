@@ -111,12 +111,24 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
 def _create_safe_globals_for_process(df: pd.DataFrame) -> dict:
     """Create safe global namespace for code execution (module-level for multiprocessing)"""
 
+    # Allowed modules for import (whitelist)
+    ALLOWED_MODULES = {
+        'pandas', 'numpy', 'pandas_ta', 'ta', 'math', 'datetime',
+        'collections', 'itertools', 'functools', 'operator'
+    }
+
+    def safe_import(name, *args, **kwargs):
+        """Restricted import that only allows whitelisted modules"""
+        if name.split('.')[0] not in ALLOWED_MODULES:
+            raise ImportError(f"Import of '{name}' is not allowed")
+        return __import__(name, *args, **kwargs)
+
     # Start with safe_globals from RestrictedPython
     safe_env = safe_globals.copy()
 
-    # Add restricted builtins (excluding forbidden ones)
+    # Add restricted builtins (excluding dangerous ones but keeping __import__)
     FORBIDDEN_BUILTINS = {
-        'eval', 'exec', 'compile', '__import__', 'open', 'input',
+        'eval', 'exec', 'compile', 'open', 'input',
         'breakpoint', 'help', 'vars', 'dir', 'globals', 'locals'
     }
 
@@ -124,6 +136,9 @@ def _create_safe_globals_for_process(df: pd.DataFrame) -> dict:
         k: v for k, v in safe_builtins.items()
         if k not in FORBIDDEN_BUILTINS
     }
+
+    # Add safe __import__ to builtins
+    safe_env['__builtins__']['__import__'] = safe_import
 
     # Add guards for operations
     def _iter_unpack(ob, spec, _getiter_=None):

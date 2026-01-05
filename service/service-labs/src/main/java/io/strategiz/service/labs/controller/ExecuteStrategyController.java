@@ -17,9 +17,6 @@ import io.strategiz.service.labs.service.ReadStrategyService;
 import io.strategiz.service.labs.service.PythonStrategyExecutor;
 import io.strategiz.service.labs.constants.StrategyConstants;
 import io.strategiz.service.labs.exception.ServiceStrategyErrorDetails;
-import io.strategiz.client.execution.ExecutionServiceClient;
-import io.strategiz.client.execution.model.*;
-import io.strategiz.execution.grpc.MarketDataBar;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,24 +40,22 @@ public class ExecuteStrategyController extends BaseController {
     private static final Logger logger = LoggerFactory.getLogger(ExecuteStrategyController.class);
 
     private final ExecutionEngineService executionEngineService;
-    private final StrategyExecutionService strategyExecutionService;
+    private final io.strategiz.service.labs.service.StrategyExecutionService strategyExecutionService;  // Service layer for gRPC execution
     private final ReadStrategyService readStrategyService;
     private final PythonStrategyExecutor pythonStrategyExecutor;
     private final BacktestCalculatorBusiness backtestCalculatorBusiness;
     private final MarketDataRepository marketDataRepository;
     private final FundamentalsQueryService fundamentalsQueryService;
-    private final ExecutionServiceClient executionServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public ExecuteStrategyController(ExecutionEngineService executionEngineService,
-                                   StrategyExecutionService strategyExecutionService,
+                                   io.strategiz.service.labs.service.StrategyExecutionService strategyExecutionService,
                                    ReadStrategyService readStrategyService,
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
                                    MarketDataRepository marketDataRepository,
-                                   FundamentalsQueryService fundamentalsQueryService,
-                                   ExecutionServiceClient executionServiceClient) {
+                                   FundamentalsQueryService fundamentalsQueryService) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
@@ -68,7 +63,6 @@ public class ExecuteStrategyController extends BaseController {
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
         this.fundamentalsQueryService = fundamentalsQueryService;
-        this.executionServiceClient = executionServiceClient;
     }
     
     @PostMapping("/{strategyId}/execute")
@@ -131,9 +125,9 @@ public class ExecuteStrategyController extends BaseController {
                 throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_LANGUAGE);
             }
 
-            // For Python execution - use gRPC execution service for better security and isolation
+            // For Python execution - delegate to service layer
             if ("python".equalsIgnoreCase(request.getLanguage())) {
-                logger.info("🚀 PYTHON EXECUTION VIA gRPC MICROSERVICE - Starting execution for userId={}", userId);
+                logger.info("🚀 PYTHON EXECUTION - Delegating to service layer for userId={}", userId);
 
                 // Validate symbol is provided
                 String symbol = request.getSymbol();
@@ -144,38 +138,19 @@ public class ExecuteStrategyController extends BaseController {
                     );
                 }
 
-                logger.info("📊 Fetching market data for symbol: {}", symbol);
-                // Fetch real market data from repository (null strategy = uses 2-year default)
-                List<Map<String, Object>> marketDataList = fetchMarketDataListForSymbol(symbol, null);
-                logger.info("✅ Market data fetched: {} bars", marketDataList.size());
-
-                // Convert market data to gRPC format
-                List<MarketDataBar> grpcMarketData = marketDataList.stream()
-                    .map(ExecutionServiceClient::createMarketDataBar)
-                    .collect(java.util.stream.Collectors.toList());
-
-                logger.info("🔌 Calling Python gRPC microservice...");
-
-                // Execute via gRPC (isolated Python microservice)
-                long startTime = System.currentTimeMillis();
-                io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
+                // Delegate to service layer (handles market data fetching, gRPC call, and DTO mapping)
+                ExecuteStrategyResponse response = strategyExecutionService.executeStrategy(
                     request.getCode(),
                     "python",
-                    grpcMarketData,
+                    symbol,
+                    request.getTimeframe() != null ? request.getTimeframe() : "1D",
                     userId,
-                    "direct-execution-" + System.currentTimeMillis(),
-                    30  // timeout seconds
+                    null  // No saved strategy for direct code execution
                 );
-                long duration = System.currentTimeMillis() - startTime;
 
-                logger.info("✅ Python gRPC microservice execution completed in {}ms - Success: {}, Trades: {}",
-                    duration,
-                    grpcResponse.isSuccess(),
-                    grpcResponse.getPerformance() != null
-                        ? grpcResponse.getPerformance().getTotalTrades() : 0);
-
-                // Convert gRPC response to REST response
-                ExecuteStrategyResponse response = convertGrpcToRestResponse(grpcResponse, symbol);
+                logger.info("✅ Strategy execution completed: {} trades, {} signals",
+                    response.getPerformance() != null ? response.getPerformance().getTotalTrades() : 0,
+                    response.getSignals() != null ? response.getSignals().size() : 0);
 
                 return ResponseEntity.ok(response);
             }
@@ -353,7 +328,7 @@ public class ExecuteStrategyController extends BaseController {
     }
 
     /**
-     * Convert MarketDataEntity to JSON candle format for Python
+     * Convert MarketDataEntity to JSON candle format
      */
     private java.util.Map<String, Object> convertToJsonCandle(MarketDataEntity entity) {
         java.util.Map<String, Object> candle = new java.util.HashMap<>();
@@ -365,79 +340,6 @@ public class ExecuteStrategyController extends BaseController {
         candle.put("close", entity.getClose().doubleValue());
         candle.put("volume", entity.getVolume() != null ? entity.getVolume().longValue() : 0);
         return candle;
-    }
-
-    /**
-     * Fetch market data as a list of maps for both Python execution and backtest calculation.
-     *
-     * @param symbol   Stock or crypto symbol
-     * @param strategy Optional strategy entity (for seedFundingDate override)
-     */
-    private List<Map<String, Object>> fetchMarketDataListForSymbol(String symbol, io.strategiz.data.strategy.entity.Strategy strategy) {
-        logger.info("Fetching market data for symbol: {}", symbol);
-
-        // Calculate dynamic date range
-        java.time.LocalDate endDate = java.time.LocalDate.now().minusDays(1);
-        java.time.LocalDate startDate = calculateBacktestStartDate(strategy);
-
-        logger.info("Fetching market data from {} to {} ({} days)",
-            startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
-
-        // Query Firestore for historical data
-        java.util.List<MarketDataEntity> marketData = marketDataRepository
-            .findBySymbolAndDateRange(symbol, startDate, endDate);
-
-        // If no data found, throw proper exception
-        if (marketData == null || marketData.isEmpty()) {
-            logger.warn("No market data found for symbol: {}", symbol);
-            throwModuleException(
-                ServiceStrategyErrorDetails.MARKET_DATA_NOT_FOUND,
-                String.format("No market data found for symbol: %s. Please ensure the batch job has run to populate data.", symbol)
-            );
-        }
-
-        // Convert to list of maps
-        List<Map<String, Object>> jsonData = marketData.stream()
-            .map(this::convertToJsonCandle)
-            .collect(java.util.stream.Collectors.toList());
-
-        logger.info("Fetched {} data points for symbol: {}", jsonData.size(), symbol);
-        return jsonData;
-    }
-
-    /**
-     * Calculate backtest start date based on strategy's seedFundingDate or 2-year default.
-     *
-     * @param strategy Optional strategy entity (may be null for direct code execution)
-     * @return Start date for market data fetching
-     */
-    private java.time.LocalDate calculateBacktestStartDate(io.strategiz.data.strategy.entity.Strategy strategy) {
-        java.time.LocalDate endDate = java.time.LocalDate.now().minusDays(1);
-
-        // Use seedFundingDate if provided
-        if (strategy != null && strategy.getSeedFundingDate() != null) {
-            try {
-                java.time.Instant instant = java.time.Instant.ofEpochMilli(
-                    strategy.getSeedFundingDate().toDate().getTime()
-                );
-                java.time.LocalDate seedDate = instant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
-
-                // Validate not in future
-                if (seedDate.isAfter(endDate)) {
-                    logger.warn("Seed funding date {} is in the future, using 2-year default", seedDate);
-                    return endDate.minusYears(2);
-                }
-
-                logger.info("Using seed funding date: {}", seedDate);
-                return seedDate;
-            } catch (Exception e) {
-                logger.error("Error parsing seed funding date, using 2-year default", e);
-            }
-        }
-
-        // Default: 2 years back
-        logger.info("No seed funding date, using 2-year default");
-        return endDate.minusYears(2);
     }
 
     /**
@@ -489,113 +391,6 @@ public class ExecuteStrategyController extends BaseController {
         return performance;
     }
 
-    // Temporarily disabled - gRPC execution service not yet configured in production
-    /**
-     * Convert gRPC ExecutionResponse to REST ExecuteStrategyResponse
-     */
-    private ExecuteStrategyResponse convertGrpcToRestResponse(
-            io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
-            String symbol) {
-        ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-
-        // Set basic fields
-        response.setSymbol(symbol);
-        response.setExecutionTime(grpcResponse.getExecutionTimeMs());
-        response.setLogs(grpcResponse.getLogs());
-
-        // Handle errors
-        if (!grpcResponse.isSuccess()) {
-            List<String> errors = new java.util.ArrayList<>();
-            if (grpcResponse.getError() != null) {
-                errors.add(grpcResponse.getError());
-            }
-            response.setErrors(errors);
-            return response;
-        }
-
-        // Convert signals
-        if (grpcResponse.getSignals() != null) {
-            List<ExecuteStrategyResponse.Signal> signals = grpcResponse.getSignals().stream()
-                .map(s -> {
-                    ExecuteStrategyResponse.Signal signal = new ExecuteStrategyResponse.Signal();
-                    signal.setTimestamp(s.getTimestamp());
-                    signal.setType(s.getType());
-                    signal.setPrice(s.getPrice());
-                    signal.setQuantity(s.getQuantity());
-                    signal.setReason(s.getReason());
-                    return signal;
-                })
-                .collect(java.util.stream.Collectors.toList());
-            response.setSignals(signals);
-        }
-
-        // Convert indicators
-        if (grpcResponse.getIndicators() != null) {
-            List<ExecuteStrategyResponse.Indicator> indicators = grpcResponse.getIndicators().stream()
-                .map(i -> {
-                    ExecuteStrategyResponse.Indicator indicator = new ExecuteStrategyResponse.Indicator();
-                    indicator.setName(i.getName());
-
-                    List<ExecuteStrategyResponse.Indicator.DataPoint> dataPoints = i.getData().stream()
-                        .map(dp -> {
-                            ExecuteStrategyResponse.Indicator.DataPoint point = new ExecuteStrategyResponse.Indicator.DataPoint();
-                            point.setTime(dp.getTimestamp());
-                            point.setValue(dp.getValue());
-                            return point;
-                        })
-                        .collect(java.util.stream.Collectors.toList());
-                    indicator.setData(dataPoints);
-
-                    return indicator;
-                })
-                .collect(java.util.stream.Collectors.toList());
-            response.setIndicators(indicators);
-        }
-
-        // Convert performance
-        if (grpcResponse.getPerformance() != null) {
-            io.strategiz.client.execution.model.Performance grpcPerf = grpcResponse.getPerformance();
-            ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
-
-            performance.setTotalReturn(grpcPerf.getTotalReturn());
-            performance.setTotalPnL(grpcPerf.getTotalPnl());
-            performance.setWinRate(grpcPerf.getWinRate());
-            performance.setTotalTrades(grpcPerf.getTotalTrades());
-            performance.setProfitableTrades(grpcPerf.getProfitableTrades());
-            performance.setBuyCount(grpcPerf.getBuyCount());
-            performance.setSellCount(grpcPerf.getSellCount());
-            performance.setAvgWin(grpcPerf.getAvgWin());
-            performance.setAvgLoss(grpcPerf.getAvgLoss());
-            performance.setProfitFactor(grpcPerf.getProfitFactor());
-            performance.setMaxDrawdown(grpcPerf.getMaxDrawdown());
-            performance.setSharpeRatio(grpcPerf.getSharpeRatio());
-            performance.setLastTestedAt(grpcPerf.getLastTestedAt());
-
-            // Convert trades
-            if (grpcPerf.getTrades() != null) {
-                List<ExecuteStrategyResponse.Trade> trades = grpcPerf.getTrades().stream()
-                    .map(t -> {
-                        ExecuteStrategyResponse.Trade trade = new ExecuteStrategyResponse.Trade();
-                        trade.setBuyTimestamp(t.getBuyTimestamp());
-                        trade.setSellTimestamp(t.getSellTimestamp());
-                        trade.setBuyPrice(t.getBuyPrice());
-                        trade.setSellPrice(t.getSellPrice());
-                        trade.setPnl(t.getPnl());
-                        trade.setPnlPercent(t.getPnlPercent());
-                        trade.setWin(t.isWin());
-                        trade.setBuyReason(t.getBuyReason());
-                        trade.setSellReason(t.getSellReason());
-                        return trade;
-                    })
-                    .collect(java.util.stream.Collectors.toList());
-                performance.setTrades(trades);
-            }
-
-            response.setPerformance(performance);
-        }
-
-        return response;
-    }
 
     /**
      * Convert Performance object to Map for Firestore storage

@@ -27,7 +27,7 @@ public class JacksonConfig {
      * Configures the global ObjectMapper used by Spring Boot for all JSON serialization.
      *
      * Configuration:
-     * - NON_NULL: Excludes null fields from JSON output
+     * - NON_EMPTY: Excludes null fields, empty strings, and empty collections from JSON output
      * - JavaTimeModule: Proper Java 8 date/time support
      * - WRITE_DATES_AS_TIMESTAMPS: Disabled for ISO-8601 format
      *
@@ -39,9 +39,9 @@ public class JacksonConfig {
     public ObjectMapper objectMapper(Jackson2ObjectMapperBuilder builder) {
         ObjectMapper objectMapper = builder.build();
 
-        // Exclude null values from JSON responses
+        // Exclude null values, empty strings, and empty collections from JSON responses
         // This keeps API responses clean and reduces payload size
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
         // Register Java 8 date/time module for proper Instant, LocalDateTime, etc. serialization
         objectMapper.registerModule(new JavaTimeModule());

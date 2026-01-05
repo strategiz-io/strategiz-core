@@ -72,11 +72,11 @@ public class StrategyExecutionService extends BaseService {
             String userId,
             Strategy strategy) {
 
-        logger.info("Executing strategy for user={}, symbol={}, language={}", userId, symbol, language);
+        logger.info("Executing strategy for user={}, symbol={}, language={}, timeframe={}", userId, symbol, language, timeframe);
 
         // 1. Fetch market data (one DB call)
-        List<Map<String, Object>> marketDataList = fetchMarketData(symbol, strategy);
-        logger.info("Fetched {} market data bars for symbol {}", marketDataList.size(), symbol);
+        List<Map<String, Object>> marketDataList = fetchMarketData(symbol, timeframe, strategy);
+        logger.info("Fetched {} market data bars for symbol {} with timeframe {}", marketDataList.size(), symbol, timeframe);
 
         // 2. Convert to gRPC format
         List<MarketDataBar> grpcMarketData = marketDataList.stream()
@@ -105,8 +105,8 @@ public class StrategyExecutionService extends BaseService {
      * Fetch market data from repository.
      * Lightweight - single DB query.
      */
-    private List<Map<String, Object>> fetchMarketData(String symbol, Strategy strategy) {
-        logger.info("Fetching market data for symbol: {}", symbol);
+    private List<Map<String, Object>> fetchMarketData(String symbol, String timeframe, Strategy strategy) {
+        logger.info("Fetching market data for symbol: {} with timeframe: {}", symbol, timeframe);
 
         // Calculate date range
         LocalDate endDate = LocalDate.now().minusDays(1);
@@ -115,8 +115,10 @@ public class StrategyExecutionService extends BaseService {
         logger.info("Date range: {} to {} ({} days)",
             startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
 
-        // Single query to repository
-        List<MarketDataEntity> entities = marketDataRepository.findBySymbolAndDateRange(symbol, startDate, endDate);
+        // Single query to repository with timeframe filter (limit to 3000 bars)
+        List<MarketDataEntity> entities = marketDataRepository.findBySymbolAndDateRange(
+            symbol, startDate, endDate, timeframe, 3000
+        );
 
         // Validate data exists
         if (entities == null || entities.isEmpty()) {

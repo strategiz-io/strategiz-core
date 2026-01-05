@@ -59,7 +59,7 @@ steps:
       - '--max-instances=5'
       - '--concurrency=80'
       - '--timeout=3600s'
-      - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,scheduler,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
+      - '--set-env-vars=^@^SPRING_PROFILES_ACTIVE=prod,scheduler@VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app@STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app'
       - '--set-secrets=VAULT_TOKEN=vault-token:latest,FIREBASE_SERVICE_ACCOUNT_KEY=firebase-service-account:latest'
 
 images:

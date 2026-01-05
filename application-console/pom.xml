@@ -12,7 +12,7 @@
 
     <groupId>io.strategiz</groupId>
     <artifactId>application-console</artifactId>
-    <description>Strategiz Console API - Admin REST API service (separate deployment)</description>
+    <description>Strategiz Console API - Admin endpoints and batch jobs (separate Cloud Run service)</description>
 
     <dependencies>
         <!-- Essential Spring Boot Starter for bootstrapping -->
@@ -60,17 +60,46 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Console Service (admin endpoints) -->
+        <!-- Admin Console Services -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-console</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-console-quality</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-console-observability</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
-        <!-- Market Data Batch Jobs (for console job management) -->
+        <!-- Batch Jobs -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>batch-fundamentals</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Market Data Service (for batch controller) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- TimescaleDB Framework Module -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-framework-timescale</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -85,6 +114,20 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- GCP Billing Client (for AdminCostsController) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-gcp-billing</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Infrastructure Costs Business Logic (for AdminCostsController) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-infrastructure-costs</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

@@ -137,6 +137,7 @@
 
         <!-- Application Modules (Build Last) -->
         <module>application-api</module>
+        <module>application-console</module>
     </modules>
 
     <properties>

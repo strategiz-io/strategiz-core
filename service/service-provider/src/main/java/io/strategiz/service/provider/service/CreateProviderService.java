@@ -15,6 +15,7 @@ import io.strategiz.business.base.provider.model.CreateProviderIntegrationReques
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
+import io.strategiz.data.provider.repository.PortfolioInsightsCacheRepository;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
 import io.strategiz.data.provider.entity.ProviderStatus;import io.strategiz.service.profile.service.ProfileService;
 import io.strategiz.service.base.BaseService;
@@ -58,7 +59,8 @@ public class CreateProviderService extends BaseService {
     private final Map<String, ProviderIntegrationHandler> providerHandlers;
     private final ProfileService profileService;
     private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
-    
+    private final PortfolioInsightsCacheRepository insightsCacheRepository;
+
     @Autowired
     public CreateProviderService(
             CoinbaseProviderBusiness coinbaseProviderBusiness,
@@ -69,7 +71,8 @@ public class CreateProviderService extends BaseService {
             RobinhoodProviderBusiness robinhoodProviderBusiness,
             WebullProviderBusiness webullProviderBusiness,
             ProfileService profileService,
-            ReadProviderIntegrationRepository readProviderIntegrationRepository) {
+            ReadProviderIntegrationRepository readProviderIntegrationRepository,
+            PortfolioInsightsCacheRepository insightsCacheRepository) {
 
         // Initialize provider handler map
         this.providerHandlers = new HashMap<>();
@@ -84,6 +87,7 @@ public class CreateProviderService extends BaseService {
 
         this.profileService = profileService;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;
+        this.insightsCacheRepository = insightsCacheRepository;
     }
     
     /**
@@ -168,13 +172,22 @@ public class CreateProviderService extends BaseService {
             if (!"oauth".equalsIgnoreCase(request.getConnectionType()) && result.isSuccess()) {
                 try {
                     profileService.updateDemoMode(request.getUserId(), false); // false = live mode
-                    log.info("Set demo mode to 'false' (live mode) for user {} after connecting {}", 
+                    log.info("Set demo mode to 'false' (live mode) for user {} after connecting {}",
                             request.getUserId(), request.getProviderId());
                 } catch (Exception e) {
                     log.warn("Failed to update demo mode for user {}: {}", request.getUserId(), e.getMessage());
                 }
+
+                // Invalidate AI insights cache (force regeneration on next request)
+                try {
+                    insightsCacheRepository.invalidateCache(request.getUserId());
+                    log.debug("Invalidated AI insights cache for user {} after connecting {}", request.getUserId(), request.getProviderId());
+                } catch (Exception e) {
+                    log.warn("Failed to invalidate insights cache for user {}: {}", request.getUserId(), e.getMessage());
+                    // Don't fail the connection if cache invalidation fails
+                }
             }
-            
+
             // Convert business result to service response
             return convertToServiceResponse(request, result);
             

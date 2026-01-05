@@ -6,6 +6,7 @@ import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.service.base.service.ProviderBaseService;
 import io.strategiz.data.provider.repository.PortfolioProviderRepository;
 import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
+import io.strategiz.data.provider.repository.PortfolioInsightsCacheRepository;
 import io.strategiz.framework.secrets.controller.SecretManager;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
@@ -20,7 +21,7 @@ import io.strategiz.service.base.BaseService;
 /**
  * Service for deleting provider connections and data.
  * Handles business logic for disconnecting providers and cleaning up associated data.
- * 
+ *
  * @author Strategiz Team
  * @version 1.0
  */
@@ -38,6 +39,9 @@ public class DeleteProviderService extends ProviderBaseService {
 
     @Autowired
     private PortfolioSummaryManager portfolioSummaryManager;
+
+    @Autowired
+    private PortfolioInsightsCacheRepository insightsCacheRepository;
 
     /**
      * Deletes a provider connection.
@@ -172,6 +176,15 @@ public class DeleteProviderService extends ProviderBaseService {
 
             // Refresh portfolio summary after provider deletion
             portfolioSummaryManager.refreshPortfolioSummary(request.getUserId());
+
+            // Invalidate AI insights cache (force regeneration on next request)
+            try {
+                insightsCacheRepository.invalidateCache(request.getUserId());
+                providerLog.debug("Invalidated AI insights cache for user {} after provider deletion", request.getUserId());
+            } catch (Exception e) {
+                providerLog.warn("Failed to invalidate insights cache for user {}: {}", request.getUserId(), e.getMessage());
+                // Don't fail the delete operation if cache invalidation fails
+            }
 
         } catch (StrategizException e) {
             throw e;

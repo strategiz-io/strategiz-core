@@ -5,32 +5,55 @@ import io.strategiz.business.aichat.model.ChatContext;
 import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
 import io.strategiz.business.aichat.prompt.PortfolioAnalysisPrompts;
+import io.strategiz.data.provider.entity.PortfolioInsightsCacheEntity;
+import io.strategiz.data.provider.repository.PortfolioInsightsCacheRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service for AI-powered portfolio analysis.
  * Generates insights for Risk Analysis, Performance Analysis, Rebalancing, and Investment Opportunities.
+ *
+ * Implements caching strategy:
+ * - Return cached insights immediately if valid (< 24 hours, not invalidated)
+ * - Generate new insights only when cache is invalid/missing
+ * - Cache is invalidated when provider data changes (sync, connect, disconnect)
  */
 @Service
 public class PortfolioAnalysisService {
 
 	private static final Logger logger = LoggerFactory.getLogger(PortfolioAnalysisService.class);
 
+	/**
+	 * Timeout for individual insight generation (20 seconds each)
+	 */
+	private static final Duration INSIGHT_TIMEOUT = Duration.ofSeconds(20);
+
 	private final AIChatBusiness aiChatBusiness;
 
 	private final PortfolioContextProvider portfolioContextProvider;
 
-	public PortfolioAnalysisService(AIChatBusiness aiChatBusiness, PortfolioContextProvider portfolioContextProvider) {
+	private final PortfolioInsightsCacheRepository insightsCacheRepository;
+
+	@Autowired
+	public PortfolioAnalysisService(AIChatBusiness aiChatBusiness,
+			PortfolioContextProvider portfolioContextProvider,
+			PortfolioInsightsCacheRepository insightsCacheRepository) {
 		this.aiChatBusiness = aiChatBusiness;
 		this.portfolioContextProvider = portfolioContextProvider;
+		this.insightsCacheRepository = insightsCacheRepository;
 	}
 
 	/**
@@ -86,7 +109,14 @@ public class PortfolioAnalysisService {
 
 	/**
 	 * Generate all 4 insight types in parallel (Risk, Performance, Rebalancing,
-	 * Opportunities)
+	 * Opportunities) with caching.
+	 *
+	 * Cache Strategy:
+	 * 1. Check cache first - return immediately if valid
+	 * 2. If cache invalid/missing, generate new insights
+	 * 3. Save new insights to cache for next time
+	 * 4. Each insight has a 20-second timeout to prevent hanging
+	 *
 	 * @param userId User ID
 	 * @param model LLM model to use
 	 * @return List of ChatResponse objects, one for each insight type
@@ -94,20 +124,194 @@ public class PortfolioAnalysisService {
 	public Mono<List<ChatResponse>> generateAllInsights(String userId, String model) {
 		logger.info("Generating all insights for user: {}, model: {}", userId, model);
 
-		// Generate all 4 insight types in parallel
-		Mono<ChatResponse> riskMono = generateInsight(userId, "risk", model);
-		Mono<ChatResponse> performanceMono = generateInsight(userId, "performance", model);
-		Mono<ChatResponse> rebalancingMono = generateInsight(userId, "rebalancing", model);
-		Mono<ChatResponse> opportunitiesMono = generateInsight(userId, "opportunities", model);
+		// 1. Check cache first
+		try {
+			Optional<PortfolioInsightsCacheEntity> cachedOpt = insightsCacheRepository.getCachedInsights(userId);
+
+			if (cachedOpt.isPresent()) {
+				PortfolioInsightsCacheEntity cached = cachedOpt.get();
+				logger.info("Returning cached insights for user: {} (generated at: {})", userId, cached.getGeneratedAt());
+
+				// Convert cached insights to ChatResponse list
+				List<ChatResponse> cachedResponses = convertCacheToResponses(cached);
+				return Mono.just(cachedResponses);
+			}
+
+			logger.info("No valid cache found for user: {}, generating new insights", userId);
+		}
+		catch (Exception e) {
+			logger.warn("Error checking cache for user {}: {} - proceeding with generation", userId, e.getMessage());
+		}
+
+		// 2. Generate all 4 insight types in parallel with individual timeouts
+		Mono<ChatResponse> riskMono = generateInsight(userId, "risk", model)
+				.timeout(INSIGHT_TIMEOUT)
+				.onErrorResume(e -> {
+					logger.warn("Risk insight timed out or failed for user {}: {}", userId, e.getMessage());
+					return Mono.just(createErrorResponse("risk", e));
+				});
+
+		Mono<ChatResponse> performanceMono = generateInsight(userId, "performance", model)
+				.timeout(INSIGHT_TIMEOUT)
+				.onErrorResume(e -> {
+					logger.warn("Performance insight timed out or failed for user {}: {}", userId, e.getMessage());
+					return Mono.just(createErrorResponse("performance", e));
+				});
+
+		Mono<ChatResponse> rebalancingMono = generateInsight(userId, "rebalancing", model)
+				.timeout(INSIGHT_TIMEOUT)
+				.onErrorResume(e -> {
+					logger.warn("Rebalancing insight timed out or failed for user {}: {}", userId, e.getMessage());
+					return Mono.just(createErrorResponse("rebalancing", e));
+				});
+
+		Mono<ChatResponse> opportunitiesMono = generateInsight(userId, "opportunities", model)
+				.timeout(INSIGHT_TIMEOUT)
+				.onErrorResume(e -> {
+					logger.warn("Opportunities insight timed out or failed for user {}: {}", userId, e.getMessage());
+					return Mono.just(createErrorResponse("opportunities", e));
+				});
 
 		return Mono.zip(riskMono, performanceMono, rebalancingMono, opportunitiesMono)
 			.map(tuple -> List.of(tuple.getT1(), tuple.getT2(), tuple.getT3(), tuple.getT4()))
 			.doOnSuccess(insights -> {
 				logger.info("Successfully generated all 4 insights for user: {}", userId);
+
+				// 3. Save to cache asynchronously (don't block response)
+				Mono.fromRunnable(() -> saveInsightsToCache(userId, insights, model))
+						.subscribeOn(Schedulers.boundedElastic())
+						.subscribe(
+								null,
+								error -> logger.error("Failed to save insights to cache for user {}: {}", userId, error.getMessage())
+						);
 			})
 			.doOnError(error -> {
 				logger.error("Error generating all insights for user {}: {}", userId, error.getMessage(), error);
 			});
+	}
+
+	/**
+	 * Convert cached insights entity to list of ChatResponse
+	 */
+	private List<ChatResponse> convertCacheToResponses(PortfolioInsightsCacheEntity cached) {
+		if (cached.getInsights() == null) {
+			return new ArrayList<>();
+		}
+
+		return cached.getInsights().stream()
+				.map(insight -> {
+					ChatResponse response = new ChatResponse();
+					response.setContent(insight.getContent());
+					response.setSuccess(Boolean.TRUE.equals(insight.getSuccess()));
+					response.setModel(insight.getModel());
+
+					// Set metadata fields
+					Map<String, Object> metadata = Map.of(
+							"type", insight.getType() != null ? insight.getType() : "",
+							"title", insight.getTitle() != null ? insight.getTitle() : "",
+							"summary", insight.getSummary() != null ? insight.getSummary() : "",
+							"riskLevel", insight.getRiskLevel() != null ? insight.getRiskLevel() : "",
+							"generatedAt", insight.getGeneratedAtEpoch() != null ? insight.getGeneratedAtEpoch() : 0L,
+							"fromCache", true
+					);
+					response.setMetadata(metadata);
+
+					return response;
+				})
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Save generated insights to cache
+	 */
+	private void saveInsightsToCache(String userId, List<ChatResponse> insights, String model) {
+		try {
+			PortfolioInsightsCacheEntity cache = new PortfolioInsightsCacheEntity();
+			cache.setModel(model);
+
+			List<PortfolioInsightsCacheEntity.CachedInsight> cachedInsights = insights.stream()
+					.map(response -> {
+						PortfolioInsightsCacheEntity.CachedInsight cached = new PortfolioInsightsCacheEntity.CachedInsight();
+						cached.setContent(response.getContent());
+						cached.setSuccess(response.isSuccess());
+						cached.setModel(response.getModel());
+						cached.setGeneratedAtEpoch(System.currentTimeMillis() / 1000);
+
+						// Extract metadata if present
+						if (response.getMetadata() != null) {
+							Map<String, Object> meta = response.getMetadata();
+							cached.setType((String) meta.getOrDefault("type", ""));
+							cached.setTitle((String) meta.getOrDefault("title", ""));
+							cached.setSummary((String) meta.getOrDefault("summary", ""));
+							cached.setRiskLevel((String) meta.getOrDefault("riskLevel", ""));
+						}
+
+						return cached;
+					})
+					.collect(Collectors.toList());
+
+			cache.setInsights(cachedInsights);
+			insightsCacheRepository.saveCache(userId, cache);
+			logger.info("Successfully saved insights to cache for user: {}", userId);
+		}
+		catch (Exception e) {
+			logger.error("Failed to save insights to cache for user {}: {}", userId, e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Create an error response for a failed insight
+	 */
+	private ChatResponse createErrorResponse(String insightType, Throwable error) {
+		ChatResponse response = new ChatResponse();
+		response.setContent("Unable to generate " + insightType + " analysis at this time. Please try again later.");
+		response.setSuccess(false);
+		response.setModel("error");
+
+		Map<String, Object> metadata = Map.of(
+				"type", insightType.toUpperCase(),
+				"title", formatInsightTitle(insightType),
+				"summary", "Analysis temporarily unavailable",
+				"error", error.getMessage() != null ? error.getMessage() : "Unknown error",
+				"generatedAt", System.currentTimeMillis() / 1000
+		);
+		response.setMetadata(metadata);
+
+		return response;
+	}
+
+	/**
+	 * Format insight type to title
+	 */
+	private String formatInsightTitle(String insightType) {
+		switch (insightType.toLowerCase()) {
+			case "risk":
+				return "Portfolio Risk Analysis";
+			case "performance":
+				return "Performance Analysis";
+			case "rebalancing":
+				return "Rebalancing Recommendations";
+			case "opportunities":
+				return "Investment Opportunities";
+			default:
+				return insightType.substring(0, 1).toUpperCase() + insightType.substring(1) + " Analysis";
+		}
+	}
+
+	/**
+	 * Invalidate insights cache for a user.
+	 * Should be called when provider data changes (sync, connect, disconnect).
+	 *
+	 * @param userId User ID
+	 */
+	public void invalidateInsightsCache(String userId) {
+		try {
+			insightsCacheRepository.invalidateCache(userId);
+			logger.info("Invalidated insights cache for user: {}", userId);
+		}
+		catch (Exception e) {
+			logger.error("Failed to invalidate insights cache for user {}: {}", userId, e.getMessage(), e);
+		}
 	}
 
 	/**

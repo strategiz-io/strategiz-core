@@ -1,6 +1,7 @@
 package io.strategiz.business.aichat.model;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * Response from AI chat
@@ -20,6 +21,12 @@ public class ChatResponse {
 	private boolean success;
 
 	private String error;
+
+	/**
+	 * Additional metadata for the response (type, title, summary, riskLevel, etc.)
+	 * Used primarily for portfolio insights caching
+	 */
+	private Map<String, Object> metadata;
 
 	public ChatResponse() {
 		this.timestamp = LocalDateTime.now();
@@ -92,6 +99,14 @@ public class ChatResponse {
 
 	public void setError(String error) {
 		this.error = error;
+	}
+
+	public Map<String, Object> getMetadata() {
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
 	}
 
 }

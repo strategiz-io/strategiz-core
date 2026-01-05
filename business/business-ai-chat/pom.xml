@@ -31,6 +31,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Data Provider (for insights caching) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Client Base (LLMProvider interface) -->
         <dependency>
             <groupId>io.strategiz</groupId>

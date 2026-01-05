@@ -25,6 +25,9 @@ public class JobExecutionEntity {
     @Column(name = "job_name", length = 100, nullable = false)
     private String jobName;
 
+    @Column(name = "job_id", length = 50)
+    private String jobId;  // Foreign key to jobs table (nullable for backward compatibility)
+
     @Column(name = "start_time", nullable = false)
     private Instant startTime;
 
@@ -94,6 +97,14 @@ public class JobExecutionEntity {
 
     public void setJobName(String jobName) {
         this.jobName = jobName;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
     }
 
     public Instant getStartTime() {

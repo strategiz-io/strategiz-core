@@ -115,9 +115,13 @@ public class StrategyExecutionService extends BaseService {
         logger.info("Date range: {} to {} ({} days)",
             startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
 
+        // Convert timeframe to database format (1H -> 1Hour, 1D -> 1Day, etc.)
+        String dbTimeframe = convertToDbTimeframe(timeframe);
+        logger.info("Converted timeframe {} to database format: {}", timeframe, dbTimeframe);
+
         // Single query to repository with timeframe filter (limit to 3000 bars)
         List<MarketDataEntity> entities = marketDataRepository.findBySymbolAndDateRange(
-            symbol, startDate, endDate, timeframe, 3000
+            symbol, startDate, endDate, dbTimeframe, 3000
         );
 
         // Validate data exists
@@ -182,6 +186,23 @@ public class StrategyExecutionService extends BaseService {
             case "1W" -> endDate.minusYears(5);          // Weekly: 5 years
             case "1M" -> endDate.minusYears(7);          // Monthly: 7 years
             default -> endDate.minusYears(2);            // Safe default
+        };
+    }
+
+    /**
+     * Convert frontend timeframe format to database format.
+     *
+     * Frontend/Python uses: 1H, 1D, 1W, 1M
+     * Database stores: 1Hour, 1Day, 1Week, 1Month
+     */
+    private String convertToDbTimeframe(String timeframe) {
+        return switch (timeframe) {
+            case "1H" -> "1Hour";
+            case "4H" -> "4Hour";
+            case "1D" -> "1Day";
+            case "1W" -> "1Week";
+            case "1M" -> "1Month";
+            default -> "1Day";  // Safe default
         };
     }
 

@@ -116,27 +116,60 @@ public class PortfolioProviderRepository {
 
     /**
      * Find all providers for a user.
-     * Only returns active (non-deleted) providers with status "connected".
+     * Returns all providers that are not explicitly disconnected or deleted.
+     * Note: Does NOT filter by isActive since legacy documents may not have this field.
      */
     public List<PortfolioProviderEntity> findAllByUserId(String userId) {
         try {
-            log.debug("Finding all providers for userId: {}", userId);
+            log.info("=====> PortfolioProviderRepository.findAllByUserId for userId: {}", userId);
 
-            Query query = getPortfolioCollection(userId)
-                    .whereEqualTo("status", "connected")
-                    .whereEqualTo("isActive", true);
+            // Get all documents in the portfolio collection for this user
+            // Don't filter by isActive - legacy documents may not have this field
+            List<QueryDocumentSnapshot> docs = getPortfolioCollection(userId).get().get().getDocuments();
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+            log.info("=====> Found {} total documents in portfolio collection for userId: {}", docs.size(), userId);
 
-            log.info("Found {} connected providers for userId: {}", docs.size(), userId);
+            // Log each document for debugging
+            for (QueryDocumentSnapshot doc : docs) {
+                log.info("=====> Document: id={}, status={}, isActive={}, totalValue={}",
+                    doc.getId(),
+                    doc.getString("status"),
+                    doc.getBoolean("isActive"),
+                    doc.get("totalValue"));
+            }
 
-            return docs.stream()
+            // Filter: exclude "summary" document and disconnected providers
+            List<PortfolioProviderEntity> providers = docs.stream()
+                    .filter(doc -> {
+                        String docId = doc.getId();
+                        // Skip the "summary" document
+                        if ("summary".equals(docId)) {
+                            log.debug("Skipping summary document");
+                            return false;
+                        }
+                        // Skip explicitly disconnected providers
+                        String status = doc.getString("status");
+                        if ("disconnected".equals(status)) {
+                            log.debug("Skipping disconnected provider: {}", docId);
+                            return false;
+                        }
+                        // Skip if isActive is explicitly false (not null)
+                        Boolean isActive = doc.getBoolean("isActive");
+                        if (Boolean.FALSE.equals(isActive)) {
+                            log.debug("Skipping inactive provider: {}", docId);
+                            return false;
+                        }
+                        return true;
+                    })
                     .map(doc -> {
                         PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
                         entity.setId(doc.getId());
                         return entity;
                     })
                     .collect(Collectors.toList());
+
+            log.info("=====> Returning {} connected providers for userId: {}", providers.size(), userId);
+            return providers;
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

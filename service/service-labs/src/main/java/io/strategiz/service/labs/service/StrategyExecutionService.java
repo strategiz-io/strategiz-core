@@ -110,7 +110,7 @@ public class StrategyExecutionService extends BaseService {
 
         // Calculate date range
         LocalDate endDate = LocalDate.now().minusDays(1);
-        LocalDate startDate = calculateStartDate(strategy, endDate);
+        LocalDate startDate = calculateStartDate(strategy, endDate, timeframe);
 
         logger.info("Date range: {} to {} ({} days)",
             startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
@@ -136,10 +136,16 @@ public class StrategyExecutionService extends BaseService {
     }
 
     /**
-     * Calculate backtest start date based on strategy's seedFundingDate or 2-year default.
+     * Calculate backtest start date based on strategy's seedFundingDate or dynamic timeframe-based default.
+     *
+     * Dynamic defaults optimize data volume for each timeframe:
+     * - Hourly (1H, 4H): 6 months (~3000 bars for 1H)
+     * - Daily (1D): 2 years (~730 bars)
+     * - Weekly (1W): 5 years (~260 bars, sufficient for 200-period SMA)
+     * - Monthly (1M): 7 years (~84 bars)
      */
-    private LocalDate calculateStartDate(Strategy strategy, LocalDate endDate) {
-        // Use seedFundingDate if provided
+    private LocalDate calculateStartDate(Strategy strategy, LocalDate endDate, String timeframe) {
+        // Use seedFundingDate if provided (user override)
         if (strategy != null && strategy.getSeedFundingDate() != null) {
             try {
                 LocalDate seedDate = strategy.getSeedFundingDate()
@@ -150,19 +156,33 @@ public class StrategyExecutionService extends BaseService {
 
                 // Validate not in future
                 if (seedDate.isAfter(endDate)) {
-                    logger.warn("Seed funding date {} is in future, using 2-year default", seedDate);
-                    return endDate.minusYears(2);
+                    logger.warn("Seed funding date {} is in future, using dynamic default for timeframe {}",
+                        seedDate, timeframe);
+                    return calculateDynamicStartDate(endDate, timeframe);
                 }
 
                 logger.info("Using seed funding date: {}", seedDate);
                 return seedDate;
             } catch (Exception e) {
-                logger.error("Error parsing seed funding date, using 2-year default", e);
+                logger.error("Error parsing seed funding date, using dynamic default for timeframe {}", timeframe, e);
             }
         }
 
-        // Default: 2 years back
-        return endDate.minusYears(2);
+        // Dynamic defaults based on timeframe
+        return calculateDynamicStartDate(endDate, timeframe);
+    }
+
+    /**
+     * Calculate dynamic start date based on timeframe.
+     */
+    private LocalDate calculateDynamicStartDate(LocalDate endDate, String timeframe) {
+        return switch (timeframe) {
+            case "1H", "4H" -> endDate.minusMonths(6);   // Hourly: 6 months
+            case "1D" -> endDate.minusYears(2);          // Daily: 2 years (current)
+            case "1W" -> endDate.minusYears(5);          // Weekly: 5 years
+            case "1M" -> endDate.minusYears(7);          // Monthly: 7 years
+            default -> endDate.minusYears(2);            // Safe default
+        };
     }
 
     /**

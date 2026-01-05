@@ -79,7 +79,10 @@ public class JobManagementService extends BaseService {
 		for (JobDefinitionEntity jobDef : jobDefinitions) {
 			JobResponse job = new JobResponse();
 			job.setName(jobDef.getJobId());
+			job.setDisplayName(jobDef.getDisplayName());
 			job.setDescription(jobDef.getDescription());
+			job.setJobGroup(jobDef.getJobGroup());
+			job.setScheduleType(jobDef.getScheduleType());
 
 			// Set schedule display based on schedule type
 			if ("CRON".equals(jobDef.getScheduleType())) {
@@ -120,7 +123,10 @@ public class JobManagementService extends BaseService {
 
 		JobResponse job = new JobResponse();
 		job.setName(jobDef.getJobId());
+		job.setDisplayName(jobDef.getDisplayName());
 		job.setDescription(jobDef.getDescription());
+		job.setJobGroup(jobDef.getJobGroup());
+		job.setScheduleType(jobDef.getScheduleType());
 
 		// Set schedule display based on schedule type
 		if ("CRON".equals(jobDef.getScheduleType())) {

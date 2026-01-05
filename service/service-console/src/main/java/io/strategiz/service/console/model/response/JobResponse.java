@@ -12,14 +12,23 @@ public class JobResponse {
     @JsonProperty("name")
     private String name;
 
+    @JsonProperty("displayName")
+    private String displayName;
+
     @JsonProperty("description")
     private String description;
+
+    @JsonProperty("jobGroup")
+    private String jobGroup; // MARKETDATA, FUNDAMENTALS, ALERTS, VULNERABILITIES, SYSTEM, OTHER
 
     @JsonProperty("status")
     private String status; // RUNNING, PAUSED, IDLE
 
     @JsonProperty("schedule")
     private String schedule; // Cron expression
+
+    @JsonProperty("scheduleType")
+    private String scheduleType; // CRON, MANUAL
 
     @JsonProperty("lastRunTime")
     private Instant lastRunTime;
@@ -118,5 +127,29 @@ public class JobResponse {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getJobGroup() {
+        return jobGroup;
+    }
+
+    public void setJobGroup(String jobGroup) {
+        this.jobGroup = jobGroup;
+    }
+
+    public String getScheduleType() {
+        return scheduleType;
+    }
+
+    public void setScheduleType(String scheduleType) {
+        this.scheduleType = scheduleType;
     }
 }

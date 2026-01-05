@@ -2,13 +2,13 @@ package io.strategiz.batch.fundamentals;
 
 import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.business.fundamentals.service.FundamentalsCollectionService;
+import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.business.marketdata.SymbolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -46,6 +46,8 @@ public class FundamentalsIncrementalJob {
 
 	private final SymbolService symbolService;
 
+	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	@Value("${fundamentals.batch.incremental-enabled:false}")
@@ -55,25 +57,21 @@ public class FundamentalsIncrementalJob {
 	private String dataSource;
 
 	@Autowired
-	public FundamentalsIncrementalJob(FundamentalsCollectionService collectionService, SymbolService symbolService) {
+	public FundamentalsIncrementalJob(FundamentalsCollectionService collectionService, SymbolService symbolService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
 		this.collectionService = collectionService;
 		this.symbolService = symbolService;
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+		log.info("FundamentalsIncrementalJob initialized (enabled: {}, profile: scheduler)", incrementalEnabled);
 	}
 
 	/**
-	 * Scheduled daily fundamentals update job.
+	 * Public execute method called by DynamicJobSchedulerBusiness.
+	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
 	 *
-	 * Runs at 2 AM daily (configurable via fundamentals.batch.incremental-cron).
-	 * Can be disabled via fundamentals.batch.incremental-enabled=false.
+	 * Default schedule: Daily at 2 AM
 	 */
-	@Scheduled(cron = "${fundamentals.batch.incremental-cron:0 0 2 * * *}")
-	public void executeScheduledIncremental() {
-		if (!incrementalEnabled) {
-			log.debug("Fundamentals incremental job is disabled");
-			return;
-		}
-
-		log.info("Starting scheduled fundamentals incremental collection");
+	public void execute() {
 		executeIncremental();
 	}
 
@@ -106,20 +104,25 @@ public class FundamentalsIncrementalJob {
 			return alreadyRunning;
 		}
 
+		log.info("=== Fundamentals Incremental Collection Started ===");
+
+		// Get list of symbols to collect
+		List<String> symbols = symbolService.getSymbolsForCollection(dataSource);
+		log.info("Found {} symbols configured for {} fundamentals collection", symbols.size(), dataSource);
+
+		if (symbols.isEmpty()) {
+			log.warn("No symbols configured for fundamentals collection, exiting");
+			CollectionResult emptyResult = new CollectionResult();
+			emptyResult.setTotalSymbols(0);
+			isRunning.set(false);
+			return emptyResult;
+		}
+
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("FUNDAMENTALS_INCREMENTAL",
+				"Fundamentals_Incremental", toJson(symbols));
+
 		try {
-			log.info("=== Fundamentals Incremental Collection Started ===");
-
-			// Get list of symbols to collect
-			List<String> symbols = symbolService.getSymbolsForCollection(dataSource);
-			log.info("Found {} symbols configured for {} fundamentals collection", symbols.size(), dataSource);
-
-			if (symbols.isEmpty()) {
-				log.warn("No symbols configured for fundamentals collection, exiting");
-				CollectionResult emptyResult = new CollectionResult();
-				emptyResult.setTotalSymbols(0);
-				return emptyResult;
-			}
-
 			// Execute collection
 			CollectionResult result = collectionService.updateFundamentals(symbols);
 
@@ -130,6 +133,10 @@ public class FundamentalsIncrementalJob {
 			log.info("Errors: {}", result.getErrorCount());
 			log.info("Duration: {} seconds", result.getDurationSeconds());
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", result.getTotalSymbols(),
+					result.getSuccessCount(), result.getErrorCount(), null);
+
 			return result;
 		}
 		catch (Exception ex) {
@@ -137,6 +144,10 @@ public class FundamentalsIncrementalJob {
 
 			CollectionResult errorResult = new CollectionResult();
 			errorResult.setTotalSymbols(0);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", 0, 0, 1, ex.getMessage());
+
 			return errorResult;
 		}
 		finally {
@@ -160,6 +171,19 @@ public class FundamentalsIncrementalJob {
 	 */
 	public boolean isEnabled() {
 		return incrementalEnabled;
+	}
+
+	/**
+	 * Helper method to convert list to JSON string for history storage.
+	 */
+	private String toJson(List<String> list) {
+		try {
+			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
+		}
+		catch (Exception e) {
+			log.warn("Failed to convert to JSON: {}", e.getMessage());
+			return list != null ? list.toString() : "[]";
+		}
 	}
 
 }

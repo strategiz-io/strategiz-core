@@ -16,6 +16,7 @@ public enum ServiceConsoleErrorDetails implements ErrorDetails {
 	JOB_ALREADY_RUNNING(HttpStatus.CONFLICT, "console-job-already-running"),
 	JOB_NOT_AVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "console-job-not-available"),
 	JOB_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "console-job-execution-failed"),
+	JOB_NOT_SCHEDULED(HttpStatus.BAD_REQUEST, "console-job-not-scheduled"),
 
 	// === User Management Errors ===
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "console-user-not-found"),

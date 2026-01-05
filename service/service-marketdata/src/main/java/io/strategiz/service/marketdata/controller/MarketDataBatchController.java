@@ -1,5 +1,6 @@
 package io.strategiz.service.marketdata.controller;
 
+import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.business.marketdata.MarketDataCollectionService;
 import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
@@ -33,8 +34,12 @@ public class MarketDataBatchController {
 
 	private final MarketDataCollectionService collectionService;
 
-	public MarketDataBatchController(MarketDataCollectionService collectionService) {
+	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+
+	public MarketDataBatchController(MarketDataCollectionService collectionService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
 		this.collectionService = collectionService;
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
 	}
 
 	/**
@@ -80,6 +85,10 @@ public class MarketDataBatchController {
 			return ResponseEntity.badRequest().body(errorResponse);
 		}
 
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_FULL",
+				"MarketData_API_Backfill_Full", toJson(validTimeframes));
+
 		// Process all timeframes synchronously
 		long overallStartTime = System.currentTimeMillis();
 		int totalSymbolsProcessed = 0;
@@ -87,7 +96,8 @@ public class MarketDataBatchController {
 		int totalErrors = 0;
 		List<Map<String, Object>> timeframeResults = new ArrayList<>();
 
-		for (String timeframe : validTimeframes) {
+		try {
+			for (String timeframe : validTimeframes) {
 			try {
 				log.info("--- Processing timeframe: {} ---", timeframe);
 				long tfStartTime = System.currentTimeMillis();
@@ -124,25 +134,43 @@ public class MarketDataBatchController {
 			}
 		}
 
-		long overallDuration = (System.currentTimeMillis() - overallStartTime) / 1000;
+			long overallDuration = (System.currentTimeMillis() - overallStartTime) / 1000;
 
-		Map<String, Object> response = new HashMap<>();
-		response.put("status", totalErrors == 0 ? "success" : "partial_success");
-		response.put("message", String.format("Backfill completed for %d year(s)", years));
-		response.put("years", years);
-		response.put("timeframesProcessed", validTimeframes.size());
-		response.put("startDate", startDate.toString());
-		response.put("endDate", endDate.toString());
-		response.put("totalSymbolsProcessed", totalSymbolsProcessed);
-		response.put("totalDataPointsStored", totalDataPointsStored);
-		response.put("totalErrors", totalErrors);
-		response.put("totalDurationSeconds", overallDuration);
-		response.put("timeframeResults", timeframeResults);
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", totalErrors == 0 ? "success" : "partial_success");
+			response.put("message", String.format("Backfill completed for %d year(s)", years));
+			response.put("years", years);
+			response.put("timeframesProcessed", validTimeframes.size());
+			response.put("startDate", startDate.toString());
+			response.put("endDate", endDate.toString());
+			response.put("totalSymbolsProcessed", totalSymbolsProcessed);
+			response.put("totalDataPointsStored", totalDataPointsStored);
+			response.put("totalErrors", totalErrors);
+			response.put("totalDurationSeconds", overallDuration);
+			response.put("timeframeResults", timeframeResults);
 
-		log.info("=== Full backfill completed in {}s: {} timeframes, {} symbols, {} bars, {} errors ===",
-				overallDuration, validTimeframes.size(), totalSymbolsProcessed, totalDataPointsStored, totalErrors);
+			log.info("=== Full backfill completed in {}s: {} timeframes, {} symbols, {} bars, {} errors ===",
+					overallDuration, validTimeframes.size(), totalSymbolsProcessed, totalDataPointsStored, totalErrors);
 
-		return ResponseEntity.ok(response);
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors, null);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Full backfill failed with exception: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors + 1, e.getMessage());
+
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Full backfill failed: " + e.getMessage());
+
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
 	}
 
 	/**
@@ -156,8 +184,13 @@ public class MarketDataBatchController {
 	public ResponseEntity<Map<String, Object>> executeTestBackfill() {
 		log.info("=== Admin API: Test Backfill Request ===");
 
+		List<String> testSymbols = Arrays.asList("AAPL", "MSFT", "GOOGL");
+
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_TEST",
+				"MarketData_API_Backfill_Test", toJson(testSymbols));
+
 		try {
-			List<String> testSymbols = Arrays.asList("AAPL", "MSFT", "GOOGL");
 			LocalDateTime endDate = LocalDateTime.now();
 			LocalDateTime startDate = endDate.minusWeeks(1);
 
@@ -180,11 +213,18 @@ public class MarketDataBatchController {
 			log.info("Test backfill completed: {} symbols, {} bars, {} errors, {}s", result.totalSymbolsProcessed,
 					result.totalDataPointsStored, result.errorCount, duration);
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", result.totalSymbolsProcessed,
+					result.totalDataPointsStored, result.errorCount, null);
+
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
 			log.error("Test backfill failed: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", 0, 0, 1, e.getMessage());
 
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("status", "error");
@@ -209,6 +249,10 @@ public class MarketDataBatchController {
 		log.info("Date range: {} to {}", request.startDate, request.endDate);
 		log.info("Timeframe: {}", request.timeframe);
 
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_CUSTOM",
+				"MarketData_API_Backfill_Custom", toJson(request.symbols));
+
 		try {
 			long startTime = System.currentTimeMillis();
 			MarketDataCollectionService.CollectionResult result = collectionService
@@ -230,11 +274,18 @@ public class MarketDataBatchController {
 			log.info("Custom backfill completed: {} symbols, {} bars, {} errors, {}s", result.totalSymbolsProcessed,
 					result.totalDataPointsStored, result.errorCount, duration);
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", result.totalSymbolsProcessed,
+					result.totalDataPointsStored, result.errorCount, null);
+
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
 			log.error("Custom backfill failed: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", 0, 0, 1, e.getMessage());
 
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("status", "error");
@@ -264,6 +315,10 @@ public class MarketDataBatchController {
 		log.info("=== Admin API: Incremental Collection Request (timeframe: {}, lookback: {}h) ===", timeframe,
 				lookbackHours);
 
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_INCREMENTAL",
+				"MarketData_API_Incremental", timeframe);
+
 		try {
 			LocalDateTime endDate = LocalDateTime.now();
 			LocalDateTime startDate = endDate.minusHours(lookbackHours);
@@ -286,11 +341,18 @@ public class MarketDataBatchController {
 			log.info("Incremental collection completed: {} symbols, {} bars, {} errors, {}s",
 					result.totalSymbolsProcessed, result.totalDataPointsStored, result.errorCount, duration);
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", result.totalSymbolsProcessed,
+					result.totalDataPointsStored, result.errorCount, null);
+
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
 			log.error("Incremental collection failed: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", 0, 0, 1, e.getMessage());
 
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("status", "error");
@@ -321,6 +383,10 @@ public class MarketDataBatchController {
 		log.info("=== Admin API: All Timeframes Incremental Request ({} timeframes, lookback: {}h) ===",
 				allTimeframes.size(), lookbackHours);
 
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_INCREMENTAL_ALL",
+				"MarketData_API_Incremental_All", toJson(allTimeframes));
+
 		long startTime = System.currentTimeMillis();
 
 		int totalSymbolsProcessed = 0;
@@ -332,7 +398,8 @@ public class MarketDataBatchController {
 		LocalDateTime endDate = LocalDateTime.now();
 		LocalDateTime startDate = endDate.minusHours(lookbackHours);
 
-		for (String timeframe : allTimeframes) {
+		try {
+			for (String timeframe : allTimeframes) {
 			try {
 				log.info("--- Collecting timeframe: {} ---", timeframe);
 				long tfStartTime = System.currentTimeMillis();
@@ -370,25 +437,43 @@ public class MarketDataBatchController {
 			}
 		}
 
-		long totalDuration = (System.currentTimeMillis() - startTime) / 1000;
+			long totalDuration = (System.currentTimeMillis() - startTime) / 1000;
 
-		Map<String, Object> response = new HashMap<>();
-		response.put("status", totalErrors == 0 ? "success" : "partial_success");
-		response.put("message", "All timeframes incremental collection completed");
-		response.put("timeframesRequested", allTimeframes.size());
-		response.put("timeframesProcessed", timeframesProcessed);
-		response.put("lookbackHours", lookbackHours);
-		response.put("totalSymbolsProcessed", totalSymbolsProcessed);
-		response.put("totalDataPointsStored", totalDataPointsStored);
-		response.put("totalErrors", totalErrors);
-		response.put("totalDurationSeconds", totalDuration);
-		response.put("timeframeResults", timeframeResults);
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", totalErrors == 0 ? "success" : "partial_success");
+			response.put("message", "All timeframes incremental collection completed");
+			response.put("timeframesRequested", allTimeframes.size());
+			response.put("timeframesProcessed", timeframesProcessed);
+			response.put("lookbackHours", lookbackHours);
+			response.put("totalSymbolsProcessed", totalSymbolsProcessed);
+			response.put("totalDataPointsStored", totalDataPointsStored);
+			response.put("totalErrors", totalErrors);
+			response.put("totalDurationSeconds", totalDuration);
+			response.put("timeframeResults", timeframeResults);
 
-		log.info("=== All Timeframes Incremental Completed in {}s ===", totalDuration);
-		log.info("Timeframes: {}/{}, Symbols: {}, Bars: {}, Errors: {}", timeframesProcessed, allTimeframes.size(),
-				totalSymbolsProcessed, totalDataPointsStored, totalErrors);
+			log.info("=== All Timeframes Incremental Completed in {}s ===", totalDuration);
+			log.info("Timeframes: {}/{}, Symbols: {}, Bars: {}, Errors: {}", timeframesProcessed, allTimeframes.size(),
+					totalSymbolsProcessed, totalDataPointsStored, totalErrors);
 
-		return ResponseEntity.ok(response);
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors, null);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("All timeframes incremental failed with exception: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors + 1, e.getMessage());
+
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "All timeframes incremental failed: " + e.getMessage());
+
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
 	}
 
 	/**
@@ -450,6 +535,19 @@ public class MarketDataBatchController {
 		status.put("availableEndpoints", endpoints);
 
 		return ResponseEntity.ok(status);
+	}
+
+	/**
+	 * Helper method to convert list to JSON string for history storage.
+	 */
+	private String toJson(List<String> list) {
+		try {
+			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
+		}
+		catch (Exception e) {
+			log.warn("Failed to convert to JSON: {}", e.getMessage());
+			return list != null ? list.toString() : "[]";
+		}
 	}
 
 	/**

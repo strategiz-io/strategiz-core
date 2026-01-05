@@ -1,12 +1,12 @@
 package io.strategiz.batch.marketdata;
 
+import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.business.marketdata.MarketDataCollectionService;
 import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -41,6 +41,7 @@ public class MarketDataBackfillJob {
 	private static final Logger log = LoggerFactory.getLogger(MarketDataBackfillJob.class);
 
 	private final MarketDataCollectionService collectionService;
+	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -53,25 +54,22 @@ public class MarketDataBackfillJob {
 	@Value("${marketdata.batch.backfill-timeframes:1Day,1Hour,1Week,1Month}")
 	private String backfillTimeframes;
 
-	public MarketDataBackfillJob(MarketDataCollectionService collectionService) {
+	public MarketDataBackfillJob(
+			MarketDataCollectionService collectionService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
 		this.collectionService = collectionService;
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
 		log.info("MarketDataBackfillJob initialized (enabled: {}, profile: scheduler)", backfillEnabled);
 	}
 
 	/**
-	 * Scheduled backfill job Runs on startup if enabled (disabled by default)
+	 * Public execute method called by DynamicJobSchedulerBusiness.
+	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
 	 *
-	 * WARNING: This is resource-intensive and should only be run once Use REST API
-	 * or console trigger for manual backfills instead
+	 * WARNING: This is resource-intensive and should only be run once
+	 * Use REST API or console trigger for manual backfills instead
 	 */
-	@Scheduled(initialDelay = 60000, fixedDelay = Long.MAX_VALUE) // Run once on startup, 1 min
-												// delay
-	public void executeScheduledBackfill() {
-		if (!backfillEnabled) {
-			log.debug("Scheduled backfill is disabled, skipping");
-			return;
-		}
-
+	public void execute() {
 		executeBackfill();
 	}
 
@@ -105,12 +103,18 @@ public class MarketDataBackfillJob {
 		log.info("Timeframes: {}", backfillTimeframes);
 		log.info("Lookback: {} years", backfillYears);
 
+		// Record job execution start
+		List<String> timeframes = Arrays.asList(backfillTimeframes.split(","));
+		String executionId = jobExecutionHistoryBusiness.recordJobStart(
+			"MARKETDATA_BACKFILL",
+			"MarketData_Backfill",
+			toJson(timeframes)
+		);
+
 		long startTime = System.currentTimeMillis();
 
 		LocalDateTime endDate = LocalDateTime.now();
 		LocalDateTime startDate = endDate.minusYears(backfillYears);
-
-		List<String> timeframes = Arrays.asList(backfillTimeframes.split(","));
 
 		int totalSymbolsProcessed = 0;
 		int totalDataPointsStored = 0;
@@ -157,17 +161,50 @@ public class MarketDataBackfillJob {
 			log.info("Total data points stored: {}", totalDataPointsStored);
 			log.info("Total errors: {}", totalErrors);
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(
+				executionId,
+				"SUCCESS",
+				totalSymbolsProcessed,
+				totalDataPointsStored,
+				totalErrors,
+				null
+			);
+
 			return new BackfillResult(true, totalSymbolsProcessed, totalDataPointsStored, totalErrors,
 					String.format("Completed in %ds", duration));
 
 		}
 		catch (Exception e) {
 			log.error("Backfill failed: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(
+				executionId,
+				"FAILED",
+				totalSymbolsProcessed,
+				totalDataPointsStored,
+				totalErrors + 1,
+				e.getMessage()
+			);
+
 			return new BackfillResult(false, totalSymbolsProcessed, totalDataPointsStored, totalErrors + 1,
 					e.getMessage());
 		}
 		finally {
 			isRunning.set(false);
+		}
+	}
+
+	/**
+	 * Helper method to convert list to JSON string for history storage.
+	 */
+	private String toJson(List<String> list) {
+		try {
+			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
+		} catch (Exception e) {
+			log.warn("Failed to convert to JSON: {}", e.getMessage());
+			return list != null ? list.toString() : "[]";
 		}
 	}
 

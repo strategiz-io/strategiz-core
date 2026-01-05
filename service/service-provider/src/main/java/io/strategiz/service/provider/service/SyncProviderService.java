@@ -6,6 +6,7 @@ import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 // import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
+import io.strategiz.data.provider.repository.PortfolioInsightsCacheRepository;
 import io.strategiz.service.provider.exception.ServiceProviderErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
@@ -36,18 +37,21 @@ public class SyncProviderService extends BaseService {
     private final SchwabProviderBusiness schwabProviderBusiness;
     // private final WebullProviderBusiness webullProviderBusiness; // TODO: Add when webull module is ready
     private final PortfolioSummaryManager portfolioSummaryManager;
+    private final PortfolioInsightsCacheRepository insightsCacheRepository;
 
     @Autowired
     public SyncProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
                                KrakenProviderBusiness krakenProviderBusiness,
                                SchwabProviderBusiness schwabProviderBusiness,
                                // WebullProviderBusiness webullProviderBusiness, // TODO: Add when webull module is ready
-                               PortfolioSummaryManager portfolioSummaryManager) {
+                               PortfolioSummaryManager portfolioSummaryManager,
+                               PortfolioInsightsCacheRepository insightsCacheRepository) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
         // this.webullProviderBusiness = webullProviderBusiness; // TODO: Add when webull module is ready
         this.portfolioSummaryManager = portfolioSummaryManager;
+        this.insightsCacheRepository = insightsCacheRepository;
     }
 
     /**
@@ -124,6 +128,15 @@ public class SyncProviderService extends BaseService {
 
             // Refresh portfolio summary after provider sync
             portfolioSummaryManager.refreshPortfolioSummary(userId);
+
+            // Invalidate AI insights cache (force regeneration on next request)
+            try {
+                insightsCacheRepository.invalidateCache(userId);
+                log.debug("Invalidated AI insights cache for user {} after {} sync", userId, providerId);
+            } catch (Exception e) {
+                log.warn("Failed to invalidate insights cache for user {}: {}", userId, e.getMessage());
+                // Don't fail the sync operation if cache invalidation fails
+            }
 
             return result;
 

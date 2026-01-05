@@ -58,8 +58,9 @@ public class CreateStrategyService extends BaseService {
         strategy.setCode(request.getCode());
         strategy.setLanguage(request.getLanguage());
         strategy.setType(request.getType() != null ? request.getType() : StrategyConstants.DEFAULT_TYPE);
-        strategy.setPublishStatus(request.getPublishStatus());
-        strategy.setPublicStatus(request.getPublicStatus());
+        strategy.setIsPublished(request.getIsPublished());
+        strategy.setIsPublic(request.getIsPublic());
+        strategy.setIsListed(request.getIsListed());
         strategy.setTags(request.getTags());
         strategy.setParameters(request.getParameters());
         strategy.setPerformance(request.getPerformance());

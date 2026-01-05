@@ -14,11 +14,14 @@ public class CreateStrategyResponse {
     @JsonProperty("name")
     private String name;
     
-    @JsonProperty("status")
-    private String status;
-    
-    @JsonProperty("publicStatus")
-    private String publicStatus;
+    @JsonProperty("isPublished")
+    private Boolean isPublished;
+
+    @JsonProperty("isPublic")
+    private Boolean isPublic;
+
+    @JsonProperty("isListed")
+    private Boolean isListed;
     
     @JsonProperty("createdDate")
     private String createdDate;
@@ -43,20 +46,28 @@ public class CreateStrategyResponse {
         this.name = name;
     }
     
-    public String getStatus() {
-        return status;
+    public Boolean getIsPublished() {
+        return isPublished;
     }
-    
-    public void setStatus(String status) {
-        this.status = status;
+
+    public void setIsPublished(Boolean isPublished) {
+        this.isPublished = isPublished;
     }
-    
-    public String getPublicStatus() {
-        return publicStatus;
+
+    public Boolean getIsPublic() {
+        return isPublic;
     }
-    
-    public void setPublicStatus(String publicStatus) {
-        this.publicStatus = publicStatus;
+
+    public void setIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    public Boolean getIsListed() {
+        return isListed;
+    }
+
+    public void setIsListed(Boolean isListed) {
+        this.isListed = isListed;
     }
     
     public String getCreatedDate() {

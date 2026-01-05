@@ -34,11 +34,14 @@ public class CreateStrategyRequest {
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
 
-    @JsonProperty("publishStatus")
-    private String publishStatus = "DRAFT"; // DRAFT, PUBLISHED
+    @JsonProperty("isPublished")
+    private Boolean isPublished = false; // false = DRAFT, true = PUBLISHED
 
-    @JsonProperty("publicStatus")
-    private String publicStatus = "PRIVATE"; // PRIVATE, PUBLIC
+    @JsonProperty("isPublic")
+    private Boolean isPublic = false; // When published: false = SUBSCRIBERS_ONLY, true = PUBLIC
+
+    @JsonProperty("isListed")
+    private Boolean isListed = false; // false = NOT_LISTED, true = LISTED in marketplace
 
     @JsonProperty("performance")
     private StrategyPerformance performance;
@@ -103,20 +106,28 @@ public class CreateStrategyRequest {
         this.parameters = parameters;
     }
 
-    public String getPublishStatus() {
-        return publishStatus;
+    public Boolean getIsPublished() {
+        return isPublished;
     }
 
-    public void setPublishStatus(String publishStatus) {
-        this.publishStatus = publishStatus;
+    public void setIsPublished(Boolean isPublished) {
+        this.isPublished = isPublished;
     }
 
-    public String getPublicStatus() {
-        return publicStatus;
+    public Boolean getIsPublic() {
+        return isPublic;
     }
 
-    public void setPublicStatus(String publicStatus) {
-        this.publicStatus = publicStatus;
+    public void setIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    public Boolean getIsListed() {
+        return isListed;
+    }
+
+    public void setIsListed(Boolean isListed) {
+        this.isListed = isListed;
     }
 
     public StrategyPerformance getPerformance() {

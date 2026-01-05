@@ -34,7 +34,15 @@ public class ReadStrategyRepositoryImpl implements ReadStrategyRepository {
     @Override
     public List<Strategy> findByUserIdAndStatus(String userId, String status) {
         return baseRepository.findAllByUserId(userId).stream()
-                .filter(s -> status.equalsIgnoreCase(s.getPublishStatus()))
+                .filter(s -> {
+                    // Map string status to boolean isPublished
+                    if ("DRAFT".equalsIgnoreCase(status)) {
+                        return !Boolean.TRUE.equals(s.getIsPublished());
+                    } else if ("PUBLISHED".equalsIgnoreCase(status)) {
+                        return Boolean.TRUE.equals(s.getIsPublished());
+                    }
+                    return false;
+                })
                 .collect(Collectors.toList());
     }
     
@@ -105,7 +113,15 @@ public class ReadStrategyRepositoryImpl implements ReadStrategyRepository {
     @Override
     public List<Strategy> findByNormalizedNameAndPublishStatus(String normalizedName, String publishStatus) {
         return baseRepository.findAll().stream()
-                .filter(s -> publishStatus.equalsIgnoreCase(s.getPublishStatus()))
+                .filter(s -> {
+                    // Map string publishStatus to boolean isPublished
+                    if ("DRAFT".equalsIgnoreCase(publishStatus)) {
+                        return !Boolean.TRUE.equals(s.getIsPublished());
+                    } else if ("PUBLISHED".equalsIgnoreCase(publishStatus)) {
+                        return Boolean.TRUE.equals(s.getIsPublished());
+                    }
+                    return false;
+                })
                 .filter(s -> normalizedName.equals(s.getNormalizedName()))
                 .collect(Collectors.toList());
     }

@@ -147,10 +147,11 @@ public class ReadStrategyController extends BaseController {
         response.setCode(strategy.getCode());
         response.setLanguage(strategy.getLanguage());
         response.setType(strategy.getType());
-        response.setStatus(strategy.getPublishStatus());
+        response.setIsPublished(strategy.getIsPublished());
+        response.setIsPublic(strategy.getIsPublic());
+        response.setIsListed(strategy.getIsListed());
         response.setTags(strategy.getTags());
         response.setUserId(strategy.getOwnerId());
-        response.setPublicStatus(strategy.getPublicStatus());
         response.setParameters(strategy.getParameters());
         response.setBacktestResults(strategy.getBacktestResults());
         response.setPerformance(strategy.getPerformance());

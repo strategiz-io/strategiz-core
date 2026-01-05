@@ -44,7 +44,7 @@ public class StrategyNameValidationService extends BaseService {
 		List<Strategy> conflicts = readStrategyRepository
 			.findByOwnerIdAndNormalizedName(userId, normalizedName)
 			.stream()
-			.filter(s -> StrategyConstants.PUBLISH_STATUS_DRAFT.equals(s.getPublishStatus()))
+			.filter(s -> !Boolean.TRUE.equals(s.getIsPublished())) // DRAFT = isPublished false
 			.filter(s -> excludeStrategyId == null || !s.getId().equals(excludeStrategyId))
 			.collect(Collectors.toList());
 

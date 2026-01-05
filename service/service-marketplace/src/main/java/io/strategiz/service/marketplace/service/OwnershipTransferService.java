@@ -246,7 +246,7 @@ public class OwnershipTransferService extends BaseService {
                         "Strategy not found: " + strategyId));
 
         // Validate strategy is published and can be sold
-        if (strategy.getPublishStatus() == null || !"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             throw new StrategizException(
                     MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED,
                     getModuleName(),

@@ -79,17 +79,23 @@ public class UpdateStrategyService extends BaseService {
         existing.setParameters(request.getParameters());
 
         // Update publish status if provided
-        if (request.getPublishStatus() != null) {
-            existing.setPublishStatus(request.getPublishStatus());
+        if (request.getIsPublished() != null) {
+            existing.setIsPublished(request.getIsPublished());
         }
 
-        // Validate DRAFT + PUBLIC combination before setting publicStatus
-        if (request.getPublicStatus() != null) {
-            if ("DRAFT".equals(existing.getPublishStatus()) && "PUBLIC".equals(request.getPublicStatus())) {
+        // Update public status if provided (validate DRAFT + PUBLIC combination)
+        if (request.getIsPublic() != null) {
+            // Cannot set draft strategy to public - must publish first
+            if (!Boolean.TRUE.equals(existing.getIsPublished()) && Boolean.TRUE.equals(request.getIsPublic())) {
                 throwModuleException(ServiceStrategyErrorDetails.INVALID_STATUS_COMBINATION,
                         "Cannot set draft strategy to public. Publish the strategy first.");
             }
-            existing.setPublicStatus(request.getPublicStatus());
+            existing.setIsPublic(request.getIsPublic());
+        }
+
+        // Update listed status if provided
+        if (request.getIsListed() != null) {
+            existing.setIsListed(request.getIsListed());
         }
 
         existing.setPerformance(request.getPerformance());

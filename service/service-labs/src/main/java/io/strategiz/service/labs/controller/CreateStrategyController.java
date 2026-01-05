@@ -52,8 +52,9 @@ public class CreateStrategyController extends BaseController {
             CreateStrategyResponse response = new CreateStrategyResponse();
             response.setId(created.getId());
             response.setName(created.getName());
-            response.setStatus(created.getPublishStatus());
-            response.setPublicStatus(created.getPublicStatus());
+            response.setIsPublished(created.getIsPublished());
+            response.setIsPublic(created.getIsPublic());
+            response.setIsListed(created.getIsListed());
             response.setCreatedDate(created.getCreatedDate() != null ? created.getCreatedDate().toString() : null);
             response.setModifiedDate(created.getModifiedDate() != null ? created.getModifiedDate().toString() : null);
 
@@ -72,10 +73,11 @@ public class CreateStrategyController extends BaseController {
         response.setCode(strategy.getCode());
         response.setLanguage(strategy.getLanguage());
         response.setType(strategy.getType());
-        response.setStatus(strategy.getPublishStatus());
+        response.setIsPublished(strategy.getIsPublished());
+        response.setIsPublic(strategy.getIsPublic());
+        response.setIsListed(strategy.getIsListed());
         response.setTags(strategy.getTags());
         response.setUserId(strategy.getOwnerId());
-        response.setPublicStatus(strategy.getPublicStatus());
         response.setParameters(strategy.getParameters());
         response.setBacktestResults(strategy.getBacktestResults());
         response.setPerformance(strategy.getPerformance());

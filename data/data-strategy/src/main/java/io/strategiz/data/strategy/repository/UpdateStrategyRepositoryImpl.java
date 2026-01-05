@@ -46,7 +46,15 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
         }
 
         Strategy strategy = existing.get();
-        strategy.setPublishStatus(status);
+        // Map string status to boolean isPublished
+        // "DRAFT" → false, "PUBLISHED"/"ACTIVE" → true
+        if ("DRAFT".equals(status)) {
+            strategy.setIsPublished(false);
+        } else if ("PUBLISHED".equals(status) || "ACTIVE".equals(status)) {
+            strategy.setIsPublished(true);
+        }
+        // ARCHIVED uses isActive field from BaseEntity (handled separately)
+
         baseRepository.save(strategy, userId);
         return true;
     }
@@ -74,8 +82,8 @@ public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
     
     @Override
     public Optional<Strategy> updateVisibility(String id, String userId, boolean isPublic) {
-        // Convert boolean to publicStatus string: true → PUBLIC, false → PRIVATE
-        return updateField(id, userId, strategy -> strategy.setPublicStatus(isPublic ? "PUBLIC" : "PRIVATE"));
+        // Set isPublic boolean field directly
+        return updateField(id, userId, strategy -> strategy.setIsPublic(isPublic));
     }
     
     @Override

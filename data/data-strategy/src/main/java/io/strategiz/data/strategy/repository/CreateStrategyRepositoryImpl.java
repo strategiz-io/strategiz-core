@@ -31,14 +31,15 @@ public class CreateStrategyRepositoryImpl implements CreateStrategyRepository {
             strategy.setId(UUID.randomUUID().toString());
         }
 
-        // Set default publishStatus if not provided
-        if (strategy.getPublishStatus() == null || strategy.getPublishStatus().isEmpty()) {
-            strategy.setPublishStatus("DRAFT");
+        // Set default boolean status fields if not provided (entity has defaults of false)
+        if (strategy.getIsPublished() == null) {
+            strategy.setIsPublished(false);
         }
-
-        // Set default listedStatus if not provided
-        if (strategy.getListedStatus() == null || strategy.getListedStatus().isEmpty()) {
-            strategy.setListedStatus("NOT_LISTED");
+        if (strategy.getIsPublic() == null) {
+            strategy.setIsPublic(false);
+        }
+        if (strategy.getIsListed() == null) {
+            strategy.setIsListed(false);
         }
 
         // Use forceCreate since we pre-assign the ID (save() would route to update)

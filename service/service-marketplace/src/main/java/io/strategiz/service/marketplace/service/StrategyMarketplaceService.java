@@ -457,7 +457,7 @@ public class StrategyMarketplaceService extends BaseService {
             }
 
             // Validate strategy is published
-            if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+            if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
                 throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_AVAILABLE, "service-marketplace", id);
             }
 
@@ -562,7 +562,7 @@ public class StrategyMarketplaceService extends BaseService {
         }
 
         // Status
-        result.put("isPublished", "PUBLISHED".equals(strategy.getPublishStatus()));
+        result.put("isPublished", Boolean.TRUE.equals(strategy.getIsPublished()));
         // TODO: publishedAt field removed - track publish timestamp separately if needed
         result.put("createdAt", strategy.getCreatedDate() != null ? strategy.getCreatedDate().toString() : null);
         result.put("updatedAt", strategy.getModifiedDate() != null ? strategy.getModifiedDate().toString() : null);

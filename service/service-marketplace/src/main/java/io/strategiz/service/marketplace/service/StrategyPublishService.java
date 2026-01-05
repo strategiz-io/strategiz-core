@@ -114,7 +114,7 @@ public class StrategyPublishService extends BaseService {
     public Strategy unpublishStrategy(String strategyId, String userId) {
         Strategy strategy = getStrategyAndVerifyOwner(strategyId, userId);
 
-        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             // Already unpublished, no action needed
             return strategy;
         }
@@ -162,7 +162,7 @@ public class StrategyPublishService extends BaseService {
             if (!"LISTED".equals(listedStatus) && !"NOT_LISTED".equals(listedStatus)) {
                 throw new IllegalArgumentException("listedStatus must be 'LISTED' or 'NOT_LISTED'");
             }
-            strategy.setListedStatus(listedStatus);
+            strategy.setIsListed("LISTED".equals(listedStatus));
             log.info("User {} updated listedStatus for strategy {} to {}", userId, strategyId, listedStatus);
         }
 
@@ -184,7 +184,7 @@ public class StrategyPublishService extends BaseService {
 
         Strategy strategy = getStrategyAndVerifyOwner(strategyId, userId);
 
-        if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
+        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
         }
 

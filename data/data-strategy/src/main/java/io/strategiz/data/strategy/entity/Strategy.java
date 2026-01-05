@@ -44,14 +44,14 @@ public class Strategy extends BaseEntity {
     @JsonProperty("ownerId")
     private String ownerId; // Current rights holder (mutable, can be transferred)
 
-    @JsonProperty("publishStatus")
-    private String publishStatus; // DRAFT, PUBLISHED
+    @JsonProperty("isPublished")
+    private Boolean isPublished = false; // false = DRAFT, true = PUBLISHED
 
-    @JsonProperty("publicStatus")
-    private String publicStatus; // PRIVATE, SUBSCRIBERS_ONLY, PUBLIC
+    @JsonProperty("isPublic")
+    private Boolean isPublic = false; // When published: false = SUBSCRIBERS_ONLY, true = PUBLIC
 
-    @JsonProperty("listedStatus")
-    private String listedStatus; // NOT_LISTED, LISTED
+    @JsonProperty("isListed")
+    private Boolean isListed = false; // false = NOT_LISTED, true = LISTED in marketplace
 
     @JsonProperty("backtestResults")
     private Map<String, Object> backtestResults; // Deprecated - use performance instead
@@ -197,28 +197,28 @@ public class Strategy extends BaseEntity {
         this.ownerId = ownerId;
     }
 
-    public String getPublishStatus() {
-        return publishStatus;
+    public Boolean getIsPublished() {
+        return isPublished;
     }
 
-    public void setPublishStatus(String publishStatus) {
-        this.publishStatus = publishStatus;
+    public void setIsPublished(Boolean isPublished) {
+        this.isPublished = isPublished;
     }
 
-    public String getPublicStatus() {
-        return publicStatus;
+    public Boolean getIsPublic() {
+        return isPublic;
     }
 
-    public void setPublicStatus(String publicStatus) {
-        this.publicStatus = publicStatus;
+    public void setIsPublic(Boolean isPublic) {
+        this.isPublic = isPublic;
     }
 
-    public String getListedStatus() {
-        return listedStatus;
+    public Boolean getIsListed() {
+        return isListed;
     }
 
-    public void setListedStatus(String listedStatus) {
-        this.listedStatus = listedStatus;
+    public void setIsListed(Boolean isListed) {
+        this.isListed = isListed;
     }
 
     public Map<String, Object> getBacktestResults() {
@@ -319,16 +319,16 @@ public class Strategy extends BaseEntity {
      */
     public void publish(StrategyPricing pricing) {
         this.pricing = pricing;
-        this.publishStatus = "PUBLISHED";
-        this.publicStatus = "PUBLIC";
+        this.isPublished = true;
+        this.isPublic = true;
     }
 
     /**
      * Unpublish the strategy (make private).
      */
     public void unpublish() {
-        this.publishStatus = "DRAFT";
-        this.publicStatus = "PRIVATE";
+        this.isPublished = false;
+        this.isPublic = false;
     }
 
     /**
@@ -461,17 +461,17 @@ public class Strategy extends BaseEntity {
     }
 
     /**
-     * Check if strategy is in DRAFT publish status.
+     * Check if strategy is in DRAFT status (not published).
      */
     public boolean isDraft() {
-        return "DRAFT".equals(this.publishStatus);
+        return this.isPublished == null || !this.isPublished;
     }
 
     /**
      * Check if strategy is PUBLISHED.
      */
     public boolean isPublished() {
-        return "PUBLISHED".equals(this.publishStatus);
+        return Boolean.TRUE.equals(this.isPublished);
     }
 
     /**
@@ -483,22 +483,23 @@ public class Strategy extends BaseEntity {
 
     /**
      * Check if strategy is PRIVATE (only owner can see).
+     * Private when: not published OR published but not public.
      */
     public boolean isPrivate() {
-        return "PRIVATE".equals(this.publicStatus);
+        return isDraft() || !Boolean.TRUE.equals(this.isPublic);
     }
 
     /**
-     * Check if strategy is SUBSCRIBERS_ONLY.
+     * Check if strategy is SUBSCRIBERS_ONLY (published but not public).
      */
     public boolean isSubscribersOnly() {
-        return "SUBSCRIBERS_ONLY".equals(this.publicStatus);
+        return isPublished() && !Boolean.TRUE.equals(this.isPublic);
     }
 
     /**
      * Check if strategy is PUBLIC (anyone can see performance).
      */
     public boolean isPublic() {
-        return "PUBLIC".equals(this.publicStatus);
+        return Boolean.TRUE.equals(this.isPublic);
     }
 }

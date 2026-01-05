@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- * Service for tracking job execution history in TimescaleDB.
+ * Business service for tracking job execution history in TimescaleDB.
  *
  * Records job execution metadata for Market Data backfill and incremental jobs:
  * - Job start/completion timestamps
@@ -32,14 +32,14 @@ import java.util.*;
  * - Error frequency analysis
  */
 @Service
-public class JobExecutionHistoryService {
+public class JobExecutionHistoryBusiness {
 
-    private static final Logger log = LoggerFactory.getLogger(JobExecutionHistoryService.class);
+    private static final Logger log = LoggerFactory.getLogger(JobExecutionHistoryBusiness.class);
 
     private final JobExecutionRepository jobExecutionRepository;
 
     @Autowired
-    public JobExecutionHistoryService(JobExecutionRepository jobExecutionRepository) {
+    public JobExecutionHistoryBusiness(JobExecutionRepository jobExecutionRepository) {
         this.jobExecutionRepository = jobExecutionRepository;
     }
 
@@ -47,11 +47,12 @@ public class JobExecutionHistoryService {
      * Record the start of a job execution.
      * Creates an execution record with status=RUNNING.
      *
-     * @param jobName Name of the job (e.g., "ALPACA_BACKFILL_1Day", "ALPACA_INCREMENTAL_1Hour")
+     * @param jobId Job ID from jobs table (e.g., "MARKETDATA_INCREMENTAL")
+     * @param jobName Legacy job name for backward compatibility
      * @param timeframes JSON array of timeframes being processed (e.g., ["1Day", "1Hour"])
      * @return The execution ID for tracking
      */
-    public String recordJobStart(String jobName, String timeframes) {
+    public String recordJobStart(String jobId, String jobName, String timeframes) {
         if (jobName == null || jobName.trim().isEmpty()) {
             throw new StrategizException(
                 MarketDataErrorDetails.INVALID_INPUT,
@@ -67,6 +68,7 @@ public class JobExecutionHistoryService {
 
         JobExecutionEntity entity = new JobExecutionEntity();
         entity.setExecutionId(executionId);
+        entity.setJobId(jobId);  // Foreign key to jobs table
         entity.setJobName(jobName);
         entity.setStartTime(Instant.now());
         entity.setStatus("RUNNING");
@@ -79,10 +81,10 @@ public class JobExecutionHistoryService {
         jobExecutionRepository.save(entity);
 
         long duration = System.currentTimeMillis() - startTime;
-        log.debug("Job execution start recorded in {}ms - jobName: {}, executionId: {}",
-            duration, jobName, executionId);
+        log.debug("Job execution start recorded in {}ms - jobId: {}, jobName: {}, executionId: {}",
+            duration, jobId, jobName, executionId);
 
-        log.info("Job execution started: {} (ID: {})", jobName, executionId);
+        log.info("Job execution started: {} (ID: {}, execution: {})", jobName, jobId, executionId);
         return executionId;
     }
 

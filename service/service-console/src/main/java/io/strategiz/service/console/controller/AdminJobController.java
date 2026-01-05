@@ -1,6 +1,6 @@
 package io.strategiz.service.console.controller;
 
-import io.strategiz.business.marketdata.JobExecutionHistoryService;
+import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.console.model.response.JobExecutionHistoryResponse;
@@ -35,14 +35,14 @@ public class AdminJobController extends BaseController {
     private static final String MODULE_NAME = "CONSOLE";
 
     private final JobManagementService jobManagementService;
-    private final JobExecutionHistoryService jobExecutionHistoryService;
+    private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
 
     @Autowired
     public AdminJobController(
             JobManagementService jobManagementService,
-            JobExecutionHistoryService jobExecutionHistoryService) {
+            JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
         this.jobManagementService = jobManagementService;
-        this.jobExecutionHistoryService = jobExecutionHistoryService;
+        this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
     }
 
     @Override
@@ -97,7 +97,7 @@ public class AdminJobController extends BaseController {
 
         // Get paginated execution history across all jobs
         Pageable pageable = PageRequest.of(page, pageSize);
-        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryService.getAllExecutionHistory(pageable);
+        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getAllExecutionHistory(pageable);
 
         // Convert to DTOs
         List<JobExecutionRecord> executionRecords = executionsPage.getContent().stream()
@@ -106,7 +106,7 @@ public class AdminJobController extends BaseController {
 
         // Calculate aggregate statistics across all jobs
         Instant since = Instant.ofEpochMilli(System.currentTimeMillis() - sinceDays * 24L * 60L * 60L * 1000L);
-        List<JobExecutionEntity> recentExecutions = jobExecutionHistoryService.getAllExecutionsSince(since);
+        List<JobExecutionEntity> recentExecutions = jobExecutionHistoryBusiness.getAllExecutionsSince(since);
 
         long successCount = recentExecutions.stream().filter(e -> "SUCCESS".equals(e.getStatus())).count();
         long failureCount = recentExecutions.stream().filter(e -> "FAILED".equals(e.getStatus())).count();
@@ -153,7 +153,7 @@ public class AdminJobController extends BaseController {
         logRequest("getJobHistory", adminUserId, "jobName=" + name + ", page=" + page);
 
         // Get paginated execution history
-        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryService.getExecutionHistory(name, page, pageSize);
+        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getExecutionHistory(name, page, pageSize);
 
         // Convert to DTOs
         List<JobExecutionRecord> executionRecords = executionsPage.getContent().stream()
@@ -161,7 +161,7 @@ public class AdminJobController extends BaseController {
             .collect(Collectors.toList());
 
         // Get statistics for the period
-        Map<String, Object> stats = jobExecutionHistoryService.getExecutionStats(name, sinceDays);
+        Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
 
         // Build response
         JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(
@@ -185,7 +185,7 @@ public class AdminJobController extends BaseController {
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("getJobStats", adminUserId, "jobName=" + name + ", sinceDays=" + sinceDays);
 
-        Map<String, Object> stats = jobExecutionHistoryService.getExecutionStats(name, sinceDays);
+        Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
 
         log.debug("Job stats for {}: {}", name, stats);
         return ResponseEntity.ok(stats);

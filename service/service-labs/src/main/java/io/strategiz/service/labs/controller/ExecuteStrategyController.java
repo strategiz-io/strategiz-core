@@ -143,6 +143,7 @@ public class ExecuteStrategyController extends BaseController {
                     "python",
                     symbol,
                     request.getTimeframe() != null ? request.getTimeframe() : "1D",
+                    request.getPeriod() != null ? request.getPeriod() : "2y",  // Default to 2 years
                     userId,
                     null  // No saved strategy for direct code execution
                 );

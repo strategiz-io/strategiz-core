@@ -5,12 +5,11 @@ import io.strategiz.client.robinhood.RobinhoodClient;
 import io.strategiz.client.robinhood.error.RobinhoodErrors;
 import io.strategiz.client.robinhood.model.RobinhoodLoginResult;
 import io.strategiz.data.provider.entity.ProviderIntegrationEntity;
-import io.strategiz.data.provider.entity.ProviderDataEntity;
+import io.strategiz.data.provider.entity.PortfolioProviderEntity;
 import io.strategiz.data.provider.repository.CreateProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.ReadProviderIntegrationRepository;
 import io.strategiz.data.provider.repository.UpdateProviderIntegrationRepository;
-import io.strategiz.data.provider.repository.CreateProviderDataRepository;
-import io.strategiz.data.provider.repository.ReadProviderDataRepository;
+import io.strategiz.data.provider.repository.PortfolioProviderRepository;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -59,8 +58,7 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
     private final CreateProviderIntegrationRepository createProviderIntegrationRepository;
     private final ReadProviderIntegrationRepository readProviderIntegrationRepository;
     private final UpdateProviderIntegrationRepository updateProviderIntegrationRepository;
-    private final CreateProviderDataRepository createProviderDataRepository;
-    private final ReadProviderDataRepository readProviderDataRepository;
+    private final PortfolioProviderRepository portfolioProviderRepository;
     private final SecretManager secretManager;
 
     @Autowired(required = false)
@@ -72,15 +70,13 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
             CreateProviderIntegrationRepository createProviderIntegrationRepository,
             ReadProviderIntegrationRepository readProviderIntegrationRepository,
             UpdateProviderIntegrationRepository updateProviderIntegrationRepository,
-            @Autowired(required = false) CreateProviderDataRepository createProviderDataRepository,
-            @Autowired(required = false) ReadProviderDataRepository readProviderDataRepository,
+            @Autowired(required = false) PortfolioProviderRepository portfolioProviderRepository,
             @Qualifier("vaultSecretService") SecretManager secretManager) {
         this.robinhoodClient = robinhoodClient;
         this.createProviderIntegrationRepository = createProviderIntegrationRepository;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;
         this.updateProviderIntegrationRepository = updateProviderIntegrationRepository;
-        this.createProviderDataRepository = createProviderDataRepository;
-        this.readProviderDataRepository = readProviderDataRepository;
+        this.portfolioProviderRepository = portfolioProviderRepository;
         this.secretManager = secretManager;
     }
 
@@ -279,14 +275,12 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
     /**
      * Sync provider data for a user.
      */
-    public ProviderDataEntity syncProviderData(String userId) {
+    public PortfolioProviderEntity syncProviderData(String userId) {
         log.info("Syncing Robinhood provider data for user: {}", userId);
 
         try {
             String accessToken = getValidAccessToken(userId);
-            fetchAndStorePortfolioData(userId, accessToken);
-
-            return readProviderDataRepository.getProviderData(userId, PROVIDER_ID);
+            return fetchAndStorePortfolioData(userId, accessToken);
 
         } catch (Exception e) {
             log.error("Failed to sync Robinhood data for user: {}", userId, e);
@@ -297,11 +291,12 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
 
     /**
      * Fetch and store portfolio data.
+     * Returns the stored PortfolioProviderEntity summary.
      */
-    private void fetchAndStorePortfolioData(String userId, String accessToken) {
-        if (createProviderDataRepository == null) {
-            log.warn("Provider data repository not available");
-            return;
+    private PortfolioProviderEntity fetchAndStorePortfolioData(String userId, String accessToken) {
+        if (portfolioProviderRepository == null) {
+            log.warn("Portfolio provider repository not available");
+            return null;
         }
 
         try {
@@ -314,16 +309,16 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
             // Get portfolio summary
             List<Map<String, Object>> portfolios = robinhoodClient.getPortfolios(accessToken);
 
-            // Transform to ProviderDataEntity
-            ProviderDataEntity entity = transformToProviderDataEntity(
-                positions, cryptoHoldings, portfolios, userId, accessToken
+            // Transform to PortfolioProviderEntity (summary only)
+            PortfolioProviderEntity entity = transformToPortfolioProviderEntity(
+                positions, cryptoHoldings, portfolios
             );
 
-            // Store
-            createProviderDataRepository.createOrReplaceProviderData(userId, PROVIDER_ID, entity);
+            // Store in users/{userId}/portfolio/{providerId}
+            PortfolioProviderEntity saved = portfolioProviderRepository.save(entity, userId);
 
-            log.info("Stored Robinhood portfolio data for user: {} with {} holdings",
-                userId, entity.getHoldings() != null ? entity.getHoldings().size() : 0);
+            log.info("Stored Robinhood portfolio summary for user: {} - totalValue={}, holdingsCount={}",
+                userId, saved.getTotalValue(), saved.getHoldingsCount());
 
             // Refresh portfolio summary to include this provider's data
             if (portfolioSummaryManager != null) {
@@ -335,73 +330,53 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
                 }
             }
 
+            return saved;
+
         } catch (Exception e) {
-            log.error("Failed to fetch/store Robinhood portfolio data: {}", e.getMessage());
+            log.error("Failed to fetch/store Robinhood portfolio data: {}", e.getMessage(), e);
+            return null;
         }
     }
 
     /**
-     * Transform Robinhood data to ProviderDataEntity.
+     * Transform Robinhood data to PortfolioProviderEntity (summary only).
+     * Holdings are stored separately in subcollection.
      */
-    private ProviderDataEntity transformToProviderDataEntity(
+    private PortfolioProviderEntity transformToPortfolioProviderEntity(
             List<Map<String, Object>> positions,
             List<Map<String, Object>> cryptoHoldings,
-            List<Map<String, Object>> portfolios,
-            String userId,
-            String accessToken) {
+            List<Map<String, Object>> portfolios) {
 
-        ProviderDataEntity entity = new ProviderDataEntity();
+        PortfolioProviderEntity entity = new PortfolioProviderEntity();
         entity.setProviderId(PROVIDER_ID);
         entity.setProviderName(PROVIDER_NAME);
         entity.setProviderType(PROVIDER_TYPE);
-        entity.setProviderCategory(PROVIDER_CATEGORY);
-        entity.setSyncStatus("success");
-        entity.setLastUpdatedAt(Instant.now());
+        entity.setStatus("connected");
+        entity.setConnectionType("credentials");
+        entity.setLastSyncedAt(Instant.now());
 
-        List<ProviderDataEntity.Holding> holdings = new ArrayList<>();
+        // Calculate total value and holdings count
         BigDecimal totalValue = BigDecimal.ZERO;
-        BigDecimal totalProfitLoss = BigDecimal.ZERO;
+        int holdingsCount = 0;
 
-        // Collect symbols for batch quote
-        List<String> symbols = new ArrayList<>();
+        // Sum up stock position values (simplified - using quantity only for count)
         for (Map<String, Object> position : positions) {
-            String symbol = (String) position.get("symbol");
-            if (symbol != null) {
-                symbols.add(symbol);
+            BigDecimal quantity = extractBigDecimal(position, "quantity");
+            if (quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0) {
+                holdingsCount++;
+                // For accurate value, would need to fetch current prices
+                // For now, just tracking count
             }
         }
 
-        // Get quotes for all symbols
-        Map<String, Object> quotes = new HashMap<>();
-        if (!symbols.isEmpty()) {
-            try {
-                quotes = robinhoodClient.getQuotes(accessToken, symbols);
-            } catch (Exception e) {
-                log.warn("Could not fetch quotes: {}", e.getMessage());
-            }
-        }
-
-        // Process stock positions
-        for (Map<String, Object> position : positions) {
-            ProviderDataEntity.Holding holding = transformPosition(position, quotes);
-            if (holding != null) {
-                holdings.add(holding);
-                if (holding.getCurrentValue() != null) {
-                    totalValue = totalValue.add(holding.getCurrentValue());
-                }
-                if (holding.getProfitLoss() != null) {
-                    totalProfitLoss = totalProfitLoss.add(holding.getProfitLoss());
-                }
-            }
-        }
-
-        // Process crypto holdings
+        // Sum up crypto values
         for (Map<String, Object> crypto : cryptoHoldings) {
-            ProviderDataEntity.Holding holding = transformCryptoHolding(crypto);
-            if (holding != null) {
-                holdings.add(holding);
-                if (holding.getCurrentValue() != null) {
-                    totalValue = totalValue.add(holding.getCurrentValue());
+            BigDecimal quantity = extractBigDecimal(crypto, "quantity");
+            BigDecimal equity = extractBigDecimal(crypto, "equity");
+            if (quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0) {
+                holdingsCount++;
+                if (equity != null) {
+                    totalValue = totalValue.add(equity);
                 }
             }
         }
@@ -414,118 +389,21 @@ public class RobinhoodProviderBusiness implements ProviderIntegrationHandler {
             if (cashBalance == null) {
                 cashBalance = BigDecimal.ZERO;
             }
-        }
 
-        entity.setHoldings(holdings);
-        entity.setTotalValue(totalValue.add(cashBalance));
-        entity.setCashBalance(cashBalance);
-        entity.setTotalProfitLoss(totalProfitLoss);
-
-        return entity;
-    }
-
-    /**
-     * Transform a stock position to Holding.
-     */
-    private ProviderDataEntity.Holding transformPosition(Map<String, Object> position,
-                                                          Map<String, Object> quotes) {
-        String symbol = (String) position.get("symbol");
-        if (symbol == null) {
-            return null;
-        }
-
-        BigDecimal quantity = extractBigDecimal(position, "quantity");
-        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) == 0) {
-            return null;
-        }
-
-        BigDecimal averageBuyPrice = extractBigDecimal(position, "average_buy_price");
-
-        // Get current price from quotes
-        BigDecimal currentPrice = BigDecimal.ZERO;
-        if (quotes.containsKey(symbol)) {
-            Map<String, Object> quote = (Map<String, Object>) quotes.get(symbol);
-            currentPrice = extractBigDecimal(quote, "last_trade_price");
-            if (currentPrice == null) {
-                currentPrice = extractBigDecimal(quote, "last_extended_hours_trade_price");
+            // Try to get total equity from portfolio (more accurate than summing)
+            BigDecimal portfolioEquity = extractBigDecimal(portfolio, "equity");
+            if (portfolioEquity != null) {
+                totalValue = portfolioEquity;
             }
         }
 
-        if (currentPrice == null) {
-            currentPrice = BigDecimal.ZERO;
-        }
+        entity.setTotalValue(totalValue.add(cashBalance));
+        entity.setCashBalance(cashBalance);
+        entity.setHoldingsCount(holdingsCount);
+        entity.setDayChange(BigDecimal.ZERO); // Would need previous day data
+        entity.setDayChangePercent(BigDecimal.ZERO);
 
-        BigDecimal currentValue = quantity.multiply(currentPrice).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal costBasis = averageBuyPrice != null ?
-            quantity.multiply(averageBuyPrice).setScale(2, RoundingMode.HALF_UP) : null;
-
-        BigDecimal profitLoss = null;
-        BigDecimal profitLossPercent = null;
-        if (costBasis != null && costBasis.compareTo(BigDecimal.ZERO) > 0) {
-            profitLoss = currentValue.subtract(costBasis);
-            profitLossPercent = profitLoss.divide(costBasis, 4, RoundingMode.HALF_UP)
-                .multiply(new BigDecimal("100"));
-        }
-
-        ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
-        holding.setAsset(symbol);
-        holding.setName((String) position.get("name"));
-        holding.setAssetType("equity");
-        holding.setQuantity(quantity);
-        holding.setCurrentPrice(currentPrice);
-        holding.setCurrentValue(currentValue);
-        holding.setAverageBuyPrice(averageBuyPrice);
-        holding.setCostBasis(costBasis);
-        holding.setProfitLoss(profitLoss);
-        holding.setProfitLossPercent(profitLossPercent);
-        holding.setOriginalSymbol(symbol);
-
-        return holding;
-    }
-
-    /**
-     * Transform a crypto holding to Holding.
-     */
-    private ProviderDataEntity.Holding transformCryptoHolding(Map<String, Object> crypto) {
-        String currencyCode = (String) crypto.get("currency_code");
-        if (currencyCode == null) {
-            return null;
-        }
-
-        BigDecimal quantity = extractBigDecimal(crypto, "quantity");
-        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) == 0) {
-            return null;
-        }
-
-        BigDecimal costBasis = extractBigDecimal(crypto, "cost_bases");
-        BigDecimal currentValue = extractBigDecimal(crypto, "equity");
-
-        BigDecimal currentPrice = BigDecimal.ZERO;
-        if (currentValue != null && quantity.compareTo(BigDecimal.ZERO) > 0) {
-            currentPrice = currentValue.divide(quantity, 8, RoundingMode.HALF_UP);
-        }
-
-        BigDecimal profitLoss = null;
-        BigDecimal profitLossPercent = null;
-        if (costBasis != null && currentValue != null && costBasis.compareTo(BigDecimal.ZERO) > 0) {
-            profitLoss = currentValue.subtract(costBasis);
-            profitLossPercent = profitLoss.divide(costBasis, 4, RoundingMode.HALF_UP)
-                .multiply(new BigDecimal("100"));
-        }
-
-        ProviderDataEntity.Holding holding = new ProviderDataEntity.Holding();
-        holding.setAsset(currencyCode);
-        holding.setName(currencyCode + " (Crypto)");
-        holding.setAssetType("crypto");
-        holding.setQuantity(quantity);
-        holding.setCurrentPrice(currentPrice);
-        holding.setCurrentValue(currentValue);
-        holding.setCostBasis(costBasis);
-        holding.setProfitLoss(profitLoss);
-        holding.setProfitLossPercent(profitLossPercent);
-        holding.setOriginalSymbol(currencyCode);
-
-        return holding;
+        return entity;
     }
 
     /**

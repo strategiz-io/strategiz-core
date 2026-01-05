@@ -66,8 +66,9 @@ images:
   - 'gcr.io/$PROJECT_ID/strategiz-console:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/strategiz-console:latest'
 
+timeout: 2400s
+
 options:
   machineType: 'E2_HIGHCPU_32'
   diskSizeGb: 100
-  timeout: 2400s
   logging: CLOUD_LOGGING_ONLY

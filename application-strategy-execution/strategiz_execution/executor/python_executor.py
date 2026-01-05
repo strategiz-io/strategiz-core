@@ -34,6 +34,9 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
     Execute strategy code in a separate process (module-level function for pickling)
 
     This MUST be a module-level function (not nested) so multiprocessing can pickle it.
+
+    BACKTEST MODE: Iterates through each bar and collects BUY/SELL signals.
+    The strategy function receives data up to the current bar and returns 'BUY', 'SELL', or 'HOLD'.
     """
     try:
         # OPTIMIZATION 1: Fast DataFrame creation with pre-allocated arrays
@@ -75,18 +78,33 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
             # Get compiled code
             compiled_code = compile_result.code if hasattr(compile_result, 'code') else compile_result
 
-        # Execute strategy code
+        # Execute strategy code (defines the strategy function)
         exec(compiled_code, safe_env)
 
         # Call strategy function
         if 'strategy' in safe_env and callable(safe_env['strategy']):
-            result = safe_env['strategy'](df)
+            strategy_func = safe_env['strategy']
+
+            # First, try calling with full DataFrame (allows strategy to populate signals list)
+            result = strategy_func(df)
+
+            # Check if strategy populated the signals list directly
+            signals = safe_env.get('signals', [])
+
+            # If no signals were populated and result is a simple string,
+            # run backtest mode: iterate through each bar and collect signals
+            if not signals and isinstance(result, str) and result.upper() in ('BUY', 'SELL', 'HOLD'):
+                signals = _run_backtest_loop(strategy_func, df)
+
+            # Also check if result is a pandas Series (vectorized signals)
+            elif not signals and isinstance(result, pd.Series):
+                signals = _convert_series_to_signals(result, df)
 
             queue.put({
                 'success': True,
-                'signals': safe_env.get('signals', []),
+                'signals': signals,
                 'indicators': safe_env.get('indicators', {}),
-                'result': result,
+                'result': result if not isinstance(result, (pd.Series, pd.DataFrame)) else str(type(result)),
                 'logs': []
             })
         else:
@@ -106,6 +124,96 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
             'indicators': {},
             'logs': []
         })
+
+
+def _run_backtest_loop(strategy_func, df: pd.DataFrame) -> list:
+    """
+    Run backtest by iterating through each bar and collecting signals.
+
+    For each bar, we pass the DataFrame slice up to that point to the strategy function.
+    We start from bar 50 to ensure enough data for indicators like SMA(50).
+
+    Returns list of signal dicts: [{timestamp, type, price, quantity, reason}, ...]
+    """
+    signals = []
+    min_bars = 50  # Minimum bars needed for most indicators
+
+    # Skip if not enough data
+    if len(df) < min_bars + 1:
+        return signals
+
+    # Track previous signal to avoid duplicate consecutive signals
+    prev_signal = None
+
+    # Iterate through bars (starting from min_bars to have enough history for indicators)
+    for i in range(min_bars, len(df)):
+        # Get data up to current bar (inclusive)
+        data_slice = df.iloc[:i+1].copy()
+
+        try:
+            # Call strategy with data up to current bar
+            signal = strategy_func(data_slice)
+
+            # Normalize signal
+            if isinstance(signal, str):
+                signal = signal.upper()
+
+            # Only record BUY/SELL signals (not HOLD), and only on signal changes
+            if signal in ('BUY', 'SELL') and signal != prev_signal:
+                current_bar = df.iloc[i]
+                timestamp = str(df.index[i])
+                price = float(current_bar['close'])
+
+                signals.append({
+                    'timestamp': timestamp,
+                    'type': signal,
+                    'price': price,
+                    'quantity': 1,  # Default quantity
+                    'reason': f'{signal} signal at {timestamp}'
+                })
+
+                prev_signal = signal
+
+            elif signal == 'HOLD':
+                # Reset prev_signal on HOLD to allow same signal type after HOLD
+                pass
+
+        except Exception as e:
+            # Skip bars that cause errors (e.g., insufficient data for indicators)
+            continue
+
+    return signals
+
+
+def _convert_series_to_signals(signal_series: pd.Series, df: pd.DataFrame) -> list:
+    """
+    Convert a pandas Series of signals to list of signal dicts.
+
+    The Series should have the same index as the DataFrame and contain
+    'BUY', 'SELL', or 'HOLD' values.
+    """
+    signals = []
+    prev_signal = None
+
+    for i, (timestamp, signal) in enumerate(signal_series.items()):
+        if isinstance(signal, str):
+            signal = signal.upper()
+
+        # Only record BUY/SELL signals on changes
+        if signal in ('BUY', 'SELL') and signal != prev_signal:
+            price = float(df.loc[timestamp, 'close']) if timestamp in df.index else 0.0
+
+            signals.append({
+                'timestamp': str(timestamp),
+                'type': signal,
+                'price': price,
+                'quantity': 1,
+                'reason': f'{signal} signal'
+            })
+
+            prev_signal = signal
+
+    return signals
 
 
 def _create_safe_globals_for_process(df: pd.DataFrame) -> dict:

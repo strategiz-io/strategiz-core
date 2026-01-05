@@ -360,34 +360,49 @@ public abstract class BaseController {
     }
     
     /**
-     * Recursively filter null values and empty strings from JSON
+     * Recursively filter null values, empty strings, and empty arrays/objects from JSON
      */
     private JsonNode filterJsonNode(JsonNode node) {
         if (node.isObject()) {
             ObjectNode objectNode = objectMapper.createObjectNode();
             Iterator<String> fieldNames = node.fieldNames();
-            
+
             while (fieldNames.hasNext()) {
                 String fieldName = fieldNames.next();
                 JsonNode fieldValue = node.get(fieldName);
-                
+
                 // Skip null values
                 if (fieldValue.isNull()) {
                     continue;
                 }
-                
+
                 // Skip empty strings
                 if (fieldValue.isTextual() && fieldValue.asText().trim().isEmpty()) {
                     continue;
                 }
-                
+
+                // Skip empty arrays
+                if (fieldValue.isArray() && fieldValue.size() == 0) {
+                    continue;
+                }
+
+                // Skip empty objects
+                if (fieldValue.isObject() && fieldValue.size() == 0) {
+                    continue;
+                }
+
                 // Recursively filter nested objects/arrays
                 JsonNode filteredValue = filterJsonNode(fieldValue);
+
+                // After filtering, check if nested array/object is empty
                 if (filteredValue != null) {
+                    if ((filteredValue.isArray() || filteredValue.isObject()) && filteredValue.size() == 0) {
+                        continue; // Skip empty arrays/objects after filtering
+                    }
                     objectNode.set(fieldName, filteredValue);
                 }
             }
-            
+
             return objectNode;
         } else if (node.isArray()) {
             ArrayNode arrayNode = objectMapper.createArrayNode();

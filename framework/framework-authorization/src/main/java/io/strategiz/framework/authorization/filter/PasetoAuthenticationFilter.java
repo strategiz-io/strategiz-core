@@ -79,14 +79,19 @@ public class PasetoAuthenticationFilter implements Filter {
             // Extract and validate token using the single source of truth
             String token = extractToken(httpRequest);
             if (token != null) {
-                Optional<AuthenticatedUser> userOpt = tokenValidator.validateAndExtract(token);
-                if (userOpt.isPresent()) {
-                    AuthenticatedUser user = userOpt.get();
-                    SecurityContextHolder.getContext().setAuthenticatedUser(user);
-                    MDC.put("userId", user.getUserId());
-                    log.debug("Authenticated user: {} (acr={})", user.getUserId(), user.getAcr());
-                } else {
-                    log.debug("Token validation failed - continuing without authentication");
+                try {
+                    Optional<AuthenticatedUser> userOpt = tokenValidator.validateAndExtract(token);
+                    if (userOpt.isPresent()) {
+                        AuthenticatedUser user = userOpt.get();
+                        SecurityContextHolder.getContext().setAuthenticatedUser(user);
+                        MDC.put("userId", user.getUserId());
+                        log.debug("Authenticated user: {} (acr={})", user.getUserId(), user.getAcr());
+                    } else {
+                        log.debug("Token validation failed - continuing without authentication");
+                    }
+                } catch (Exception e) {
+                    // Catch any exception from token parsing (e.g., malformed tokens)
+                    log.debug("Token parsing error - continuing without authentication: {}", e.getMessage());
                 }
             }
 

@@ -210,6 +210,12 @@ public class PortfolioData {
         private BigDecimal price;
         private BigDecimal value;
         private BigDecimal allocationPercent;
+        // Additional fields for AI Portfolio Insights
+        private BigDecimal costBasis;
+        private BigDecimal profitLoss;
+        private BigDecimal profitLossPercent;
+        private String sector;
+        private String assetType; // crypto, stock, etf, bond, etc.
 
         // Default constructor
         public AssetData() {}
@@ -292,6 +298,46 @@ public class PortfolioData {
 
         public void setAllocationPercent(BigDecimal allocationPercent) {
             this.allocationPercent = allocationPercent;
+        }
+
+        public BigDecimal getCostBasis() {
+            return costBasis;
+        }
+
+        public void setCostBasis(BigDecimal costBasis) {
+            this.costBasis = costBasis;
+        }
+
+        public BigDecimal getProfitLoss() {
+            return profitLoss;
+        }
+
+        public void setProfitLoss(BigDecimal profitLoss) {
+            this.profitLoss = profitLoss;
+        }
+
+        public BigDecimal getProfitLossPercent() {
+            return profitLossPercent;
+        }
+
+        public void setProfitLossPercent(BigDecimal profitLossPercent) {
+            this.profitLossPercent = profitLossPercent;
+        }
+
+        public String getSector() {
+            return sector;
+        }
+
+        public void setSector(String sector) {
+            this.sector = sector;
+        }
+
+        public String getAssetType() {
+            return assetType;
+        }
+
+        public void setAssetType(String assetType) {
+            this.assetType = assetType;
         }
 
         @Override

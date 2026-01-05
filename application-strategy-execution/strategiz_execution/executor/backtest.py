@@ -5,6 +5,8 @@ Backtest Performance Calculator
 import logging
 from typing import Dict, List, Any
 from datetime import datetime
+from dateutil import parser as date_parser
+from dateutil.relativedelta import relativedelta
 import math
 
 logger = logging.getLogger(__name__)
@@ -30,21 +32,28 @@ class BacktestCalculator:
 
         Returns:
             {
-                'total_return': float,      # % return
-                'total_pnl': float,         # $ profit/loss
-                'win_rate': float,          # % of winning trades
-                'total_trades': int,        # Number of completed trades
-                'profitable_trades': int,   # Number of winning trades
-                'buy_count': int,           # Total BUY signals
-                'sell_count': int,          # Total SELL signals
-                'avg_win': float,           # Average winning trade $
-                'avg_loss': float,          # Average losing trade $
-                'profit_factor': float,     # Gross profit / gross loss
-                'max_drawdown': float,      # Maximum equity drawdown %
-                'sharpe_ratio': float,      # Risk-adjusted return
-                'last_tested_at': str,      # ISO timestamp
-                'trades': List[Dict],       # Trade history
-                'open_position': Dict       # Current open position if any
+                'total_return': float,           # % return
+                'total_pnl': float,              # $ profit/loss
+                'win_rate': float,               # % of winning trades
+                'total_trades': int,             # Number of completed trades
+                'profitable_trades': int,        # Number of winning trades
+                'buy_count': int,                # Total BUY signals
+                'sell_count': int,               # Total SELL signals
+                'avg_win': float,                # Average winning trade $
+                'avg_loss': float,               # Average losing trade $
+                'profit_factor': float,          # Gross profit / gross loss
+                'max_drawdown': float,           # Maximum equity drawdown %
+                'sharpe_ratio': float,           # Risk-adjusted return
+                'last_tested_at': str,           # ISO timestamp
+                'trades': List[Dict],            # Trade history
+                'open_position': Dict,           # Current open position if any
+                'equity_curve': List[Dict],      # Portfolio value over time
+                'start_date': str,               # Backtest start date
+                'end_date': str,                 # Backtest end date
+                'test_period': str,              # Human-readable test duration
+                'buy_and_hold_return': float,    # $ P&L if just held
+                'buy_and_hold_return_percent': float,  # % return if just held
+                'outperformance': float          # Strategy return - buy & hold return (%)
             }
         """
 
@@ -64,6 +73,44 @@ class BacktestCalculator:
             buy_count=len(buy_signals),
             sell_count=len(sell_signals)
         )
+
+        # Build equity curve
+        equity_curve = self._build_equity_curve(trades, market_data)
+        performance['equity_curve'] = equity_curve
+
+        # Calculate test period info
+        if market_data:
+            start_date = market_data[0].get('timestamp', '')
+            end_date = market_data[-1].get('timestamp', '')
+            performance['start_date'] = start_date
+            performance['end_date'] = end_date
+            performance['test_period'] = self._format_test_period(start_date, end_date)
+
+            # Calculate buy & hold comparison
+            first_close = float(market_data[0].get('close', 0))
+            last_close = float(market_data[-1].get('close', 0))
+
+            if first_close > 0:
+                # Calculate buy & hold returns (assuming we buy with initial capital)
+                shares_bought = self.initial_capital / first_close
+                buy_hold_final_value = shares_bought * last_close
+                buy_hold_pnl = buy_hold_final_value - self.initial_capital
+                buy_hold_return_percent = ((last_close - first_close) / first_close) * 100
+
+                performance['buy_and_hold_return'] = buy_hold_pnl
+                performance['buy_and_hold_return_percent'] = buy_hold_return_percent
+                performance['outperformance'] = performance['total_return'] - buy_hold_return_percent
+            else:
+                performance['buy_and_hold_return'] = 0.0
+                performance['buy_and_hold_return_percent'] = 0.0
+                performance['outperformance'] = 0.0
+        else:
+            performance['start_date'] = ''
+            performance['end_date'] = ''
+            performance['test_period'] = ''
+            performance['buy_and_hold_return'] = 0.0
+            performance['buy_and_hold_return_percent'] = 0.0
+            performance['outperformance'] = 0.0
 
         # Check for open position
         if len(buy_signals) > len(sell_signals):
@@ -256,6 +303,109 @@ class BacktestCalculator:
 
         return sharpe_annualized
 
+    def _build_equity_curve(
+        self,
+        trades: List[Dict],
+        market_data: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """
+        Build equity curve showing portfolio value over time.
+
+        Returns list of points:
+        [
+            {'timestamp': str, 'portfolioValue': float, 'type': 'initial'|'buy'|'sell'}
+        ]
+        """
+        equity_curve = []
+
+        if not market_data:
+            return equity_curve
+
+        # Start with initial capital at first market data point
+        start_timestamp = market_data[0].get('timestamp', '')
+        equity_curve.append({
+            'timestamp': start_timestamp,
+            'portfolioValue': self.initial_capital,
+            'type': 'initial'
+        })
+
+        if not trades:
+            # No trades - just show initial and final (unchanged)
+            end_timestamp = market_data[-1].get('timestamp', '')
+            if end_timestamp != start_timestamp:
+                equity_curve.append({
+                    'timestamp': end_timestamp,
+                    'portfolioValue': self.initial_capital,
+                    'type': 'final'
+                })
+            return equity_curve
+
+        # Build curve with each trade
+        equity = self.initial_capital
+
+        for trade in trades:
+            # Record buy point (portfolio value before trade)
+            equity_curve.append({
+                'timestamp': trade['buy_timestamp'],
+                'portfolioValue': equity,
+                'type': 'buy'
+            })
+
+            # After sell, add P&L
+            equity += trade['pnl']
+            equity_curve.append({
+                'timestamp': trade['sell_timestamp'],
+                'portfolioValue': equity,
+                'type': 'sell'
+            })
+
+        # Add final point at end of market data if different from last trade
+        end_timestamp = market_data[-1].get('timestamp', '')
+        if equity_curve and equity_curve[-1]['timestamp'] != end_timestamp:
+            equity_curve.append({
+                'timestamp': end_timestamp,
+                'portfolioValue': equity,
+                'type': 'final'
+            })
+
+        return equity_curve
+
+    def _format_test_period(self, start_date: str, end_date: str) -> str:
+        """
+        Format the test period as human-readable duration.
+
+        Examples:
+        - "2 years, 3 months"
+        - "6 months, 15 days"
+        - "45 days"
+        """
+        try:
+            start = date_parser.parse(start_date)
+            end = date_parser.parse(end_date)
+
+            delta = relativedelta(end, start)
+
+            parts = []
+
+            if delta.years > 0:
+                parts.append(f"{delta.years} year{'s' if delta.years > 1 else ''}")
+
+            if delta.months > 0:
+                parts.append(f"{delta.months} month{'s' if delta.months > 1 else ''}")
+
+            if delta.days > 0 and delta.years == 0:  # Only show days if less than a year
+                parts.append(f"{delta.days} day{'s' if delta.days > 1 else ''}")
+
+            if not parts:
+                # Less than a day
+                return "< 1 day"
+
+            return ", ".join(parts)
+
+        except Exception as e:
+            logger.warning(f"Failed to parse test period dates: {e}")
+            return ""
+
     def _empty_performance(self) -> Dict[str, Any]:
         """Return empty performance when no signals"""
 
@@ -274,5 +424,12 @@ class BacktestCalculator:
             'sharpe_ratio': 0.0,
             'last_tested_at': datetime.utcnow().isoformat() + 'Z',
             'trades': [],
-            'open_position': None
+            'open_position': None,
+            'equity_curve': [],
+            'start_date': '',
+            'end_date': '',
+            'test_period': '',
+            'buy_and_hold_return': 0.0,
+            'buy_and_hold_return_percent': 0.0,
+            'outperformance': 0.0
         }

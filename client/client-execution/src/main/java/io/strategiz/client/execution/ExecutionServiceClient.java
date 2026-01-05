@@ -260,7 +260,14 @@ public class ExecutionServiceClient {
                     .profitFactor(grpcPerf.getProfitFactor())
                     .maxDrawdown(grpcPerf.getMaxDrawdown())
                     .sharpeRatio(grpcPerf.getSharpeRatio())
-                    .lastTestedAt(grpcPerf.getLastTestedAt());
+                    .lastTestedAt(grpcPerf.getLastTestedAt())
+                    // New fields
+                    .startDate(grpcPerf.getStartDate())
+                    .endDate(grpcPerf.getEndDate())
+                    .testPeriod(grpcPerf.getTestPeriod())
+                    .buyAndHoldReturn(grpcPerf.getBuyAndHoldReturn())
+                    .buyAndHoldReturnPercent(grpcPerf.getBuyAndHoldReturnPercent())
+                    .outperformance(grpcPerf.getOutperformance());
 
             // Convert trades
             if (grpcPerf.getTradesCount() > 0) {
@@ -278,6 +285,18 @@ public class ExecutionServiceClient {
                                 .build())
                         .collect(Collectors.toList());
                 perfBuilder.trades(trades);
+            }
+
+            // Convert equity curve
+            if (grpcPerf.getEquityCurveCount() > 0) {
+                List<EquityPoint> equityCurve = grpcPerf.getEquityCurveList().stream()
+                        .map(ep -> EquityPoint.builder()
+                                .timestamp(ep.getTimestamp())
+                                .portfolioValue(ep.getPortfolioValue())
+                                .type(ep.getType())
+                                .build())
+                        .collect(Collectors.toList());
+                perfBuilder.equityCurve(equityCurve);
             }
 
             builder.performance(perfBuilder.build());

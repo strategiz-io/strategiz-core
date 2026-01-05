@@ -70,6 +70,13 @@ message DataPoint {
   double value = 2;
 }
 
+// Equity Curve Point (portfolio value over time)
+message EquityPoint {
+  string timestamp = 1;                     // ISO 8601 timestamp
+  double portfolio_value = 2;               // Portfolio value at this point
+  string type = 3;                          // "initial", "buy", "sell", "final"
+}
+
 // Backtest Performance Metrics
 message Performance {
   double total_return = 1;                  // Total return %
@@ -86,6 +93,19 @@ message Performance {
   double sharpe_ratio = 12;                 // Sharpe ratio
   repeated Trade trades = 13;               // Individual trades
   string last_tested_at = 14;               // Timestamp
+
+  // Equity Curve (NEW)
+  repeated EquityPoint equity_curve = 15;   // Portfolio value over time
+
+  // Test Period Info (NEW)
+  string start_date = 16;                   // Backtest start date
+  string end_date = 17;                     // Backtest end date
+  string test_period = 18;                  // Human-readable duration (e.g., "2 years, 3 months")
+
+  // Buy & Hold Comparison (NEW)
+  double buy_and_hold_return = 19;          // $ P&L if just held
+  double buy_and_hold_return_percent = 20;  // % return if just held
+  double outperformance = 21;               // Strategy return - buy & hold (%)
 }
 
 message Trade {

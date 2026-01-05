@@ -55,7 +55,14 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         }
 
         // Validate session and get user ID
-        Optional<String> userIdOpt = sessionAuthBusiness.validateSession(sessionToken);
+        Optional<String> userIdOpt;
+        try {
+            userIdOpt = sessionAuthBusiness.validateSession(sessionToken);
+        } catch (Exception e) {
+            logger.warn("Session validation error for admin request: {} - {}", requestPath, e.getMessage());
+            response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid session token");
+            return false;
+        }
         if (userIdOpt.isEmpty()) {
             logger.warn("Invalid session for admin request: {}", requestPath);
             response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid or expired session");

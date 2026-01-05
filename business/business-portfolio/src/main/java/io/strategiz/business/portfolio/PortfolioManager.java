@@ -4,7 +4,9 @@ import io.strategiz.business.portfolio.exception.PortfolioErrorDetails;
 import io.strategiz.business.portfolio.model.PortfolioData;
 import io.strategiz.business.portfolio.model.PortfolioMetrics;
 import io.strategiz.data.provider.entity.PortfolioProviderEntity;
+import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.data.provider.repository.PortfolioProviderRepository;
+import io.strategiz.data.provider.repository.ProviderHoldingsRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +18,7 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Core business logic for portfolio operations.
@@ -28,11 +31,14 @@ public class PortfolioManager {
     private static final Logger log = LoggerFactory.getLogger(PortfolioManager.class);
 
     private final PortfolioProviderRepository portfolioProviderRepository;
+    private final ProviderHoldingsRepository providerHoldingsRepository;
 
     @Autowired
-    public PortfolioManager(PortfolioProviderRepository portfolioProviderRepository) {
+    public PortfolioManager(PortfolioProviderRepository portfolioProviderRepository,
+                           ProviderHoldingsRepository providerHoldingsRepository) {
         this.portfolioProviderRepository = portfolioProviderRepository;
-        log.info("PortfolioManager initialized with portfolio provider repository");
+        this.providerHoldingsRepository = providerHoldingsRepository;
+        log.info("PortfolioManager initialized with portfolio provider and holdings repositories");
     }
 
     /**
@@ -92,8 +98,8 @@ public class PortfolioManager {
                         totalCashBalance = totalCashBalance.add(provider.getCashBalance());
                     }
 
-                    // Build exchange data for this provider
-                    PortfolioData.ExchangeData exchangeData = buildExchangeData(provider);
+                    // Build exchange data for this provider (including holdings from subcollection)
+                    PortfolioData.ExchangeData exchangeData = buildExchangeData(userId, provider);
                     exchanges.put(provider.getProviderId(), exchangeData);
 
                     log.debug("Processed provider {}: totalValue={}, dayChange={}",
@@ -129,22 +135,66 @@ public class PortfolioManager {
     }
     
     /**
-     * Builds ExchangeData from PortfolioProviderEntity
+     * Builds ExchangeData from PortfolioProviderEntity, including holdings from subcollection.
      *
+     * @param userId User ID for fetching holdings subcollection
      * @param provider Portfolio provider entity from Firestore
-     * @return Exchange data for portfolio response
+     * @return Exchange data for portfolio response with assets populated
      */
-    private PortfolioData.ExchangeData buildExchangeData(PortfolioProviderEntity provider) {
+    private PortfolioData.ExchangeData buildExchangeData(String userId, PortfolioProviderEntity provider) {
         PortfolioData.ExchangeData exchangeData = new PortfolioData.ExchangeData();
         exchangeData.setId(provider.getProviderId());
         exchangeData.setName(provider.getProviderName() != null ? provider.getProviderName() : provider.getProviderId());
         exchangeData.setValue(provider.getTotalValue() != null ? provider.getTotalValue() : BigDecimal.ZERO);
 
-        // PortfolioProviderEntity is a lightweight document - holdings are in subcollection
-        // For AI insights context, summary data (totalValue, dayChange) is sufficient
-        // Detailed holdings can be fetched separately if needed
+        // Fetch holdings from subcollection: users/{userId}/portfolio/{providerId}/holdings/current
         Map<String, PortfolioData.AssetData> assets = new HashMap<>();
+        try {
+            Optional<ProviderHoldingsEntity> holdingsOpt = providerHoldingsRepository
+                    .findByUserIdAndProviderId(userId, provider.getProviderId());
+
+            if (holdingsOpt.isPresent()) {
+                ProviderHoldingsEntity holdings = holdingsOpt.get();
+                List<ProviderHoldingsEntity.Holding> holdingsList = holdings.getHoldings();
+
+                if (holdingsList != null && !holdingsList.isEmpty()) {
+                    log.info("=====> Found {} holdings for provider {} (user: {})",
+                            holdingsList.size(), provider.getProviderId(), userId);
+
+                    for (ProviderHoldingsEntity.Holding holding : holdingsList) {
+                        if (holding.getAsset() != null) {
+                            PortfolioData.AssetData assetData = new PortfolioData.AssetData();
+                            assetData.setSymbol(holding.getAsset());
+                            assetData.setName(holding.getName() != null ? holding.getName() : holding.getAsset());
+                            assetData.setQuantity(holding.getQuantity());
+                            assetData.setPrice(holding.getCurrentPrice());
+                            assetData.setValue(holding.getCurrentValue());
+                            assetData.setCostBasis(holding.getCostBasis());
+                            assetData.setProfitLoss(holding.getProfitLoss());
+                            assetData.setProfitLossPercent(holding.getProfitLossPercent());
+                            assetData.setSector(holding.getSector());
+                            assetData.setAssetType(holding.getAssetType());
+
+                            assets.put(holding.getAsset(), assetData);
+                        }
+                    }
+                } else {
+                    log.warn("=====> Holdings list is empty for provider {} (user: {})",
+                            provider.getProviderId(), userId);
+                }
+            } else {
+                log.warn("=====> No holdings document found for provider {} (user: {})",
+                        provider.getProviderId(), userId);
+            }
+        } catch (Exception e) {
+            log.error("Error fetching holdings for provider {} (user: {}): {}",
+                    provider.getProviderId(), userId, e.getMessage(), e);
+            // Continue without holdings - at least we have the summary data
+        }
+
         exchangeData.setAssets(assets);
+        log.info("=====> Built exchange data for {} with {} assets",
+                provider.getProviderId(), assets.size());
 
         return exchangeData;
     }

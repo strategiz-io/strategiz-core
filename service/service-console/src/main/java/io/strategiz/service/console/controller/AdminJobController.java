@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +27,12 @@ import java.util.stream.Collectors;
 
 /**
  * Admin controller for managing scheduled jobs.
+ * TEMPORARILY DISABLED: Depends on JobExecutionHistoryBusiness which is not yet implemented.
  */
 @RestController
 @RequestMapping("/v1/console/jobs")
 @Tag(name = "Admin - Jobs", description = "Job management endpoints for administrators")
+@Profile("job-management")  // Disabled by default - enable with spring.profiles.active=job-management
 public class AdminJobController extends BaseController {
 
     private static final String MODULE_NAME = "CONSOLE";

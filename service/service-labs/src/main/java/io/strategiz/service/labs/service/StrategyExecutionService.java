@@ -60,6 +60,7 @@ public class StrategyExecutionService extends BaseService {
      * @param language Programming language (always "python" for now)
      * @param symbol Stock/crypto symbol (e.g., "AAPL", "BTC")
      * @param timeframe Chart timeframe (e.g., "1D", "1H")
+     * @param period Backtest period (e.g., "6mo", "1y", "2y", "5y", "7y", "max")
      * @param userId User ID for tracking
      * @param strategy Optional strategy entity (for seedFundingDate)
      * @return REST DTO with ALL fields initialized
@@ -69,13 +70,14 @@ public class StrategyExecutionService extends BaseService {
             String language,
             String symbol,
             String timeframe,
+            String period,
             String userId,
             Strategy strategy) {
 
-        logger.info("Executing strategy for user={}, symbol={}, language={}, timeframe={}", userId, symbol, language, timeframe);
+        logger.info("Executing strategy for user={}, symbol={}, language={}, timeframe={}, period={}", userId, symbol, language, timeframe, period);
 
         // 1. Fetch market data (one DB call)
-        List<Map<String, Object>> marketDataList = fetchMarketData(symbol, timeframe, strategy);
+        List<Map<String, Object>> marketDataList = fetchMarketData(symbol, timeframe, period, strategy);
         logger.info("Fetched {} market data bars for symbol {} with timeframe {}", marketDataList.size(), symbol, timeframe);
 
         // 2. Convert to gRPC format
@@ -105,12 +107,12 @@ public class StrategyExecutionService extends BaseService {
      * Fetch market data from repository.
      * Lightweight - single DB query.
      */
-    private List<Map<String, Object>> fetchMarketData(String symbol, String timeframe, Strategy strategy) {
-        logger.info("Fetching market data for symbol: {} with timeframe: {}", symbol, timeframe);
+    private List<Map<String, Object>> fetchMarketData(String symbol, String timeframe, String period, Strategy strategy) {
+        logger.info("Fetching market data for symbol: {} with timeframe: {} and period: {}", symbol, timeframe, period);
 
         // Calculate date range
         LocalDate endDate = LocalDate.now().minusDays(1);
-        LocalDate startDate = calculateStartDate(strategy, endDate, timeframe);
+        LocalDate startDate = calculateStartDate(strategy, endDate, timeframe, period);
 
         logger.info("Date range: {} to {} ({} days)",
             startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
@@ -140,16 +142,22 @@ public class StrategyExecutionService extends BaseService {
     }
 
     /**
-     * Calculate backtest start date based on strategy's seedFundingDate or dynamic timeframe-based default.
+     * Calculate backtest start date based on:
+     * 1. User-selected period (highest priority)
+     * 2. Strategy's seedFundingDate (if set)
+     * 3. Dynamic timeframe-based default
      *
-     * Dynamic defaults optimize data volume for each timeframe:
-     * - Hourly (1H, 4H): 6 months (~3000 bars for 1H)
-     * - Daily (1D): 2 years (~730 bars)
-     * - Weekly (1W): 5 years (~260 bars, sufficient for 200-period SMA)
-     * - Monthly (1M): 7 years (~84 bars)
+     * Period options: 6mo, 1y, 2y, 5y, 7y, max
      */
-    private LocalDate calculateStartDate(Strategy strategy, LocalDate endDate, String timeframe) {
-        // Use seedFundingDate if provided (user override)
+    private LocalDate calculateStartDate(Strategy strategy, LocalDate endDate, String timeframe, String period) {
+        // 1. Use period if explicitly provided by user (highest priority)
+        if (period != null && !period.isEmpty()) {
+            LocalDate periodStart = calculateStartDateFromPeriod(endDate, period);
+            logger.info("Using user-selected period '{}': start={}", period, periodStart);
+            return periodStart;
+        }
+
+        // 2. Use seedFundingDate if provided (strategy-level override)
         if (strategy != null && strategy.getSeedFundingDate() != null) {
             try {
                 LocalDate seedDate = strategy.getSeedFundingDate()
@@ -172,12 +180,31 @@ public class StrategyExecutionService extends BaseService {
             }
         }
 
-        // Dynamic defaults based on timeframe
+        // 3. Dynamic defaults based on timeframe
         return calculateDynamicStartDate(endDate, timeframe);
     }
 
     /**
-     * Calculate dynamic start date based on timeframe.
+     * Calculate start date based on user-selected period.
+     *
+     * @param endDate End date (yesterday)
+     * @param period One of: 6mo, 1y, 2y, 5y, 7y, max
+     * @return Start date for the backtest period
+     */
+    private LocalDate calculateStartDateFromPeriod(LocalDate endDate, String period) {
+        return switch (period.toLowerCase()) {
+            case "6mo" -> endDate.minusMonths(6);
+            case "1y" -> endDate.minusYears(1);
+            case "2y" -> endDate.minusYears(2);
+            case "5y" -> endDate.minusYears(5);
+            case "7y" -> endDate.minusYears(7);
+            case "max" -> LocalDate.of(2018, 1, 1);  // Earliest available data
+            default -> endDate.minusYears(2);        // Safe default
+        };
+    }
+
+    /**
+     * Calculate dynamic start date based on timeframe (fallback).
      */
     private LocalDate calculateDynamicStartDate(LocalDate endDate, String timeframe) {
         return switch (timeframe) {

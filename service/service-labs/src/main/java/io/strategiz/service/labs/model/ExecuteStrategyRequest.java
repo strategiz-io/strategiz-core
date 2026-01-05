@@ -21,7 +21,10 @@ public class ExecuteStrategyRequest {
     
     @JsonProperty("timeframe")
     private String timeframe = "1D"; // 1M, 5M, 1H, 1D, etc.
-    
+
+    @JsonProperty("period")
+    private String period = "2y"; // 6mo, 1y, 2y, 5y, 7y, max
+
     @JsonProperty("startDate")
     private String startDate;
     
@@ -69,7 +72,15 @@ public class ExecuteStrategyRequest {
     public void setTimeframe(String timeframe) {
         this.timeframe = timeframe;
     }
-    
+
+    public String getPeriod() {
+        return period;
+    }
+
+    public void setPeriod(String period) {
+        this.period = period;
+    }
+
     public String getStartDate() {
         return startDate;
     }

@@ -1,8 +1,13 @@
 package io.strategiz.service.console.controller;
 
+import io.strategiz.business.marketdata.DynamicJobSchedulerBusiness;
 import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
+import io.strategiz.data.marketdata.timescale.entity.JobDefinitionEntity;
 import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
+import io.strategiz.data.marketdata.timescale.repository.JobDefinitionRepository;
+import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
 import io.strategiz.service.console.model.response.JobExecutionHistoryResponse;
 import io.strategiz.service.console.model.response.JobExecutionRecord;
 import io.strategiz.service.console.model.response.JobResponse;
@@ -27,25 +32,31 @@ import java.util.stream.Collectors;
 
 /**
  * Admin controller for managing scheduled jobs.
- * TEMPORARILY DISABLED: Depends on JobExecutionHistoryBusiness which is not yet implemented.
+ * Provides REST endpoints for viewing, triggering, and configuring jobs from the admin console.
+ * Supports dynamic schedule updates and enable/disable functionality.
  */
 @RestController
 @RequestMapping("/v1/console/jobs")
 @Tag(name = "Admin - Jobs", description = "Job management endpoints for administrators")
-@Profile("job-management")  // Disabled by default - enable with spring.profiles.active=job-management
 public class AdminJobController extends BaseController {
 
     private static final String MODULE_NAME = "CONSOLE";
 
     private final JobManagementService jobManagementService;
     private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+    private final JobDefinitionRepository jobDefinitionRepository;
+    private final DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness;
 
     @Autowired
     public AdminJobController(
             JobManagementService jobManagementService,
-            JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
+            JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
+            JobDefinitionRepository jobDefinitionRepository,
+            DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness) {
         this.jobManagementService = jobManagementService;
         this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+        this.jobDefinitionRepository = jobDefinitionRepository;
+        this.dynamicJobSchedulerBusiness = dynamicJobSchedulerBusiness;
     }
 
     @Override
@@ -192,6 +203,83 @@ public class AdminJobController extends BaseController {
 
         log.debug("Job stats for {}: {}", name, stats);
         return ResponseEntity.ok(stats);
+    }
+
+    @PutMapping("/{jobId}/schedule")
+    @Operation(summary = "Update job schedule", description = "Updates the cron schedule for a scheduled job")
+    public ResponseEntity<Map<String, Object>> updateJobSchedule(
+            @Parameter(description = "Job ID") @PathVariable String jobId,
+            @Parameter(description = "New cron expression") @RequestParam String cron,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("updateJobSchedule", adminUserId, "jobId=" + jobId + ", cron=" + cron);
+
+        // Verify job exists and is a scheduled job
+        JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+            .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
+
+        if (!"CRON".equals(jobDef.getScheduleType())) {
+            throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_SCHEDULED, MODULE_NAME,
+                    "Job " + jobId + " is not a scheduled job (type: " + jobDef.getScheduleType() + ")");
+        }
+
+        // Update schedule in database
+        String oldCron = jobDef.getScheduleCron();
+        jobDef.setScheduleCron(cron);
+        jobDefinitionRepository.save(jobDef);
+
+        // Update running scheduler
+        dynamicJobSchedulerBusiness.updateSchedule(jobId, cron);
+
+        log.info("Job {} schedule updated by admin {}: {} -> {}", jobId, adminUserId, oldCron, cron);
+
+        return ResponseEntity.ok(Map.of(
+            "jobId", jobId,
+            "oldSchedule", oldCron,
+            "newSchedule", cron,
+            "message", "Schedule updated successfully"
+        ));
+    }
+
+    @PutMapping("/{jobId}/enabled")
+    @Operation(summary = "Enable or disable job", description = "Enables or disables a job (both scheduled and manual)")
+    public ResponseEntity<Map<String, Object>> updateJobEnabled(
+            @Parameter(description = "Job ID") @PathVariable String jobId,
+            @Parameter(description = "Enable (true) or disable (false)") @RequestParam boolean enabled,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("updateJobEnabled", adminUserId, "jobId=" + jobId + ", enabled=" + enabled);
+
+        // Verify job exists
+        JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+            .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
+
+        // Update enabled status in database
+        boolean wasEnabled = jobDef.getEnabled();
+        jobDef.setEnabled(enabled);
+        jobDefinitionRepository.save(jobDef);
+
+        // If this is a scheduled job, update the scheduler
+        if ("CRON".equals(jobDef.getScheduleType())) {
+            if (enabled && !wasEnabled) {
+                // Enable: Schedule the job
+                dynamicJobSchedulerBusiness.scheduleJob(jobDef);
+                log.info("Job {} enabled and scheduled by admin {}", jobId, adminUserId);
+            } else if (!enabled && wasEnabled) {
+                // Disable: Cancel the scheduled task
+                dynamicJobSchedulerBusiness.cancelJob(jobId);
+                log.info("Job {} disabled and unscheduled by admin {}", jobId, adminUserId);
+            }
+        } else {
+            log.info("Manual job {} {} by admin {}", jobId, enabled ? "enabled" : "disabled", adminUserId);
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "jobId", jobId,
+            "enabled", enabled,
+            "wasEnabled", wasEnabled,
+            "message", enabled ? "Job enabled successfully" : "Job disabled successfully"
+        ));
     }
 
     // Converter methods

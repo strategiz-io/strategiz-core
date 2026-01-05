@@ -80,6 +80,17 @@
             <artifactId>batch-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Market data business and data modules for job management -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Fundamentals modules enabled -->
         <dependency>
             <groupId>io.strategiz</groupId>

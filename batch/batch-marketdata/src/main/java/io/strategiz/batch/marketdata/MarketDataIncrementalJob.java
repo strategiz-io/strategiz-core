@@ -1,12 +1,12 @@
 package io.strategiz.batch.marketdata;
 
+import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.business.marketdata.MarketDataCollectionService;
 import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -42,6 +42,7 @@ public class MarketDataIncrementalJob {
 	private static final Logger log = LoggerFactory.getLogger(MarketDataIncrementalJob.class);
 
 	private final MarketDataCollectionService collectionService;
+	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -54,29 +55,26 @@ public class MarketDataIncrementalJob {
 	// All canonical timeframes to collect
 	private static final List<String> ALL_TIMEFRAMES = new ArrayList<>(Timeframe.VALID_TIMEFRAMES);
 
-	public MarketDataIncrementalJob(MarketDataCollectionService collectionService) {
+	public MarketDataIncrementalJob(
+			MarketDataCollectionService collectionService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
 		this.collectionService = collectionService;
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
 		log.info("MarketDataIncrementalJob initialized (enabled: {}, timeframes: {}, profile: scheduler)",
 				incrementalEnabled, ALL_TIMEFRAMES.size());
 	}
 
 	/**
-	 * Scheduled incremental collection across ALL timeframes Runs every 5 minutes by
-	 * default (configurable via cron)
+	 * Public execute method called by DynamicJobSchedulerBusiness.
+	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
 	 *
-	 * Default schedule: 0 *&#47;5 * * * MON-FRI (every 5 minutes, weekdays only) Market
-	 * hours: 9:30 AM - 4:00 PM ET
+	 * Default schedule: Every 5 minutes during weekdays
+	 * Market hours: 9:30 AM - 4:00 PM ET
 	 *
 	 * Collects delta data for all 9 timeframes: 1Min, 5Min, 15Min, 30Min, 1Hour, 4Hour,
 	 * 1Day, 1Week, 1Month
 	 */
-	@Scheduled(cron = "${marketdata.batch.incremental-cron:0 */5 * * * MON-FRI}")
-	public void executeScheduledIncremental() {
-		if (!incrementalEnabled) {
-			log.debug("Incremental collection is disabled, skipping");
-			return;
-		}
-
+	public void execute() {
 		// Check if we're in market hours (9:30 AM - 4:00 PM ET)
 		if (!isMarketHours()) {
 			log.debug("Outside market hours, skipping incremental collection");
@@ -112,6 +110,13 @@ public class MarketDataIncrementalJob {
 		}
 
 		log.info("=== Starting Incremental Collection (All {} Timeframes) ===", ALL_TIMEFRAMES.size());
+
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart(
+			"MARKETDATA_INCREMENTAL",
+			"MarketData_Incremental",
+			toJson(ALL_TIMEFRAMES)
+		);
 
 		LocalDateTime endDate = LocalDateTime.now();
 		LocalDateTime startDate = endDate.minusHours(lookbackHours);
@@ -158,12 +163,33 @@ public class MarketDataIncrementalJob {
 			log.info("Total data points stored: {}", totalDataPointsStored);
 			log.info("Total errors: {}", totalErrors);
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(
+				executionId,
+				"SUCCESS",
+				totalSymbolsProcessed,
+				(int) totalDataPointsStored,
+				totalErrors,
+				null
+			);
+
 			return new IncrementalResult(true, totalSymbolsProcessed, totalDataPointsStored, totalErrors,
 					String.format("Completed in %ds", totalDuration));
 
 		}
 		catch (Exception e) {
 			log.error("Incremental collection failed: {}", e.getMessage(), e);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(
+				executionId,
+				"FAILED",
+				totalSymbolsProcessed,
+				(int) totalDataPointsStored,
+				totalErrors + 1,
+				e.getMessage()
+			);
+
 			return new IncrementalResult(false, totalSymbolsProcessed, totalDataPointsStored, totalErrors + 1,
 					e.getMessage());
 		}
@@ -200,6 +226,18 @@ public class MarketDataIncrementalJob {
 		boolean beforeClose = (hour < 16);
 
 		return afterOpen && beforeClose;
+	}
+
+	/**
+	 * Helper method to convert list to JSON string for history storage.
+	 */
+	private String toJson(List<String> list) {
+		try {
+			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
+		} catch (Exception e) {
+			log.warn("Failed to convert to JSON: {}", e.getMessage());
+			return list != null ? list.toString() : "[]";
+		}
 	}
 
 	/**

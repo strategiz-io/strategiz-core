@@ -5,6 +5,8 @@ import io.strategiz.batch.fundamentals.FundamentalsIncrementalJob;
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
 import io.strategiz.business.fundamentals.model.CollectionResult;
+import io.strategiz.data.marketdata.timescale.entity.JobDefinitionEntity;
+import io.strategiz.data.marketdata.timescale.repository.JobDefinitionRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
@@ -46,32 +48,20 @@ public class JobManagementService extends BaseService {
 	// Log streaming service for SSE
 	private final JobLogStreamService jobLogStreamService;
 
-	// Known jobs (registered at startup or manually added)
-	private static final Map<String, JobConfig> KNOWN_JOBS = Map.of("marketDataBackfill",
-			new JobConfig("marketDataBackfill", "Market Data Backfill",
-					"Historical data backfill for all symbols across configured timeframes (1Day, 1Hour, 1Week, 1Month)",
-					"Manual trigger only"),
-			"marketDataIncremental",
-			new JobConfig("marketDataIncremental", "Market Data Incremental",
-					"Incremental collection of latest bars across all timeframes", "0 */5 * * * MON-FRI"),
-			"fundamentalsBackfill",
-			new JobConfig("fundamentalsBackfill", "Fundamentals Backfill",
-					"Backfill company fundamentals data from Yahoo Finance for all configured symbols",
-					"Manual trigger only"),
-			"fundamentalsIncremental",
-			new JobConfig("fundamentalsIncremental", "Fundamentals Incremental",
-					"Daily update of company fundamentals data from Yahoo Finance", "0 0 2 * * *")
-	);
+	// Job definitions repository (reads from database)
+	private final JobDefinitionRepository jobDefinitionRepository;
 
 	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
 			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
 			Optional<FundamentalsBackfillJob> fundamentalsBackfillJob,
-			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob, JobLogStreamService jobLogStreamService) {
+			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob, JobLogStreamService jobLogStreamService,
+			JobDefinitionRepository jobDefinitionRepository) {
 		this.marketDataBackfillJob = marketDataBackfillJob;
 		this.marketDataIncrementalJob = marketDataIncrementalJob;
 		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
 		this.fundamentalsIncrementalJob = fundamentalsIncrementalJob;
 		this.jobLogStreamService = jobLogStreamService;
+		this.jobDefinitionRepository = jobDefinitionRepository;
 
 		log.info(
 				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}",
@@ -80,23 +70,33 @@ public class JobManagementService extends BaseService {
 	}
 
 	public List<JobResponse> listJobs() {
-		log.info("Listing all scheduled jobs");
+		log.info("Listing all scheduled jobs from database");
 		List<JobResponse> jobs = new ArrayList<>();
 
-		for (Map.Entry<String, JobConfig> entry : KNOWN_JOBS.entrySet()) {
-			JobConfig config = entry.getValue();
+		// Read job definitions from database
+		List<JobDefinitionEntity> jobDefinitions = jobDefinitionRepository.findAllOrderByGroupAndName();
+
+		for (JobDefinitionEntity jobDef : jobDefinitions) {
 			JobResponse job = new JobResponse();
-			job.setName(config.name);
-			job.setDescription(config.description);
-			job.setSchedule(config.schedule);
+			job.setName(jobDef.getJobId());
+			job.setDescription(jobDef.getDescription());
+
+			// Set schedule display based on schedule type
+			if ("CRON".equals(jobDef.getScheduleType())) {
+				job.setSchedule(jobDef.getScheduleCron());
+			}
+			else {
+				job.setSchedule("Manual trigger only");
+			}
+
 			job.setStatus("IDLE");
 
-			// Check if job bean is available
-			boolean beanAvailable = isJobBeanAvailable(config.name);
-			job.setEnabled(beanAvailable);
+			// Check if job bean is available and enabled in database
+			boolean beanAvailable = isJobBeanAvailable(jobDef.getJobId());
+			job.setEnabled(jobDef.getEnabled() && beanAvailable);
 
 			// Add execution info if available
-			JobExecutionInfo execInfo = jobExecutions.get(config.name);
+			JobExecutionInfo execInfo = jobExecutions.get(jobDef.getJobId());
 			if (execInfo != null) {
 				job.setLastRunTime(execInfo.lastRunTime);
 				job.setLastRunStatus(execInfo.status);
@@ -112,20 +112,32 @@ public class JobManagementService extends BaseService {
 		return jobs;
 	}
 
-	public JobResponse getJob(String jobName) {
-		JobConfig config = KNOWN_JOBS.get(jobName);
-		if (config == null) {
-			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console", jobName);
-		}
+	public JobResponse getJob(String jobId) {
+		// Read job definition from database
+		JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console",
+					jobId));
 
 		JobResponse job = new JobResponse();
-		job.setName(config.name);
-		job.setDescription(config.description);
-		job.setSchedule(config.schedule);
-		job.setStatus("IDLE");
-		job.setEnabled(isJobBeanAvailable(config.name));
+		job.setName(jobDef.getJobId());
+		job.setDescription(jobDef.getDescription());
 
-		JobExecutionInfo execInfo = jobExecutions.get(config.name);
+		// Set schedule display based on schedule type
+		if ("CRON".equals(jobDef.getScheduleType())) {
+			job.setSchedule(jobDef.getScheduleCron());
+		}
+		else {
+			job.setSchedule("Manual trigger only");
+		}
+
+		job.setStatus("IDLE");
+
+		// Check if job bean is available and enabled in database
+		boolean beanAvailable = isJobBeanAvailable(jobDef.getJobId());
+		job.setEnabled(jobDef.getEnabled() && beanAvailable);
+
+		// Add execution info if available
+		JobExecutionInfo execInfo = jobExecutions.get(jobDef.getJobId());
 		if (execInfo != null) {
 			job.setLastRunTime(execInfo.lastRunTime);
 			job.setLastRunStatus(execInfo.status);
@@ -138,20 +150,19 @@ public class JobManagementService extends BaseService {
 		return job;
 	}
 
-	public JobResponse triggerJob(String jobName) {
-		log.info("Triggering job: {}", jobName);
+	public JobResponse triggerJob(String jobId) {
+		log.info("Triggering job: {}", jobId);
 
-		JobConfig config = KNOWN_JOBS.get(jobName);
-		if (config == null) {
-			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console", jobName);
-		}
+		// Verify job exists in database
+		JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console",
+					jobId));
 
 		// Check if already running
-		JobExecutionInfo existing = jobExecutions.get(jobName);
+		JobExecutionInfo existing = jobExecutions.get(jobId);
 		if (existing != null && existing.running) {
-			log.warn("Job {} is already running", jobName);
-			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
-					jobName);
+			log.warn("Job {} is already running", jobId);
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console", jobId);
 		}
 
 		// Mark job as running
@@ -159,63 +170,63 @@ public class JobManagementService extends BaseService {
 		execInfo.running = true;
 		execInfo.lastRunTime = Instant.now();
 		execInfo.status = "RUNNING";
-		jobExecutions.put(jobName, execInfo);
+		jobExecutions.put(jobId, execInfo);
 
 		// Execute the job synchronously
-		executeJob(jobName);
+		executeJob(jobId);
 
-		log.info("Job {} has been triggered", jobName);
+		log.info("Job {} has been triggered", jobId);
 
-		return getJob(jobName);
+		return getJob(jobId);
 	}
 
 	/**
-	 * Execute the job
+	 * Execute the job by job ID (e.g., MARKETDATA_BACKFILL)
 	 */
-	public void executeJob(String jobName) {
+	public void executeJob(String jobId) {
 		long startTime = System.currentTimeMillis();
 
 		// CREATE LOG STREAM BEFORE JOB STARTS
-		jobLogStreamService.createJobStream(jobName);
+		jobLogStreamService.createJobStream(jobId);
 
 		// SET MDC CONTEXT FOR LOG FILTERING
-		MDC.put("jobName", jobName);
+		MDC.put("jobName", jobId);
 
 		try {
-			switch (jobName) {
-				case "marketDataBackfill":
+			switch (jobId) {
+				case "MARKETDATA_BACKFILL":
 					executeMarketDataBackfillJob();
 					break;
-				case "marketDataIncremental":
+				case "MARKETDATA_INCREMENTAL":
 					executeMarketDataIncrementalJob();
 					break;
-				case "fundamentalsBackfill":
+				case "FUNDAMENTALS_BACKFILL":
 					executeFundamentalsBackfillJob();
 					break;
-				case "fundamentalsIncremental":
+				case "FUNDAMENTALS_INCREMENTAL":
 					executeFundamentalsIncrementalJob();
 					break;
 				default:
-					log.warn("Unknown job: {}", jobName);
-					recordJobCompletion(jobName, false, 0);
+					log.warn("Unknown job: {}", jobId);
+					recordJobCompletion(jobId, false, 0);
 					return;
 			}
 
 			long duration = System.currentTimeMillis() - startTime;
-			recordJobCompletion(jobName, true, duration);
+			recordJobCompletion(jobId, true, duration);
 
 		}
 		catch (Exception e) {
-			log.error("Job {} failed: {}", jobName, e.getMessage(), e);
+			log.error("Job {} failed: {}", jobId, e.getMessage(), e);
 			long duration = System.currentTimeMillis() - startTime;
-			recordJobCompletion(jobName, false, duration);
+			recordJobCompletion(jobId, false, duration);
 		}
 		finally {
 			// CLEANUP MDC
 			MDC.remove("jobName");
 
 			// SCHEDULE CLEANUP (after 5 min delay for late viewers)
-			jobLogStreamService.scheduleJobCleanup(jobName);
+			jobLogStreamService.scheduleJobCleanup(jobId);
 		}
 	}
 
@@ -319,15 +330,15 @@ public class JobManagementService extends BaseService {
 				result.getSuccessCount(), result.getErrorCount());
 	}
 
-	private boolean isJobBeanAvailable(String jobName) {
-		switch (jobName) {
-			case "marketDataBackfill":
+	private boolean isJobBeanAvailable(String jobId) {
+		switch (jobId) {
+			case "MARKETDATA_BACKFILL":
 				return marketDataBackfillJob.isPresent();
-			case "marketDataIncremental":
+			case "MARKETDATA_INCREMENTAL":
 				return marketDataIncrementalJob.isPresent();
-			case "fundamentalsBackfill":
+			case "FUNDAMENTALS_BACKFILL":
 				return fundamentalsBackfillJob.isPresent();
-			case "fundamentalsIncremental":
+			case "FUNDAMENTALS_INCREMENTAL":
 				return fundamentalsIncrementalJob.isPresent();
 			default:
 				return false;
@@ -344,25 +355,6 @@ public class JobManagementService extends BaseService {
 	}
 
 	// Internal classes
-	private static class JobConfig {
-
-		String name;
-
-		String displayName;
-
-		String description;
-
-		String schedule;
-
-		JobConfig(String name, String displayName, String description, String schedule) {
-			this.name = name;
-			this.displayName = displayName;
-			this.description = description;
-			this.schedule = schedule;
-		}
-
-	}
-
 	private static class JobExecutionInfo {
 
 		boolean running;

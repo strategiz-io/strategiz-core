@@ -2,11 +2,13 @@ package io.strategiz.batch.fundamentals;
 
 import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.business.fundamentals.service.FundamentalsCollectionService;
+import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.business.marketdata.SymbolService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -40,8 +42,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Trigger via admin console endpoints.
  * Only one instance can run at a time (enforced with AtomicBoolean).
  * </p>
+ *
+ * <p>
+ * Architecture: Only runs when "scheduler" profile is active
+ * </p>
  */
 @Component
+@Profile("scheduler")
 public class FundamentalsBackfillJob {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsBackfillJob.class);
@@ -50,15 +57,31 @@ public class FundamentalsBackfillJob {
 
 	private final SymbolService symbolService;
 
+	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	@Value("${fundamentals.batch.data-source:YAHOO}")
 	private String dataSource;
 
 	@Autowired
-	public FundamentalsBackfillJob(FundamentalsCollectionService collectionService, SymbolService symbolService) {
+	public FundamentalsBackfillJob(FundamentalsCollectionService collectionService, SymbolService symbolService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
 		this.collectionService = collectionService;
 		this.symbolService = symbolService;
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+		log.info("FundamentalsBackfillJob initialized (profile: scheduler)");
+	}
+
+	/**
+	 * Public execute method called by DynamicJobSchedulerBusiness.
+	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
+	 *
+	 * WARNING: This is a manual job, only triggered via admin console.
+	 * Not meant to run on a schedule.
+	 */
+	public void execute() {
+		executeBackfill();
 	}
 
 	/**
@@ -90,28 +113,32 @@ public class FundamentalsBackfillJob {
 			return alreadyRunning;
 		}
 
+		log.info("=== Fundamentals Backfill Started ===");
+
+		// Get list of symbols to collect
+		List<String> targetSymbols;
+		if (symbols == null || symbols.isEmpty()) {
+			targetSymbols = symbolService.getSymbolsForCollection(dataSource);
+			log.info("Backfilling all {} symbols configured for {} fundamentals", targetSymbols.size(), dataSource);
+		}
+		else {
+			targetSymbols = symbols;
+			log.info("Backfilling {} specified symbols for {} fundamentals", targetSymbols.size(), dataSource);
+		}
+
+		if (targetSymbols.isEmpty()) {
+			log.warn("No symbols to backfill, exiting");
+			CollectionResult emptyResult = new CollectionResult();
+			emptyResult.setTotalSymbols(0);
+			isRunning.set(false);
+			return emptyResult;
+		}
+
+		// Record job execution start
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("FUNDAMENTALS_BACKFILL",
+				"Fundamentals_Backfill", toJson(targetSymbols));
+
 		try {
-			log.info("=== Fundamentals Backfill Started ===");
-
-			// Get list of symbols to collect
-			List<String> targetSymbols;
-			if (symbols == null || symbols.isEmpty()) {
-				targetSymbols = symbolService.getSymbolsForCollection(dataSource);
-				log.info("Backfilling all {} symbols configured for {} fundamentals", targetSymbols.size(),
-						dataSource);
-			}
-			else {
-				targetSymbols = symbols;
-				log.info("Backfilling {} specified symbols for {} fundamentals", targetSymbols.size(), dataSource);
-			}
-
-			if (targetSymbols.isEmpty()) {
-				log.warn("No symbols to backfill, exiting");
-				CollectionResult emptyResult = new CollectionResult();
-				emptyResult.setTotalSymbols(0);
-				return emptyResult;
-			}
-
 			// Execute collection
 			CollectionResult result = collectionService.updateFundamentals(targetSymbols);
 
@@ -126,6 +153,10 @@ public class FundamentalsBackfillJob {
 				log.warn("Backfill completed with {} errors - check logs for details", result.getErrorCount());
 			}
 
+			// Record successful completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", result.getTotalSymbols(),
+					result.getSuccessCount(), result.getErrorCount(), null);
+
 			return result;
 		}
 		catch (Exception ex) {
@@ -133,6 +164,10 @@ public class FundamentalsBackfillJob {
 
 			CollectionResult errorResult = new CollectionResult();
 			errorResult.setTotalSymbols(0);
+
+			// Record failed completion
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", 0, 0, 1, ex.getMessage());
+
 			return errorResult;
 		}
 		finally {
@@ -147,6 +182,19 @@ public class FundamentalsBackfillJob {
 	 */
 	public boolean isRunning() {
 		return isRunning.get();
+	}
+
+	/**
+	 * Helper method to convert list to JSON string for history storage.
+	 */
+	private String toJson(List<String> list) {
+		try {
+			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
+		}
+		catch (Exception e) {
+			log.warn("Failed to convert to JSON: {}", e.getMessage());
+			return list != null ? list.toString() : "[]";
+		}
 	}
 
 }

@@ -21,3 +21,4 @@ opentelemetry-instrumentation-grpc==0.60b1
 
 # Utilities
 python-dotenv==1.0.0
+python-dateutil==2.9.0.post0

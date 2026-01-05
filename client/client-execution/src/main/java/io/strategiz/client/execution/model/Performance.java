@@ -18,6 +18,19 @@ public class Performance {
     private List<Trade> trades;
     private String lastTestedAt;
 
+    // Equity curve (NEW)
+    private List<EquityPoint> equityCurve;
+
+    // Test period info (NEW)
+    private String startDate;
+    private String endDate;
+    private String testPeriod;
+
+    // Buy & hold comparison (NEW)
+    private double buyAndHoldReturn;
+    private double buyAndHoldReturnPercent;
+    private double outperformance;
+
     public static PerformanceBuilder builder() { return new PerformanceBuilder(); }
 
     public static class PerformanceBuilder {
@@ -35,6 +48,13 @@ public class Performance {
         private double sharpeRatio;
         private List<Trade> trades;
         private String lastTestedAt;
+        private List<EquityPoint> equityCurve;
+        private String startDate;
+        private String endDate;
+        private String testPeriod;
+        private double buyAndHoldReturn;
+        private double buyAndHoldReturnPercent;
+        private double outperformance;
 
         public PerformanceBuilder totalReturn(double totalReturn) {
             this.totalReturn = totalReturn;
@@ -106,6 +126,41 @@ public class Performance {
             return this;
         }
 
+        public PerformanceBuilder equityCurve(List<EquityPoint> equityCurve) {
+            this.equityCurve = equityCurve;
+            return this;
+        }
+
+        public PerformanceBuilder startDate(String startDate) {
+            this.startDate = startDate;
+            return this;
+        }
+
+        public PerformanceBuilder endDate(String endDate) {
+            this.endDate = endDate;
+            return this;
+        }
+
+        public PerformanceBuilder testPeriod(String testPeriod) {
+            this.testPeriod = testPeriod;
+            return this;
+        }
+
+        public PerformanceBuilder buyAndHoldReturn(double buyAndHoldReturn) {
+            this.buyAndHoldReturn = buyAndHoldReturn;
+            return this;
+        }
+
+        public PerformanceBuilder buyAndHoldReturnPercent(double buyAndHoldReturnPercent) {
+            this.buyAndHoldReturnPercent = buyAndHoldReturnPercent;
+            return this;
+        }
+
+        public PerformanceBuilder outperformance(double outperformance) {
+            this.outperformance = outperformance;
+            return this;
+        }
+
         public Performance build() {
             Performance perf = new Performance();
             perf.totalReturn = this.totalReturn;
@@ -122,6 +177,13 @@ public class Performance {
             perf.sharpeRatio = this.sharpeRatio;
             perf.trades = this.trades;
             perf.lastTestedAt = this.lastTestedAt;
+            perf.equityCurve = this.equityCurve;
+            perf.startDate = this.startDate;
+            perf.endDate = this.endDate;
+            perf.testPeriod = this.testPeriod;
+            perf.buyAndHoldReturn = this.buyAndHoldReturn;
+            perf.buyAndHoldReturnPercent = this.buyAndHoldReturnPercent;
+            perf.outperformance = this.outperformance;
             return perf;
         }
     }
@@ -140,4 +202,11 @@ public class Performance {
     public double getSharpeRatio() { return sharpeRatio; }
     public List<Trade> getTrades() { return trades; }
     public String getLastTestedAt() { return lastTestedAt; }
+    public List<EquityPoint> getEquityCurve() { return equityCurve; }
+    public String getStartDate() { return startDate; }
+    public String getEndDate() { return endDate; }
+    public String getTestPeriod() { return testPeriod; }
+    public double getBuyAndHoldReturn() { return buyAndHoldReturn; }
+    public double getBuyAndHoldReturnPercent() { return buyAndHoldReturnPercent; }
+    public double getOutperformance() { return outperformance; }
 }

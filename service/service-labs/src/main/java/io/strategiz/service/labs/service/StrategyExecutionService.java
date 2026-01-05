@@ -351,8 +351,21 @@ public class StrategyExecutionService extends BaseService {
         performance.setSharpeRatio(grpcPerf.getSharpeRatio());
         performance.setLastTestedAt(grpcPerf.getLastTestedAt());
 
+        // New fields: test period info
+        performance.setStartDate(grpcPerf.getStartDate());
+        performance.setEndDate(grpcPerf.getEndDate());
+        performance.setTestPeriod(grpcPerf.getTestPeriod());
+
+        // New fields: buy & hold comparison
+        performance.setBuyAndHoldReturn(grpcPerf.getBuyAndHoldReturn());
+        performance.setBuyAndHoldReturnPercent(grpcPerf.getBuyAndHoldReturnPercent());
+        performance.setOutperformance(grpcPerf.getOutperformance());
+
         // Map trades
         performance.setTrades(mapTrades(grpcPerf.getTrades()));
+
+        // Map equity curve
+        performance.setEquityCurve(mapEquityCurve(grpcPerf.getEquityCurve()));
 
         return performance;
     }
@@ -381,6 +394,28 @@ public class StrategyExecutionService extends BaseService {
                 trade.setBuyReason(t.getBuyReason());
                 trade.setSellReason(t.getSellReason());
                 return trade;
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Map equity curve from gRPC to REST DTO.
+     * Returns null if input is null/empty (Jackson will exclude from response).
+     */
+    private List<ExecuteStrategyResponse.EquityPoint> mapEquityCurve(
+            List<io.strategiz.client.execution.model.EquityPoint> grpcEquityCurve) {
+
+        if (grpcEquityCurve == null || grpcEquityCurve.isEmpty()) {
+            return null;
+        }
+
+        return grpcEquityCurve.stream()
+            .map(ep -> {
+                ExecuteStrategyResponse.EquityPoint point = new ExecuteStrategyResponse.EquityPoint();
+                point.setTimestamp(ep.getTimestamp());
+                point.setPortfolioValue(ep.getPortfolioValue());
+                point.setType(ep.getType());
+                return point;
             })
             .collect(Collectors.toList());
     }

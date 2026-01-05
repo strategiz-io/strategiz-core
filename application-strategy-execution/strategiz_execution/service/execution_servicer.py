@@ -266,7 +266,14 @@ class StrategyExecutionServicer(strategy_execution_pb2_grpc.StrategyExecutionSer
             profit_factor=perf['profit_factor'],
             max_drawdown=perf['max_drawdown'],
             sharpe_ratio=perf['sharpe_ratio'],
-            last_tested_at=perf['last_tested_at']
+            last_tested_at=perf['last_tested_at'],
+            # New fields
+            start_date=perf.get('start_date', ''),
+            end_date=perf.get('end_date', ''),
+            test_period=perf.get('test_period', ''),
+            buy_and_hold_return=perf.get('buy_and_hold_return', 0.0),
+            buy_and_hold_return_percent=perf.get('buy_and_hold_return_percent', 0.0),
+            outperformance=perf.get('outperformance', 0.0)
         )
 
         # Add trades
@@ -281,6 +288,14 @@ class StrategyExecutionServicer(strategy_execution_pb2_grpc.StrategyExecutionSer
                 win=trade['win'],
                 buy_reason=trade.get('buy_reason', ''),
                 sell_reason=trade.get('sell_reason', '')
+            ))
+
+        # Add equity curve
+        for point in perf.get('equity_curve', []):
+            performance.equity_curve.append(strategy_execution_pb2.EquityPoint(
+                timestamp=point.get('timestamp', ''),
+                portfolio_value=point.get('portfolioValue', 0.0),
+                type=point.get('type', '')
             ))
 
         return performance

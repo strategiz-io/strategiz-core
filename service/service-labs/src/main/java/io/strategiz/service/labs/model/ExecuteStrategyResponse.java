@@ -249,10 +249,21 @@ public class ExecuteStrategyResponse {
         @JsonProperty("lastTestedAt")
         private String lastTestedAt;
 
-        @JsonProperty("testPeriod")
-        private String testPeriod; // Formatted period (e.g., "5.3Y", "18M", "Since Jan 2020")
+        // Equity curve (portfolio value over time)
+        @JsonProperty("equityCurve")
+        private List<EquityPoint> equityCurve;
 
-        // NEW: Buy-and-hold comparison metrics
+        // Test period info
+        @JsonProperty("startDate")
+        private String startDate;
+
+        @JsonProperty("endDate")
+        private String endDate;
+
+        @JsonProperty("testPeriod")
+        private String testPeriod; // Formatted period (e.g., "2 years, 3 months")
+
+        // Buy-and-hold comparison metrics
         @JsonProperty("buyAndHoldReturn")
         private Double buyAndHoldReturn;         // $ return if just buying and holding
 
@@ -405,6 +416,66 @@ public class ExecuteStrategyResponse {
 
         public void setOutperformance(Double outperformance) {
             this.outperformance = outperformance;
+        }
+
+        public List<EquityPoint> getEquityCurve() {
+            return equityCurve;
+        }
+
+        public void setEquityCurve(List<EquityPoint> equityCurve) {
+            this.equityCurve = equityCurve;
+        }
+
+        public String getStartDate() {
+            return startDate;
+        }
+
+        public void setStartDate(String startDate) {
+            this.startDate = startDate;
+        }
+
+        public String getEndDate() {
+            return endDate;
+        }
+
+        public void setEndDate(String endDate) {
+            this.endDate = endDate;
+        }
+    }
+
+    public static class EquityPoint {
+        @JsonProperty("timestamp")
+        private String timestamp;
+
+        @JsonProperty("portfolioValue")
+        private double portfolioValue;
+
+        @JsonProperty("type")
+        private String type; // "initial", "buy", "sell", "final"
+
+        // Getters and Setters
+        public String getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(String timestamp) {
+            this.timestamp = timestamp;
+        }
+
+        public double getPortfolioValue() {
+            return portfolioValue;
+        }
+
+        public void setPortfolioValue(double portfolioValue) {
+            this.portfolioValue = portfolioValue;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
         }
     }
 

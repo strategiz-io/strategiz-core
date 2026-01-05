@@ -132,6 +132,7 @@ public class GcpBillingConfig {
         String vaultBillingAccountId = billingAccountId;
         Boolean vaultUseBillingApi = useBillingApi;
         Boolean vaultUseBigQuery = useBigQuery;
+        String vaultBillingTable = billingTable;
 
         try {
             if (vaultSecretService != null) {
@@ -150,18 +151,25 @@ public class GcpBillingConfig {
                 if (useBigQueryStr != null) {
                     vaultUseBigQuery = Boolean.parseBoolean(useBigQueryStr);
                 }
+
+                // Read billing table name from Vault (important: actual table has billing account suffix)
+                String vaultTable = vaultSecretService.readSecret("gcp-billing.billing-table");
+                if (vaultTable != null && !vaultTable.isEmpty()) {
+                    vaultBillingTable = vaultTable;
+                    log.info("Using billing table from Vault: {}", vaultBillingTable);
+                }
             }
         } catch (Exception e) {
             log.warn("Could not load billing config from Vault, using defaults: {}", e.getMessage());
         }
 
-        log.info("GCP Billing Config - Project: {}, Billing API: {}, BigQuery: {}, Account: {}",
-                projectId, vaultUseBillingApi, vaultUseBigQuery, vaultBillingAccountId);
+        log.info("GCP Billing Config - Project: {}, Dataset: {}, Table: {}, Billing API: {}, BigQuery: {}, Account: {}",
+                projectId, billingDataset, vaultBillingTable, vaultUseBillingApi, vaultUseBigQuery, vaultBillingAccountId);
 
         return new GcpBillingProperties(
                 projectId,
                 billingDataset,
-                billingTable,
+                vaultBillingTable,
                 vaultUseBillingApi,
                 vaultUseBigQuery,
                 vaultBillingAccountId

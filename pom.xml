@@ -137,7 +137,7 @@
 
         <!-- Application Modules (Build Last) -->
         <module>application-api</module>
-        <!-- Removed: application-console (consolidated into application-api with service-console) -->
+        <module>application-console</module>
     </modules>
 
     <properties>

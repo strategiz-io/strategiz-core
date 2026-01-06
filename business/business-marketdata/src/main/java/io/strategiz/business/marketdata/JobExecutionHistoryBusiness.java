@@ -46,51 +46,55 @@ public class JobExecutionHistoryBusiness {
     /**
      * Record the start of a job execution.
      * Creates an execution record with status=RUNNING.
+     * GRACEFUL: If database fails, returns a dummy ID and logs warning (job continues).
      *
      * @param jobId Job ID from jobs table (e.g., "MARKETDATA_INCREMENTAL")
      * @param jobName Legacy job name for backward compatibility
      * @param timeframes JSON array of timeframes being processed (e.g., ["1Day", "1Hour"])
-     * @return The execution ID for tracking
+     * @return The execution ID for tracking (may be dummy ID if DB fails)
      */
     public String recordJobStart(String jobId, String jobName, String timeframes) {
         if (jobName == null || jobName.trim().isEmpty()) {
-            throw new StrategizException(
-                MarketDataErrorDetails.INVALID_INPUT,
-                "business-marketdata",
-                "jobName cannot be null or empty"
-            );
+            log.warn("jobName is null or empty, using 'UNKNOWN' for execution tracking");
+            jobName = "UNKNOWN";
         }
-
-        long startTime = System.currentTimeMillis();
 
         // Generate execution ID with timestamp
         String executionId = jobName + "_" + Instant.now().getEpochSecond();
 
-        JobExecutionEntity entity = new JobExecutionEntity();
-        entity.setExecutionId(executionId);
-        entity.setJobId(jobId);  // Foreign key to jobs table
-        entity.setJobName(jobName);
-        entity.setStartTime(Instant.now());
-        entity.setStatus("RUNNING");
-        entity.setSymbolsProcessed(0);
-        entity.setDataPointsStored(0L);
-        entity.setErrorCount(0);
-        entity.setTimeframes(timeframes);
-        entity.setCreatedAt(Instant.now());
+        try {
+            long startTime = System.currentTimeMillis();
 
-        jobExecutionRepository.save(entity);
+            JobExecutionEntity entity = new JobExecutionEntity();
+            entity.setExecutionId(executionId);
+            entity.setJobId(jobId);  // Foreign key to jobs table
+            entity.setJobName(jobName);
+            entity.setStartTime(Instant.now());
+            entity.setStatus("RUNNING");
+            entity.setSymbolsProcessed(0);
+            entity.setDataPointsStored(0L);
+            entity.setErrorCount(0);
+            entity.setTimeframes(timeframes);
+            entity.setCreatedAt(Instant.now());
 
-        long duration = System.currentTimeMillis() - startTime;
-        log.debug("Job execution start recorded in {}ms - jobId: {}, jobName: {}, executionId: {}",
-            duration, jobId, jobName, executionId);
+            jobExecutionRepository.save(entity);
 
-        log.info("Job execution started: {} (ID: {}, execution: {})", jobName, jobId, executionId);
+            long duration = System.currentTimeMillis() - startTime;
+            log.debug("Job execution start recorded in {}ms - jobId: {}, jobName: {}, executionId: {}",
+                duration, jobId, jobName, executionId);
+
+            log.info("Job execution started: {} (ID: {}, execution: {})", jobName, jobId, executionId);
+        } catch (Exception e) {
+            log.warn("Failed to record job start in database (job will continue without history tracking): {} - {}",
+                e.getClass().getSimpleName(), e.getMessage());
+        }
         return executionId;
     }
 
     /**
      * Record the completion of a job execution.
      * Updates the execution record with results and final status.
+     * GRACEFUL: If database fails, logs warning and continues.
      *
      * @param executionId The execution ID from recordJobStart()
      * @param status Final status ("SUCCESS" or "FAILED")
@@ -108,48 +112,47 @@ public class JobExecutionHistoryBusiness {
             String errorDetails) {
 
         if (executionId == null || executionId.trim().isEmpty()) {
-            throw new StrategizException(
-                MarketDataErrorDetails.INVALID_INPUT,
-                "business-marketdata",
-                "executionId cannot be null or empty"
-            );
-        }
-        if (status == null || status.trim().isEmpty()) {
-            throw new StrategizException(
-                MarketDataErrorDetails.INVALID_INPUT,
-                "business-marketdata",
-                "status cannot be null or empty"
-            );
-        }
-
-        long startTime = System.currentTimeMillis();
-
-        Optional<JobExecutionEntity> optional = jobExecutionRepository.findById(executionId);
-        if (optional.isEmpty()) {
-            log.warn("Job execution not found for completion: {}", executionId);
+            log.warn("executionId is null or empty, skipping completion recording");
             return;
         }
+        if (status == null || status.trim().isEmpty()) {
+            log.warn("status is null or empty, using 'UNKNOWN'");
+            status = "UNKNOWN";
+        }
 
-        JobExecutionEntity entity = optional.get();
-        Instant endTime = Instant.now();
-        long durationMs = ChronoUnit.MILLIS.between(entity.getStartTime(), endTime);
+        try {
+            long startTime = System.currentTimeMillis();
 
-        entity.setEndTime(endTime);
-        entity.setDurationMs(durationMs);
-        entity.setStatus(status);
-        entity.setSymbolsProcessed(symbolsProcessed);
-        entity.setDataPointsStored(dataPointsStored);
-        entity.setErrorCount(errorCount);
-        entity.setErrorDetails(errorDetails);
+            Optional<JobExecutionEntity> optional = jobExecutionRepository.findById(executionId);
+            if (optional.isEmpty()) {
+                log.warn("Job execution not found for completion: {}", executionId);
+                return;
+            }
 
-        jobExecutionRepository.save(entity);
+            JobExecutionEntity entity = optional.get();
+            Instant endTime = Instant.now();
+            long durationMs = ChronoUnit.MILLIS.between(entity.getStartTime(), endTime);
 
-        long operationDuration = System.currentTimeMillis() - startTime;
-        log.debug("Job completion recorded in {}ms - executionId: {}, status: {}, jobDuration: {}ms",
-            operationDuration, executionId, status, durationMs);
+            entity.setEndTime(endTime);
+            entity.setDurationMs(durationMs);
+            entity.setStatus(status);
+            entity.setSymbolsProcessed(symbolsProcessed);
+            entity.setDataPointsStored(dataPointsStored);
+            entity.setErrorCount(errorCount);
+            entity.setErrorDetails(errorDetails);
 
-        log.info("Job execution completed: {} - Status: {}, Duration: {}ms, Symbols: {}, Data Points: {}",
-            entity.getJobName(), status, durationMs, symbolsProcessed, dataPointsStored);
+            jobExecutionRepository.save(entity);
+
+            long operationDuration = System.currentTimeMillis() - startTime;
+            log.debug("Job completion recorded in {}ms - executionId: {}, status: {}, jobDuration: {}ms",
+                operationDuration, executionId, status, durationMs);
+
+            log.info("Job execution completed: {} - Status: {}, Duration: {}ms, Symbols: {}, Data Points: {}",
+                entity.getJobName(), status, durationMs, symbolsProcessed, dataPointsStored);
+        } catch (Exception e) {
+            log.warn("Failed to record job completion in database (results already processed): {} - {}",
+                e.getClass().getSimpleName(), e.getMessage());
+        }
     }
 
     /**

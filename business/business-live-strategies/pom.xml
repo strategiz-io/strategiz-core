@@ -27,6 +27,25 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- Client dependencies for trading execution -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-alpaca</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Framework dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-resilience</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Client dependencies for notifications -->
         <dependency>
             <groupId>io.strategiz</groupId>

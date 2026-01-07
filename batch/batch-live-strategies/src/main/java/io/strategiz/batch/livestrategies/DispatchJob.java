@@ -1,5 +1,7 @@
 package io.strategiz.batch.livestrategies;
 
+import io.strategiz.batch.livestrategies.model.DeploymentBatchMessage;
+import io.strategiz.batch.livestrategies.pubsub.DeploymentPubSubPublisher;
 import io.strategiz.business.livestrategies.model.SymbolSetGroup;
 import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.data.strategy.entity.AlertDeployment;
@@ -8,6 +10,7 @@ import io.strategiz.data.strategy.repository.ReadAlertDeploymentRepository;
 import io.strategiz.data.strategy.repository.ReadBotDeploymentRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -48,20 +51,25 @@ public class DispatchJob {
 	private final ReadBotDeploymentRepository readBotDeploymentRepository;
 
 	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
-	// TODO: Add PubSubPublisher for message publishing
+
+	private final DeploymentPubSubPublisher pubSubPublisher;
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
 	@Value("${live-strategies.dispatch.enabled:false}")
 	private boolean dispatchEnabled;
 
+	@Autowired
 	public DispatchJob(ReadAlertDeploymentRepository readAlertDeploymentRepository,
 			ReadBotDeploymentRepository readBotDeploymentRepository,
-			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
+			@Autowired(required = false) DeploymentPubSubPublisher pubSubPublisher) {
 		this.readAlertDeploymentRepository = readAlertDeploymentRepository;
 		this.readBotDeploymentRepository = readBotDeploymentRepository;
 		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
-		log.info("DispatchJob initialized (enabled: {}, profile: scheduler)", dispatchEnabled);
+		this.pubSubPublisher = pubSubPublisher;
+		log.info("DispatchJob initialized (enabled: {}, pubsub: {}, profile: scheduler)", dispatchEnabled,
+				pubSubPublisher != null && pubSubPublisher.isAvailable());
 	}
 
 	/**
@@ -220,21 +228,34 @@ public class DispatchJob {
 
 	/**
 	 * Publish batches to Pub/Sub.
-	 * TODO: Implement actual Pub/Sub publishing
 	 */
 	private int publishBatches(String tier, List<List<SymbolSetGroup>> batches) {
 		int messagesPublished = 0;
 
 		for (List<SymbolSetGroup> batch : batches) {
-			// TODO: Create DeploymentBatchMessage and publish to Pub/Sub
-			// pubSubPublisher.publish("publisher-deployment-processing",
-			//     DeploymentBatchMessage.builder()
-			//         .tier(tier)
-			//         .symbolSets(batch)
-			//         .build());
+			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
+				.tier(tier)
+				.symbolSets(batch)
+				.build();
 
-			log.debug("Would publish batch with {} symbol sets for tier {}", batch.size(), tier);
-			messagesPublished++;
+			if (pubSubPublisher != null && pubSubPublisher.isAvailable()) {
+				try {
+					String pubsubId = pubSubPublisher.publish(message);
+					log.debug("Published batch {} (Pub/Sub ID: {}) with {} symbol sets for tier {}", message.getMessageId(),
+							pubsubId, batch.size(), tier);
+					messagesPublished++;
+				}
+				catch (Exception e) {
+					log.error("Failed to publish batch {}: {}", message.getMessageId(), e.getMessage(), e);
+					// Continue with other batches
+				}
+			}
+			else {
+				// Dry-run mode when Pub/Sub is disabled
+				log.debug("Pub/Sub disabled - would publish batch {} with {} symbol sets for tier {}",
+						message.getMessageId(), batch.size(), tier);
+				messagesPublished++;
+			}
 		}
 
 		return messagesPublished;

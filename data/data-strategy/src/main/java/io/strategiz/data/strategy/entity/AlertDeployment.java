@@ -2,22 +2,28 @@ package io.strategiz.data.strategy.entity;
 
 import io.strategiz.data.base.entity.BaseEntity;
 import io.strategiz.data.base.annotation.Collection;
+import io.strategiz.framework.resilience.circuitbreaker.CircuitBreakerState;
+import io.strategiz.framework.resilience.circuitbreaker.CircuitState;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.Timestamp;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
  * Entity representing a deployed strategy alert.
  * Links to a Strategy entity and defines how/when to alert the user.
  *
+ * Implements CircuitBreakerState for fault tolerance - alerts are automatically
+ * paused when they experience too many consecutive failures.
+ *
  * @author Strategiz Team
  * @version 1.0
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Collection("alertDeployments")
-public class AlertDeployment extends BaseEntity {
+public class AlertDeployment extends BaseEntity implements CircuitBreakerState {
 
     @JsonProperty("id")
     private String id;
@@ -90,9 +96,18 @@ public class AlertDeployment extends BaseEntity {
     @JsonProperty("lastSignalSymbol")
     private String lastSignalSymbol; // Last symbol that triggered
 
-    // Circuit breaker fields
+    // Circuit breaker fields (implements CircuitBreakerState)
     @JsonProperty("consecutiveErrors")
     private Integer consecutiveErrors; // Error count for circuit breaker
+
+    @JsonProperty("consecutiveSuccesses")
+    private Integer consecutiveSuccesses; // Success count for HALF_OPEN recovery
+
+    @JsonProperty("circuitState")
+    private CircuitState circuitState; // CLOSED, OPEN, HALF_OPEN
+
+    @JsonProperty("circuitOpenedAt")
+    private Timestamp circuitOpenedAt; // When circuit was opened (for reset timeout)
 
     @JsonProperty("maxConsecutiveErrors")
     private Integer maxConsecutiveErrors; // Threshold to pause (default: 5)
@@ -116,6 +131,8 @@ public class AlertDeployment extends BaseEntity {
         this.triggerCount = 0;
         this.status = "ACTIVE";
         this.consecutiveErrors = 0;
+        this.consecutiveSuccesses = 0;
+        this.circuitState = CircuitState.CLOSED;
         this.maxConsecutiveErrors = 5;
         this.dailyTriggerCount = 0;
     }
@@ -299,6 +316,70 @@ public class AlertDeployment extends BaseEntity {
     public void setLastSignalSymbol(String lastSignalSymbol) {
         this.lastSignalSymbol = lastSignalSymbol;
     }
+
+    // CircuitBreakerState interface implementation
+
+    @Override
+    public Integer getConsecutiveFailures() {
+        return consecutiveErrors;
+    }
+
+    @Override
+    public void setConsecutiveFailures(Integer failures) {
+        this.consecutiveErrors = failures;
+    }
+
+    @Override
+    public Integer getConsecutiveSuccesses() {
+        return consecutiveSuccesses;
+    }
+
+    @Override
+    public void setConsecutiveSuccesses(Integer successes) {
+        this.consecutiveSuccesses = successes;
+    }
+
+    @Override
+    public CircuitState getCircuitState() {
+        return circuitState;
+    }
+
+    @Override
+    public void setCircuitState(CircuitState state) {
+        this.circuitState = state;
+    }
+
+    @Override
+    public Instant getCircuitOpenedAt() {
+        return circuitOpenedAt != null ? Instant.ofEpochSecond(circuitOpenedAt.getSeconds(), circuitOpenedAt.getNanos()) : null;
+    }
+
+    @Override
+    public void setCircuitOpenedAt(Instant openedAt) {
+        this.circuitOpenedAt = openedAt != null ? Timestamp.ofTimeSecondsAndNanos(openedAt.getEpochSecond(), openedAt.getNano()) : null;
+    }
+
+    @Override
+    public String getLastErrorMessage() {
+        return errorMessage;
+    }
+
+    @Override
+    public void setLastErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    @Override
+    public Integer getFailureThreshold() {
+        return maxConsecutiveErrors;
+    }
+
+    @Override
+    public void setFailureThreshold(Integer threshold) {
+        this.maxConsecutiveErrors = threshold;
+    }
+
+    // Legacy getters/setters (for backward compatibility)
 
     public Integer getConsecutiveErrors() {
         return consecutiveErrors;

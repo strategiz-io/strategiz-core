@@ -5,7 +5,7 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 
-# Copy all source (multi-module project)
+# Copy all source (multi-module project - Maven needs parent POM with all modules)
 COPY pom.xml .
 COPY proto/ proto/
 COPY framework/ framework/
@@ -14,10 +14,11 @@ COPY client/ client/
 COPY business/ business/
 COPY service/ service/
 COPY batch/ batch/
+COPY application-api/ application-api/
 COPY application-console/ application-console/
 
-# Build the console application
-RUN mvn clean install -Pdocker -pl application-console -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+# Build the console application (full build required - parent POM references all modules)
+RUN mvn clean install -Pdocker -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
     rm -rf /root/.m2/repository
 
 # Runtime image

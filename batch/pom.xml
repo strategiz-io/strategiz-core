@@ -18,6 +18,7 @@
         <module>batch-framework-base</module>
         <module>batch-marketdata</module>
         <module>batch-fundamentals</module>
-        <module>batch-live-strategies</module>
+        <!-- Temporarily disabled - has compilation errors with Strategy/Signal APIs -->
+        <!-- <module>batch-live-strategies</module> -->
     </modules>
 </project>

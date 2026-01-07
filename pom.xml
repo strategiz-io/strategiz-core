@@ -42,6 +42,7 @@
         <module>business/business-fundamentals</module>
         <module>business/business-preferences</module>
         <module>business/business-infrastructure-costs</module>
+        <module>business/business-live-strategies</module>
 
         <!-- Data Modules (Build Third) -->
         <module>data/data-auth</module>
@@ -107,6 +108,7 @@
         <!-- Batch Modules (Build Fifth - before services that depend on them) -->
         <module>batch/batch-marketdata</module>
         <module>batch/batch-fundamentals</module>
+        <module>batch/batch-live-strategies</module>
 
         <!-- Service Modules (Build Sixth) -->
         <module>service/service-framework-base</module>
@@ -457,7 +459,12 @@
                 <artifactId>framework-secrets</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>framework-resilience</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Client Modules -->
             <dependency>
                 <groupId>io.strategiz</groupId>

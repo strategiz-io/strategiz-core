@@ -17,5 +17,6 @@
     <modules>
         <module>batch-marketdata</module>
         <module>batch-fundamentals</module>
+        <module>batch-live-strategies</module>
     </modules>
 </project>

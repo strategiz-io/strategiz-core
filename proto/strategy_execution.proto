@@ -8,8 +8,11 @@ option java_outer_classname = "StrategyExecutionProto";
 
 // Strategy Execution Service
 service StrategyExecutionService {
-  // Execute a trading strategy with market data
+  // Execute a trading strategy with market data (for backtesting)
   rpc ExecuteStrategy(ExecuteStrategyRequest) returns (ExecuteStrategyResponse);
+
+  // Execute multiple strategies in batch (for live alerts/bots)
+  rpc ExecuteList(ExecuteListRequest) returns (ExecuteListResponse);
 
   // Validate strategy code without executing
   rpc ValidateCode(ValidateCodeRequest) returns (ValidateCodeResponse);
@@ -143,4 +146,70 @@ message HealthResponse {
   int32 max_timeout_seconds = 3;
   int32 max_memory_mb = 4;
   map<string, string> metadata = 5;         // Version, build info, etc.
+}
+
+// =============================================================================
+// BATCH EXECUTION MESSAGES (for live alerts/bots)
+// =============================================================================
+
+// Execute List Request - batch execution for live strategy processing
+message ExecuteListRequest {
+  repeated SymbolSetExecution symbol_sets = 1;  // Groups of symbols with strategies
+  string tier = 2;                               // Subscription tier (TIER1, TIER2, TIER3)
+  int32 timeout_seconds = 3;                     // Max execution time per strategy
+}
+
+// A single symbol set with its market data and strategies to execute
+message SymbolSetExecution {
+  repeated string symbols = 1;                        // Symbol set, e.g., ["AAPL"] or ["AAPL", "MSFT"]
+  map<string, SymbolMarketData> market_data = 2;     // symbol -> OHLCV bars
+  repeated DeploymentExecution deployments = 3;       // Strategies to execute
+}
+
+// Market data for a single symbol
+message SymbolMarketData {
+  string symbol = 1;
+  repeated MarketDataBar bars = 2;
+}
+
+// A deployment (alert or bot) to execute
+message DeploymentExecution {
+  string deployment_id = 1;      // Alert or bot ID
+  string deployment_type = 2;    // "ALERT" or "BOT"
+  string strategy_id = 3;        // Strategy ID for logging
+  string strategy_code = 4;      // Python code to execute
+  string user_id = 5;            // Owner of the deployment
+  map<string, string> parameters = 6;  // User-defined parameters
+}
+
+// Execute List Response
+message ExecuteListResponse {
+  bool success = 1;                          // Overall success
+  repeated DeploymentResult results = 2;     // Results per deployment
+  int32 total_deployments = 3;               // Total deployments processed
+  int32 successful_deployments = 4;          // Successfully executed
+  int32 failed_deployments = 5;              // Failed executions
+  int32 execution_time_ms = 6;               // Total batch execution time
+  string error = 7;                          // Overall error message if failed
+}
+
+// Result of a single deployment execution
+message DeploymentResult {
+  string deployment_id = 1;                  // Alert or bot ID
+  string deployment_type = 2;                // "ALERT" or "BOT"
+  bool success = 3;                          // Execution succeeded
+  LiveSignal signal = 4;                     // Signal generated (if any)
+  int32 execution_time_ms = 5;               // Execution duration
+  string error = 6;                          // Error message if failed
+}
+
+// Signal for live strategy execution
+message LiveSignal {
+  string signal_type = 1;                    // "BUY", "SELL", "HOLD"
+  string symbol = 2;                         // Symbol to act on
+  double price = 3;                          // Current price
+  int32 quantity = 4;                        // Suggested quantity (optional)
+  string reason = 5;                         // Why signal was generated
+  map<string, double> indicators = 6;        // Current indicator values
+  string timestamp = 7;                      // ISO 8601 timestamp
 }

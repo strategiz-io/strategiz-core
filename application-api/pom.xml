@@ -178,22 +178,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Batch Jobs (for console job management) -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>batch-marketdata</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>batch-fundamentals</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>batch-live-strategies</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+        <!-- Batch Jobs moved to application-console -->
 
         <!-- Strategy Execution gRPC Client - TEMPORARILY DISABLED: Protobuf generation issues
         <dependency>

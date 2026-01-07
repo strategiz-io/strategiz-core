@@ -15,6 +15,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>batch-framework-base</module>
         <module>batch-marketdata</module>
         <module>batch-fundamentals</module>
         <module>batch-live-strategies</module>

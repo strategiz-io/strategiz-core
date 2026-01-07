@@ -97,6 +97,12 @@
             <artifactId>batch-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Live strategies batch jobs -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>batch-live-strategies</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-fundamentals</artifactId>

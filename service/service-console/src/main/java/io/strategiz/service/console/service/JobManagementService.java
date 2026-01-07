@@ -2,6 +2,7 @@ package io.strategiz.service.console.service;
 
 import io.strategiz.batch.fundamentals.FundamentalsBackfillJob;
 import io.strategiz.batch.fundamentals.FundamentalsIncrementalJob;
+import io.strategiz.batch.livestrategies.DispatchJob;
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
 import io.strategiz.business.fundamentals.model.CollectionResult;
@@ -45,6 +46,8 @@ public class JobManagementService extends BaseService {
 
 	private final Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob;
 
+	private final Optional<DispatchJob> dispatchJob;
+
 	// Log streaming service for SSE
 	private final JobLogStreamService jobLogStreamService;
 
@@ -54,19 +57,23 @@ public class JobManagementService extends BaseService {
 	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
 			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
 			Optional<FundamentalsBackfillJob> fundamentalsBackfillJob,
-			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob, JobLogStreamService jobLogStreamService,
+			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob,
+			Optional<DispatchJob> dispatchJob,
+			JobLogStreamService jobLogStreamService,
 			JobDefinitionRepository jobDefinitionRepository) {
 		this.marketDataBackfillJob = marketDataBackfillJob;
 		this.marketDataIncrementalJob = marketDataIncrementalJob;
 		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
 		this.fundamentalsIncrementalJob = fundamentalsIncrementalJob;
+		this.dispatchJob = dispatchJob;
 		this.jobLogStreamService = jobLogStreamService;
 		this.jobDefinitionRepository = jobDefinitionRepository;
 
 		log.info(
-				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}",
+				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}, dispatchJob={}",
 				marketDataBackfillJob.isPresent(), marketDataIncrementalJob.isPresent(),
-				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent());
+				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent(),
+				dispatchJob.isPresent());
 	}
 
 	public List<JobResponse> listJobs() {
@@ -212,6 +219,15 @@ public class JobManagementService extends BaseService {
 				case "FUNDAMENTALS_INCREMENTAL":
 					executeFundamentalsIncrementalJob();
 					break;
+				case "DISPATCH_TIER1":
+					executeDispatchJob("TIER1");
+					break;
+				case "DISPATCH_TIER2":
+					executeDispatchJob("TIER2");
+					break;
+				case "DISPATCH_TIER3":
+					executeDispatchJob("TIER3");
+					break;
 				default:
 					log.warn("Unknown job: {}", jobId);
 					recordJobCompletion(jobId, false, 0);
@@ -336,6 +352,32 @@ public class JobManagementService extends BaseService {
 				result.getSuccessCount(), result.getErrorCount());
 	}
 
+	private void executeDispatchJob(String tier) {
+		if (dispatchJob.isEmpty()) {
+			log.warn(
+					"DispatchJob bean not available. Start with scheduler profile or restart application.");
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
+					"Live strategies dispatch job not available. Ensure scheduler profile is active.");
+		}
+
+		if (dispatchJob.get().isRunning()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					"dispatch_" + tier);
+		}
+
+		log.info("Executing DispatchJob.triggerManualExecution({})", tier);
+		DispatchJob.DispatchResult result = dispatchJob.get().triggerManualExecution(tier);
+
+		if (!result.success()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
+					"Dispatch failed for tier " + tier + ": " + result.errorMessage());
+		}
+
+		log.info("Dispatch {} completed: {} alerts, {} bots, {} symbol sets, {} messages published",
+				tier, result.alertsProcessed(), result.botsProcessed(),
+				result.symbolSetsCreated(), result.messagesPublished());
+	}
+
 	private boolean isJobBeanAvailable(String jobId) {
 		switch (jobId) {
 			case "MARKETDATA_BACKFILL":
@@ -346,6 +388,10 @@ public class JobManagementService extends BaseService {
 				return fundamentalsBackfillJob.isPresent();
 			case "FUNDAMENTALS_INCREMENTAL":
 				return fundamentalsIncrementalJob.isPresent();
+			case "DISPATCH_TIER1":
+			case "DISPATCH_TIER2":
+			case "DISPATCH_TIER3":
+				return dispatchJob.isPresent();
 			default:
 				return false;
 		}

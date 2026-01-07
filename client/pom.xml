@@ -48,6 +48,8 @@
         <module>client-sonarqube</module>
         <module>client-github</module>
         <module>client-execution</module>
+        <module>client-sendgrid</module>
+        <module>client-fcm</module>
     </modules>
     
     <dependencies>

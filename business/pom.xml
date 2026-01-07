@@ -33,7 +33,6 @@
         <module>business-preferences</module>
         <module>business-infrastructure-costs</module>
         <module>business-fundamentals</module>
-        <!-- Temporarily disabled - BotDeploymentBaseRepository.update() method doesn't exist -->
-        <!-- <module>business-live-strategies</module> -->
+        <module>business-live-strategies</module>
     </modules>
 </project>

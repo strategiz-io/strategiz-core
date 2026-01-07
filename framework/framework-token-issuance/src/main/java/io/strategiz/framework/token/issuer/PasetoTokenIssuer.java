@@ -66,7 +66,8 @@ public class PasetoTokenIssuer {
     public void init() {
         log.info("Initializing PasetoTokenIssuer with dual-key system");
 
-        String env = "prod".equals(activeProfile) ? "prod" : "dev";
+        // Handle comma-separated profiles (e.g., "prod,scheduler")
+        String env = activeProfile != null && activeProfile.contains("prod") ? "prod" : "dev";
         log.info("Loading token keys for environment: {}", env);
 
         if (vaultSecretService != null) {

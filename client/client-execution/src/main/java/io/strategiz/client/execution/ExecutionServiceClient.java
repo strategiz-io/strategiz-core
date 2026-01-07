@@ -4,12 +4,17 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 import io.strategiz.client.execution.model.*;
+import io.strategiz.execution.grpc.DeploymentExecution;
+import io.strategiz.execution.grpc.ExecuteListRequest;
+import io.strategiz.execution.grpc.ExecuteListResponse;
 import io.strategiz.execution.grpc.ExecuteStrategyRequest;
 import io.strategiz.execution.grpc.ExecuteStrategyResponse;
 import io.strategiz.execution.grpc.HealthRequest;
 import io.strategiz.execution.grpc.HealthResponse;
 import io.strategiz.execution.grpc.MarketDataBar;
 import io.strategiz.execution.grpc.StrategyExecutionServiceGrpc;
+import io.strategiz.execution.grpc.SymbolMarketData;
+import io.strategiz.execution.grpc.SymbolSetExecution;
 import io.strategiz.execution.grpc.ValidateCodeRequest;
 import io.strategiz.execution.grpc.ValidateCodeResponse;
 import org.slf4j.Logger;
@@ -317,5 +322,247 @@ public class ExecutionServiceClient {
                 .setClose(((Number) data.get("close")).doubleValue())
                 .setVolume(((Number) data.get("volume")).longValue())
                 .build();
+    }
+
+    // ================================================================================
+    // BATCH EXECUTION METHODS (for live alerts/bots)
+    // ================================================================================
+
+    /**
+     * Execute multiple strategies in batch for live processing.
+     * Used by SymbolSetProcessorJob to evaluate alerts and bots.
+     *
+     * @param symbolSets List of symbol sets with their deployments and market data
+     * @param tier Subscription tier (TIER1, TIER2, TIER3)
+     * @param timeoutSeconds Max execution time per strategy
+     * @return Batch execution response with results per deployment
+     */
+    public io.strategiz.client.execution.model.ExecuteListResponse executeList(
+            List<SymbolSetExecutionData> symbolSets,
+            String tier,
+            int timeoutSeconds) {
+
+        logger.info("Executing batch via gRPC: tier={}, symbolSets={}, timeout={}s",
+                tier, symbolSets.size(), timeoutSeconds);
+
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // Build request
+            ExecuteListRequest.Builder requestBuilder = ExecuteListRequest.newBuilder()
+                    .setTier(tier)
+                    .setTimeoutSeconds(timeoutSeconds);
+
+            // Add symbol sets
+            for (SymbolSetExecutionData symbolSet : symbolSets) {
+                requestBuilder.addSymbolSets(buildSymbolSetExecution(symbolSet));
+            }
+
+            ExecuteListRequest request = requestBuilder.build();
+
+            // Calculate total timeout based on number of deployments
+            int totalDeployments = symbolSets.stream()
+                    .mapToInt(s -> s.getDeployments().size())
+                    .sum();
+            int batchTimeout = Math.max(timeoutSeconds * 2, timeoutSeconds + (totalDeployments / 10));
+
+            // Call gRPC service
+            ExecuteListResponse grpcResponse = blockingStub
+                    .withDeadlineAfter(batchTimeout, TimeUnit.SECONDS)
+                    .executeList(request);
+
+            long executionTime = System.currentTimeMillis() - startTime;
+            logger.info("Batch execution completed: success={}, total={}, successful={}, failed={}, time={}ms",
+                    grpcResponse.getSuccess(),
+                    grpcResponse.getTotalDeployments(),
+                    grpcResponse.getSuccessfulDeployments(),
+                    grpcResponse.getFailedDeployments(),
+                    executionTime);
+
+            // Convert gRPC response to domain model
+            return convertListResponse(grpcResponse);
+
+        } catch (StatusRuntimeException e) {
+            logger.error("gRPC batch call failed: status={}", e.getStatus(), e);
+            return io.strategiz.client.execution.model.ExecuteListResponse.builder()
+                    .success(false)
+                    .error("gRPC call failed: " + e.getStatus().getDescription())
+                    .executionTimeMs((int) (System.currentTimeMillis() - startTime))
+                    .build();
+        } catch (Exception e) {
+            logger.error("Unexpected error during batch execution", e);
+            return io.strategiz.client.execution.model.ExecuteListResponse.builder()
+                    .success(false)
+                    .error("Unexpected error: " + e.getMessage())
+                    .executionTimeMs((int) (System.currentTimeMillis() - startTime))
+                    .build();
+        }
+    }
+
+    /**
+     * Build gRPC SymbolSetExecution from domain model.
+     */
+    private SymbolSetExecution buildSymbolSetExecution(SymbolSetExecutionData data) {
+        SymbolSetExecution.Builder builder = SymbolSetExecution.newBuilder()
+                .addAllSymbols(data.getSymbols());
+
+        // Add market data per symbol
+        for (Map.Entry<String, List<MarketDataBar>> entry : data.getMarketData().entrySet()) {
+            SymbolMarketData symbolData = SymbolMarketData.newBuilder()
+                    .setSymbol(entry.getKey())
+                    .addAllBars(entry.getValue())
+                    .build();
+            builder.putMarketData(entry.getKey(), symbolData);
+        }
+
+        // Add deployments
+        for (DeploymentExecutionData deployment : data.getDeployments()) {
+            DeploymentExecution.Builder depBuilder = DeploymentExecution.newBuilder()
+                    .setDeploymentId(deployment.getDeploymentId())
+                    .setDeploymentType(deployment.getDeploymentType())
+                    .setStrategyId(deployment.getStrategyId())
+                    .setStrategyCode(deployment.getStrategyCode())
+                    .setUserId(deployment.getUserId());
+
+            if (deployment.getParameters() != null) {
+                depBuilder.putAllParameters(deployment.getParameters());
+            }
+
+            builder.addDeployments(depBuilder.build());
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Convert gRPC ExecuteListResponse to domain model.
+     */
+    private io.strategiz.client.execution.model.ExecuteListResponse convertListResponse(
+            ExecuteListResponse grpcResponse) {
+
+        List<io.strategiz.client.execution.model.DeploymentResult> results = grpcResponse.getResultsList().stream()
+                .map(this::convertDeploymentResult)
+                .collect(Collectors.toList());
+
+        return io.strategiz.client.execution.model.ExecuteListResponse.builder()
+                .success(grpcResponse.getSuccess())
+                .results(results)
+                .totalDeployments(grpcResponse.getTotalDeployments())
+                .successfulDeployments(grpcResponse.getSuccessfulDeployments())
+                .failedDeployments(grpcResponse.getFailedDeployments())
+                .executionTimeMs(grpcResponse.getExecutionTimeMs())
+                .error(grpcResponse.getError())
+                .build();
+    }
+
+    /**
+     * Convert gRPC DeploymentResult to domain model.
+     */
+    private io.strategiz.client.execution.model.DeploymentResult convertDeploymentResult(
+            io.strategiz.execution.grpc.DeploymentResult grpcResult) {
+
+        io.strategiz.client.execution.model.DeploymentResult.Builder builder =
+                io.strategiz.client.execution.model.DeploymentResult.builder()
+                        .deploymentId(grpcResult.getDeploymentId())
+                        .deploymentType(grpcResult.getDeploymentType())
+                        .success(grpcResult.getSuccess())
+                        .executionTimeMs(grpcResult.getExecutionTimeMs())
+                        .error(grpcResult.getError());
+
+        // Convert signal if present
+        if (grpcResult.hasSignal()) {
+            io.strategiz.execution.grpc.LiveSignal grpcSignal = grpcResult.getSignal();
+            builder.signal(io.strategiz.client.execution.model.LiveSignal.builder()
+                    .signalType(grpcSignal.getSignalType())
+                    .symbol(grpcSignal.getSymbol())
+                    .price(grpcSignal.getPrice())
+                    .quantity(grpcSignal.getQuantity())
+                    .reason(grpcSignal.getReason())
+                    .indicators(grpcSignal.getIndicatorsMap())
+                    .timestamp(grpcSignal.getTimestamp())
+                    .build());
+        }
+
+        return builder.build();
+    }
+
+    // ================================================================================
+    // DATA CLASSES FOR BATCH EXECUTION
+    // ================================================================================
+
+    /**
+     * Data for a symbol set to execute.
+     */
+    public static class SymbolSetExecutionData {
+        private final List<String> symbols;
+        private final Map<String, List<MarketDataBar>> marketData;
+        private final List<DeploymentExecutionData> deployments;
+
+        public SymbolSetExecutionData(List<String> symbols,
+                                       Map<String, List<MarketDataBar>> marketData,
+                                       List<DeploymentExecutionData> deployments) {
+            this.symbols = symbols;
+            this.marketData = marketData;
+            this.deployments = deployments;
+        }
+
+        public List<String> getSymbols() {
+            return symbols;
+        }
+
+        public Map<String, List<MarketDataBar>> getMarketData() {
+            return marketData;
+        }
+
+        public List<DeploymentExecutionData> getDeployments() {
+            return deployments;
+        }
+    }
+
+    /**
+     * Data for a deployment to execute.
+     */
+    public static class DeploymentExecutionData {
+        private final String deploymentId;
+        private final String deploymentType;
+        private final String strategyId;
+        private final String strategyCode;
+        private final String userId;
+        private final Map<String, String> parameters;
+
+        public DeploymentExecutionData(String deploymentId, String deploymentType,
+                                        String strategyId, String strategyCode,
+                                        String userId, Map<String, String> parameters) {
+            this.deploymentId = deploymentId;
+            this.deploymentType = deploymentType;
+            this.strategyId = strategyId;
+            this.strategyCode = strategyCode;
+            this.userId = userId;
+            this.parameters = parameters;
+        }
+
+        public String getDeploymentId() {
+            return deploymentId;
+        }
+
+        public String getDeploymentType() {
+            return deploymentType;
+        }
+
+        public String getStrategyId() {
+            return strategyId;
+        }
+
+        public String getStrategyCode() {
+            return strategyCode;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public Map<String, String> getParameters() {
+            return parameters;
+        }
     }
 }

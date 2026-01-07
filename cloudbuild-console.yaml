@@ -56,7 +56,7 @@ steps:
       - '--memory'
       - '4Gi'
       - '--cpu'
-      - '2'
+      - '4'
       - '--min-instances'
       - '1'
       - '--max-instances'

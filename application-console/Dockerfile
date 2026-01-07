@@ -1,6 +1,26 @@
 # Multi-stage build for Strategiz Console API
-# This Dockerfile expects the JAR to be pre-built by Maven in Cloud Build
+# Build stage: Maven compile
+# Runtime stage: JRE with OpenTelemetry agent
 
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
+WORKDIR /app
+
+# Copy all source (multi-module project)
+COPY pom.xml .
+COPY proto/ proto/
+COPY framework/ framework/
+COPY data/ data/
+COPY client/ client/
+COPY business/ business/
+COPY service/ service/
+COPY batch/ batch/
+COPY application-console/ application-console/
+
+# Build the console application
+RUN mvn clean install -Pdocker -pl application-console -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+    rm -rf /root/.m2/repository
+
+# Runtime image
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
@@ -8,14 +28,14 @@ WORKDIR /app
 ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.11.0/opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
 RUN chmod 644 /app/opentelemetry-javaagent.jar
 
-# Copy the JAR file (built by Cloud Build Maven step)
-COPY application-console/target/application-console-1.0-SNAPSHOT.jar app.jar
+# Copy the JAR from builder stage
+COPY --from=builder /app/application-console/target/application-console-1.0-SNAPSHOT.jar app.jar
 
 # Environment configuration
 ENV PORT=8080
 # Enable both prod and scheduler profiles for batch job scheduling
 ENV SPRING_PROFILES_ACTIVE=prod,scheduler
-# Higher memory for batch job processing
+# Higher memory for batch job processing (3Gi heap for 4Gi container)
 ENV JAVA_OPTS="-Xmx3g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
 # Expose port

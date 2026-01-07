@@ -21,6 +21,7 @@
         <module>framework-authorization</module>
         <module>framework-exception</module>
         <module>framework-logging</module>
+        <module>framework-resilience</module>
         <module>framework-secrets</module>
         <module>framework-token-issuance</module>
     </modules>

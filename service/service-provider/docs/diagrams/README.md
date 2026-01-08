@@ -1,3 +1,9 @@
+---
+id: diagrams
+title: API Documentation Diagrams
+sidebar_label: Diagrams
+---
+
 # API Documentation Diagrams
 
 This folder contains draw.io diagram files for API documentation. Each API should have:

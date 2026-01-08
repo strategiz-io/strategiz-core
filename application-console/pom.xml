@@ -94,6 +94,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Business logic for batch jobs (explicit for component scan) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-fundamentals</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Market Data Service (for batch controller) -->
         <dependency>
             <groupId>io.strategiz</groupId>

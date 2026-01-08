@@ -84,22 +84,34 @@ public class PortfolioAnalysisService {
 			// 2. Build contextual prompt
 			String systemPrompt = PortfolioAnalysisPrompts.buildContextualPrompt(insightType, portfolioContext);
 
-			// 3. Create chat context
+			// 3. Create chat context with system prompt override
 			ChatContext chatContext = new ChatContext();
 			chatContext.setFeature("portfolio");
 			chatContext.setCurrentPage("analysis");
 			chatContext.setPortfolioData(portfolioContext);
+			chatContext.setSystemPrompt(systemPrompt); // Pass the insight-specific prompt
 
 			// 4. Generate insight using AIChatBusiness
 			String userMessage = String.format("Provide a %s analysis for my portfolio.", insightType);
+			final String insightTypeUpper = insightType.toUpperCase();
 
-			return aiChatBusiness.chat(userMessage, chatContext, new ArrayList<>(), model).doOnSuccess(response -> {
-				logger.info("Successfully generated {} insight for user: {}, tokens: {}", insightType, userId,
-						response.getTokensUsed());
-			}).doOnError(error -> {
-				logger.error("Error generating {} insight for user {}: {}", insightType, userId, error.getMessage(),
-						error);
-			});
+			return aiChatBusiness.chat(userMessage, chatContext, new ArrayList<>(), model)
+				.map(response -> {
+					// Set insight type metadata so controller doesn't have to guess
+					response.setMetadata(Map.of(
+						"type", insightTypeUpper,
+						"title", formatInsightTitle(insightType),
+						"generatedAt", System.currentTimeMillis() / 1000
+					));
+					return response;
+				})
+				.doOnSuccess(response -> {
+					logger.info("Successfully generated {} insight for user: {}, tokens: {}", insightType, userId,
+							response.getTokensUsed());
+				}).doOnError(error -> {
+					logger.error("Error generating {} insight for user {}: {}", insightType, userId, error.getMessage(),
+							error);
+				});
 		}
 		catch (Exception e) {
 			logger.error("Error in generateInsight for user {}: {}", userId, e.getMessage(), e);
@@ -343,11 +355,12 @@ public class PortfolioAnalysisService {
 			// Build system prompt with portfolio context
 			String systemPrompt = PortfolioAnalysisPrompts.buildContextualPrompt("overview", portfolioContext);
 
-			// Create chat context
+			// Create chat context with system prompt override
 			ChatContext chatContext = new ChatContext();
 			chatContext.setFeature("portfolio");
 			chatContext.setCurrentPage("chat");
 			chatContext.setPortfolioData(portfolioContext);
+			chatContext.setSystemPrompt(systemPrompt); // Pass the portfolio-specific prompt
 
 			// Call AIChatBusiness
 			return aiChatBusiness.chat(userMessage, chatContext, conversationHistory, model)
@@ -392,11 +405,12 @@ public class PortfolioAnalysisService {
 			// Build system prompt with portfolio context
 			String systemPrompt = PortfolioAnalysisPrompts.buildContextualPrompt("overview", portfolioContext);
 
-			// Create chat context
+			// Create chat context with system prompt override
 			ChatContext chatContext = new ChatContext();
 			chatContext.setFeature("portfolio");
 			chatContext.setCurrentPage("chat-stream");
 			chatContext.setPortfolioData(portfolioContext);
+			chatContext.setSystemPrompt(systemPrompt); // Pass the portfolio-specific prompt
 
 			// Call AIChatBusiness streaming method
 			return aiChatBusiness.chatStream(userMessage, chatContext, conversationHistory, model)

@@ -172,6 +172,11 @@ public class AIChatBusiness {
 	 * Build system prompt based on feature and context
 	 */
 	private String buildSystemPrompt(ChatContext context) {
+		// Check for explicit system prompt override first
+		if (context.getSystemPrompt() != null && !context.getSystemPrompt().isBlank()) {
+			return context.getSystemPrompt();
+		}
+
 		String feature = context.getFeature();
 		String currentPage = context.getCurrentPage();
 

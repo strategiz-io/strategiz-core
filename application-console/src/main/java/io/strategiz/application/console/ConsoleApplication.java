@@ -68,6 +68,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.client.yahoofinance",
 	"io.strategiz.client.gcpbilling",
 	"io.strategiz.client.github",
+	"io.strategiz.client.execution",
 
 	// Service Framework Base
 	"io.strategiz.service.base"

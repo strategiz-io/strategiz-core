@@ -154,6 +154,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Strategy Execution gRPC Client (for batch-live-strategies) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-execution</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Infrastructure Costs Business Logic (for AdminCostsController) -->
         <dependency>
             <groupId>io.strategiz</groupId>

@@ -93,9 +93,11 @@ public class PasetoTokenIssuer {
         }
 
         if (identityKey == null || sessionKey == null) {
-            log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
-            throw new StrategizException(AuthorizationErrorDetails.CONFIGURATION_ERROR,
-                "PasetoTokenIssuer", "Token keys must be configured in Vault");
+            log.error("CRITICAL: Token keys not found in Vault. Token issuance will fail until keys are loaded.");
+            log.error("Check Vault connectivity and ensure keys exist at: tokens.{}.identity-key and tokens.{}.session-key", env, env);
+            // Don't throw - allow application to start but token operations will fail gracefully
+        } else {
+            log.info("PasetoTokenIssuer initialized successfully with keys for environment: {}", env);
         }
     }
 

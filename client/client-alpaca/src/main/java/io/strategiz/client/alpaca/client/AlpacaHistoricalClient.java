@@ -63,15 +63,16 @@ public class AlpacaHistoricalClient {
         this.objectMapper = new ObjectMapper();
     }
 
+    private boolean initialized = false;
+
     @PostConstruct
     public void init() {
         log.info("AlpacaHistoricalClient initializing...");
 
         // Load credentials from Vault ONLY - no fallback to properties files
         if (vaultSecretService == null) {
-            log.error("VaultSecretService not available! Cannot load Alpaca credentials.");
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
-                MODULE_NAME, "VaultSecretService is required but not available");
+            log.error("VaultSecretService not available! AlpacaHistoricalClient will be unavailable.");
+            return;
         }
 
         try {
@@ -82,9 +83,8 @@ public class AlpacaHistoricalClient {
 
             log.info("Successfully loaded Alpaca credentials from Vault");
         } catch (Exception e) {
-            log.error("Failed to load Alpaca credentials from Vault: {}", e.getMessage());
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
-                MODULE_NAME, e, "Failed to load required Alpaca credentials from Vault");
+            log.error("Failed to load Alpaca credentials from Vault: {} - AlpacaHistoricalClient will be unavailable", e.getMessage());
+            return;
         }
 
         // Set defaults only for non-sensitive configuration
@@ -97,17 +97,25 @@ public class AlpacaHistoricalClient {
             log.info("Using default feed: {}", feed);
         }
 
-        log.info("AlpacaHistoricalClient initialized");
         log.info("API URL: {}", apiUrl);
         log.info("API Key: {}", apiKey != null && !apiKey.isEmpty() ? apiKey.substring(0, Math.min(8, apiKey.length())) + "..." : "NOT SET");
         log.info("API Secret: {}", apiSecret != null && !apiSecret.isEmpty() ? "SET (length: " + apiSecret.length() + ")" : "NOT SET");
         log.info("Feed: {}", feed);
 
         if (apiKey == null || apiKey.isEmpty() || apiSecret == null || apiSecret.isEmpty()) {
-            log.error("Alpaca API credentials are not configured!");
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
-                MODULE_NAME, "Alpaca API credentials must be configured in Vault");
+            log.error("Alpaca API credentials are not configured! AlpacaHistoricalClient will be unavailable.");
+            return;
         }
+
+        initialized = true;
+        log.info("AlpacaHistoricalClient initialized successfully");
+    }
+
+    /**
+     * Check if the client is available and properly configured.
+     */
+    public boolean isAvailable() {
+        return initialized && apiKey != null && apiSecret != null;
     }
 
     private HttpHeaders createHeaders() {
@@ -123,6 +131,10 @@ public class AlpacaHistoricalClient {
      * Fetch all historical bars with automatic pagination
      */
     public List<AlpacaBar> getBars(String symbol, LocalDateTime startDate, LocalDateTime endDate, String timeframe) {
+        if (!isAvailable()) {
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "AlpacaHistoricalClient is not available - credentials not configured");
+        }
         log.debug("Fetching bars for {} from {} to {} ({})", symbol, startDate, endDate, timeframe);
 
         List<AlpacaBar> allBars = new ArrayList<>();

@@ -46,15 +46,24 @@ public class SessionAuthBusiness {
     
     @Value("${session.expiry.seconds:86400}") // Default to 24 hours
     private long sessionExpirySeconds;
-    
+
     @Value("${session.management.enabled:true}") // Enable/disable session creation
     private boolean sessionManagementEnabled;
-    
+
     @Value("${session.cleanup.expired.days:7}") // Days to keep expired sessions before deletion
     private int expiredSessionRetentionDays;
-    
+
     @Value("${session.cleanup.revoked.days:1}") // Days to keep revoked sessions before deletion
     private int revokedSessionRetentionDays;
+
+    // Token expiry configuration - MUST match cookie max-age for consistency
+    // Access token: Short-lived for security, silently refreshed via refresh token
+    @Value("${app.cookie.access-token-max-age:1800}") // 30 minutes default (matches cookie)
+    private int accessTokenExpirySeconds;
+
+    // Refresh token: Long-lived for session continuity
+    @Value("${app.cookie.refresh-token-max-age:604800}") // 7 days default (matches cookie)
+    private int refreshTokenExpirySeconds;
 
     private final PasetoTokenIssuer tokenIssuer;
     private final PasetoTokenValidator tokenValidator;
@@ -68,7 +77,29 @@ public class SessionAuthBusiness {
         this.tokenValidator = tokenValidator;
         this.sessionRepository = sessionRepository;
     }
-    
+
+    /**
+     * Get access token expiry duration.
+     * Uses uniform expiry time for all authentication levels.
+     * This matches the cookie max-age to ensure token and cookie expire together.
+     *
+     * @return Duration for access token validity (default 30 minutes)
+     */
+    private Duration getAccessTokenExpiry() {
+        return Duration.ofSeconds(accessTokenExpirySeconds);
+    }
+
+    /**
+     * Get refresh token expiry duration.
+     * Uses uniform expiry time for session continuity.
+     * This matches the refresh cookie max-age.
+     *
+     * @return Duration for refresh token validity (default 7 days)
+     */
+    private Duration getRefreshTokenExpiry() {
+        return Duration.ofSeconds(refreshTokenExpirySeconds);
+    }
+
     /**
      * Create authentication tokens AND delegate session creation to data layer
      * This is the main method all service layer authenticators should call
@@ -88,7 +119,10 @@ public class SessionAuthBusiness {
                 authRequest.userId(), acr, authRequest.authenticationMethods());
 
         // 1. Create PASETO tokens using framework-token-issuance
-        Duration accessValidity = Duration.ofHours(24);
+        // Token expiry is based on ACR level (industry best practice)
+        Duration accessValidity = getAccessTokenExpiry(acr);
+        log.info("Access token expiry for ACR {}: {} minutes", acr, accessValidity.toMinutes());
+
         String accessToken = tokenIssuer.createAuthenticationToken(
             authRequest.userId(),
             authRequest.authenticationMethods(),

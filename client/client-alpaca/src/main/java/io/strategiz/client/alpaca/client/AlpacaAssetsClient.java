@@ -48,15 +48,16 @@ public class AlpacaAssetsClient {
         this.objectMapper = new ObjectMapper();
     }
 
+    private boolean initialized = false;
+
     @PostConstruct
     public void init() {
         log.info("AlpacaAssetsClient initializing...");
 
         // Load credentials from Vault ONLY - no fallback to properties files
         if (vaultSecretService == null) {
-            log.error("VaultSecretService not available! Cannot load Alpaca credentials.");
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
-                MODULE_NAME, "VaultSecretService is required but not available");
+            log.error("VaultSecretService not available! AlpacaAssetsClient will be unavailable.");
+            return;
         }
 
         try {
@@ -75,9 +76,8 @@ public class AlpacaAssetsClient {
 
             log.info("Successfully loaded Alpaca trading credentials from Vault for Assets API");
         } catch (Exception e) {
-            log.error("Failed to load Alpaca trading credentials from Vault: {}", e.getMessage());
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
-                MODULE_NAME, e, "Failed to load required Alpaca trading credentials from Vault");
+            log.error("Failed to load Alpaca trading credentials from Vault: {} - AlpacaAssetsClient will be unavailable", e.getMessage());
+            return;
         }
 
         // Set default URL if not in Vault
@@ -86,15 +86,23 @@ public class AlpacaAssetsClient {
             log.info("Using default trading API URL: {}", apiUrl);
         }
 
-        log.info("AlpacaAssetsClient initialized");
         log.info("API URL: {}", apiUrl);
         log.info("API Key: {}", apiKey != null && !apiKey.isEmpty() ? apiKey.substring(0, Math.min(8, apiKey.length())) + "..." : "NOT SET");
 
         if (apiKey == null || apiKey.isEmpty() || apiSecret == null || apiSecret.isEmpty()) {
-            log.error("Alpaca API credentials are not configured!");
-            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
-                MODULE_NAME, "Alpaca API credentials must be configured in Vault");
+            log.error("Alpaca API credentials are not configured! AlpacaAssetsClient will be unavailable.");
+            return;
         }
+
+        initialized = true;
+        log.info("AlpacaAssetsClient initialized successfully");
+    }
+
+    /**
+     * Check if the client is available and properly configured.
+     */
+    public boolean isAvailable() {
+        return initialized && apiKey != null && apiSecret != null;
     }
 
     private HttpHeaders createHeaders() {
@@ -140,6 +148,10 @@ public class AlpacaAssetsClient {
      * Get assets by status and asset class
      */
     public List<AlpacaAsset> getAssets(String status, String assetClass) {
+        if (!isAvailable()) {
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "AlpacaAssetsClient is not available - credentials not configured");
+        }
         log.debug("Fetching assets with status={}, class={}", status, assetClass);
 
         StringBuilder path = new StringBuilder("/v2/assets?");

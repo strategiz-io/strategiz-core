@@ -119,8 +119,8 @@ public class SessionAuthBusiness {
                 authRequest.userId(), acr, authRequest.authenticationMethods());
 
         // 1. Create PASETO tokens using framework-token-issuance
-        // Token expiry is based on ACR level (industry best practice)
-        Duration accessValidity = getAccessTokenExpiry(acr);
+        // Token expiry uses configured duration (ACR-based expiry can be added later)
+        Duration accessValidity = getAccessTokenExpiry();
         log.info("Access token expiry for ACR {}: {} minutes", acr, accessValidity.toMinutes());
 
         String accessToken = tokenIssuer.createAuthenticationToken(

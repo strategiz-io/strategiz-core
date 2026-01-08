@@ -18,6 +18,7 @@ import io.strategiz.data.infrastructurecosts.repository.DailyCostRepository;
 import io.strategiz.data.infrastructurecosts.repository.FirestoreUsageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -65,8 +66,8 @@ public class CostAggregationService {
     public CostAggregationService(
             GcpBillingClient gcpBillingClient,
             GcpMonitoringClient gcpMonitoringClient,
-            TimescaleBillingClient timescaleBillingClient,
-            SendGridBillingClient sendgridBillingClient,
+            @Autowired(required = false) TimescaleBillingClient timescaleBillingClient,
+            @Autowired(required = false) SendGridBillingClient sendgridBillingClient,
             DailyCostRepository dailyCostRepository,
             FirestoreUsageRepository firestoreUsageRepository) {
         this.gcpBillingClient = gcpBillingClient;
@@ -91,11 +92,15 @@ public class CostAggregationService {
             // Get GCP costs
             GcpCostSummary gcpSummary = gcpBillingClient.getCostSummary(startOfMonth, today);
 
-            // Get TimescaleDB costs
-            TimescaleCostSummary timescaleSummary = timescaleBillingClient.getCostSummary(startOfMonth, today);
+            // Get TimescaleDB costs (optional)
+            TimescaleCostSummary timescaleSummary = timescaleBillingClient != null
+                    ? timescaleBillingClient.getCostSummary(startOfMonth, today)
+                    : TimescaleCostSummary.empty(startOfMonth, today);
 
-            // Get SendGrid costs
-            SendGridCostSummary sendgridSummary = sendgridBillingClient.getCostSummary(startOfMonth, today);
+            // Get SendGrid costs (optional)
+            SendGridCostSummary sendgridSummary = sendgridBillingClient != null
+                    ? sendgridBillingClient.getCostSummary(startOfMonth, today)
+                    : SendGridCostSummary.empty(startOfMonth, today);
 
             // Calculate totals
             BigDecimal gcpCost = gcpSummary.totalCost();
@@ -157,23 +162,25 @@ public class CostAggregationService {
             // Get GCP daily costs
             List<GcpDailyCost> gcpDailyCosts = gcpBillingClient.getDailyCosts(days);
 
-            // Get TimescaleDB estimated daily cost
-            TimescaleCostSummary timescale = timescaleBillingClient.getCostSummary(
-                    LocalDate.now().minusDays(days),
-                    LocalDate.now()
-            );
-            BigDecimal dailyTimescaleCost = days > 0
-                    ? timescale.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            // Get TimescaleDB estimated daily cost (optional)
+            BigDecimal dailyTimescaleCost = BigDecimal.ZERO;
+            if (timescaleBillingClient != null && days > 0) {
+                TimescaleCostSummary timescale = timescaleBillingClient.getCostSummary(
+                        LocalDate.now().minusDays(days),
+                        LocalDate.now()
+                );
+                dailyTimescaleCost = timescale.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP);
+            }
 
-            // Get SendGrid estimated daily cost
-            SendGridCostSummary sendgrid = sendgridBillingClient.getCostSummary(
-                    LocalDate.now().minusDays(days),
-                    LocalDate.now()
-            );
-            BigDecimal dailySendGridCost = days > 0
-                    ? sendgrid.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP)
-                    : BigDecimal.ZERO;
+            // Get SendGrid estimated daily cost (optional)
+            BigDecimal dailySendGridCost = BigDecimal.ZERO;
+            if (sendgridBillingClient != null && days > 0) {
+                SendGridCostSummary sendgrid = sendgridBillingClient.getCostSummary(
+                        LocalDate.now().minusDays(days),
+                        LocalDate.now()
+                );
+                dailySendGridCost = sendgrid.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP);
+            }
 
             // Combine into daily costs
             List<DailyCost> result = new ArrayList<>();
@@ -216,18 +223,26 @@ public class CostAggregationService {
 
         try {
             GcpCostSummary gcpSummary = gcpBillingClient.getCurrentMonthCosts();
-            TimescaleCostSummary timescaleSummary = timescaleBillingClient.getCostSummary(
-                    LocalDate.now().withDayOfMonth(1),
-                    LocalDate.now()
-            );
-            SendGridCostSummary sendgridSummary = sendgridBillingClient.getCostSummary(
-                    LocalDate.now().withDayOfMonth(1),
-                    LocalDate.now()
-            );
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
-            costByService.put("TimescaleDB", timescaleSummary.totalCost());
-            costByService.put("SendGrid", sendgridSummary.totalCost());
+
+            // Add TimescaleDB costs if available
+            if (timescaleBillingClient != null) {
+                TimescaleCostSummary timescaleSummary = timescaleBillingClient.getCostSummary(
+                        LocalDate.now().withDayOfMonth(1),
+                        LocalDate.now()
+                );
+                costByService.put("TimescaleDB", timescaleSummary.totalCost());
+            }
+
+            // Add SendGrid costs if available
+            if (sendgridBillingClient != null) {
+                SendGridCostSummary sendgridSummary = sendgridBillingClient.getCostSummary(
+                        LocalDate.now().withDayOfMonth(1),
+                        LocalDate.now()
+                );
+                costByService.put("SendGrid", sendgridSummary.totalCost());
+            }
 
             // Add subscription costs
             BigDecimal subscriptionCosts = calculateSubscriptionCosts(LocalDate.now());
@@ -314,11 +329,15 @@ public class CostAggregationService {
             // Get GCP costs for yesterday
             GcpCostSummary gcpSummary = gcpBillingClient.getCostSummary(yesterday, yesterday);
 
-            // Get TimescaleDB costs
-            TimescaleCostSummary timescaleSummary = timescaleBillingClient.getCostSummary(yesterday, yesterday);
+            // Get TimescaleDB costs (optional)
+            TimescaleCostSummary timescaleSummary = timescaleBillingClient != null
+                    ? timescaleBillingClient.getCostSummary(yesterday, yesterday)
+                    : TimescaleCostSummary.empty(yesterday, yesterday);
 
-            // Get SendGrid costs
-            SendGridCostSummary sendgridSummary = sendgridBillingClient.getCostSummary(yesterday, yesterday);
+            // Get SendGrid costs (optional)
+            SendGridCostSummary sendgridSummary = sendgridBillingClient != null
+                    ? sendgridBillingClient.getCostSummary(yesterday, yesterday)
+                    : SendGridCostSummary.empty(yesterday, yesterday);
 
             // Get subscription costs
             BigDecimal subscriptionCost = getDailySubscriptionCost(yesterday);
@@ -337,8 +356,12 @@ public class CostAggregationService {
             entity.setCurrency("USD");
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
-            costByService.put("TimescaleDB", timescaleSummary.totalCost());
-            costByService.put("SendGrid", sendgridSummary.totalCost());
+            if (timescaleBillingClient != null) {
+                costByService.put("TimescaleDB", timescaleSummary.totalCost());
+            }
+            if (sendgridBillingClient != null) {
+                costByService.put("SendGrid", sendgridSummary.totalCost());
+            }
 
             // Add subscription costs
             if (claudeEnabled && subscriptionCost.compareTo(BigDecimal.ZERO) > 0) {
@@ -378,8 +401,14 @@ public class CostAggregationService {
             }
 
             GcpCostSummary lastMonthGcp = gcpBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
-            TimescaleCostSummary lastMonthTs = timescaleBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
-            SendGridCostSummary lastMonthSg = sendgridBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
+
+            TimescaleCostSummary lastMonthTs = timescaleBillingClient != null
+                    ? timescaleBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay)
+                    : TimescaleCostSummary.empty(lastMonthStart, lastMonthSameDay);
+
+            SendGridCostSummary lastMonthSg = sendgridBillingClient != null
+                    ? sendgridBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay)
+                    : SendGridCostSummary.empty(lastMonthStart, lastMonthSameDay);
 
             // Calculate last month subscription costs (prorated for same number of days)
             BigDecimal lastMonthSubscription = calculateSubscriptionCosts(lastMonthSameDay);

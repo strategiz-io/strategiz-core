@@ -131,6 +131,47 @@ public class PasetoTokenIssuer {
     }
 
     /**
+     * Creates a recovery token for account recovery flow.
+     * Limited scope, short-lived (15 minutes), uses identity key.
+     *
+     * <p>Recovery tokens allow users to:</p>
+     * <ul>
+     *   <li>Disable MFA methods</li>
+     *   <li>Unlink OAuth providers</li>
+     *   <li>Set up new passkey</li>
+     *   <li>Complete recovery (issues real session token)</li>
+     * </ul>
+     *
+     * @param userId the user ID
+     * @param recoveryId the recovery request ID for tracking
+     * @return the recovery token string
+     */
+    public String createRecoveryToken(String userId, String recoveryId) {
+        log.info("PasetoTokenIssuer.createRecoveryToken - userId: {}, recoveryId: {}", userId, recoveryId);
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(Duration.ofMinutes(15));
+        String tokenId = UUID.randomUUID().toString();
+
+        var builder = Pasetos.V2.LOCAL.builder()
+                .setSharedSecret(identityKey)  // Use identity key (unauthenticated context)
+                .setExpiration(expiresAt)
+                .setIssuedAt(now)
+                .setIssuer(issuer)
+                .setAudience(audience)
+                .setSubject(userId)
+                .setKeyId(tokenId);
+
+        builder.claim("type", "RECOVERY");
+        builder.claim("token_type", "recovery");
+        builder.claim("scope", "account:recover");
+        builder.claim("acr", "0");  // Unauthenticated - obtained via recovery, not normal login
+        builder.claim("recovery_id", recoveryId);
+
+        log.info("Created recovery token for user: {} with 15-minute expiry", userId);
+        return builder.compact();
+    }
+
+    /**
      * Creates a new refresh token for a user.
      *
      * @param userId the user ID

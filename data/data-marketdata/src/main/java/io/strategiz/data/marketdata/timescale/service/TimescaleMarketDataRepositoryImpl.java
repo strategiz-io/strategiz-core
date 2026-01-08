@@ -46,18 +46,58 @@ public class TimescaleMarketDataRepositoryImpl implements MarketDataRepository {
 	@Transactional("timescaleTransactionManager")
 	public MarketDataEntity save(MarketDataEntity entity) {
 		MarketDataTimescaleEntity ts = converter.toTimescale(entity);
-		MarketDataTimescaleEntity saved = timescaleRepo.save(ts);
-		return converter.toFirestore(saved);
+		// Use native upsert to avoid SELECT before INSERT
+		timescaleRepo.upsert(
+			ts.getSymbol(),
+			ts.getTimeframe(),
+			ts.getTimestamp(),
+			ts.getOpen() != null ? ts.getOpen().doubleValue() : null,
+			ts.getHigh() != null ? ts.getHigh().doubleValue() : null,
+			ts.getLow() != null ? ts.getLow().doubleValue() : null,
+			ts.getClose() != null ? ts.getClose().doubleValue() : null,
+			ts.getVolume() != null ? ts.getVolume().longValue() : null,
+			ts.getVwap() != null ? ts.getVwap().doubleValue() : null,
+			ts.getTrades(),
+			ts.getChangeAmount() != null ? ts.getChangeAmount().doubleValue() : null,
+			ts.getChangePercent() != null ? ts.getChangePercent().doubleValue() : null,
+			ts.getDataSource(),
+			ts.getDataQuality() != null ? ts.getDataQuality() : "GOOD",
+			ts.getAssetType(),
+			ts.getExchange(),
+			ts.getCollectedAt(),
+			ts.getCreatedAt()
+		);
+		return entity;
 	}
 
 	@Override
 	@Transactional("timescaleTransactionManager")
 	public List<MarketDataEntity> saveAll(List<MarketDataEntity> entities) {
-		List<MarketDataTimescaleEntity> tsEntities = entities.stream()
-			.map(converter::toTimescale)
-			.collect(Collectors.toList());
-		List<MarketDataTimescaleEntity> saved = timescaleRepo.saveAll(tsEntities);
-		return saved.stream().map(converter::toFirestore).collect(Collectors.toList());
+		// Use native upsert for each entity to avoid SELECT before INSERT
+		for (MarketDataEntity entity : entities) {
+			MarketDataTimescaleEntity ts = converter.toTimescale(entity);
+			timescaleRepo.upsert(
+				ts.getSymbol(),
+				ts.getTimeframe(),
+				ts.getTimestamp(),
+				ts.getOpen() != null ? ts.getOpen().doubleValue() : null,
+				ts.getHigh() != null ? ts.getHigh().doubleValue() : null,
+				ts.getLow() != null ? ts.getLow().doubleValue() : null,
+				ts.getClose() != null ? ts.getClose().doubleValue() : null,
+				ts.getVolume() != null ? ts.getVolume().longValue() : null,
+				ts.getVwap() != null ? ts.getVwap().doubleValue() : null,
+				ts.getTrades(),
+				ts.getChangeAmount() != null ? ts.getChangeAmount().doubleValue() : null,
+				ts.getChangePercent() != null ? ts.getChangePercent().doubleValue() : null,
+				ts.getDataSource(),
+				ts.getDataQuality() != null ? ts.getDataQuality() : "GOOD",
+				ts.getAssetType(),
+				ts.getExchange(),
+				ts.getCollectedAt(),
+				ts.getCreatedAt()
+			);
+		}
+		return entities;
 	}
 
 	@Override

@@ -5,6 +5,7 @@ This document outlines the security measures implemented in the Strategiz Core b
 ## Quick Links
 
 - **[Authorization Standard](./authorization-standard.md)** - **MANDATORY** for all developers creating services
+- **[Token Standard](./token-standard.md)** - Token types, claims, and expiry configuration
 - [Secrets Management](./secrets-management.md) - Vault integration and secret handling
 - [Vault Setup](./vault-setup.md) - Local and production Vault configuration
 
@@ -294,7 +295,8 @@ Set-Cookie: strategiz_session=v2.local.eyJ...;
 
 ## 🔗 Related Documentation
 
-- [`business-token-auth/README.md`](../business/business-token-auth/README.md) - Complete token specification
+- **[Token Standard](./token-standard.md)** - Token types, claims, expiry, and cookie configuration
+- [`business-token-auth/README.md`](../business/business-token-auth/README.md) - Token implementation details
 - [`service-auth/README.md`](../service/service-auth/README.md) - Authentication endpoints
 - [API_ENDPOINTS.md](./API_ENDPOINTS.md) - Service endpoint documentation
 

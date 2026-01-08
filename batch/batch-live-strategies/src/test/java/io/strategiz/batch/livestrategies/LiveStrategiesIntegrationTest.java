@@ -253,7 +253,8 @@ class LiveStrategiesIntegrationTest {
 		@Test
 		@DisplayName("Should have market data for multiple stock symbols")
 		void shouldHaveMarketDataForMultipleStocks() {
-			List<String> symbols = List.of("AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "AMZN");
+			// Use symbols with confirmed TimescaleDB data (from Alpaca IEX feed)
+			List<String> symbols = List.of("AAPL", "AMZN", "AMD", "AVGO", "BA", "COST");
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
@@ -389,7 +390,7 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String alertId = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("AAPL", "MSFT"), "PRO");
+			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("AAPL", "AMZN"), "PRO");
 			alertRepository.save(alert, TEST_USER_ID);
 			createdAlertIds.add(alertId);
 
@@ -398,7 +399,7 @@ class LiveStrategiesIntegrationTest {
 			assertTrue(loaded.isPresent());
 			assertEquals(2, loaded.get().getSymbols().size());
 			assertTrue(loaded.get().getSymbols().contains("AAPL"));
-			assertTrue(loaded.get().getSymbols().contains("MSFT"));
+			assertTrue(loaded.get().getSymbols().contains("AMZN"));
 		}
 
 		@Test

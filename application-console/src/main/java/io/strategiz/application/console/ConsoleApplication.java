@@ -47,6 +47,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.business.livestrategies",
 
 	// Data Layer
+	"io.strategiz.data.auth",
 	"io.strategiz.data.provider",
 	"io.strategiz.data.session",
 	"io.strategiz.data.user",

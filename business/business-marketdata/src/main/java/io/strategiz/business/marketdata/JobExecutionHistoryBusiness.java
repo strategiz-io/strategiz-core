@@ -337,12 +337,16 @@ public class JobExecutionHistoryBusiness {
     /**
      * Get paginated execution history across ALL jobs.
      * Used by admin console to view complete job history.
+     * Also cleans up stale RUNNING jobs (older than 12 hours) as a self-healing mechanism.
      *
      * @param pageable Pagination parameters
      * @return Page of execution records, ordered by start time descending
      */
     public Page<JobExecutionEntity> getAllExecutionHistory(Pageable pageable) {
         long startTime = System.currentTimeMillis();
+
+        // Self-healing: clean up stale RUNNING jobs before returning results
+        cleanupStaleRunningJobs();
 
         Page<JobExecutionEntity> executions = jobExecutionRepository.findAllOrderByStartTimeDesc(pageable);
 
@@ -351,6 +355,34 @@ public class JobExecutionHistoryBusiness {
             executions.getNumberOfElements(), duration, pageable.getPageNumber(), executions.getTotalPages());
 
         return executions;
+    }
+
+    /**
+     * Clean up stale RUNNING jobs by marking them as TIMEOUT.
+     * Jobs stuck in RUNNING status for more than 12 hours are considered stale
+     * (likely due to HTTP timeout or server restart).
+     */
+    public void cleanupStaleRunningJobs() {
+        try {
+            // Jobs running for more than 12 hours are considered stale
+            Instant staleThreshold = Instant.now().minus(12, ChronoUnit.HOURS);
+            List<JobExecutionEntity> staleJobs = jobExecutionRepository.findStaleRunningJobs(staleThreshold);
+
+            if (!staleJobs.isEmpty()) {
+                log.info("Found {} stale RUNNING jobs (started before {}), marking as TIMEOUT",
+                    staleJobs.size(), staleThreshold);
+
+                for (JobExecutionEntity job : staleJobs) {
+                    job.setStatus("TIMEOUT");
+                    job.setEndTime(Instant.now());
+                    job.setErrorDetails("Job marked as TIMEOUT - likely HTTP request timeout or server restart");
+                    jobExecutionRepository.save(job);
+                    log.info("Marked stale job as TIMEOUT: {} (started {})", job.getJobName(), job.getStartTime());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to clean up stale RUNNING jobs: {}", e.getMessage());
+        }
     }
 
     /**

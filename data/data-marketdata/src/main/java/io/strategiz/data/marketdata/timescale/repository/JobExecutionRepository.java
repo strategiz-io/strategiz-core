@@ -163,4 +163,16 @@ public interface JobExecutionRepository extends JpaRepository<JobExecutionEntity
            "WHERE j.startTime >= :since " +
            "ORDER BY j.startTime DESC")
     List<JobExecutionEntity> findAllSince(@Param("since") Instant since);
+
+    /**
+     * Find stale RUNNING jobs that started before a given timestamp.
+     * Used to clean up jobs stuck in RUNNING status due to HTTP timeouts.
+     *
+     * @param before Only return executions that started before this timestamp
+     * @return List of stale RUNNING executions
+     */
+    @Query("SELECT j FROM JobExecutionEntity j " +
+           "WHERE j.status = 'RUNNING' " +
+           "AND j.startTime < :before")
+    List<JobExecutionEntity> findStaleRunningJobs(@Param("before") Instant before);
 }

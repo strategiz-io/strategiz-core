@@ -39,8 +39,8 @@ public class JobExecutionRecord {
     @JsonProperty("errorDetails")
     private String errorDetails; // JSON array
 
-    @JsonProperty("timeframes")
-    private String timeframes; // JSON array
+    @JsonProperty("context")
+    private String context; // Human-readable context (e.g., "7yr, 547 S&P symbols")
 
     // Constructors
     public JobExecutionRecord() {

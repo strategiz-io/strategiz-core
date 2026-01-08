@@ -85,9 +85,10 @@ public class MarketDataBatchController {
 			return ResponseEntity.badRequest().body(errorResponse);
 		}
 
-		// Record job execution start
-		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_FULL",
-				"Market Data Backfill (Full)", toJson(validTimeframes));
+		// Record job execution start - include timeframes in display name
+		String timeframeDisplay = validTimeframes.size() == 4 ? "All" : String.join(", ", validTimeframes);
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL",
+				"Market Data Backfill (" + timeframeDisplay + ")", toJson(validTimeframes));
 
 		// Process all timeframes synchronously
 		long overallStartTime = System.currentTimeMillis();
@@ -187,8 +188,8 @@ public class MarketDataBatchController {
 		List<String> testSymbols = Arrays.asList("AAPL", "MSFT", "GOOGL");
 
 		// Record job execution start
-		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_TEST",
-				"Market Data Backfill (Test)", toJson(testSymbols));
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL_TEST",
+				"Market Data Backfill (Test - 1Day)", toJson(testSymbols));
 
 		try {
 			LocalDateTime endDate = LocalDateTime.now();
@@ -249,9 +250,9 @@ public class MarketDataBatchController {
 		log.info("Date range: {} to {}", request.startDate, request.endDate);
 		log.info("Timeframe: {}", request.timeframe);
 
-		// Record job execution start
-		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_CUSTOM",
-				"Market Data Backfill (Custom)", toJson(request.symbols));
+		// Record job execution start - include timeframe in display name
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL_CUSTOM",
+				"Market Data Backfill (Custom - " + request.timeframe + ")", toJson(request.symbols));
 
 		try {
 			long startTime = System.currentTimeMillis();
@@ -315,9 +316,9 @@ public class MarketDataBatchController {
 		log.info("=== Admin API: Incremental Collection Request (timeframe: {}, lookback: {}h) ===", timeframe,
 				lookbackHours);
 
-		// Record job execution start
-		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_INCREMENTAL",
-				"MarketData_API_Incremental", timeframe);
+		// Record job execution start - include timeframe in display name
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_INCREMENTAL",
+				"Market Data Incremental (" + timeframe + ")", timeframe);
 
 		try {
 			LocalDateTime endDate = LocalDateTime.now();
@@ -384,8 +385,8 @@ public class MarketDataBatchController {
 				allTimeframes.size(), lookbackHours);
 
 		// Record job execution start
-		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_INCREMENTAL_ALL",
-				"MarketData_API_Incremental_All", toJson(allTimeframes));
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_INCREMENTAL",
+				"Market Data Incremental (All)", toJson(allTimeframes));
 
 		long startTime = System.currentTimeMillis();
 

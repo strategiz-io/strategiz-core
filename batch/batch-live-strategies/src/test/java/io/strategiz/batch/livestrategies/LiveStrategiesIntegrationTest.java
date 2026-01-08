@@ -364,7 +364,7 @@ class LiveStrategiesIntegrationTest {
 
 			// Create bot
 			String botId = TEST_BOT_PREFIX + UUID.randomUUID();
-			BotDeployment bot = createTestBot(botId, strategyId, List.of("MSFT"), "PRO", "PAPER");
+			BotDeployment bot = createTestBot(botId, strategyId, List.of("AVGO"), "PRO", "PAPER");
 			botRepository.save(bot, TEST_USER_ID);
 			createdBotIds.add(botId);
 
@@ -411,7 +411,7 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String botId = TEST_BOT_PREFIX + UUID.randomUUID();
-			BotDeployment bot = createTestBot(botId, strategyId, List.of("NVDA"), "PRO", "LIVE");
+			BotDeployment bot = createTestBot(botId, strategyId, List.of("AMD"), "PRO", "LIVE");
 			bot.setSimulatedMode(false);
 			bot.setMaxPositionSize(5000.0);
 			botRepository.save(bot, TEST_USER_ID);
@@ -465,7 +465,7 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String alertId = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("TSLA"), "STARTER");
+			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("BA"), "STARTER");
 			alertRepository.save(alert, TEST_USER_ID);
 			createdAlertIds.add(alertId);
 
@@ -486,7 +486,7 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String botId = TEST_BOT_PREFIX + UUID.randomUUID();
-			BotDeployment bot = createTestBot(botId, strategyId, List.of("GOOGL"), "PRO", "PAPER");
+			BotDeployment bot = createTestBot(botId, strategyId, List.of("COST"), "PRO", "PAPER");
 			botRepository.save(bot, TEST_USER_ID);
 			createdBotIds.add(botId);
 
@@ -582,12 +582,12 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String alertId = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("AAPL", "MSFT"), "PRO");
+			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("AAPL", "AMZN"), "PRO");
 			alertRepository.save(alert, TEST_USER_ID);
 			createdAlertIds.add(alertId);
 
 			// Build batch message with symbol SET (pairs)
-			SymbolSetGroup group = new SymbolSetGroup(List.of("AAPL", "MSFT"));
+			SymbolSetGroup group = new SymbolSetGroup(List.of("AAPL", "AMZN"));
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
@@ -595,7 +595,7 @@ class LiveStrategiesIntegrationTest {
 					.symbolSets(List.of(group))
 					.build();
 
-			log.info("Processing pairs trading alert (AAPL, MSFT)...");
+			log.info("Processing pairs trading alert (AAPL, AMZN)...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
 			assertTrue(result.isSuccess());
@@ -616,11 +616,11 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String botId = TEST_BOT_PREFIX + UUID.randomUUID();
-			BotDeployment bot = createTestBot(botId, strategyId, List.of("NVDA"), "PRO", "PAPER");
+			BotDeployment bot = createTestBot(botId, strategyId, List.of("AMD"), "PRO", "PAPER");
 			botRepository.save(bot, TEST_USER_ID);
 			createdBotIds.add(botId);
 
-			SymbolSetGroup group = new SymbolSetGroup(List.of("NVDA"));
+			SymbolSetGroup group = new SymbolSetGroup(List.of("AMD"));
 			group.addBot(botId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
@@ -628,7 +628,7 @@ class LiveStrategiesIntegrationTest {
 					.symbolSets(List.of(group))
 					.build();
 
-			log.info("Processing single symbol bot (NVDA)...");
+			log.info("Processing single symbol bot (AMD)...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
 			assertTrue(result.isSuccess());
@@ -696,15 +696,15 @@ class LiveStrategiesIntegrationTest {
 			alertRepository.save(alert1, TEST_USER_ID);
 			createdAlertIds.add(alertId1);
 
-			// Alert on MSFT
+			// Alert on AMZN
 			String alertId2 = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert2 = createTestAlert(alertId2, strategyId, List.of("MSFT"), "PRO");
+			AlertDeployment alert2 = createTestAlert(alertId2, strategyId, List.of("AMZN"), "PRO");
 			alertRepository.save(alert2, TEST_USER_ID);
 			createdAlertIds.add(alertId2);
 
-			// Alert on GOOGL
+			// Alert on COST
 			String alertId3 = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert3 = createTestAlert(alertId3, strategyId, List.of("GOOGL"), "PRO");
+			AlertDeployment alert3 = createTestAlert(alertId3, strategyId, List.of("COST"), "PRO");
 			alertRepository.save(alert3, TEST_USER_ID);
 			createdAlertIds.add(alertId3);
 
@@ -712,10 +712,10 @@ class LiveStrategiesIntegrationTest {
 			SymbolSetGroup group1 = new SymbolSetGroup(List.of("AAPL"));
 			group1.addAlert(alertId1);
 
-			SymbolSetGroup group2 = new SymbolSetGroup(List.of("MSFT"));
+			SymbolSetGroup group2 = new SymbolSetGroup(List.of("AMZN"));
 			group2.addAlert(alertId2);
 
-			SymbolSetGroup group3 = new SymbolSetGroup(List.of("GOOGL"));
+			SymbolSetGroup group3 = new SymbolSetGroup(List.of("COST"));
 			group3.addAlert(alertId3);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
@@ -723,7 +723,7 @@ class LiveStrategiesIntegrationTest {
 					.symbolSets(List.of(group1, group2, group3))
 					.build();
 
-			log.info("Processing 3 symbol sets (AAPL, MSFT, GOOGL)...");
+			log.info("Processing 3 symbol sets (AAPL, AMZN, COST)...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
 			assertTrue(result.isSuccess());
@@ -840,11 +840,11 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String alertId = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("MSFT"), "STARTER");
+			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("AMZN"), "STARTER");
 			alertRepository.save(alert, TEST_USER_ID);
 			createdAlertIds.add(alertId);
 
-			SymbolSetGroup group = new SymbolSetGroup(List.of("MSFT"));
+			SymbolSetGroup group = new SymbolSetGroup(List.of("AMZN"));
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
@@ -871,11 +871,11 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String alertId = TEST_ALERT_PREFIX + UUID.randomUUID();
-			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("GOOGL"), "FREE");
+			AlertDeployment alert = createTestAlert(alertId, strategyId, List.of("COST"), "FREE");
 			alertRepository.save(alert, TEST_USER_ID);
 			createdAlertIds.add(alertId);
 
-			SymbolSetGroup group = new SymbolSetGroup(List.of("GOOGL"));
+			SymbolSetGroup group = new SymbolSetGroup(List.of("COST"));
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
@@ -910,12 +910,12 @@ class LiveStrategiesIntegrationTest {
 			createdStrategyIds.add(strategyId);
 
 			String botId = TEST_BOT_PREFIX + UUID.randomUUID();
-			BotDeployment bot = createTestBot(botId, strategyId, List.of("TSLA"), "PRO", "PAPER");
+			BotDeployment bot = createTestBot(botId, strategyId, List.of("BA"), "PRO", "PAPER");
 			bot.setSimulatedMode(true);
 			botRepository.save(bot, TEST_USER_ID);
 			createdBotIds.add(botId);
 
-			SymbolSetGroup group = new SymbolSetGroup(List.of("TSLA"));
+			SymbolSetGroup group = new SymbolSetGroup(List.of("BA"));
 			group.addBot(botId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
@@ -972,6 +972,7 @@ class LiveStrategiesIntegrationTest {
 
 	private Strategy createTestStrategy(String strategyId, String name, String code) {
 		Strategy strategy = new Strategy();
+		strategy._initAudit(TEST_USER_ID);
 		strategy.setId(strategyId);
 		strategy.setOwnerId(TEST_USER_ID);
 		strategy.setCreatorId(TEST_USER_ID);
@@ -984,6 +985,7 @@ class LiveStrategiesIntegrationTest {
 
 	private AlertDeployment createTestAlert(String alertId, String strategyId, List<String> symbols, String tier) {
 		AlertDeployment alert = new AlertDeployment();
+		alert._initAudit(TEST_USER_ID);
 		alert.setId(alertId);
 		alert.setUserId(TEST_USER_ID);
 		alert.setStrategyId(strategyId);
@@ -996,6 +998,7 @@ class LiveStrategiesIntegrationTest {
 
 	private BotDeployment createTestBot(String botId, String strategyId, List<String> symbols, String tier, String environment) {
 		BotDeployment bot = new BotDeployment();
+		bot._initAudit(TEST_USER_ID);
 		bot.setId(botId);
 		bot.setUserId(TEST_USER_ID);
 		bot.setStrategyId(strategyId);

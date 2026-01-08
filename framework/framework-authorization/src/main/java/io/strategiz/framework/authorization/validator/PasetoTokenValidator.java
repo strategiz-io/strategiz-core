@@ -224,6 +224,45 @@ public class PasetoTokenValidator {
     }
 
     /**
+     * Validates if a token is a valid recovery token.
+     *
+     * @param token the token to validate
+     * @return true if valid recovery token
+     */
+    public boolean isValidRecoveryToken(String token) {
+        try {
+            Map<String, Object> claims = parseToken(token);
+            String tokenType = (String) claims.get("token_type");
+            return "recovery".equals(tokenType);
+        } catch (PasetoException e) {
+            log.debug("Invalid recovery token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Validates a recovery token and returns the recovery ID if valid.
+     *
+     * @param token the token to validate
+     * @return Optional containing the recovery ID if valid, empty if invalid
+     */
+    public Optional<String> validateRecoveryToken(String token) {
+        try {
+            Map<String, Object> claims = parseToken(token);
+            String tokenType = (String) claims.get("token_type");
+            if (!"recovery".equals(tokenType)) {
+                log.debug("Token is not a recovery token");
+                return Optional.empty();
+            }
+            String recoveryId = (String) claims.get("recovery_id");
+            return Optional.ofNullable(recoveryId);
+        } catch (PasetoException e) {
+            log.debug("Invalid recovery token: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Extracts claims and creates an AuthenticatedUser object.
      */
     private AuthenticatedUser extractAuthenticatedUser(Map<String, Object> claims) {

@@ -87,8 +87,9 @@ public class MarketDataBatchController {
 
 		// Record job execution start - include timeframes in display name
 		String timeframeDisplay = validTimeframes.size() == 4 ? "All" : String.join(", ", validTimeframes);
+		String context = years + "yr, S&P 500 symbols";
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL",
-				"Market Data Backfill (" + timeframeDisplay + ")", toJson(validTimeframes));
+				"Market Data Backfill (" + timeframeDisplay + ")", context);
 
 		// Process all timeframes synchronously
 		long overallStartTime = System.currentTimeMillis();
@@ -188,8 +189,9 @@ public class MarketDataBatchController {
 		List<String> testSymbols = Arrays.asList("AAPL", "MSFT", "GOOGL");
 
 		// Record job execution start
+		String context = "1wk, " + testSymbols.size() + " test symbols (" + String.join(", ", testSymbols) + ")";
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL_TEST",
-				"Market Data Backfill (Test - 1Day)", toJson(testSymbols));
+				"Market Data Backfill (Test)", context);
 
 		try {
 			LocalDateTime endDate = LocalDateTime.now();
@@ -251,8 +253,9 @@ public class MarketDataBatchController {
 		log.info("Timeframe: {}", request.timeframe);
 
 		// Record job execution start - include timeframe in display name
+		String context = request.symbols.size() + " custom symbols";
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL_CUSTOM",
-				"Market Data Backfill (Custom - " + request.timeframe + ")", toJson(request.symbols));
+				"Market Data Backfill (" + request.timeframe + ")", context);
 
 		try {
 			long startTime = System.currentTimeMillis();
@@ -317,8 +320,9 @@ public class MarketDataBatchController {
 				lookbackHours);
 
 		// Record job execution start - include timeframe in display name
+		String context = lookbackHours + "hr lookback, S&P 500 symbols";
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_INCREMENTAL",
-				"Market Data Incremental (" + timeframe + ")", timeframe);
+				"Market Data Incremental (" + timeframe + ")", context);
 
 		try {
 			LocalDateTime endDate = LocalDateTime.now();
@@ -385,8 +389,9 @@ public class MarketDataBatchController {
 				allTimeframes.size(), lookbackHours);
 
 		// Record job execution start
+		String context = lookbackHours + "hr lookback, S&P 500 symbols";
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_INCREMENTAL",
-				"Market Data Incremental (All)", toJson(allTimeframes));
+				"Market Data Incremental (All)", context);
 
 		long startTime = System.currentTimeMillis();
 

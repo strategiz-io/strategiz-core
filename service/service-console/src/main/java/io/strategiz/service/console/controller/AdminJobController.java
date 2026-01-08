@@ -300,6 +300,7 @@ public class AdminJobController extends BaseController {
         record.setErrorCount(entity.getErrorCount());
         record.setErrorDetails(entity.getErrorDetails());
         record.setTimeframes(entity.getTimeframes());
+        record.setContext(entity.getTimeframes()); // Context stored in timeframes field
         return record;
     }
 

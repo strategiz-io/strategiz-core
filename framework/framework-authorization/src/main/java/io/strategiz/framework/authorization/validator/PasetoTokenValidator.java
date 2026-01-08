@@ -55,6 +55,7 @@ public class PasetoTokenValidator {
 
     private SecretKey identityKey;
     private SecretKey sessionKey;
+    private boolean keysLoaded = false;
 
     /**
      * Initialize the validator with keys from Vault
@@ -87,13 +88,25 @@ public class PasetoTokenValidator {
             } catch (Exception e) {
                 log.error("Failed to load keys from Vault: {} - {}", e.getClass().getSimpleName(), e.getMessage());
             }
+        } else {
+            log.error("VaultSecretService is null - cannot load token keys");
         }
 
         if (identityKey == null || sessionKey == null) {
-            log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
-            throw new StrategizException(AuthorizationErrorDetails.CONFIGURATION_ERROR,
-                "PasetoTokenValidator", "Token keys must be configured in Vault");
+            log.error("CRITICAL: Token keys not found in Vault. Token validation will fail until keys are loaded.");
+            log.error("Check Vault connectivity and ensure keys exist at: tokens.{}.identity-key and tokens.{}.session-key", env, env);
+            keysLoaded = false;
+        } else {
+            keysLoaded = true;
+            log.info("PasetoTokenValidator initialized successfully with keys for environment: {}", env);
         }
+    }
+
+    /**
+     * Check if the validator has loaded keys and is operational.
+     */
+    public boolean isOperational() {
+        return keysLoaded && identityKey != null && sessionKey != null;
     }
 
     /**
@@ -105,6 +118,12 @@ public class PasetoTokenValidator {
      * @throws PasetoException if the token is invalid, expired, or signature verification fails
      */
     public Map<String, Object> parseToken(String token) throws PasetoException {
+        // Check if keys are loaded
+        if (!keysLoaded) {
+            log.warn("Token validation attempted but keys not loaded");
+            throw new PasetoException("Token validation unavailable - keys not loaded");
+        }
+
         // Try session key first (most common case)
         try {
             return parseWithKey(token, sessionKey);

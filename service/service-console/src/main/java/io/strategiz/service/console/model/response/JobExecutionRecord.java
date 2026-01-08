@@ -39,6 +39,9 @@ public class JobExecutionRecord {
     @JsonProperty("errorDetails")
     private String errorDetails; // JSON array
 
+    @JsonProperty("timeframes")
+    private String timeframes; // JSON array of timeframes processed
+
     @JsonProperty("context")
     private String context; // Human-readable context (e.g., "7yr, 547 S&P symbols")
 
@@ -133,5 +136,13 @@ public class JobExecutionRecord {
 
     public void setTimeframes(String timeframes) {
         this.timeframes = timeframes;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
     }
 }

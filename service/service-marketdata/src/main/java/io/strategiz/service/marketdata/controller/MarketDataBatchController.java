@@ -87,7 +87,7 @@ public class MarketDataBatchController {
 
 		// Record job execution start
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_FULL",
-				"MarketData_API_Backfill_Full", toJson(validTimeframes));
+				"Market Data Backfill (Full)", toJson(validTimeframes));
 
 		// Process all timeframes synchronously
 		long overallStartTime = System.currentTimeMillis();
@@ -188,7 +188,7 @@ public class MarketDataBatchController {
 
 		// Record job execution start
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_TEST",
-				"MarketData_API_Backfill_Test", toJson(testSymbols));
+				"Market Data Backfill (Test)", toJson(testSymbols));
 
 		try {
 			LocalDateTime endDate = LocalDateTime.now();
@@ -251,7 +251,7 @@ public class MarketDataBatchController {
 
 		// Record job execution start
 		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_API_BACKFILL_CUSTOM",
-				"MarketData_API_Backfill_Custom", toJson(request.symbols));
+				"Market Data Backfill (Custom)", toJson(request.symbols));
 
 		try {
 			long startTime = System.currentTimeMillis();

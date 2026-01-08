@@ -290,7 +290,7 @@ public class AdminJobController extends BaseController {
     private JobExecutionRecord convertToJobExecutionRecord(JobExecutionEntity entity) {
         JobExecutionRecord record = new JobExecutionRecord();
         record.setExecutionId(entity.getExecutionId());
-        record.setJobName(entity.getJobName());
+        record.setJobName(formatJobName(entity.getJobName()));
         record.setStartTime(formatInstant(entity.getStartTime()));
         record.setEndTime(formatInstant(entity.getEndTime()));
         record.setDurationMs(entity.getDurationMs());
@@ -301,6 +301,17 @@ public class AdminJobController extends BaseController {
         record.setErrorDetails(entity.getErrorDetails());
         record.setTimeframes(entity.getTimeframes());
         return record;
+    }
+
+    /**
+     * Format job name for display by replacing underscores with spaces.
+     * Example: "MarketData_API_Backfill_Full" -> "MarketData API Backfill Full"
+     */
+    private String formatJobName(String jobName) {
+        if (jobName == null) {
+            return null;
+        }
+        return jobName.replace("_", " ");
     }
 
     /**

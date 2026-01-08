@@ -116,4 +116,42 @@ public interface MarketDataTimescaleRepository extends JpaRepository<MarketDataT
         @Param("startTime") Instant startTime,
         @Param("endTime") Instant endTime
     );
+
+    /**
+     * Native upsert that avoids SELECT before INSERT.
+     * Uses PostgreSQL INSERT ... ON CONFLICT to efficiently upsert data.
+     */
+    @Modifying
+    @Query(value = "INSERT INTO market_data (symbol, timeframe, timestamp, open_price, high_price, low_price, " +
+           "close_price, volume, vwap, trades, change_amount, change_percent, data_source, data_quality, " +
+           "asset_type, exchange, collected_at, created_at) " +
+           "VALUES (:symbol, :timeframe, :timestamp, :openPrice, :highPrice, :lowPrice, :closePrice, " +
+           ":volume, :vwap, :trades, :changeAmount, :changePercent, :dataSource, :dataQuality, " +
+           ":assetType, :exchange, :collectedAt, :createdAt) " +
+           "ON CONFLICT (symbol, timeframe, timestamp) DO UPDATE SET " +
+           "open_price = EXCLUDED.open_price, high_price = EXCLUDED.high_price, low_price = EXCLUDED.low_price, " +
+           "close_price = EXCLUDED.close_price, volume = EXCLUDED.volume, vwap = EXCLUDED.vwap, " +
+           "trades = EXCLUDED.trades, change_amount = EXCLUDED.change_amount, change_percent = EXCLUDED.change_percent, " +
+           "data_source = EXCLUDED.data_source, data_quality = EXCLUDED.data_quality, collected_at = EXCLUDED.collected_at",
+           nativeQuery = true)
+    void upsert(
+        @Param("symbol") String symbol,
+        @Param("timeframe") String timeframe,
+        @Param("timestamp") Instant timestamp,
+        @Param("openPrice") Double openPrice,
+        @Param("highPrice") Double highPrice,
+        @Param("lowPrice") Double lowPrice,
+        @Param("closePrice") Double closePrice,
+        @Param("volume") Long volume,
+        @Param("vwap") Double vwap,
+        @Param("trades") Long trades,
+        @Param("changeAmount") Double changeAmount,
+        @Param("changePercent") Double changePercent,
+        @Param("dataSource") String dataSource,
+        @Param("dataQuality") String dataQuality,
+        @Param("assetType") String assetType,
+        @Param("exchange") String exchange,
+        @Param("collectedAt") Instant collectedAt,
+        @Param("createdAt") Instant createdAt
+    );
 }

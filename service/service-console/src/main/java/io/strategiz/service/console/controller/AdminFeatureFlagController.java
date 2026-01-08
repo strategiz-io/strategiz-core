@@ -17,6 +17,8 @@ import java.util.Map;
 /**
  * Admin controller for managing feature flags.
  * Allows administrators to enable/disable features across the platform.
+ *
+ * FeatureFlagService dependency is optional - returns 503 when unavailable.
  */
 @RestController
 @RequestMapping("/v1/console/feature-flags")
@@ -28,8 +30,16 @@ public class AdminFeatureFlagController extends BaseController {
     private final FeatureFlagService featureFlagService;
 
     @Autowired
-    public AdminFeatureFlagController(FeatureFlagService featureFlagService) {
+    public AdminFeatureFlagController(@Autowired(required = false) FeatureFlagService featureFlagService) {
         this.featureFlagService = featureFlagService;
+        log.info("AdminFeatureFlagController initialized - featureFlagService={}", featureFlagService != null);
+    }
+
+    private ResponseEntity<Map<String, Object>> serviceUnavailable() {
+        Map<String, Object> error = new HashMap<>();
+        error.put("error", "Feature flag service not available");
+        error.put("status", 503);
+        return ResponseEntity.status(503).body(error);
     }
 
     @Override
@@ -40,6 +50,9 @@ public class AdminFeatureFlagController extends BaseController {
     @GetMapping
     @Operation(summary = "Get all feature flags", description = "Returns all feature flags in the system")
     public ResponseEntity<Map<String, Object>> getAllFlags(HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("getAllFlags", adminUserId);
 
@@ -57,6 +70,9 @@ public class AdminFeatureFlagController extends BaseController {
     public ResponseEntity<Map<String, Object>> getFlagsByCategory(
             @PathVariable String category,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("getFlagsByCategory", adminUserId, Map.of("category", category));
 
@@ -72,14 +88,17 @@ public class AdminFeatureFlagController extends BaseController {
 
     @GetMapping("/{flagId}")
     @Operation(summary = "Get a specific flag", description = "Returns a specific feature flag by ID")
-    public ResponseEntity<FeatureFlagEntity> getFlag(
+    public ResponseEntity<?> getFlag(
             @PathVariable String flagId,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("getFlag", adminUserId, Map.of("flagId", flagId));
 
         return featureFlagService.getFlag(flagId)
-            .map(ResponseEntity::ok)
+            .map(flag -> ResponseEntity.ok((Object) flag))
             .orElse(ResponseEntity.notFound().build());
     }
 
@@ -88,6 +107,9 @@ public class AdminFeatureFlagController extends BaseController {
     public ResponseEntity<Map<String, Object>> isEnabled(
             @PathVariable String flagId,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("isEnabled", adminUserId, Map.of("flagId", flagId));
 
@@ -102,9 +124,12 @@ public class AdminFeatureFlagController extends BaseController {
 
     @PostMapping("/{flagId}/enable")
     @Operation(summary = "Enable a feature flag", description = "Enables a specific feature flag")
-    public ResponseEntity<FeatureFlagEntity> enableFlag(
+    public ResponseEntity<?> enableFlag(
             @PathVariable String flagId,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("enableFlag", adminUserId, Map.of("flagId", flagId));
 
@@ -116,9 +141,12 @@ public class AdminFeatureFlagController extends BaseController {
 
     @PostMapping("/{flagId}/disable")
     @Operation(summary = "Disable a feature flag", description = "Disables a specific feature flag")
-    public ResponseEntity<FeatureFlagEntity> disableFlag(
+    public ResponseEntity<?> disableFlag(
             @PathVariable String flagId,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("disableFlag", adminUserId, Map.of("flagId", flagId));
 
@@ -130,10 +158,13 @@ public class AdminFeatureFlagController extends BaseController {
 
     @PutMapping("/{flagId}")
     @Operation(summary = "Update a feature flag", description = "Updates a feature flag's properties")
-    public ResponseEntity<FeatureFlagEntity> updateFlag(
+    public ResponseEntity<?> updateFlag(
             @PathVariable String flagId,
             @RequestBody FeatureFlagEntity flagUpdate,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("updateFlag", adminUserId, Map.of("flagId", flagId));
 
@@ -147,9 +178,12 @@ public class AdminFeatureFlagController extends BaseController {
 
     @PostMapping
     @Operation(summary = "Create a new feature flag", description = "Creates a new feature flag")
-    public ResponseEntity<FeatureFlagEntity> createFlag(
+    public ResponseEntity<?> createFlag(
             @RequestBody FeatureFlagEntity flag,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("createFlag", adminUserId, Map.of("flagId", flag.getFlagId()));
 
@@ -164,6 +198,9 @@ public class AdminFeatureFlagController extends BaseController {
     public ResponseEntity<Map<String, Object>> deleteFlag(
             @PathVariable String flagId,
             HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("deleteFlag", adminUserId, Map.of("flagId", flagId));
 
@@ -180,6 +217,9 @@ public class AdminFeatureFlagController extends BaseController {
     @PostMapping("/refresh-cache")
     @Operation(summary = "Refresh flag cache", description = "Refreshes the in-memory feature flag cache")
     public ResponseEntity<Map<String, Object>> refreshCache(HttpServletRequest request) {
+        if (featureFlagService == null) {
+            return serviceUnavailable();
+        }
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("refreshCache", adminUserId);
 

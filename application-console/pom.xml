@@ -123,10 +123,15 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Data access for providers and users -->
+        <!-- Data access for providers, users, and symbols -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-provider</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-symbol</artifactId>
             <version>${project.version}</version>
         </dependency>
 

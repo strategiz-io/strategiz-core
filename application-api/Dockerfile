@@ -4,7 +4,7 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
 # Copy the JAR file
-COPY target/application-web-1.0-SNAPSHOT.jar app.jar
+COPY target/application-api-1.0-SNAPSHOT.jar app.jar
 
 # Expose port
 EXPOSE 8080

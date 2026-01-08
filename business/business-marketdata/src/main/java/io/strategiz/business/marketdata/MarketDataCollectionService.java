@@ -431,6 +431,21 @@ public class MarketDataCollectionService {
     }
 
     /**
+     * Get current configuration values
+     */
+    public int getThreadPoolSize() {
+        return threadPoolSize;
+    }
+
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    public int getBackfillTimeoutMinutes() {
+        return backfillTimeoutMinutes;
+    }
+
+    /**
      * Shutdown thread pool gracefully
      */
     public void shutdown() {

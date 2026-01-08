@@ -529,8 +529,9 @@ public class MarketDataBatchController {
 		status.put("dataFeed", "IEX (free tier)");
 		status.put("defaultTimeframes", Arrays.asList("1Day", "1Hour", "1Week", "1Month"));
 		status.put("defaultBackfillYears", 7);
-		status.put("threadPoolSize", 2);
-		status.put("batchSize", 500);
+		status.put("threadPoolSize", collectionService.getThreadPoolSize());
+		status.put("batchSize", collectionService.getBatchSize());
+		status.put("backfillTimeoutMinutes", collectionService.getBackfillTimeoutMinutes());
 
 		Map<String, String> endpoints = new HashMap<>();
 		endpoints.put("fullBackfill", "POST /v1/marketdata/admin/backfill/full");

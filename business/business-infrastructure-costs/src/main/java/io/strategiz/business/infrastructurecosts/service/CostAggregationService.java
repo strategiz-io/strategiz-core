@@ -64,18 +64,23 @@ public class CostAggregationService {
     private boolean claudeEnabled;
 
     public CostAggregationService(
-            GcpBillingClient gcpBillingClient,
-            GcpMonitoringClient gcpMonitoringClient,
+            @Autowired(required = false) GcpBillingClient gcpBillingClient,
+            @Autowired(required = false) GcpMonitoringClient gcpMonitoringClient,
             @Autowired(required = false) TimescaleBillingClient timescaleBillingClient,
             @Autowired(required = false) SendGridBillingClient sendgridBillingClient,
-            DailyCostRepository dailyCostRepository,
-            FirestoreUsageRepository firestoreUsageRepository) {
+            @Autowired(required = false) DailyCostRepository dailyCostRepository,
+            @Autowired(required = false) FirestoreUsageRepository firestoreUsageRepository) {
         this.gcpBillingClient = gcpBillingClient;
         this.gcpMonitoringClient = gcpMonitoringClient;
         this.timescaleBillingClient = timescaleBillingClient;
         this.sendgridBillingClient = sendgridBillingClient;
         this.dailyCostRepository = dailyCostRepository;
         this.firestoreUsageRepository = firestoreUsageRepository;
+
+        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, timescale={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
+                gcpBillingClient != null, gcpMonitoringClient != null,
+                timescaleBillingClient != null, sendgridBillingClient != null,
+                dailyCostRepository != null, firestoreUsageRepository != null);
     }
 
     /**
@@ -89,8 +94,10 @@ public class CostAggregationService {
         log.info("Getting current month cost summary for {}", month);
 
         try {
-            // Get GCP costs
-            GcpCostSummary gcpSummary = gcpBillingClient.getCostSummary(startOfMonth, today);
+            // Get GCP costs (optional)
+            GcpCostSummary gcpSummary = gcpBillingClient != null
+                    ? gcpBillingClient.getCostSummary(startOfMonth, today)
+                    : GcpCostSummary.empty(startOfMonth, today);
 
             // Get TimescaleDB costs (optional)
             TimescaleCostSummary timescaleSummary = timescaleBillingClient != null
@@ -159,8 +166,15 @@ public class CostAggregationService {
         log.info("Getting daily costs for last {} days", days);
 
         try {
-            // Get GCP daily costs
-            List<GcpDailyCost> gcpDailyCosts = gcpBillingClient.getDailyCosts(days);
+            // Get GCP daily costs (optional)
+            List<GcpDailyCost> gcpDailyCosts = gcpBillingClient != null
+                    ? gcpBillingClient.getDailyCosts(days)
+                    : Collections.emptyList();
+
+            if (gcpDailyCosts.isEmpty()) {
+                log.warn("No GCP billing client available or no data returned");
+                return Collections.emptyList();
+            }
 
             // Get TimescaleDB estimated daily cost (optional)
             BigDecimal dailyTimescaleCost = BigDecimal.ZERO;
@@ -222,7 +236,10 @@ public class CostAggregationService {
         log.info("Getting costs by service for current month");
 
         try {
-            GcpCostSummary gcpSummary = gcpBillingClient.getCurrentMonthCosts();
+            // Get GCP costs (optional)
+            GcpCostSummary gcpSummary = gcpBillingClient != null
+                    ? gcpBillingClient.getCurrentMonthCosts()
+                    : GcpCostSummary.empty(LocalDate.now().withDayOfMonth(1), LocalDate.now());
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
 
@@ -264,13 +281,17 @@ public class CostAggregationService {
         log.info("Getting Firestore usage for last {} days", days);
 
         try {
-            // Get from Cloud Monitoring
-            List<GcpServiceUsage> metrics = gcpMonitoringClient.getDailyFirestoreMetrics(days);
+            // Get from Cloud Monitoring (optional)
+            List<GcpServiceUsage> metrics = gcpMonitoringClient != null
+                    ? gcpMonitoringClient.getDailyFirestoreMetrics(days)
+                    : Collections.emptyList();
 
-            // Also check our tracked data
+            // Also check our tracked data (optional)
             String endDate = LocalDate.now().format(DATE_FORMAT);
             String startDate = LocalDate.now().minusDays(days).format(DATE_FORMAT);
-            List<FirestoreUsageEntity> trackedUsage = firestoreUsageRepository.findByDateRange(startDate, endDate);
+            List<FirestoreUsageEntity> trackedUsage = firestoreUsageRepository != null
+                    ? firestoreUsageRepository.findByDateRange(startDate, endDate)
+                    : Collections.emptyList();
 
             // Convert to response model
             List<FirestoreUsage> result = new ArrayList<>();
@@ -325,9 +346,17 @@ public class CostAggregationService {
 
         log.info("Aggregating daily costs for {}", date);
 
+        // Skip if repository is not available
+        if (dailyCostRepository == null) {
+            log.warn("DailyCostRepository not available, skipping cost aggregation");
+            return;
+        }
+
         try {
-            // Get GCP costs for yesterday
-            GcpCostSummary gcpSummary = gcpBillingClient.getCostSummary(yesterday, yesterday);
+            // Get GCP costs for yesterday (optional)
+            GcpCostSummary gcpSummary = gcpBillingClient != null
+                    ? gcpBillingClient.getCostSummary(yesterday, yesterday)
+                    : GcpCostSummary.empty(yesterday, yesterday);
 
             // Get TimescaleDB costs (optional)
             TimescaleCostSummary timescaleSummary = timescaleBillingClient != null
@@ -342,8 +371,10 @@ public class CostAggregationService {
             // Get subscription costs
             BigDecimal subscriptionCost = getDailySubscriptionCost(yesterday);
 
-            // Get Firestore metrics
-            List<GcpServiceUsage> firestoreMetrics = gcpMonitoringClient.getFirestoreMetrics();
+            // Get Firestore metrics (optional)
+            List<GcpServiceUsage> firestoreMetrics = gcpMonitoringClient != null
+                    ? gcpMonitoringClient.getFirestoreMetrics()
+                    : Collections.emptyList();
 
             // Create and save daily cost entity
             DailyCostEntity entity = new DailyCostEntity(date);
@@ -388,6 +419,11 @@ public class CostAggregationService {
     }
 
     private String getVsLastMonth(BigDecimal currentTotal, String currentMonth) {
+        // Skip comparison if GCP billing client is not available
+        if (gcpBillingClient == null) {
+            return "N/A";
+        }
+
         try {
             YearMonth lastMonth = YearMonth.parse(currentMonth).minusMonths(1);
             LocalDate lastMonthStart = lastMonth.atDay(1);

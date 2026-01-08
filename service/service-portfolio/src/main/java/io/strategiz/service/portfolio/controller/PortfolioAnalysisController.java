@@ -146,8 +146,8 @@ public class PortfolioAnalysisController extends BaseController {
 	}
 
 	/**
-	 * Convert ChatResponse to PortfolioInsightDto. Extracts metadata like title,
-	 * summary, and action items from AI response content.
+	 * Convert ChatResponse to PortfolioInsightDto. Uses metadata from service
+	 * for type/title, extracts summary and action items from AI response content.
 	 */
 	private PortfolioInsightDto convertToInsightDto(ChatResponse chatResponse) {
 		PortfolioInsightDto dto = new PortfolioInsightDto();
@@ -161,10 +161,26 @@ public class PortfolioAnalysisController extends BaseController {
 			dto.setGeneratedAt(chatResponse.getTimestamp().toEpochSecond(ZoneOffset.UTC));
 		}
 
-		// Extract insight type from content (AI should mention it)
-		String type = extractInsightType(chatResponse.getContent());
+		// Use metadata if available (preferred), otherwise fall back to content extraction
+		String type;
+		String title;
+		if (chatResponse.getMetadata() != null) {
+			type = (String) chatResponse.getMetadata().getOrDefault("type", "OVERVIEW");
+			title = (String) chatResponse.getMetadata().getOrDefault("title", generateTitle(type));
+
+			// Use generatedAt from metadata if present
+			Object generatedAt = chatResponse.getMetadata().get("generatedAt");
+			if (generatedAt instanceof Number) {
+				dto.setGeneratedAt(((Number) generatedAt).longValue());
+			}
+		}
+		else {
+			// Fallback to content extraction (legacy behavior)
+			type = extractInsightType(chatResponse.getContent());
+			title = generateTitle(type);
+		}
 		dto.setType(type);
-		dto.setTitle(generateTitle(type));
+		dto.setTitle(title);
 
 		// Extract summary (first 1-2 sentences)
 		String summary = extractSummary(chatResponse.getContent());

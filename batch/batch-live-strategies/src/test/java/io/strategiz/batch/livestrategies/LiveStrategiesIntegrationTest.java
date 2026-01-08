@@ -420,7 +420,7 @@ class LiveStrategiesIntegrationTest {
 
 			assertTrue(loaded.isPresent());
 			assertEquals("LIVE", loaded.get().getEnvironment());
-			assertFalse(loaded.get().isSimulatedMode());
+			assertFalse(loaded.get().getSimulatedMode());
 			assertEquals(5000.0, loaded.get().getMaxPositionSize());
 		}
 	}

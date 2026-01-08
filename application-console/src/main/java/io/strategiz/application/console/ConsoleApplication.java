@@ -52,6 +52,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.data.user",
 	"io.strategiz.data.marketdata",
 	"io.strategiz.data.symbol",
+	"io.strategiz.data.strategy",
 
 	// Framework
 	"io.strategiz.framework.authorization",

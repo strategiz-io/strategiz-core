@@ -83,6 +83,8 @@
             <artifactId>batch-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- NOTE: batch-fundamentals disabled - depends on data-fundamentals-timescale which doesn't exist yet -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-fundamentals</artifactId>
@@ -90,14 +92,13 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>batch-live-strategies</artifactId>
+            <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-
-        <!-- Business logic for batch jobs (explicit for component scan) -->
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>business-fundamentals</artifactId>
+            <artifactId>batch-live-strategies</artifactId>
             <version>${project.version}</version>
         </dependency>
 

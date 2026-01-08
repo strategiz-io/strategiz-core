@@ -7,7 +7,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -21,11 +21,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * AOP aspect for tracking Firestore read/write operations.
  * Intercepts repository calls and records usage metrics.
  *
- * Enable with: gcp.billing.enabled=true
+ * Repository dependency is optional - aspect methods are no-op when unavailable.
  */
 @Aspect
 @Component
-@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class FirestoreUsageTracker {
 
     private static final Logger log = LoggerFactory.getLogger(FirestoreUsageTracker.class);
@@ -37,8 +36,9 @@ public class FirestoreUsageTracker {
     private final AtomicLong pendingReads = new AtomicLong(0);
     private final AtomicLong pendingWrites = new AtomicLong(0);
 
-    public FirestoreUsageTracker(FirestoreUsageRepository firestoreUsageRepository) {
+    public FirestoreUsageTracker(@Autowired(required = false) FirestoreUsageRepository firestoreUsageRepository) {
         this.firestoreUsageRepository = firestoreUsageRepository;
+        log.info("FirestoreUsageTracker initialized - firestoreUsageRepo={}", firestoreUsageRepository != null);
     }
 
     /**
@@ -102,18 +102,27 @@ public class FirestoreUsageTracker {
      */
     @Async
     protected void recordReadAsync(String collection, int count) {
+        if (firestoreUsageRepository == null) {
+            return; // Silent no-op when repository unavailable
+        }
         String today = LocalDate.now().format(DATE_FORMAT);
         firestoreUsageRepository.incrementReads(today, collection, count);
     }
 
     @Async
     protected void recordWriteAsync(String collection, int count) {
+        if (firestoreUsageRepository == null) {
+            return; // Silent no-op when repository unavailable
+        }
         String today = LocalDate.now().format(DATE_FORMAT);
         firestoreUsageRepository.incrementWrites(today, collection, count);
     }
 
     @Async
     protected void recordDeleteAsync(String collection, int count) {
+        if (firestoreUsageRepository == null) {
+            return; // Silent no-op when repository unavailable
+        }
         String today = LocalDate.now().format(DATE_FORMAT);
         // Deletes are tracked separately in the entity
         // For now, count them as writes for cost estimation purposes

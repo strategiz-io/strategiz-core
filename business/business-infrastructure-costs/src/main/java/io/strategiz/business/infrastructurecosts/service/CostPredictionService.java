@@ -5,7 +5,7 @@ import io.strategiz.data.infrastructurecosts.entity.DailyCostEntity;
 import io.strategiz.data.infrastructurecosts.repository.DailyCostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,11 +18,9 @@ import java.util.*;
  * Service for predicting infrastructure costs using linear regression.
  * Uses weighted recent data to project end-of-month costs.
  *
- * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
+ * All dependencies are optional - returns empty predictions when unavailable.
  */
 @Service
-@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
-@ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
 public class CostPredictionService {
 
     private static final Logger log = LoggerFactory.getLogger(CostPredictionService.class);
@@ -32,10 +30,12 @@ public class CostPredictionService {
     private final CostAggregationService costAggregationService;
 
     public CostPredictionService(
-            DailyCostRepository dailyCostRepository,
-            CostAggregationService costAggregationService) {
+            @Autowired(required = false) DailyCostRepository dailyCostRepository,
+            @Autowired(required = false) CostAggregationService costAggregationService) {
         this.dailyCostRepository = dailyCostRepository;
         this.costAggregationService = costAggregationService;
+        log.info("CostPredictionService initialized - dailyCostRepo={}, costAggregation={}",
+                dailyCostRepository != null, costAggregationService != null);
     }
 
     /**
@@ -43,6 +43,11 @@ public class CostPredictionService {
      */
     public CostPrediction predictMonthlyCosts() {
         log.info("Calculating cost prediction for current month");
+
+        if (dailyCostRepository == null) {
+            log.warn("DailyCostRepository not available, returning empty prediction");
+            return CostPrediction.empty();
+        }
 
         try {
             // Get historical daily costs
@@ -132,6 +137,11 @@ public class CostPredictionService {
      * Fallback prediction from current month data when no historical data exists
      */
     private CostPrediction predictFromCurrentMonth() {
+        if (costAggregationService == null) {
+            log.warn("CostAggregationService not available, returning empty prediction");
+            return CostPrediction.empty();
+        }
+
         try {
             var summary = costAggregationService.getCurrentMonthSummary();
 

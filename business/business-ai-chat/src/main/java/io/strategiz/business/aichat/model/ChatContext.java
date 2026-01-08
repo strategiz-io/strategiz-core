@@ -14,6 +14,8 @@ public class ChatContext {
 
 	private String currentPage; // What page/section the user is viewing
 
+	private String systemPrompt; // Optional override for system prompt
+
 	private Map<String, Object> marketData; // Current market information
 
 	private Map<String, Object> portfolioData; // User's portfolio information
@@ -51,6 +53,14 @@ public class ChatContext {
 
 	public void setCurrentPage(String currentPage) {
 		this.currentPage = currentPage;
+	}
+
+	public String getSystemPrompt() {
+		return systemPrompt;
+	}
+
+	public void setSystemPrompt(String systemPrompt) {
+		this.systemPrompt = systemPrompt;
 	}
 
 	public Map<String, Object> getMarketData() {

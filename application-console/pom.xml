@@ -147,6 +147,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- GitHub Client (for AutomationAgentService) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-github</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Infrastructure Costs Business Logic (for AdminCostsController) -->
         <dependency>
             <groupId>io.strategiz</groupId>

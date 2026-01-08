@@ -1,3 +1,9 @@
+---
+id: view-diagrams
+title: How to View and Edit Diagrams
+sidebar_label: View Diagrams
+---
+
 # How to View and Edit Diagrams
 
 ## 🚨 Quick Fix: Install VS Code Extension

@@ -15,6 +15,9 @@ public class JobExecutionRecord {
     @JsonProperty("jobName")
     private String jobName;
 
+    @JsonProperty("displayName")
+    private String displayName;
+
     @JsonProperty("startTime")
     private Instant startTime;
 

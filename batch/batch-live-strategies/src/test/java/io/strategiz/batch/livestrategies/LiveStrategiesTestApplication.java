@@ -40,9 +40,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.data.strategy",
 	"io.strategiz.data.marketdata",
 	"io.strategiz.data.marketdata.timescale",
+	"io.strategiz.data.base.config",
 	"io.strategiz.client.execution",
 	"io.strategiz.client.alpaca",
-	"io.strategiz.service.base.config",
 	"io.strategiz.framework.secrets"
 })
 public class LiveStrategiesTestApplication {

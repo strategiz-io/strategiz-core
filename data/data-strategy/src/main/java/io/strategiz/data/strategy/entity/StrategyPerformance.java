@@ -67,6 +67,9 @@ public class StrategyPerformance implements Serializable {
     @JsonProperty("backtestPeriodDays")
     private Integer backtestPeriodDays; // Actual days tested
 
+    @JsonProperty("timeframe")
+    private String timeframe; // Candlestick interval (e.g., "1D", "1H", "15m")
+
     // Constructors
     public StrategyPerformance() {
     }
@@ -206,6 +209,14 @@ public class StrategyPerformance implements Serializable {
 
     public void setBacktestPeriodDays(Integer backtestPeriodDays) {
         this.backtestPeriodDays = backtestPeriodDays;
+    }
+
+    public String getTimeframe() {
+        return timeframe;
+    }
+
+    public void setTimeframe(String timeframe) {
+        this.timeframe = timeframe;
     }
 
     // Helper methods

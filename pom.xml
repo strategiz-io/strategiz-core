@@ -128,6 +128,7 @@
         <module>service/service-marketing</module>
         <module>service/service-marketdata</module>
         <module>service/service-learn</module>
+        <module>service/service-agents</module>
         <module>service/service-console</module>
         <module>service/service-console-quality</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
@@ -438,6 +439,11 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-console</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-agents</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

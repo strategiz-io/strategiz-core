@@ -33,6 +33,7 @@
         <module>service-my-strategies</module>
         <module>service-walletaddress</module>
         <module>service-learn</module>
+        <module>service-agents</module>
         <module>service-console</module>
         <module>service-console-quality</module>
         <module>service-social</module>

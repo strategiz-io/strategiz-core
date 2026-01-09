@@ -164,6 +164,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- AI Agents Service (Signal Scout, Strategy Optimizer, Earnings Edge) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-agents</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Admin Console Service (admin endpoints) -->
         <dependency>
             <groupId>io.strategiz</groupId>

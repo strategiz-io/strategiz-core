@@ -8,6 +8,7 @@ import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
 import io.strategiz.service.agents.service.EarningsEdgeService;
+import io.strategiz.service.agents.service.NewsSentinelService;
 import io.strategiz.service.agents.service.SignalScoutService;
 import io.strategiz.service.agents.service.StrategyOptimizerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,11 +28,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * REST controller for AI Agents (Signal Scout, Strategy Optimizer, Earnings Edge)
+ * REST controller for AI Agents (Signal Scout, Strategy Optimizer, Earnings Edge, News Sentinel)
  */
 @RestController
 @RequestMapping("/v1/agents")
-@Tag(name = "AI Agents", description = "AI-powered trading agents for signals, strategy optimization, and earnings analysis")
+@Tag(name = "AI Agents", description = "AI-powered trading agents for signals, strategy optimization, earnings analysis, and news")
 public class AIAgentsController {
 
     private static final Logger logger = LoggerFactory.getLogger(AIAgentsController.class);
@@ -39,6 +40,7 @@ public class AIAgentsController {
     private final SignalScoutService signalScoutService;
     private final StrategyOptimizerService strategyOptimizerService;
     private final EarningsEdgeService earningsEdgeService;
+    private final NewsSentinelService newsSentinelService;
     private final SubscriptionService subscriptionService;
     private final FeatureFlagService featureFlagService;
 
@@ -46,11 +48,13 @@ public class AIAgentsController {
             SignalScoutService signalScoutService,
             StrategyOptimizerService strategyOptimizerService,
             EarningsEdgeService earningsEdgeService,
+            NewsSentinelService newsSentinelService,
             SubscriptionService subscriptionService,
             FeatureFlagService featureFlagService) {
         this.signalScoutService = signalScoutService;
         this.strategyOptimizerService = strategyOptimizerService;
         this.earningsEdgeService = earningsEdgeService;
+        this.newsSentinelService = newsSentinelService;
         this.subscriptionService = subscriptionService;
         this.featureFlagService = featureFlagService;
     }
@@ -218,6 +222,61 @@ public class AIAgentsController {
         request.setAgentId("earningsEdge");
 
         return earningsEdgeService.chatStream(request, userId);
+    }
+
+    // ==================== News Sentinel ====================
+
+    @PostMapping("/news-sentinel/chat")
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "News Sentinel chat", description = "Chat with News Sentinel for market news and sentiment analysis")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successful response",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
+    public Mono<ResponseEntity<AgentChatResponse>> newsSentinelChat(
+            @Valid @RequestBody AgentChatRequest request,
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
+        logger.info("News Sentinel chat request from user: {}", userId);
+
+        if (!checkRateLimits(userId)) {
+            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded.")));
+        }
+
+        return newsSentinelService.chat(request, userId)
+            .doOnSuccess(response -> recordUsage(userId, response))
+            .map(ResponseEntity::ok)
+            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(AgentChatResponse.error("newsSentinel", "Failed to generate response")));
+    }
+
+    @GetMapping(value = "/news-sentinel/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "News Sentinel streaming chat", description = "Streaming chat with News Sentinel")
+    public Flux<AgentChatResponse> newsSentinelChatStream(
+            @RequestParam String message,
+            @RequestParam(required = false) String model,
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
+        logger.info("News Sentinel streaming chat from user: {}, model: {}", userId, model);
+
+        if (!checkRateLimits(userId)) {
+            return Flux.just(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded."));
+        }
+
+        subscriptionService.recordMessageUsage(userId);
+
+        AgentChatRequest request = new AgentChatRequest();
+        request.setMessage(message);
+        request.setModel(model);
+        request.setAgentId("newsSentinel");
+
+        return newsSentinelService.chatStream(request, userId);
     }
 
     // ==================== Health Check ====================

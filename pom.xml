@@ -63,6 +63,7 @@
         <module>data/data-quality</module>
         <module>data/data-fundamentals</module>
         <module>data/data-testing</module>
+        <module>data/data-accessibility</module>
 
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->
@@ -131,6 +132,7 @@
         <module>service/service-agents</module>
         <module>service/service-console</module>
         <module>service/service-console-quality</module>
+        <module>service/service-console-accessibility</module>
         <!-- Temporarily disabled due to compilation errors - needs fixing -->
         <!-- <module>service/service-device</module> -->
 
@@ -444,6 +446,11 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>service-agents</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.strategiz</groupId>
+                <artifactId>service-console-accessibility</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

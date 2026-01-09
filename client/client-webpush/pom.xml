@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.strategiz</groupId>
+        <artifactId>client</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>client-webpush</artifactId>
+
+    <description>Web Push API client for browser push notifications</description>
+
+    <dependencies>
+        <!-- Web Push library (includes Bouncy Castle) -->
+        <dependency>
+            <groupId>nl.martijndwars</groupId>
+            <artifactId>web-push</artifactId>
+            <version>5.1.1</version>
+        </dependency>
+
+        <!-- Framework secrets for VAPID keys from Vault -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Data auth for entity access -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring dependencies -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+    </dependencies>
+</project>

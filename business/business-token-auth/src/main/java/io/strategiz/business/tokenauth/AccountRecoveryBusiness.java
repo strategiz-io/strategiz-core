@@ -72,6 +72,88 @@ public class AccountRecoveryBusiness {
     @Autowired
     private PasetoTokenIssuer tokenIssuer;
 
+    @Autowired
+    private SessionAuthBusiness sessionAuthBusiness;
+
+    /**
+     * Complete recovery and create full authentication session.
+     * This should be called after recovery is COMPLETED to log the user in.
+     *
+     * @param recoveryId the recovery request ID
+     * @param ipAddress the client IP address
+     * @param userAgent the client user agent
+     * @return RecoveryAuthResult with session tokens if successful
+     */
+    public RecoveryAuthResult completeRecoveryAndAuthenticate(String recoveryId, String ipAddress, String userAgent) {
+        log.info("Completing recovery and authenticating for: {}", recoveryId);
+
+        Optional<RecoveryRequestEntity> requestOpt = recoveryRequestRepository.findById(recoveryId);
+        if (requestOpt.isEmpty()) {
+            log.warn("Recovery request not found: {}", recoveryId);
+            return RecoveryAuthResult.notFound();
+        }
+
+        RecoveryRequestEntity request = requestOpt.get();
+
+        // Check status - must be COMPLETED
+        if (request.getStatus() != RecoveryStatus.COMPLETED) {
+            log.warn("Recovery request {} is not completed (status: {})", recoveryId, request.getStatus());
+            return RecoveryAuthResult.notCompleted();
+        }
+
+        // Check if already used (prevent replay)
+        if (Boolean.TRUE.equals(request.getUsedForAuthentication())) {
+            log.warn("Recovery request {} has already been used for authentication", recoveryId);
+            return RecoveryAuthResult.alreadyUsed();
+        }
+
+        // Get user
+        Optional<UserEntity> userOpt = userRepository.findById(request.getUserId());
+        if (userOpt.isEmpty()) {
+            log.error("User not found for recovery: {}", request.getUserId());
+            return RecoveryAuthResult.userNotFound();
+        }
+
+        UserEntity user = userOpt.get();
+
+        // Create authentication via recovery method
+        List<String> authMethods = List.of("recovery", "email");
+        if (Boolean.TRUE.equals(request.getSmsVerified())) {
+            authMethods = List.of("recovery", "email", "sms");
+        }
+
+        String userEmail = user.getProfile().getEmail();
+        Boolean demoMode = user.getProfile().getDemoMode();
+
+        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
+                user.getId(),
+                userEmail,
+                authMethods,
+                false, // not partial auth
+                null,  // device ID (optional)
+                null,  // device fingerprint (optional)
+                ipAddress,
+                userAgent,
+                demoMode
+        );
+
+        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+
+        // Mark recovery as used
+        request.setUsedForAuthentication(true);
+        recoveryRequestRepository.update(request, SYSTEM_USER);
+
+        log.info("Recovery authentication completed for user: {}", user.getId());
+
+        return RecoveryAuthResult.success(
+                authResult.accessToken(),
+                authResult.refreshToken(),
+                user.getId(),
+                user.getProfile().getEmail(),
+                user.getProfile().getName()
+        );
+    }
+
     /**
      * Initiate account recovery for an email address.
      *
@@ -590,6 +672,42 @@ public class AccountRecoveryBusiness {
         public static RecoveryStatusResult success(RecoveryStatus status, Boolean mfaRequired,
                                                    Boolean emailVerified, Boolean smsVerified, String phoneNumberHint) {
             return new RecoveryStatusResult(true, status, mfaRequired, emailVerified, smsVerified, phoneNumberHint);
+        }
+    }
+
+    public record RecoveryAuthResult(
+            boolean success,
+            String accessToken,
+            String refreshToken,
+            String userId,
+            String email,
+            String name,
+            String message
+    ) {
+        public static RecoveryAuthResult success(String accessToken, String refreshToken,
+                                                  String userId, String email, String name) {
+            return new RecoveryAuthResult(true, accessToken, refreshToken, userId, email, name,
+                    "Recovery authentication successful.");
+        }
+
+        public static RecoveryAuthResult notFound() {
+            return new RecoveryAuthResult(false, null, null, null, null, null,
+                    "Recovery request not found.");
+        }
+
+        public static RecoveryAuthResult notCompleted() {
+            return new RecoveryAuthResult(false, null, null, null, null, null,
+                    "Recovery verification not completed.");
+        }
+
+        public static RecoveryAuthResult alreadyUsed() {
+            return new RecoveryAuthResult(false, null, null, null, null, null,
+                    "Recovery has already been used for authentication.");
+        }
+
+        public static RecoveryAuthResult userNotFound() {
+            return new RecoveryAuthResult(false, null, null, null, null, null,
+                    "User not found.");
         }
     }
 }

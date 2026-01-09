@@ -1,7 +1,7 @@
 package io.strategiz.business.marketdata;
 
-import io.strategiz.data.marketdata.timescale.entity.JobDefinitionEntity;
-import io.strategiz.data.marketdata.timescale.repository.JobDefinitionRepository;
+import io.strategiz.data.marketdata.firestore.entity.JobDefinitionFirestoreEntity;
+import io.strategiz.data.marketdata.firestore.repository.JobDefinitionFirestoreRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -32,14 +32,14 @@ public class DynamicJobSchedulerBusiness {
 
 	private final TaskScheduler taskScheduler;
 
-	private final JobDefinitionRepository jobDefinitionRepository;
+	private final JobDefinitionFirestoreRepository jobDefinitionRepository;
 
 	private final ApplicationContext applicationContext;
 
 	// Track scheduled tasks so we can cancel/reschedule them
 	private final Map<String, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-	public DynamicJobSchedulerBusiness(TaskScheduler taskScheduler, JobDefinitionRepository jobDefinitionRepository,
+	public DynamicJobSchedulerBusiness(TaskScheduler taskScheduler, JobDefinitionFirestoreRepository jobDefinitionRepository,
 			ApplicationContext applicationContext) {
 		this.taskScheduler = taskScheduler;
 		this.jobDefinitionRepository = jobDefinitionRepository;
@@ -52,10 +52,10 @@ public class DynamicJobSchedulerBusiness {
 	 */
 	@PostConstruct
 	public void initializeSchedules() {
-		List<JobDefinitionEntity> jobs = jobDefinitionRepository.findScheduledJobs();
+		List<JobDefinitionFirestoreEntity> jobs = jobDefinitionRepository.findScheduledJobs();
 		log.info("Initializing dynamic job scheduler with {} jobs from database", jobs.size());
 
-		for (JobDefinitionEntity job : jobs) {
+		for (JobDefinitionFirestoreEntity job : jobs) {
 			try {
 				scheduleJob(job);
 				log.info("Scheduled job: {} with cron: {}", job.getJobId(), job.getScheduleCron());
@@ -74,7 +74,7 @@ public class DynamicJobSchedulerBusiness {
 	 *
 	 * @param job Job definition with schedule
 	 */
-	public void scheduleJob(JobDefinitionEntity job) {
+	public void scheduleJob(JobDefinitionFirestoreEntity job) {
 		// Cancel existing schedule if present
 		cancelJob(job.getJobId());
 
@@ -94,7 +94,7 @@ public class DynamicJobSchedulerBusiness {
 	 */
 	public void updateSchedule(String jobId, String newCron) {
 		// Get job definition
-		JobDefinitionEntity job = jobDefinitionRepository.findById(jobId)
+		JobDefinitionFirestoreEntity job = jobDefinitionRepository.findById(jobId)
 			.orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
 
 		// Update in database
@@ -130,7 +130,7 @@ public class DynamicJobSchedulerBusiness {
 
 		try {
 			// Get job definition
-			JobDefinitionEntity jobDef = jobDefinitionRepository.findById(jobId)
+			JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findById(jobId)
 				.orElseThrow(() -> new IllegalStateException("Job definition not found: " + jobId));
 
 			// Get job bean from Spring context

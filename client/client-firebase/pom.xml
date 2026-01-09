@@ -24,6 +24,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Data Accessibility (for repository interfaces) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-accessibility</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Google Cloud Firestore -->
         <dependency>
             <groupId>com.google.cloud</groupId>

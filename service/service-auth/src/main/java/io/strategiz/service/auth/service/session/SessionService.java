@@ -212,6 +212,41 @@ public class SessionService extends BaseService {
     }
     
     /**
+     * Refresh access token using a valid refresh token
+     * Issues a new access token and sets it as an HTTP-only cookie
+     *
+     * @param refreshToken The refresh token value
+     * @param ipAddress Client IP address for session tracking
+     * @param response HTTP response to set the new access token cookie
+     * @return Optional containing the new access token if successful
+     */
+    public Optional<String> refreshAccessToken(String refreshToken, String ipAddress,
+                                               jakarta.servlet.http.HttpServletResponse response) {
+        log.info("Attempting to refresh access token");
+
+        try {
+            // Use business layer to refresh the token
+            Optional<String> newAccessTokenOpt = sessionBusiness.refreshAccessToken(refreshToken, ipAddress);
+
+            if (newAccessTokenOpt.isEmpty()) {
+                log.info("Failed to refresh access token - invalid or expired refresh token");
+                return Optional.empty();
+            }
+
+            String newAccessToken = newAccessTokenOpt.get();
+
+            // Set the new access token as an HTTP-only cookie
+            cookieUtil.setAccessTokenCookie(response, newAccessToken);
+
+            log.info("Access token refreshed and cookie set successfully");
+            return Optional.of(newAccessToken);
+        } catch (Exception e) {
+            log.error("Error refreshing access token: {}", e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Extract token from request (cookie or header)
      */
     private String extractTokenFromRequest(HttpServletRequest request) {

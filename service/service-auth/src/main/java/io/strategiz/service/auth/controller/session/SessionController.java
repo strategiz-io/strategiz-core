@@ -448,4 +448,68 @@ public class SessionController extends BaseController {
             return ResponseEntity.status(401).build();
         }
     }
+
+    /**
+     * Refresh access token using refresh token from HTTP-only cookie
+     *
+     * This endpoint should be called when the access token expires (401).
+     * It uses the longer-lived refresh token to issue a new access token
+     * without requiring the user to re-authenticate.
+     *
+     * @param httpRequest HTTP servlet request containing refresh token cookie
+     * @param httpResponse HTTP servlet response for setting new access token cookie
+     * @return Success response with new token info, or 401 if refresh fails
+     */
+    @PostMapping("/refresh-cookie")
+    public ResponseEntity<java.util.Map<String, Object>> refreshTokenFromCookie(
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            jakarta.servlet.http.HttpServletResponse httpResponse) {
+        log.info("Refreshing access token from cookie");
+
+        try {
+            // Extract refresh token from cookie
+            String refreshToken = extractRefreshTokenFromRequest(httpRequest);
+            if (refreshToken == null) {
+                log.info("No refresh token cookie found");
+                return ResponseEntity.status(401).build();
+            }
+
+            // Get client IP for session tracking
+            String ipAddress = getClientIp(httpRequest);
+
+            // Attempt to refresh the access token
+            java.util.Optional<String> newAccessTokenOpt = sessionService.refreshAccessToken(refreshToken, ipAddress, httpResponse);
+
+            if (newAccessTokenOpt.isEmpty()) {
+                log.info("Refresh token invalid or expired");
+                return ResponseEntity.status(401).build();
+            }
+
+            // Success - new access token has been set as cookie by the service
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("success", true);
+            response.put("message", "Token refreshed successfully");
+
+            log.info("Access token refreshed successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error refreshing token from cookie: {}", e.getMessage(), e);
+            return ResponseEntity.status(401).build();
+        }
+    }
+
+    /**
+     * Extract refresh token from request cookies
+     */
+    private String extractRefreshTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (jakarta.servlet.http.Cookie cookie : cookies) {
+                if ("strategiz-refresh-token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
 }

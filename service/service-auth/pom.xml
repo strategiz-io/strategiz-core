@@ -104,6 +104,12 @@
             <artifactId>client-coinbase</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Web Push client for push authentication -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-webpush</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Watchlist initialization for new users -->
         <dependency>

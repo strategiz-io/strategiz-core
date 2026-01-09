@@ -50,6 +50,7 @@
         <module>client-execution</module>
         <module>client-sendgrid</module>
         <module>client-fcm</module>
+        <module>client-webpush</module>
     </modules>
     
     <dependencies>

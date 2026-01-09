@@ -185,6 +185,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Console Accessibility Service (WCAG compliance and Lighthouse metrics) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-console-accessibility</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Batch Jobs moved to application-console -->
 
         <!-- Strategy Execution gRPC Client - TEMPORARILY DISABLED: Protobuf generation issues

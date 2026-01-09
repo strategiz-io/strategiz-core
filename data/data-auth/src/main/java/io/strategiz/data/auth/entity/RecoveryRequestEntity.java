@@ -118,6 +118,10 @@ public class RecoveryRequestEntity extends BaseEntity {
     @JsonProperty("smsAttempts")
     private Integer smsAttempts = 0;
 
+    @PropertyName("usedForAuthentication")
+    @JsonProperty("usedForAuthentication")
+    private Boolean usedForAuthentication = false;
+
     // Constructors
     public RecoveryRequestEntity() {
         super();
@@ -293,6 +297,14 @@ public class RecoveryRequestEntity extends BaseEntity {
 
     public void setSmsAttempts(Integer smsAttempts) {
         this.smsAttempts = smsAttempts;
+    }
+
+    public Boolean getUsedForAuthentication() {
+        return usedForAuthentication;
+    }
+
+    public void setUsedForAuthentication(Boolean usedForAuthentication) {
+        this.usedForAuthentication = usedForAuthentication;
     }
 
     // Convenience methods

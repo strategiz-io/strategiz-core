@@ -1,0 +1,310 @@
+package io.strategiz.service.console.accessibility.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import io.strategiz.data.accessibility.entity.CachedAccessibilityMetricsEntity;
+import io.strategiz.data.accessibility.repository.CachedAccessibilityMetricsRepository;
+import io.strategiz.service.console.accessibility.model.AccessibilityOverview;
+import io.strategiz.service.console.accessibility.model.AxeViolation;
+import io.strategiz.service.console.accessibility.model.AxeViolationList;
+import io.strategiz.service.console.accessibility.model.CachedAccessibilityMetrics;
+import io.strategiz.service.console.accessibility.model.LighthouseResult;
+import io.strategiz.service.console.accessibility.model.ScanTarget;
+
+/**
+ * Service for managing accessibility metrics. Retrieves cached metrics from
+ * Firestore and provides data for the admin console dashboard.
+ */
+@Service
+public class AccessibilityMetricsService {
+
+	private static final Logger log = LoggerFactory.getLogger(AccessibilityMetricsService.class);
+
+	private final CachedAccessibilityMetricsRepository cacheRepository;
+
+	@Autowired
+	public AccessibilityMetricsService(CachedAccessibilityMetricsRepository cacheRepository) {
+		this.cacheRepository = cacheRepository;
+	}
+
+	/**
+	 * Get accessibility overview for the dashboard.
+	 * @param appId optional filter by app, null for latest across all apps
+	 * @return accessibility overview with aggregated metrics
+	 */
+	public AccessibilityOverview getAccessibilityOverview(String appId) {
+		log.info("Getting accessibility overview for appId: {}", appId != null ? appId : "all");
+
+		Optional<CachedAccessibilityMetricsEntity> cached = (appId != null) ? cacheRepository.getLatestByApp(appId)
+				: cacheRepository.getLatest();
+
+		if (cached.isEmpty()) {
+			log.warn("No cached accessibility metrics found");
+			return createEmptyOverview();
+		}
+
+		CachedAccessibilityMetricsEntity entity = cached.get();
+		return AccessibilityOverview.builder()
+			.overallGrade(entity.getOverallGrade())
+			.wcagCompliance(entity.getWcagCompliance())
+			.totalViolations(entity.getTotalViolations())
+			.criticalViolations(entity.getCriticalCount())
+			.seriousViolations(entity.getSeriousCount())
+			.moderateViolations(entity.getModerateCount())
+			.minorViolations(entity.getMinorCount())
+			.lighthouseAccessibility(entity.getLighthouseAccessibility())
+			.lighthousePerformance(entity.getLighthousePerformance())
+			.lighthouseSeo(entity.getLighthouseSeo())
+			.lighthouseBestPractices(entity.getLighthouseBestPractices())
+			.lastScanTime(entity.getScannedAt())
+			.lastScanSource(entity.getScanSource())
+			.appId(entity.getAppId())
+			.appName(entity.getAppName())
+			.build();
+	}
+
+	/**
+	 * Get paginated list of axe-core violations.
+	 * @param limit maximum number of violations to return
+	 * @param severity optional filter by impact level
+	 * @param appId optional filter by app
+	 * @return list of violations
+	 */
+	public AxeViolationList getViolations(int limit, String severity, String appId) {
+		log.info("Getting violations: limit={}, severity={}, appId={}", limit, severity, appId);
+
+		Optional<CachedAccessibilityMetricsEntity> cached = (appId != null) ? cacheRepository.getLatestByApp(appId)
+				: cacheRepository.getLatest();
+
+		if (cached.isEmpty() || cached.get().getViolations() == null) {
+			return new AxeViolationList(List.of(), 0);
+		}
+
+		List<CachedAccessibilityMetricsEntity.AxeViolationData> violations = cached.get().getViolations();
+
+		// Filter by severity if specified
+		if (severity != null && !severity.isEmpty()) {
+			violations = violations.stream()
+				.filter(v -> severity.equalsIgnoreCase(v.getImpact()))
+				.collect(Collectors.toList());
+		}
+
+		int total = violations.size();
+
+		// Apply limit
+		List<AxeViolation> result = violations.stream().limit(limit).map(this::convertViolation).toList();
+
+		return new AxeViolationList(result, total);
+	}
+
+	/**
+	 * Get Lighthouse scores for a target.
+	 * @param appId optional filter by app
+	 * @return Lighthouse result with scores
+	 */
+	public LighthouseResult getLighthouseScores(String appId) {
+		log.info("Getting Lighthouse scores for appId: {}", appId != null ? appId : "all");
+
+		Optional<CachedAccessibilityMetricsEntity> cached = (appId != null) ? cacheRepository.getLatestByApp(appId)
+				: cacheRepository.getLatest();
+
+		if (cached.isEmpty()) {
+			return createEmptyLighthouseResult();
+		}
+
+		CachedAccessibilityMetricsEntity entity = cached.get();
+		LighthouseResult result = new LighthouseResult();
+		result.setTargetUrl(entity.getTargetUrl());
+		result.setScanTime(entity.getScannedAt());
+		result.setAccessibilityScore(entity.getLighthouseAccessibility());
+		result.setPerformanceScore(entity.getLighthousePerformance());
+		result.setSeoScore(entity.getLighthouseSeo());
+		result.setBestPracticesScore(entity.getLighthouseBestPractices());
+		result.setAppId(entity.getAppId());
+		result.setAppName(entity.getAppName());
+
+		return result;
+	}
+
+	/**
+	 * Get historical scan results.
+	 * @param limit maximum number of results
+	 * @param appId optional filter by app
+	 * @return list of cached metrics
+	 */
+	public List<CachedAccessibilityMetrics> getHistory(int limit, String appId) {
+		log.info("Getting scan history: limit={}, appId={}", limit, appId);
+
+		List<CachedAccessibilityMetricsEntity> history = (appId != null) ? cacheRepository.getHistoryByApp(appId, limit)
+				: cacheRepository.getHistory(limit);
+
+		return history.stream().map(this::convertToModel).toList();
+	}
+
+	/**
+	 * Cache accessibility analysis results from CI/CD.
+	 * @param metrics the metrics to cache
+	 */
+	public void cacheAnalysisResults(CachedAccessibilityMetrics metrics) {
+		log.info("Caching accessibility analysis results: scanId={}, appId={}, source={}", metrics.getScanId(),
+				metrics.getAppId(), metrics.getScanSource());
+
+		CachedAccessibilityMetricsEntity entity = convertToEntity(metrics);
+		cacheRepository.save(entity);
+
+		log.info("Accessibility analysis results cached successfully");
+	}
+
+	/**
+	 * Get available scan targets.
+	 * @return list of scannable targets
+	 */
+	public List<ScanTarget> getScanTargets() {
+		List<ScanTarget> targets = new ArrayList<>();
+
+		// Web app targets
+		targets.add(new ScanTarget("web-home", "Web App - Home", "https://strategiz.io", "Main landing page", "web",
+				"Strategiz Web"));
+		targets.add(new ScanTarget("web-dashboard", "Web App - Dashboard", "https://strategiz.io/dashboard",
+				"User dashboard", "web", "Strategiz Web"));
+		targets.add(new ScanTarget("web-portfolio", "Web App - Portfolio", "https://strategiz.io/portfolio",
+				"Portfolio management", "web", "Strategiz Web"));
+
+		// Auth portal targets
+		targets.add(new ScanTarget("auth-signin", "Auth - Sign In", "https://auth.strategiz.io/signin", "Sign in page",
+				"auth", "Auth Portal"));
+		targets.add(new ScanTarget("auth-signup", "Auth - Sign Up", "https://auth.strategiz.io/signup", "Sign up page",
+				"auth", "Auth Portal"));
+
+		// Console targets
+		targets.add(new ScanTarget("console-home", "Console - Dashboard", "https://console.strategiz.io",
+				"Admin console dashboard", "console", "Admin Console"));
+
+		return targets;
+	}
+
+	private AccessibilityOverview createEmptyOverview() {
+		return AccessibilityOverview.builder()
+			.overallGrade("N/A")
+			.wcagCompliance(0)
+			.totalViolations(0)
+			.criticalViolations(0)
+			.seriousViolations(0)
+			.moderateViolations(0)
+			.minorViolations(0)
+			.lighthouseAccessibility(0)
+			.lighthousePerformance(0)
+			.lighthouseSeo(0)
+			.lighthouseBestPractices(0)
+			.lastScanSource("No scans yet")
+			.build();
+	}
+
+	private LighthouseResult createEmptyLighthouseResult() {
+		LighthouseResult result = new LighthouseResult();
+		result.setAccessibilityScore(0);
+		result.setPerformanceScore(0);
+		result.setSeoScore(0);
+		result.setBestPracticesScore(0);
+		return result;
+	}
+
+	private AxeViolation convertViolation(CachedAccessibilityMetricsEntity.AxeViolationData data) {
+		AxeViolation violation = new AxeViolation();
+		violation.setRuleId(data.getRuleId());
+		violation.setDescription(data.getDescription());
+		violation.setImpact(data.getImpact());
+		violation.setWcagCriteria(data.getWcagCriteria());
+		violation.setTags(data.getTags());
+		violation.setTargetSelector(data.getTargetSelector());
+		violation.setHtmlSnippet(data.getHtmlSnippet());
+		violation.setHelpUrl(data.getHelpUrl());
+		violation.setNodeCount(data.getNodeCount());
+		return violation;
+	}
+
+	private CachedAccessibilityMetrics convertToModel(CachedAccessibilityMetricsEntity entity) {
+		CachedAccessibilityMetrics model = new CachedAccessibilityMetrics();
+		model.setScanId(entity.getScanId());
+		model.setScannedAt(entity.getScannedAt());
+		model.setGitCommitHash(entity.getGitCommitHash());
+		model.setGitBranch(entity.getGitBranch());
+		model.setBuildNumber(entity.getBuildNumber());
+		model.setScanSource(entity.getScanSource());
+		model.setAppId(entity.getAppId());
+		model.setAppName(entity.getAppName());
+		model.setTargetUrl(entity.getTargetUrl());
+		model.setTotalViolations(entity.getTotalViolations());
+		model.setCriticalCount(entity.getCriticalCount());
+		model.setSeriousCount(entity.getSeriousCount());
+		model.setModerateCount(entity.getModerateCount());
+		model.setMinorCount(entity.getMinorCount());
+		model.setWcagCompliance(entity.getWcagCompliance());
+		model.setOverallGrade(entity.getOverallGrade());
+		model.setLighthouseAccessibility(entity.getLighthouseAccessibility());
+		model.setLighthousePerformance(entity.getLighthousePerformance());
+		model.setLighthouseSeo(entity.getLighthouseSeo());
+		model.setLighthouseBestPractices(entity.getLighthouseBestPractices());
+		model.setViolationsByWcag(entity.getViolationsByWcag());
+
+		if (entity.getViolations() != null) {
+			model.setViolations(entity.getViolations().stream().map(this::convertViolation).toList());
+		}
+
+		return model;
+	}
+
+	private CachedAccessibilityMetricsEntity convertToEntity(CachedAccessibilityMetrics model) {
+		CachedAccessibilityMetricsEntity entity = new CachedAccessibilityMetricsEntity();
+		entity.setScanId(model.getScanId());
+		entity.setScannedAt(model.getScannedAt());
+		entity.setGitCommitHash(model.getGitCommitHash());
+		entity.setGitBranch(model.getGitBranch());
+		entity.setBuildNumber(model.getBuildNumber());
+		entity.setScanSource(model.getScanSource());
+		entity.setAppId(model.getAppId());
+		entity.setAppName(model.getAppName());
+		entity.setTargetUrl(model.getTargetUrl());
+		entity.setTotalViolations(model.getTotalViolations());
+		entity.setCriticalCount(model.getCriticalCount());
+		entity.setSeriousCount(model.getSeriousCount());
+		entity.setModerateCount(model.getModerateCount());
+		entity.setMinorCount(model.getMinorCount());
+		entity.setWcagCompliance(model.getWcagCompliance());
+		entity.setOverallGrade(model.getOverallGrade());
+		entity.setLighthouseAccessibility(model.getLighthouseAccessibility());
+		entity.setLighthousePerformance(model.getLighthousePerformance());
+		entity.setLighthouseSeo(model.getLighthouseSeo());
+		entity.setLighthouseBestPractices(model.getLighthouseBestPractices());
+		entity.setViolationsByWcag(model.getViolationsByWcag());
+
+		if (model.getViolations() != null) {
+			entity.setViolations(model.getViolations().stream().map(this::convertToViolationData).toList());
+		}
+
+		return entity;
+	}
+
+	private CachedAccessibilityMetricsEntity.AxeViolationData convertToViolationData(AxeViolation violation) {
+		CachedAccessibilityMetricsEntity.AxeViolationData data = new CachedAccessibilityMetricsEntity.AxeViolationData();
+		data.setRuleId(violation.getRuleId());
+		data.setDescription(violation.getDescription());
+		data.setImpact(violation.getImpact());
+		data.setWcagCriteria(violation.getWcagCriteria());
+		data.setTags(violation.getTags());
+		data.setTargetSelector(violation.getTargetSelector());
+		data.setHtmlSnippet(violation.getHtmlSnippet());
+		data.setHelpUrl(violation.getHelpUrl());
+		data.setNodeCount(violation.getNodeCount());
+		return data;
+	}
+
+}

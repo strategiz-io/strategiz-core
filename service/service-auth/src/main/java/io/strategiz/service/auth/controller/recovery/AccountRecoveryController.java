@@ -1,6 +1,7 @@
 package io.strategiz.service.auth.controller.recovery;
 
 import io.strategiz.business.tokenauth.AccountRecoveryBusiness;
+import io.strategiz.service.auth.model.recovery.RecoveryAuthResponse;
 import io.strategiz.service.auth.model.recovery.RecoveryCompletionResponse;
 import io.strategiz.service.auth.model.recovery.RecoveryInitiateRequest;
 import io.strategiz.service.auth.model.recovery.RecoveryInitiateResponse;
@@ -11,11 +12,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,8 +55,77 @@ public class AccountRecoveryController {
 
     private static final Logger log = LoggerFactory.getLogger(AccountRecoveryController.class);
 
+    @Value("${session.cookie.domain:}")
+    private String cookieDomain;
+
+    @Value("${session.cookie.secure:true}")
+    private boolean cookieSecure;
+
     @Autowired
     private AccountRecoveryBusiness accountRecoveryBusiness;
+
+    /**
+     * Complete recovery and authenticate.
+     *
+     * <p>After successful email (and optional SMS) verification, this endpoint
+     * creates a full session and sets authentication cookies.</p>
+     *
+     * @param recoveryId the recovery request ID
+     * @param httpRequest the HTTP request for IP/user-agent
+     * @param httpResponse the HTTP response for setting cookies
+     * @return authentication response with user info
+     */
+    @PostMapping("/{recoveryId}/complete")
+    @Operation(summary = "Complete recovery and authenticate",
+            description = "Complete the recovery process and create a full session")
+    @ApiResponse(responseCode = "200", description = "Authentication successful")
+    public ResponseEntity<RecoveryAuthResponse> completeRecoveryAndAuthenticate(
+            @Parameter(description = "Recovery request ID") @PathVariable String recoveryId,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+
+        log.info("Completing recovery and authenticating for: {}", recoveryId);
+
+        String ipAddress = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        AccountRecoveryBusiness.RecoveryAuthResult result =
+                accountRecoveryBusiness.completeRecoveryAndAuthenticate(recoveryId, ipAddress, userAgent);
+
+        if (result.success()) {
+            // Set HTTP-only cookies for session management
+            setAuthCookies(httpResponse, result.accessToken(), result.refreshToken());
+        }
+
+        return ResponseEntity.ok(RecoveryAuthResponse.from(result));
+    }
+
+    /**
+     * Set authentication cookies.
+     */
+    private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
+        // Access token cookie (30 min)
+        Cookie accessCookie = new Cookie("access_token", accessToken);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(cookieSecure);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(30 * 60); // 30 minutes
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            accessCookie.setDomain(cookieDomain);
+        }
+        response.addCookie(accessCookie);
+
+        // Refresh token cookie (7 days)
+        Cookie refreshCookie = new Cookie("refresh_token", refreshToken);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(cookieSecure);
+        refreshCookie.setPath("/");
+        refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            refreshCookie.setDomain(cookieDomain);
+        }
+        response.addCookie(refreshCookie);
+    }
 
     /**
      * Initiate account recovery.

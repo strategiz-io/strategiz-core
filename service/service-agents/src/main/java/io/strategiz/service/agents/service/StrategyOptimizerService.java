@@ -1,10 +1,10 @@
 package io.strategiz.service.agents.service;
 
 import io.strategiz.business.aichat.AIChatBusiness;
-import io.strategiz.business.aichat.context.PortfolioContextProvider;
 import io.strategiz.business.aichat.model.ChatContext;
 import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
+import io.strategiz.service.agents.context.StrategyOptimizationContextProvider;
 import io.strategiz.service.agents.dto.AgentChatMessage;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * Service for Strategy Optimizer agent - trading strategy optimization
+ * Enhanced with comprehensive optimization frameworks and market context
  */
 @Service
 public class StrategyOptimizerService extends BaseService {
@@ -28,11 +29,13 @@ public class StrategyOptimizerService extends BaseService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final AIChatBusiness aiChatBusiness;
-    private final PortfolioContextProvider portfolioContextProvider;
+    private final StrategyOptimizationContextProvider optimizationContextProvider;
 
-    public StrategyOptimizerService(AIChatBusiness aiChatBusiness, PortfolioContextProvider portfolioContextProvider) {
+    public StrategyOptimizerService(
+            AIChatBusiness aiChatBusiness,
+            StrategyOptimizationContextProvider optimizationContextProvider) {
         this.aiChatBusiness = aiChatBusiness;
-        this.portfolioContextProvider = portfolioContextProvider;
+        this.optimizationContextProvider = optimizationContextProvider;
     }
 
     @Override
@@ -75,7 +78,7 @@ public class StrategyOptimizerService extends BaseService {
         context.setUserId(userId);
         context.setFeature("strategy-optimizer");
 
-        // Build strategy context from portfolio/strategies data
+        // Build optimization context with comprehensive frameworks
         String strategyContext = buildStrategyContext(userId, request);
         context.setSystemPrompt(StrategyOptimizerPrompts.buildSystemPrompt(strategyContext));
 
@@ -87,29 +90,68 @@ public class StrategyOptimizerService extends BaseService {
     }
 
     private String buildStrategyContext(String userId, AgentChatRequest request) {
-        StringBuilder sb = new StringBuilder();
+        // Extract parameters from request
+        String strategyCode = null;
+        String strategyType = null;
 
-        // Add portfolio context if available
-        var portfolioContextMap = portfolioContextProvider.getPortfolioContext(userId);
-        if (portfolioContextMap != null && !portfolioContextMap.isEmpty()) {
-            sb.append("Portfolio Context:\n");
-            portfolioContextMap.forEach((key, value) -> sb.append("  ").append(key).append(": ").append(value).append("\n"));
-            sb.append("\n");
-        }
-
-        // Add any strategy-specific context from the request
         if (request.getAdditionalContext() != null) {
-            Object strategyId = request.getAdditionalContext().get("strategyId");
-            if (strategyId != null) {
-                sb.append("Strategy ID: ").append(strategyId).append("\n");
+            Object codeObj = request.getAdditionalContext().get("strategyCode");
+            if (codeObj != null) {
+                strategyCode = codeObj.toString();
             }
-            Object strategyCode = request.getAdditionalContext().get("strategyCode");
-            if (strategyCode != null) {
-                sb.append("Strategy Code:\n").append(strategyCode).append("\n");
+
+            Object typeObj = request.getAdditionalContext().get("strategyType");
+            if (typeObj != null) {
+                strategyType = typeObj.toString();
             }
         }
 
-        return sb.length() > 0 ? sb.toString() : null;
+        // Detect strategy type from message if not provided
+        if (strategyType == null) {
+            strategyType = detectStrategyType(request.getMessage());
+        }
+
+        // Build appropriate context based on request
+        if (strategyCode != null && !strategyCode.isBlank()) {
+            // User provided strategy code - full optimization context
+            log.debug("Building optimization context with strategy code");
+            return optimizationContextProvider.buildOptimizationContext(userId, strategyCode, strategyType);
+        } else if (strategyType != null) {
+            // User asking about a specific strategy type
+            log.debug("Building strategy type context for: {}", strategyType);
+            return optimizationContextProvider.buildStrategyTypeContext(strategyType);
+        } else {
+            // General strategy analysis context
+            log.debug("Building general strategy analysis context");
+            return optimizationContextProvider.buildStrategyAnalysisContext(userId);
+        }
+    }
+
+    /**
+     * Detect strategy type from user message
+     */
+    private String detectStrategyType(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+
+        String messageLower = message.toLowerCase();
+
+        if (messageLower.contains("momentum")) {
+            return "momentum";
+        } else if (messageLower.contains("mean reversion") || messageLower.contains("reversal")) {
+            return "mean-reversion";
+        } else if (messageLower.contains("breakout")) {
+            return "breakout";
+        } else if (messageLower.contains("trend follow")) {
+            return "trend-following";
+        } else if (messageLower.contains("pairs") || messageLower.contains("arbitrage")) {
+            return "pairs-trading";
+        } else if (messageLower.contains("scalp")) {
+            return "scalping";
+        }
+
+        return null;
     }
 
     private List<ChatMessage> convertHistory(List<AgentChatMessage> historyDto) {
@@ -134,5 +176,4 @@ public class StrategyOptimizerService extends BaseService {
         dto.setError(response.getError());
         return dto;
     }
-
 }

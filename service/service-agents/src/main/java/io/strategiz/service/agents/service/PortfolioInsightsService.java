@@ -4,11 +4,11 @@ import io.strategiz.business.aichat.AIChatBusiness;
 import io.strategiz.business.aichat.model.ChatContext;
 import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
-import io.strategiz.service.agents.context.MarketSignalsContextProvider;
+import io.strategiz.service.agents.context.PortfolioAnalysisContextProvider;
 import io.strategiz.service.agents.dto.AgentChatMessage;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
-import io.strategiz.service.agents.prompts.SignalScoutPrompts;
+import io.strategiz.service.agents.prompts.PortfolioInsightsPrompts;
 import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -19,30 +19,32 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for Signal Scout agent - market signal analysis
- * Enhanced with Finnhub API for real market news and sentiment
+ * Service for Portfolio Insights agent - comprehensive portfolio analysis
+ * Enhanced with benchmark comparison, risk analysis, and holdings news
  */
 @Service
-public class SignalScoutService extends BaseService {
+public class PortfolioInsightsService extends BaseService {
 
-    private static final String AGENT_ID = "signalScout";
+    private static final String AGENT_ID = "portfolioInsights";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final AIChatBusiness aiChatBusiness;
-    private final MarketSignalsContextProvider marketSignalsContextProvider;
+    private final PortfolioAnalysisContextProvider portfolioAnalysisContextProvider;
 
-    public SignalScoutService(AIChatBusiness aiChatBusiness, MarketSignalsContextProvider marketSignalsContextProvider) {
+    public PortfolioInsightsService(
+            AIChatBusiness aiChatBusiness,
+            PortfolioAnalysisContextProvider portfolioAnalysisContextProvider) {
         this.aiChatBusiness = aiChatBusiness;
-        this.marketSignalsContextProvider = marketSignalsContextProvider;
+        this.portfolioAnalysisContextProvider = portfolioAnalysisContextProvider;
     }
 
     @Override
     protected String getModuleName() {
-        return "service-agents-signal-scout";
+        return "service-agents-portfolio-insights";
     }
 
     public Mono<AgentChatResponse> chat(AgentChatRequest request, String userId) {
-        log.info("Signal Scout chat request from user: {}, model: {}", userId, request.getModel());
+        log.info("Portfolio Insights chat request from user: {}, model: {}", userId, request.getModel());
 
         try {
             ChatContext context = buildContext(request, userId);
@@ -51,13 +53,13 @@ public class SignalScoutService extends BaseService {
             return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel())
                 .map(response -> convertToDto(response, AGENT_ID));
         } catch (Exception e) {
-            log.error("Error processing Signal Scout chat request", e);
+            log.error("Error processing Portfolio Insights chat request", e);
             return Mono.just(AgentChatResponse.error(AGENT_ID, "Failed to process chat: " + e.getMessage()));
         }
     }
 
     public Flux<AgentChatResponse> chatStream(AgentChatRequest request, String userId) {
-        log.info("Signal Scout streaming chat request from user: {}, model: {}", userId, request.getModel());
+        log.info("Portfolio Insights streaming chat request from user: {}, model: {}", userId, request.getModel());
 
         try {
             ChatContext context = buildContext(request, userId);
@@ -66,7 +68,7 @@ public class SignalScoutService extends BaseService {
             return aiChatBusiness.chatStream(request.getMessage(), context, history, request.getModel())
                 .map(response -> convertToDto(response, AGENT_ID));
         } catch (Exception e) {
-            log.error("Error processing Signal Scout streaming chat request", e);
+            log.error("Error processing Portfolio Insights streaming chat request", e);
             return Flux.just(AgentChatResponse.error(AGENT_ID, "Failed to process streaming chat: " + e.getMessage()));
         }
     }
@@ -74,11 +76,11 @@ public class SignalScoutService extends BaseService {
     private ChatContext buildContext(AgentChatRequest request, String userId) {
         ChatContext context = new ChatContext();
         context.setUserId(userId);
-        context.setFeature("signal-scout");
+        context.setFeature("portfolio-insights");
 
-        // Build market signals context with real data
-        String marketContext = buildMarketContext(request);
-        context.setSystemPrompt(SignalScoutPrompts.buildSystemPrompt(marketContext));
+        // Build portfolio context with comprehensive analysis
+        String portfolioContext = buildPortfolioContext(request, userId);
+        context.setSystemPrompt(PortfolioInsightsPrompts.buildSystemPrompt(portfolioContext));
 
         if (request.getAdditionalContext() != null) {
             context.setAdditionalContext(request.getAdditionalContext());
@@ -87,39 +89,22 @@ public class SignalScoutService extends BaseService {
         return context;
     }
 
-    @SuppressWarnings("unchecked")
-    private String buildMarketContext(AgentChatRequest request) {
-        // Extract parameters from request
-        List<String> symbols = null;
-        String focusArea = null;
-
-        if (request.getAdditionalContext() != null) {
-            Object symbolsObj = request.getAdditionalContext().get("symbols");
-            if (symbolsObj instanceof List<?>) {
-                symbols = ((List<?>) symbolsObj).stream()
-                        .map(Object::toString)
-                        .collect(Collectors.toList());
-            }
-
-            Object focusObj = request.getAdditionalContext().get("focusArea");
-            if (focusObj != null) {
-                focusArea = focusObj.toString();
-            }
-        }
-
+    private String buildPortfolioContext(AgentChatRequest request, String userId) {
         // Check message intent for specific focus
         String messageLower = request.getMessage() != null ? request.getMessage().toLowerCase() : "";
 
-        if (messageLower.contains("sector") || messageLower.contains("rotation")) {
-            log.debug("Building sector rotation context");
-            return marketSignalsContextProvider.buildSectorRotationContext();
-        } else if (messageLower.contains("market") && (messageLower.contains("condition") || messageLower.contains("overview"))) {
-            log.debug("Building market conditions context");
-            return marketSignalsContextProvider.buildMarketConditionsContext();
+        if (messageLower.contains("risk") || messageLower.contains("concentration") ||
+                messageLower.contains("diversif")) {
+            log.debug("Building risk-focused portfolio context");
+            return portfolioAnalysisContextProvider.buildRiskAnalysisContext(userId);
+        } else if (messageLower.contains("rebalance") || messageLower.contains("allocation") ||
+                messageLower.contains("rebalancing")) {
+            log.debug("Building rebalancing-focused portfolio context");
+            return portfolioAnalysisContextProvider.buildRebalancingContext(userId);
         } else {
-            // Default: comprehensive market signals context
-            log.debug("Building comprehensive market signals context");
-            return marketSignalsContextProvider.buildMarketSignalsContext(symbols);
+            // Default: comprehensive portfolio analysis
+            log.debug("Building comprehensive portfolio analysis context");
+            return portfolioAnalysisContextProvider.buildPortfolioAnalysisContext(userId);
         }
     }
 

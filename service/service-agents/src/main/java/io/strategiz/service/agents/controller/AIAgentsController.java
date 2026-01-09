@@ -9,6 +9,7 @@ import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
 import io.strategiz.service.agents.service.EarningsEdgeService;
 import io.strategiz.service.agents.service.NewsSentinelService;
+import io.strategiz.service.agents.service.PortfolioInsightsService;
 import io.strategiz.service.agents.service.SignalScoutService;
 import io.strategiz.service.agents.service.StrategyOptimizerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +42,7 @@ public class AIAgentsController {
     private final StrategyOptimizerService strategyOptimizerService;
     private final EarningsEdgeService earningsEdgeService;
     private final NewsSentinelService newsSentinelService;
+    private final PortfolioInsightsService portfolioInsightsService;
     private final SubscriptionService subscriptionService;
     private final FeatureFlagService featureFlagService;
 
@@ -49,12 +51,14 @@ public class AIAgentsController {
             StrategyOptimizerService strategyOptimizerService,
             EarningsEdgeService earningsEdgeService,
             NewsSentinelService newsSentinelService,
+            PortfolioInsightsService portfolioInsightsService,
             SubscriptionService subscriptionService,
             FeatureFlagService featureFlagService) {
         this.signalScoutService = signalScoutService;
         this.strategyOptimizerService = strategyOptimizerService;
         this.earningsEdgeService = earningsEdgeService;
         this.newsSentinelService = newsSentinelService;
+        this.portfolioInsightsService = portfolioInsightsService;
         this.subscriptionService = subscriptionService;
         this.featureFlagService = featureFlagService;
     }
@@ -277,6 +281,61 @@ public class AIAgentsController {
         request.setAgentId("newsSentinel");
 
         return newsSentinelService.chatStream(request, userId);
+    }
+
+    // ==================== Portfolio Insights ====================
+
+    @PostMapping("/portfolio-insights/chat")
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "Portfolio Insights chat", description = "Chat with Portfolio Agent for portfolio analysis and recommendations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successful response",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized"),
+        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
+    public Mono<ResponseEntity<AgentChatResponse>> portfolioInsightsChat(
+            @Valid @RequestBody AgentChatRequest request,
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
+        logger.info("Portfolio Insights chat request from user: {}", userId);
+
+        if (!checkRateLimits(userId)) {
+            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(AgentChatResponse.error("portfolioInsights", "Daily message limit exceeded.")));
+        }
+
+        return portfolioInsightsService.chat(request, userId)
+            .doOnSuccess(response -> recordUsage(userId, response))
+            .map(ResponseEntity::ok)
+            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(AgentChatResponse.error("portfolioInsights", "Failed to generate response")));
+    }
+
+    @GetMapping(value = "/portfolio-insights/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "Portfolio Insights streaming chat", description = "Streaming chat with Portfolio Agent")
+    public Flux<AgentChatResponse> portfolioInsightsChatStream(
+            @RequestParam String message,
+            @RequestParam(required = false) String model,
+            @AuthUser AuthenticatedUser user) {
+
+        String userId = user.getUserId();
+        logger.info("Portfolio Insights streaming chat from user: {}, model: {}", userId, model);
+
+        if (!checkRateLimits(userId)) {
+            return Flux.just(AgentChatResponse.error("portfolioInsights", "Daily message limit exceeded."));
+        }
+
+        subscriptionService.recordMessageUsage(userId);
+
+        AgentChatRequest request = new AgentChatRequest();
+        request.setMessage(message);
+        request.setModel(model);
+        request.setAgentId("portfolioInsights");
+
+        return portfolioInsightsService.chatStream(request, userId);
     }
 
     // ==================== Health Check ====================

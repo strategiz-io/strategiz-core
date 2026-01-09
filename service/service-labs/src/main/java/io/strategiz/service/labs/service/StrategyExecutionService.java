@@ -100,7 +100,7 @@ public class StrategyExecutionService extends BaseService {
             grpcResponse.isSuccess(), grpcResponse.getExecutionTimeMs());
 
         // 4. Map POJO to DTO (pure transformation, no DB calls)
-        return mapToRestDto(grpcResponse, symbol);
+        return mapToRestDto(grpcResponse, symbol, timeframe);
     }
 
     /**
@@ -254,7 +254,8 @@ public class StrategyExecutionService extends BaseService {
      */
     private ExecuteStrategyResponse mapToRestDto(
             io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
-            String symbol) {
+            String symbol,
+            String timeframe) {
 
         ExecuteStrategyResponse dto = new ExecuteStrategyResponse();
 
@@ -285,7 +286,7 @@ public class StrategyExecutionService extends BaseService {
         }
 
         // Performance - only set if present
-        ExecuteStrategyResponse.Performance performance = mapPerformance(grpcResponse.getPerformance());
+        ExecuteStrategyResponse.Performance performance = mapPerformance(grpcResponse.getPerformance(), timeframe);
         if (performance != null) {
             dto.setPerformance(performance);
         }
@@ -357,7 +358,8 @@ public class StrategyExecutionService extends BaseService {
      * Returns null if input is null (no performance data).
      */
     private ExecuteStrategyResponse.Performance mapPerformance(
-            io.strategiz.client.execution.model.Performance grpcPerf) {
+            io.strategiz.client.execution.model.Performance grpcPerf,
+            String timeframe) {
 
         if (grpcPerf == null) {
             return null;
@@ -382,6 +384,7 @@ public class StrategyExecutionService extends BaseService {
         performance.setStartDate(grpcPerf.getStartDate());
         performance.setEndDate(grpcPerf.getEndDate());
         performance.setTestPeriod(grpcPerf.getTestPeriod());
+        performance.setTimeframe(timeframe);  // Set the timeframe from request
 
         // New fields: buy & hold comparison
         performance.setBuyAndHoldReturn(grpcPerf.getBuyAndHoldReturn());

@@ -51,6 +51,7 @@
         <module>client-sendgrid</module>
         <module>client-fcm</module>
         <module>client-webpush</module>
+        <module>client-finnhub</module>
     </modules>
     
     <dependencies>

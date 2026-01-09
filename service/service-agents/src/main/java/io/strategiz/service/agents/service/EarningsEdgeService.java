@@ -4,7 +4,7 @@ import io.strategiz.business.aichat.AIChatBusiness;
 import io.strategiz.business.aichat.model.ChatContext;
 import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
-import io.strategiz.business.fundamentals.service.FundamentalsQueryService;
+import io.strategiz.service.agents.context.EarningsContextProvider;
 import io.strategiz.service.agents.dto.AgentChatMessage;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 /**
  * Service for Earnings Edge agent - earnings analysis and trading
+ * Enhanced with Finnhub API for real earnings calendar and historical data
  */
 @Service
 public class EarningsEdgeService extends BaseService {
@@ -28,11 +29,11 @@ public class EarningsEdgeService extends BaseService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final AIChatBusiness aiChatBusiness;
-    private final FundamentalsQueryService fundamentalsQueryService;
+    private final EarningsContextProvider earningsContextProvider;
 
-    public EarningsEdgeService(AIChatBusiness aiChatBusiness, FundamentalsQueryService fundamentalsQueryService) {
+    public EarningsEdgeService(AIChatBusiness aiChatBusiness, EarningsContextProvider earningsContextProvider) {
         this.aiChatBusiness = aiChatBusiness;
-        this.fundamentalsQueryService = fundamentalsQueryService;
+        this.earningsContextProvider = earningsContextProvider;
     }
 
     @Override
@@ -75,7 +76,7 @@ public class EarningsEdgeService extends BaseService {
         context.setUserId(userId);
         context.setFeature("earnings-edge");
 
-        // Build earnings context from fundamentals data
+        // Build earnings context with real Finnhub data
         String earningsContext = buildEarningsContext(request);
         context.setSystemPrompt(EarningsEdgePrompts.buildSystemPrompt(earningsContext));
 
@@ -86,42 +87,90 @@ public class EarningsEdgeService extends BaseService {
         return context;
     }
 
+    @SuppressWarnings("unchecked")
     private String buildEarningsContext(AgentChatRequest request) {
-        StringBuilder sb = new StringBuilder();
+        // Extract parameters from request
+        List<String> symbols = null;
+        String focusType = null;
+        String focusSymbol = null;
 
-        // Check if specific symbols are requested
         if (request.getAdditionalContext() != null) {
-            Object symbols = request.getAdditionalContext().get("symbols");
-            if (symbols instanceof List<?> symbolList) {
-                for (Object symbol : symbolList) {
-                    if (symbol instanceof String symbolStr) {
-                        try {
-                            var fundamentals = fundamentalsQueryService.getLatestFundamentalsOrNull(symbolStr);
-                            if (fundamentals != null) {
-                                sb.append(String.format("Symbol: %s\n", symbolStr));
-                                sb.append(String.format("  EPS (Diluted): %s\n", fundamentals.getEpsDiluted()));
-                                sb.append(String.format("  EPS Growth YoY: %s%%\n", fundamentals.getEpsGrowthYoy()));
-                                sb.append(String.format("  P/E Ratio: %s\n", fundamentals.getPriceToEarnings()));
-                                sb.append("\n");
-                            }
-                        } catch (Exception e) {
-                            log.warn("Failed to get fundamentals for symbol: {}", symbolStr, e);
-                        }
-                    }
+            Object symbolsObj = request.getAdditionalContext().get("symbols");
+            if (symbolsObj instanceof List<?>) {
+                symbols = ((List<?>) symbolsObj).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList());
+            }
+
+            Object focusObj = request.getAdditionalContext().get("focusType");
+            if (focusObj != null) {
+                focusType = focusObj.toString();
+            }
+
+            Object symbolObj = request.getAdditionalContext().get("focusSymbol");
+            if (symbolObj != null) {
+                focusSymbol = symbolObj.toString();
+            }
+        }
+
+        // Check if user is asking about a specific symbol
+        String extractedSymbol = extractSymbolFromMessage(request.getMessage());
+        if (extractedSymbol != null) {
+            focusSymbol = extractedSymbol;
+        }
+
+        // Build appropriate context based on request type
+        if (focusSymbol != null) {
+            // User is asking about a specific symbol's earnings
+            log.debug("Building symbol-focused earnings context for: {}", focusSymbol);
+            return earningsContextProvider.buildSymbolEarningsContext(focusSymbol);
+        } else if (symbols != null && !symbols.isEmpty()) {
+            // User has a watchlist
+            log.debug("Building watchlist earnings context for {} symbols", symbols.size());
+            return earningsContextProvider.buildEarningsContext(symbols, focusType);
+        } else {
+            // General upcoming earnings
+            log.debug("Building general upcoming earnings context");
+            return earningsContextProvider.buildUpcomingEarningsContext();
+        }
+    }
+
+    /**
+     * Extract stock symbol from user message
+     */
+    private String extractSymbolFromMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+
+        String upperMessage = message.toUpperCase();
+
+        // Common patterns: "earnings for AAPL", "AAPL earnings", "when does TSLA report", etc.
+        String[] words = upperMessage.split("\\s+");
+        for (String word : words) {
+            // Remove common punctuation
+            word = word.replaceAll("[^A-Z]", "");
+            // Check if it looks like a stock symbol (1-5 uppercase letters)
+            if (word.length() >= 2 && word.length() <= 5 && word.matches("[A-Z]+")) {
+                // Exclude common words that might look like symbols
+                if (!isCommonWord(word)) {
+                    return word;
                 }
             }
         }
 
-        // Add general earnings guidance if no specific data
-        if (sb.length() == 0) {
-            sb.append("No specific earnings data requested. ");
-            sb.append("Ask about specific symbols to get their earnings data, ");
-            sb.append("or ask about upcoming earnings calendar.\n");
-            sb.append("\nNote: Earnings calendar data is being integrated. ");
-            sb.append("Currently available: historical EPS data, P/E ratios, EPS growth rates.");
-        }
+        return null;
+    }
 
-        return sb.toString();
+    private boolean isCommonWord(String word) {
+        // Common words that might be mistaken for symbols
+        return switch (word) {
+            case "THE", "FOR", "AND", "OR", "IS", "IT", "TO", "OF", "IN", "ON", "AT",
+                 "EPS", "ANY", "ALL", "NEW", "NOW", "UP", "DOWN", "GO", "BE", "DO",
+                 "HAS", "HAD", "WAS", "ARE", "CAN", "MAY", "GET", "WHEN", "WHAT", "WILL",
+                 "NEXT", "WEEK", "THIS", "LAST", "BEAT", "MISS", "DATE", "TIME" -> true;
+            default -> false;
+        };
     }
 
     private List<ChatMessage> convertHistory(List<AgentChatMessage> historyDto) {
@@ -146,5 +195,4 @@ public class EarningsEdgeService extends BaseService {
         dto.setError(response.getError());
         return dto;
     }
-
 }

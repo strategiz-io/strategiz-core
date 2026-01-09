@@ -1,10 +1,10 @@
 package io.strategiz.service.agents.service;
 
 import io.strategiz.business.aichat.AIChatBusiness;
-import io.strategiz.business.aichat.context.MarketContextProvider;
 import io.strategiz.business.aichat.model.ChatContext;
 import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
+import io.strategiz.service.agents.context.NewsContextProvider;
 import io.strategiz.service.agents.dto.AgentChatMessage;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
@@ -16,11 +16,11 @@ import reactor.core.publisher.Mono;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Service for News Sentinel agent - real-time news and sentiment analysis
+ * Enhanced with Finnhub API for real market news, SEC filings, and earnings data
  */
 @Service
 public class NewsSentinelService extends BaseService {
@@ -29,11 +29,11 @@ public class NewsSentinelService extends BaseService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final AIChatBusiness aiChatBusiness;
-    private final MarketContextProvider marketContextProvider;
+    private final NewsContextProvider newsContextProvider;
 
-    public NewsSentinelService(AIChatBusiness aiChatBusiness, MarketContextProvider marketContextProvider) {
+    public NewsSentinelService(AIChatBusiness aiChatBusiness, NewsContextProvider newsContextProvider) {
         this.aiChatBusiness = aiChatBusiness;
-        this.marketContextProvider = marketContextProvider;
+        this.newsContextProvider = newsContextProvider;
     }
 
     @Override
@@ -76,8 +76,8 @@ public class NewsSentinelService extends BaseService {
         context.setUserId(userId);
         context.setFeature("news-sentinel");
 
-        // Build news context
-        String newsContext = buildNewsContext(userId, request);
+        // Build news context with real Finnhub data
+        String newsContext = buildNewsContext(request);
         context.setSystemPrompt(NewsSentinelPrompts.buildSystemPrompt(newsContext));
 
         if (request.getAdditionalContext() != null) {
@@ -87,39 +87,96 @@ public class NewsSentinelService extends BaseService {
         return context;
     }
 
-    private String buildNewsContext(String userId, AgentChatRequest request) {
-        StringBuilder sb = new StringBuilder();
+    @SuppressWarnings("unchecked")
+    private String buildNewsContext(AgentChatRequest request) {
+        // Extract parameters from request
+        List<String> symbols = null;
+        String newsType = null;
+        String sector = null;
+        String focusSymbol = null;
 
-        // Add market context for sentiment
-        var marketContextMap = marketContextProvider.getMarketContext(userId);
-        if (marketContextMap != null && !marketContextMap.isEmpty()) {
-            sb.append("Current Market Sentiment:\n");
-            marketContextMap.forEach((key, value) -> sb.append("  ").append(key).append(": ").append(value).append("\n"));
-            sb.append("\n");
-        }
-
-        // Check for specific symbols or sectors in the request
         if (request.getAdditionalContext() != null) {
-            Object symbols = request.getAdditionalContext().get("symbols");
-            if (symbols instanceof List<?> symbolList) {
-                sb.append("Watchlist symbols: ").append(symbolList).append("\n");
+            Object symbolsObj = request.getAdditionalContext().get("symbols");
+            if (symbolsObj instanceof List<?>) {
+                symbols = ((List<?>) symbolsObj).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList());
             }
 
-            Object sector = request.getAdditionalContext().get("sector");
-            if (sector != null) {
-                sb.append("Focus sector: ").append(sector).append("\n");
+            Object newsTypeObj = request.getAdditionalContext().get("newsType");
+            if (newsTypeObj != null) {
+                newsType = newsTypeObj.toString();
             }
 
-            Object newsType = request.getAdditionalContext().get("newsType");
-            if (newsType != null) {
-                sb.append("News type focus: ").append(newsType).append("\n");
+            Object sectorObj = request.getAdditionalContext().get("sector");
+            if (sectorObj != null) {
+                sector = sectorObj.toString();
+            }
+
+            Object focusObj = request.getAdditionalContext().get("focusSymbol");
+            if (focusObj != null) {
+                focusSymbol = focusObj.toString();
             }
         }
 
-        // Add current timestamp for context
-        sb.append("\nCurrent time: ").append(java.time.LocalDateTime.now().format(DATE_FORMATTER));
+        // Check if user is asking about a specific symbol
+        String extractedSymbol = extractSymbolFromMessage(request.getMessage());
+        if (extractedSymbol != null) {
+            focusSymbol = extractedSymbol;
+        }
 
-        return sb.length() > 0 ? sb.toString() : null;
+        // Build appropriate context based on request type
+        if (focusSymbol != null) {
+            // User is asking about a specific symbol
+            log.debug("Building symbol-focused news context for: {}", focusSymbol);
+            return newsContextProvider.buildSymbolNewsContext(focusSymbol);
+        } else if (symbols != null && !symbols.isEmpty()) {
+            // User has a watchlist
+            log.debug("Building watchlist news context for {} symbols", symbols.size());
+            return newsContextProvider.buildNewsContext(symbols, newsType, sector);
+        } else {
+            // General market news
+            log.debug("Building general market news context");
+            return newsContextProvider.buildMarketNewsContext();
+        }
+    }
+
+    /**
+     * Extract stock symbol from user message
+     * Simple extraction - could be enhanced with NLP
+     */
+    private String extractSymbolFromMessage(String message) {
+        if (message == null || message.isBlank()) {
+            return null;
+        }
+
+        String upperMessage = message.toUpperCase();
+
+        // Common patterns: "news for AAPL", "AAPL news", "what about TSLA", etc.
+        String[] words = upperMessage.split("\\s+");
+        for (String word : words) {
+            // Remove common punctuation
+            word = word.replaceAll("[^A-Z]", "");
+            // Check if it looks like a stock symbol (1-5 uppercase letters)
+            if (word.length() >= 1 && word.length() <= 5 && word.matches("[A-Z]+")) {
+                // Exclude common words that might look like symbols
+                if (!isCommonWord(word)) {
+                    return word;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isCommonWord(String word) {
+        // Common words that might be mistaken for symbols
+        return switch (word) {
+            case "A", "I", "THE", "FOR", "AND", "OR", "IS", "IT", "TO", "OF", "IN", "ON", "AT",
+                 "NEWS", "SEC", "ANY", "ALL", "NEW", "NOW", "UP", "DOWN", "GO", "BE", "DO",
+                 "HAS", "HAD", "WAS", "ARE", "CAN", "MAY", "GET", "PUT", "CALL", "BUY", "SELL" -> true;
+            default -> false;
+        };
     }
 
     private List<ChatMessage> convertHistory(List<AgentChatMessage> historyDto) {
@@ -144,5 +201,4 @@ public class NewsSentinelService extends BaseService {
         dto.setError(response.getError());
         return dto;
     }
-
 }

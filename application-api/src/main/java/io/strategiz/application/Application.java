@@ -2,6 +2,8 @@ package io.strategiz.application;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
@@ -18,7 +20,10 @@ import io.strategiz.data.marketdata.config.DataMarketDataConfig;
 /**
  * Main Application class for Strategiz Core
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+    HibernateJpaAutoConfiguration.class,
+    DataSourceTransactionManagerAutoConfiguration.class
+})
 @EnableCaching
 @Import({FirebaseConfig.class, DataAuthConfig.class, DataUserConfig.class, DataProviderConfig.class, DataStrategyConfig.class, DataMarketDataConfig.class})
 @ComponentScan(basePackages = {

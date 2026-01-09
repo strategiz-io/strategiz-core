@@ -131,12 +131,13 @@
             <artifactId>service-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- TimescaleDB Framework Module -->
+        <!-- TimescaleDB Framework Module - temporarily disabled
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-framework-timescale</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-token-auth</artifactId>

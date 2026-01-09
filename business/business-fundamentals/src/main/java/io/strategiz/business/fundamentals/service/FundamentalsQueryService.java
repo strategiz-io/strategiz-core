@@ -3,7 +3,7 @@ package io.strategiz.business.fundamentals.service;
 import io.strategiz.business.fundamentals.exception.FundamentalsErrorDetails;
 import io.strategiz.data.fundamentals.constants.PeriodType;
 import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;
-import io.strategiz.data.fundamentals.timescale.repository.FundamentalsTimescaleRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.FundamentalsClickHouseRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,9 +27,9 @@ public class FundamentalsQueryService {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsQueryService.class);
 
-	private final FundamentalsTimescaleRepository repository;
+	private final FundamentalsClickHouseRepository repository;
 
-	public FundamentalsQueryService(FundamentalsTimescaleRepository repository) {
+	public FundamentalsQueryService(FundamentalsClickHouseRepository repository) {
 		this.repository = repository;
 	}
 

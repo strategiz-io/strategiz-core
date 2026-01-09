@@ -2,7 +2,7 @@ package io.strategiz.business.marketdata;
 
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
 import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
-import io.strategiz.data.marketdata.timescale.repository.JobExecutionRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.JobExecutionClickHouseRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- * Business service for tracking job execution history in TimescaleDB.
+ * Business service for tracking job execution history in ClickHouse.
  *
  * Records job execution metadata for Market Data backfill and incremental jobs:
  * - Job start/completion timestamps
@@ -36,10 +36,10 @@ public class JobExecutionHistoryBusiness {
 
     private static final Logger log = LoggerFactory.getLogger(JobExecutionHistoryBusiness.class);
 
-    private final JobExecutionRepository jobExecutionRepository;
+    private final JobExecutionClickHouseRepository jobExecutionRepository;
 
     @Autowired
-    public JobExecutionHistoryBusiness(JobExecutionRepository jobExecutionRepository) {
+    public JobExecutionHistoryBusiness(JobExecutionClickHouseRepository jobExecutionRepository) {
         this.jobExecutionRepository = jobExecutionRepository;
     }
 

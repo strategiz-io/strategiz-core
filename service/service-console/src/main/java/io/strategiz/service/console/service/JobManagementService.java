@@ -6,8 +6,8 @@ import io.strategiz.batch.livestrategies.DispatchJob;
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
 import io.strategiz.business.fundamentals.model.CollectionResult;
-import io.strategiz.data.marketdata.timescale.entity.JobDefinitionEntity;
-import io.strategiz.data.marketdata.timescale.repository.JobDefinitionRepository;
+import io.strategiz.data.marketdata.firestore.entity.JobDefinitionFirestoreEntity;
+import io.strategiz.data.marketdata.firestore.repository.JobDefinitionFirestoreRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
@@ -51,8 +51,8 @@ public class JobManagementService extends BaseService {
 	// Log streaming service for SSE
 	private final JobLogStreamService jobLogStreamService;
 
-	// Job definitions repository (reads from database)
-	private final JobDefinitionRepository jobDefinitionRepository;
+	// Job definitions repository (reads from Firestore)
+	private final JobDefinitionFirestoreRepository jobDefinitionRepository;
 
 	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
 			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
@@ -60,7 +60,7 @@ public class JobManagementService extends BaseService {
 			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob,
 			Optional<DispatchJob> dispatchJob,
 			JobLogStreamService jobLogStreamService,
-			JobDefinitionRepository jobDefinitionRepository) {
+			JobDefinitionFirestoreRepository jobDefinitionRepository) {
 		this.marketDataBackfillJob = marketDataBackfillJob;
 		this.marketDataIncrementalJob = marketDataIncrementalJob;
 		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
@@ -77,13 +77,13 @@ public class JobManagementService extends BaseService {
 	}
 
 	public List<JobResponse> listJobs() {
-		log.info("Listing all scheduled jobs from database");
+		log.info("Listing all scheduled jobs from Firestore");
 		List<JobResponse> jobs = new ArrayList<>();
 
-		// Read job definitions from database
-		List<JobDefinitionEntity> jobDefinitions = jobDefinitionRepository.findAllOrderByGroupAndName();
+		// Read job definitions from Firestore
+		List<JobDefinitionFirestoreEntity> jobDefinitions = jobDefinitionRepository.findAllOrderByGroupAndName();
 
-		for (JobDefinitionEntity jobDef : jobDefinitions) {
+		for (JobDefinitionFirestoreEntity jobDef : jobDefinitions) {
 			JobResponse job = new JobResponse();
 			job.setName(jobDef.getJobId());
 			job.setDisplayName(jobDef.getDisplayName());
@@ -123,8 +123,8 @@ public class JobManagementService extends BaseService {
 	}
 
 	public JobResponse getJob(String jobId) {
-		// Read job definition from database
-		JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+		// Read job definition from Firestore
+		JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
 			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console",
 					jobId));
 
@@ -166,8 +166,8 @@ public class JobManagementService extends BaseService {
 	public JobResponse triggerJob(String jobId) {
 		log.info("Triggering job: {}", jobId);
 
-		// Verify job exists in database
-		JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+		// Verify job exists in Firestore
+		JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
 			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console",
 					jobId));
 

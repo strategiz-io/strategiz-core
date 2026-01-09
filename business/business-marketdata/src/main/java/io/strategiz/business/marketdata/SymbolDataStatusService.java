@@ -1,8 +1,8 @@
 package io.strategiz.business.marketdata;
 
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
+import io.strategiz.data.marketdata.clickhouse.repository.SymbolDataStatusClickHouseRepository;
 import io.strategiz.data.marketdata.timescale.entity.SymbolDataStatusEntity;
-import io.strategiz.data.marketdata.timescale.repository.SymbolDataStatusRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- * Service for tracking per-symbol data freshness in TimescaleDB.
+ * Service for tracking per-symbol data freshness in ClickHouse.
  *
  * Tracks the status of each symbol/timeframe combination:
  * - Last update timestamp
@@ -40,10 +40,10 @@ public class SymbolDataStatusService {
     private static final long STALE_THRESHOLD_HOURS_INTRADAY = 24;  // 24 hours for intraday data
     private static final int FAILURE_THRESHOLD = 3;  // Consider failed after 3 consecutive failures
 
-    private final SymbolDataStatusRepository symbolDataStatusRepository;
+    private final SymbolDataStatusClickHouseRepository symbolDataStatusRepository;
 
     @Autowired
-    public SymbolDataStatusService(SymbolDataStatusRepository symbolDataStatusRepository) {
+    public SymbolDataStatusService(SymbolDataStatusClickHouseRepository symbolDataStatusRepository) {
         this.symbolDataStatusRepository = symbolDataStatusRepository;
     }
 

@@ -4,7 +4,7 @@ import com.google.cloud.Timestamp;
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
 import io.strategiz.data.marketdata.entity.MarketDataCoverageEntity;
 import io.strategiz.data.marketdata.repository.MarketDataCoverageRepository;
-import io.strategiz.data.marketdata.timescale.repository.SymbolDataStatusRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.SymbolDataStatusClickHouseRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,13 +35,13 @@ public class MarketDataCoverageService {
     private static final Logger log = LoggerFactory.getLogger(MarketDataCoverageService.class);
 
     private final MarketDataCoverageRepository coverageRepository;
-    private final SymbolDataStatusRepository symbolStatusRepository;
+    private final SymbolDataStatusClickHouseRepository symbolStatusRepository;
     private final SymbolService symbolService;
 
     @Autowired
     public MarketDataCoverageService(
             MarketDataCoverageRepository coverageRepository,
-            SymbolDataStatusRepository symbolStatusRepository,
+            SymbolDataStatusClickHouseRepository symbolStatusRepository,
             SymbolService symbolService) {
         this.coverageRepository = coverageRepository;
         this.symbolStatusRepository = symbolStatusRepository;

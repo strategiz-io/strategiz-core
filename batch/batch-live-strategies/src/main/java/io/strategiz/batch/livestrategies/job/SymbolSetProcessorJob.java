@@ -12,7 +12,7 @@ import io.strategiz.client.execution.model.ExecuteListResponse;
 import io.strategiz.client.execution.model.LiveSignal;
 import io.strategiz.execution.grpc.MarketDataBar;
 import io.strategiz.data.marketdata.timescale.entity.MarketDataTimescaleEntity;
-import io.strategiz.data.marketdata.timescale.repository.MarketDataTimescaleRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
 import io.strategiz.data.strategy.entity.BotDeployment;
 import io.strategiz.data.strategy.entity.Strategy;
@@ -65,7 +65,7 @@ public class SymbolSetProcessorJob {
 
 	private final ExecutionServiceClient executionServiceClient;
 
-	private final MarketDataTimescaleRepository marketDataRepository;
+	private final MarketDataClickHouseRepository marketDataRepository;
 
 	@Value("${live-strategies.market-data.lookback-days:365}")
 	private int marketDataLookbackDays;
@@ -79,7 +79,7 @@ public class SymbolSetProcessorJob {
 	public SymbolSetProcessorJob(ReadAlertDeploymentRepository alertRepository,
 			ReadBotDeploymentRepository botRepository, ReadStrategyRepository strategyRepository,
 			List<SignalAdapter> signalAdapters, ExecutionServiceClient executionServiceClient,
-			MarketDataTimescaleRepository marketDataRepository) {
+			MarketDataClickHouseRepository marketDataRepository) {
 		this.alertRepository = alertRepository;
 		this.botRepository = botRepository;
 		this.strategyRepository = strategyRepository;
@@ -113,7 +113,7 @@ public class SymbolSetProcessorJob {
 			log.debug("Collected {} unique symbols from {} symbol sets", allSymbols.size(),
 					message.getSymbolSets().size());
 
-			// 2. Fetch market data for all symbols (from TimescaleDB)
+			// 2. Fetch market data for all symbols (from ClickHouse)
 			Map<String, List<MarketDataBar>> marketData = fetchMarketData(allSymbols);
 			log.debug("Fetched market data for {} symbols", marketData.size());
 
@@ -186,7 +186,7 @@ public class SymbolSetProcessorJob {
 	}
 
 	/**
-	 * Fetch market data for all symbols from TimescaleDB.
+	 * Fetch market data for all symbols from ClickHouse.
 	 * Returns OHLCV bars for each symbol, converted to gRPC MarketDataBar format.
 	 */
 	private Map<String, List<MarketDataBar>> fetchMarketData(Set<String> symbols) {

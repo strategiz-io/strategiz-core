@@ -186,17 +186,22 @@ public class AdminUserService extends BaseService {
             response.setCreatedAt(user.getCreatedDate().toDate().toInstant());
         }
 
-        // Count active sessions
-        List<SessionEntity> sessions = sessionRepository.findByUserIdAndRevokedFalse(user.getId());
-        response.setActiveSessions(sessions.size());
+        // Count active sessions (ACCESS tokens only, exclude expired)
+        Instant now = Instant.now();
+        List<SessionEntity> sessions = sessionRepository
+                .findByUserIdAndTokenTypeAndRevokedFalse(user.getId(), "ACCESS");
+        List<SessionEntity> activeSessions = sessions.stream()
+                .filter(s -> s.getExpiresAt() != null && s.getExpiresAt().isAfter(now))
+                .toList();
+        response.setActiveSessions(activeSessions.size());
 
-        // Get last login from most recent session
+        // Get last login from most recent session activity (use lastAccessedAt, not issuedAt)
         if (!sessions.isEmpty()) {
             sessions.stream()
-                .filter(s -> s.getIssuedAt() != null)
-                .map(SessionEntity::getIssuedAt)
-                .max(Instant::compareTo)
-                .ifPresent(response::setLastLoginAt);
+                    .filter(s -> s.getLastAccessedAt() != null)
+                    .map(SessionEntity::getLastAccessedAt)
+                    .max(Instant::compareTo)
+                    .ifPresent(response::setLastLoginAt);
         }
 
         return response;

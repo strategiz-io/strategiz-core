@@ -2,9 +2,9 @@ package io.strategiz.service.console.controller;
 
 import io.strategiz.business.marketdata.DynamicJobSchedulerBusiness;
 import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
-import io.strategiz.data.marketdata.timescale.entity.JobDefinitionEntity;
+import io.strategiz.data.marketdata.firestore.entity.JobDefinitionFirestoreEntity;
+import io.strategiz.data.marketdata.firestore.repository.JobDefinitionFirestoreRepository;
 import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
-import io.strategiz.data.marketdata.timescale.repository.JobDefinitionRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
@@ -44,14 +44,14 @@ public class AdminJobController extends BaseController {
 
     private final JobManagementService jobManagementService;
     private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
-    private final JobDefinitionRepository jobDefinitionRepository;
+    private final JobDefinitionFirestoreRepository jobDefinitionRepository;
     private final DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness;
 
     @Autowired
     public AdminJobController(
             JobManagementService jobManagementService,
             JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
-            JobDefinitionRepository jobDefinitionRepository,
+            JobDefinitionFirestoreRepository jobDefinitionRepository,
             DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness) {
         this.jobManagementService = jobManagementService;
         this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
@@ -215,7 +215,7 @@ public class AdminJobController extends BaseController {
         logRequest("updateJobSchedule", adminUserId, "jobId=" + jobId + ", cron=" + cron);
 
         // Verify job exists and is a scheduled job
-        JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+        JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
             .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
 
         if (!"CRON".equals(jobDef.getScheduleType())) {
@@ -251,7 +251,7 @@ public class AdminJobController extends BaseController {
         logRequest("updateJobEnabled", adminUserId, "jobId=" + jobId + ", enabled=" + enabled);
 
         // Verify job exists
-        JobDefinitionEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+        JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
             .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
 
         // Update enabled status in database

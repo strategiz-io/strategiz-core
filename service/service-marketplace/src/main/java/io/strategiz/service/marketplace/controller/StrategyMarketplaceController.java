@@ -12,9 +12,16 @@ import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.annotation.AuthUser;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
+import io.strategiz.service.marketplace.model.response.StrategyDetailResponse;
+import io.strategiz.service.marketplace.model.response.StrategySharePreviewResponse;
 
 /**
  * Controller for the Strategy Marketplace.
@@ -78,25 +85,89 @@ public class StrategyMarketplaceController extends BaseController {
     }
     
     /**
-     * Get a specific strategy by ID
+     * Get comprehensive strategy details with access control.
+     *
+     * Query params:
+     * - include: Comma-separated list (trades, equityCurve, comments)
+     *
+     * Example: GET /v1/marketplace/strategies/{id}?include=trades,equityCurve
+     *
+     * @param id Strategy ID
+     * @param include Optional include parameters
+     * @param user Authenticated user (optional - allows public access to public strategies)
+     * @return Strategy detail response
      */
     @GetMapping("/{id}")
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
-    public ResponseEntity<Object> getStrategy(@PathVariable String id) {
+    @RequireAuth(required = false)  // Allow public access to public strategies
+    public ResponseEntity<Object> getStrategy(
+            @PathVariable String id,
+            @RequestParam(required = false) String include,
+            @AuthUser(required = false) AuthenticatedUser user) {
         try {
-            Map<String, Object> strategy = strategyService.getStrategy(id);
-            return ResponseEntity.ok(strategy);
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("not found")) {
+            String userId = user != null ? user.getUserId() : null;
+
+            // Parse include params
+            Set<String> includeParams = new HashSet<>();
+            if (include != null && !include.isEmpty()) {
+                includeParams.addAll(Arrays.asList(include.split(",")));
+            }
+
+            StrategyDetailResponse response = strategyService.getStrategyDetail(id, userId, includeParams);
+            return ResponseEntity.ok(response);
+        } catch (StrategizException e) {
+            // Handle specific exceptions
+            if (e.getErrorDetails() == MarketplaceErrorDetails.STRATEGY_NOT_FOUND) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                        .body(Map.of("error", e.getMessage()));
+            } else if (e.getErrorDetails() == MarketplaceErrorDetails.VIEW_ACCESS_DENIED) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", e.getMessage()));
             }
             log.error("Error getting strategy", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Failed to retrieve strategy: " + e.getMessage()));
+                    .body(Map.of("error", "Failed to retrieve strategy: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("Error getting strategy", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve strategy: " + e.getMessage()));
         }
     }
-    
+
+    /**
+     * Get strategy share preview for Open Graph metadata.
+     * Used by social media platforms when sharing strategy links.
+     *
+     * @param id Strategy ID
+     * @param user Authenticated user (optional - allows public access)
+     * @return Share preview response
+     */
+    @GetMapping("/{id}/share-preview")
+    @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
+    @RequireAuth(required = false)  // Allow public access for social media crawlers
+    public ResponseEntity<Object> getSharePreview(
+            @PathVariable String id,
+            @AuthUser(required = false) AuthenticatedUser user) {
+        try {
+            String userId = user != null ? user.getUserId() : null;
+
+            StrategySharePreviewResponse response = strategyService.getStrategySharePreview(id, userId);
+            return ResponseEntity.ok(response);
+        } catch (StrategizException e) {
+            if (e.getErrorDetails() == MarketplaceErrorDetails.STRATEGY_NOT_FOUND) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Strategy not found"));
+            }
+            log.error("Error getting share preview for strategy {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate share preview"));
+        } catch (Exception e) {
+            log.error("Error getting share preview for strategy {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate share preview"));
+        }
+    }
+
     /**
      * Create a new strategy.
      *

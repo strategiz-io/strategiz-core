@@ -35,6 +35,14 @@ public class AuthenticationAspect {
 
     @Before("@annotation(requireAuth)")
     public void checkAuthentication(JoinPoint joinPoint, RequireAuth requireAuth) {
+        // If authentication is not required, skip all checks
+        if (!requireAuth.required()) {
+            log.debug("Authentication optional for {}.{}, skipping checks",
+                    joinPoint.getSignature().getDeclaringTypeName(),
+                    joinPoint.getSignature().getName());
+            return;
+        }
+
         // Check if user is authenticated
         AuthenticatedUser user = SecurityContextHolder.getAuthenticatedUser()
                 .orElseThrow(() -> {
@@ -74,6 +82,8 @@ public class AuthenticationAspect {
 
     @Before("@within(requireAuth)")
     public void checkAuthenticationOnClass(JoinPoint joinPoint, RequireAuth requireAuth) {
+        // Note: Method-level @RequireAuth should override class-level annotation
+        // The checkAuthentication method will handle the `required` attribute
         checkAuthentication(joinPoint, requireAuth);
     }
 }

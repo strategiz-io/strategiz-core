@@ -54,4 +54,13 @@ public @interface RequireAuth {
      * @return true to allow demo mode users (default), false to deny
      */
     boolean allowDemoMode() default true;
+
+    /**
+     * Whether authentication is required for this endpoint.
+     * When set to false, the endpoint allows anonymous/public access.
+     * Useful for endpoints that can work with or without authentication.
+     *
+     * @return true if authentication is required (default), false if optional
+     */
+    boolean required() default true;
 }

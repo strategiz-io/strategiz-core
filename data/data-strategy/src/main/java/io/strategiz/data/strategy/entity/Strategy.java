@@ -59,6 +59,9 @@ public class Strategy extends BaseEntity {
     @JsonProperty("parameters")
     private Map<String, Object> parameters;
 
+    @JsonProperty("visualRules")
+    private Map<String, Object> visualRules; // Visual strategy builder configuration (JSON)
+
     @JsonProperty("performance")
     private StrategyPerformance performance;
 
@@ -232,9 +235,17 @@ public class Strategy extends BaseEntity {
     public Map<String, Object> getParameters() {
         return parameters;
     }
-    
+
     public void setParameters(Map<String, Object> parameters) {
         this.parameters = parameters;
+    }
+
+    public Map<String, Object> getVisualRules() {
+        return visualRules;
+    }
+
+    public void setVisualRules(Map<String, Object> visualRules) {
+        this.visualRules = visualRules;
     }
 
     public StrategyPerformance getPerformance() {

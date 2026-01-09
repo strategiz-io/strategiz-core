@@ -12,11 +12,15 @@ import io.strategiz.client.stripe.StripeService;
 import io.strategiz.data.strategy.entity.Strategy;
 import io.strategiz.data.strategy.entity.StrategyPerformance;
 import io.strategiz.data.strategy.entity.StrategyPricing;
+import io.strategiz.data.strategy.repository.ReadStrategyRepository;
+import io.strategiz.data.strategy.repository.StrategySubscriptionRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.marketplace.exception.MarketplaceErrorDetails;
+import io.strategiz.service.marketplace.model.response.StrategyDetailResponse;
+import io.strategiz.service.marketplace.model.response.StrategySharePreviewResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +44,12 @@ public class StrategyMarketplaceService extends BaseService {
 
     @Autowired
     private StrategyAccessService strategyAccessService;
+
+    @Autowired
+    private ReadStrategyRepository readStrategyRepository;
+
+    @Autowired
+    private StrategySubscriptionRepository subscriptionRepository;
 
     @Override
     protected String getModuleName() {
@@ -127,7 +137,326 @@ public class StrategyMarketplaceService extends BaseService {
             throw new StrategizException(MarketplaceErrorDetails.STRATEGY_RETRIEVAL_FAILED, "service-marketplace", e, id);
         }
     }
-    
+
+    /**
+     * Get comprehensive strategy details with access control.
+     * This method replaces the legacy getStrategy() method with proper access control enforcement.
+     *
+     * @param id Strategy ID
+     * @param userId User ID (can be null for anonymous/public access)
+     * @param includeParams Set of optional parameters to include (trades, equityCurve, comments)
+     * @return Strategy detail response
+     */
+    public StrategyDetailResponse getStrategyDetail(String id, String userId, java.util.Set<String> includeParams) {
+        try {
+            // 1. Fetch strategy from repository
+            Strategy strategy = readStrategyRepository.findById(id)
+                    .orElseThrow(() -> new StrategizException(
+                            MarketplaceErrorDetails.STRATEGY_NOT_FOUND,
+                            getModuleName(),
+                            id));
+
+            // 2. Enforce access control
+            strategyAccessService.enforceCanView(id, userId);
+
+            // 3. Build response DTO
+            StrategyDetailResponse response = new StrategyDetailResponse();
+
+            // 3a. Basic fields (always included)
+            response.setId(strategy.getId());
+            response.setName(strategy.getName());
+            response.setDescription(strategy.getDescription());
+            response.setLanguage(strategy.getLanguage());
+            response.setType(strategy.getType());
+            response.setCategory(strategy.getCategory());
+            response.setTags(strategy.getTags());
+            response.setParameters(strategy.getParameters());
+            response.setPerformance(strategy.getPerformance());
+            response.setIsPublished(strategy.getIsPublished());
+            response.setIsPublic(strategy.getIsPublic());
+            response.setIsListed(strategy.getIsListed());
+            response.setPricing(strategy.getPricing());
+            response.setSubscriberCount(strategy.getSubscriberCount());
+            response.setCommentCount(strategy.getCommentCount());
+            response.setAverageRating(strategy.getAverageRating());
+            response.setReviewCount(strategy.getReviewCount());
+            response.setDeploymentCount(strategy.getDeploymentCount());
+            response.setIsBestSeller(strategy.getIsBestSeller());
+            response.setIsTrending(strategy.getIsTrending());
+            response.setIsNew(strategy.getIsNew());
+            response.setIsFeatured(strategy.getIsFeatured());
+            response.setCreatorId(strategy.getCreatorId());
+            response.setOwnerId(strategy.getOwnerId());
+            response.setCreatedAt(strategy.getCreatedDate() != null ?
+                    new java.util.Date(strategy.getCreatedDate().getSeconds() * 1000) : null);
+            response.setUpdatedAt(strategy.getModifiedDate() != null ?
+                    new java.util.Date(strategy.getModifiedDate().getSeconds() * 1000) : null);
+
+            // 3b. Conditional fields based on access control
+            boolean isOwner = strategyAccessService.canViewCode(id, userId);
+            if (isOwner) {
+                response.setCode(strategy.getCode());
+                response.setVisualRules(strategy.getVisualRules());
+            }
+
+            // 3c. Set access flags for frontend
+            boolean isSubscriber = userId != null &&
+                    subscriptionRepository.hasActiveSubscription(userId, strategy.getOwnerId());
+
+            StrategyDetailResponse.AccessFlags accessFlags = new StrategyDetailResponse.AccessFlags(
+                    isOwner,
+                    isSubscriber,
+                    strategyAccessService.canViewCode(id, userId),
+                    strategyAccessService.canDeploy(id, userId),
+                    strategyAccessService.canEdit(id, userId)
+            );
+            response.setAccess(accessFlags);
+
+            // 3d. Fetch creator and owner info
+            response.setCreator(fetchCreatorInfo(strategy.getCreatorId()));
+            if (!strategy.getCreatorId().equals(strategy.getOwnerId())) {
+                response.setOwner(fetchCreatorInfo(strategy.getOwnerId()));
+            }
+
+            // 3e. Conditionally include large datasets based on query params
+            if (includeParams != null) {
+                if (includeParams.contains("trades")) {
+                    response.setTradeHistory(extractTradeHistory(strategy.getBacktestResults()));
+                }
+                if (includeParams.contains("equityCurve")) {
+                    response.setEquityCurve(extractEquityCurve(strategy.getBacktestResults()));
+                }
+                // Comments inclusion can be added later when comment service is implemented
+            }
+
+            return response;
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting strategy detail for id: " + id, e);
+            throw new StrategizException(
+                    MarketplaceErrorDetails.STRATEGY_RETRIEVAL_FAILED,
+                    getModuleName(),
+                    e,
+                    id);
+        }
+    }
+
+    /**
+     * Get strategy share preview for Open Graph metadata.
+     *
+     * @param id Strategy ID
+     * @param userId User ID (can be null for anonymous)
+     * @return Share preview response
+     */
+    public StrategySharePreviewResponse getStrategySharePreview(String id, String userId) {
+        try {
+            // 1. Fetch strategy
+            Strategy strategy = readStrategyRepository.findById(id)
+                    .orElseThrow(() -> new StrategizException(
+                            MarketplaceErrorDetails.STRATEGY_NOT_FOUND,
+                            getModuleName(),
+                            "Strategy not found or not accessible"));
+
+            // 2. Check if user can view (return 404 if not accessible to prevent enumeration)
+            if (!strategyAccessService.canViewStrategy(id, userId)) {
+                throw new StrategizException(
+                        MarketplaceErrorDetails.STRATEGY_NOT_FOUND,
+                        getModuleName(),
+                        "Strategy not found or not accessible");
+            }
+
+            // 3. Build preview response
+            StrategySharePreviewResponse response = new StrategySharePreviewResponse();
+            response.setStrategyId(strategy.getId());
+            response.setName(strategy.getName());
+
+            // Truncate description to 200 chars for preview
+            String description = strategy.getDescription();
+            if (description != null && description.length() > 200) {
+                response.setDescription(description.substring(0, 197) + "...");
+            } else {
+                response.setDescription(description);
+            }
+
+            // Build performance summary text
+            StrategyPerformance perf = strategy.getPerformance();
+            if (perf != null && perf.hasData()) {
+                String summary = String.format("%+.1f%% return, %.0f%% win rate",
+                        perf.getTotalReturn() != null ? perf.getTotalReturn() : 0.0,
+                        perf.getWinRate() != null ? perf.getWinRate() : 0.0);
+                response.setPerformanceSummary(summary);
+            }
+
+            // TODO: Generate chart thumbnail image URL
+            // For now, use placeholder or logo
+            response.setThumbnailUrl(null);
+
+            // Set page URL (frontend URL)
+            response.setPageUrl("https://strategiz.io/strategy/" + strategy.getId());
+
+            // Fetch creator info
+            StrategyDetailResponse.CreatorInfo creatorInfo = fetchCreatorInfo(strategy.getCreatorId());
+            StrategySharePreviewResponse.CreatorInfo shareCreatorInfo =
+                    new StrategySharePreviewResponse.CreatorInfo(
+                            creatorInfo.getName(),
+                            creatorInfo.getPhotoURL());
+            response.setCreator(shareCreatorInfo);
+
+            return response;
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error getting share preview for strategy: " + id, e);
+            throw new StrategizException(
+                    MarketplaceErrorDetails.STRATEGY_RETRIEVAL_FAILED,
+                    getModuleName(),
+                    e,
+                    id);
+        }
+    }
+
+    /**
+     * Helper: Fetch creator/owner information from Firestore.
+     * TODO: Add caching (15-min TTL) to reduce Firestore reads
+     *
+     * @param userId User ID
+     * @return Creator info
+     */
+    private StrategyDetailResponse.CreatorInfo fetchCreatorInfo(String userId) {
+        try {
+            Firestore firestore = FirestoreClient.getFirestore();
+            DocumentSnapshot userDoc = firestore.collection("users").document(userId).get().get();
+
+            if (userDoc.exists()) {
+                UserEntity user = userDoc.toObject(UserEntity.class);
+                if (user != null && user.getProfile() != null) {
+                    UserProfileEntity profile = user.getProfile();
+                    return new StrategyDetailResponse.CreatorInfo(
+                            userId,
+                            profile.getName(),
+                            profile.getEmail(),
+                            profile.getPhotoURL());
+                }
+            }
+
+            // Return default if user not found
+            return new StrategyDetailResponse.CreatorInfo(userId, "Unknown User", null, null);
+        } catch (Exception e) {
+            log.warn("Failed to fetch creator info for userId: " + userId, e);
+            return new StrategyDetailResponse.CreatorInfo(userId, "Unknown User", null, null);
+        }
+    }
+
+    /**
+     * Helper: Extract trade history from backtest results map.
+     *
+     * @param backtestResults Backtest results map
+     * @return List of trade history items
+     */
+    private List<StrategyDetailResponse.TradeHistoryItem> extractTradeHistory(
+            Map<String, Object> backtestResults) {
+        if (backtestResults == null || !backtestResults.containsKey("trades")) {
+            return null;
+        }
+
+        try {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> trades = (List<Map<String, Object>>) backtestResults.get("trades");
+            if (trades == null || trades.isEmpty()) {
+                return null;
+            }
+
+            List<StrategyDetailResponse.TradeHistoryItem> tradeHistory = new ArrayList<>();
+            for (Map<String, Object> trade : trades) {
+                StrategyDetailResponse.TradeHistoryItem item = new StrategyDetailResponse.TradeHistoryItem();
+
+                // Parse trade data (adjust field names based on actual backtest result structure)
+                if (trade.get("entryTime") != null) {
+                    item.setEntryTime(new java.util.Date((Long) trade.get("entryTime")));
+                }
+                if (trade.get("exitTime") != null) {
+                    item.setExitTime(new java.util.Date((Long) trade.get("exitTime")));
+                }
+                item.setDirection((String) trade.get("direction"));
+                item.setEntryPrice(getDoubleValue(trade.get("entryPrice")));
+                item.setExitPrice(getDoubleValue(trade.get("exitPrice")));
+                item.setQuantity(getDoubleValue(trade.get("quantity")));
+                item.setPnl(getDoubleValue(trade.get("pnl")));
+                item.setPnlPercent(getDoubleValue(trade.get("pnlPercent")));
+                item.setSignal((String) trade.get("signal"));
+
+                tradeHistory.add(item);
+            }
+
+            return tradeHistory;
+        } catch (Exception e) {
+            log.warn("Failed to extract trade history from backtest results", e);
+            return null;
+        }
+    }
+
+    /**
+     * Helper: Extract equity curve from backtest results map.
+     *
+     * @param backtestResults Backtest results map
+     * @return List of equity curve points
+     */
+    private List<StrategyDetailResponse.EquityCurvePoint> extractEquityCurve(
+            Map<String, Object> backtestResults) {
+        if (backtestResults == null || !backtestResults.containsKey("equityCurve")) {
+            return null;
+        }
+
+        try {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> curve = (List<Map<String, Object>>) backtestResults.get("equityCurve");
+            if (curve == null || curve.isEmpty()) {
+                return null;
+            }
+
+            List<StrategyDetailResponse.EquityCurvePoint> equityCurve = new ArrayList<>();
+            for (Map<String, Object> point : curve) {
+                if (point.get("timestamp") != null) {
+                    StrategyDetailResponse.EquityCurvePoint item = new StrategyDetailResponse.EquityCurvePoint(
+                            new java.util.Date((Long) point.get("timestamp")),
+                            getDoubleValue(point.get("portfolioValue")),
+                            getDoubleValue(point.get("returnPercent"))
+                    );
+                    equityCurve.add(item);
+                }
+            }
+
+            return equityCurve;
+        } catch (Exception e) {
+            log.warn("Failed to extract equity curve from backtest results", e);
+            return null;
+        }
+    }
+
+    /**
+     * Helper: Safely convert Object to Double.
+     */
+    private Double getDoubleValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Double) {
+            return (Double) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     /**
      * Create a new strategy
      * 

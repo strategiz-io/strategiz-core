@@ -26,6 +26,12 @@
 
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>data-marketdata</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>data-symbol</artifactId>
             <version>${project.version}</version>
         </dependency>

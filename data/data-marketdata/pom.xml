@@ -26,6 +26,11 @@
             <artifactId>data-framework-timescale</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-fundamentals</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Framework dependencies -->
         <dependency>

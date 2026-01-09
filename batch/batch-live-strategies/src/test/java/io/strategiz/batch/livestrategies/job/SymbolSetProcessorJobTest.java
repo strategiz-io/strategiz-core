@@ -10,7 +10,7 @@ import io.strategiz.client.execution.model.DeploymentResult;
 import io.strategiz.client.execution.model.ExecuteListResponse;
 import io.strategiz.client.execution.model.LiveSignal;
 import io.strategiz.data.marketdata.timescale.entity.MarketDataTimescaleEntity;
-import io.strategiz.data.marketdata.timescale.repository.MarketDataTimescaleRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
 import io.strategiz.data.strategy.entity.BotDeployment;
 import io.strategiz.data.strategy.entity.Strategy;
@@ -64,7 +64,7 @@ class SymbolSetProcessorJobTest {
 	private ExecutionServiceClient executionServiceClient;
 
 	@Mock
-	private MarketDataTimescaleRepository marketDataRepository;
+	private MarketDataClickHouseRepository marketDataRepository;
 
 	@Mock
 	private SignalAdapter alertSignalAdapter;

@@ -9,10 +9,11 @@ import java.lang.annotation.Target;
 /**
  * Annotation to require specific scopes from the user's PASETO token.
  *
- * <p>This provides Layer 1 authorization - fast, local scope checking from the token.
- * No external calls are made.</p>
+ * <p>This provides Layer 1 authorization - fast, local scope checking from the token. No external
+ * calls are made.
  *
- * <p>Usage examples:</p>
+ * <p>Usage examples:
+ *
  * <pre>
  * // Require a single scope
  * &#64;RequireScope("portfolio:read")
@@ -34,21 +35,22 @@ import java.lang.annotation.Target;
 @Documented
 public @interface RequireScope {
 
-    /**
-     * The scope(s) required for access.
-     *
-     * @return array of required scopes
-     */
-    String[] value();
+  /**
+   * The scope(s) required for access.
+   *
+   * @return array of required scopes
+   */
+  String[] value();
 
-    /**
-     * How to evaluate multiple scopes.
-     * <ul>
-     *   <li>{@link ScopeMode#ANY} - User must have at least one scope (default)</li>
-     *   <li>{@link ScopeMode#ALL} - User must have all scopes</li>
-     * </ul>
-     *
-     * @return the scope mode
-     */
-    ScopeMode mode() default ScopeMode.ANY;
+  /**
+   * How to evaluate multiple scopes.
+   *
+   * <ul>
+   *   <li>{@link ScopeMode#ANY} - User must have at least one scope (default)
+   *   <li>{@link ScopeMode#ALL} - User must have all scopes
+   * </ul>
+   *
+   * @return the scope mode
+   */
+  ScopeMode mode() default ScopeMode.ANY;
 }

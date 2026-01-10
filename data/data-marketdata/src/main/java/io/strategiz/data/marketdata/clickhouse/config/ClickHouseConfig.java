@@ -64,6 +64,11 @@ public class ClickHouseConfig {
 		config.setConnectionTimeout(pool.getConnectionTimeoutMs());
 		config.setIdleTimeout(pool.getIdleTimeoutMs());
 
+		// Connection lifecycle settings (prevent thread starvation)
+		config.setMaxLifetime(1800000); // 30 minutes - recycle connections
+		config.setKeepaliveTime(60000); // 1 minute - send keepalive pings
+		config.setLeakDetectionThreshold(180000); // 3 minutes - detect connection leaks
+
 		// Connection validation
 		config.setConnectionTestQuery("SELECT 1");
 		// Increased to 60s to match connection timeout (was 5s)
@@ -72,6 +77,8 @@ public class ClickHouseConfig {
 		// Pool identification
 		config.setPoolName("ClickHouseHikariPool");
 		config.setRegisterMbeans(true);
+
+		log.info("HikariCP configured with keepalive (60s), maxLifetime (30m), leak detection (3m)");
 
 		log.info("ClickHouse DataSource configured: {}", jdbcUrl.replaceAll("password=[^&]*", "password=***"));
 

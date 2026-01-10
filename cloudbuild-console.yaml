@@ -33,7 +33,7 @@ steps:
       - '--min-instances'
       - '0'
       - '--max-instances'
-      - '3'
+      - '10'
       - '--port'
       - '8080'
       - '--timeout'

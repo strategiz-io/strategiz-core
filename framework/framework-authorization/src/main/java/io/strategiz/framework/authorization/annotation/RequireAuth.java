@@ -9,10 +9,11 @@ import java.lang.annotation.Target;
 /**
  * Annotation to require authentication and optionally specify minimum authentication level.
  *
- * <p>When applied to a controller method or class, the request will be rejected with 401/403
- * if the user is not authenticated or doesn't meet the requirements.</p>
+ * <p>When applied to a controller method or class, the request will be rejected with 401/403 if the
+ * user is not authenticated or doesn't meet the requirements.
  *
- * <p>Usage examples:</p>
+ * <p>Usage examples:
+ *
  * <pre>
  * // Require any authentication
  * &#64;RequireAuth
@@ -34,33 +35,32 @@ import java.lang.annotation.Target;
 @Documented
 public @interface RequireAuth {
 
-    /**
-     * Minimum Authentication Context Reference (ACR) level required.
-     * <ul>
-     *   <li>"0" - No authentication (partial/signup)</li>
-     *   <li>"1" - Single-factor authentication (default)</li>
-     *   <li>"2" - Multi-factor authentication</li>
-     *   <li>"3" - Strong multi-factor (hardware key + another factor)</li>
-     * </ul>
-     *
-     * @return minimum ACR level
-     */
-    String minAcr() default "1";
+  /**
+   * Minimum Authentication Context Reference (ACR) level required.
+   *
+   * <ul>
+   *   <li>"0" - No authentication (partial/signup)
+   *   <li>"1" - Single-factor authentication (default)
+   *   <li>"2" - Multi-factor authentication
+   *   <li>"3" - Strong multi-factor (hardware key + another factor)
+   * </ul>
+   *
+   * @return minimum ACR level
+   */
+  String minAcr() default "1";
 
-    /**
-     * Whether to allow demo mode users.
-     * Set to false for operations that require live trading access.
-     *
-     * @return true to allow demo mode users (default), false to deny
-     */
-    boolean allowDemoMode() default true;
+  /**
+   * Whether to allow demo mode users. Set to false for operations that require live trading access.
+   *
+   * @return true to allow demo mode users (default), false to deny
+   */
+  boolean allowDemoMode() default true;
 
-    /**
-     * Whether authentication is required for this endpoint.
-     * When set to false, the endpoint allows anonymous/public access.
-     * Useful for endpoints that can work with or without authentication.
-     *
-     * @return true if authentication is required (default), false if optional
-     */
-    boolean required() default true;
+  /**
+   * Whether authentication is required for this endpoint. When set to false, the endpoint allows
+   * anonymous/public access. Useful for endpoints that can work with or without authentication.
+   *
+   * @return true if authentication is required (default), false if optional
+   */
+  boolean required() default true;
 }

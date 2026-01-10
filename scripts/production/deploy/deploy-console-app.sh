@@ -41,9 +41,9 @@ echo "[2/3] Building and Pushing Docker Image..."
 # Create a temporary cloudbuild config
 cat > cloudbuild-console-deploy.yaml << EOF
 steps:
-# Build the Docker image
+# Build the Docker image (using production Dockerfile with embedded Vault)
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-f', 'application-console/Dockerfile', '-t', 'gcr.io/\$PROJECT_ID/$SERVICE_NAME', '.']
+  args: ['build', '-f', 'application-console/Dockerfile.production', '-t', 'gcr.io/\$PROJECT_ID/$SERVICE_NAME', '.']
 
 # Push the Docker image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
@@ -65,9 +65,10 @@ steps:
     - '--port=8080'
     - '--min-instances=0'
     - '--max-instances=5'
-    - '--timeout=480'
+    - '--timeout=600'
+    - '--startup-cpu-boost'
     - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod^:^scheduler,console.auth.enabled=true,strategiz.clickhouse.enabled=true,strategiz.timescale.enabled=false'
-    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
+    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest,VAULT_UNSEAL_KEY=vault-unseal-keys:latest'
 
 images:
 - 'gcr.io/\$PROJECT_ID/$SERVICE_NAME'

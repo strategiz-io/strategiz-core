@@ -1,0 +1,63 @@
+# Production Dockerfile with Embedded Vault
+# Multi-stage build for Strategiz Console API
+
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
+WORKDIR /app
+
+# Copy all source (multi-module project)
+COPY pom.xml .
+COPY proto/ proto/
+COPY framework/ framework/
+COPY data/ data/
+COPY client/ client/
+COPY business/ business/
+COPY service/ service/
+COPY batch/ batch/
+COPY application-api/ application-api/
+COPY application-console/ application-console/
+
+# Build the console application
+RUN mvn clean install -Pdocker -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+    rm -rf /root/.m2/repository
+
+# Runtime image
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Install Vault and dependencies
+RUN apt-get update && \
+    apt-get install -y curl unzip jq && \
+    curl -fsSL https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip -o vault.zip && \
+    unzip vault.zip && \
+    mv vault /usr/local/bin/ && \
+    chmod +x /usr/local/bin/vault && \
+    rm vault.zip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download OpenTelemetry Java agent
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.11.0/opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
+RUN chmod 644 /app/opentelemetry-javaagent.jar
+
+# Copy JAR from builder
+COPY --from=builder /app/application-console/target/application-console-1.0-SNAPSHOT.jar app.jar
+
+# Copy Vault configuration and startup script
+COPY scripts/production/vault/vault-config.hcl /app/vault-config.hcl
+COPY scripts/production/utils/start-console.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+# Create Vault data directory
+RUN mkdir -p /app/vault/data
+
+# Environment configuration
+ENV PORT=8080
+ENV SPRING_PROFILES_ACTIVE=prod,scheduler
+ENV JAVA_OPTS="-Xmx3g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+ENV VAULT_ADDR=http://localhost:8200
+
+# Expose port
+EXPOSE 8080
+
+# Use start.sh to initialize Vault and start application
+CMD ["/app/start.sh"]

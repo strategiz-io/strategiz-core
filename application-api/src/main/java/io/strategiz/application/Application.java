@@ -8,7 +8,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Import;
 import io.strategiz.application.config.VaultOAuthInitializer;
-import io.strategiz.data.social.config.DataSocialConfig;
 import io.strategiz.service.social.config.ServiceSocialConfig;
 
 /**
@@ -16,7 +15,7 @@ import io.strategiz.service.social.config.ServiceSocialConfig;
  */
 @SpringBootApplication
 @EnableCaching
-@Import({DataSocialConfig.class, ServiceSocialConfig.class})
+@Import({ServiceSocialConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"
 })

@@ -33,12 +33,11 @@ public class MarketDataService extends BaseService {
 
     private final MarketDataRepository marketDataRepository;
 
-    @Autowired(required = false)
+    @Autowired
     public MarketDataService(MarketDataRepository marketDataRepository) {
         this.marketDataRepository = marketDataRepository;
-        if (marketDataRepository == null) {
-            log.warn("MarketDataRepository not available - market data endpoints will return empty results. Enable TimescaleDB with strategiz.timescale.enabled=true");
-        }
+        log.info("MarketDataService initialized with repository: {}",
+            marketDataRepository.getClass().getSimpleName());
     }
 
     /**

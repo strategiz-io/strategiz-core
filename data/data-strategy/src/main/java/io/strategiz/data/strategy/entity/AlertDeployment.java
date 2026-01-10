@@ -125,6 +125,10 @@ public class AlertDeployment extends BaseEntity implements CircuitBreakerState {
     @JsonProperty("lastDailyReset")
     private Timestamp lastDailyReset; // When daily count was reset
 
+    // Live Performance Metrics
+    @JsonProperty("livePerformance")
+    private AlertLivePerformance livePerformance; // Real-time performance metrics (owner-only)
+
     // Constructors
     public AlertDeployment() {
         super();
@@ -427,6 +431,14 @@ public class AlertDeployment extends BaseEntity implements CircuitBreakerState {
 
     public void setLastDailyReset(Timestamp lastDailyReset) {
         this.lastDailyReset = lastDailyReset;
+    }
+
+    public AlertLivePerformance getLivePerformance() {
+        return livePerformance;
+    }
+
+    public void setLivePerformance(AlertLivePerformance livePerformance) {
+        this.livePerformance = livePerformance;
     }
 
     // Convenience methods

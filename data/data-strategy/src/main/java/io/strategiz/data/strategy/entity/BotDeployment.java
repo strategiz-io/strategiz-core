@@ -129,6 +129,10 @@ public class BotDeployment extends BaseEntity implements CircuitBreakerState {
     @JsonProperty("lastDailyReset")
     private Timestamp lastDailyReset;
 
+    // Live Performance Metrics
+    @JsonProperty("livePerformance")
+    private BotLivePerformance livePerformance; // Real-time trading performance metrics (owner-only)
+
     // Constructors
     public BotDeployment() {
         super();
@@ -387,6 +391,14 @@ public class BotDeployment extends BaseEntity implements CircuitBreakerState {
 
     public void setLastDailyReset(Timestamp lastDailyReset) {
         this.lastDailyReset = lastDailyReset;
+    }
+
+    public BotLivePerformance getLivePerformance() {
+        return livePerformance;
+    }
+
+    public void setLivePerformance(BotLivePerformance livePerformance) {
+        this.livePerformance = livePerformance;
     }
 
     // CircuitBreakerState interface implementation

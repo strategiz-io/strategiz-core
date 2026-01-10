@@ -30,6 +30,11 @@
             <artifactId>data-accessibility</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-waitlist</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Google Cloud Firestore -->
         <dependency>

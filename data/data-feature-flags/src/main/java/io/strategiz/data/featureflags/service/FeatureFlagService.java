@@ -36,6 +36,9 @@ public class FeatureFlagService {
     public static final String FLAG_ROBINHOOD_ENABLED = "robinhood_enabled";
     public static final String FLAG_TRADING_ENABLED = "trading_enabled";
 
+    // Platform flags
+    public static final String FLAG_PRE_LAUNCH_MODE = "pre_launch_mode_enabled";
+
     // AI - Holistic level (entire features)
     public static final String FLAG_AI_LEARN_ENABLED = "ai_learn_enabled";
     public static final String FLAG_AI_LABS_ENABLED = "ai_labs_enabled";
@@ -79,6 +82,10 @@ public class FeatureFlagService {
 
         createDefaultFlag(FLAG_TRADING_ENABLED, "Live Trading",
             "Enable live trading (paper trading always available)", false, "trading");
+
+        // Platform flags
+        createDefaultFlag(FLAG_PRE_LAUNCH_MODE, "Pre-Launch Mode",
+            "Show pre-launch waitlist page instead of main landing page", false, "platform");
 
         // AI - Holistic level
         createDefaultFlag(FLAG_AI_LEARN_ENABLED, "AI Learn Chat",
@@ -210,6 +217,14 @@ public class FeatureFlagService {
      */
     public boolean isLabsAIEnabled() {
         return isEnabled(FLAG_AI_LABS_ENABLED);
+    }
+
+    /**
+     * Check if Pre-Launch Mode is enabled.
+     * When enabled, show pre-launch waitlist page instead of main landing.
+     */
+    public boolean isPreLaunchMode() {
+        return isEnabled(FLAG_PRE_LAUNCH_MODE);
     }
 
     /**

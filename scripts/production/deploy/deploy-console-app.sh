@@ -8,35 +8,15 @@ set -e  # Exit on any error
 echo "===== Deploying Strategiz Console App to Google Cloud Run ====="
 
 # Production Vault Configuration
-echo "===== Configuring Vault for Production ====="
-
-# Check if production Vault token is set
-if [ -z "$VAULT_TOKEN_PROD" ]; then
-    echo "ERROR: VAULT_TOKEN_PROD environment variable not set" >&2
-    echo "" >&2
-    echo "For production deployments, you need to:" >&2
-    echo "1. Create a production token with: ./scripts/vault/create-prod-token.sh" >&2
-    echo "2. Store it in Google Secret Manager:" >&2
-    echo "   echo -n 'YOUR_TOKEN' | gcloud secrets create vault-token --data-file=-" >&2
-    echo "3. Export for this deployment:" >&2
-    echo "   export VAULT_TOKEN_PROD='YOUR_TOKEN'" >&2
-    exit 1
-fi
-
-# Set production Vault address
-export VAULT_ADDR=${VAULT_ADDR_PROD:-https://vault.strategiz.io}
-export VAULT_TOKEN=$VAULT_TOKEN_PROD
-
-echo "Using Vault at: $VAULT_ADDR"
-
-# Verify Vault connectivity
-if ! vault status > /dev/null 2>&1; then
-    echo "ERROR: Cannot connect to Vault at $VAULT_ADDR" >&2
-    echo "Please check your Vault server and network connectivity" >&2
-    exit 1
-fi
-
-echo "✅ Vault connectivity verified"
+# NOTE: Production uses EMBEDDED Vault (runs inside container, not external server)
+# The Vault token is stored in GCP Secret Manager and mounted to Cloud Run
+# See VAULT_SETUP.md for details
+echo ""
+echo "Production Vault Setup:"
+echo "- Vault runs embedded inside Docker container (localhost:8200)"
+echo "- VAULT_TOKEN mounted from GCP Secret Manager: vault-root-token"
+echo "- Container startup script handles Vault unsealing"
+echo ""
 
 # Change to project root
 cd "$(dirname "$0")/../../.."
@@ -86,7 +66,8 @@ steps:
     - '--min-instances=0'
     - '--max-instances=5'
     - '--timeout=480'
-    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,scheduler,VAULT_ADDR=$VAULT_ADDR,VAULT_TOKEN=$VAULT_TOKEN,console.auth.enabled=true,strategiz.clickhouse.enabled=true,strategiz.timescale.enabled=false'
+    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,scheduler,console.auth.enabled=true,strategiz.clickhouse.enabled=true,strategiz.timescale.enabled=false'
+    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:
 - 'gcr.io/\$PROJECT_ID/$SERVICE_NAME'

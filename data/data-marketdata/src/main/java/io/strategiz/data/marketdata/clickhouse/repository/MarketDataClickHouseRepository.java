@@ -1,6 +1,6 @@
 package io.strategiz.data.marketdata.clickhouse.repository;
 
-import io.strategiz.data.marketdata.timescale.entity.MarketDataTimescaleEntity;
+import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,7 +38,7 @@ public class MarketDataClickHouseRepository {
 	/**
 	 * Find market data by symbol within a time range and optional timeframe filter.
 	 */
-	public List<MarketDataTimescaleEntity> findBySymbolAndTimeRange(String symbol, Instant startTime, Instant endTime,
+	public List<MarketDataEntity> findBySymbolAndTimeRange(String symbol, Instant startTime, Instant endTime,
 			String timeframe) {
 		String sql;
 		Object[] params;
@@ -64,7 +64,7 @@ public class MarketDataClickHouseRepository {
 				symbol, startTime, endTime);
 		}
 
-		List<MarketDataTimescaleEntity> results = jdbcTemplate.query(sql, rowMapper, params);
+		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, params);
 		log.info("ClickHouse query returned {} results for symbol={}", results.size(), symbol);
 		return results;
 	}
@@ -73,7 +73,7 @@ public class MarketDataClickHouseRepository {
 	 * Find market data by symbol and timeframe, limited and ordered by timestamp
 	 * descending.
 	 */
-	public List<MarketDataTimescaleEntity> findBySymbolAndTimeframe(String symbol, String timeframe, int limit) {
+	public List<MarketDataEntity> findBySymbolAndTimeframe(String symbol, String timeframe, int limit) {
 		String sql = """
 				SELECT * FROM market_data
 				WHERE symbol = ? AND timeframe = ?
@@ -86,16 +86,16 @@ public class MarketDataClickHouseRepository {
 	/**
 	 * Find the latest market data for a symbol (any timeframe).
 	 */
-	public Optional<MarketDataTimescaleEntity> findLatestBySymbol(String symbol) {
+	public Optional<MarketDataEntity> findLatestBySymbol(String symbol) {
 		String sql = """
 				SELECT * FROM market_data
 				WHERE symbol = ?
 				ORDER BY timestamp DESC
 				LIMIT 1
 				""";
-		List<MarketDataTimescaleEntity> results = jdbcTemplate.query(sql, rowMapper, symbol);
+		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, symbol);
 		if (!results.isEmpty()) {
-			MarketDataTimescaleEntity latest = results.get(0);
+			MarketDataEntity latest = results.get(0);
 			log.info("Latest data for {}: timestamp={}, timeframe={}, close={}",
 				symbol, latest.getTimestamp(), latest.getTimeframe(), latest.getClose());
 		}
@@ -105,14 +105,14 @@ public class MarketDataClickHouseRepository {
 	/**
 	 * Find the latest market data for a symbol with specific timeframe.
 	 */
-	public Optional<MarketDataTimescaleEntity> findLatestBySymbolAndTimeframe(String symbol, String timeframe) {
+	public Optional<MarketDataEntity> findLatestBySymbolAndTimeframe(String symbol, String timeframe) {
 		String sql = """
 				SELECT * FROM market_data
 				WHERE symbol = ? AND timeframe = ?
 				ORDER BY timestamp DESC
 				LIMIT 1
 				""";
-		List<MarketDataTimescaleEntity> results = jdbcTemplate.query(sql, rowMapper, symbol, timeframe);
+		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, symbol, timeframe);
 		return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
 	}
 
@@ -163,7 +163,7 @@ public class MarketDataClickHouseRepository {
 	 * Insert market data using ClickHouse batch insert. Uses ReplacingMergeTree semantics
 	 * for upsert behavior.
 	 */
-	public void save(MarketDataTimescaleEntity entity) {
+	public void save(MarketDataEntity entity) {
 		String sql = """
 				INSERT INTO market_data (
 				    symbol, timeframe, timestamp, open_price, high_price, low_price, close_price,
@@ -172,18 +172,19 @@ public class MarketDataClickHouseRepository {
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				""";
 
-		jdbcTemplate.update(sql, entity.getSymbol(), entity.getTimeframe(), Timestamp.from(entity.getTimestamp()),
+		jdbcTemplate.update(sql, entity.getSymbol(), entity.getTimeframe(),
+				entity.getTimestamp() != null ? Timestamp.from(Instant.ofEpochMilli(entity.getTimestamp())) : null,
 				entity.getOpen(), entity.getHigh(), entity.getLow(), entity.getClose(), entity.getVolume(),
 				entity.getVwap(), entity.getTrades(), entity.getChangeAmount(), entity.getChangePercent(),
 				entity.getDataSource(), entity.getDataQuality(), entity.getAssetType(), entity.getExchange(),
-				entity.getCollectedAt() != null ? Timestamp.from(entity.getCollectedAt()) : null,
-				Timestamp.from(entity.getCreatedAt() != null ? entity.getCreatedAt() : Instant.now()));
+				entity.getCollectedAt() != null ? Timestamp.from(Instant.ofEpochMilli(entity.getCollectedAt())) : null,
+				Timestamp.from(Instant.now()));
 	}
 
 	/**
 	 * Batch insert market data for efficient bulk loading.
 	 */
-	public void saveAll(List<MarketDataTimescaleEntity> entities) {
+	public void saveAll(List<MarketDataEntity> entities) {
 		if (entities.isEmpty()) {
 			return;
 		}
@@ -197,11 +198,13 @@ public class MarketDataClickHouseRepository {
 				""";
 
 		List<Object[]> batchArgs = entities.stream()
-			.map(e -> new Object[] { e.getSymbol(), e.getTimeframe(), Timestamp.from(e.getTimestamp()), e.getOpen(),
-					e.getHigh(), e.getLow(), e.getClose(), e.getVolume(), e.getVwap(), e.getTrades(),
+			.map(e -> new Object[] { e.getSymbol(), e.getTimeframe(),
+					e.getTimestamp() != null ? Timestamp.from(Instant.ofEpochMilli(e.getTimestamp())) : null,
+					e.getOpen(), e.getHigh(), e.getLow(), e.getClose(), e.getVolume(), e.getVwap(), e.getTrades(),
 					e.getChangeAmount(), e.getChangePercent(), e.getDataSource(), e.getDataQuality(), e.getAssetType(),
-					e.getExchange(), e.getCollectedAt() != null ? Timestamp.from(e.getCollectedAt()) : null,
-					Timestamp.from(e.getCreatedAt() != null ? e.getCreatedAt() : Instant.now()) })
+					e.getExchange(),
+					e.getCollectedAt() != null ? Timestamp.from(Instant.ofEpochMilli(e.getCollectedAt())) : null,
+					Timestamp.from(Instant.now()) })
 			.toList();
 
 		jdbcTemplate.batchUpdate(sql, batchArgs);
@@ -229,16 +232,21 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Row mapper for converting ResultSet to MarketDataTimescaleEntity.
+	 * Row mapper for converting ResultSet to MarketDataEntity.
 	 */
-	private static class MarketDataRowMapper implements RowMapper<MarketDataTimescaleEntity> {
+	private static class MarketDataRowMapper implements RowMapper<MarketDataEntity> {
 
 		@Override
-		public MarketDataTimescaleEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
-			MarketDataTimescaleEntity entity = new MarketDataTimescaleEntity();
+		public MarketDataEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+			MarketDataEntity entity = new MarketDataEntity();
 			entity.setSymbol(rs.getString("symbol"));
 			entity.setTimeframe(rs.getString("timeframe"));
-			entity.setTimestamp(rs.getTimestamp("timestamp").toInstant());
+
+			Timestamp timestamp = rs.getTimestamp("timestamp");
+			if (timestamp != null) {
+				entity.setTimestamp(timestamp.toInstant().toEpochMilli());
+			}
+
 			entity.setOpen(getBigDecimal(rs, "open_price"));
 			entity.setHigh(getBigDecimal(rs, "high_price"));
 			entity.setLow(getBigDecimal(rs, "low_price"));
@@ -255,13 +263,11 @@ public class MarketDataClickHouseRepository {
 
 			Timestamp collectedAt = rs.getTimestamp("collected_at");
 			if (collectedAt != null) {
-				entity.setCollectedAt(collectedAt.toInstant());
+				entity.setCollectedAt(collectedAt.toInstant().toEpochMilli());
 			}
 
-			Timestamp createdAt = rs.getTimestamp("created_at");
-			if (createdAt != null) {
-				entity.setCreatedAt(createdAt.toInstant());
-			}
+			// Note: createdAt field exists in ClickHouse but not in MarketDataEntity
+			// Skipping mapping of created_at column
 
 			return entity;
 		}

@@ -57,7 +57,6 @@
         <module>data/data-user</module>
         <module>data/data-social</module>
         <module>data/data-marketdata</module>
-        <module>data/data-framework-timescale</module>
         <module>data/data-symbol</module>
         <module>data/data-feature-flags</module>
         <module>data/data-infrastructure-costs</module>
@@ -98,7 +97,6 @@
         <module>client/client-grok-direct</module>
         <module>client/client-openai-direct</module>
         <module>client/client-gcp-billing</module>
-        <module>client/client-timescale-billing</module>
         <module>client/client-stripe</module>
         <module>client/client-sonarqube</module>
         <module>client/client-webull</module>

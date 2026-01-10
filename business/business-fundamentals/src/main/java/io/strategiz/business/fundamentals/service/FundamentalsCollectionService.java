@@ -6,8 +6,8 @@ import io.strategiz.business.fundamentals.model.SymbolResult;
 import io.strategiz.client.yahoofinance.client.YahooFundamentalsClient;
 import io.strategiz.business.fundamentals.converter.YahooFundamentalsConverter;
 import io.strategiz.client.yahoofinance.model.YahooFundamentals;
-import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;
-import io.strategiz.data.marketdata.clickhouse.repository.FundamentalsClickHouseRepository;
+import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
+import io.strategiz.data.fundamentals.repository.FundamentalsRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,8 +24,8 @@ import java.util.concurrent.*;
  * <p>
  * Responsibilities:
  * - Fetch fundamentals for multiple symbols in batches
- * - Convert Yahoo Finance DTOs to TimescaleDB entities
- * - Save to TimescaleDB with batch operations
+ * - Convert Yahoo Finance DTOs to fundamentals entities
+ * - Save to data repository with batch operations
  * - Track success/failure for each symbol
  * - Support multi-threaded processing with rate limiting
  * </p>
@@ -48,7 +48,7 @@ public class FundamentalsCollectionService {
 
 	private final YahooFundamentalsConverter converter;
 
-	private final FundamentalsClickHouseRepository repository;
+	private final FundamentalsRepository repository;
 
 	@Value("${fundamentals.batch.thread-pool-size:1}")
 	private int threadPoolSize;
@@ -62,7 +62,7 @@ public class FundamentalsCollectionService {
 	private CollectionResult currentJobStatus;
 
 	public FundamentalsCollectionService(YahooFundamentalsClient yahooClient, YahooFundamentalsConverter converter,
-			FundamentalsClickHouseRepository repository) {
+			FundamentalsRepository repository) {
 		this.yahooClient = yahooClient;
 		this.converter = converter;
 		this.repository = repository;
@@ -141,7 +141,7 @@ public class FundamentalsCollectionService {
 			YahooFundamentals yahooData = yahooClient.getFundamentals(symbol);
 
 			// 2. Convert to entity
-			FundamentalsTimescaleEntity entity = converter.toEntity(yahooData);
+			FundamentalsEntity entity = converter.toEntity(yahooData);
 
 			// 3. Save to TimescaleDB
 			repository.save(entity);
@@ -173,7 +173,7 @@ public class FundamentalsCollectionService {
 	 *
 	 * @param entities List of entities to save
 	 */
-	public void batchSave(List<FundamentalsTimescaleEntity> entities) {
+	public void batchSave(List<FundamentalsEntity> entities) {
 		if (entities.isEmpty()) {
 			return;
 		}

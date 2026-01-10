@@ -4,7 +4,7 @@ import io.strategiz.business.marketdata.DynamicJobSchedulerBusiness;
 import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.data.marketdata.firestore.entity.JobDefinitionFirestoreEntity;
 import io.strategiz.data.marketdata.firestore.repository.JobDefinitionFirestoreRepository;
-import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
+import io.strategiz.data.marketdata.entity.JobExecutionEntity;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;

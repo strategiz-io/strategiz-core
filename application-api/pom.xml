@@ -141,13 +141,6 @@
             <artifactId>service-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- TimescaleDB Framework Module - temporarily disabled
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-framework-timescale</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-token-auth</artifactId>
@@ -161,6 +154,11 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-firebase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-finnhub</artifactId>
             <version>${project.version}</version>
         </dependency>
 

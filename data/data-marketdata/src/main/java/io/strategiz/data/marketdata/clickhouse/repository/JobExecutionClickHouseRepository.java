@@ -1,6 +1,6 @@
 package io.strategiz.data.marketdata.clickhouse.repository;
 
-import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
+import io.strategiz.data.marketdata.entity.JobExecutionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;

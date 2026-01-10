@@ -32,11 +32,6 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-timescale-billing</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
             <artifactId>client-sendgrid-billing</artifactId>
             <version>${project.version}</version>
         </dependency>

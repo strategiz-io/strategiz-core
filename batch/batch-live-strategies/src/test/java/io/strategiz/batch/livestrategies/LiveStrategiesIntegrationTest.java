@@ -4,7 +4,7 @@ import io.strategiz.batch.livestrategies.job.SymbolSetProcessorJob;
 import io.strategiz.batch.livestrategies.model.DeploymentBatchMessage;
 import io.strategiz.business.livestrategies.model.SymbolSetGroup;
 import io.strategiz.client.execution.ExecutionServiceClient;
-import io.strategiz.data.marketdata.timescale.entity.MarketDataTimescaleEntity;
+import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.timescale.repository.MarketDataTimescaleRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
 import io.strategiz.data.strategy.entity.BotDeployment;
@@ -231,7 +231,7 @@ class LiveStrategiesIntegrationTest {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(30, ChronoUnit.DAYS);
 
-			List<MarketDataTimescaleEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
+			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
 					"AAPL", startDate, endDate, "1Day");
 
 			log.info("Found {} bars for AAPL in last 30 days", bars.size());
@@ -240,7 +240,7 @@ class LiveStrategiesIntegrationTest {
 			assertTrue(bars.size() >= 15, "Should have at least 15 trading days of data");
 
 			// Verify data structure
-			MarketDataTimescaleEntity latestBar = bars.get(bars.size() - 1);
+			MarketDataEntity latestBar = bars.get(bars.size() - 1);
 			assertNotNull(latestBar.getOpen(), "Open price should not be null");
 			assertNotNull(latestBar.getHigh(), "High price should not be null");
 			assertNotNull(latestBar.getLow(), "Low price should not be null");
@@ -259,7 +259,7 @@ class LiveStrategiesIntegrationTest {
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
 			for (String symbol : symbols) {
-				List<MarketDataTimescaleEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
+				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
 						symbol, startDate, endDate, "1Day");
 
 				log.info("{}: {} bars in last 7 days", symbol, bars.size());
@@ -273,7 +273,7 @@ class LiveStrategiesIntegrationTest {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(365, ChronoUnit.DAYS);
 
-			List<MarketDataTimescaleEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
+			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
 					"AAPL", startDate, endDate, "1Day");
 
 			log.info("Found {} bars for AAPL in last 365 days", bars.size());
@@ -286,7 +286,7 @@ class LiveStrategiesIntegrationTest {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
-			List<MarketDataTimescaleEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
+			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
 					"AAPL", startDate, endDate, "1Hour");
 
 			log.info("Found {} hourly bars for AAPL in last 7 days", bars.size());

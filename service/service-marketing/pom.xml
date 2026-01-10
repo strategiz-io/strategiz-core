@@ -30,7 +30,14 @@
             <artifactId>service-framework-base</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
+        <!-- Data Dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-feature-flags</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Client Dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>

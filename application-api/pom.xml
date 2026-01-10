@@ -56,6 +56,11 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
+            <artifactId>data-framework-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
             <artifactId>service-auth</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -85,6 +90,11 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-marketing</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-waitlist</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -148,7 +158,12 @@
             <artifactId>data-provider</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-firebase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Business Provider Modules -->
         <dependency>
             <groupId>io.strategiz</groupId>

@@ -65,6 +65,7 @@
         <module>data/data-fundamentals</module>
         <module>data/data-testing</module>
         <module>data/data-accessibility</module>
+        <module>data/data-waitlist</module>
 
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->
@@ -131,6 +132,7 @@
         <module>service/service-profile</module>
         <module>service/service-social</module>
         <module>service/service-marketing</module>
+        <module>service/service-waitlist</module>
         <module>service/service-marketdata</module>
         <module>service/service-learn</module>
         <module>service/service-agents</module>

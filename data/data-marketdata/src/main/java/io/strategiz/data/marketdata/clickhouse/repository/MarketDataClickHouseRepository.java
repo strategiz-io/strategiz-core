@@ -50,6 +50,8 @@ public class MarketDataClickHouseRepository {
 					ORDER BY timestamp ASC
 					""";
 			params = new Object[] { symbol, Timestamp.from(startTime), Timestamp.from(endTime), timeframe };
+			log.info("Executing ClickHouse query with timeframe filter: symbol={}, start={}, end={}, timeframe={}",
+				symbol, startTime, endTime, timeframe);
 		}
 		else {
 			sql = """
@@ -58,9 +60,13 @@ public class MarketDataClickHouseRepository {
 					ORDER BY timestamp ASC
 					""";
 			params = new Object[] { symbol, Timestamp.from(startTime), Timestamp.from(endTime) };
+			log.info("Executing ClickHouse query without timeframe filter: symbol={}, start={}, end={}",
+				symbol, startTime, endTime);
 		}
 
-		return jdbcTemplate.query(sql, rowMapper, params);
+		List<MarketDataTimescaleEntity> results = jdbcTemplate.query(sql, rowMapper, params);
+		log.info("ClickHouse query returned {} results for symbol={}", results.size(), symbol);
+		return results;
 	}
 
 	/**
@@ -88,6 +94,11 @@ public class MarketDataClickHouseRepository {
 				LIMIT 1
 				""";
 		List<MarketDataTimescaleEntity> results = jdbcTemplate.query(sql, rowMapper, symbol);
+		if (!results.isEmpty()) {
+			MarketDataTimescaleEntity latest = results.get(0);
+			log.info("Latest data for {}: timestamp={}, timeframe={}, close={}",
+				symbol, latest.getTimestamp(), latest.getTimeframe(), latest.getClose());
+		}
 		return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
 	}
 

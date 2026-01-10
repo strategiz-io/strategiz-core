@@ -12,18 +12,13 @@
     </parent>
 
     <artifactId>data-marketdata</artifactId>
-    <description>Market data storage and repository layer (Firestore + TimescaleDB)</description>
+    <description>Market data storage and repository layer (Firestore + ClickHouse)</description>
 
     <dependencies>
         <!-- Internal module dependencies -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-framework-base</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-framework-timescale</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -64,17 +59,6 @@
                     <artifactId>reactor-core</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <!-- TimescaleDB dependencies -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
         </dependency>
 
         <!-- ClickHouse dependencies -->

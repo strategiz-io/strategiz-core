@@ -1,7 +1,7 @@
 package io.strategiz.business.marketdata;
 
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
-import io.strategiz.data.marketdata.timescale.entity.JobExecutionEntity;
+import io.strategiz.data.marketdata.entity.JobExecutionEntity;
 import io.strategiz.data.marketdata.clickhouse.repository.JobExecutionClickHouseRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;

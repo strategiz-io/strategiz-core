@@ -8,8 +8,7 @@ import io.strategiz.client.gcpbilling.GcpMonitoringClient;
 import io.strategiz.client.gcpbilling.model.GcpCostSummary;
 import io.strategiz.client.gcpbilling.model.GcpDailyCost;
 import io.strategiz.client.gcpbilling.model.GcpServiceUsage;
-import io.strategiz.client.timescalebilling.TimescaleBillingClient;
-import io.strategiz.client.timescalebilling.model.TimescaleCostSummary;
+import io.strategiz.business.infrastructurecosts.model.ClickHouseCostSummary;
 import io.strategiz.client.sendgridbilling.SendGridBillingClient;
 import io.strategiz.client.sendgridbilling.model.SendGridCostSummary;
 import io.strategiz.data.infrastructurecosts.entity.DailyCostEntity;
@@ -49,7 +48,7 @@ public class CostAggregationService {
 
     private final GcpBillingClient gcpBillingClient;
     private final GcpMonitoringClient gcpMonitoringClient;
-    private final TimescaleBillingClient timescaleBillingClient;
+    private final FirestoreClickHouseBillingService firestoreClickHouseBillingService;
     private final SendGridBillingClient sendgridBillingClient;
     private final DailyCostRepository dailyCostRepository;
     private final FirestoreUsageRepository firestoreUsageRepository;
@@ -66,20 +65,20 @@ public class CostAggregationService {
     public CostAggregationService(
             @Autowired(required = false) GcpBillingClient gcpBillingClient,
             @Autowired(required = false) GcpMonitoringClient gcpMonitoringClient,
-            @Autowired(required = false) TimescaleBillingClient timescaleBillingClient,
+            @Autowired(required = false) FirestoreClickHouseBillingService firestoreClickHouseBillingService,
             @Autowired(required = false) SendGridBillingClient sendgridBillingClient,
             @Autowired(required = false) DailyCostRepository dailyCostRepository,
             @Autowired(required = false) FirestoreUsageRepository firestoreUsageRepository) {
         this.gcpBillingClient = gcpBillingClient;
         this.gcpMonitoringClient = gcpMonitoringClient;
-        this.timescaleBillingClient = timescaleBillingClient;
+        this.firestoreClickHouseBillingService = firestoreClickHouseBillingService;
         this.sendgridBillingClient = sendgridBillingClient;
         this.dailyCostRepository = dailyCostRepository;
         this.firestoreUsageRepository = firestoreUsageRepository;
 
-        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, timescale={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
+        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, firestoreTimescale={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
                 gcpBillingClient != null, gcpMonitoringClient != null,
-                timescaleBillingClient != null, sendgridBillingClient != null,
+                firestoreClickHouseBillingService != null, sendgridBillingClient != null,
                 dailyCostRepository != null, firestoreUsageRepository != null);
     }
 
@@ -100,9 +99,9 @@ public class CostAggregationService {
                     : GcpCostSummary.empty(startOfMonth, today);
 
             // Get TimescaleDB costs (optional)
-            TimescaleCostSummary timescaleSummary = timescaleBillingClient != null
-                    ? timescaleBillingClient.getCostSummary(startOfMonth, today)
-                    : TimescaleCostSummary.empty(startOfMonth, today);
+            ClickHouseCostSummary timescaleSummary = firestoreClickHouseBillingService != null
+                    ? firestoreClickHouseBillingService.getCostSummary(startOfMonth, today)
+                    : ClickHouseCostSummary.empty(startOfMonth, today);
 
             // Get SendGrid costs (optional)
             SendGridCostSummary sendgridSummary = sendgridBillingClient != null
@@ -178,8 +177,8 @@ public class CostAggregationService {
 
             // Get TimescaleDB estimated daily cost (optional)
             BigDecimal dailyTimescaleCost = BigDecimal.ZERO;
-            if (timescaleBillingClient != null && days > 0) {
-                TimescaleCostSummary timescale = timescaleBillingClient.getCostSummary(
+            if (firestoreClickHouseBillingService != null && days > 0) {
+                ClickHouseCostSummary timescale = firestoreClickHouseBillingService.getCostSummary(
                         LocalDate.now().minusDays(days),
                         LocalDate.now()
                 );
@@ -244,8 +243,8 @@ public class CostAggregationService {
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
 
             // Add TimescaleDB costs if available
-            if (timescaleBillingClient != null) {
-                TimescaleCostSummary timescaleSummary = timescaleBillingClient.getCostSummary(
+            if (firestoreClickHouseBillingService != null) {
+                ClickHouseCostSummary timescaleSummary = firestoreClickHouseBillingService.getCostSummary(
                         LocalDate.now().withDayOfMonth(1),
                         LocalDate.now()
                 );
@@ -359,9 +358,9 @@ public class CostAggregationService {
                     : GcpCostSummary.empty(yesterday, yesterday);
 
             // Get TimescaleDB costs (optional)
-            TimescaleCostSummary timescaleSummary = timescaleBillingClient != null
-                    ? timescaleBillingClient.getCostSummary(yesterday, yesterday)
-                    : TimescaleCostSummary.empty(yesterday, yesterday);
+            ClickHouseCostSummary timescaleSummary = firestoreClickHouseBillingService != null
+                    ? firestoreClickHouseBillingService.getCostSummary(yesterday, yesterday)
+                    : ClickHouseCostSummary.empty(yesterday, yesterday);
 
             // Get SendGrid costs (optional)
             SendGridCostSummary sendgridSummary = sendgridBillingClient != null
@@ -387,7 +386,7 @@ public class CostAggregationService {
             entity.setCurrency("USD");
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
-            if (timescaleBillingClient != null) {
+            if (firestoreClickHouseBillingService != null) {
                 costByService.put("TimescaleDB", timescaleSummary.totalCost());
             }
             if (sendgridBillingClient != null) {
@@ -438,9 +437,9 @@ public class CostAggregationService {
 
             GcpCostSummary lastMonthGcp = gcpBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
 
-            TimescaleCostSummary lastMonthTs = timescaleBillingClient != null
-                    ? timescaleBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay)
-                    : TimescaleCostSummary.empty(lastMonthStart, lastMonthSameDay);
+            ClickHouseCostSummary lastMonthTs = firestoreClickHouseBillingService != null
+                    ? firestoreClickHouseBillingService.getCostSummary(lastMonthStart, lastMonthSameDay)
+                    : ClickHouseCostSummary.empty(lastMonthStart, lastMonthSameDay);
 
             SendGridCostSummary lastMonthSg = sendgridBillingClient != null
                     ? sendgridBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay)

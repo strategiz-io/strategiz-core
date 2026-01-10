@@ -9,7 +9,7 @@ import io.strategiz.client.execution.ExecutionServiceClient;
 import io.strategiz.client.execution.model.DeploymentResult;
 import io.strategiz.client.execution.model.ExecuteListResponse;
 import io.strategiz.client.execution.model.LiveSignal;
-import io.strategiz.data.marketdata.timescale.entity.MarketDataTimescaleEntity;
+import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
 import io.strategiz.data.strategy.entity.BotDeployment;
@@ -387,12 +387,12 @@ class SymbolSetProcessorJobTest {
 
 	// ===== Helper Methods =====
 
-	private List<MarketDataTimescaleEntity> createMarketDataBars(String symbol, int count) {
-		List<MarketDataTimescaleEntity> bars = new ArrayList<>();
+	private List<MarketDataEntity> createMarketDataBars(String symbol, int count) {
+		List<MarketDataEntity> bars = new ArrayList<>();
 		Instant now = Instant.now();
 
 		for (int i = count; i > 0; i--) {
-			MarketDataTimescaleEntity bar = new MarketDataTimescaleEntity();
+			MarketDataEntity bar = new MarketDataEntity();
 			bar.setSymbol(symbol);
 			bar.setTimestamp(now.minusSeconds(i * 86400L));
 			bar.setOpen(new BigDecimal("150.00"));

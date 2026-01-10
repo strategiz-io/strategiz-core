@@ -11,7 +11,7 @@ import io.strategiz.client.execution.model.DeploymentResult;
 import io.strategiz.client.execution.model.ExecuteListResponse;
 import io.strategiz.client.execution.model.LiveSignal;
 import io.strategiz.execution.grpc.MarketDataBar;
-import io.strategiz.data.marketdata.timescale.entity.MarketDataTimescaleEntity;
+import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
 import io.strategiz.data.strategy.entity.BotDeployment;
@@ -197,11 +197,11 @@ public class SymbolSetProcessorJob {
 		for (String symbol : symbols) {
 			try {
 				// Use 1Day timeframe for live strategy execution
-				List<MarketDataTimescaleEntity> bars = marketDataRepository.findBySymbolAndTimeRange(symbol,
+				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(symbol,
 						startTime, endTime, "1Day");
 
 				List<MarketDataBar> grpcBars = new ArrayList<>();
-				for (MarketDataTimescaleEntity bar : bars) {
+				for (MarketDataEntity bar : bars) {
 					grpcBars.add(MarketDataBar.newBuilder()
 							.setTimestamp(bar.getTimestamp().toString())
 							.setOpen(bar.getOpen().doubleValue())

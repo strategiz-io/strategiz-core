@@ -2,7 +2,7 @@ package io.strategiz.business.fundamentals.converter;
 
 import io.strategiz.client.yahoofinance.model.*;
 import io.strategiz.data.fundamentals.constants.PeriodType;
-import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;
+import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 /**
- * Converter for transforming Yahoo Finance DTOs to FundamentalsTimescaleEntity.
+ * Converter for transforming Yahoo Finance DTOs to FundamentalsEntity.
  *
  * <p>
  * This converter performs the following transformations:
@@ -30,12 +30,12 @@ public class YahooFundamentalsConverter {
 	private static final Logger log = LoggerFactory.getLogger(YahooFundamentalsConverter.class);
 
 	/**
-	 * Convert YahooFundamentals DTO to FundamentalsTimescaleEntity.
+	 * Convert YahooFundamentals DTO to FundamentalsEntity.
 	 *
 	 * @param yahooFundamentals Yahoo Finance data
 	 * @return TimescaleDB entity ready for persistence
 	 */
-	public FundamentalsTimescaleEntity toEntity(YahooFundamentals yahooFundamentals) {
+	public FundamentalsEntity toEntity(YahooFundamentals yahooFundamentals) {
 		if (yahooFundamentals == null || yahooFundamentals.getSymbol() == null) {
 			throw new IllegalArgumentException("YahooFundamentals and symbol cannot be null");
 		}
@@ -44,7 +44,7 @@ public class YahooFundamentalsConverter {
 		LocalDate fiscalPeriod = LocalDate.now(); // Current data = latest available
 		String periodType = PeriodType.TTM; // Trailing Twelve Months (most common for current data)
 
-		FundamentalsTimescaleEntity entity = new FundamentalsTimescaleEntity(symbol, fiscalPeriod, periodType);
+		FundamentalsEntity entity = new FundamentalsEntity(symbol, fiscalPeriod, periodType);
 		entity.setCollectedAt(Instant.now());
 
 		// Extract sub-DTOs
@@ -69,7 +69,7 @@ public class YahooFundamentalsConverter {
 	/**
 	 * Map data from YahooFinancialData to entity.
 	 */
-	private void mapFinancialData(FundamentalsTimescaleEntity entity, YahooFinancialData financial) {
+	private void mapFinancialData(FundamentalsEntity entity, YahooFinancialData financial) {
 		if (financial == null) {
 			return;
 		}
@@ -101,7 +101,7 @@ public class YahooFundamentalsConverter {
 	/**
 	 * Map data from YahooKeyStatistics to entity.
 	 */
-	private void mapKeyStatistics(FundamentalsTimescaleEntity entity, YahooKeyStatistics stats) {
+	private void mapKeyStatistics(FundamentalsEntity entity, YahooKeyStatistics stats) {
 		if (stats == null) {
 			return;
 		}
@@ -133,7 +133,7 @@ public class YahooFundamentalsConverter {
 	/**
 	 * Map data from YahooBalanceSheet to entity.
 	 */
-	private void mapBalanceSheet(FundamentalsTimescaleEntity entity, YahooBalanceSheet balanceSheet) {
+	private void mapBalanceSheet(FundamentalsEntity entity, YahooBalanceSheet balanceSheet) {
 		if (balanceSheet == null) {
 			return;
 		}
@@ -172,7 +172,7 @@ public class YahooFundamentalsConverter {
 	/**
 	 * Map data from YahooIncomeStatement to entity.
 	 */
-	private void mapIncomeStatement(FundamentalsTimescaleEntity entity, YahooIncomeStatement income) {
+	private void mapIncomeStatement(FundamentalsEntity entity, YahooIncomeStatement income) {
 		if (income == null) {
 			return;
 		}
@@ -190,7 +190,7 @@ public class YahooFundamentalsConverter {
 	 *
 	 * Calculates ratios and margins that may not be provided directly by Yahoo Finance.
 	 */
-	private void calculateDerivedMetrics(FundamentalsTimescaleEntity entity) {
+	private void calculateDerivedMetrics(FundamentalsEntity entity) {
 
 		// Calculate current ratio if not set
 		if (entity.getCurrentRatio() == null && entity.getCurrentAssets() != null

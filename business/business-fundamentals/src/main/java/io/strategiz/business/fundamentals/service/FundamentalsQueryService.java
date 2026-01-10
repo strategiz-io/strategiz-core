@@ -2,8 +2,8 @@ package io.strategiz.business.fundamentals.service;
 
 import io.strategiz.business.fundamentals.exception.FundamentalsErrorDetails;
 import io.strategiz.data.fundamentals.constants.PeriodType;
-import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;
-import io.strategiz.data.marketdata.clickhouse.repository.FundamentalsClickHouseRepository;
+import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
+import io.strategiz.data.fundamentals.repository.FundamentalsRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,9 +27,9 @@ public class FundamentalsQueryService {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsQueryService.class);
 
-	private final FundamentalsClickHouseRepository repository;
+	private final FundamentalsRepository repository;
 
-	public FundamentalsQueryService(FundamentalsClickHouseRepository repository) {
+	public FundamentalsQueryService(FundamentalsRepository repository) {
 		this.repository = repository;
 	}
 
@@ -37,10 +37,10 @@ public class FundamentalsQueryService {
 	 * Get latest fundamentals for a symbol.
 	 *
 	 * @param symbol Stock symbol
-	 * @return FundamentalsTimescaleEntity
+	 * @return FundamentalsEntity
 	 * @throws StrategizException if not found
 	 */
-	public FundamentalsTimescaleEntity getLatestFundamentals(String symbol) {
+	public FundamentalsEntity getLatestFundamentals(String symbol) {
 		log.debug("Fetching latest fundamentals for {}", symbol);
 
 		return repository.findLatestBySymbol(symbol)
@@ -52,9 +52,9 @@ public class FundamentalsQueryService {
 	 * Get latest fundamentals for a symbol (returns null if not found).
 	 *
 	 * @param symbol Stock symbol
-	 * @return FundamentalsTimescaleEntity or null
+	 * @return FundamentalsEntity or null
 	 */
-	public FundamentalsTimescaleEntity getLatestFundamentalsOrNull(String symbol) {
+	public FundamentalsEntity getLatestFundamentalsOrNull(String symbol) {
 		return repository.findLatestBySymbol(symbol).orElse(null);
 	}
 
@@ -63,10 +63,10 @@ public class FundamentalsQueryService {
 	 *
 	 * @param symbol Stock symbol
 	 * @param periodType Period type (QUARTERLY, ANNUAL, TTM)
-	 * @return FundamentalsTimescaleEntity
+	 * @return FundamentalsEntity
 	 * @throws StrategizException if not found or invalid period type
 	 */
-	public FundamentalsTimescaleEntity getFundamentalsByPeriodType(String symbol, String periodType) {
+	public FundamentalsEntity getFundamentalsByPeriodType(String symbol, String periodType) {
 		if (!PeriodType.isValid(periodType)) {
 			throw new StrategizException(FundamentalsErrorDetails.INVALID_PERIOD_TYPE,
 					String.format("Invalid period type: %s. Must be one of: %s", periodType,
@@ -90,7 +90,7 @@ public class FundamentalsQueryService {
 	 * @return Map of fundamental metrics (snake_case keys)
 	 */
 	public Map<String, Object> getFundamentalsForStrategy(String symbol) {
-		FundamentalsTimescaleEntity entity = getLatestFundamentalsOrNull(symbol);
+		FundamentalsEntity entity = getLatestFundamentalsOrNull(symbol);
 
 		if (entity == null) {
 			log.debug("No fundamentals found for {}, returning empty map", symbol);

@@ -2,7 +2,7 @@ package io.strategiz.business.marketdata;
 
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
 import io.strategiz.data.marketdata.clickhouse.repository.SymbolDataStatusClickHouseRepository;
-import io.strategiz.data.marketdata.timescale.entity.SymbolDataStatusEntity;
+import io.strategiz.data.marketdata.entity.SymbolDataStatusEntity;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

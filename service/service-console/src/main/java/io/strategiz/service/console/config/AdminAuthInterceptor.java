@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -18,8 +19,14 @@ import java.util.Optional;
 /**
  * Interceptor that validates admin role for /v1/console/* endpoints.
  * Requires the user to have ADMIN role in their profile.
+ * Can be disabled for local development via console.auth.enabled=false.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    name = "console.auth.enabled",
+    havingValue = "true",
+    matchIfMissing = true
+)
 public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminAuthInterceptor.class);
@@ -28,6 +35,9 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
     private final SessionAuthBusiness sessionAuthBusiness;
     private final UserRepository userRepository;
+
+    @Value("${console.auth.enabled:true}")
+    private boolean authEnabled;
 
     @Autowired
     public AdminAuthInterceptor(SessionAuthBusiness sessionAuthBusiness, UserRepository userRepository) {
@@ -41,6 +51,13 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
         // Only intercept /v1/console/* paths
         if (!requestPath.startsWith("/v1/console")) {
+            return true;
+        }
+
+        // Skip authentication if disabled (for local development)
+        if (!authEnabled) {
+            logger.warn("Console authentication DISABLED - allowing unauthenticated access to: {}", requestPath);
+            request.setAttribute("adminUserId", "dev-admin");
             return true;
         }
 

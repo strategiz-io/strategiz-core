@@ -22,7 +22,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * - /v1/console/quality - Code quality metrics
  * - /v1/marketdata/admin/* - Market data batch operations
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+	org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
+	org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration.class
+})
 @EnableCaching
 @EnableScheduling
 @ComponentScan(basePackages = {

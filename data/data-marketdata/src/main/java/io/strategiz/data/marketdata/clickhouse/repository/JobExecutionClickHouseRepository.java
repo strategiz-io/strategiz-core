@@ -160,10 +160,10 @@ public class JobExecutionClickHouseRepository {
 	public List<JobExecutionEntity> findAllSince(Instant since) {
 		String sql = """
 				SELECT * FROM job_executions
-				WHERE start_time >= ?
+				WHERE start_time >= parseDateTimeBestEffort(?)
 				ORDER BY start_time DESC
 				""";
-		return jdbcTemplate.query(sql, rowMapper, Timestamp.from(since));
+		return jdbcTemplate.query(sql, rowMapper, since.toString());
 	}
 
 	/**
@@ -172,9 +172,9 @@ public class JobExecutionClickHouseRepository {
 	public List<JobExecutionEntity> findStaleRunningJobs(Instant before) {
 		String sql = """
 				SELECT * FROM job_executions
-				WHERE status = 'RUNNING' AND start_time < ?
+				WHERE status = 'RUNNING' AND start_time < parseDateTimeBestEffort(?)
 				""";
-		return jdbcTemplate.query(sql, rowMapper, Timestamp.from(before));
+		return jdbcTemplate.query(sql, rowMapper, before.toString());
 	}
 
 	/**

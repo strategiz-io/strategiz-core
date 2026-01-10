@@ -80,8 +80,17 @@ cleanup() {
 # Set up signal handlers
 trap cleanup SIGTERM SIGINT
 
+# Export Vault environment variables for the application
+export VAULT_ADDR=http://localhost:8200
+if [ -z "$VAULT_TOKEN" ]; then
+    echo "WARNING: VAULT_TOKEN not set, application may fail to load secrets"
+fi
+export VAULT_TOKEN
+
 # Start the Spring Boot application
 echo "Starting Spring Boot application..."
+echo "VAULT_ADDR=$VAULT_ADDR"
+echo "VAULT_TOKEN is set: $([ -n "$VAULT_TOKEN" ] && echo 'yes' || echo 'no')"
 java -jar app.jar --server.port=${PORT} &
 APP_PID=$!
 

@@ -1,5 +1,6 @@
 package io.strategiz.service.mystrategies.model.response;
 
+import io.strategiz.data.strategy.entity.AlertLivePerformance;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.Timestamp;
 
@@ -58,6 +59,9 @@ public class AlertResponse {
 
     @JsonProperty("errorMessage")
     private String errorMessage;
+
+    @JsonProperty("livePerformance")
+    private AlertLivePerformance livePerformance; // Real-time performance metrics
 
     // Nested class for last signal info
     public static class LastSignalInfo {
@@ -223,5 +227,13 @@ public class AlertResponse {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public AlertLivePerformance getLivePerformance() {
+        return livePerformance;
+    }
+
+    public void setLivePerformance(AlertLivePerformance livePerformance) {
+        this.livePerformance = livePerformance;
     }
 }

@@ -1,5 +1,6 @@
 package io.strategiz.service.mystrategies.model.response;
 
+import io.strategiz.data.strategy.entity.BotLivePerformance;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.Timestamp;
 
@@ -83,6 +84,9 @@ public class BotResponse {
 
     @JsonProperty("errorMessage")
     private String errorMessage;
+
+    @JsonProperty("livePerformance")
+    private BotLivePerformance livePerformance; // Comprehensive live trading performance metrics
 
     // Getters and Setters
     public String getId() {
@@ -267,5 +271,13 @@ public class BotResponse {
 
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public BotLivePerformance getLivePerformance() {
+        return livePerformance;
+    }
+
+    public void setLivePerformance(BotLivePerformance livePerformance) {
+        this.livePerformance = livePerformance;
     }
 }

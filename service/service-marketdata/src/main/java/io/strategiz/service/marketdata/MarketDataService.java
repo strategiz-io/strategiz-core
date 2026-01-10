@@ -50,7 +50,8 @@ public class MarketDataService extends BaseService {
      * @param endDate End date in ISO format (e.g., "2024-12-31T23:59:59Z")
      * @return List of market data entities sorted by timestamp ascending
      */
-    @Cacheable(value = "marketDataBars", key = "#symbol.toUpperCase() + '-' + #timeframe + '-' + #startDate + '-' + #endDate")
+    // TODO: Re-enable caching once ehcache.xml classpath issue is resolved
+    // @Cacheable(value = "marketDataBars", key = "#symbol.toUpperCase() + '-' + #timeframe + '-' + #startDate + '-' + #endDate")
     public List<MarketDataEntity> getMarketDataBars(String symbol, String timeframe, String startDate, String endDate) {
         log.info("Fetching market data for symbol={}, timeframe={}, start={}, end={}",
             symbol, timeframe, startDate, endDate);
@@ -113,7 +114,8 @@ public class MarketDataService extends BaseService {
      * @param symbol The stock symbol
      * @return Latest market data entity or null if not found
      */
-    @Cacheable(value = "latestMarketData", key = "#symbol.toUpperCase()")
+    // TODO: Re-enable caching once ehcache.xml classpath issue is resolved
+    // @Cacheable(value = "latestMarketData", key = "#symbol.toUpperCase()")
     public MarketDataEntity getLatestMarketData(String symbol) {
         log.info("Fetching latest market data for symbol={}", symbol);
 

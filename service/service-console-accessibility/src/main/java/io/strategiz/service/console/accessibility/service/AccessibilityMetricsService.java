@@ -1,14 +1,24 @@
 package io.strategiz.service.console.accessibility.service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import io.strategiz.data.accessibility.entity.CachedAccessibilityMetricsEntity;
 import io.strategiz.data.accessibility.repository.CachedAccessibilityMetricsRepository;
@@ -17,6 +27,8 @@ import io.strategiz.service.console.accessibility.model.AxeViolation;
 import io.strategiz.service.console.accessibility.model.AxeViolationList;
 import io.strategiz.service.console.accessibility.model.CachedAccessibilityMetrics;
 import io.strategiz.service.console.accessibility.model.LighthouseResult;
+import io.strategiz.service.console.accessibility.model.OnDemandScanRequest;
+import io.strategiz.service.console.accessibility.model.OnDemandScanResponse;
 import io.strategiz.service.console.accessibility.model.ScanTarget;
 
 /**
@@ -28,11 +40,28 @@ public class AccessibilityMetricsService {
 
 	private static final Logger log = LoggerFactory.getLogger(AccessibilityMetricsService.class);
 
+	private static final String GITHUB_API_URL = "https://api.github.com";
+
+	private static final String REPO_OWNER = "strategiz-io";
+
+	private static final String REPO_NAME = "strategiz-ui";
+
+	private static final String WORKFLOW_ID = "accessibility-scan.yml";
+
 	private final CachedAccessibilityMetricsRepository cacheRepository;
+
+	private final RestTemplate restTemplate;
+
+	// In-memory cache for scan status (in production, use Redis or Firestore)
+	private final Map<String, OnDemandScanResponse> scanStatusCache = new ConcurrentHashMap<>();
+
+	@Value("${github.token:}")
+	private String githubToken;
 
 	@Autowired
 	public AccessibilityMetricsService(CachedAccessibilityMetricsRepository cacheRepository) {
 		this.cacheRepository = cacheRepository;
+		this.restTemplate = new RestTemplate();
 	}
 
 	/**
@@ -305,6 +334,100 @@ public class AccessibilityMetricsService {
 		data.setHelpUrl(violation.getHelpUrl());
 		data.setNodeCount(violation.getNodeCount());
 		return data;
+	}
+
+	/**
+	 * Trigger an on-demand accessibility scan via GitHub Actions.
+	 * @param request the scan request with target apps
+	 * @return response with scan ID for status tracking
+	 */
+	public OnDemandScanResponse triggerOnDemandScan(OnDemandScanRequest request) {
+		String scanId = UUID.randomUUID().toString();
+		log.info("Triggering on-demand accessibility scan: scanId={}, targets={}", scanId, request.getTargetIds());
+
+		OnDemandScanResponse response = new OnDemandScanResponse(scanId, "PENDING", 0);
+		response.setStartedAt(Instant.now());
+
+		// Store initial status
+		scanStatusCache.put(scanId, response);
+
+		if (githubToken == null || githubToken.isEmpty()) {
+			log.warn("GitHub token not configured, cannot trigger workflow");
+			response.setStatus("FAILED");
+			response.setError("GitHub integration not configured");
+			return response;
+		}
+
+		try {
+			// Determine app parameter
+			String appParam = "all";
+			if (request.getTargetIds() != null && !request.getTargetIds().isEmpty()) {
+				// Extract app from target IDs (e.g., "web-home" -> "web")
+				String firstTarget = request.getTargetIds().get(0);
+				if (firstTarget.contains("-")) {
+					appParam = firstTarget.split("-")[0];
+				}
+			}
+
+			// Trigger GitHub Actions workflow
+			String url = String.format("%s/repos/%s/%s/actions/workflows/%s/dispatches", GITHUB_API_URL, REPO_OWNER,
+					REPO_NAME, WORKFLOW_ID);
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.set("Authorization", "Bearer " + githubToken);
+			headers.set("Accept", "application/vnd.github.v3+json");
+
+			String body = String.format("{\"ref\":\"main\",\"inputs\":{\"app\":\"%s\"}}", appParam);
+
+			HttpEntity<String> entity = new HttpEntity<>(body, headers);
+			restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);
+
+			response.setStatus("RUNNING");
+			response.setProgress(10);
+			log.info("GitHub Actions workflow triggered successfully for scan: {}", scanId);
+
+		}
+		catch (Exception e) {
+			log.error("Failed to trigger GitHub Actions workflow: {}", e.getMessage());
+			response.setStatus("FAILED");
+			response.setError("Failed to trigger scan: " + e.getMessage());
+		}
+
+		scanStatusCache.put(scanId, response);
+		return response;
+	}
+
+	/**
+	 * Get the status of an on-demand scan.
+	 * @param scanId the scan ID
+	 * @return current scan status
+	 */
+	public OnDemandScanResponse getScanStatus(String scanId) {
+		OnDemandScanResponse status = scanStatusCache.get(scanId);
+		if (status == null) {
+			status = new OnDemandScanResponse(scanId, "NOT_FOUND", 0);
+			status.setError("Scan not found");
+		}
+		return status;
+	}
+
+	/**
+	 * Update scan status (called when CI/CD pipeline reports progress).
+	 * @param scanId the scan ID
+	 * @param status new status
+	 * @param progress progress percentage
+	 */
+	public void updateScanStatus(String scanId, String status, int progress) {
+		OnDemandScanResponse response = scanStatusCache.get(scanId);
+		if (response != null) {
+			response.setStatus(status);
+			response.setProgress(progress);
+			if ("COMPLETED".equals(status) || "FAILED".equals(status)) {
+				response.setCompletedAt(Instant.now());
+			}
+			scanStatusCache.put(scanId, response);
+		}
 	}
 
 }

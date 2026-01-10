@@ -122,6 +122,32 @@ public class AdminAccessibilityController extends BaseController {
 		return ResponseEntity.ok(targets);
 	}
 
+	/**
+	 * Trigger on-demand accessibility scan via GitHub Actions workflow.
+	 * @param request scan configuration with target apps
+	 * @return scan response with scan ID for status tracking
+	 */
+	@PostMapping("/scan/trigger")
+	public ResponseEntity<io.strategiz.service.console.accessibility.model.OnDemandScanResponse> triggerScan(
+			@RequestBody io.strategiz.service.console.accessibility.model.OnDemandScanRequest request) {
+		io.strategiz.service.console.accessibility.model.OnDemandScanResponse response = accessibilityMetricsService
+			.triggerOnDemandScan(request);
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Get status of an on-demand scan.
+	 * @param scanId the scan ID returned from trigger
+	 * @return current scan status
+	 */
+	@GetMapping("/scan/status/{scanId}")
+	public ResponseEntity<io.strategiz.service.console.accessibility.model.OnDemandScanResponse> getScanStatus(
+			@org.springframework.web.bind.annotation.PathVariable String scanId) {
+		io.strategiz.service.console.accessibility.model.OnDemandScanResponse response = accessibilityMetricsService
+			.getScanStatus(scanId);
+		return ResponseEntity.ok(response);
+	}
+
 	@Override
 	protected String getModuleName() {
 		return "service-console-accessibility";

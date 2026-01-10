@@ -270,16 +270,18 @@ public class VaultSecretService implements SecretManager {
 
   /**
    * Convert a property key to a Vault path Example: "auth.google.client-id" ->
-   * "secret/data/strategiz/auth/google".
+   * "secret/data/strategiz/auth/google" (KV v2 format with /data/).
    */
   private String buildVaultPath(String key) {
     String[] parts = key.split("\\.");
 
     if (parts.length <= 1) {
+      // KV v2: Include /data/ in path
       return properties.getSecretsPath() + "/data/strategiz/" + key;
     }
 
     // Skip the last part which will be the field name
+    // Build path with /data/ for KV v2
     StringBuilder path = new StringBuilder(properties.getSecretsPath() + "/data/strategiz");
     for (int i = 0; i < parts.length - 1; i++) {
       path.append("/").append(parts[i]);

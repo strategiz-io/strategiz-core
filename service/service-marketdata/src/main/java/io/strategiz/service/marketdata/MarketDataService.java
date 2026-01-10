@@ -136,7 +136,8 @@ public class MarketDataService extends BaseService {
      *
      * @return List of distinct symbols
      */
-    @Cacheable(value = "availableSymbols", key = "'all'")
+    // TODO: Re-enable caching once ehcache.xml classpath issue is resolved
+    // @Cacheable(value = "availableSymbols", key = "'all'")
     public List<String> getAvailableSymbols() {
         log.info("Fetching available symbols");
 

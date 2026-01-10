@@ -66,7 +66,7 @@ steps:
     - '--min-instances=0'
     - '--max-instances=5'
     - '--timeout=480'
-    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,scheduler,console.auth.enabled=true,strategiz.clickhouse.enabled=true,strategiz.timescale.enabled=false'
+    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod^:^scheduler,console.auth.enabled=true,strategiz.clickhouse.enabled=true,strategiz.timescale.enabled=false'
     - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:

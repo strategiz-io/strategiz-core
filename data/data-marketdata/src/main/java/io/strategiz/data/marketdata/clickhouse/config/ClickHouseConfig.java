@@ -66,7 +66,8 @@ public class ClickHouseConfig {
 
 		// Connection validation
 		config.setConnectionTestQuery("SELECT 1");
-		config.setValidationTimeout(5000);
+		// Increased to 60s to match connection timeout (was 5s)
+		config.setValidationTimeout(60000);
 
 		// Pool identification
 		config.setPoolName("ClickHouseHikariPool");
@@ -90,13 +91,16 @@ public class ClickHouseConfig {
 	 */
 	private String loadSecret(String secretKey, String fallback) {
 		try {
+			log.debug("Loading secret '{}' from Vault", secretKey);
 			String value = secretManager.readSecret(secretKey);
 			if (value != null && !value.isEmpty()) {
+				log.debug("Secret '{}' loaded successfully from Vault", secretKey);
 				return value;
 			}
+			log.debug("Secret '{}' returned null/empty from Vault, using fallback", secretKey);
 		}
 		catch (Exception e) {
-			log.debug("Secret '{}' not found in Vault, using fallback", secretKey);
+			log.warn("Failed to load secret '{}' from Vault: {}", secretKey, e.getMessage());
 		}
 		return fallback;
 	}

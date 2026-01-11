@@ -18,7 +18,7 @@ COPY application-api/ application-api/
 COPY application-console/ application-console/
 
 # Build the console application (targeted build for console module and dependencies)
-RUN mvn clean install -pl application-console -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+RUN mvn clean install -Pdocker -pl application-console -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
     rm -rf /root/.m2/repository
 
 # Runtime image
@@ -36,8 +36,8 @@ COPY --from=builder /app/application-console/target/application-console-1.0-SNAP
 ENV PORT=8080
 # Enable both prod and scheduler profiles for batch job scheduling
 ENV SPRING_PROFILES_ACTIVE=prod,scheduler
-# Higher memory for batch job processing (3Gi heap for 4Gi container)
-ENV JAVA_OPTS="-Xmx3g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+# Higher memory for batch job processing (14Gi heap for 16Gi container)
+ENV JAVA_OPTS="-Xmx14g -Xms2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=8"
 
 # Expose port
 EXPOSE 8080

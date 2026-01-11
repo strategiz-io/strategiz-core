@@ -28,7 +28,8 @@
         <module>business-provider-alpaca</module>
         <module>business-provider-schwab</module>
         <module>business-provider-robinhood</module>
-        <module>business-historical-insights</module>
+        <!-- TEMPORARY: Commented out to unblock deployment -->
+        <!-- <module>business-historical-insights</module> -->
         <module>business-ai-chat</module>
         <module>business-marketdata</module>
         <module>business-preferences</module>

@@ -83,8 +83,7 @@
             <artifactId>batch-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- NOTE: batch-fundamentals disabled - depends on data-fundamentals-timescale which doesn't exist yet -->
-        <!--
+        <!-- Fundamentals batch jobs and business logic -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-fundamentals</artifactId>
@@ -95,7 +94,11 @@
             <artifactId>business-fundamentals</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-fundamentals</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>batch-live-strategies</artifactId>
@@ -106,13 +109,6 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-marketdata</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- TimescaleDB Framework Module -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>data-framework-timescale</artifactId>
             <version>${project.version}</version>
         </dependency>
 

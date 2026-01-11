@@ -4,7 +4,7 @@ import io.strategiz.batch.fundamentals.FundamentalsBackfillJob;
 import io.strategiz.batch.fundamentals.FundamentalsIncrementalJob;
 import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.business.fundamentals.service.FundamentalsQueryService;
-import io.strategiz.data.fundamentals.timescale.entity.FundamentalsTimescaleEntity;
+import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
 import io.strategiz.service.base.controller.BaseController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -243,7 +243,7 @@ public class AdminFundamentalsController extends BaseController {
 		logRequest("getFundamentals", adminUserId, "symbol=" + symbol);
 
 		try {
-			FundamentalsTimescaleEntity fundamentals = queryService.getLatestFundamentals(symbol);
+			FundamentalsEntity fundamentals = queryService.getLatestFundamentals(symbol);
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
@@ -299,9 +299,9 @@ public class AdminFundamentalsController extends BaseController {
 	// ========== Helper Methods ==========
 
 	/**
-	 * Convert FundamentalsTimescaleEntity to Map for JSON response.
+	 * Convert FundamentalsEntity to Map for JSON response.
 	 */
-	private Map<String, Object> convertToMap(FundamentalsTimescaleEntity entity) {
+	private Map<String, Object> convertToMap(FundamentalsEntity entity) {
 		Map<String, Object> map = new HashMap<>();
 
 		// Income Statement

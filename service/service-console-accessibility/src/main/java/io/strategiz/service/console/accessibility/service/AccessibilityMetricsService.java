@@ -52,16 +52,21 @@ public class AccessibilityMetricsService {
 
 	private final RestTemplate restTemplate;
 
+	private final GitHubAppAuthService githubAuthService;
+
 	// In-memory cache for scan status (in production, use Redis or Firestore)
 	private final Map<String, OnDemandScanResponse> scanStatusCache = new ConcurrentHashMap<>();
 
+	// Legacy support for simple token auth (fallback)
 	@Value("${github.token:}")
 	private String githubToken;
 
 	@Autowired
-	public AccessibilityMetricsService(CachedAccessibilityMetricsRepository cacheRepository) {
+	public AccessibilityMetricsService(CachedAccessibilityMetricsRepository cacheRepository,
+			GitHubAppAuthService githubAuthService) {
 		this.cacheRepository = cacheRepository;
 		this.restTemplate = new RestTemplate();
+		this.githubAuthService = githubAuthService;
 	}
 
 	/**
@@ -351,8 +356,10 @@ public class AccessibilityMetricsService {
 		// Store initial status
 		scanStatusCache.put(scanId, response);
 
-		if (githubToken == null || githubToken.isEmpty()) {
-			log.warn("GitHub token not configured, cannot trigger workflow");
+		// Get authentication token (GitHub App or legacy token)
+		String authToken = getAuthToken();
+		if (authToken == null) {
+			log.warn("GitHub authentication not configured");
 			response.setStatus("FAILED");
 			response.setError("GitHub integration not configured");
 			return response;
@@ -375,8 +382,9 @@ public class AccessibilityMetricsService {
 
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_JSON);
-			headers.set("Authorization", "Bearer " + githubToken);
+			headers.set("Authorization", "Bearer " + authToken);
 			headers.set("Accept", "application/vnd.github.v3+json");
+			headers.set("X-GitHub-Api-Version", "2022-11-28");
 
 			String body = String.format("{\"ref\":\"main\",\"inputs\":{\"app\":\"%s\"}}", appParam);
 
@@ -428,6 +436,32 @@ public class AccessibilityMetricsService {
 			}
 			scanStatusCache.put(scanId, response);
 		}
+	}
+
+	/**
+	 * Get GitHub authentication token. Tries GitHub App first (preferred),
+	 * falls back to simple bearer token.
+	 * @return GitHub authentication token, or null if not configured
+	 */
+	private String getAuthToken() {
+		// Try GitHub App authentication first (preferred method)
+		if (githubAuthService.isConfigured()) {
+			try {
+				log.info("Using GitHub App authentication");
+				return githubAuthService.getInstallationToken();
+			}
+			catch (Exception e) {
+				log.error("GitHub App authentication failed, falling back to simple token: {}", e.getMessage());
+			}
+		}
+
+		// Fall back to simple bearer token
+		if (githubToken != null && !githubToken.isEmpty()) {
+			log.info("Using legacy token authentication");
+			return githubToken;
+		}
+
+		return null;
 	}
 
 }

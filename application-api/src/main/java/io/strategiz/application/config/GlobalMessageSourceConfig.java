@@ -20,6 +20,7 @@ public class GlobalMessageSourceConfig {
         
         // Add all module message bundles
         messageSource.setBasenames(
+            "messages/service-base-errors",
             "messages/data-base-errors",
             "messages/data-strategy-errors",
             "messages/service-provider-errors",

@@ -8,6 +8,7 @@ import io.strategiz.data.infrastructurecosts.repository.ClickHouseCostRepository
 import io.strategiz.data.infrastructurecosts.repository.ClickHouseUsageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ import java.util.List;
  * instead of querying the ClickHouseDB Cloud API.
  */
 @Service
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class FirestoreClickHouseBillingService {
 
 	private static final Logger log = LoggerFactory.getLogger(FirestoreClickHouseBillingService.class);

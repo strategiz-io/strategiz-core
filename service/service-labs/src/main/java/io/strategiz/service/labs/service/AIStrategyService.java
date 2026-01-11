@@ -42,11 +42,11 @@ public class AIStrategyService extends BaseService {
 	private final ObjectMapper objectMapper;
 
 	private final HistoricalInsightsService historicalInsightsService;
-
 	private final HistoricalInsightsCacheService cacheService;
 
 	@Autowired
-	public AIStrategyService(LLMRouter llmRouter, HistoricalInsightsService historicalInsightsService,
+	public AIStrategyService(LLMRouter llmRouter,
+			HistoricalInsightsService historicalInsightsService,
 			HistoricalInsightsCacheService cacheService) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();

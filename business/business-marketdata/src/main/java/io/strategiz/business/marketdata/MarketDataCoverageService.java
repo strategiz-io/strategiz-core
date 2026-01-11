@@ -3,7 +3,7 @@ package io.strategiz.business.marketdata;
 import com.google.cloud.Timestamp;
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
 import io.strategiz.data.marketdata.entity.MarketDataCoverageEntity;
-import io.strategiz.data.marketdata.repository.MarketDataCoverageRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.MarketDataCoverageClickHouseRepository;
 import io.strategiz.data.marketdata.clickhouse.repository.SymbolDataStatusClickHouseRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
@@ -19,11 +19,11 @@ import java.util.*;
  *
  * Calculates aggregate statistics about data completeness:
  * - Coverage percentage by timeframe (how many symbols have data)
- * - Storage metrics (TimescaleDB size, row counts)
+ * - Storage metrics (ClickHouse size, row counts)
  * - Data quality distribution (good, partial, poor quality symbols)
  * - Identified gaps in data coverage
  *
- * Snapshots are stored in Firestore and calculated:
+ * Snapshots are stored in ClickHouse and calculated:
  * - Daily (via scheduled job at 2 AM)
  * - On-demand (via admin API)
  *
@@ -34,13 +34,13 @@ public class MarketDataCoverageService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketDataCoverageService.class);
 
-    private final MarketDataCoverageRepository coverageRepository;
+    private final MarketDataCoverageClickHouseRepository coverageRepository;
     private final SymbolDataStatusClickHouseRepository symbolStatusRepository;
     private final SymbolService symbolService;
 
     @Autowired
     public MarketDataCoverageService(
-            MarketDataCoverageRepository coverageRepository,
+            MarketDataCoverageClickHouseRepository coverageRepository,
             SymbolDataStatusClickHouseRepository symbolStatusRepository,
             SymbolService symbolService) {
         this.coverageRepository = coverageRepository;
@@ -49,8 +49,8 @@ public class MarketDataCoverageService {
     }
 
     /**
-     * Calculate current coverage statistics and save snapshot to Firestore.
-     * This is a heavy operation that queries TimescaleDB for aggregate stats.
+     * Calculate current coverage statistics and save snapshot to ClickHouse.
+     * This is a heavy operation that queries ClickHouse for aggregate stats.
      *
      * @param userId User ID triggering the calculation (typically "system" for scheduled jobs)
      * @return The saved coverage snapshot
@@ -86,10 +86,10 @@ public class MarketDataCoverageService {
             }
             snapshot.setByTimeframe(byTimeframe);
 
-            // Calculate storage metrics (placeholder - would query TimescaleDB)
+            // Calculate storage metrics (placeholder - would query ClickHouse)
             MarketDataCoverageEntity.StorageStats storage = new MarketDataCoverageEntity.StorageStats();
-            storage.setTimescaleDbRowCount(0L);  // TODO: Query from TimescaleDB
-            storage.setTimescaleDbSizeBytes(0L);  // TODO: Query from TimescaleDB
+            storage.setTimescaleDbRowCount(0L);  // TODO: Query from ClickHouse
+            storage.setTimescaleDbSizeBytes(0L);  // TODO: Query from ClickHouse
             storage.setFirestoreDocCount(0L);
             storage.setEstimatedCostPerMonth(0.0);
             snapshot.setStorage(storage);
@@ -98,12 +98,12 @@ public class MarketDataCoverageService {
             MarketDataCoverageEntity.QualityStats quality = calculateQualityStats();
             snapshot.setDataQuality(quality);
 
-            // Detect data gaps (placeholder - would analyze TimescaleDB data)
+            // Detect data gaps (placeholder - would analyze ClickHouse data)
             List<MarketDataCoverageEntity.DataGap> gaps = detectDataGaps();
             snapshot.setGaps(gaps);
 
-            // Save snapshot to Firestore
-            MarketDataCoverageEntity saved = coverageRepository.save(snapshot, userId);
+            // Save snapshot to ClickHouse
+            MarketDataCoverageEntity saved = coverageRepository.save(snapshot);
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("Coverage calculation completed in {}ms - snapshot: {}, {} symbols, {} timeframes",
@@ -243,7 +243,7 @@ public class MarketDataCoverageService {
     }
 
     /**
-     * Get the most recent coverage snapshot from Firestore.
+     * Get the most recent coverage snapshot from ClickHouse.
      *
      * @return Optional containing the latest snapshot, or empty if none exist
      */
@@ -277,7 +277,11 @@ public class MarketDataCoverageService {
 
         long startTime = System.currentTimeMillis();
 
-        List<MarketDataCoverageEntity> snapshots = coverageRepository.findByDateRange(start, end);
+        // Convert Timestamp to Instant for ClickHouse
+        Instant startInstant = Instant.ofEpochSecond(start.getSeconds(), start.getNanos());
+        Instant endInstant = Instant.ofEpochSecond(end.getSeconds(), end.getNanos());
+
+        List<MarketDataCoverageEntity> snapshots = coverageRepository.findByDateRange(startInstant, endInstant);
 
         long duration = System.currentTimeMillis() - startTime;
         log.debug("Retrieved {} snapshots in date range in {}ms",
@@ -330,40 +334,13 @@ public class MarketDataCoverageService {
         long startTime = System.currentTimeMillis();
 
         Instant cutoff = Instant.now().minus(retentionDays, java.time.temporal.ChronoUnit.DAYS);
-        Timestamp cutoffTimestamp = Timestamp.ofTimeSecondsAndNanos(cutoff.getEpochSecond(), cutoff.getNano());
 
-        int deleted = coverageRepository.deleteOlderThan(cutoffTimestamp);
+        int deleted = coverageRepository.deleteOlderThan(cutoff);
 
         long duration = System.currentTimeMillis() - startTime;
         log.info("Cleaned up {} old coverage snapshots (older than {} days) in {}ms",
             deleted, retentionDays, duration);
 
         return deleted;
-    }
-
-    /**
-     * Get snapshot by ID.
-     *
-     * @param snapshotId The snapshot ID
-     * @return Optional containing the snapshot if found
-     */
-    public Optional<MarketDataCoverageEntity> getSnapshotById(String snapshotId) {
-        if (snapshotId == null || snapshotId.trim().isEmpty()) {
-            throw new StrategizException(
-                MarketDataErrorDetails.INVALID_INPUT,
-                "business-marketdata",
-                "snapshotId cannot be null or empty"
-            );
-        }
-
-        long startTime = System.currentTimeMillis();
-
-        Optional<MarketDataCoverageEntity> snapshot = coverageRepository.findById(snapshotId);
-
-        long duration = System.currentTimeMillis() - startTime;
-        log.debug("Retrieved snapshot {} in {}ms, found: {}",
-            snapshotId, duration, snapshot.isPresent());
-
-        return snapshot;
     }
 }

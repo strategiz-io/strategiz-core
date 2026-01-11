@@ -1,0 +1,7 @@
+SPRING_PROFILES_ACTIVE: "prod,scheduler"
+VAULT_ADDR: "https://strategiz-vault-43628135674.us-east1.run.app"
+STRATEGIZ_VAULT_ADDRESS: "https://strategiz-vault-43628135674.us-east1.run.app"
+OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-us-east-3.grafana.net/otlp"
+OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+OTEL_SERVICE_NAME: "strategiz-console"
+OTEL_RESOURCE_ATTRIBUTES: "service.namespace=strategiz;deployment.environment=production;service.version=1.0.0"

@@ -151,7 +151,8 @@ public class FundamentalsCollectionService {
 			return new SymbolResult(symbol, true);
 		}
 		catch (StrategizException ex) {
-			log.warn("Failed to process fundamentals for {}: {}", symbol, ex.getErrorDetails().getPropertyKey());
+			String errorKey = ex.getErrorDetails() != null ? ex.getErrorDetails().getPropertyKey() : "UNKNOWN";
+			log.warn("Failed to process fundamentals for {}: {} - {}", symbol, errorKey, ex.getMessage(), ex);
 			return new SymbolResult(symbol, false, ex.getMessage());
 		}
 		catch (Exception ex) {

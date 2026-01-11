@@ -84,6 +84,30 @@ public class SubscriptionService {
 	}
 
 	/**
+	 * Check if user can use Alpha Mode (historical data analysis for strategy generation).
+	 * Alpha Mode is available to TRADER and STRATEGIST tiers.
+	 * ADMIN users have access for testing purposes.
+	 * @param userId The user ID
+	 * @return true if user can use Alpha Mode
+	 */
+	public boolean canUseAlphaMode(String userId) {
+		// Admins can use Alpha Mode for testing
+		if (isAdmin(userId)) {
+			logger.debug("Admin user {} granted access to Alpha Mode", userId);
+			return true;
+		}
+
+		SubscriptionTier tier = getTier(userId);
+		boolean canUse = tier == SubscriptionTier.TRADER || tier == SubscriptionTier.STRATEGIST;
+
+		if (!canUse) {
+			logger.info("Alpha Mode not available for user {} on tier {}", userId, tier.getId());
+		}
+
+		return canUse;
+	}
+
+	/**
 	 * Check if user can send a message (within daily limit).
 	 * Covers both Learn AI Chat and Labs Strategy Generation.
 	 * ADMIN users bypass all limits for testing purposes.

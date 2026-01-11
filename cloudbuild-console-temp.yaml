@@ -1,0 +1,13 @@
+steps:
+  # Build the Docker image using the console Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'application-console/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/strategiz-console', '.']
+
+  # Push the Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/strategiz-console']
+
+images:
+  - 'gcr.io/$PROJECT_ID/strategiz-console'
+
+timeout: '1200s'

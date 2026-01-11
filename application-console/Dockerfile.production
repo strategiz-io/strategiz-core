@@ -17,7 +17,7 @@ COPY application-api/ application-api/
 COPY application-console/ application-console/
 
 # Build the console application
-RUN mvn clean install -Pdocker -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+RUN mvn clean install -pl application-console -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
     rm -rf /root/.m2/repository
 
 # Runtime image

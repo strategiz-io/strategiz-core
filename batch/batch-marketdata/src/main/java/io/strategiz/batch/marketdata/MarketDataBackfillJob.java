@@ -135,7 +135,7 @@ public class MarketDataBackfillJob {
 
 		long startTime = System.currentTimeMillis();
 
-		LocalDateTime endDate = LocalDateTime.now();
+		LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 		LocalDateTime startDate = endDate.minusYears(backfillYears);
 
 		int totalSymbolsProcessed = 0;

@@ -113,7 +113,7 @@ public class MarketDataCollectionService {
         log.info("Starting market data backfill for {} symbols, timeframe: {}, lookback: {} months",
                 symbols.size(), timeframe, backfillMonths);
 
-        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
         LocalDateTime startDate = endDate.minusMonths(backfillMonths);
 
         return backfillIntradayData(symbols, startDate, endDate, timeframe);

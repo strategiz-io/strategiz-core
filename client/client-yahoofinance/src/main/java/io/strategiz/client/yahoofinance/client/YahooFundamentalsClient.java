@@ -64,6 +64,13 @@ public class YahooFundamentalsClient {
 	@Value("${yahoo.finance.timeout-ms:10000}")
 	private long timeoutMs;
 
+	// Cookie and crumb for Yahoo Finance authentication
+	private volatile String cookie;
+
+	private volatile String crumb;
+
+	private volatile long crumbExpiration = 0;
+
 	public YahooFundamentalsClient(RestTemplate yahooFinanceRestTemplate) {
 		this.restTemplate = yahooFinanceRestTemplate;
 	}
@@ -84,10 +91,13 @@ public class YahooFundamentalsClient {
 		log.debug("Fetching fundamentals for symbol: {}", symbol);
 
 		try {
-			// Build Yahoo Finance quote summary URL
-			String url = String.format("%s/v10/finance/quoteSummary/%s?modules="
+			// Ensure we have valid cookie and crumb
+			ensureAuthenticated();
+
+			// Build Yahoo Finance quote summary URL with crumb
+			String url = String.format("%s/v10/finance/quoteSummary/%s?crumb=%s&modules="
 					+ "financialData,defaultKeyStatistics,balanceSheetHistory,incomeStatementHistory", baseUrl,
-					symbol);
+					symbol, crumb);
 
 			// Execute request with retries
 			ResponseEntity<Map> response = executeWithRetry(url, Map.class);
@@ -105,7 +115,13 @@ public class YahooFundamentalsClient {
 
 		}
 		catch (HttpClientErrorException ex) {
-			if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+			// If we get 401, refresh authentication and retry once
+			if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+				log.warn("Got 401 Unauthorized, refreshing cookie/crumb and retrying");
+				refreshAuthentication();
+				return getFundamentals(symbol); // Retry once
+			}
+			else if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
 				throw new StrategizException(YahooFinanceErrorDetails.INVALID_SYMBOL,
 						String.format("Symbol not found: %s", symbol), ex);
 			}
@@ -176,7 +192,89 @@ public class YahooFundamentalsClient {
 	}
 
 	/**
+	 * Ensure we have valid authentication (cookie and crumb).
+	 * Refreshes if expired or missing.
+	 */
+	private synchronized void ensureAuthenticated() {
+		long now = System.currentTimeMillis();
+
+		// Check if crumb is expired (valid for 1 hour)
+		if (cookie == null || crumb == null || now >= crumbExpiration) {
+			log.debug("Cookie/crumb missing or expired, refreshing authentication");
+			refreshAuthentication();
+		}
+	}
+
+	/**
+	 * Refresh Yahoo Finance cookie and crumb.
+	 */
+	private synchronized void refreshAuthentication() {
+		try {
+			log.info("Fetching new Yahoo Finance cookie and crumb");
+
+			// Step 1: Get cookie from Yahoo Finance homepage
+			String homepageUrl = "https://finance.yahoo.com";
+
+			// Create headers with User-Agent for homepage request
+			org.springframework.http.HttpHeaders homepageHeaders = new org.springframework.http.HttpHeaders();
+			homepageHeaders.set("User-Agent",
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+			homepageHeaders.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+			homepageHeaders.set("Accept-Language", "en-US,en;q=0.5");
+
+			org.springframework.http.HttpEntity<String> homepageEntity = new org.springframework.http.HttpEntity<>(homepageHeaders);
+
+			ResponseEntity<String> homepageResponse = restTemplate.exchange(homepageUrl,
+					org.springframework.http.HttpMethod.GET, homepageEntity, String.class);
+
+			// Extract cookie from Set-Cookie header
+			List<String> cookies = homepageResponse.getHeaders().get("Set-Cookie");
+			if (cookies == null || cookies.isEmpty()) {
+				throw new StrategizException(YahooFinanceErrorDetails.API_ERROR_RESPONSE,
+						"Failed to get cookie from Yahoo Finance");
+			}
+
+			// Combine all cookies
+			this.cookie = String.join("; ", cookies);
+
+			// Step 2: Get crumb from crumb endpoint
+			String crumbUrl = "https://query2.finance.yahoo.com/v1/test/getcrumb";
+
+			// Create headers with cookie
+			org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+			headers.set("Cookie", this.cookie);
+			headers.set("User-Agent",
+					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+
+			org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+
+			ResponseEntity<String> crumbResponse = restTemplate.exchange(crumbUrl, org.springframework.http.HttpMethod.GET,
+					entity, String.class);
+
+			if (crumbResponse.getBody() == null || crumbResponse.getBody().isBlank()) {
+				throw new StrategizException(YahooFinanceErrorDetails.API_ERROR_RESPONSE,
+						"Failed to get crumb from Yahoo Finance");
+			}
+
+			this.crumb = crumbResponse.getBody().trim();
+
+			// Set expiration to 1 hour from now
+			this.crumbExpiration = System.currentTimeMillis() + (60 * 60 * 1000);
+
+			log.info("Successfully refreshed Yahoo Finance authentication (crumb: {}, expiration: {})", this.crumb,
+					new java.util.Date(this.crumbExpiration));
+
+		}
+		catch (Exception ex) {
+			log.error("Failed to refresh Yahoo Finance authentication", ex);
+			throw new StrategizException(YahooFinanceErrorDetails.API_ERROR_RESPONSE,
+					"Failed to authenticate with Yahoo Finance", ex);
+		}
+	}
+
+	/**
 	 * Execute HTTP request with exponential backoff retry logic.
+	 * Includes cookie authentication header.
 	 */
 	private <T> ResponseEntity<T> executeWithRetry(String url, Class<T> responseType) {
 		int attempt = 0;
@@ -184,7 +282,17 @@ public class YahooFundamentalsClient {
 
 		while (attempt < maxRetries) {
 			try {
-				return restTemplate.getForEntity(url, responseType);
+				// Create headers with cookie
+				org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+				if (cookie != null) {
+					headers.set("Cookie", cookie);
+				}
+				headers.set("User-Agent",
+						"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+
+				org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+
+				return restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, responseType);
 			}
 			catch (HttpServerErrorException ex) {
 				attempt++;

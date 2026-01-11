@@ -34,10 +34,14 @@ public class ConsoleMarketDataCoverageController extends BaseController {
     private static final String MODULE_NAME = "CONSOLE";
 
     private final MarketDataCoverageService coverageService;
+    private final io.strategiz.business.marketdata.SymbolDataStatusService symbolDataStatusService;
 
     @Autowired
-    public ConsoleMarketDataCoverageController(MarketDataCoverageService coverageService) {
+    public ConsoleMarketDataCoverageController(
+            MarketDataCoverageService coverageService,
+            io.strategiz.business.marketdata.SymbolDataStatusService symbolDataStatusService) {
         this.coverageService = coverageService;
+        this.symbolDataStatusService = symbolDataStatusService;
     }
 
     @Override
@@ -230,6 +234,57 @@ public class ConsoleMarketDataCoverageController extends BaseController {
         response.setGapEnd(entity.getGapEnd());
         response.setMissingBars(entity.getMissingBars());
         return response;
+    }
+
+    /**
+     * Get consolidated freshness metrics for the target timeframes.
+     * This is the main endpoint for the consolidated coverage/freshness view.
+     *
+     * @param request HTTP request containing adminUserId attribute
+     * @param freshnessThresholdMinutes Freshness threshold in minutes (default 15)
+     * @return Consolidated freshness metrics including overall percentage and per-timeframe breakdown
+     */
+    @GetMapping("/freshness")
+    @Operation(summary = "Get freshness metrics", description = "Retrieves consolidated freshness metrics for target timeframes")
+    public ResponseEntity<Map<String, Object>> getFreshnessMetrics(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "15") int freshnessThresholdMinutes) {
+
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        logRequest("getFreshnessMetrics", adminUserId, "threshold=" + freshnessThresholdMinutes);
+
+        // Target timeframes for S&P 500 coverage tracking
+        List<String> targetTimeframes = List.of("1Hour", "1Day", "1Week", "1Month");
+        int totalSymbols = 547;  // S&P 500 symbols
+
+        // Calculate freshness metrics per timeframe
+        List<Map<String, Object>> timeframeMetrics = symbolDataStatusService.calculateFreshnessMetrics(
+            targetTimeframes,
+            freshnessThresholdMinutes
+        );
+
+        // Calculate overall freshness
+        long totalPairs = (long) totalSymbols * targetTimeframes.size();  // 547 * 4 = 2,188
+        long totalFreshPairs = timeframeMetrics.stream()
+            .mapToLong(m -> (Long) m.get("freshSymbols"))
+            .sum();
+        double overallFreshnessPercent = (totalFreshPairs * 100.0) / totalPairs;
+
+        // Build response
+        Map<String, Object> response = new HashMap<>();
+        response.put("overallFreshnessPercent", Math.round(overallFreshnessPercent * 100.0) / 100.0);
+        response.put("totalFreshPairs", totalFreshPairs);
+        response.put("totalPairs", totalPairs);
+        response.put("totalSymbols", totalSymbols);
+        response.put("totalTimeframes", targetTimeframes.size());
+        response.put("freshnessThresholdMinutes", freshnessThresholdMinutes);
+        response.put("timeframeMetrics", timeframeMetrics);
+        response.put("calculatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+
+        log.info("Freshness metrics: {}/{} pairs fresh ({}%)",
+            totalFreshPairs, totalPairs, Math.round(overallFreshnessPercent));
+
+        return ResponseEntity.ok(response);
     }
 
     /**

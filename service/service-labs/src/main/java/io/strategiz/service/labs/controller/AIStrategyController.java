@@ -64,6 +64,25 @@ public class AIStrategyController extends BaseController {
 				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
 		}
 
+		// ALPHA MODE CHECKS
+		if (Boolean.TRUE.equals(request.getAlphaMode())) {
+			// Check if Alpha Mode feature flag is enabled
+			if (!featureFlagService.isAlphaModeEnabled()) {
+				logger.warn("Alpha Mode is currently disabled");
+				return ResponseEntity.status(503)
+					.body(AIStrategyResponse.error("Alpha Mode is currently unavailable. Please try again later."));
+			}
+
+			// Check if user's subscription tier allows Alpha Mode (TRADER/STRATEGIST only)
+			if (!subscriptionService.canUseAlphaMode(userId)) {
+				logger.warn("User {} attempted to use Alpha Mode without proper subscription tier", userId);
+				return ResponseEntity.status(403)
+					.body(AIStrategyResponse.error("Alpha Mode requires TRADER or STRATEGIST tier. Upgrade to unlock."));
+			}
+
+			logger.info("Alpha Mode enabled for user {}", userId);
+		}
+
 		// Check if user can send AI message (within limits)
 		// Gracefully handle subscription check errors - allow request if check fails
 		try {

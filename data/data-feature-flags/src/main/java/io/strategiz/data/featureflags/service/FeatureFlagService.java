@@ -42,6 +42,7 @@ public class FeatureFlagService {
     // AI - Holistic level (entire features)
     public static final String FLAG_AI_LEARN_ENABLED = "ai_learn_enabled";
     public static final String FLAG_AI_LABS_ENABLED = "ai_labs_enabled";
+    public static final String FLAG_ALPHA_MODE = "ai_alpha_mode_enabled";
 
     // AI - Provider level (all models from a provider)
     public static final String FLAG_AI_PROVIDER_GEMINI = "ai_provider_gemini_enabled";
@@ -93,6 +94,9 @@ public class FeatureFlagService {
 
         createDefaultFlag(FLAG_AI_LABS_ENABLED, "AI Labs Strategy Generator",
             "Enable Labs AI-powered strategy generation", true, "ai");
+
+        createDefaultFlag(FLAG_ALPHA_MODE, "AI Alpha Mode",
+            "Enable Alpha Mode with historical data analysis", true, "ai");
 
         // AI - Provider level
         createDefaultFlag(FLAG_AI_PROVIDER_GEMINI, "Gemini Provider",
@@ -217,6 +221,13 @@ public class FeatureFlagService {
      */
     public boolean isLabsAIEnabled() {
         return isEnabled(FLAG_AI_LABS_ENABLED);
+    }
+
+    /**
+     * Check if Alpha Mode is enabled.
+     */
+    public boolean isAlphaModeEnabled() {
+        return isEnabled(FLAG_ALPHA_MODE);
     }
 
     /**

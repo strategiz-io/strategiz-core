@@ -51,6 +51,12 @@ public class AIStrategyRequest {
 	@JsonProperty("visualEditorSchema")
 	private String visualEditorSchema; // Schema description for generating valid visual rules
 
+	@JsonProperty("alphaMode")
+	private Boolean alphaMode = false; // Enable Alpha Mode with historical data analysis
+
+	@JsonProperty("alphaOptions")
+	private AlphaModeOptions alphaOptions; // Options for Alpha Mode analysis
+
 	// Getters and Setters
 
 	public String getPrompt() {
@@ -115,6 +121,64 @@ public class AIStrategyRequest {
 
 	public void setVisualEditorSchema(String visualEditorSchema) {
 		this.visualEditorSchema = visualEditorSchema;
+	}
+
+	public Boolean getAlphaMode() {
+		return alphaMode;
+	}
+
+	public void setAlphaMode(Boolean alphaMode) {
+		this.alphaMode = alphaMode;
+	}
+
+	public AlphaModeOptions getAlphaOptions() {
+		return alphaOptions;
+	}
+
+	public void setAlphaOptions(AlphaModeOptions alphaOptions) {
+		this.alphaOptions = alphaOptions;
+	}
+
+	/**
+	 * Options for Alpha Mode historical analysis.
+	 */
+	public static class AlphaModeOptions {
+
+		@JsonProperty("lookbackDays")
+		private Integer lookbackDays = 2600; // ~7 years default
+
+		@JsonProperty("useFundamentals")
+		private Boolean useFundamentals = false; // Include fundamental analysis
+
+		@JsonProperty("forceRefresh")
+		private Boolean forceRefresh = false; // Skip cache and recompute
+
+		// Getters and Setters
+
+		public Integer getLookbackDays() {
+			return lookbackDays;
+		}
+
+		public void setLookbackDays(Integer lookbackDays) {
+			this.lookbackDays = lookbackDays;
+		}
+
+		public Boolean getUseFundamentals() {
+			return useFundamentals;
+		}
+
+		public void setUseFundamentals(Boolean useFundamentals) {
+			this.useFundamentals = useFundamentals;
+		}
+
+		public Boolean getForceRefresh() {
+			return forceRefresh;
+		}
+
+		public void setForceRefresh(Boolean forceRefresh) {
+			this.forceRefresh = forceRefresh;
+		}
+
 	}
 
 	/**

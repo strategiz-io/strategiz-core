@@ -350,4 +350,68 @@ public class SymbolDataStatusService {
 
         return distribution;
     }
+
+    /**
+     * Calculate freshness metrics for specific timeframes.
+     * This is the key method for the consolidated coverage view showing "% fresh within 15 minutes".
+     *
+     * @param timeframes List of timeframes to check (e.g., ["1Hour", "1Day", "1Week", "1Month"])
+     * @param freshnessThresholdMinutes Threshold in minutes (default 15)
+     * @return List of maps with freshness data per timeframe
+     */
+    public List<Map<String, Object>> calculateFreshnessMetrics(List<String> timeframes, int freshnessThresholdMinutes) {
+        if (timeframes == null || timeframes.isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "timeframes list cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        List<Map<String, Object>> metrics = symbolDataStatusRepository.calculateFreshnessMetrics(
+            timeframes,
+            freshnessThresholdMinutes
+        );
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("Calculated freshness metrics for {} timeframes ({} min threshold) in {}ms",
+            timeframes.size(), freshnessThresholdMinutes, duration);
+
+        return metrics;
+    }
+
+    /**
+     * Get all symbols with their status across multiple timeframes.
+     * Used for the consolidated symbol view showing each symbol's freshness across all target timeframes.
+     *
+     * @param timeframes List of timeframes to include (e.g., ["1Hour", "1Day", "1Week", "1Month"])
+     * @param page Page number (0-indexed)
+     * @param pageSize Number of symbols per page
+     * @return List of symbol status maps with timeframe data
+     */
+    public List<Map<String, Object>> getSymbolsWithAllTimeframes(List<String> timeframes, int page, int pageSize) {
+        if (timeframes == null || timeframes.isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "timeframes list cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        Pageable pageable = PageRequest.of(page, pageSize);
+        List<Map<String, Object>> symbols = symbolDataStatusRepository.findSymbolsWithAllTimeframes(
+            timeframes,
+            pageable
+        );
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.debug("Retrieved {} symbols with {} timeframes in {}ms (page {} of size {})",
+            symbols.size(), timeframes.size(), duration, page, pageSize);
+
+        return symbols;
+    }
 }

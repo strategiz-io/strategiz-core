@@ -1,6 +1,7 @@
 package io.strategiz.service.labs.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.strategiz.business.historicalinsights.model.SymbolInsights;
 
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,12 @@ public class AIStrategyResponse {
 
 	@JsonProperty("error")
 	private String error;
+
+	@JsonProperty("alphaModeUsed")
+	private Boolean alphaModeUsed; // Whether Alpha Mode was used for this generation
+
+	@JsonProperty("historicalInsights")
+	private SymbolInsights historicalInsights; // Insights from Alpha Mode analysis
 
 	// Getters and Setters
 
@@ -151,6 +158,22 @@ public class AIStrategyResponse {
 
 	public void setError(String error) {
 		this.error = error;
+	}
+
+	public Boolean getAlphaModeUsed() {
+		return alphaModeUsed;
+	}
+
+	public void setAlphaModeUsed(Boolean alphaModeUsed) {
+		this.alphaModeUsed = alphaModeUsed;
+	}
+
+	public SymbolInsights getHistoricalInsights() {
+		return historicalInsights;
+	}
+
+	public void setHistoricalInsights(SymbolInsights historicalInsights) {
+		this.historicalInsights = historicalInsights;
 	}
 
 	/**

@@ -241,8 +241,68 @@ public class AIStrategyPrompts {
 			6. ✓ Generate unique IDs for all conditions (format: "cond-1", "cond-2")
 			7. ✓ Ensure comparator values match Python code exactly (RSI < 30 → comparator: "lt", value: 30)
 			8. ✓ For crossovers, use comparator="crossAbove" or "crossBelow" (not "gt" or "lt")
-			9. ✓ Validate every rule has: id, type, action, logic, conditions[]
-			10. ✓ Validate every condition has: id, indicator, comparator, value, valueType
+			9. ✓ For crossAbove/crossBelow comparators, secondaryIndicator is REQUIRED (NOT value)
+			10. ✓ For indicator-to-indicator comparisons (MACD>Signal), secondaryIndicator is REQUIRED
+			11. ✓ valueType MUST match the comparison: "indicator" when using secondaryIndicator, "number" when using value
+			12. ✓ Validate every rule has: id, type, action, logic, conditions[]
+			13. ✓ Validate every condition has: id, indicator, comparator, value OR secondaryIndicator, valueType
+
+			CRITICAL: How to Use secondaryIndicator vs value Field
+
+			This is the #1 most common error - PAY CLOSE ATTENTION:
+
+			1. For NUMBER Comparisons (comparing indicator to a fixed number):
+			   USE: "value" field with valueType="number"
+			   Example: RSI < 30
+			   {
+			     "indicator": "rsi",
+			     "comparator": "lt",
+			     "value": 30,
+			     "valueType": "number"
+			   }
+
+			2. For INDICATOR-TO-INDICATOR Comparisons (comparing two indicators):
+			   USE: "secondaryIndicator" field with valueType="indicator"
+			   DO NOT USE "value" field!
+			   Example: MACD > MACD Signal
+			   {
+			     "indicator": "macd",
+			     "comparator": "gt",
+			     "secondaryIndicator": "macd_signal",  // ← REQUIRED!
+			     "valueType": "indicator"              // ← MUST be "indicator"!
+			   }
+
+			3. For CROSSOVER Comparisons (price/indicator crosses above or below another):
+			   USE: "secondaryIndicator" field with valueType="indicator"
+			   USE: comparator="crossAbove" or "crossBelow" (NOT "gt" or "lt")
+			   Example: Price crosses above Upper Bollinger Band
+			   {
+			     "indicator": "price",
+			     "comparator": "crossAbove",
+			     "secondaryIndicator": "bb_upper",     // ← REQUIRED!
+			     "valueType": "indicator"              // ← MUST be "indicator"!
+			   }
+
+			COMMON MISTAKES TO AVOID (These cause visual rules to display incorrectly):
+			❌ Using valueType="number" for indicator comparisons → WRONG!
+			❌ Leaving secondaryIndicator null when comparing two indicators → WRONG!
+			❌ Using empty string "" for value in crossover comparisons → WRONG!
+			❌ Missing secondaryIndicator for MACD > MACD Signal → WRONG!
+			❌ Using "value" field instead of "secondaryIndicator" for crossovers → WRONG!
+
+			CORRECT Examples by Type:
+
+			Type 1 - Number Comparison:
+			Python: if rsi.iloc[-1] < 30:
+			JSON: {"indicator": "rsi", "comparator": "lt", "value": 30, "valueType": "number"}
+
+			Type 2 - Indicator Comparison:
+			Python: if macd.iloc[-1] > macd_signal.iloc[-1]:
+			JSON: {"indicator": "macd", "comparator": "gt", "secondaryIndicator": "macd_signal", "valueType": "indicator"}
+
+			Type 3 - Crossover:
+			Python: if (prev_close <= prev_bb_upper) and (current_close > current_bb_upper):
+			JSON: {"indicator": "price", "comparator": "crossAbove", "secondaryIndicator": "bb_upper", "valueType": "indicator"}
 
 			Example of Perfect Alignment:
 
@@ -287,6 +347,130 @@ public class AIStrategyPrompts {
 			  "logic": "and"            // ❌ Wrong! Should be uppercase "AND"
 			}
 			```
+
+			---
+
+			COMPLETE EXAMPLE: Bollinger Band Breakout with MACD Confirmation
+
+			This is a PERFECT example showing proper secondaryIndicator usage for crossovers and indicator comparisons:
+
+			User Prompt:
+			"Buy when price breaks above upper Bollinger Band with RSI between 50-70 and MACD confirmation.
+			Sell when price breaks below lower Bollinger Band or RSI drops below 40."
+
+			CORRECT Visual Config (THIS IS THE GOLD STANDARD):
+			```json
+			{
+			  "visualConfig": {
+			    "name": "Bollinger Band Breakout with Filters",
+			    "symbol": "AAPL",
+			    "rules": [
+			      {
+			        "id": "rule-entry-1",
+			        "type": "entry",
+			        "action": "BUY",
+			        "logic": "AND",
+			        "conditions": [
+			          {
+			            "id": "cond-1",
+			            "indicator": "price",
+			            "comparator": "crossAbove",
+			            "secondaryIndicator": "bb_upper",  // ← CRITICAL: What price crosses
+			            "valueType": "indicator"           // ← MUST be "indicator"
+			          },
+			          {
+			            "id": "cond-2",
+			            "indicator": "rsi",
+			            "comparator": "gt",
+			            "value": 50,
+			            "valueType": "number"
+			          },
+			          {
+			            "id": "cond-3",
+			            "indicator": "rsi",
+			            "comparator": "lt",
+			            "value": 70,
+			            "valueType": "number"
+			          },
+			          {
+			            "id": "cond-4",
+			            "indicator": "macd",
+			            "comparator": "gt",
+			            "secondaryIndicator": "macd_signal",  // ← CRITICAL: MACD compared to Signal
+			            "valueType": "indicator"              // ← MUST be "indicator"
+			          }
+			        ]
+			      },
+			      {
+			        "id": "rule-exit-1",
+			        "type": "exit",
+			        "action": "SELL",
+			        "logic": "OR",
+			        "conditions": [
+			          {
+			            "id": "cond-5",
+			            "indicator": "price",
+			            "comparator": "crossBelow",
+			            "secondaryIndicator": "bb_lower",  // ← CRITICAL: What price crosses
+			            "valueType": "indicator"           // ← MUST be "indicator"
+			          },
+			          {
+			            "id": "cond-6",
+			            "indicator": "rsi",
+			            "comparator": "lt",
+			            "value": 40,
+			            "valueType": "number"
+			          }
+			        ]
+			      }
+			    ]
+			  }
+			}
+			```
+
+			Matching Python Code:
+			```python
+			def strategy(data):
+			    # Calculate indicators
+			    rsi = calculate_rsi(data['close'])
+			    macd, macd_signal, _ = calculate_macd(data['close'])
+			    bb_upper, _, bb_lower = calculate_bollinger_bands(data['close'])
+
+			    # Get current and previous values for crossover detection
+			    current_close = data['close'].iloc[-1]
+			    prev_close = data['close'].iloc[-2]
+			    current_bb_upper = bb_upper.iloc[-1]
+			    prev_bb_upper = bb_upper.iloc[-2]
+			    current_bb_lower = bb_lower.iloc[-1]
+			    prev_bb_lower = bb_lower.iloc[-2]
+			    current_rsi = rsi.iloc[-1]
+			    current_macd = macd.iloc[-1]
+			    current_macd_signal = macd_signal.iloc[-1]
+
+			    # Entry: Price crosses above BB upper + RSI 50-70 + MACD > Signal
+			    entry_cross = (prev_close <= prev_bb_upper) and (current_close > current_bb_upper)
+			    entry_rsi_range = (current_rsi > 50) and (current_rsi < 70)
+			    entry_macd = current_macd > current_macd_signal
+
+			    if entry_cross and entry_rsi_range and entry_macd:
+			        return 'BUY'
+
+			    # Exit: Price crosses below BB lower OR RSI < 40
+			    exit_cross = (prev_close >= prev_bb_lower) and (current_close < current_bb_lower)
+			    exit_rsi = current_rsi < 40
+
+			    if exit_cross or exit_rsi:
+			        return 'SELL'
+
+			    return 'HOLD'
+			```
+
+			Notice how:
+			1. Crossover conditions use secondaryIndicator (bb_upper, bb_lower) NOT value
+			2. MACD comparison uses secondaryIndicator (macd_signal) NOT value
+			3. RSI number comparisons use value NOT secondaryIndicator
+			4. All secondaryIndicator conditions have valueType="indicator"
+			5. All value conditions have valueType="number"
 
 			---
 

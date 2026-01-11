@@ -36,10 +36,14 @@ public class MarketDataBatchController {
 
 	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
 
+	private final io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository marketDataRepository;
+
 	public MarketDataBatchController(MarketDataCollectionService collectionService,
-			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository marketDataRepository) {
 		this.collectionService = collectionService;
 		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+		this.marketDataRepository = marketDataRepository;
 	}
 
 	/**
@@ -64,7 +68,7 @@ public class MarketDataBatchController {
 		log.info("Timeframes: {}", timeframes);
 		log.info("Years: {}", years);
 
-		LocalDateTime endDate = LocalDateTime.now();
+		LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 		LocalDateTime startDate = endDate.minusYears(years);
 
 		// Validate timeframes
@@ -194,7 +198,7 @@ public class MarketDataBatchController {
 				"Market Data Backfill (Test)", context);
 
 		try {
-			LocalDateTime endDate = LocalDateTime.now();
+			LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 			LocalDateTime startDate = endDate.minusWeeks(1);
 
 			long startTime = System.currentTimeMillis();
@@ -325,7 +329,7 @@ public class MarketDataBatchController {
 				"Market Data Incremental (" + timeframe + ")", context);
 
 		try {
-			LocalDateTime endDate = LocalDateTime.now();
+			LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 			LocalDateTime startDate = endDate.minusHours(lookbackHours);
 
 			long startTime = System.currentTimeMillis();
@@ -401,7 +405,7 @@ public class MarketDataBatchController {
 		int timeframesProcessed = 0;
 		List<Map<String, Object>> timeframeResults = new ArrayList<>();
 
-		LocalDateTime endDate = LocalDateTime.now();
+		LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 		LocalDateTime startDate = endDate.minusHours(lookbackHours);
 
 		try {
@@ -512,6 +516,35 @@ public class MarketDataBatchController {
 	}
 
 	/**
+	 * Cancel/stop currently running backfill job
+	 *
+	 * POST /v1/marketdata/admin/backfill/cancel
+	 *
+	 * Attempts to gracefully cancel the running job. Currently processing symbol will
+	 * complete, but no new symbols will be processed.
+	 */
+	@PostMapping("/backfill/cancel")
+	public ResponseEntity<Map<String, Object>> cancelBackfill() {
+		log.warn("=== Admin API: Cancel Backfill Request ===");
+
+		boolean cancelled = collectionService.cancelCurrentJob();
+
+		Map<String, Object> response = new HashMap<>();
+		if (cancelled) {
+			response.put("status", "success");
+			response.put("message", "Backfill cancellation requested. Job will stop after current symbol completes.");
+			log.info("Backfill cancellation requested successfully");
+		}
+		else {
+			response.put("status", "info");
+			response.put("message", "No active backfill job to cancel");
+			log.info("No active backfill job running");
+		}
+
+		return ResponseEntity.ok(response);
+	}
+
+	/**
 	 * Get status and configuration information
 	 *
 	 * GET /v1/marketdata/admin/status
@@ -539,9 +572,165 @@ public class MarketDataBatchController {
 		endpoints.put("customBackfill", "POST /v1/marketdata/admin/backfill/custom");
 		endpoints.put("incremental", "POST /v1/marketdata/admin/incremental");
 		endpoints.put("allTimeframesIncremental", "POST /v1/marketdata/admin/incremental/all-timeframes");
+		endpoints.put("cancelBackfill", "POST /v1/marketdata/admin/backfill/cancel");
+		endpoints.put("analyzeCorruption", "GET /v1/marketdata/admin/cleanup/analyze");
+		endpoints.put("deleteCorrupted1Day", "POST /v1/marketdata/admin/cleanup/1day");
+		endpoints.put("optimizeTable", "POST /v1/marketdata/admin/cleanup/optimize");
 		status.put("availableEndpoints", endpoints);
 
 		return ResponseEntity.ok(status);
+	}
+
+	// ========================= DATA CLEANUP ENDPOINTS =========================
+
+	/**
+	 * Analyze timestamp corruption patterns before cleanup
+	 *
+	 * GET /v1/marketdata/admin/cleanup/analyze?timeframe=1Day
+	 *
+	 * Returns: - Corrupted row counts - Timestamp distribution by hour - Helps decide
+	 * if cleanup is needed
+	 */
+	@GetMapping("/cleanup/analyze")
+	public ResponseEntity<Map<String, Object>> analyzeCorruption(
+			@RequestParam(required = false, defaultValue = "1Day") String timeframe) {
+		log.info("=== Admin API: Analyze Corruption (timeframe: {}) ===", timeframe);
+
+		try {
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
+
+			// Get timestamp distribution
+			List<Map<String, Object>> distribution = repo.analyzeTimestampsByTimeframe(timeframe);
+
+			// Count corrupted records based on timeframe
+			long corruptedCount = 0;
+			String corruptionLogic = "";
+
+			if ("1Day".equals(timeframe)) {
+				corruptedCount = repo.countCorrupted1DayBars();
+				corruptionLogic = "Daily bars not at midnight UTC (hour != 0)";
+			}
+			else if ("1Hour".equals(timeframe)) {
+				corruptedCount = repo.countCorrupted1HourBars();
+				corruptionLogic = "Hourly bars not on-the-hour (minute != 0)";
+			}
+
+			// Get total count for timeframe
+			long totalCount = distribution.stream().mapToLong(m -> ((Number) m.get("count")).longValue()).sum();
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("timeframe", timeframe);
+			response.put("totalRecords", totalCount);
+			response.put("corruptedRecords", corruptedCount);
+			response.put("corruptionPercentage",
+					totalCount > 0 ? String.format("%.2f%%", (corruptedCount * 100.0 / totalCount)) : "0%");
+			response.put("corruptionLogic", corruptionLogic);
+			response.put("timestampDistribution", distribution);
+
+			log.info("Analysis complete: {} total, {} corrupted ({} %)", totalCount, corruptedCount,
+					totalCount > 0 ? String.format("%.2f", corruptedCount * 100.0 / totalCount) : "0");
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to analyze corruption: {}", e.getMessage(), e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Analysis failed: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
+	}
+
+	/**
+	 * Delete corrupted 1Day bars (timestamps not at midnight UTC)
+	 *
+	 * POST /v1/marketdata/admin/cleanup/1day
+	 *
+	 * Deletes daily bars where hour != 0 (e.g., 05:00:00Z EST offset timestamps)
+	 */
+	@PostMapping("/cleanup/1day")
+	public ResponseEntity<Map<String, Object>> deleteCorrupted1DayBars() {
+		log.warn("=== Admin API: Delete Corrupted 1Day Bars ===");
+
+		try {
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
+
+			// Count before deletion
+			long countBefore = repo.countCorrupted1DayBars();
+
+			if (countBefore == 0) {
+				Map<String, Object> response = new HashMap<>();
+				response.put("status", "info");
+				response.put("message", "No corrupted 1Day bars found");
+				response.put("corruptedCount", 0);
+				return ResponseEntity.ok(response);
+			}
+
+			// Execute deletion
+			repo.deleteCorrupted1DayBars();
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("message", String.format("Submitted DELETE for %d corrupted 1Day bars", countBefore));
+			response.put("corruptedCount", countBefore);
+			response.put("note", "Deletion is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately.");
+
+			log.info("Deleted {} corrupted 1Day bars", countBefore);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to delete corrupted 1Day bars: {}", e.getMessage(), e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Deletion failed: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
+	}
+
+	/**
+	 * Optimize table to apply pending deletions immediately
+	 *
+	 * POST /v1/marketdata/admin/cleanup/optimize
+	 *
+	 * Forces ClickHouse to merge data parts and apply ALTER TABLE DELETE mutations.
+	 * This can be resource-intensive on large tables.
+	 */
+	@PostMapping("/cleanup/optimize")
+	public ResponseEntity<Map<String, Object>> optimizeTable() {
+		log.warn("=== Admin API: Optimize Table (FINAL) ===");
+
+		try {
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
+
+			long startTime = System.currentTimeMillis();
+			repo.optimizeTableFinal();
+			long duration = (System.currentTimeMillis() - startTime) / 1000;
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("message", "OPTIMIZE TABLE FINAL completed");
+			response.put("durationSeconds", duration);
+			response.put("note", "Pending deletions have been applied. Verify with analyze endpoint.");
+
+			log.info("OPTIMIZE TABLE completed in {}s", duration);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to optimize table: {}", e.getMessage(), e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Optimization failed: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
+	}
+
+	/**
+	 * Helper to get ClickHouse repository bean.
+	 */
+	private io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository getMarketDataRepository() {
+		return marketDataRepository;
 	}
 
 	/**

@@ -17,8 +17,8 @@ COPY batch/ batch/
 COPY application-api/ application-api/
 COPY application-console/ application-console/
 
-# Build the console application (full build required - parent POM references all modules)
-RUN mvn clean install -Pdocker -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+# Build the console application (targeted build for console module and dependencies)
+RUN mvn clean install -pl application-console -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
     rm -rf /root/.m2/repository
 
 # Runtime image

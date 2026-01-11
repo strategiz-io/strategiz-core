@@ -1,5 +1,11 @@
 package io.strategiz.business.aichat.prompt;
 
+// TEMPORARY: Commented out to unblock deployment
+// import io.strategiz.business.historicalinsights.model.IndicatorRanking;
+// import io.strategiz.business.historicalinsights.model.SymbolInsights;
+
+import java.util.Map;
+
 /**
  * AI prompts for the AI-First Strategy Builder. These prompts instruct Gemini to
  * generate trading strategies in a structured format that includes both visual
@@ -1076,5 +1082,133 @@ public class AIStrategyPrompts {
 	public static String buildIndicatorPreviewPrompt(String partialPrompt) {
 		return String.format(INDICATOR_PREVIEW_PROMPT, partialPrompt);
 	}
+
+	// TEMPORARY: Alpha Mode methods commented out to unblock deployment
+	// These methods depend on business-historical-insights module
+	// Will re-enable after fixing module upload issue
+	/*
+	public static String buildAlphaModePrompt(SymbolInsights insights) {
+		StringBuilder prompt = new StringBuilder();
+
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("ALPHA MODE: HISTORICAL MARKET ANALYSIS\n");
+		prompt.append("=".repeat(80)).append("\n\n");
+
+		prompt.append(String.format("Symbol: %s\n", insights.getSymbol()));
+		prompt.append(String.format("Timeframe: %s\n", insights.getTimeframe()));
+		prompt.append(String.format("Analysis Period: %d days (~%.1f years of data)\n\n",
+				insights.getDaysAnalyzed(), insights.getDaysAnalyzed() / 365.25));
+
+		// Volatility Profile
+		prompt.append("VOLATILITY PROFILE:\n");
+		prompt.append(String.format("- Average ATR: $%.2f\n", insights.getAvgVolatility()));
+		prompt.append(String.format("- Volatility Regime: %s\n", insights.getVolatilityRegime()));
+		prompt.append(String.format("- Average Daily Range: %.2f%%\n", insights.getAvgDailyRange()));
+
+		// Calculate recommended stop-loss and take-profit based on volatility
+		double recommendedStopLoss = computeRecommendedStopLoss(insights);
+		double recommendedTakeProfit = computeRecommendedTakeProfit(insights);
+		prompt.append(String.format("→ Recommended Stop-Loss: %.1f%% | Take-Profit: %.1f%%\n\n",
+				recommendedStopLoss, recommendedTakeProfit));
+
+		// Top Performing Indicators
+		if (!insights.getTopIndicators().isEmpty()) {
+			prompt.append("TOP PERFORMING INDICATORS (Ranked by Historical Effectiveness):\n");
+			for (int i = 0; i < insights.getTopIndicators().size(); i++) {
+				IndicatorRanking ranking = insights.getTopIndicators().get(i);
+				prompt.append(String.format("%d. %s (Score: %.2f) - %s\n",
+						i + 1, ranking.getIndicatorName(), ranking.getEffectivenessScore(),
+						ranking.getReason()));
+				prompt.append(String.format("   Optimal Settings: %s\n\n",
+						formatOptimalSettings(ranking.getOptimalSettings())));
+			}
+		}
+
+		// Optimal Parameters
+		if (insights.getOptimalParameters() != null && !insights.getOptimalParameters().isEmpty()) {
+			prompt.append("OPTIMAL PARAMETERS DISCOVERED:\n");
+			insights.getOptimalParameters().forEach((key, value) ->
+					prompt.append(String.format("- %s: %s\n", key, value)));
+			prompt.append("\n");
+		}
+
+		// Market Characteristics
+		prompt.append("MARKET CHARACTERISTICS:\n");
+		prompt.append(String.format("- Trend Direction: %s (Strength: %.0f%%)\n",
+				insights.getTrendDirection(), insights.getTrendStrength() * 100));
+		prompt.append(String.format("- Market Type: %s\n",
+				insights.isMeanReverting() ? "Mean-Reverting" : "Trending"));
+		prompt.append(String.format("- Recommended Strategy Type: %s\n\n",
+				insights.isMeanReverting() ? "Mean-Reversion" : "Trend-Following"));
+
+		// Risk Insights
+		prompt.append("RISK INSIGHTS:\n");
+		prompt.append(String.format("- Historical Avg Max Drawdown: %.1f%%\n", insights.getAvgMaxDrawdown()));
+		prompt.append(String.format("- Historical Avg Win Rate: %.1f%%\n", insights.getAvgWinRate()));
+		prompt.append(String.format("- Recommended Risk Level: %s\n\n", insights.getRecommendedRiskLevel()));
+
+		// Fundamentals (if included)
+		if (insights.getFundamentals() != null) {
+			prompt.append("FUNDAMENTALS SNAPSHOT:\n");
+			prompt.append(insights.getFundamentals().getSummary()).append("\n\n");
+		}
+
+		// AI Instructions
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("ALPHA MODE INSTRUCTIONS:\n");
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("1. Generate a strategy that LEVERAGES these historical insights\n");
+		prompt.append("2. Use the TOP 2-3 indicators from the ranking above\n");
+		prompt.append("3. Apply the OPTIMAL PARAMETERS discovered (not generic defaults)\n");
+		prompt.append("4. Set stop-loss and take-profit based on the volatility analysis\n");
+		prompt.append(String.format("5. In summaryCard, explain WHY this strategy works for %s using historical win rates\n",
+				insights.getSymbol()));
+		prompt.append("6. Reference specific performance metrics in your explanation\n\n");
+
+		prompt.append("Example summaryCard for Alpha Mode:\n");
+		prompt.append(String.format("\"Based on 7 years of %s data, RSI with 28/72 thresholds achieved a 68%% win rate. ",
+				insights.getSymbol()));
+		prompt.append(String.format("This %s volatility symbol responds well to mean-reversion with %.1f%% stops and %.1f%% targets.\"\n",
+				insights.getVolatilityRegime().toLowerCase(), recommendedStopLoss, recommendedTakeProfit));
+
+		return prompt.toString();
+	}
+
+	private static double computeRecommendedStopLoss(SymbolInsights insights) {
+		// Base stop-loss on average daily range
+		double baseSL = insights.getAvgDailyRange() * 1.5;
+
+		// Adjust for volatility regime
+		return switch (insights.getVolatilityRegime()) {
+			case "LOW" -> Math.max(baseSL, 1.5);
+			case "MEDIUM" -> Math.max(baseSL, 3.0);
+			case "HIGH" -> Math.max(baseSL, 5.0);
+			case "EXTREME" -> Math.max(baseSL, 8.0);
+			default -> 3.0;
+		};
+	}
+
+	private static double computeRecommendedTakeProfit(SymbolInsights insights) {
+		double stopLoss = computeRecommendedStopLoss(insights);
+		// Use 3:1 reward-to-risk ratio as default
+		return stopLoss * 3.0;
+	}
+
+	private static String formatOptimalSettings(Map<String, Object> settings) {
+		if (settings == null || settings.isEmpty()) {
+			return "Default";
+		}
+
+		StringBuilder sb = new StringBuilder();
+		settings.forEach((key, value) -> {
+			if (sb.length() > 0) {
+				sb.append(", ");
+			}
+			sb.append(key).append("=").append(value);
+		});
+
+		return sb.toString();
+	}
+	*/
 
 }

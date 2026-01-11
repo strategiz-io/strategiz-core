@@ -36,8 +36,8 @@ COPY --from=builder /app/application-console/target/application-console-1.0-SNAP
 ENV PORT=8080
 # Enable both prod and scheduler profiles for batch job scheduling
 ENV SPRING_PROFILES_ACTIVE=prod,scheduler
-# Higher memory for batch job processing (14Gi heap for 16Gi container)
-ENV JAVA_OPTS="-Xmx14g -Xms2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=8"
+# Higher memory for batch job processing (6Gi heap for 8Gi container)
+ENV JAVA_OPTS="-Xmx6g -Xms1g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
 # Expose port
 EXPOSE 8080

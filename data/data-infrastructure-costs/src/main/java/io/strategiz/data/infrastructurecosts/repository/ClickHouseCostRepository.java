@@ -11,6 +11,7 @@ import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.concurrent.ExecutionException;
  * Repository for ClickHouseCostEntity stored at infrastructure/costs/clickhouse/{date}
  */
 @Repository
+@ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class ClickHouseCostRepository {
 
 	private static final Logger logger = LoggerFactory.getLogger(ClickHouseCostRepository.class);

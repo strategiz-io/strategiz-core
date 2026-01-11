@@ -41,13 +41,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	// Batch Jobs
 	"io.strategiz.batch.marketdata",
 	"io.strategiz.batch.livestrategies",
-	// "io.strategiz.batch.fundamentals", -- disabled pending data-fundamentals-timescale module
+	"io.strategiz.batch.fundamentals",
 
 	// Business Layer
 	"io.strategiz.business.tokenauth",
 	"io.strategiz.business.marketdata",
 	"io.strategiz.business.infrastructurecosts",
 	"io.strategiz.business.livestrategies",
+	"io.strategiz.business.fundamentals",
 
 	// Data Layer
 	"io.strategiz.data.auth",
@@ -57,6 +58,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.data.marketdata",
 	"io.strategiz.data.symbol",
 	"io.strategiz.data.strategy",
+	"io.strategiz.data.fundamentals",
 
 	// Framework
 	"io.strategiz.framework.authorization",

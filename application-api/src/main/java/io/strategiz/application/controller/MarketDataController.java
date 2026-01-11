@@ -3,6 +3,7 @@ package io.strategiz.application.controller;
 import io.strategiz.application.dto.MarketDataBarDTO;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.base.exception.ServiceBaseErrorDetails;
 import io.strategiz.service.marketdata.MarketDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -60,13 +61,13 @@ public class MarketDataController extends BaseController {
         @Parameter(description = "Timeframe (e.g., 1Day, 1Hour)", required = true)
         @RequestParam(required = true) String timeframe,
 
-        @Parameter(description = "Period shorthand (e.g., 7d, 30d, 90d, 6m, 1y, 2y, 3y, 5y, 7y, max)")
+        @Parameter(description = "Period shorthand (REQUIRED if startDate/endDate not provided). Examples: 7d, 30d, 90d, 6m, 1y, 2y, 3y, 5y, 7y, max")
         @RequestParam(required = false) String period,
 
-        @Parameter(description = "Start date in ISO 8601 format (e.g., 2024-01-01T00:00:00Z)")
+        @Parameter(description = "Start date in ISO 8601 format (REQUIRED if period not provided). Example: 2024-01-01T00:00:00Z")
         @RequestParam(required = false) String startDate,
 
-        @Parameter(description = "End date in ISO 8601 format (e.g., 2024-12-31T23:59:59Z)")
+        @Parameter(description = "End date in ISO 8601 format (REQUIRED if period not provided). Example: 2024-12-31T23:59:59Z")
         @RequestParam(required = false) String endDate
     ) {
         try {
@@ -76,6 +77,18 @@ public class MarketDataController extends BaseController {
             // Validate required parameters
             validateRequiredParam("symbol", symbol);
             validateRequiredParam("timeframe", timeframe);
+
+            // Validate that either period OR date range is provided
+            if ((period == null || period.isEmpty()) &&
+                (startDate == null || startDate.isEmpty()) &&
+                (endDate == null || endDate.isEmpty())) {
+
+                throwModuleException(
+                    ServiceBaseErrorDetails.VALIDATION_ERROR,
+                    "date parameters",
+                    "Either 'period' or 'startDate'/'endDate' must be provided"
+                );
+            }
 
             // Calculate dates from period if provided (period takes precedence)
             String calculatedStartDate = startDate;

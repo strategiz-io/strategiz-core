@@ -49,8 +49,8 @@ public class ClickHouseConfig {
 		String username = loadSecret("clickhouse.username", properties.getUsername());
 		String password = loadSecret("clickhouse.password", properties.getPassword());
 
-		// Build JDBC URL
-		String jdbcUrl = String.format("jdbc:clickhouse://%s:%s/%s?ssl=true", host, port, database);
+		// Build JDBC URL with explicit UTC timezone to prevent conversion issues
+		String jdbcUrl = String.format("jdbc:clickhouse://%s:%s/%s?ssl=true&use_server_time_zone=false&use_time_zone=UTC", host, port, database);
 
 		config.setJdbcUrl(jdbcUrl);
 		config.setUsername(username);

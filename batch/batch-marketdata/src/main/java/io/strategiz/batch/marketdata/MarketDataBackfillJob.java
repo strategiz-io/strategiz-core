@@ -63,6 +63,28 @@ public class MarketDataBackfillJob {
 	}
 
 	/**
+	 * Run backfill on application startup if enabled.
+	 * This allows populating ClickHouse with historical data on first deployment.
+	 */
+	@jakarta.annotation.PostConstruct
+	public void runOnStartupIfEnabled() {
+		if (backfillEnabled) {
+			log.info("Backfill enabled - triggering automatic execution on startup");
+			// Run async to not block application startup
+			new Thread(() -> {
+				try {
+					Thread.sleep(10000); // Wait 10s for app to fully initialize
+					execute();
+				} catch (Exception e) {
+					log.error("Failed to run startup backfill: {}", e.getMessage(), e);
+				}
+			}, "backfill-startup").start();
+		} else {
+			log.info("Backfill disabled - skipping automatic execution");
+		}
+	}
+
+	/**
 	 * Public execute method called by DynamicJobSchedulerBusiness.
 	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
 	 *

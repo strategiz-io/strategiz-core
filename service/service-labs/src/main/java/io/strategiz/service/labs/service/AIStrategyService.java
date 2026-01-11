@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.business.aichat.LLMRouter;
 import io.strategiz.business.aichat.prompt.AIStrategyPrompts;
+import io.strategiz.business.historicalinsights.exception.InsufficientDataException;
+import io.strategiz.business.historicalinsights.model.SymbolInsights;
+import io.strategiz.business.historicalinsights.service.HistoricalInsightsCacheService;
+import io.strategiz.business.historicalinsights.service.HistoricalInsightsService;
 import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
 import io.strategiz.service.labs.model.AIStrategyRequest;
@@ -18,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.strategiz.service.base.BaseService;
@@ -36,10 +41,17 @@ public class AIStrategyService extends BaseService {
 
 	private final ObjectMapper objectMapper;
 
+	private final HistoricalInsightsService historicalInsightsService;
+
+	private final HistoricalInsightsCacheService cacheService;
+
 	@Autowired
-	public AIStrategyService(LLMRouter llmRouter) {
+	public AIStrategyService(LLMRouter llmRouter, HistoricalInsightsService historicalInsightsService,
+			HistoricalInsightsCacheService cacheService) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
+		this.historicalInsightsService = historicalInsightsService;
+		this.cacheService = cacheService;
 	}
 
 	/**
@@ -49,9 +61,20 @@ public class AIStrategyService extends BaseService {
 		log.info("Generating strategy from prompt: {}",
 				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
 
-		log.info("Step 1/4: Analyzing prompt for user strategy request");
+		log.info("Step 1/5: Analyzing prompt for user strategy request");
 
 		try {
+			// ALPHA MODE: Get historical insights if enabled
+			SymbolInsights insights = null;
+			if (Boolean.TRUE.equals(request.getAlphaMode())) {
+				log.info("Alpha Mode enabled - fetching historical insights");
+				insights = getAlphaModeInsights(request);
+				if (insights != null) {
+					log.info("Alpha Mode insights obtained for {}: {} volatility, {} trend", insights.getSymbol(),
+							insights.getVolatilityRegime(), insights.getTrendDirection());
+				}
+			}
+
 			// Build the system prompt with context
 			String symbols = request.getContext() != null && request.getContext().getSymbols() != null
 					? String.join(", ", request.getContext().getSymbols()) : null;
@@ -60,7 +83,12 @@ public class AIStrategyService extends BaseService {
 
 			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe, visualEditorSchema);
 
-			log.info("Step 2/4: Preparing strategy generation parameters");
+			// ALPHA MODE: Enhance prompt with insights
+			if (insights != null) {
+				systemPrompt = systemPrompt + "\n\n" + AIStrategyPrompts.buildAlphaModePrompt(insights);
+			}
+
+			log.info("Step 2/5: Preparing strategy generation parameters");
 
 			// Build conversation history
 			List<LLMMessage> history = buildConversationHistory(systemPrompt,
@@ -69,14 +97,24 @@ public class AIStrategyService extends BaseService {
 			// Use model from request, or default to gemini-3-flash-preview
 			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
 
-			log.info("Step 3/4: Generating strategy with AI model: {}", model);
+			log.info("Step 3/5: Generating strategy with AI model: {}", model);
 
 			// Call LLM via router (blocking)
 			LLMResponse llmResponse = llmRouter.generateContent(request.getPrompt(), history, model).block();
 
-			log.info("Step 4/4: Parsing and validating strategy response");
+			log.info("Step 4/5: Parsing and validating strategy response");
 
-			return parseGenerationResponse(llmResponse);
+			AIStrategyResponse response = parseGenerationResponse(llmResponse);
+
+			// ALPHA MODE: Include insights in response
+			if (Boolean.TRUE.equals(request.getAlphaMode())) {
+				response.setAlphaModeUsed(true);
+				response.setHistoricalInsights(insights);
+			}
+
+			log.info("Step 5/5: Strategy generation complete");
+
+			return response;
 		}
 		catch (Exception e) {
 			log.error("Error generating strategy", e);
@@ -436,6 +474,94 @@ public class AIStrategyService extends BaseService {
 		return new HashMap<>();
 	}
 
+	// Alpha Mode Integration
+
+	/**
+	 * Get Alpha Mode historical insights for a symbol.
+	 * Checks cache first, computes if needed, handles errors gracefully.
+	 */
+	private SymbolInsights getAlphaModeInsights(AIStrategyRequest request) {
+		// Extract symbol from prompt or context
+		String symbol = extractPrimarySymbol(request);
+		if (symbol == null) {
+			log.warn("No symbol found in request for Alpha Mode");
+			return null;
+		}
+
+		// Extract timeframe (default to "1D")
+		String timeframe = request.getContext() != null && request.getContext().getTimeframe() != null
+				? request.getContext().getTimeframe()
+				: "1D";
+
+		// Get Alpha Mode options or use defaults
+		AIStrategyRequest.AlphaModeOptions options = request.getAlphaOptions() != null ? request.getAlphaOptions()
+				: new AIStrategyRequest.AlphaModeOptions();
+
+		// Build cache key
+		String cacheKey = String.format("%s:%s:%s", symbol, timeframe, options.getUseFundamentals());
+
+		// Check cache first (unless forceRefresh is enabled)
+		if (!Boolean.TRUE.equals(options.getForceRefresh())) {
+			Optional<SymbolInsights> cached = cacheService.getCachedInsights(cacheKey);
+			if (cached.isPresent()) {
+				log.info("Using cached Alpha Mode insights for {}", symbol);
+				return cached.get();
+			}
+		}
+
+		// Compute fresh insights
+		log.info("Computing Alpha Mode insights for {} ({}, {} days)", symbol, timeframe, options.getLookbackDays());
+
+		try {
+			SymbolInsights insights = historicalInsightsService.analyzeSymbolForStrategyGeneration(symbol, timeframe,
+					options.getLookbackDays(), Boolean.TRUE.equals(options.getUseFundamentals()));
+
+			// Cache for future use
+			cacheService.cacheInsights(cacheKey, insights);
+
+			return insights;
+		}
+		catch (InsufficientDataException e) {
+			// Fallback: Use whatever data is available
+			log.warn("Insufficient data for {}, using partial analysis", symbol);
+			try {
+				return historicalInsightsService.analyzeWithPartialData(symbol, timeframe);
+			}
+			catch (Exception fallbackError) {
+				log.error("Failed to generate partial insights for {}", symbol, fallbackError);
+				return null;
+			}
+		}
+		catch (Exception e) {
+			log.error("Error computing Alpha Mode insights for {}", symbol, e);
+			return null;
+		}
+	}
+
+	/**
+	 * Extract primary symbol from request prompt or context.
+	 */
+	private String extractPrimarySymbol(AIStrategyRequest request) {
+		// First check context symbols
+		if (request.getContext() != null && request.getContext().getSymbols() != null
+				&& !request.getContext().getSymbols().isEmpty()) {
+			return request.getContext().getSymbols().get(0);
+		}
+
+		// Try to extract from prompt using regex (simple approach)
+		String prompt = request.getPrompt();
+		if (prompt != null) {
+			// Look for common ticker patterns (AAPL, SPY, TSLA, etc.)
+			Pattern symbolPattern = Pattern.compile("\\b([A-Z]{1,5})\\b");
+			Matcher matcher = symbolPattern.matcher(prompt);
+			if (matcher.find()) {
+				return matcher.group(1);
+			}
+		}
+
+		return null;
+	}
+
 	// Helper methods
 
 	private List<LLMMessage> buildConversationHistory(String systemPrompt,
@@ -524,6 +650,9 @@ public class AIStrategyService extends BaseService {
 				}
 
 				result.setSuccess(true);
+
+				// Log visual rules quality for monitoring and prompt improvement
+				logVisualRulesQuality(result);
 			}
 			else {
 				// Couldn't parse JSON - try to extract code block
@@ -638,6 +767,98 @@ public class AIStrategyService extends BaseService {
 
 		// Generic fallback
 		return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
+	}
+
+	/**
+	 * Log visual rules quality metrics for monitoring and prompt improvement.
+	 * This is lightweight logging (~1ms overhead) to track AI generation quality without
+	 * expensive validation.
+	 */
+	private void logVisualRulesQuality(AIStrategyResponse response) {
+		if (response.getVisualConfig() == null) {
+			return;
+		}
+
+		try {
+			Map<String, Object> visualConfig = response.getVisualConfig();
+			Object rulesObj = visualConfig.get("rules");
+
+			if (!(rulesObj instanceof List)) {
+				return;
+			}
+
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> rules = (List<Map<String, Object>>) rulesObj;
+
+			int crossoverCount = 0;
+			int indicatorComparisonCount = 0;
+			int missingSecondaryIndicatorCount = 0;
+			int emptyValueCount = 0;
+
+			// Scan through all conditions in all rules
+			for (Map<String, Object> rule : rules) {
+				Object conditionsObj = rule.get("conditions");
+				if (!(conditionsObj instanceof List)) {
+					continue;
+				}
+
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> conditions = (List<Map<String, Object>>) conditionsObj;
+
+				for (Map<String, Object> condition : conditions) {
+					String comparator = (String) condition.get("comparator");
+					String valueType = (String) condition.get("valueType");
+					Object value = condition.get("value");
+					Object secondaryIndicator = condition.get("secondaryIndicator");
+
+					// Count crossovers
+					if ("crossAbove".equals(comparator) || "crossBelow".equals(comparator)) {
+						crossoverCount++;
+
+						// Check if crossover is missing secondaryIndicator
+						if (secondaryIndicator == null || secondaryIndicator.toString().isEmpty()) {
+							missingSecondaryIndicatorCount++;
+						}
+					}
+
+					// Count indicator-to-indicator comparisons
+					if ("indicator".equals(valueType)) {
+						indicatorComparisonCount++;
+
+						// Check if indicator comparison is missing secondaryIndicator
+						if (secondaryIndicator == null || secondaryIndicator.toString().isEmpty()) {
+							missingSecondaryIndicatorCount++;
+						}
+					}
+
+					// Check for empty values
+					if (value != null && value.toString().isEmpty()) {
+						emptyValueCount++;
+					}
+				}
+			}
+
+			// Log quality metrics
+			if (crossoverCount > 0 || indicatorComparisonCount > 0) {
+				log.info("Visual rules quality: crossovers={}, indicatorComparisons={}, missingSecondaryIndicator={}, emptyValues={}",
+						crossoverCount, indicatorComparisonCount, missingSecondaryIndicatorCount, emptyValueCount);
+			}
+
+			// Warn if there are quality issues (for prompt improvement)
+			if (missingSecondaryIndicatorCount > 0) {
+				log.warn("AI generated {} conditions with missing secondaryIndicator - prompt improvement opportunity",
+						missingSecondaryIndicatorCount);
+			}
+
+			if (emptyValueCount > 0) {
+				log.warn("AI generated {} conditions with empty values - prompt improvement opportunity",
+						emptyValueCount);
+			}
+		}
+		catch (Exception e) {
+			// Silent failure - don't break generation if logging fails
+			log.debug("Error logging visual rules quality: {}", e.getMessage());
+		}
 	}
 
 }

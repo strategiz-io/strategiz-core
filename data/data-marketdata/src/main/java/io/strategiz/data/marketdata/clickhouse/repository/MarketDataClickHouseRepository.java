@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -46,20 +47,22 @@ public class MarketDataClickHouseRepository {
 		if (timeframe != null) {
 			sql = """
 					SELECT * FROM market_data
-					WHERE symbol = ? AND timestamp >= ? AND timestamp < ? AND timeframe = ?
+					WHERE symbol = ? AND timestamp >= toDateTime64(?, 3) AND timestamp < toDateTime64(?, 3) AND timeframe = ?
 					ORDER BY timestamp ASC
 					""";
-			params = new Object[] { symbol, Timestamp.from(startTime), Timestamp.from(endTime), timeframe };
+			params = new Object[] { symbol, startTime.getEpochSecond() + (startTime.getNano() / 1_000_000_000.0),
+					endTime.getEpochSecond() + (endTime.getNano() / 1_000_000_000.0), timeframe };
 			log.info("Executing ClickHouse query with timeframe filter: symbol={}, start={}, end={}, timeframe={}",
 				symbol, startTime, endTime, timeframe);
 		}
 		else {
 			sql = """
 					SELECT * FROM market_data
-					WHERE symbol = ? AND timestamp >= ? AND timestamp < ?
+					WHERE symbol = ? AND timestamp >= toDateTime64(?, 3) AND timestamp < toDateTime64(?, 3)
 					ORDER BY timestamp ASC
 					""";
-			params = new Object[] { symbol, Timestamp.from(startTime), Timestamp.from(endTime) };
+			params = new Object[] { symbol, startTime.getEpochSecond() + (startTime.getNano() / 1_000_000_000.0),
+					endTime.getEpochSecond() + (endTime.getNano() / 1_000_000_000.0) };
 			log.info("Executing ClickHouse query without timeframe filter: symbol={}, start={}, end={}",
 				symbol, startTime, endTime);
 		}
@@ -218,6 +221,79 @@ public class MarketDataClickHouseRepository {
 		String sql = "ALTER TABLE market_data DELETE WHERE timestamp < ?";
 		jdbcTemplate.update(sql, Timestamp.from(cutoff));
 		return 0; // ClickHouse doesn't return affected rows for mutations
+	}
+
+	/**
+	 * Count corrupted 1Day bars (timestamps not at midnight UTC).
+	 * Used for analysis before cleanup.
+	 */
+	public long countCorrupted1DayBars() {
+		String sql = """
+				SELECT COUNT(*) FROM market_data
+				WHERE timeframe = '1Day' AND toHour(timestamp) != 0
+				""";
+		Long count = jdbcTemplate.queryForObject(sql, Long.class);
+		return count != null ? count : 0;
+	}
+
+	/**
+	 * Delete corrupted 1Day bars (timestamps not at midnight UTC).
+	 * Returns immediately; deletion is async in ClickHouse.
+	 */
+	public void deleteCorrupted1DayBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Day' AND toHour(timestamp) != 0";
+		jdbcTemplate.update(sql);
+		log.info("Submitted DELETE for corrupted 1Day bars (non-midnight UTC timestamps)");
+	}
+
+	/**
+	 * Count corrupted 1Hour bars (timestamps not on-the-hour).
+	 * Used for analysis before cleanup.
+	 */
+	public long countCorrupted1HourBars() {
+		String sql = """
+				SELECT COUNT(*) FROM market_data
+				WHERE timeframe = '1Hour' AND toMinute(timestamp) != 0
+				""";
+		Long count = jdbcTemplate.queryForObject(sql, Long.class);
+		return count != null ? count : 0;
+	}
+
+	/**
+	 * Delete corrupted 1Hour bars (timestamps not on-the-hour).
+	 * Returns immediately; deletion is async in ClickHouse.
+	 */
+	public void deleteCorrupted1HourBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Hour' AND toMinute(timestamp) != 0";
+		jdbcTemplate.update(sql);
+		log.info("Submitted DELETE for corrupted 1Hour bars (timestamps not on-the-hour)");
+	}
+
+	/**
+	 * Optimize table to apply pending mutations (deletions) immediately.
+	 * This forces ClickHouse to merge data parts and apply ALTER TABLE DELETE.
+	 */
+	public void optimizeTableFinal() {
+		String sql = "OPTIMIZE TABLE market_data FINAL";
+		jdbcTemplate.update(sql);
+		log.info("Submitted OPTIMIZE TABLE FINAL for market_data");
+	}
+
+	/**
+	 * Get timestamp analysis for a timeframe.
+	 * Returns counts grouped by hour of day to identify corruption patterns.
+	 */
+	public List<Map<String, Object>> analyzeTimestampsByTimeframe(String timeframe) {
+		String sql = """
+				SELECT
+				    toHour(timestamp) as hour,
+				    COUNT(*) as count
+				FROM market_data
+				WHERE timeframe = ?
+				GROUP BY hour
+				ORDER BY hour
+				""";
+		return jdbcTemplate.queryForList(sql, timeframe);
 	}
 
 	/**

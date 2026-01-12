@@ -1213,4 +1213,117 @@ public class AIStrategyPrompts {
 		return sb.toString();
 	}
 
+	// ========================================
+	// STRATEGY OPTIMIZATION PROMPTS
+	// ========================================
+
+	/**
+	 * Prompt for generating a completely new strategy that outperforms a baseline.
+	 * Used when GENERATE_NEW optimization mode is selected.
+	 */
+	public static final String OPTIMIZE_GENERATE_NEW_PROMPT = """
+			You are optimizing a backtested trading strategy that underperformed.
+
+			BASELINE STRATEGY PERFORMANCE:
+			- Total Return: %s%%
+			- Win Rate: %s%%
+			- Sharpe Ratio: %s
+			- Max Drawdown: %s%%
+			- Profit Factor: %s
+			- Total Trades: %s
+
+			YOUR GOAL: Generate a COMPLETELY NEW strategy that OUTPERFORMS these baseline metrics.
+
+			Requirements:
+			1. Use different technical indicators or combinations
+			2. Target at least 20%% improvement in Sharpe Ratio
+			3. Reduce max drawdown by at least 30%%
+			4. Maintain win rate above 50%%
+
+			%s
+
+			CRITICAL: Return full strategy in standard JSON format with:
+			- visualConfig (with optimized parameters)
+			- pythonCode (implementing the new approach)
+			- optimizationSummary (explaining how this beats baseline)
+
+			In optimizationSummary.changes, list what indicators you changed and why.
+			""";
+
+	/**
+	 * Prompt for enhancing an existing strategy by optimizing parameters and logic.
+	 * Used when ENHANCE_EXISTING optimization mode is selected.
+	 */
+	public static final String OPTIMIZE_ENHANCE_EXISTING_PROMPT = """
+			You are refining an existing backtested trading strategy to improve performance.
+
+			CURRENT STRATEGY:
+			Visual Config: %s
+			Python Code: %s
+
+			BACKTEST RESULTS:
+			- Total Return: %s%%
+			- Win Rate: %s%%
+			- Sharpe Ratio: %s
+			- Max Drawdown: %s%%
+			- Profit Factor: %s
+			- Total Trades: %s
+
+			%s
+
+			YOUR GOAL: ENHANCE this strategy by optimizing parameters and refining logic.
+
+			Optimization Strategies:
+			1. Parameter Tuning: Adjust stop-loss/take-profit based on volatility
+			2. Logic Refinement: Add confirmation from top performing indicators
+			3. Risk Management: Adjust position sizing based on volatility regime
+
+			Return optimized strategy with detailed changes list in optimizationSummary.
+			""";
+
+	/**
+	 * Build prompt for generating a completely new optimized strategy.
+	 *
+	 * @param totalReturn Baseline total return percentage
+	 * @param winRate Baseline win rate percentage
+	 * @param sharpeRatio Baseline Sharpe ratio
+	 * @param maxDrawdown Baseline max drawdown percentage
+	 * @param profitFactor Baseline profit factor
+	 * @param totalTrades Baseline total trades
+	 * @param insights Optional historical insights
+	 * @return Formatted prompt
+	 */
+	public static String buildGenerateNewOptimizedPrompt(double totalReturn, double winRate, double sharpeRatio,
+			double maxDrawdown, double profitFactor, int totalTrades, SymbolInsights insights) {
+
+		String insightsSection = insights != null ? buildHistoricalInsightsPrompt(insights) : "";
+
+		return String.format(OPTIMIZE_GENERATE_NEW_PROMPT, totalReturn, winRate, sharpeRatio, maxDrawdown,
+				profitFactor, totalTrades, insightsSection);
+	}
+
+	/**
+	 * Build prompt for enhancing an existing strategy.
+	 *
+	 * @param visualConfig Current visual configuration JSON string
+	 * @param currentCode Current Python code
+	 * @param totalReturn Baseline total return percentage
+	 * @param winRate Baseline win rate percentage
+	 * @param sharpeRatio Baseline Sharpe ratio
+	 * @param maxDrawdown Baseline max drawdown percentage
+	 * @param profitFactor Baseline profit factor
+	 * @param totalTrades Baseline total trades
+	 * @param insights Optional historical insights
+	 * @return Formatted prompt
+	 */
+	public static String buildEnhanceExistingPrompt(String visualConfig, String currentCode, double totalReturn,
+			double winRate, double sharpeRatio, double maxDrawdown, double profitFactor, int totalTrades,
+			SymbolInsights insights) {
+
+		String insightsSection = insights != null ? buildHistoricalInsightsPrompt(insights) : "";
+
+		return String.format(OPTIMIZE_ENHANCE_EXISTING_PROMPT, visualConfig, currentCode, totalReturn, winRate,
+				sharpeRatio, maxDrawdown, profitFactor, totalTrades, insightsSection);
+	}
+
 }

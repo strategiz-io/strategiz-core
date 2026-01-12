@@ -26,6 +26,16 @@ public class AIStrategyRequest {
 
 	}
 
+	/**
+	 * Mode for strategy optimization.
+	 */
+	public enum OptimizationMode {
+
+		GENERATE_NEW, // Create brand new strategy that beats baseline
+		ENHANCE_EXISTING // Improve current strategy parameters/logic
+
+	}
+
 	@NotBlank(message = "Prompt is required")
 	@JsonProperty("prompt")
 	private String prompt;
@@ -56,6 +66,9 @@ public class AIStrategyRequest {
 
 	@JsonProperty("historicalInsightsOptions")
 	private HistoricalMarketInsightsOptions historicalInsightsOptions; // Options for Historical Market Insights analysis
+
+	@JsonProperty("optimizationMode")
+	private OptimizationMode optimizationMode = OptimizationMode.ENHANCE_EXISTING; // Mode for strategy optimization
 
 	// Getters and Setters
 
@@ -137,6 +150,14 @@ public class AIStrategyRequest {
 
 	public void setHistoricalInsightsOptions(HistoricalMarketInsightsOptions historicalInsightsOptions) {
 		this.historicalInsightsOptions = historicalInsightsOptions;
+	}
+
+	public OptimizationMode getOptimizationMode() {
+		return optimizationMode;
+	}
+
+	public void setOptimizationMode(OptimizationMode optimizationMode) {
+		this.optimizationMode = optimizationMode;
 	}
 
 	/**

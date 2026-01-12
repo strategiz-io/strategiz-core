@@ -84,16 +84,17 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user can use Alpha Mode (historical data analysis for strategy generation).
-	 * Alpha Mode is available to TRADER and STRATEGIST tiers.
+	 * Check if user can use Historical Market Insights (Feeling Lucky mode).
+	 * Analyzes 7 years of historical data to generate optimized strategies.
+	 * Historical Market Insights is available to TRADER and STRATEGIST tiers.
 	 * ADMIN users have access for testing purposes.
 	 * @param userId The user ID
-	 * @return true if user can use Alpha Mode
+	 * @return true if user can use Historical Market Insights
 	 */
-	public boolean canUseAlphaMode(String userId) {
-		// Admins can use Alpha Mode for testing
+	public boolean canUseHistoricalInsights(String userId) {
+		// Admins can use Historical Market Insights for testing
 		if (isAdmin(userId)) {
-			logger.debug("Admin user {} granted access to Alpha Mode", userId);
+			logger.debug("Admin user {} granted access to Historical Market Insights", userId);
 			return true;
 		}
 
@@ -101,7 +102,7 @@ public class SubscriptionService {
 		boolean canUse = tier == SubscriptionTier.TRADER || tier == SubscriptionTier.STRATEGIST;
 
 		if (!canUse) {
-			logger.info("Alpha Mode not available for user {} on tier {}", userId, tier.getId());
+			logger.info("Historical Market Insights not available for user {} on tier {}", userId, tier.getId());
 		}
 
 		return canUse;

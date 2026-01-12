@@ -31,15 +31,12 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Business Historical Insights (for Alpha Mode) -->
-        <!-- TEMPORARY: Commented out to unblock deployment -->
-        <!--
+        <!-- Business Historical Insights (for Historical Market Insights / Feeling Lucky Mode) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-historical-insights</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
 
         <!-- Data Provider (for insights caching) -->
         <dependency>

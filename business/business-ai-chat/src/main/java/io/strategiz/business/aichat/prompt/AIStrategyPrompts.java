@@ -1,8 +1,7 @@
 package io.strategiz.business.aichat.prompt;
 
-// TEMPORARY: Commented out to unblock deployment
-// import io.strategiz.business.historicalinsights.model.IndicatorRanking;
-// import io.strategiz.business.historicalinsights.model.SymbolInsights;
+import io.strategiz.business.historicalinsights.model.IndicatorRanking;
+import io.strategiz.business.historicalinsights.model.SymbolInsights;
 
 import java.util.Map;
 
@@ -1083,14 +1082,19 @@ public class AIStrategyPrompts {
 		return String.format(INDICATOR_PREVIEW_PROMPT, partialPrompt);
 	}
 
-	// TEMPORARY: Alpha Mode methods commented out to unblock deployment
-	// Re-enable when business-historical-insights module is fixed
-	/*
-	public static String buildAlphaModePrompt(SymbolInsights insights) {
+	/**
+	 * Builds an enhanced prompt for Historical Market Insights (Feeling Lucky mode).
+	 * This method generates a comprehensive analysis section based on 7 years of historical data.
+	 * Analyzes volatility, indicator effectiveness, optimal parameters, and market characteristics.
+	 *
+	 * @param insights Historical market analysis results containing volatility, indicators, and trends
+	 * @return Formatted prompt section with historical insights for AI strategy generation
+	 */
+	public static String buildHistoricalInsightsPrompt(SymbolInsights insights) {
 		StringBuilder prompt = new StringBuilder();
 
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("ALPHA MODE: HISTORICAL MARKET ANALYSIS\n");
+		prompt.append("HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS\n");
 		prompt.append("=".repeat(80)).append("\n\n");
 
 		prompt.append(String.format("Symbol: %s\n", insights.getSymbol()));
@@ -1154,7 +1158,7 @@ public class AIStrategyPrompts {
 
 		// AI Instructions
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("ALPHA MODE INSTRUCTIONS:\n");
+		prompt.append("HISTORICAL INSIGHTS INSTRUCTIONS:\n");
 		prompt.append("=".repeat(80)).append("\n");
 		prompt.append("1. Generate a strategy that LEVERAGES these historical insights\n");
 		prompt.append("2. Use the TOP 2-3 indicators from the ranking above\n");
@@ -1164,7 +1168,7 @@ public class AIStrategyPrompts {
 				insights.getSymbol()));
 		prompt.append("6. Reference specific performance metrics in your explanation\n\n");
 
-		prompt.append("Example summaryCard for Alpha Mode:\n");
+		prompt.append("Example summaryCard for Historical Insights mode:\n");
 		prompt.append(String.format("\"Based on 7 years of %s data, RSI with 28/72 thresholds achieved a 68%% win rate. ",
 				insights.getSymbol()));
 		prompt.append(String.format("This %s volatility symbol responds well to mean-reversion with %.1f%% stops and %.1f%% targets.\"\n",
@@ -1208,6 +1212,5 @@ public class AIStrategyPrompts {
 
 		return sb.toString();
 	}
-	*/
 
 }

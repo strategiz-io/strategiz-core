@@ -64,13 +64,13 @@ public class AIStrategyService extends BaseService {
 		log.info("Step 1/5: Analyzing prompt for user strategy request");
 
 		try {
-			// ALPHA MODE: Get historical insights if enabled
+			// HISTORICAL INSIGHTS: Get historical market insights if enabled (Feeling Lucky mode)
 			SymbolInsights insights = null;
-			if (Boolean.TRUE.equals(request.getAlphaMode())) {
-				log.info("Alpha Mode enabled - fetching historical insights");
-				insights = getAlphaModeInsights(request);
+			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+				log.info("Historical Market Insights enabled - analyzing 7 years of data");
+				insights = getHistoricalInsights(request);
 				if (insights != null) {
-					log.info("Alpha Mode insights obtained for {}: {} volatility, {} trend", insights.getSymbol(),
+					log.info("Historical insights obtained for {}: {} volatility, {} trend", insights.getSymbol(),
 							insights.getVolatilityRegime(), insights.getTrendDirection());
 				}
 			}
@@ -83,9 +83,9 @@ public class AIStrategyService extends BaseService {
 
 			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe, visualEditorSchema);
 
-			// ALPHA MODE: Enhance prompt with insights
+			// HISTORICAL INSIGHTS: Enhance prompt with historical market analysis
 			if (insights != null) {
-				systemPrompt = systemPrompt + "\n\n" + AIStrategyPrompts.buildAlphaModePrompt(insights);
+				systemPrompt = systemPrompt + "\n\n" + AIStrategyPrompts.buildHistoricalInsightsPrompt(insights);
 			}
 
 			log.info("Step 2/5: Preparing strategy generation parameters");
@@ -106,9 +106,9 @@ public class AIStrategyService extends BaseService {
 
 			AIStrategyResponse response = parseGenerationResponse(llmResponse);
 
-			// ALPHA MODE: Include insights in response
-			if (Boolean.TRUE.equals(request.getAlphaMode())) {
-				response.setAlphaModeUsed(true);
+			// HISTORICAL INSIGHTS: Include insights in response
+			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+				response.setHistoricalInsightsUsed(true);
 				response.setHistoricalInsights(insights);
 			}
 
@@ -474,17 +474,18 @@ public class AIStrategyService extends BaseService {
 		return new HashMap<>();
 	}
 
-	// Alpha Mode Integration
+	// Historical Market Insights Integration (Feeling Lucky)
 
 	/**
-	 * Get Alpha Mode historical insights for a symbol.
+	 * Get Historical Market Insights for a symbol (Feeling Lucky mode).
+	 * Analyzes 7 years of historical data to optimize strategy parameters.
 	 * Checks cache first, computes if needed, handles errors gracefully.
 	 */
-	private SymbolInsights getAlphaModeInsights(AIStrategyRequest request) {
+	private SymbolInsights getHistoricalInsights(AIStrategyRequest request) {
 		// Extract symbol from prompt or context
 		String symbol = extractPrimarySymbol(request);
 		if (symbol == null) {
-			log.warn("No symbol found in request for Alpha Mode");
+			log.warn("No symbol found in request for Historical Market Insights");
 			return null;
 		}
 
@@ -493,9 +494,10 @@ public class AIStrategyService extends BaseService {
 				? request.getContext().getTimeframe()
 				: "1D";
 
-		// Get Alpha Mode options or use defaults
-		AIStrategyRequest.AlphaModeOptions options = request.getAlphaOptions() != null ? request.getAlphaOptions()
-				: new AIStrategyRequest.AlphaModeOptions();
+		// Get Historical Insights options or use defaults
+		AIStrategyRequest.HistoricalMarketInsightsOptions options = request.getHistoricalInsightsOptions() != null
+				? request.getHistoricalInsightsOptions()
+				: new AIStrategyRequest.HistoricalMarketInsightsOptions();
 
 		// Build cache key
 		String cacheKey = String.format("%s:%s:%s", symbol, timeframe, options.getUseFundamentals());
@@ -504,13 +506,14 @@ public class AIStrategyService extends BaseService {
 		if (!Boolean.TRUE.equals(options.getForceRefresh())) {
 			Optional<SymbolInsights> cached = cacheService.getCachedInsights(cacheKey);
 			if (cached.isPresent()) {
-				log.info("Using cached Alpha Mode insights for {}", symbol);
+				log.info("Using cached Historical Market Insights for {}", symbol);
 				return cached.get();
 			}
 		}
 
 		// Compute fresh insights
-		log.info("Computing Alpha Mode insights for {} ({}, {} days)", symbol, timeframe, options.getLookbackDays());
+		log.info("Computing Historical Market Insights for {} ({}, {} days)", symbol, timeframe,
+				options.getLookbackDays());
 
 		try {
 			SymbolInsights insights = historicalInsightsService.analyzeSymbolForStrategyGeneration(symbol, timeframe,
@@ -533,7 +536,7 @@ public class AIStrategyService extends BaseService {
 			}
 		}
 		catch (Exception e) {
-			log.error("Error computing Alpha Mode insights for {}", symbol, e);
+			log.error("Error computing Historical Market Insights for {}", symbol, e);
 			return null;
 		}
 	}

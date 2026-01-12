@@ -56,11 +56,11 @@ public class AIStrategyResponse {
 	@JsonProperty("error")
 	private String error;
 
-	@JsonProperty("alphaModeUsed")
-	private Boolean alphaModeUsed; // Whether Alpha Mode was used for this generation
+	@JsonProperty("historicalInsightsUsed")
+	private Boolean historicalInsightsUsed; // Whether Historical Market Insights was used for this generation
 
 	@JsonProperty("historicalInsights")
-	private SymbolInsights historicalInsights; // Insights from Alpha Mode analysis
+	private SymbolInsights historicalInsights; // Historical market data insights (7 years analyzed)
 
 	// Getters and Setters
 
@@ -160,12 +160,12 @@ public class AIStrategyResponse {
 		this.error = error;
 	}
 
-	public Boolean getAlphaModeUsed() {
-		return alphaModeUsed;
+	public Boolean getHistoricalInsightsUsed() {
+		return historicalInsightsUsed;
 	}
 
-	public void setAlphaModeUsed(Boolean alphaModeUsed) {
-		this.alphaModeUsed = alphaModeUsed;
+	public void setHistoricalInsightsUsed(Boolean historicalInsightsUsed) {
+		this.historicalInsightsUsed = historicalInsightsUsed;
 	}
 
 	public SymbolInsights getHistoricalInsights() {

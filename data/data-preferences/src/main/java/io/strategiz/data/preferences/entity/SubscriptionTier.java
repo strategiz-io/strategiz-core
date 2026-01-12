@@ -85,6 +85,26 @@ public enum SubscriptionTier {
 		return false; // No tier has unlimited messages for cost protection
 	}
 
+	/**
+	 * Get the tier level (ordinal position).
+	 * SCOUT = 0, TRADER = 1, STRATEGIST = 2
+	 *
+	 * @return The tier level
+	 */
+	public int getLevel() {
+		return ordinal();
+	}
+
+	/**
+	 * Check if this tier meets or exceeds a minimum level.
+	 *
+	 * @param minimumLevel The minimum tier level required
+	 * @return true if this tier level >= minimumLevel
+	 */
+	public boolean meetsMinimumLevel(int minimumLevel) {
+		return ordinal() >= minimumLevel;
+	}
+
 	public static SubscriptionTier fromId(String id) {
 		return Arrays.stream(values()).filter(tier -> tier.id.equalsIgnoreCase(id)).findFirst().orElse(SCOUT);
 	}

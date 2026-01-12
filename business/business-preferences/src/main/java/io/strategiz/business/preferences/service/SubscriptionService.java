@@ -24,6 +24,13 @@ public class SubscriptionService {
 
 	private static final String ADMIN_ROLE = "ADMIN";
 
+	/**
+	 * Minimum tier level required for Historical Market Insights (Feeling Lucky).
+	 * Level 1 = TRADER tier and above (TRADER, STRATEGIST, etc.)
+	 * Tier levels: SCOUT=0, TRADER=1, STRATEGIST=2
+	 */
+	private static final int MIN_TIER_LEVEL_HISTORICAL_INSIGHTS = 1;
+
 	private final SubscriptionRepository repository;
 
 	private final UserRepository userRepository;
@@ -86,7 +93,7 @@ public class SubscriptionService {
 	/**
 	 * Check if user can use Historical Market Insights (Feeling Lucky mode).
 	 * Analyzes 7 years of historical data to generate optimized strategies.
-	 * Historical Market Insights is available to TRADER and STRATEGIST tiers.
+	 * Historical Market Insights requires tier level 1 or higher (TRADER+).
 	 * ADMIN users have access for testing purposes.
 	 * @param userId The user ID
 	 * @return true if user can use Historical Market Insights
@@ -99,10 +106,11 @@ public class SubscriptionService {
 		}
 
 		SubscriptionTier tier = getTier(userId);
-		boolean canUse = tier == SubscriptionTier.TRADER || tier == SubscriptionTier.STRATEGIST;
+		boolean canUse = tier.meetsMinimumLevel(MIN_TIER_LEVEL_HISTORICAL_INSIGHTS);
 
 		if (!canUse) {
-			logger.info("Historical Market Insights not available for user {} on tier {}", userId, tier.getId());
+			logger.info("Historical Market Insights not available for user {} on tier {} (level {}). Requires level {} or higher.",
+					userId, tier.getId(), tier.getLevel(), MIN_TIER_LEVEL_HISTORICAL_INSIGHTS);
 		}
 
 		return canUse;

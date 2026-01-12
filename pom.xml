@@ -37,6 +37,7 @@
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>business/business-provider-plaid</module> -->
         <module>business/business-strategy-execution</module>
+        <module>business/business-historical-insights</module>
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
         <module>business/business-fundamentals</module>

@@ -74,7 +74,7 @@ public class WatchlistController extends BaseController {
     
     /**
      * Get watchlist data for authenticated user.
-     * Returns REAL market data from CoinGecko and Yahoo Finance.
+     * Returns REAL market data from CoinGecko (crypto) and Alpaca (stocks/ETFs).
      *
      * @param user The authenticated user from token
      * @return Real-time watchlist data with market information
@@ -374,7 +374,7 @@ public class WatchlistController extends BaseController {
                 items.addAll(enrichedCrypto);
             }
 
-            // Enrich stock/ETF items with REAL Yahoo Finance data
+            // Enrich stock/ETF items with REAL Alpaca data
             for (WatchlistItemEntity entity : stockItems) {
                 try {
                     WatchlistItemEntity enriched = watchlistService.enrichWatchlistItem(entity);

@@ -52,14 +52,12 @@
             <artifactId>business-ai-chat</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- TEMPORARY: Commented out to unblock deployment -->
-        <!--
+        <!-- Historical Market Insights (Feeling Lucky Mode) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-historical-insights</artifactId>
             <version>${project.version}</version>
         </dependency>
-        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-preferences</artifactId>

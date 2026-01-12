@@ -439,6 +439,126 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
+	 * Optimize a backtested strategy using AI and historical insights.
+	 * Two modes: GENERATE_NEW (create brand new strategy) or ENHANCE_EXISTING (improve current strategy).
+	 */
+	public AIStrategyResponse optimizeStrategy(AIStrategyRequest request) {
+		AIStrategyRequest.OptimizationMode mode = request.getOptimizationMode() != null ?
+				request.getOptimizationMode() :
+				AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING;
+
+		log.info("Optimizing strategy with mode: {}", mode);
+
+		try {
+			// 1. Get Historical Insights if enabled
+			SymbolInsights insights = null;
+			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+				log.info("Historical Insights enabled for optimization");
+				insights = getHistoricalInsights(request);
+				if (insights != null) {
+					log.info("Historical insights obtained for {}: {} volatility",
+							insights.getSymbol(), insights.getVolatilityRegime());
+				}
+			}
+
+			// 2. Build optimization prompt based on mode
+			String systemPrompt;
+			AIStrategyRequest.BacktestResults bt = request.getBacktestResults();
+
+			if (mode == AIStrategyRequest.OptimizationMode.GENERATE_NEW) {
+				systemPrompt = AIStrategyPrompts.buildGenerateNewOptimizedPrompt(
+						bt.getTotalReturn(),
+						bt.getWinRate(),
+						bt.getSharpeRatio(),
+						bt.getMaxDrawdown(),
+						bt.getProfitFactor(),
+						bt.getTotalTrades(),
+						insights
+				);
+			}
+			else {
+				// ENHANCE_EXISTING
+				if (request.getContext() == null ||
+						request.getContext().getCurrentCode() == null ||
+						request.getContext().getCurrentVisualConfig() == null) {
+					return AIStrategyResponse.error(
+							"ENHANCE_EXISTING mode requires current strategy (code and visual config)"
+					);
+				}
+
+				// Serialize visual config to JSON string
+				String visualConfigJson;
+				try {
+					visualConfigJson = objectMapper.writerWithDefaultPrettyPrinter()
+						.writeValueAsString(request.getContext().getCurrentVisualConfig());
+				}
+				catch (Exception e) {
+					visualConfigJson = request.getContext().getCurrentVisualConfig().toString();
+				}
+
+				systemPrompt = AIStrategyPrompts.buildEnhanceExistingPrompt(
+						visualConfigJson,
+						request.getContext().getCurrentCode(),
+						bt.getTotalReturn(),
+						bt.getWinRate(),
+						bt.getSharpeRatio(),
+						bt.getMaxDrawdown(),
+						bt.getProfitFactor(),
+						bt.getTotalTrades(),
+						insights
+				);
+			}
+
+			// 3. Build conversation history
+			List<LLMMessage> history = buildConversationHistory(
+					systemPrompt,
+					request.getConversationHistory()
+			);
+
+			// 4. Call LLM
+			String model = request.getModel() != null ?
+					request.getModel() :
+					llmRouter.getDefaultModel();
+
+			log.info("Calling LLM for strategy optimization");
+			LLMResponse llmResponse = llmRouter.generateContent(
+					request.getPrompt(),
+					history,
+					model
+			).block();
+
+			// 5. Parse response
+			AIStrategyResponse response = parseOptimizationResponse(
+					llmResponse,
+					request
+			);
+
+			// 6. Include historical insights in response
+			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+				response.setHistoricalInsightsUsed(true);
+				response.setHistoricalInsights(insights);
+			}
+
+			log.info("Strategy optimization complete");
+			return response;
+
+		}
+		catch (InsufficientDataException e) {
+			log.warn("Insufficient historical data: {}", e.getMessage());
+			return AIStrategyResponse.error(
+					"Unable to optimize: insufficient historical market data. " +
+							"Try a different symbol or disable Historical Insights."
+			);
+		}
+		catch (Exception e) {
+			log.error("Error optimizing strategy", e);
+			return AIStrategyResponse.error(
+					"Strategy optimization failed. Please try again."
+			);
+		}
+	}
+
+	/**
 	 * Parse a natural language backtest query to extract date parameters.
 	 */
 	public Map<String, Object> parseBacktestQuery(String query) {
@@ -861,6 +981,129 @@ public class AIStrategyService extends BaseService {
 		catch (Exception e) {
 			// Silent failure - don't break generation if logging fails
 			log.debug("Error logging visual rules quality: {}", e.getMessage());
+		}
+	}
+
+	/**
+	 * Parse optimization response and add optimization summary.
+	 */
+	private AIStrategyResponse parseOptimizationResponse(LLMResponse llmResponse, AIStrategyRequest request) {
+		// Parse using existing method
+		AIStrategyResponse response = parseGenerationResponse(llmResponse);
+
+		if (!response.isSuccess()) {
+			return response;
+		}
+
+		// Build optimization summary
+		if (response.getOptimizationSummary() == null) {
+			response.setOptimizationSummary(new AIStrategyResponse.OptimizationSummary());
+		}
+
+		AIStrategyResponse.OptimizationSummary summary = response.getOptimizationSummary();
+		summary.setMode(request.getOptimizationMode().name());
+
+		// Set baseline metrics
+		summary.setBaselineMetrics(backtestResultsToMap(request.getBacktestResults()));
+
+		// If changes not provided by LLM, compute them
+		if (summary.getChanges() == null || summary.getChanges().isEmpty()) {
+			if (request.getOptimizationMode() == AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING
+					&& request.getContext() != null) {
+				summary.setChanges(computeStrategyChanges(request.getContext(), response.getVisualConfig(),
+						response.getPythonCode()));
+			}
+		}
+
+		return response;
+	}
+
+	/**
+	 * Convert backtest results to a map for optimization summary.
+	 */
+	private Map<String, Double> backtestResultsToMap(AIStrategyRequest.BacktestResults bt) {
+		if (bt == null) {
+			return new HashMap<>();
+		}
+
+		Map<String, Double> map = new HashMap<>();
+		map.put("totalReturn", bt.getTotalReturn());
+		map.put("winRate", bt.getWinRate());
+		map.put("sharpeRatio", bt.getSharpeRatio());
+		map.put("maxDrawdown", bt.getMaxDrawdown());
+		map.put("profitFactor", bt.getProfitFactor());
+		map.put("totalTrades", (double) bt.getTotalTrades());
+		return map;
+	}
+
+	/**
+	 * Compute strategy changes by comparing old and new configurations.
+	 */
+	private List<AIStrategyResponse.StrategyChange> computeStrategyChanges(AIStrategyRequest.StrategyContext oldContext,
+			Map<String, Object> newVisualConfig, String newCode) {
+
+		List<AIStrategyResponse.StrategyChange> changes = new ArrayList<>();
+
+		if (oldContext.getCurrentVisualConfig() != null && newVisualConfig != null) {
+			// Compare risk settings
+			Map<String, Object> oldRisk = (Map<String, Object>) oldContext.getCurrentVisualConfig().get("riskSettings");
+			Map<String, Object> newRisk = (Map<String, Object>) newVisualConfig.get("riskSettings");
+
+			if (oldRisk != null && newRisk != null) {
+				compareAndAddChange(changes, "RISK_MANAGEMENT", "stopLoss", oldRisk, newRisk);
+				compareAndAddChange(changes, "RISK_MANAGEMENT", "takeProfit", oldRisk, newRisk);
+				compareAndAddChange(changes, "PARAMETER", "positionSize", oldRisk, newRisk);
+			}
+
+			// Compare entry rules count
+			List<Object> oldEntryRules = (List<Object>) oldContext.getCurrentVisualConfig().get("entryRules");
+			List<Object> newEntryRules = (List<Object>) newVisualConfig.get("entryRules");
+
+			if (oldEntryRules != null && newEntryRules != null && oldEntryRules.size() != newEntryRules.size()) {
+				AIStrategyResponse.StrategyChange change = new AIStrategyResponse.StrategyChange();
+				change.setCategory("LOGIC");
+				change.setField("entryRulesCount");
+				change.setOldValue(String.valueOf(oldEntryRules.size()));
+				change.setNewValue(String.valueOf(newEntryRules.size()));
+				change.setRationale("Adjusted number of entry conditions based on backtest analysis");
+				changes.add(change);
+			}
+
+			// Compare exit rules count
+			List<Object> oldExitRules = (List<Object>) oldContext.getCurrentVisualConfig().get("exitRules");
+			List<Object> newExitRules = (List<Object>) newVisualConfig.get("exitRules");
+
+			if (oldExitRules != null && newExitRules != null && oldExitRules.size() != newExitRules.size()) {
+				AIStrategyResponse.StrategyChange change = new AIStrategyResponse.StrategyChange();
+				change.setCategory("LOGIC");
+				change.setField("exitRulesCount");
+				change.setOldValue(String.valueOf(oldExitRules.size()));
+				change.setNewValue(String.valueOf(newExitRules.size()));
+				change.setRationale("Adjusted number of exit conditions based on backtest analysis");
+				changes.add(change);
+			}
+		}
+
+		return changes;
+	}
+
+	/**
+	 * Compare a specific field in two maps and add as a change if different.
+	 */
+	private void compareAndAddChange(List<AIStrategyResponse.StrategyChange> changes, String category, String field,
+			Map<String, Object> oldMap, Map<String, Object> newMap) {
+
+		Object oldValue = oldMap.get(field);
+		Object newValue = newMap.get(field);
+
+		if (oldValue != null && newValue != null && !oldValue.equals(newValue)) {
+			AIStrategyResponse.StrategyChange change = new AIStrategyResponse.StrategyChange();
+			change.setCategory(category);
+			change.setField(field);
+			change.setOldValue(String.valueOf(oldValue));
+			change.setNewValue(String.valueOf(newValue));
+			change.setRationale("Optimized based on backtest analysis");
+			changes.add(change);
 		}
 	}
 

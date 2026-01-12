@@ -62,6 +62,9 @@ public class AIStrategyResponse {
 	@JsonProperty("historicalInsights")
 	private SymbolInsights historicalInsights; // Historical market data insights (7 years analyzed)
 
+	@JsonProperty("optimizationSummary")
+	private OptimizationSummary optimizationSummary; // Summary of optimization changes and improvements
+
 	// Getters and Setters
 
 	public Map<String, Object> getVisualConfig() {
@@ -174,6 +177,14 @@ public class AIStrategyResponse {
 
 	public void setHistoricalInsights(SymbolInsights historicalInsights) {
 		this.historicalInsights = historicalInsights;
+	}
+
+	public OptimizationSummary getOptimizationSummary() {
+		return optimizationSummary;
+	}
+
+	public void setOptimizationSummary(OptimizationSummary optimizationSummary) {
+		this.optimizationSummary = optimizationSummary;
 	}
 
 	/**
@@ -320,6 +331,134 @@ public class AIStrategyResponse {
 
 		public void setCodeSnippet(String codeSnippet) {
 			this.codeSnippet = codeSnippet;
+		}
+
+	}
+
+	/**
+	 * Summary of strategy optimization with baseline comparison and change tracking.
+	 */
+	public static class OptimizationSummary {
+
+		@JsonProperty("mode")
+		private String mode; // "GENERATE_NEW" or "ENHANCE_EXISTING"
+
+		@JsonProperty("baselineMetrics")
+		private Map<String, Double> baselineMetrics;
+
+		@JsonProperty("optimizedMetrics")
+		private Map<String, Double> optimizedMetrics;
+
+		@JsonProperty("changes")
+		private List<StrategyChange> changes;
+
+		@JsonProperty("improvementRationale")
+		private String improvementRationale;
+
+		// Getters and Setters
+
+		public String getMode() {
+			return mode;
+		}
+
+		public void setMode(String mode) {
+			this.mode = mode;
+		}
+
+		public Map<String, Double> getBaselineMetrics() {
+			return baselineMetrics;
+		}
+
+		public void setBaselineMetrics(Map<String, Double> baselineMetrics) {
+			this.baselineMetrics = baselineMetrics;
+		}
+
+		public Map<String, Double> getOptimizedMetrics() {
+			return optimizedMetrics;
+		}
+
+		public void setOptimizedMetrics(Map<String, Double> optimizedMetrics) {
+			this.optimizedMetrics = optimizedMetrics;
+		}
+
+		public List<StrategyChange> getChanges() {
+			return changes;
+		}
+
+		public void setChanges(List<StrategyChange> changes) {
+			this.changes = changes;
+		}
+
+		public String getImprovementRationale() {
+			return improvementRationale;
+		}
+
+		public void setImprovementRationale(String improvementRationale) {
+			this.improvementRationale = improvementRationale;
+		}
+
+	}
+
+	/**
+	 * Represents a specific change made during strategy optimization.
+	 */
+	public static class StrategyChange {
+
+		@JsonProperty("category")
+		private String category; // "PARAMETER", "LOGIC", "INDICATOR", "RISK_MANAGEMENT"
+
+		@JsonProperty("field")
+		private String field;
+
+		@JsonProperty("oldValue")
+		private String oldValue;
+
+		@JsonProperty("newValue")
+		private String newValue;
+
+		@JsonProperty("rationale")
+		private String rationale;
+
+		// Getters and Setters
+
+		public String getCategory() {
+			return category;
+		}
+
+		public void setCategory(String category) {
+			this.category = category;
+		}
+
+		public String getField() {
+			return field;
+		}
+
+		public void setField(String field) {
+			this.field = field;
+		}
+
+		public String getOldValue() {
+			return oldValue;
+		}
+
+		public void setOldValue(String oldValue) {
+			this.oldValue = oldValue;
+		}
+
+		public String getNewValue() {
+			return newValue;
+		}
+
+		public void setNewValue(String newValue) {
+			this.newValue = newValue;
+		}
+
+		public String getRationale() {
+			return rationale;
+		}
+
+		public void setRationale(String rationale) {
+			this.rationale = rationale;
 		}
 
 	}

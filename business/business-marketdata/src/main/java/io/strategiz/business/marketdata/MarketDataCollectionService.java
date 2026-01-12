@@ -516,7 +516,7 @@ public class MarketDataCollectionService {
             this.timeframe = timeframe;
             this.totalSymbols = totalSymbols;
             this.symbolsProcessed = 0;
-            this.startTime = LocalDateTime.now();
+            this.startTime = LocalDateTime.now(java.time.ZoneOffset.UTC);
             this.currentSymbol = null;
             this.errorMessage = null;
         }

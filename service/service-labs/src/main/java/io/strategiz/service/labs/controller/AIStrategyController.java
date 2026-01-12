@@ -65,22 +65,11 @@ public class AIStrategyController extends BaseController {
 		}
 
 		// HISTORICAL MARKET INSIGHTS CHECKS (Feeling Lucky)
+		// TEMPORARILY DISABLED - business-historical-insights module not included in build
 		if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-			// Check if Historical Market Insights feature flag is enabled
-			if (!featureFlagService.isHistoricalInsightsEnabled()) {
-				logger.warn("Historical Market Insights is currently disabled");
-				return ResponseEntity.status(503)
-					.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
-			}
-
-			// Check if user's subscription tier allows Historical Insights (TRADER/STRATEGIST only)
-			if (!subscriptionService.canUseHistoricalInsights(userId)) {
-				logger.warn("User {} attempted to use Historical Market Insights without proper subscription tier", userId);
-				return ResponseEntity.status(403)
-					.body(AIStrategyResponse.error("Historical Market Insights requires TRADER or STRATEGIST tier. Upgrade to unlock."));
-			}
-
-			logger.info("Historical Market Insights enabled for user {}", userId);
+			logger.warn("Historical Market Insights is currently disabled (module not included in build)");
+			return ResponseEntity.status(503)
+				.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
 		}
 
 		// Check if user can send AI message (within limits)
@@ -243,6 +232,106 @@ public class AIStrategyController extends BaseController {
 		catch (Exception e) {
 			logger.error("Error generating optimizations", e);
 			return ResponseEntity.internalServerError().body(AIStrategyResponse.error(e.getMessage()));
+		}
+	}
+
+	/**
+	 * Optimize a backtested strategy using AI and historical insights.
+	 * Returns a complete optimized strategy (either brand new or enhanced existing).
+	 */
+	@PostMapping("/optimize-strategy")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Optimize backtested strategy", description = "Uses AI and historical market insights to generate an optimized " +
+			"version of a backtested strategy. Two modes: GENERATE_NEW (create new strategy that beats baseline) or " +
+			"ENHANCE_EXISTING (improve current strategy). Returns complete optimized strategy, not just suggestions.")
+	public ResponseEntity<AIStrategyResponse> optimizeBacktestedStrategy(@Valid @RequestBody AIStrategyRequest request,
+			@AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Received strategy optimization request from user {}", userId);
+
+		// Check if Labs AI is enabled
+		if (!featureFlagService.isLabsAIEnabled()) {
+			logger.warn("Labs AI is currently disabled");
+			return ResponseEntity.status(503)
+				.body(AIStrategyResponse.error("AI Strategy Optimizer is temporarily unavailable. Please try again later."));
+		}
+
+		// HISTORICAL MARKET INSIGHTS CHECKS
+		// TEMPORARILY DISABLED - business-historical-insights module not included in build
+		if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+			logger.warn("Historical Market Insights is currently disabled (module not included in build)");
+			return ResponseEntity.status(503)
+				.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+		}
+
+		// Check daily AI chat limit
+		try {
+			if (!subscriptionService.canSendMessage(userId)) {
+				logger.warn("User {} exceeded daily AI chat limit", userId);
+				return ResponseEntity.status(429)
+					.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+			}
+		}
+		catch (Exception e) {
+			logger.warn("Error checking subscription limits for user {}, allowing", userId, e);
+		}
+
+		// Validate backtest results
+		if (request.getBacktestResults() == null) {
+			return ResponseEntity.badRequest()
+				.body(AIStrategyResponse.error("Backtest results are required for optimization"));
+		}
+
+		AIStrategyRequest.BacktestResults bt = request.getBacktestResults();
+		if (bt.getTotalTrades() < 10) {
+			return ResponseEntity.badRequest()
+				.body(AIStrategyResponse.error("Insufficient trade data for optimization. " +
+						"Strategy must have at least 10 trades. Current: " + bt.getTotalTrades()));
+		}
+
+		if (Double.isNaN(bt.getSharpeRatio()) || Double.isInfinite(bt.getSharpeRatio())) {
+			return ResponseEntity.badRequest()
+				.body(AIStrategyResponse.error("Invalid backtest metrics. Please run backtest again."));
+		}
+
+		// Validate mode-specific requirements
+		AIStrategyRequest.OptimizationMode mode = request.getOptimizationMode() != null ?
+				request.getOptimizationMode() :
+				AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING;
+
+		if (mode == AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING) {
+			if (request.getContext() == null ||
+					request.getContext().getCurrentCode() == null ||
+					request.getContext().getCurrentVisualConfig() == null) {
+				return ResponseEntity.badRequest()
+					.body(AIStrategyResponse.error("ENHANCE_EXISTING mode requires current strategy " +
+							"(code and visual config)"));
+			}
+		}
+
+		try {
+			// Call service
+			AIStrategyResponse response = aiStrategyService.optimizeStrategy(request);
+
+			// Record usage after successful optimization
+			if (response != null && response.isSuccess()) {
+				try {
+					subscriptionService.recordMessageUsage(userId);
+					logger.debug("Recorded AI chat usage for user {}", userId);
+				}
+				catch (Exception e) {
+					logger.error("Error recording usage for user {}", userId, e);
+				}
+			}
+
+			return ResponseEntity.ok(response);
+
+		}
+		catch (Exception e) {
+			logger.error("Error optimizing strategy", e);
+			return ResponseEntity.internalServerError()
+				.body(AIStrategyResponse.error(e.getMessage()));
 		}
 	}
 

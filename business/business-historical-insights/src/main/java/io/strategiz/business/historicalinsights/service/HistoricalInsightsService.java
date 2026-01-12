@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- * Service for analyzing historical market data to generate insights for Alpha Mode.
+ * Service for analyzing historical market data to generate insights for Historical Market Insights (Feeling Lucky mode).
  * Computes volatility profiles, ranks indicators by effectiveness, finds optimal parameters,
  * and detects market characteristics using 7 years of historical OHLCV data.
  */
@@ -50,7 +50,7 @@ public class HistoricalInsightsService {
 	public SymbolInsights analyzeSymbolForStrategyGeneration(String symbol, String timeframe, int lookbackDays,
 			boolean includeFundamentals) {
 
-		log.info("Starting Alpha Mode analysis for symbol={}, timeframe={}, lookback={} days, fundamentals={}",
+		log.info("Starting Historical Market Insights analysis for symbol={}, timeframe={}, lookback={} days, fundamentals={}",
 				symbol, timeframe, lookbackDays, includeFundamentals);
 
 		// 1. Query historical data
@@ -112,7 +112,7 @@ public class HistoricalInsightsService {
 			insights.setFundamentals(fundInsights);
 		}
 
-		log.info("Alpha Mode analysis completed for {}. Top indicator: {}, Volatility: {}, Win Rate: {}%", symbol,
+		log.info("Historical Market Insights analysis completed for {}. Top indicator: {}, Volatility: {}, Win Rate: {}%", symbol,
 				rankings.isEmpty() ? "N/A" : rankings.get(0).getIndicatorName(), volatilityProfile.getRegime(),
 				String.format("%.1f", riskMetrics.avgWinRate));
 

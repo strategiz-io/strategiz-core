@@ -51,11 +51,11 @@ public class AIStrategyRequest {
 	@JsonProperty("visualEditorSchema")
 	private String visualEditorSchema; // Schema description for generating valid visual rules
 
-	@JsonProperty("alphaMode")
-	private Boolean alphaMode = false; // Enable Alpha Mode with historical data analysis
+	@JsonProperty("useHistoricalInsights")
+	private Boolean useHistoricalInsights = false; // Enable Historical Market Insights with 7 years of data analysis
 
-	@JsonProperty("alphaOptions")
-	private AlphaModeOptions alphaOptions; // Options for Alpha Mode analysis
+	@JsonProperty("historicalInsightsOptions")
+	private HistoricalMarketInsightsOptions historicalInsightsOptions; // Options for Historical Market Insights analysis
 
 	// Getters and Setters
 
@@ -123,26 +123,27 @@ public class AIStrategyRequest {
 		this.visualEditorSchema = visualEditorSchema;
 	}
 
-	public Boolean getAlphaMode() {
-		return alphaMode;
+	public Boolean getUseHistoricalInsights() {
+		return useHistoricalInsights;
 	}
 
-	public void setAlphaMode(Boolean alphaMode) {
-		this.alphaMode = alphaMode;
+	public void setUseHistoricalInsights(Boolean useHistoricalInsights) {
+		this.useHistoricalInsights = useHistoricalInsights;
 	}
 
-	public AlphaModeOptions getAlphaOptions() {
-		return alphaOptions;
+	public HistoricalMarketInsightsOptions getHistoricalInsightsOptions() {
+		return historicalInsightsOptions;
 	}
 
-	public void setAlphaOptions(AlphaModeOptions alphaOptions) {
-		this.alphaOptions = alphaOptions;
+	public void setHistoricalInsightsOptions(HistoricalMarketInsightsOptions historicalInsightsOptions) {
+		this.historicalInsightsOptions = historicalInsightsOptions;
 	}
 
 	/**
-	 * Options for Alpha Mode historical analysis.
+	 * Options for Historical Market Insights analysis (Feeling Lucky mode).
+	 * Analyzes 7 years of historical market data to generate optimized strategies.
 	 */
-	public static class AlphaModeOptions {
+	public static class HistoricalMarketInsightsOptions {
 
 		@JsonProperty("lookbackDays")
 		private Integer lookbackDays = 2600; // ~7 years default

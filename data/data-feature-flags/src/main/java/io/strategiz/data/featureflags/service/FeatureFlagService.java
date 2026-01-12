@@ -42,7 +42,7 @@ public class FeatureFlagService {
     // AI - Holistic level (entire features)
     public static final String FLAG_AI_LEARN_ENABLED = "ai_learn_enabled";
     public static final String FLAG_AI_LABS_ENABLED = "ai_labs_enabled";
-    public static final String FLAG_ALPHA_MODE = "ai_alpha_mode_enabled";
+    public static final String FLAG_HISTORICAL_INSIGHTS = "ai_historical_insights_enabled";
 
     // AI - Provider level (all models from a provider)
     public static final String FLAG_AI_PROVIDER_GEMINI = "ai_provider_gemini_enabled";
@@ -95,8 +95,8 @@ public class FeatureFlagService {
         createDefaultFlag(FLAG_AI_LABS_ENABLED, "AI Labs Strategy Generator",
             "Enable Labs AI-powered strategy generation", true, "ai");
 
-        createDefaultFlag(FLAG_ALPHA_MODE, "AI Alpha Mode",
-            "Enable Alpha Mode with historical data analysis", true, "ai");
+        createDefaultFlag(FLAG_HISTORICAL_INSIGHTS, "AI Historical Market Insights",
+            "Enable Historical Market Insights with 7 years of data analysis (Feeling Lucky)", true, "ai");
 
         // AI - Provider level
         createDefaultFlag(FLAG_AI_PROVIDER_GEMINI, "Gemini Provider",
@@ -224,10 +224,11 @@ public class FeatureFlagService {
     }
 
     /**
-     * Check if Alpha Mode is enabled.
+     * Check if Historical Market Insights is enabled (Feeling Lucky mode).
+     * Analyzes 7 years of historical data to generate optimized strategies.
      */
-    public boolean isAlphaModeEnabled() {
-        return isEnabled(FLAG_ALPHA_MODE);
+    public boolean isHistoricalInsightsEnabled() {
+        return isEnabled(FLAG_HISTORICAL_INSIGHTS);
     }
 
     /**

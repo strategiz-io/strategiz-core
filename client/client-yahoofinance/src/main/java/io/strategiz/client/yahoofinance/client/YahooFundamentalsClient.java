@@ -91,13 +91,13 @@ public class YahooFundamentalsClient {
 		log.debug("Fetching fundamentals for symbol: {}", symbol);
 
 		try {
-			// Ensure we have valid cookie and crumb
+			// Ensure we have valid cookie (skip crumb to avoid rate limiting)
 			ensureAuthenticated();
 
-			// Build Yahoo Finance quote summary URL with crumb
-			String url = String.format("%s/v10/finance/quoteSummary/%s?crumb=%s&modules="
+			// Build Yahoo Finance quote summary URL (crumb not required with proper cookies)
+			String url = String.format("%s/v10/finance/quoteSummary/%s?modules="
 					+ "financialData,defaultKeyStatistics,balanceSheetHistory,incomeStatementHistory", baseUrl,
-					symbol, crumb);
+					symbol);
 
 			// Execute request with retries
 			ResponseEntity<Map> response = executeWithRetry(url, Map.class);
@@ -192,27 +192,29 @@ public class YahooFundamentalsClient {
 	}
 
 	/**
-	 * Ensure we have valid authentication (cookie and crumb).
+	 * Ensure we have valid authentication (cookies only, skip crumb to avoid rate limiting).
 	 * Refreshes if expired or missing.
 	 */
 	private synchronized void ensureAuthenticated() {
 		long now = System.currentTimeMillis();
 
-		// Check if crumb is expired (valid for 1 hour)
-		if (cookie == null || crumb == null || now >= crumbExpiration) {
-			log.debug("Cookie/crumb missing or expired, refreshing authentication");
+		// Check if cookie is expired (valid for 1 hour)
+		if (cookie == null || now >= crumbExpiration) {
+			log.debug("Cookie missing or expired, refreshing authentication");
 			refreshAuthentication();
 		}
 	}
 
 	/**
-	 * Refresh Yahoo Finance cookie and crumb.
+	 * Refresh Yahoo Finance cookies (skip crumb to avoid rate limiting).
+	 * Note: Cookies are automatically managed by CookieInterceptor.
 	 */
 	private synchronized void refreshAuthentication() {
 		try {
-			log.info("Fetching new Yahoo Finance cookie and crumb");
+			log.info("Fetching new Yahoo Finance cookies (skipping crumb to avoid rate limits)");
 
-			// Step 1: Get cookie from Yahoo Finance homepage
+			// Get cookies from Yahoo Finance homepage
+			// The CookieInterceptor will automatically capture and store cookies
 			String homepageUrl = "https://finance.yahoo.com";
 
 			// Create headers with User-Agent for homepage request
@@ -227,41 +229,15 @@ public class YahooFundamentalsClient {
 			ResponseEntity<String> homepageResponse = restTemplate.exchange(homepageUrl,
 					org.springframework.http.HttpMethod.GET, homepageEntity, String.class);
 
-			// Extract cookie from Set-Cookie header
-			List<String> cookies = homepageResponse.getHeaders().get("Set-Cookie");
-			if (cookies == null || cookies.isEmpty()) {
-				throw new StrategizException(YahooFinanceErrorDetails.API_ERROR_RESPONSE,
-						"Failed to get cookie from Yahoo Finance");
-			}
+			log.debug("Homepage response status: {}", homepageResponse.getStatusCode());
 
-			// Combine all cookies
-			this.cookie = String.join("; ", cookies);
-
-			// Step 2: Get crumb from crumb endpoint
-			String crumbUrl = "https://query2.finance.yahoo.com/v1/test/getcrumb";
-
-			// Create headers with cookie
-			org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-			headers.set("Cookie", this.cookie);
-			headers.set("User-Agent",
-					"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
-
-			org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
-
-			ResponseEntity<String> crumbResponse = restTemplate.exchange(crumbUrl, org.springframework.http.HttpMethod.GET,
-					entity, String.class);
-
-			if (crumbResponse.getBody() == null || crumbResponse.getBody().isBlank()) {
-				throw new StrategizException(YahooFinanceErrorDetails.API_ERROR_RESPONSE,
-						"Failed to get crumb from Yahoo Finance");
-			}
-
-			this.crumb = crumbResponse.getBody().trim();
+			// Mark that we have valid cookies (managed by CookieInterceptor)
+			this.cookie = "managed-by-interceptor";
 
 			// Set expiration to 1 hour from now
 			this.crumbExpiration = System.currentTimeMillis() + (60 * 60 * 1000);
 
-			log.info("Successfully refreshed Yahoo Finance authentication (crumb: {}, expiration: {})", this.crumb,
+			log.info("Successfully refreshed Yahoo Finance cookies (expiration: {})",
 					new java.util.Date(this.crumbExpiration));
 
 		}
@@ -274,7 +250,7 @@ public class YahooFundamentalsClient {
 
 	/**
 	 * Execute HTTP request with exponential backoff retry logic.
-	 * Includes cookie authentication header.
+	 * Cookies are automatically included by CookieInterceptor.
 	 */
 	private <T> ResponseEntity<T> executeWithRetry(String url, Class<T> responseType) {
 		int attempt = 0;
@@ -282,11 +258,8 @@ public class YahooFundamentalsClient {
 
 		while (attempt < maxRetries) {
 			try {
-				// Create headers with cookie
+				// Create headers (cookies will be added by CookieInterceptor)
 				org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-				if (cookie != null) {
-					headers.set("Cookie", cookie);
-				}
 				headers.set("User-Agent",
 						"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
 

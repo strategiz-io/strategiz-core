@@ -26,10 +26,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Integration test for Alpha Mode functionality.
+ * Integration test for Historical Market Insights functionality.
  * Tests the complete flow from request to response with historical insights.
  */
-class AlphaModeIntegrationTest {
+class HistoricalInsightsIntegrationTest {
 
 	@Mock
 	private LLMRouter llmRouter;
@@ -52,9 +52,9 @@ class AlphaModeIntegrationTest {
 	}
 
 	@Test
-	void testAlphaMode_WithAAPL_GeneratesEnhancedStrategy() {
-		// Given: A request with Alpha Mode enabled for AAPL
-		AIStrategyRequest request = createAlphaModeRequest("Generate an RSI strategy for AAPL", "AAPL");
+	void testHistoricalInsights_WithAAPL_GeneratesEnhancedStrategy() {
+		// Given: A request with Historical Market Insights enabled for AAPL
+		AIStrategyRequest request = createHistoricalInsightsRequest("Generate an RSI strategy for AAPL", "AAPL");
 
 		// Mock historical insights for AAPL
 		SymbolInsights aapl = createMockInsights("AAPL", "MEDIUM", "BULLISH", 65.0);
@@ -82,10 +82,10 @@ class AlphaModeIntegrationTest {
 		// When: Generate strategy
 		AIStrategyResponse response = aiStrategyService.generateStrategy(request);
 
-		// Then: Response should include Alpha Mode insights
+		// Then: Response should include Historical Market Insights insights
 		assertTrue(response.isSuccess(), "Strategy generation should succeed");
 		assertNotNull(response.getHistoricalInsights(), "Should include historical insights");
-		assertEquals(Boolean.TRUE, response.getAlphaModeUsed(), "Should indicate Alpha Mode was used");
+		assertEquals(Boolean.TRUE, response.getHistoricalInsightsUsed(), "Should indicate Historical Market Insights was used");
 		assertEquals("AAPL", response.getHistoricalInsights().getSymbol());
 		assertEquals(65.0, response.getHistoricalInsights().getAvgWinRate());
 
@@ -98,9 +98,9 @@ class AlphaModeIntegrationTest {
 	}
 
 	@Test
-	void testAlphaMode_WithTSLA_HighVolatility() {
+	void testHistoricalInsights_WithTSLA_HighVolatility() {
 		// Given: TSLA with HIGH volatility
-		AIStrategyRequest request = createAlphaModeRequest("Create a momentum strategy for TSLA", "TSLA");
+		AIStrategyRequest request = createHistoricalInsightsRequest("Create a momentum strategy for TSLA", "TSLA");
 
 		SymbolInsights tesla = createMockInsights("TSLA", "HIGH", "BULLISH", 58.0);
 		when(historicalInsightsService.analyzeSymbolForStrategyGeneration(eq("TSLA"), anyString(), anyInt(),
@@ -128,9 +128,9 @@ class AlphaModeIntegrationTest {
 	}
 
 	@Test
-	void testAlphaMode_WithSPY_MeanReverting() {
+	void testHistoricalInsights_WithSPY_MeanReverting() {
 		// Given: SPY with mean-reverting characteristics
-		AIStrategyRequest request = createAlphaModeRequest("Build a mean reversion strategy for SPY", "SPY");
+		AIStrategyRequest request = createHistoricalInsightsRequest("Build a mean reversion strategy for SPY", "SPY");
 
 		SymbolInsights spy = createMockInsights("SPY", "LOW", "SIDEWAYS", 70.0);
 		spy.setMeanReverting(true);
@@ -159,9 +159,9 @@ class AlphaModeIntegrationTest {
 	}
 
 	@Test
-	void testAlphaMode_UsesCache_OnSecondRequest() {
+	void testHistoricalInsights_UsesCache_OnSecondRequest() {
 		// Given: First request for AAPL
-		AIStrategyRequest request1 = createAlphaModeRequest("RSI strategy for AAPL", "AAPL");
+		AIStrategyRequest request1 = createHistoricalInsightsRequest("RSI strategy for AAPL", "AAPL");
 		SymbolInsights aapl = createMockInsights("AAPL", "MEDIUM", "BULLISH", 65.0);
 
 		// First call: No cache
@@ -188,7 +188,7 @@ class AlphaModeIntegrationTest {
 				anyInt(), anyBoolean());
 
 		// Given: Second request for AAPL (should use cache)
-		AIStrategyRequest request2 = createAlphaModeRequest("MACD strategy for AAPL", "AAPL");
+		AIStrategyRequest request2 = createHistoricalInsightsRequest("MACD strategy for AAPL", "AAPL");
 		when(cacheService.getCachedInsights(anyString())).thenReturn(java.util.Optional.of(aapl));
 
 		// When: Second request
@@ -201,10 +201,10 @@ class AlphaModeIntegrationTest {
 	}
 
 	@Test
-	void testAlphaMode_WithFundamentals_IncludesFundamentalData() {
+	void testHistoricalInsights_WithFundamentals_IncludesFundamentalData() {
 		// Given: Request with fundamentals enabled
-		AIStrategyRequest request = createAlphaModeRequest("Value strategy for AAPL", "AAPL");
-		request.getAlphaOptions().setUseFundamentals(true);
+		AIStrategyRequest request = createHistoricalInsightsRequest("Value strategy for AAPL", "AAPL");
+		request.getHistoricalInsightsOptions().setUseFundamentals(true);
 
 		SymbolInsights aapl = createMockInsights("AAPL", "MEDIUM", "BULLISH", 65.0);
 		// Note: fundamentals would be added in the real service
@@ -233,11 +233,11 @@ class AlphaModeIntegrationTest {
 	}
 
 	@Test
-	void testAlphaMode_Disabled_NoInsights() {
-		// Given: Request with Alpha Mode disabled
+	void testHistoricalInsights_Disabled_NoInsights() {
+		// Given: Request with Historical Market Insights disabled
 		AIStrategyRequest request = new AIStrategyRequest();
 		request.setPrompt("Generate RSI strategy for AAPL");
-		request.setAlphaMode(false);
+		request.setHistoricalInsights(false);
 
 		AIStrategyRequest.StrategyContext context = new AIStrategyRequest.StrategyContext();
 		context.setSymbols(List.of("AAPL"));
@@ -260,43 +260,43 @@ class AlphaModeIntegrationTest {
 		// Then: No insights fetched or included
 		assertTrue(response.isSuccess());
 		assertNull(response.getHistoricalInsights());
-		assertNotEquals(Boolean.TRUE, response.getAlphaModeUsed());
+		assertNotEquals(Boolean.TRUE, response.getHistoricalInsightsUsed());
 		verify(historicalInsightsService, never()).analyzeSymbolForStrategyGeneration(anyString(), anyString(),
 				anyInt(), anyBoolean());
 	}
 
 	@Test
 	void testPromptEnhancement_IncludesHistoricalData() {
-		// Given: Alpha Mode request
+		// Given: Historical Market Insights request
 		SymbolInsights insights = createMockInsights("AAPL", "MEDIUM", "BULLISH", 65.0);
 
-		// When: Build Alpha Mode prompt
-		String enhancedPrompt = AIStrategyPrompts.buildAlphaModePrompt(insights);
+		// When: Build Historical Market Insights prompt
+		String enhancedPrompt = AIStrategyPrompts.buildHistoricalInsightsPrompt(insights);
 
 		// Then: Prompt includes key historical data
-		assertTrue(enhancedPrompt.contains("ALPHA MODE: HISTORICAL MARKET ANALYSIS"),
-				"Should have Alpha Mode header");
+		assertTrue(enhancedPrompt.contains("HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS"),
+				"Should have Historical Market Insights header");
 		assertTrue(enhancedPrompt.contains("Symbol: AAPL"), "Should include symbol");
 		assertTrue(enhancedPrompt.contains("Volatility Regime: MEDIUM"), "Should include volatility regime");
 		assertTrue(enhancedPrompt.contains("Trend Direction: BULLISH"), "Should include trend direction");
 		assertTrue(enhancedPrompt.contains("Historical Avg Win Rate: 65.0%"), "Should include win rate");
 		assertTrue(enhancedPrompt.contains("TOP PERFORMING INDICATORS"), "Should include indicator rankings");
 		assertTrue(enhancedPrompt.contains("RSI"), "Should mention RSI indicator");
-		assertTrue(enhancedPrompt.contains("ALPHA MODE INSTRUCTIONS"), "Should include AI instructions");
+		assertTrue(enhancedPrompt.contains("HISTORICAL INSIGHTS INSTRUCTIONS"), "Should include AI instructions");
 	}
 
 	// Helper methods
 
-	private AIStrategyRequest createAlphaModeRequest(String prompt, String symbol) {
+	private AIStrategyRequest createHistoricalInsightsRequest(String prompt, String symbol) {
 		AIStrategyRequest request = new AIStrategyRequest();
 		request.setPrompt(prompt);
-		request.setAlphaMode(true);
+		request.setHistoricalInsights(true);
 
-		AIStrategyRequest.AlphaModeOptions options = new AIStrategyRequest.AlphaModeOptions();
+		AIStrategyRequest.HistoricalInsightsOptions options = new AIStrategyRequest.HistoricalInsightsOptions();
 		options.setLookbackDays(2600);
 		options.setUseFundamentals(false);
 		options.setForceRefresh(false);
-		request.setAlphaOptions(options);
+		request.setHistoricalInsightsOptions(options);
 
 		AIStrategyRequest.StrategyContext context = new AIStrategyRequest.StrategyContext();
 		context.setSymbols(List.of(symbol));

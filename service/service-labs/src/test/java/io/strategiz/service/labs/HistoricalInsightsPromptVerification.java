@@ -12,10 +12,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Manual verification tool for Alpha Mode prompt enhancement.
+ * Manual verification tool for Historical Market Insights prompt enhancement.
  * Run this to see how the enhanced prompts look for different symbols.
  */
-public class AlphaModePromptVerification {
+public class HistoricalInsightsPromptVerification {
 
 	public static void main(String[] args) {
 		System.out.println("=".repeat(100));
@@ -60,14 +60,14 @@ public class AlphaModePromptVerification {
 
 	private static void testSymbol(SymbolInsights insights) {
 		// Build the enhanced prompt
-		String enhancedPrompt = AIStrategyPrompts.buildAlphaModePrompt(insights);
+		String enhancedPrompt = AIStrategyPrompts.buildHistoricalInsightsPrompt(insights);
 
 		// Print the enhanced prompt
 		System.out.println(enhancedPrompt);
 
 		// Validate prompt contains key elements
 		List<String> validations = new ArrayList<>();
-		validations.add(checkContains(enhancedPrompt, "ALPHA MODE: HISTORICAL MARKET ANALYSIS", "Alpha Mode header"));
+		validations.add(checkContains(enhancedPrompt, "HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS", "Historical Market Insights header"));
 		validations.add(checkContains(enhancedPrompt, "Symbol: " + insights.getSymbol(), "Symbol"));
 		validations
 			.add(checkContains(enhancedPrompt, "Volatility Regime: " + insights.getVolatilityRegime(), "Volatility"));
@@ -75,7 +75,7 @@ public class AlphaModePromptVerification {
 		validations
 			.add(checkContains(enhancedPrompt, String.format("%.1f%%", insights.getAvgWinRate()), "Win Rate"));
 		validations.add(checkContains(enhancedPrompt, "TOP PERFORMING INDICATORS", "Indicators section"));
-		validations.add(checkContains(enhancedPrompt, "ALPHA MODE INSTRUCTIONS", "Instructions section"));
+		validations.add(checkContains(enhancedPrompt, "HISTORICAL INSIGHTS INSTRUCTIONS", "Instructions section"));
 
 		// Print validation results
 		System.out.println("\n" + "-".repeat(100));

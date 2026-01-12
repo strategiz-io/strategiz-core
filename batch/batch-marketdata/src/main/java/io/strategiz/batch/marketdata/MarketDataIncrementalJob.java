@@ -118,7 +118,7 @@ public class MarketDataIncrementalJob {
 			toJson(ALL_TIMEFRAMES)
 		);
 
-		LocalDateTime endDate = LocalDateTime.now();
+		LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 		LocalDateTime startDate = endDate.minusHours(lookbackHours);
 
 		long startTime = System.currentTimeMillis();
@@ -206,7 +206,7 @@ public class MarketDataIncrementalJob {
 	 * Early closures - Extended hours trading - Using exchange calendar API
 	 */
 	private boolean isMarketHours() {
-		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime now = LocalDateTime.now(java.time.ZoneOffset.UTC);
 
 		// Weekday check (Monday = 1, Sunday = 7)
 		int dayOfWeek = now.getDayOfWeek().getValue();

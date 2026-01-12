@@ -318,11 +318,11 @@ public class WatchlistService extends BaseService {
             }
         }
 
-        // For stocks/ETFs, use Yahoo Finance
+        // For stocks/ETFs, use Alpaca (consistent with initialization)
         if ("STOCK".equalsIgnoreCase(type) || "ETF".equalsIgnoreCase(type)) {
             try {
-                enrichFromYahooFinance(entity);
-                log.info("Successfully enriched {} from Yahoo Finance", symbol);
+                enrichFromAlpaca(entity);
+                log.info("Successfully enriched {} from Alpaca", symbol);
 
                 // Validate that we actually got the required data
                 if (entity.getCurrentPrice() == null) {
@@ -335,7 +335,7 @@ public class WatchlistService extends BaseService {
 
                 return entity;
             } catch (Exception e) {
-                log.error("Yahoo Finance enrichment failed for {}: {}", symbol, e.getMessage());
+                log.error("Alpaca enrichment failed for {}: {}", symbol, e.getMessage());
                 throw new StrategizException(
                     ServiceDashboardErrorDetails.DASHBOARD_ERROR,
                     "service-dashboard",

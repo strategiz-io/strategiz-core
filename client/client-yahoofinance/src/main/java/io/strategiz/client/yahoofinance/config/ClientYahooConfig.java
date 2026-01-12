@@ -36,15 +36,16 @@ import java.time.Duration;
 public class ClientYahooConfig {
 
 	/**
-	 * RestTemplate configured for Yahoo Finance API calls.
+	 * RestTemplate configured for Yahoo Finance API calls with cookie support.
 	 *
 	 * @param builder Spring's RestTemplateBuilder
-	 * @return Configured RestTemplate
+	 * @return Configured RestTemplate with automatic cookie management
 	 */
 	@Bean(name = "yahooFinanceRestTemplate")
 	public RestTemplate yahooFinanceRestTemplate(RestTemplateBuilder builder) {
 		return builder.setConnectTimeout(Duration.ofSeconds(10))
 			.setReadTimeout(Duration.ofSeconds(30))
+			.interceptors(new CookieInterceptor())
 			.build();
 	}
 

@@ -1,7 +1,8 @@
 package io.strategiz.business.aichat.prompt;
 
-import io.strategiz.business.historicalinsights.model.IndicatorRanking;
-import io.strategiz.business.historicalinsights.model.SymbolInsights;
+// TEMPORARY: Commented out to unblock deployment
+// import io.strategiz.business.historicalinsights.model.IndicatorRanking;
+// import io.strategiz.business.historicalinsights.model.SymbolInsights;
 
 import java.util.Map;
 
@@ -1082,6 +1083,9 @@ public class AIStrategyPrompts {
 		return String.format(INDICATOR_PREVIEW_PROMPT, partialPrompt);
 	}
 
+	// TEMPORARY: Alpha Mode methods commented out to unblock deployment
+	// Re-enable when business-historical-insights module is fixed
+	/*
 	public static String buildAlphaModePrompt(SymbolInsights insights) {
 		StringBuilder prompt = new StringBuilder();
 
@@ -1204,5 +1208,6 @@ public class AIStrategyPrompts {
 
 		return sb.toString();
 	}
+	*/
 
 }

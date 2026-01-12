@@ -65,11 +65,22 @@ public class AIStrategyController extends BaseController {
 		}
 
 		// HISTORICAL MARKET INSIGHTS CHECKS (Feeling Lucky)
-		// TEMPORARILY DISABLED - business-historical-insights module not included in build
 		if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-			logger.warn("Historical Market Insights is currently disabled (module not included in build)");
-			return ResponseEntity.status(503)
-				.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+			// Check if Historical Market Insights feature flag is enabled
+			if (!featureFlagService.isHistoricalInsightsEnabled()) {
+				logger.warn("Historical Market Insights is currently disabled");
+				return ResponseEntity.status(503)
+					.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+			}
+
+			// Check if user's subscription tier allows Historical Insights (TRADER/STRATEGIST only)
+			if (!subscriptionService.canUseHistoricalInsights(userId)) {
+				logger.warn("User {} attempted to use Historical Market Insights without proper subscription tier", userId);
+				return ResponseEntity.status(403)
+					.body(AIStrategyResponse.error("Historical Market Insights requires TRADER or STRATEGIST tier. Upgrade to unlock."));
+			}
+
+			logger.info("Historical Market Insights enabled for user {}", userId);
 		}
 
 		// Check if user can send AI message (within limits)

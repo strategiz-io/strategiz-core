@@ -6,9 +6,6 @@ import io.strategiz.business.fundamentals.model.SymbolResult;
 import io.strategiz.client.yahoofinance.client.YahooFundamentalsClient;
 import io.strategiz.business.fundamentals.converter.YahooFundamentalsConverter;
 import io.strategiz.client.yahoofinance.model.YahooFundamentals;
-import io.strategiz.client.fmp.client.FmpFundamentalsClient;
-import io.strategiz.business.fundamentals.converter.FmpFundamentalsConverter;
-import io.strategiz.client.fmp.dto.FmpFundamentals;
 import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
 import io.strategiz.data.fundamentals.repository.FundamentalsRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -38,7 +35,7 @@ import java.util.concurrent.*;
  * <p>
  * Configuration (application.properties):
  * <pre>
- * fundamentals.provider=fmp  # Options: fmp, yahoo
+ * fundamentals.provider=yahoo
  * fundamentals.batch.thread-pool-size=1
  * fundamentals.batch.batch-size=500
  * fundamentals.batch.delay-ms=150
@@ -54,15 +51,9 @@ public class FundamentalsCollectionService {
 
 	private final YahooFundamentalsConverter yahooConverter;
 
-	@Autowired(required = false)
-	private FmpFundamentalsClient fmpClient;
-
-	@Autowired(required = false)
-	private FmpFundamentalsConverter fmpConverter;
-
 	private final FundamentalsRepository repository;
 
-	@Value("${fundamentals.provider:fmp}")
+	@Value("${fundamentals.provider:yahoo}")
 	private String provider;
 
 	@Value("${fundamentals.batch.thread-pool-size:1}")
@@ -152,34 +143,16 @@ public class FundamentalsCollectionService {
 		try {
 			log.debug("Processing fundamentals for {} using provider: {}", symbol, provider);
 
-			FundamentalsEntity entity;
+			// 1. Fetch from Yahoo Finance
+			YahooFundamentals yahooData = yahooClient.getFundamentals(symbol);
 
-			// Fetch and convert based on configured provider
-			if ("fmp".equalsIgnoreCase(provider)) {
-				if (fmpClient == null || fmpConverter == null) {
-					throw new StrategizException(FundamentalsErrorDetails.COLLECTION_FAILED,
-							"FMP provider selected but FMP client not configured. Enable with strategiz.fmp.enabled=true");
-				}
-
-				// 1. Fetch from FMP
-				FmpFundamentals fmpData = fmpClient.getFundamentals(symbol);
-
-				// 2. Convert to entity
-				entity = fmpConverter.toEntity(fmpData);
-			}
-			else {
-				// Default to Yahoo Finance
-				// 1. Fetch from Yahoo Finance
-				YahooFundamentals yahooData = yahooClient.getFundamentals(symbol);
-
-				// 2. Convert to entity
-				entity = yahooConverter.toEntity(yahooData);
-			}
+			// 2. Convert to entity
+			FundamentalsEntity entity = yahooConverter.toEntity(yahooData);
 
 			// 3. Save to ClickHouse
 			repository.save(entity);
 
-			log.debug("Successfully saved fundamentals for {} from {}", symbol, provider);
+			log.debug("Successfully saved fundamentals for {}", symbol);
 			return new SymbolResult(symbol, true);
 		}
 		catch (StrategizException ex) {

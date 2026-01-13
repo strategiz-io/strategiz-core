@@ -13,6 +13,7 @@ import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
+import io.strategiz.service.labs.model.ExecuteStrategyResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -43,19 +44,24 @@ public class AIStrategyService extends BaseService {
 
 	private final HistoricalInsightsService historicalInsightsService;
 	private final HistoricalInsightsCacheService cacheService;
+	private final StrategyExecutionService executionService;
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
 			HistoricalInsightsService historicalInsightsService,
-			HistoricalInsightsCacheService cacheService) {
+			HistoricalInsightsCacheService cacheService,
+			StrategyExecutionService executionService) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
 		this.historicalInsightsService = historicalInsightsService;
 		this.cacheService = cacheService;
+		this.executionService = executionService;
 	}
 
 	/**
 	 * Generate a new strategy from a natural language prompt.
+	 * For Feeling Lucky mode (useHistoricalInsights=true), validates that the strategy
+	 * beats buy-and-hold by at least 15% before returning it to the user.
 	 */
 	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
 		String promptPreview = (request.getPrompt() != null && !request.getPrompt().isEmpty())
@@ -63,7 +69,7 @@ public class AIStrategyService extends BaseService {
 				: "[Feeling Lucky - Autonomous Mode]";
 		log.info("Generating strategy from prompt: {}", promptPreview);
 
-		log.info("Step 1/5: Analyzing prompt for user strategy request");
+		log.info("Step 1/6: Analyzing prompt for user strategy request");
 
 		try {
 			// HISTORICAL INSIGHTS: Get historical market insights if enabled (Feeling Lucky mode)
@@ -77,54 +83,110 @@ public class AIStrategyService extends BaseService {
 				}
 			}
 
-			// Build the system prompt with context
-			String symbols = request.getContext() != null && request.getContext().getSymbols() != null
-					? String.join(", ", request.getContext().getSymbols()) : null;
-			String timeframe = request.getContext() != null ? request.getContext().getTimeframe() : null;
-			String visualEditorSchema = request.getVisualEditorSchema();
+			// VALIDATION LOOP: For Feeling Lucky mode, validate strategy beats buy-and-hold
+			boolean requiresValidation = Boolean.TRUE.equals(request.getUseHistoricalInsights());
+			int maxAttempts = requiresValidation ? 5 : 1;
+			AIStrategyResponse bestResponse = null;
+			double bestOutperformance = Double.NEGATIVE_INFINITY;
 
-			String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe, visualEditorSchema);
+			for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+				log.info("Strategy generation attempt {}/{}", attempt, maxAttempts);
 
-			// HISTORICAL INSIGHTS: Enhance prompt with historical market analysis
-			if (insights != null) {
-				systemPrompt = systemPrompt + "\n\n" + AIStrategyPrompts.buildHistoricalInsightsPrompt(insights);
+				// Build the system prompt with context
+				String symbols = request.getContext() != null && request.getContext().getSymbols() != null
+						? String.join(", ", request.getContext().getSymbols()) : null;
+				String timeframe = request.getContext() != null ? request.getContext().getTimeframe() : null;
+				String visualEditorSchema = request.getVisualEditorSchema();
+
+				String systemPrompt = AIStrategyPrompts.buildGenerationPrompt(symbols, timeframe, visualEditorSchema);
+
+				// HISTORICAL INSIGHTS: Enhance prompt with historical market analysis
+				if (insights != null) {
+					systemPrompt = systemPrompt + "\n\n" + AIStrategyPrompts.buildHistoricalInsightsPrompt(insights);
+
+					// Add feedback from previous attempts
+					if (attempt > 1 && bestResponse != null) {
+						systemPrompt += String.format("\n\nPREVIOUS ATTEMPT FEEDBACK:\n" +
+							"Attempt %d failed validation. Strategy only achieved %.2f%% outperformance vs buy-and-hold.\n" +
+							"REQUIREMENT: Must beat buy-and-hold by at least 15%%.\n" +
+							"Try a different approach: use different indicators, tighter parameters, or add filters.\n",
+							attempt - 1, bestOutperformance);
+					}
+				}
+
+				log.info("Step 2/6: Preparing strategy generation parameters");
+
+				// Build conversation history
+				List<LLMMessage> history = buildConversationHistory(systemPrompt,
+						request.getConversationHistory());
+
+				// Use model from request, or default to gemini-3-flash-preview
+				String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
+
+				log.info("Step 3/6: Generating strategy with AI model: {}", model);
+
+				// For Feeling Lucky mode, if no prompt provided, use autonomous generation prompt
+				String userPrompt = request.getPrompt();
+				if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) &&
+				    (userPrompt == null || userPrompt.trim().isEmpty())) {
+					userPrompt = "Create an optimized trading strategy that beats buy and hold by at least 15% for the specified symbol(s) using the historical data insights.";
+					log.info("Feeling Lucky mode with no user context - using autonomous strategy generation");
+				}
+
+				// Call LLM via router (blocking)
+				LLMResponse llmResponse = llmRouter.generateContent(userPrompt, history, model).block();
+
+				log.info("Step 4/6: Parsing and validating strategy response");
+
+				AIStrategyResponse response = parseGenerationResponse(llmResponse);
+
+				// If validation is required and we have a valid strategy, validate it
+				if (requiresValidation && response.isSuccess() && response.getPythonCode() != null) {
+					log.info("Step 5/6: Validating strategy performance (beats buy-and-hold by 15%?)");
+
+					double outperformance = validateStrategyPerformance(response, request, insights);
+
+					if (outperformance >= 15.0) {
+						log.info("✅ Strategy VALIDATED! Outperformance: {:.2f}% (target: 15%)", outperformance);
+						response.setHistoricalInsightsUsed(true);
+						response.setHistoricalInsights(insights);
+						response.setWarning(String.format(
+							"Strategy validated: %.1f%% better than buy-and-hold (validated attempt %d/%d)",
+							outperformance, attempt, maxAttempts));
+						return response;
+					} else {
+						log.warn("❌ Strategy failed validation. Outperformance: {:.2f}% (target: 15%)", outperformance);
+						if (outperformance > bestOutperformance) {
+							bestOutperformance = outperformance;
+							bestResponse = response;
+						}
+					}
+				} else if (!requiresValidation) {
+					// No validation required, return immediately
+					if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+						response.setHistoricalInsightsUsed(true);
+						response.setHistoricalInsights(insights);
+					}
+					log.info("Step 6/6: Strategy generation complete (no validation required)");
+					return response;
+				}
 			}
 
-			log.info("Step 2/5: Preparing strategy generation parameters");
+			// If we get here, all attempts failed validation
+			log.error("All {} attempts failed to generate a strategy beating buy-and-hold by 15%. Best: {:.2f}%",
+				maxAttempts, bestOutperformance);
 
-			// Build conversation history
-			List<LLMMessage> history = buildConversationHistory(systemPrompt,
-					request.getConversationHistory());
-
-			// Use model from request, or default to gemini-3-flash-preview
-			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
-
-			log.info("Step 3/5: Generating strategy with AI model: {}", model);
-
-			// For Feeling Lucky mode, if no prompt provided, use autonomous generation prompt
-			String userPrompt = request.getPrompt();
-			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) &&
-			    (userPrompt == null || userPrompt.trim().isEmpty())) {
-				userPrompt = "Create an optimized trading strategy that beats buy and hold for the specified symbol(s) using the historical data insights.";
-				log.info("Feeling Lucky mode with no user context - using autonomous strategy generation");
+			if (bestResponse != null) {
+				bestResponse.setWarning(String.format(
+					"Warning: Could not generate a strategy beating buy-and-hold by 15%% after %d attempts. " +
+					"Best achieved: %.1f%% outperformance. Consider a different symbol or timeframe.",
+					maxAttempts, bestOutperformance));
+				bestResponse.setHistoricalInsightsUsed(true);
+				bestResponse.setHistoricalInsights(insights);
+				return bestResponse;
 			}
 
-			// Call LLM via router (blocking)
-			LLMResponse llmResponse = llmRouter.generateContent(userPrompt, history, model).block();
-
-			log.info("Step 4/5: Parsing and validating strategy response");
-
-			AIStrategyResponse response = parseGenerationResponse(llmResponse);
-
-			// HISTORICAL INSIGHTS: Include insights in response
-			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-				response.setHistoricalInsightsUsed(true);
-				response.setHistoricalInsights(insights);
-			}
-
-			log.info("Step 5/5: Strategy generation complete");
-
-			return response;
+			return AIStrategyResponse.error("Failed to generate a validated strategy after " + maxAttempts + " attempts.");
 		}
 		catch (Exception e) {
 			log.error("Error generating strategy", e);
@@ -602,6 +664,77 @@ public class AIStrategyService extends BaseService {
 		}
 
 		return new HashMap<>();
+	}
+
+	/**
+	 * Validate strategy performance by backtesting and comparing to buy-and-hold.
+	 * Returns outperformance percentage (strategy return - buy-and-hold return).
+	 *
+	 * @param response Generated strategy response with Python code
+	 * @param request Original request with symbol/timeframe context
+	 * @param insights Historical insights (contains symbol if request doesn't)
+	 * @return Outperformance percentage (positive = beats buy-and-hold)
+	 */
+	private double validateStrategyPerformance(AIStrategyResponse response, AIStrategyRequest request,
+			SymbolInsights insights) {
+		try {
+			// Extract symbol and timeframe
+			String symbol = extractPrimarySymbol(request);
+			if (symbol == null && insights != null) {
+				symbol = insights.getSymbol();
+			}
+			if (symbol == null) {
+				log.warn("Cannot validate: no symbol found");
+				return Double.NEGATIVE_INFINITY;
+			}
+
+			String timeframe = request.getContext() != null && request.getContext().getTimeframe() != null
+					? request.getContext().getTimeframe() : "1D";
+
+			// Use a reasonable backtest period (1 year for validation)
+			String period = "1y";
+
+			log.info("Validating strategy for symbol={}, timeframe={}, period={}", symbol, timeframe, period);
+
+			// Execute backtest
+			ExecuteStrategyResponse backtestResult = executionService.executeStrategy(
+				response.getPythonCode(),
+				"python",
+				symbol,
+				timeframe,
+				period,
+				"system-validation", // user ID
+				null // no strategy entity
+			);
+
+			// Check if backtest succeeded (no errors and has performance data)
+			boolean hasErrors = backtestResult.getErrors() != null && !backtestResult.getErrors().isEmpty();
+			if (hasErrors || backtestResult.getPerformance() == null) {
+				log.warn("Backtest failed or returned no performance data. Errors: {}",
+					hasErrors ? backtestResult.getErrors() : "none");
+				return Double.NEGATIVE_INFINITY;
+			}
+
+			// Get strategy return (already in percentage)
+			double strategyReturn = backtestResult.getPerformance().getTotalReturn();
+
+			// Get buy-and-hold return (already in percentage)
+			double buyAndHoldReturn = backtestResult.getPerformance().getBuyAndHoldReturnPercent() != null
+					? backtestResult.getPerformance().getBuyAndHoldReturnPercent()
+					: 0.0;
+
+			// Calculate outperformance
+			double outperformance = strategyReturn - buyAndHoldReturn;
+
+			log.info("Validation results: Strategy={:.2f}%, Buy&Hold={:.2f}%, Outperformance={:.2f}%",
+				strategyReturn, buyAndHoldReturn, outperformance);
+
+			return outperformance;
+
+		} catch (Exception e) {
+			log.error("Error validating strategy performance", e);
+			return Double.NEGATIVE_INFINITY;
+		}
 	}
 
 	// Historical Market Insights Integration (Feeling Lucky)

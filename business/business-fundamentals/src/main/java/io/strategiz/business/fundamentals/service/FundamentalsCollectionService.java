@@ -6,11 +6,15 @@ import io.strategiz.business.fundamentals.model.SymbolResult;
 import io.strategiz.client.yahoofinance.client.YahooFundamentalsClient;
 import io.strategiz.business.fundamentals.converter.YahooFundamentalsConverter;
 import io.strategiz.client.yahoofinance.model.YahooFundamentals;
+import io.strategiz.client.fmp.client.FmpFundamentalsClient;
+import io.strategiz.business.fundamentals.converter.FmpFundamentalsConverter;
+import io.strategiz.client.fmp.dto.FmpFundamentals;
 import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
 import io.strategiz.data.fundamentals.repository.FundamentalsRepository;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -20,12 +24,12 @@ import java.util.List;
 import java.util.concurrent.*;
 
 /**
- * Service for collecting company fundamentals data from Yahoo Finance.
+ * Service for collecting company fundamentals data from various providers.
  *
  * <p>
  * Responsibilities:
  * - Fetch fundamentals for multiple symbols in batches
- * - Convert Yahoo Finance DTOs to fundamentals entities
+ * - Convert provider DTOs to fundamentals entities
  * - Save to data repository with batch operations
  * - Track success/failure for each symbol
  * - Support multi-threaded processing with rate limiting
@@ -34,6 +38,7 @@ import java.util.concurrent.*;
  * <p>
  * Configuration (application.properties):
  * <pre>
+ * fundamentals.provider=fmp  # Options: fmp, yahoo
  * fundamentals.batch.thread-pool-size=1
  * fundamentals.batch.batch-size=500
  * fundamentals.batch.delay-ms=150
@@ -47,9 +52,18 @@ public class FundamentalsCollectionService {
 
 	private final YahooFundamentalsClient yahooClient;
 
-	private final YahooFundamentalsConverter converter;
+	private final YahooFundamentalsConverter yahooConverter;
+
+	@Autowired(required = false)
+	private FmpFundamentalsClient fmpClient;
+
+	@Autowired(required = false)
+	private FmpFundamentalsConverter fmpConverter;
 
 	private final FundamentalsRepository repository;
+
+	@Value("${fundamentals.provider:fmp}")
+	private String provider;
 
 	@Value("${fundamentals.batch.thread-pool-size:1}")
 	private int threadPoolSize;
@@ -62,10 +76,10 @@ public class FundamentalsCollectionService {
 
 	private CollectionResult currentJobStatus;
 
-	public FundamentalsCollectionService(YahooFundamentalsClient yahooClient, YahooFundamentalsConverter converter,
+	public FundamentalsCollectionService(YahooFundamentalsClient yahooClient, YahooFundamentalsConverter yahooConverter,
 			FundamentalsRepository repository) {
 		this.yahooClient = yahooClient;
-		this.converter = converter;
+		this.yahooConverter = yahooConverter;
 		this.repository = repository;
 	}
 
@@ -136,18 +150,36 @@ public class FundamentalsCollectionService {
 	 */
 	private SymbolResult processSymbol(String symbol) {
 		try {
-			log.debug("Processing fundamentals for {}", symbol);
+			log.debug("Processing fundamentals for {} using provider: {}", symbol, provider);
 
-			// 1. Fetch from Yahoo Finance
-			YahooFundamentals yahooData = yahooClient.getFundamentals(symbol);
+			FundamentalsEntity entity;
 
-			// 2. Convert to entity
-			FundamentalsEntity entity = converter.toEntity(yahooData);
+			// Fetch and convert based on configured provider
+			if ("fmp".equalsIgnoreCase(provider)) {
+				if (fmpClient == null || fmpConverter == null) {
+					throw new StrategizException(FundamentalsErrorDetails.COLLECTION_FAILED,
+							"FMP provider selected but FMP client not configured. Enable with strategiz.fmp.enabled=true");
+				}
 
-			// 3. Save to TimescaleDB
+				// 1. Fetch from FMP
+				FmpFundamentals fmpData = fmpClient.getFundamentals(symbol);
+
+				// 2. Convert to entity
+				entity = fmpConverter.toEntity(fmpData);
+			}
+			else {
+				// Default to Yahoo Finance
+				// 1. Fetch from Yahoo Finance
+				YahooFundamentals yahooData = yahooClient.getFundamentals(symbol);
+
+				// 2. Convert to entity
+				entity = yahooConverter.toEntity(yahooData);
+			}
+
+			// 3. Save to ClickHouse
 			repository.save(entity);
 
-			log.debug("Successfully saved fundamentals for {}", symbol);
+			log.debug("Successfully saved fundamentals for {} from {}", symbol, provider);
 			return new SymbolResult(symbol, true);
 		}
 		catch (StrategizException ex) {

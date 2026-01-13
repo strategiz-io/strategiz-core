@@ -689,6 +689,42 @@ public class MarketDataBatchController {
 	}
 
 	/**
+	 * Delete ALL corrupted bars across all timeframes at once
+	 *
+	 * POST /v1/marketdata/admin/cleanup/all
+	 *
+	 * Deletes corrupted data from 1Day, 1Week, 1Month (non-midnight UTC) and 1Hour (non-hour) timeframes.
+	 */
+	@PostMapping("/cleanup/all")
+	public ResponseEntity<Map<String, Object>> deleteAllCorruptedBars() {
+		log.warn("=== Admin API: Delete ALL Corrupted Bars (ALL TIMEFRAMES) ===");
+
+		try {
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
+
+			// Execute deletion across all timeframes
+			repo.deleteAllCorruptedBars();
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("message", "Submitted DELETE for ALL corrupted bars across all timeframes");
+			response.put("timeframes", java.util.List.of("1Day", "1Week", "1Month", "1Hour"));
+			response.put("note", "Deletion is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately.");
+
+			log.info("Deleted all corrupted bars across all timeframes");
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to delete all corrupted bars: {}", e.getMessage(), e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Deletion failed: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
+	}
+
+	/**
 	 * Optimize table to apply pending deletions immediately
 	 *
 	 * POST /v1/marketdata/admin/cleanup/optimize

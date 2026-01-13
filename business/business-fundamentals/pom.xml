@@ -43,6 +43,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-fmp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Framework -->
         <dependency>
             <groupId>io.strategiz</groupId>

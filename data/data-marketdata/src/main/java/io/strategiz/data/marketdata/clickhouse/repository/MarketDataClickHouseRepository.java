@@ -270,6 +270,42 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
+	 * Delete corrupted 1Week bars (timestamps not at midnight UTC).
+	 * Returns immediately; deletion is async in ClickHouse.
+	 */
+	public void deleteCorrupted1WeekBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Week' AND toHour(timestamp) != 0";
+		jdbcTemplate.update(sql);
+		log.info("Submitted DELETE for corrupted 1Week bars (non-midnight UTC timestamps)");
+	}
+
+	/**
+	 * Delete corrupted 1Month bars (timestamps not at midnight UTC).
+	 * Returns immediately; deletion is async in ClickHouse.
+	 */
+	public void deleteCorrupted1MonthBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Month' AND toHour(timestamp) != 0";
+		jdbcTemplate.update(sql);
+		log.info("Submitted DELETE for corrupted 1Month bars (non-midnight UTC timestamps)");
+	}
+
+	/**
+	 * Delete ALL corrupted bars across all timeframes (non-UTC timestamps).
+	 * Returns immediately; deletion is async in ClickHouse.
+	 */
+	public void deleteAllCorruptedBars() {
+		// Delete 1Day bars not at midnight
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Day' AND toHour(timestamp) != 0");
+		// Delete 1Week bars not at midnight
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Week' AND toHour(timestamp) != 0");
+		// Delete 1Month bars not at midnight
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Month' AND toHour(timestamp) != 0");
+		// Delete 1Hour bars not on-the-hour
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Hour' AND toMinute(timestamp) != 0");
+		log.warn("Submitted DELETE for ALL corrupted bars across all timeframes");
+	}
+
+	/**
 	 * Optimize table to apply pending mutations (deletions) immediately.
 	 * This forces ClickHouse to merge data parts and apply ALTER TABLE DELETE.
 	 */

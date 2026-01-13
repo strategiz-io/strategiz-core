@@ -1166,6 +1166,13 @@ public class AIStrategyPrompts {
 		prompt.append("- If a simple buy-and-hold would outperform, this strategy is WORTHLESS\n");
 		prompt.append("- The user chose 'Feeling Lucky' expecting SUPERIOR performance\n\n");
 
+		prompt.append("HOW FEELING LUCKY WORKS:\n");
+		prompt.append("- The user may provide context/hints OR leave it blank for full autonomy\n");
+		prompt.append("- If context provided: Use it as a guideline but YOU decide all missing details\n");
+		prompt.append("- If NO context provided: Autonomously create a complete strategy from scratch\n");
+		prompt.append("- Either way: YOU are the expert making strategic decisions based on 7 years of data\n");
+		prompt.append(String.format("- Either way: Strategy MUST beat buy and hold for %s\n\n", insights.getSymbol()));
+
 		prompt.append("MANDATORY REQUIREMENTS:\n");
 		prompt.append("1. 🎯 BEAT BUY AND HOLD - This is non-negotiable\n");
 		prompt.append("2. Use ONLY the TOP 2-3 indicators proven effective from the historical data above\n");
@@ -1182,6 +1189,28 @@ public class AIStrategyPrompts {
 		prompt.append("- Don't guess - use the proven indicators and settings from the data\n");
 		prompt.append("- If the data says RSI works best, DON'T use MACD\n");
 		prompt.append("- If the data says mean-reversion works, DON'T create a trend strategy\n\n");
+
+		prompt.append("TRADING BEST PRACTICES (Critical for Profitability):\n");
+		prompt.append("1. RISK MANAGEMENT:\n");
+		prompt.append("   - Never risk more than 2-3% per trade\n");
+		prompt.append("   - Use proper position sizing based on account equity\n");
+		prompt.append("   - Always use stop-losses (NEVER hope and hold losing positions)\n");
+		prompt.append("   - Set stop-loss at volatility-adjusted levels, not arbitrary percentages\n\n");
+		prompt.append("2. AVOID COMMON PITFALLS:\n");
+		prompt.append("   - DON'T overtrade (fewer high-quality trades beat many poor ones)\n");
+		prompt.append("   - DON'T curve-fit to historical data (avoid overfitting)\n");
+		prompt.append("   - DON'T ignore transaction costs and slippage\n");
+		prompt.append("   - DON'T use too many indicators (creates conflicting signals)\n\n");
+		prompt.append("3. ENTRY/EXIT TIMING:\n");
+		prompt.append("   - Wait for confirmation before entry (don't chase)\n");
+		prompt.append("   - Use proper take-profit targets (risk:reward ratio minimum 2:1)\n");
+		prompt.append("   - Consider market regime (trending vs ranging)\n");
+		prompt.append("   - Exit losing trades quickly, let winners run\n\n");
+		prompt.append("4. STRATEGY ROBUSTNESS:\n");
+		prompt.append("   - Keep it SIMPLE (complex != better)\n");
+		prompt.append("   - Use 2-3 complementary indicators max\n");
+		prompt.append("   - Strategy should work across multiple market conditions\n");
+		prompt.append("   - Avoid strategies that only worked during bull/bear markets\n\n");
 
 		prompt.append("Example summaryCard for Feeling Lucky mode:\n");
 		prompt.append(String.format("\"This strategy beats buy-and-hold for %s by using proven patterns from 7 years of data. ",

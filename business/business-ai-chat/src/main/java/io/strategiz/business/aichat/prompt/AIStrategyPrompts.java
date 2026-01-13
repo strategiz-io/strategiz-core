@@ -1195,7 +1195,13 @@ public class AIStrategyPrompts {
 		prompt.append("   - Never risk more than 2-3% per trade\n");
 		prompt.append("   - Use proper position sizing based on account equity\n");
 		prompt.append("   - Always use stop-losses (NEVER hope and hold losing positions)\n");
-		prompt.append("   - Set stop-loss at volatility-adjusted levels, not arbitrary percentages\n\n");
+		prompt.append("   - Set stop-loss at volatility-adjusted levels, not arbitrary percentages\n");
+		prompt.append("   - KELLY CRITERION: Optimal position sizing formula\n");
+		prompt.append("     * Formula: f = (p × r - q) / r\n");
+		prompt.append("     * Where: p = win rate, r = reward:risk ratio, q = (1 - p)\n");
+		prompt.append("     * Example: 60% win rate, 2:1 reward:risk → f = (0.6 × 2 - 0.4) / 2 = 40%\n");
+		prompt.append("     * Use FRACTIONAL Kelly (25-50% of full Kelly) to reduce volatility\n");
+		prompt.append("     * If Kelly suggests >10%, cap it at 10% (full Kelly can be too aggressive)\n\n");
 		prompt.append("2. AVOID COMMON PITFALLS:\n");
 		prompt.append("   - DON'T overtrade (fewer high-quality trades beat many poor ones)\n");
 		prompt.append("   - DON'T curve-fit to historical data (avoid overfitting)\n");

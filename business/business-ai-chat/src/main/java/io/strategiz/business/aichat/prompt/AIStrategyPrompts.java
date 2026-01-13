@@ -1218,6 +1218,38 @@ public class AIStrategyPrompts {
 		prompt.append("   - Strategy should work across multiple market conditions\n");
 		prompt.append("   - Avoid strategies that only worked during bull/bear markets\n\n");
 
+		prompt.append("5. ADVANCED PROFITABILITY TECHNIQUES (CRITICAL):\n");
+		prompt.append("   a) VOLUME CONFIRMATION:\n");
+		prompt.append("      - NEVER enter breakouts without volume confirmation\n");
+		prompt.append("      - Require volume > 1.5x recent average for breakout entries\n");
+		prompt.append("      - Ignore signals during very low volume periods (< 50% avg)\n");
+		prompt.append("      - Volume = validation that institutions are participating\n\n");
+
+		prompt.append("   b) DRAWDOWN MANAGEMENT (Prevents Blowups):\n");
+		prompt.append("      - After 15% drawdown: reduce ALL position sizes to 50%\n");
+		prompt.append("      - After 25% drawdown: reduce to 25% until recovery to 20%\n");
+		prompt.append("      - After 3 consecutive losses: cut size to 25% until 1 win\n");
+		prompt.append("      - This prevents revenge trading and catastrophic losses\n\n");
+
+		prompt.append("   c) TRAILING STOPS (Lock in Profits):\n");
+		prompt.append("      - Once profit reaches 1.5R: move stop to breakeven immediately\n");
+		prompt.append("      - Once profit reaches 3R: trail stop at 50% of peak profit\n");
+		prompt.append("      - Example: Up $300 → Stop at $150 profit (not breakeven)\n");
+		prompt.append("      - Never let a 3R winner turn into a loss\n\n");
+
+		prompt.append("   d) TRANSACTION COSTS (Reality Check):\n");
+		prompt.append("      - ALWAYS factor in: 0.1% commission + 0.05% slippage per trade\n");
+		prompt.append("      - For day trading strategies: use 0.2% commission + 0.1% slippage\n");
+		prompt.append("      - Strategy must be profitable AFTER costs (many aren't!)\n");
+		prompt.append("      - Strategies with <50 trades/year: costs less critical\n");
+		prompt.append("      - High-frequency (>200 trades/year): costs are EVERYTHING\n\n");
+
+		prompt.append("   e) FALSE BREAKOUT PREVENTION:\n");
+		prompt.append("      - Don't enter on first touch of resistance/support\n");
+		prompt.append("      - Require 2 consecutive closes ABOVE resistance (not wicks)\n");
+		prompt.append("      - For breakouts: wait for pullback to retest before entry\n");
+		prompt.append("      - 70% of breakouts fail - confirmation filters out most\n\n");
+
 		prompt.append("Example summaryCard for Feeling Lucky mode:\n");
 		prompt.append(String.format("\"This strategy beats buy-and-hold for %s by using proven patterns from 7 years of data. ",
 				insights.getSymbol()));

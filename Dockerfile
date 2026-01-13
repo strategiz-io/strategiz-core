@@ -36,4 +36,5 @@ ENV PORT=8080
 ENV SPRING_PROFILES_ACTIVE=prod,scheduler
 
 # Attach OpenTelemetry agent with -javaagent flag
-CMD ["java", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]
+# CRITICAL: Set JVM timezone to UTC to prevent EST offset corruption in timestamps
+CMD ["java", "-Duser.timezone=UTC", "-javaagent:/app/opentelemetry-javaagent.jar", "-jar", "app.jar"]

@@ -37,7 +37,8 @@ ENV PORT=8080
 # Enable both prod and scheduler profiles for batch job scheduling
 ENV SPRING_PROFILES_ACTIVE=prod,scheduler
 # Higher memory for batch job processing (3Gi heap for 4Gi container)
-ENV JAVA_OPTS="-Xmx3g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+# CRITICAL: Set JVM timezone to UTC to prevent EST offset corruption in timestamps
+ENV JAVA_OPTS="-Duser.timezone=UTC -Xmx3g -Xms512m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
 # Expose port
 EXPOSE 8080

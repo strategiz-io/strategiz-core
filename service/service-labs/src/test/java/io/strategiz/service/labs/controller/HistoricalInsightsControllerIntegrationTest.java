@@ -189,7 +189,8 @@ class HistoricalInsightsControllerIntegrationTest {
 		AIStrategyResponse response = responseEntity.getBody();
 		assertNotNull(response);
 		assertFalse(response.isSuccess());
-		assertTrue(response.getError().contains("TRADER or STRATEGIST tier"));
+		assertTrue(response.getError().contains("paid subscription"),
+				"Error message should mention paid subscription requirement");
 
 		// Verify no insights were fetched
 		verify(historicalInsightsService, never()).analyzeSymbolForStrategyGeneration(anyString(), anyString(), anyInt(), anyBoolean());

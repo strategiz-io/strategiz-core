@@ -5,6 +5,17 @@ import java.util.List;
 
 /**
  * Subscription tiers for Strategiz platform.
+ *
+ * <p>Tier Levels (ordinal positions):</p>
+ * <ul>
+ *   <li>Level 0: SCOUT (free tier)</li>
+ *   <li>Level 1: TRADER (paid tier)</li>
+ *   <li>Level 2: STRATEGIST (premium tier)</li>
+ * </ul>
+ *
+ * <p>Use {@link #getLevel()} and {@link #meetsMinimumLevel(int)} to check tier access
+ * instead of hardcoding tier names. This allows tier names to change without breaking
+ * access control logic.</p>
  */
 public enum SubscriptionTier {
 

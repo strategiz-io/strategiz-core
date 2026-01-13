@@ -162,6 +162,12 @@ public class MarketDataCollectionService {
             List<CompletableFuture<SymbolResult>> futures = symbols.stream()
                     .map(symbol -> CompletableFuture.supplyAsync(() -> {
                         try {
+                            // Check for cancellation before processing
+                            if (currentJobStatus.isCancelRequested()) {
+                                log.info("Cancellation requested, skipping symbol: {}", symbol);
+                                return new SymbolResult(symbol, 0, false);
+                            }
+
                             // Update current symbol being processed
                             currentJobStatus.updateProgress(symbolsProcessed.get(), symbol);
 
@@ -196,10 +202,17 @@ public class MarketDataCollectionService {
                     future.get(); // Just wait, counters already updated
                 }
 
-                // Set status to COMPLETED
-                currentJobStatus.setCompleted();
-                log.info("Backfill completed: {} symbols, {} bars stored, {} errors",
-                        symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+                // Check if job was cancelled
+                if (currentJobStatus.isCancelRequested()) {
+                    currentJobStatus.setCancelled();
+                    log.warn("Backfill cancelled: {} symbols processed, {} bars stored, {} errors",
+                            symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+                } else {
+                    // Set status to COMPLETED
+                    currentJobStatus.setCompleted();
+                    log.info("Backfill completed: {} symbols, {} bars stored, {} errors",
+                            symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+                }
 
                 return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
 
@@ -431,6 +444,22 @@ public class MarketDataCollectionService {
     }
 
     /**
+     * Cancel the currently running backfill job.
+     * The job will stop processing new symbols but will finish the current symbol.
+     *
+     * @return true if a job was running and cancellation was requested, false if no job was running
+     */
+    public boolean cancelCurrentJob() {
+        if (currentJobStatus.getStatus() == JobStatus.Status.RUNNING) {
+            log.warn("Cancellation requested for running backfill job");
+            currentJobStatus.requestCancel();
+            return true;
+        }
+        log.info("No running job to cancel (current status: {})", currentJobStatus.getStatus());
+        return false;
+    }
+
+    /**
      * Get current configuration values
      */
     public int getThreadPoolSize() {
@@ -501,7 +530,7 @@ public class MarketDataCollectionService {
      * Current job status for real-time tracking
      */
     public static class JobStatus {
-        public enum Status { IDLE, RUNNING, COMPLETED, FAILED }
+        public enum Status { IDLE, RUNNING, COMPLETED, FAILED, CANCELLED }
 
         private volatile Status status = Status.IDLE;
         private volatile String timeframe;
@@ -510,6 +539,7 @@ public class MarketDataCollectionService {
         private volatile LocalDateTime startTime;
         private volatile String currentSymbol;
         private volatile String errorMessage;
+        private volatile boolean cancelRequested = false;
 
         public synchronized void setRunning(String timeframe, int totalSymbols) {
             this.status = Status.RUNNING;
@@ -519,6 +549,7 @@ public class MarketDataCollectionService {
             this.startTime = LocalDateTime.now(java.time.ZoneOffset.UTC);
             this.currentSymbol = null;
             this.errorMessage = null;
+            this.cancelRequested = false;
         }
 
         public synchronized void updateProgress(int symbolsProcessed, String currentSymbol) {
@@ -544,6 +575,20 @@ public class MarketDataCollectionService {
             this.startTime = null;
             this.currentSymbol = null;
             this.errorMessage = null;
+            this.cancelRequested = false;
+        }
+
+        public synchronized void setCancelled() {
+            this.status = Status.CANCELLED;
+            this.errorMessage = "Job cancelled by admin request";
+        }
+
+        public synchronized void requestCancel() {
+            this.cancelRequested = true;
+        }
+
+        public synchronized boolean isCancelRequested() {
+            return this.cancelRequested;
         }
 
         // Getters

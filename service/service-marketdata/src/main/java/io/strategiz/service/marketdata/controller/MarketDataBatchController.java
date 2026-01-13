@@ -515,8 +515,14 @@ public class MarketDataBatchController {
 		return ResponseEntity.ok(response);
 	}
 
-	// TEMPORARILY DISABLED - cancelCurrentJob() method not implemented
-	/*
+	/**
+	 * Cancel currently running backfill job
+	 *
+	 * POST /v1/marketdata/admin/backfill/cancel
+	 *
+	 * Requests cancellation of the running backfill. The job will stop processing new symbols
+	 * but will finish the current symbol being processed.
+	 */
 	@PostMapping("/backfill/cancel")
 	public ResponseEntity<Map<String, Object>> cancelBackfill() {
 		log.warn("=== Admin API: Cancel Backfill Request ===");
@@ -537,7 +543,6 @@ public class MarketDataBatchController {
 
 		return ResponseEntity.ok(response);
 	}
-	*/
 
 	/**
 	 * Get status and configuration information

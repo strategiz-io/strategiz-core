@@ -58,8 +58,10 @@ public class AIStrategyService extends BaseService {
 	 * Generate a new strategy from a natural language prompt.
 	 */
 	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
-		log.info("Generating strategy from prompt: {}",
-				request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())));
+		String promptPreview = (request.getPrompt() != null && !request.getPrompt().isEmpty())
+				? request.getPrompt().substring(0, Math.min(50, request.getPrompt().length()))
+				: "[Feeling Lucky - Autonomous Mode]";
+		log.info("Generating strategy from prompt: {}", promptPreview);
 
 		log.info("Step 1/5: Analyzing prompt for user strategy request");
 
@@ -99,8 +101,16 @@ public class AIStrategyService extends BaseService {
 
 			log.info("Step 3/5: Generating strategy with AI model: {}", model);
 
+			// For Feeling Lucky mode, if no prompt provided, use autonomous generation prompt
+			String userPrompt = request.getPrompt();
+			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) &&
+			    (userPrompt == null || userPrompt.trim().isEmpty())) {
+				userPrompt = "Create an optimized trading strategy that beats buy and hold for the specified symbol(s) using the historical data insights.";
+				log.info("Feeling Lucky mode with no user context - using autonomous strategy generation");
+			}
+
 			// Call LLM via router (blocking)
-			LLMResponse llmResponse = llmRouter.generateContent(request.getPrompt(), history, model).block();
+			LLMResponse llmResponse = llmRouter.generateContent(userPrompt, history, model).block();
 
 			log.info("Step 4/5: Parsing and validating strategy response");
 

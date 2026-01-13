@@ -1156,23 +1156,40 @@ public class AIStrategyPrompts {
 			prompt.append(insights.getFundamentals().getSummary()).append("\n\n");
 		}
 
-		// AI Instructions
+		// AI Instructions - CRITICAL: Primary goal is beating buy and hold
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("HISTORICAL INSIGHTS INSTRUCTIONS:\n");
+		prompt.append("🎯 FEELING LUCKY MODE: CRITICAL MISSION\n");
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("1. Generate a strategy that LEVERAGES these historical insights\n");
-		prompt.append("2. Use the TOP 2-3 indicators from the ranking above\n");
-		prompt.append("3. Apply the OPTIMAL PARAMETERS discovered (not generic defaults)\n");
-		prompt.append("4. Set stop-loss and take-profit based on the volatility analysis\n");
-		prompt.append(String.format("5. In summaryCard, explain WHY this strategy works for %s using historical win rates\n",
-				insights.getSymbol()));
-		prompt.append("6. Reference specific performance metrics in your explanation\n\n");
+		prompt.append("PRIMARY GOAL: Generate a strategy that BEATS BUY AND HOLD returns\n");
+		prompt.append("- You have 7 YEARS of historical data showing what works and what doesn't\n");
+		prompt.append("- Use this data to create a strategy with ALPHA (returns ABOVE buy and hold)\n");
+		prompt.append("- If a simple buy-and-hold would outperform, this strategy is WORTHLESS\n");
+		prompt.append("- The user chose 'Feeling Lucky' expecting SUPERIOR performance\n\n");
 
-		prompt.append("Example summaryCard for Historical Insights mode:\n");
-		prompt.append(String.format("\"Based on 7 years of %s data, RSI with 28/72 thresholds achieved a 68%% win rate. ",
+		prompt.append("MANDATORY REQUIREMENTS:\n");
+		prompt.append("1. 🎯 BEAT BUY AND HOLD - This is non-negotiable\n");
+		prompt.append("2. Use ONLY the TOP 2-3 indicators proven effective from the historical data above\n");
+		prompt.append("3. Apply the EXACT OPTIMAL PARAMETERS discovered (not generic defaults)\n");
+		prompt.append("4. Set stop-loss/take-profit based on the volatility analysis above\n");
+		prompt.append("5. Choose strategy type (trend/mean-reversion) based on the Market Characteristics\n");
+		prompt.append("6. Aim for win rate AT LEAST matching the Historical Avg Win Rate shown above\n");
+		prompt.append(String.format("7. In summaryCard, explain how this BEATS buy and hold for %s\n\n",
 				insights.getSymbol()));
-		prompt.append(String.format("This %s volatility symbol responds well to mean-reversion with %.1f%% stops and %.1f%% targets.\"\n",
+
+		prompt.append("DATA-DRIVEN APPROACH:\n");
+		prompt.append("- The historical data shows EXACTLY which indicators work best\n");
+		prompt.append("- The optimal parameters are pre-calculated from 7 years of backtests\n");
+		prompt.append("- Don't guess - use the proven indicators and settings from the data\n");
+		prompt.append("- If the data says RSI works best, DON'T use MACD\n");
+		prompt.append("- If the data says mean-reversion works, DON'T create a trend strategy\n\n");
+
+		prompt.append("Example summaryCard for Feeling Lucky mode:\n");
+		prompt.append(String.format("\"This strategy beats buy-and-hold for %s by using proven patterns from 7 years of data. ",
+				insights.getSymbol()));
+		prompt.append(String.format("RSI with 28/72 thresholds achieved a 68%% win rate historically. "));
+		prompt.append(String.format("This %s volatility symbol responds to mean-reversion with %.1f%% stops and %.1f%% targets, ",
 				insights.getVolatilityRegime().toLowerCase(), recommendedStopLoss, recommendedTakeProfit));
+		prompt.append("generating alpha through strategic entry/exit timing.\"\n");
 
 		return prompt.toString();
 	}

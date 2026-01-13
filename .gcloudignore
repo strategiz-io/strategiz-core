@@ -5,3 +5,14 @@ target/
 node_modules/
 *.log
 .DS_Store
+build-comparison/
+application-strategy-execution/
+*.log.*
+app-final-startup.log
+backend.log
+deployment.log
+deploy-fixed.log
+vault.log
+.claude/
+*.output
+/tmp/

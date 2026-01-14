@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.strategiz</groupId>
+        <artifactId>strategiz-core</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>io.strategiz</groupId>
+    <artifactId>application-auth</artifactId>
+    <description>Strategiz Auth API - Dedicated authentication service for auth.strategiz.io</description>
+
+    <dependencies>
+        <!-- Essential Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Caching support with Ehcache -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <classifier>jakarta</classifier>
+        </dependency>
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Framework dependencies -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-api-docs</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-authorization</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Auth Service (includes all auth controllers and services) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>service-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Token Authentication Business Logic -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-token-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Firebase Client for data persistence -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-firebase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <skip>false</skip>
+                    <mainClass>io.strategiz.application.auth.AuthApplication</mainClass>
+                    <jvmArguments>--add-opens java.base/java.time.chrono=ALL-UNNAMED</jvmArguments>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

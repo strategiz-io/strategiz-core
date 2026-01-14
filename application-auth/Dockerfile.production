@@ -1,0 +1,65 @@
+# Production Dockerfile with Embedded Vault
+# Multi-stage build for Strategiz Auth API
+
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
+WORKDIR /app
+
+# Copy all source (multi-module project)
+COPY pom.xml .
+COPY proto/ proto/
+COPY framework/ framework/
+COPY data/ data/
+COPY client/ client/
+COPY business/ business/
+COPY service/ service/
+COPY batch/ batch/
+COPY application-api/ application-api/
+COPY application-console/ application-console/
+COPY application-auth/ application-auth/
+
+# Build the auth application
+RUN mvn clean install -pl application-auth -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
+    rm -rf /root/.m2/repository
+
+# Runtime image
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Install Vault and dependencies
+RUN apt-get update && \
+    apt-get install -y curl unzip jq && \
+    curl -fsSL https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip -o vault.zip && \
+    unzip vault.zip && \
+    mv vault /usr/local/bin/ && \
+    chmod +x /usr/local/bin/vault && \
+    rm vault.zip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Download OpenTelemetry Java agent
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.11.0/opentelemetry-javaagent.jar /app/opentelemetry-javaagent.jar
+RUN chmod 644 /app/opentelemetry-javaagent.jar
+
+# Copy JAR from builder
+COPY --from=builder /app/application-auth/target/application-auth-1.0-SNAPSHOT.jar app.jar
+
+# Create Vault configuration file
+RUN printf 'storage "file" {\n  path = "/app/vault/data"\n}\n\nlistener "tcp" {\n  address = "0.0.0.0:8200"\n  tls_disable = 1\n}\n\napi_addr = "http://localhost:8200"\ndisable_mlock = true\nui = true\ndefault_lease_ttl = "168h"\nmax_lease_ttl = "720h"\n' > /app/vault-config.hcl
+
+# Create startup script
+RUN printf '#!/bin/bash\nset -e\n\n# Start Vault in background\nvault server -config=/app/vault-config.hcl &\nVAULT_PID=$!\n\n# Wait for Vault to start\nsleep 2\n\nexport VAULT_ADDR=http://localhost:8200\n\n# Check if Vault is initialized\nif ! vault status 2>/dev/null | grep -q "Initialized.*true"; then\n    echo "Initializing Vault..."\n    INIT_OUTPUT=$(vault operator init -key-shares=1 -key-threshold=1 -format=json)\n    echo "$INIT_OUTPUT" > /tmp/vault-keys.json\n    UNSEAL_KEY=$(echo "$INIT_OUTPUT" | jq -r ".unseal_keys_b64[0]")\n    ROOT_TOKEN=$(echo "$INIT_OUTPUT" | jq -r ".root_token")\n    echo "Vault initialized"\nelse\n    echo "Vault already initialized"\n    if [ -n "$VAULT_UNSEAL_KEY" ]; then\n        UNSEAL_KEY="$VAULT_UNSEAL_KEY"\n    fi\n    if [ -n "$VAULT_TOKEN" ]; then\n        ROOT_TOKEN="$VAULT_TOKEN"\n    fi\nfi\n\n# Unseal Vault\nif vault status 2>/dev/null | grep -q "Sealed.*true"; then\n    echo "Unsealing Vault..."\n    vault operator unseal "$UNSEAL_KEY"\nfi\n\nexport VAULT_TOKEN="$ROOT_TOKEN"\n\n# Enable KV v2 if not already enabled\nif ! vault secrets list 2>/dev/null | grep -q "^secret/"; then\n    vault secrets enable -path=secret kv-v2 || true\nfi\n\necho "Vault ready, starting application..."\n\n# Start the Spring Boot application\njava $JAVA_OPTS -javaagent:/app/opentelemetry-javaagent.jar -jar app.jar &\nAPP_PID=$!\n\n# Wait for either process to exit\nwait -n $VAULT_PID $APP_PID\n\n# If we get here, one process exited\nkill $VAULT_PID $APP_PID 2>/dev/null || true\n' > /app/start.sh && chmod +x /app/start.sh
+
+# Create Vault data directory
+RUN mkdir -p /app/vault/data
+
+# Environment configuration
+ENV PORT=8080
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV JAVA_OPTS="-Duser.timezone=UTC -Xmx512m -Xms256m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+ENV VAULT_ADDR=http://localhost:8200
+
+# Expose port
+EXPOSE 8080
+
+# Use start.sh to initialize Vault and start application
+CMD ["/app/start.sh"]

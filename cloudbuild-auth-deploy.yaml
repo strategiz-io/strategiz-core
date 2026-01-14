@@ -1,0 +1,32 @@
+steps:
+# Build the Docker image (using production Dockerfile with embedded Vault)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-f', 'application-auth/Dockerfile.production', '-t', 'gcr.io/$PROJECT_ID/strategiz-auth', '.']
+
+# Push the Docker image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/strategiz-auth']
+
+# Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    - 'run'
+    - 'deploy'
+    - 'strategiz-auth'
+    - '--image=gcr.io/$PROJECT_ID/strategiz-auth'
+    - '--platform=managed'
+    - '--region=us-east1'
+    - '--allow-unauthenticated'
+    - '--memory=1Gi'
+    - '--cpu=1'
+    - '--port=8080'
+    - '--min-instances=0'
+    - '--max-instances=10'
+    - '--timeout=60'
+    - '--cpu-boost'
+    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod'
+    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest,VAULT_UNSEAL_KEY=vault-unseal-keys:latest'
+
+images:
+- 'gcr.io/$PROJECT_ID/strategiz-auth'

@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.mail.MailProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
  * Vault keys: mail.host, mail.port, mail.username, mail.password
  */
 @Configuration
+@ConditionalOnBean(MailProperties.class)
 public class MailVaultConfig {
 
 	private static final Logger logger = LoggerFactory.getLogger(MailVaultConfig.class);

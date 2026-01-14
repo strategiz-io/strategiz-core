@@ -82,6 +82,7 @@
         <module>client/client-google</module>
         <module>client/client-firebase</module>
         <module>client/client-fmp</module>
+        <module>client/client-yahoofinance</module>
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
         <module>client/client-alpaca</module>
@@ -106,6 +107,7 @@
         <module>client/client-sendgrid</module>
         <module>client/client-fcm</module>
         <module>client/client-webpush</module>
+        <module>client/client-yahoofinance</module>
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->

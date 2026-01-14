@@ -1,6 +1,6 @@
 package io.strategiz.business.tokenauth;
 
-import dev.paseto.jpaseto.PasetoException;
+import org.paseto4j.commons.PasetoException;
 import io.strategiz.business.tokenauth.model.SessionValidationResult;
 import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.data.session.repository.SessionRepository;

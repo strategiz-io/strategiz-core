@@ -21,6 +21,12 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Mail support (required by MailVaultConfig) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Caching support with Ehcache -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

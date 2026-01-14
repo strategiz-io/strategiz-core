@@ -235,8 +235,8 @@ public class StripeService {
 			return null;
 		}
 
-		// Downgrade to scout tier
-		return new SubscriptionUpdate(userId, "scout", "canceled", subscription.getCustomer(), null, null, null, false);
+		// Downgrade to trial tier (blocked status since subscription was canceled)
+		return new SubscriptionUpdate(userId, "trial", "trial_expired", subscription.getCustomer(), null, null, null, false);
 	}
 
 	private SubscriptionUpdate handlePaymentSucceeded(Invoice invoice) {

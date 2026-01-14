@@ -107,7 +107,6 @@
         <module>client/client-sendgrid</module>
         <module>client/client-fcm</module>
         <module>client/client-webpush</module>
-        <module>client/client-yahoofinance</module>
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>client/client-plaid</module> -->
         <!-- Temporarily commented out due to dependency issues -->

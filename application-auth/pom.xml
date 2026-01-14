@@ -69,6 +69,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Recaptcha Client (required by FraudDetectionService in service-auth) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-recaptcha</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Token Authentication Business Logic -->
         <dependency>
             <groupId>io.strategiz</groupId>

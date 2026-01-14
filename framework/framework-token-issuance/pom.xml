@@ -40,15 +40,10 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
 
-        <!-- PASETO for token creation -->
+        <!-- PASETO for token creation (paseto4j v4.local) -->
         <dependency>
-            <groupId>dev.paseto</groupId>
-            <artifactId>jpaseto-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.paseto</groupId>
-            <artifactId>jpaseto-impl</artifactId>
-            <scope>runtime</scope>
+            <groupId>io.github.nbaars</groupId>
+            <artifactId>paseto4j-version4</artifactId>
         </dependency>
 
         <!-- Logging -->

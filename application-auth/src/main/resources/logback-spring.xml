@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Property definitions -->
+    <springProfile name="!local,!dev">
+        <property name="LOG_LEVEL" value="INFO"/>
+    </springProfile>
+
+    <springProfile name="local,dev">
+        <property name="LOG_LEVEL" value="DEBUG"/>
+    </springProfile>
+
+    <!-- Console appender for development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) [%X{requestId:-}] [%X{userId:-}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- JSON console appender for production (Cloud Run) -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <version/>
+                <logLevel/>
+                <message/>
+                <mdc/>
+                <loggerName/>
+                <stackTrace/>
+                <pattern>
+                    <pattern>
+                        {
+                            "application": "strategiz-auth",
+                            "environment": "${SPRING_PROFILES_ACTIVE:-unknown}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- Strategiz application loggers -->
+    <logger name="io.strategiz" level="INFO" additivity="false">
+        <springProfile name="local,dev">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!dev">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </springProfile>
+    </logger>
+
+    <!-- Spring Boot loggers -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.springframework.security" level="INFO"/>
+
+    <!-- Reduce noise from common libraries -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <logger name="reactor.netty" level="WARN"/>
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.coyote" level="WARN"/>
+    <logger name="org.apache.tomcat" level="WARN"/>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <springProfile name="local,dev">
+            <appender-ref ref="CONSOLE"/>
+        </springProfile>
+        <springProfile name="!local,!dev">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </springProfile>
+    </root>
+
+    <!-- Graceful shutdown -->
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+</configuration>

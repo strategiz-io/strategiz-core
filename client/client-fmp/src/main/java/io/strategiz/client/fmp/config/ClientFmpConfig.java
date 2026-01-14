@@ -1,12 +1,13 @@
 package io.strategiz.client.fmp.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import io.strategiz.client.fmp.client.FmpFundamentalsClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,7 +18,7 @@ import java.time.Duration;
  *
  * <p>
  * Provides: - RestTemplate configured with appropriate timeouts for FMP API - Rate limiter based
- * on API tier - Component scanning for FMP client beans - Conditional activation based on
+ * on API tier - FmpFundamentalsClient bean - Conditional activation based on
  * property: strategiz.fmp.enabled
  * </p>
  *
@@ -34,7 +35,6 @@ import java.time.Duration;
  */
 @Configuration
 @ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true", matchIfMissing = false)
-@ComponentScan(basePackages = "io.strategiz.client.fmp")
 public class ClientFmpConfig {
 
 	/**
@@ -58,6 +58,24 @@ public class ClientFmpConfig {
 		Bandwidth limit = Bandwidth.classic(config.getRateLimitPerMinute(),
 				Refill.intervally(config.getRateLimitPerMinute(), Duration.ofMinutes(1)));
 		return Bucket.builder().addLimit(limit).build();
+	}
+
+	/**
+	 * FMP Fundamentals Client bean.
+	 * <p>
+	 * Created as a @Bean instead of @Component to ensure proper dependency ordering.
+	 * The fmpRestTemplate and fmpRateLimiter beans must be created first.
+	 * </p>
+	 * @param config FMP configuration
+	 * @param fmpRestTemplate configured RestTemplate
+	 * @param fmpRateLimiter rate limiter bucket
+	 * @param objectMapper Jackson ObjectMapper
+	 * @return FmpFundamentalsClient instance
+	 */
+	@Bean
+	public FmpFundamentalsClient fmpFundamentalsClient(FmpConfig config, RestTemplate fmpRestTemplate,
+			Bucket fmpRateLimiter, ObjectMapper objectMapper) {
+		return new FmpFundamentalsClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
 	}
 
 }

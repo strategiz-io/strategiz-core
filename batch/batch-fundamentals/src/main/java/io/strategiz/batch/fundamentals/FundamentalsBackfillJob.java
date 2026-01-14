@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>
  * Configuration:
  * <pre>
- * fundamentals.batch.data-source=YAHOO
+ * fundamentals.batch.data-source=FMP
  * </pre>
  * </p>
  *
@@ -62,7 +62,7 @@ public class FundamentalsBackfillJob {
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
-	@Value("${fundamentals.batch.data-source:YAHOO}")
+	@Value("${fundamentals.batch.data-source:FMP}")
 	private String dataSource;
 
 	@Autowired

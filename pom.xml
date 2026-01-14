@@ -81,7 +81,7 @@
         <module>client/client-facebook</module>
         <module>client/client-google</module>
         <module>client/client-firebase</module>
-        <module>client/client-yahoofinance</module>
+        <module>client/client-fmp</module>
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
         <module>client/client-alpaca</module>

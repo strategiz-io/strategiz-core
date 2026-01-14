@@ -39,11 +39,11 @@ public class MarketDataController extends BaseController {
 
     /**
      * Get market data bars for a symbol
-     * GET /v1/market-data/bars?symbol=AAPL&timeframe=1Day&period=7y
-     * GET /v1/market-data/bars?symbol=AAPL&timeframe=1Day&startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z
+     * GET /v1/market-data/bars?symbol=AAPL&timeframe=1D&period=7y
+     * GET /v1/market-data/bars?symbol=AAPL&timeframe=1D&startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z
      *
      * @param symbol Stock symbol (required, e.g., "AAPL")
-     * @param timeframe Timeframe for the bars (required, e.g., "1Day", "1Hour")
+     * @param timeframe Timeframe for the bars (required, e.g., "1D", "1H")
      * @param period Period shorthand (optional, e.g., "7d", "30d", "90d", "6m", "1y", "2y", "3y", "5y", "7y", "max")
      * @param startDate Start date in ISO 8601 format (optional, e.g., "2024-01-01T00:00:00Z")
      * @param endDate End date in ISO 8601 format (optional, e.g., "2024-12-31T23:59:59Z")
@@ -58,7 +58,7 @@ public class MarketDataController extends BaseController {
         @Parameter(description = "Stock symbol (e.g., AAPL)", required = true)
         @RequestParam(required = true) String symbol,
 
-        @Parameter(description = "Timeframe (e.g., 1Day, 1Hour)", required = true)
+        @Parameter(description = "Timeframe (e.g., 1D, 1H)", required = true)
         @RequestParam(required = true) String timeframe,
 
         @Parameter(description = "Period shorthand (REQUIRED if startDate/endDate not provided). Examples: 7d, 30d, 90d, 6m, 1y, 2y, 3y, 5y, 7y, max")

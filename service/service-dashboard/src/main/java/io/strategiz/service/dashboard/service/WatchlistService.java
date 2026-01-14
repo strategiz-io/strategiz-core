@@ -216,7 +216,7 @@ public class WatchlistService extends BaseService {
             java.time.LocalDateTime startDate = endDate.minusDays(2);
 
             List<AlpacaBar> bars =
-                alpacaHistoricalClient.getBars(symbol, startDate, endDate, "1Day");
+                alpacaHistoricalClient.getBars(symbol, startDate, endDate, "1D");
 
             if (bars == null || bars.isEmpty()) {
                 throw new StrategizException(

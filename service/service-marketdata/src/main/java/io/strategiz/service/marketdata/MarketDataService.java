@@ -45,7 +45,7 @@ public class MarketDataService extends BaseService {
      * Cached for 5 minutes to reduce Firestore reads
      *
      * @param symbol The stock symbol (e.g., "AAPL")
-     * @param timeframe The timeframe (e.g., "1Day", "1Hour", "1Min") - accepts both canonical and legacy formats
+     * @param timeframe The timeframe (e.g., "1D", "1H", "1Min") - accepts both canonical and legacy formats
      * @param startDate Start date in ISO format (e.g., "2024-01-01T00:00:00Z")
      * @param endDate End date in ISO format (e.g., "2024-12-31T23:59:59Z")
      * @return List of market data entities sorted by timestamp ascending
@@ -66,11 +66,9 @@ public class MarketDataService extends BaseService {
             LocalDate startLocalDate = parseIsoDateToLocalDate(startDate);
             LocalDate endLocalDate = parseIsoDateToLocalDate(endDate);
 
-            // Get all possible timeframe aliases for querying (handles legacy formats)
-            String normalizedTimeframe = Timeframe.normalize(timeframe);
-            Set<String> timeframeAliases = Timeframe.getAliases(normalizedTimeframe);
-            log.debug("Timeframe {} normalized to {}, querying with aliases: {}",
-                timeframe, normalizedTimeframe, timeframeAliases);
+            // Validate timeframe - only accept canonical short format (1H, 1D, 1W, 1M)
+            String validTimeframe = Timeframe.getOrDefault(timeframe);
+            log.debug("Using timeframe: {}", validTimeframe);
 
             // Query repository with optimized filtering at DB level
             List<MarketDataEntity> results;
@@ -82,16 +80,12 @@ public class MarketDataService extends BaseService {
                     symbol.toUpperCase(),
                     startLocalDate,
                     endLocalDate,
-                    normalizedTimeframe,  // Filter at DB level
+                    validTimeframe,  // Filter at DB level
                     2600  // Support up to 7 years of daily data
                 );
             } else if (timeframe != null && !timeframe.isEmpty()) {
                 // Query by symbol and timeframe only
-                results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), normalizedTimeframe);
-                if (results.isEmpty() && !normalizedTimeframe.equals(timeframe)) {
-                    log.debug("No results for normalized timeframe {}, trying original: {}", normalizedTimeframe, timeframe);
-                    results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), timeframe);
-                }
+                results = marketDataRepository.findBySymbolAndTimeframe(symbol.toUpperCase(), validTimeframe);
             } else {
                 // Query by symbol only
                 results = marketDataRepository.findBySymbol(symbol.toUpperCase());

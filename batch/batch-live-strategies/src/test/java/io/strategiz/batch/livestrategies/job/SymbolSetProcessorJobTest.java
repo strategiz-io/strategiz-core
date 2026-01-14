@@ -131,7 +131,7 @@ class SymbolSetProcessorJobTest {
 		// Mock repositories
 		when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
 		when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategy));
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("AAPL", 10));
 
 		// Mock gRPC response
@@ -186,7 +186,7 @@ class SymbolSetProcessorJobTest {
 		// Mock repositories
 		when(botRepository.findById(botId)).thenReturn(Optional.of(bot));
 		when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategy));
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("MSFT"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("MSFT"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("MSFT", 10));
 
 		// Mock gRPC response
@@ -237,7 +237,7 @@ class SymbolSetProcessorJobTest {
 		// Mock repositories
 		when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
 		when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategy));
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("AAPL", 10));
 
 		// Mock gRPC response with HOLD
@@ -287,7 +287,7 @@ class SymbolSetProcessorJobTest {
 		// Mock repositories
 		when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
 		when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategy));
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("AAPL", 10));
 
 		// Mock gRPC failure
@@ -314,7 +314,7 @@ class SymbolSetProcessorJobTest {
 
 		// Mock repositories - alert not found
 		when(alertRepository.findById(alertId)).thenReturn(Optional.empty());
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("AAPL", 10));
 
 		// Mock empty gRPC response (no deployments) - lenient since gRPC may be skipped
@@ -350,9 +350,9 @@ class SymbolSetProcessorJobTest {
 		// Mock repositories
 		when(alertRepository.findById(alertId)).thenReturn(Optional.of(alert));
 		when(strategyRepository.findById(strategyId)).thenReturn(Optional.of(strategy));
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("AAPL", 10));
-		when(marketDataRepository.findBySymbolAndTimeRange(eq("MSFT"), any(), any(), eq("1Day")))
+		when(marketDataRepository.findBySymbolAndTimeRange(eq("MSFT"), any(), any(), eq("1D")))
 			.thenReturn(createMarketDataBars("MSFT", 10));
 
 		// Mock gRPC response
@@ -381,8 +381,8 @@ class SymbolSetProcessorJobTest {
 		assertEquals(1, result.alertsTriggered());
 
 		// Verify market data was fetched for both symbols
-		verify(marketDataRepository).findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1Day"));
-		verify(marketDataRepository).findBySymbolAndTimeRange(eq("MSFT"), any(), any(), eq("1Day"));
+		verify(marketDataRepository).findBySymbolAndTimeRange(eq("AAPL"), any(), any(), eq("1D"));
+		verify(marketDataRepository).findBySymbolAndTimeRange(eq("MSFT"), any(), any(), eq("1D"));
 	}
 
 	// ===== Helper Methods =====
@@ -394,7 +394,7 @@ class SymbolSetProcessorJobTest {
 		for (int i = count; i > 0; i--) {
 			MarketDataEntity bar = new MarketDataEntity();
 			bar.setSymbol(symbol);
-			bar.setTimestamp(now.minusSeconds(i * 86400L));
+			bar.setTimestamp(now.minusSeconds(i * 86400L).toEpochMilli());
 			bar.setOpen(new BigDecimal("150.00"));
 			bar.setHigh(new BigDecimal("155.00"));
 			bar.setLow(new BigDecimal("148.00"));

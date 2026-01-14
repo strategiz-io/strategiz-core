@@ -59,7 +59,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 
 	@Override
 	public List<MarketDataEntity> findBySymbol(String symbol) {
-		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeframe(symbol, "1Day", 500);
+		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeframe(symbol, "1D", 500);
 		return results;
 	}
 

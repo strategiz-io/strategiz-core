@@ -117,7 +117,7 @@ public class StrategyExecutionService extends BaseService {
         logger.info("Date range: {} to {} ({} days)",
             startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
 
-        // Convert timeframe to database format (1H -> 1Hour, 1D -> 1Day, etc.)
+        // Convert timeframe to database format (1H -> 1H, 1D -> 1D, etc.)
         String dbTimeframe = convertToDbTimeframe(timeframe);
         logger.info("Converted timeframe {} to database format: {}", timeframe, dbTimeframe);
 
@@ -220,16 +220,16 @@ public class StrategyExecutionService extends BaseService {
      * Convert frontend timeframe format to database format.
      *
      * Frontend/Python uses: 1H, 1D, 1W, 1M
-     * Database stores: 1Hour, 1Day, 1Week, 1Month
+     * Database stores: 1H, 1D, 1W, 1M
      */
     private String convertToDbTimeframe(String timeframe) {
         return switch (timeframe) {
-            case "1H" -> "1Hour";
-            case "4H" -> "4Hour";
-            case "1D" -> "1Day";
-            case "1W" -> "1Week";
-            case "1M" -> "1Month";
-            default -> "1Day";  // Safe default
+            case "1H" -> "1H";
+            case "4H" -> "4H";
+            case "1D" -> "1D";
+            case "1W" -> "1W";
+            case "1M" -> "1M";
+            default -> "1D";  // Safe default
         };
     }
 

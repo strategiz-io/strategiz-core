@@ -38,7 +38,7 @@ public class BDDTestConfiguration {
     @Bean
     @Primary
     public AIStrategyService mockAIStrategyService() {
-        return new AIStrategyService(null, null, null) {
+        return new AIStrategyService(null, null, null, null) {
             @Override
             protected String getModuleName() {
                 return "test";

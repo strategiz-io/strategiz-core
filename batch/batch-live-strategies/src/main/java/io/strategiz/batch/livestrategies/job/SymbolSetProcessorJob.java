@@ -196,9 +196,9 @@ public class SymbolSetProcessorJob {
 
 		for (String symbol : symbols) {
 			try {
-				// Use 1Day timeframe for live strategy execution
+				// Use 1D timeframe for live strategy execution
 				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(symbol,
-						startTime, endTime, "1Day");
+						startTime, endTime, "1D");
 
 				List<MarketDataBar> grpcBars = new ArrayList<>();
 				for (MarketDataEntity bar : bars) {

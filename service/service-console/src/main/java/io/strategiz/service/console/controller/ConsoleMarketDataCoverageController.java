@@ -257,7 +257,7 @@ public class ConsoleMarketDataCoverageController extends BaseController {
 
         try {
             // Target timeframes for S&P 500 coverage tracking
-            List<String> targetTimeframes = List.of("1Hour", "1Day", "1Week", "1Month");
+            List<String> targetTimeframes = List.of("1H", "1D", "1W", "1M");
             int totalSymbols = 547;  // S&P 500 symbols
 
             // Calculate freshness metrics per timeframe

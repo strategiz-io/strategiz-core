@@ -60,18 +60,18 @@ public class MarketDataCoverageClickHouseRepository {
 				""";
 
 		// Extract timeframe metrics
-		Map<String, Object> tf1Hour = extractTimeframeMetrics(entity, "1Hour");
-		Map<String, Object> tf1Day = extractTimeframeMetrics(entity, "1Day");
-		Map<String, Object> tf1Week = extractTimeframeMetrics(entity, "1Week");
-		Map<String, Object> tf1Month = extractTimeframeMetrics(entity, "1Month");
+		Map<String, Object> tf1H = extractTimeframeMetrics(entity, "1H");
+		Map<String, Object> tf1D = extractTimeframeMetrics(entity, "1D");
+		Map<String, Object> tf1W = extractTimeframeMetrics(entity, "1W");
+		Map<String, Object> tf1M = extractTimeframeMetrics(entity, "1M");
 
 		// Calculate overall freshness from timeframe data
-		long totalFresh = (long) tf1Hour.get("fresh") + (long) tf1Day.get("fresh") +
-				(long) tf1Week.get("fresh") + (long) tf1Month.get("fresh");
-		long totalStale = (long) tf1Hour.get("stale") + (long) tf1Day.get("stale") +
-				(long) tf1Week.get("stale") + (long) tf1Month.get("stale");
-		long totalFailed = (long) tf1Hour.get("failed") + (long) tf1Day.get("failed") +
-				(long) tf1Week.get("failed") + (long) tf1Month.get("failed");
+		long totalFresh = (long) tf1H.get("fresh") + (long) tf1D.get("fresh") +
+				(long) tf1W.get("fresh") + (long) tf1M.get("fresh");
+		long totalStale = (long) tf1H.get("stale") + (long) tf1D.get("stale") +
+				(long) tf1W.get("stale") + (long) tf1M.get("stale");
+		long totalFailed = (long) tf1H.get("failed") + (long) tf1D.get("failed") +
+				(long) tf1W.get("failed") + (long) tf1M.get("failed");
 		long totalPairs = totalFresh + totalStale + totalFailed;
 		double overallPercent = totalPairs > 0 ? (totalFresh * 100.0 / totalPairs) : 0.0;
 
@@ -86,29 +86,29 @@ public class MarketDataCoverageClickHouseRepository {
 				totalFailed,
 				totalPairs,
 
-				// 1Hour metrics
-				tf1Hour.get("total"), tf1Hour.get("fresh"), tf1Hour.get("stale"), tf1Hour.get("failed"),
-				tf1Hour.get("percent"),
-				tf1Hour.get("totalBars"), tf1Hour.get("avgBars"),
-				tf1Hour.get("dateStart"), tf1Hour.get("dateEnd"),
+				// 1H metrics
+				tf1H.get("total"), tf1H.get("fresh"), tf1H.get("stale"), tf1H.get("failed"),
+				tf1H.get("percent"),
+				tf1H.get("totalBars"), tf1H.get("avgBars"),
+				tf1H.get("dateStart"), tf1H.get("dateEnd"),
 
-				// 1Day metrics
-				tf1Day.get("total"), tf1Day.get("fresh"), tf1Day.get("stale"), tf1Day.get("failed"),
-				tf1Day.get("percent"),
-				tf1Day.get("totalBars"), tf1Day.get("avgBars"),
-				tf1Day.get("dateStart"), tf1Day.get("dateEnd"),
+				// 1D metrics
+				tf1D.get("total"), tf1D.get("fresh"), tf1D.get("stale"), tf1D.get("failed"),
+				tf1D.get("percent"),
+				tf1D.get("totalBars"), tf1D.get("avgBars"),
+				tf1D.get("dateStart"), tf1D.get("dateEnd"),
 
-				// 1Week metrics
-				tf1Week.get("total"), tf1Week.get("fresh"), tf1Week.get("stale"), tf1Week.get("failed"),
-				tf1Week.get("percent"),
-				tf1Week.get("totalBars"), tf1Week.get("avgBars"),
-				tf1Week.get("dateStart"), tf1Week.get("dateEnd"),
+				// 1W metrics
+				tf1W.get("total"), tf1W.get("fresh"), tf1W.get("stale"), tf1W.get("failed"),
+				tf1W.get("percent"),
+				tf1W.get("totalBars"), tf1W.get("avgBars"),
+				tf1W.get("dateStart"), tf1W.get("dateEnd"),
 
-				// 1Month metrics
-				tf1Month.get("total"), tf1Month.get("fresh"), tf1Month.get("stale"), tf1Month.get("failed"),
-				tf1Month.get("percent"),
-				tf1Month.get("totalBars"), tf1Month.get("avgBars"),
-				tf1Month.get("dateStart"), tf1Month.get("dateEnd"),
+				// 1M metrics
+				tf1M.get("total"), tf1M.get("fresh"), tf1M.get("stale"), tf1M.get("failed"),
+				tf1M.get("percent"),
+				tf1M.get("totalBars"), tf1M.get("avgBars"),
+				tf1M.get("dateStart"), tf1M.get("dateEnd"),
 
 				// Storage stats
 				entity.getStorage() != null ? entity.getStorage().getTimescaleDbRowCount() : 0L,
@@ -256,10 +256,10 @@ public class MarketDataCoverageClickHouseRepository {
 
 			// Reconstruct timeframe coverage map
 			Map<String, MarketDataCoverageEntity.TimeframeCoverage> byTimeframe = new HashMap<>();
-			byTimeframe.put("1Hour", mapTimeframeCoverage(rs, "tf_1hour_"));
-			byTimeframe.put("1Day", mapTimeframeCoverage(rs, "tf_1day_"));
-			byTimeframe.put("1Week", mapTimeframeCoverage(rs, "tf_1week_"));
-			byTimeframe.put("1Month", mapTimeframeCoverage(rs, "tf_1month_"));
+			byTimeframe.put("1H", mapTimeframeCoverage(rs, "tf_1hour_"));
+			byTimeframe.put("1D", mapTimeframeCoverage(rs, "tf_1day_"));
+			byTimeframe.put("1W", mapTimeframeCoverage(rs, "tf_1week_"));
+			byTimeframe.put("1M", mapTimeframeCoverage(rs, "tf_1month_"));
 			entity.setByTimeframe(byTimeframe);
 
 			// Storage stats

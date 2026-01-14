@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * - Batch saves (500 entities per batch)
  * - Comprehensive field mapping to MarketDataEntity
  * - Symbol metadata enrichment from Assets API
- * - All timeframe support (1Min, 5Min, 15Min, 1Hour, 1Day, 1Week, 1Month)
+ * - All timeframe support (1Min, 5Min, 15Min, 1H, 1D, 1W, 1M)
  * - Automatic pagination handling
  * - Rate limiting and error recovery
  *
@@ -105,7 +105,7 @@ public class MarketDataCollectionService {
      * Backfill historical data for all symbols from Firestore.
      * Uses multi-threading for parallel symbol processing.
      *
-     * @param timeframe Bar interval ("1Min", "5Min", "15Min", "1Hour", "1Day", "1Week", "1Month")
+     * @param timeframe Bar interval ("1Min", "5Min", "15Min", "1H", "1D", "1W", "1M")
      * @return Collection result with statistics
      */
     public CollectionResult backfillIntradayData(String timeframe) {
@@ -264,6 +264,51 @@ public class MarketDataCollectionService {
     }
 
     /**
+     * Convert our short timeframe format to Alpaca API format.
+     * Alpaca expects: 1Min, 5Min, 15Min, 30Min, 1Hour, 4Hour, 1Day, 1Week, 1Month
+     */
+    private String toAlpacaTimeframe(String timeframe) {
+        if (timeframe == null) return "1Day";
+        switch (timeframe) {
+            case "1H": return "1Hour";
+            case "4H": return "4Hour";
+            case "1D": return "1Day";
+            case "1W": return "1Week";
+            case "1M": return "1Month";
+            // Handle if already in long format
+            case "1Hour": return "1Hour";
+            case "4Hour": return "4Hour";
+            case "1Day": return "1Day";
+            case "1Week": return "1Week";
+            case "1Month": return "1Month";
+            default: return timeframe; // Minute-based timeframes pass through
+        }
+    }
+
+    /**
+     * Convert Alpaca/legacy long format to our canonical short format for storage.
+     * Storage format: 1Min, 5Min, 15Min, 30Min, 1H, 4H, 1D, 1W, 1M
+     */
+    private String toStorageTimeframe(String timeframe) {
+        if (timeframe == null) return "1D";
+        switch (timeframe) {
+            // Convert from long format to short
+            case "1Hour": return "1H";
+            case "4Hour": return "4H";
+            case "1Day": return "1D";
+            case "1Week": return "1W";
+            case "1Month": return "1M";
+            // Already in short format
+            case "1H": return "1H";
+            case "4H": return "4H";
+            case "1D": return "1D";
+            case "1W": return "1W";
+            case "1M": return "1M";
+            default: return timeframe; // Minute-based timeframes pass through
+        }
+    }
+
+    /**
      * Process a single symbol - fetch bars and store in batches
      */
     private SymbolResult processSymbol(String symbol, LocalDateTime startDate, LocalDateTime endDate,
@@ -271,9 +316,12 @@ public class MarketDataCollectionService {
         log.info(">>> Processing symbol: {} from {} to {} (timeframe: {})", symbol, startDate, endDate, timeframe);
 
         try {
+            // Convert timeframe to Alpaca format
+            String alpacaTimeframe = toAlpacaTimeframe(timeframe);
+
             // Fetch all bars for this symbol (handles pagination internally)
-            log.info(">>> Fetching bars for {} via historicalClient...", symbol);
-            List<AlpacaBar> bars = historicalClient.getBars(symbol, startDate, endDate, timeframe);
+            log.info(">>> Fetching bars for {} via historicalClient (alpaca timeframe: {})...", symbol, alpacaTimeframe);
+            List<AlpacaBar> bars = historicalClient.getBars(symbol, startDate, endDate, alpacaTimeframe);
             log.info(">>> Got {} bars for {}", bars != null ? bars.size() : "null", symbol);
 
             if (bars == null || bars.isEmpty()) {
@@ -282,9 +330,11 @@ public class MarketDataCollectionService {
             }
 
             // Convert to MarketDataEntity
-            log.info(">>> Converting {} bars to entities for {}", bars.size(), symbol);
+            // Convert to canonical short format for storage
+            String storageTimeframe = toStorageTimeframe(timeframe);
+            log.info(">>> Converting {} bars to entities for {} (storage timeframe: {})", bars.size(), symbol, storageTimeframe);
             List<MarketDataEntity> entities = bars.stream()
-                    .map(bar -> convertBar(symbol, bar, timeframe, assetMetadata))
+                    .map(bar -> convertBar(symbol, bar, storageTimeframe, assetMetadata))
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
             log.info(">>> Converted to {} entities for {} (filtered out {})", entities.size(), symbol, bars.size() - entities.size());

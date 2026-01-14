@@ -130,22 +130,37 @@ public class AlertController {
             @AuthUser String userId) {
 
         logger.info("Creating alert '{}' for user: {}", request.getAlertName(), userId);
+        logger.debug("Alert request details - strategyId: {}, symbols: {}, channels: {}, providerId: {}, exchange: {}, useDefaultContact: {}",
+                request.getStrategyId(), request.getSymbols(), request.getNotificationChannels(),
+                request.getProviderId(), request.getExchange(), request.getUseDefaultContact());
 
         try {
             // Validate strategy exists and belongs to user
+            logger.debug("Fetching strategy with ID: {}", request.getStrategyId());
             Optional<Strategy> strategyOpt = readStrategyRepository.findById(request.getStrategyId());
-            if (strategyOpt.isEmpty() || !userId.equals(strategyOpt.get().getOwnerId())) {
+            if (strategyOpt.isEmpty()) {
+                logger.warn("Strategy not found: {}", request.getStrategyId());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new MessageResponse("Strategy not found or access denied"));
             }
 
             Strategy strategy = strategyOpt.get();
+            logger.debug("Strategy found - owner: {}, name: {}", strategy.getOwnerId(), strategy.getName());
+
+            if (!userId.equals(strategy.getOwnerId())) {
+                logger.warn("User {} does not own strategy {}", userId, request.getStrategyId());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new MessageResponse("Strategy not found or access denied"));
+            }
 
             // Check subscription tier limits (SCOUT: 3, TRADER: 10, STRATEGIST: unlimited)
+            logger.debug("Checking alert limit for user: {}", userId);
             int activeCount = readAlertRepository.countActiveByUserId(userId);
+            logger.debug("User has {} active alerts", activeCount);
             validateAlertLimit(userId, activeCount);
 
             // Resolve contact info for notifications
+            logger.debug("Resolving notification contact info, useDefaultContact: {}", request.getUseDefaultContact());
             String notificationEmail = null;
             String notificationPhone = null;
 

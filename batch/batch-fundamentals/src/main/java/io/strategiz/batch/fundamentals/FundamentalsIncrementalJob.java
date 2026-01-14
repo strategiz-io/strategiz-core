@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * <p>
  * This job runs daily at 2 AM (configurable) to update fundamental data
- * for all active symbols from Yahoo Finance. Unlike market data collection,
+ * for all active symbols from Financial Modeling Prep (FMP). Unlike market data collection,
  * this runs once per day as fundamental data changes infrequently.
  * </p>
  *
@@ -54,7 +54,7 @@ public class FundamentalsIncrementalJob {
 	@Value("${fundamentals.batch.incremental-enabled:false}")
 	private boolean incrementalEnabled;
 
-	@Value("${fundamentals.batch.data-source:YAHOO}")
+	@Value("${fundamentals.batch.data-source:FMP}")
 	private String dataSource;
 
 	@Autowired

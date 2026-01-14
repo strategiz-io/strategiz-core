@@ -36,13 +36,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Client Layer -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-yahoofinance</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
+        <!-- Client Layer - FMP for fundamentals data -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-fmp</artifactId>

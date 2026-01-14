@@ -79,8 +79,10 @@ public class FmpFundamentalsClient {
 				}
 			}
 
-			// Build URL with API key
-			String url = String.format("%s/key-metrics/%s?apikey=%s&limit=1", config.getBaseUrl(), symbol,
+			// Build URL with API key - using stable API endpoint
+			// Note: stable API uses query param ?symbol= instead of path param
+			String baseUrl = config.getBaseUrl().replace("/api/v3", "");
+			String url = String.format("%s/stable/key-metrics?symbol=%s&apikey=%s", baseUrl, symbol,
 					config.getApiKey());
 
 			// Execute request

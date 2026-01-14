@@ -16,7 +16,7 @@ steps:
     - 'strategiz-console'
     - '--image=gcr.io/$PROJECT_ID/strategiz-console'
     - '--platform=managed'
-    - '--region=us-central1'
+    - '--region=us-east1'
     - '--allow-unauthenticated'
     - '--memory=4Gi'
     - '--cpu=2'

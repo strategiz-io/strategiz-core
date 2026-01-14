@@ -108,8 +108,14 @@ public class AIStrategyService extends BaseService {
 					if (attempt > 1 && bestResponse != null) {
 						systemPrompt += String.format("\n\nPREVIOUS ATTEMPT FEEDBACK:\n" +
 							"Attempt %d failed validation. Strategy only achieved %.2f%% outperformance vs buy-and-hold.\n" +
-							"REQUIREMENT: Must beat buy-and-hold by at least 15%%.\n" +
-							"Try a different approach: use different indicators, tighter parameters, or add filters.\n",
+							"REQUIREMENTS:\n" +
+							"1. Must beat buy-and-hold by at least 15%%\n" +
+							"2. Must generate at least 10 trades over 3 years (avoid ultra-conservative strategies)\n\n" +
+							"IMPORTANT: If your previous strategy had too few trades, make entry/exit conditions MORE SENSITIVE:\n" +
+							"- Use shorter indicator periods (e.g., RSI(7) instead of RSI(14))\n" +
+							"- Use tighter thresholds (e.g., RSI < 35 instead of RSI < 30)\n" +
+							"- Add more entry triggers or relax exit conditions\n" +
+							"- Consider adding trend-following rules that trigger more frequently\n",
 							attempt - 1, bestOutperformance);
 					}
 				}
@@ -691,8 +697,8 @@ public class AIStrategyService extends BaseService {
 			String timeframe = request.getContext() != null && request.getContext().getTimeframe() != null
 					? request.getContext().getTimeframe() : "1D";
 
-			// Use a reasonable backtest period (1 year for validation)
-			String period = "1y";
+			// Use 3-year backtest period for validation (balance between 1y too short and 7y too long)
+			String period = "3y";
 
 			log.info("Validating strategy for symbol={}, timeframe={}, period={}", symbol, timeframe, period);
 
@@ -715,6 +721,15 @@ public class AIStrategyService extends BaseService {
 				return Double.NEGATIVE_INFINITY;
 			}
 
+			// CRITICAL: Validate minimum trade count to prevent "lucky 2-trade" strategies
+			int totalTrades = backtestResult.getPerformance().getTotalTrades();
+			int minimumTrades = 10; // Require at least 10 trades over 3 years to be considered a real strategy
+			if (totalTrades < minimumTrades) {
+				log.warn("Strategy has too few trades ({}) - minimum {} required. Not a generalizable strategy.",
+					totalTrades, minimumTrades);
+				return Double.NEGATIVE_INFINITY;
+			}
+
 			// Get strategy return (already in percentage)
 			double strategyReturn = backtestResult.getPerformance().getTotalReturn();
 
@@ -726,8 +741,8 @@ public class AIStrategyService extends BaseService {
 			// Calculate outperformance
 			double outperformance = strategyReturn - buyAndHoldReturn;
 
-			log.info("Validation results: Strategy={:.2f}%, Buy&Hold={:.2f}%, Outperformance={:.2f}%",
-				strategyReturn, buyAndHoldReturn, outperformance);
+			log.info("Validation results: Trades={}, Strategy={:.2f}%, Buy&Hold={:.2f}%, Outperformance={:.2f}%",
+				totalTrades, strategyReturn, buyAndHoldReturn, outperformance);
 
 			return outperformance;
 

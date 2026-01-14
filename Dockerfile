@@ -12,6 +12,7 @@ COPY business/ business/
 COPY service/ service/
 COPY application-api/ application-api/
 COPY application-console/ application-console/
+COPY application-auth/ application-auth/
 COPY batch/ batch/
 
 # Build the application and clean up in one layer to reduce snapshot size

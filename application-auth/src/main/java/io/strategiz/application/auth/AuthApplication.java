@@ -49,6 +49,7 @@ import org.springframework.context.annotation.ComponentScan;
 
     // Framework
     "io.strategiz.framework.authorization",
+    "io.strategiz.framework.token",
     "io.strategiz.framework.firebase",
     "io.strategiz.framework.secrets",
     "io.strategiz.framework.exception",
@@ -64,6 +65,7 @@ import org.springframework.context.annotation.ComponentScan;
     "io.strategiz.client.coinbase",
     "io.strategiz.client.coingecko",
     "io.strategiz.client.yahoofinance",
+    "io.strategiz.client.recaptcha",
 
     // Service Framework Base (CorsFilter, SecurityConfig, BaseController)
     "io.strategiz.service.base"

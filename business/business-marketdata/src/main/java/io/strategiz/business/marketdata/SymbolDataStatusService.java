@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -31,6 +32,7 @@ import java.util.*;
  * - Symbol-level diagnostics
  */
 @Service
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class SymbolDataStatusService {
 
     private static final Logger log = LoggerFactory.getLogger(SymbolDataStatusService.class);

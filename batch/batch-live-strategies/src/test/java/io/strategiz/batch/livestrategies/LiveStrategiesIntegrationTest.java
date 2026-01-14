@@ -5,7 +5,7 @@ import io.strategiz.batch.livestrategies.model.DeploymentBatchMessage;
 import io.strategiz.business.livestrategies.model.SymbolSetGroup;
 import io.strategiz.client.execution.ExecutionServiceClient;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
-import io.strategiz.data.marketdata.timescale.repository.MarketDataTimescaleRepository;
+import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.strategy.entity.AlertDeployment;
 import io.strategiz.data.strategy.entity.BotDeployment;
 import io.strategiz.data.strategy.entity.Strategy;
@@ -158,7 +158,7 @@ class LiveStrategiesIntegrationTest {
 	private StrategyBaseRepository strategyRepository;
 
 	@Autowired
-	private MarketDataTimescaleRepository marketDataRepository;
+	private MarketDataClickHouseRepository marketDataRepository;
 
 	@Autowired(required = false)
 	private ExecutionServiceClient executionServiceClient;
@@ -232,7 +232,7 @@ class LiveStrategiesIntegrationTest {
 			Instant startDate = endDate.minus(30, ChronoUnit.DAYS);
 
 			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1Day");
+					"AAPL", startDate, endDate, "1D");
 
 			log.info("Found {} bars for AAPL in last 30 days", bars.size());
 
@@ -260,7 +260,7 @@ class LiveStrategiesIntegrationTest {
 
 			for (String symbol : symbols) {
 				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-						symbol, startDate, endDate, "1Day");
+						symbol, startDate, endDate, "1D");
 
 				log.info("{}: {} bars in last 7 days", symbol, bars.size());
 				assertTrue(bars.size() >= 3, "Should have at least 3 trading days for " + symbol);
@@ -274,20 +274,20 @@ class LiveStrategiesIntegrationTest {
 			Instant startDate = endDate.minus(365, ChronoUnit.DAYS);
 
 			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1Day");
+					"AAPL", startDate, endDate, "1D");
 
 			log.info("Found {} bars for AAPL in last 365 days", bars.size());
 			assertTrue(bars.size() >= 200, "Should have at least 200 trading days for 1-year lookback");
 		}
 
 		@Test
-		@DisplayName("Should have intraday data (1Hour timeframe)")
+		@DisplayName("Should have intraday data (1H timeframe)")
 		void shouldHaveIntradayData() {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
 			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1Hour");
+					"AAPL", startDate, endDate, "1H");
 
 			log.info("Found {} hourly bars for AAPL in last 7 days", bars.size());
 			// Market hours: 9:30 AM - 4:00 PM ET = 6.5 hours per day, ~5 trading days

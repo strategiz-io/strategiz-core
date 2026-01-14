@@ -64,7 +64,7 @@ public class SymbolStatusResponse {
         private String sector;
 
         @JsonProperty("timeframeStatus")
-        private Map<String, TimeframeStatus> timeframeStatus;  // Key: timeframe (e.g., "1Day")
+        private Map<String, TimeframeStatus> timeframeStatus;  // Key: timeframe (e.g., "1D")
 
         @JsonProperty("overallStatus")
         private String overallStatus;  // ACTIVE, STALE, FAILED

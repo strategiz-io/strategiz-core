@@ -49,8 +49,8 @@ public class MarketDataBatchController {
 	/**
 	 * Execute full backfill - configurable years of data for all symbols
 	 *
-	 * POST /v1/marketdata/admin/backfill/full Request body: { "timeframes": ["1Day",
-	 * "1Hour", "1Week", "1Month"], "years": 7 } (optional)
+	 * POST /v1/marketdata/admin/backfill/full Request body: { "timeframes": ["1D",
+	 * "1H", "1W", "1M"], "years": 7 } (optional)
 	 *
 	 * Processes all timeframes synchronously and returns results when complete.
 	 *
@@ -60,7 +60,7 @@ public class MarketDataBatchController {
 	public ResponseEntity<Map<String, Object>> executeFullBackfill(@RequestBody(required = false) BackfillRequest request) {
 
 		List<String> timeframes = request != null && request.timeframes != null && !request.timeframes.isEmpty()
-				? request.timeframes : Arrays.asList("1Day", "1Hour", "1Week", "1Month");
+				? request.timeframes : Arrays.asList("1D", "1H", "1W", "1M");
 
 		int years = request != null && request.years > 0 ? request.years : 7;
 
@@ -71,12 +71,12 @@ public class MarketDataBatchController {
 		LocalDateTime endDate = LocalDateTime.now(java.time.ZoneOffset.UTC);
 		LocalDateTime startDate = endDate.minusYears(years);
 
-		// Validate timeframes
+		// Validate timeframes - only accept canonical short format (1H, 1D, 1W, 1M)
 		List<String> validTimeframes = new ArrayList<>();
 		for (String timeframe : timeframes) {
 			String tf = timeframe.trim();
-			if (!Timeframe.VALID_TIMEFRAMES.contains(tf)) {
-				log.warn("Skipping invalid timeframe: {}", tf);
+			if (!Timeframe.isValid(tf)) {
+				log.warn("Skipping invalid timeframe: {} - must use short format (1H, 1D, 1W, 1M)", timeframe);
 			} else {
 				validTimeframes.add(tf);
 			}
@@ -184,7 +184,7 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/backfill/test
 	 *
-	 * Symbols: AAPL, MSFT, GOOGL Duration: 1 week of 1Day bars
+	 * Symbols: AAPL, MSFT, GOOGL Duration: 1 week of 1D bars
 	 */
 	@PostMapping("/backfill/test")
 	public ResponseEntity<Map<String, Object>> executeTestBackfill() {
@@ -203,7 +203,7 @@ public class MarketDataBatchController {
 
 			long startTime = System.currentTimeMillis();
 			MarketDataCollectionService.CollectionResult result = collectionService.backfillIntradayData(testSymbols,
-					startDate, endDate, "1Day");
+					startDate, endDate, "1D");
 			long duration = (System.currentTimeMillis() - startTime) / 1000;
 
 			Map<String, Object> response = new HashMap<>();
@@ -211,7 +211,7 @@ public class MarketDataBatchController {
 			response.put("message", "Test backfill completed");
 			response.put("testSymbols", testSymbols);
 			response.put("duration", "1 week");
-			response.put("timeframe", "1Day");
+			response.put("timeframe", "1D");
 			response.put("symbolsProcessed", result.totalSymbolsProcessed);
 			response.put("dataPointsStored", result.totalDataPointsStored);
 			response.put("errors", result.errorCount);
@@ -246,7 +246,7 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/backfill/custom Request body: { "symbols": ["AAPL",
 	 * "MSFT", "GOOGL"], "startDate": "2024-11-01T09:30:00", "endDate":
-	 * "2024-11-23T16:00:00", "timeframe": "1Day" }
+	 * "2024-11-23T16:00:00", "timeframe": "1D" }
 	 */
 	@PostMapping("/backfill/custom")
 	public ResponseEntity<Map<String, Object>> executeCustomBackfill(@RequestBody CustomBackfillRequest request) {
@@ -306,7 +306,7 @@ public class MarketDataBatchController {
 	/**
 	 * Force incremental collection (last 2 hours of data)
 	 *
-	 * POST /v1/marketdata/admin/incremental Request body: { "timeframe": "1Day" }
+	 * POST /v1/marketdata/admin/incremental Request body: { "timeframe": "1D" }
 	 * (optional)
 	 *
 	 * Useful for: - Manual data refresh - Testing incremental logic - Recovering from
@@ -316,7 +316,7 @@ public class MarketDataBatchController {
 	public ResponseEntity<Map<String, Object>> executeIncrementalCollection(
 			@RequestBody(required = false) Map<String, String> request) {
 
-		String timeframe = request != null && request.containsKey("timeframe") ? request.get("timeframe") : "1Day";
+		String timeframe = request != null && request.containsKey("timeframe") ? request.get("timeframe") : "1D";
 
 		int lookbackHours = 2;
 
@@ -372,13 +372,13 @@ public class MarketDataBatchController {
 	}
 
 	/**
-	 * Execute incremental collection for ALL timeframes (1Min to 1Month)
+	 * Execute incremental collection for ALL timeframes (1Min to 1M)
 	 *
 	 * POST /v1/marketdata/admin/incremental/all-timeframes Request body: {
 	 * "lookbackHours": 2 } (optional, defaults to 2 hours)
 	 *
 	 * This pulls the latest delta data across all 9 timeframes: 1Min, 5Min, 15Min,
-	 * 30Min, 1Hour, 4Hour, 1Day, 1Week, 1Month
+	 * 30Min, 1H, 4H, 1D, 1W, 1M
 	 */
 	@PostMapping("/incremental/all-timeframes")
 	public ResponseEntity<Map<String, Object>> executeAllTimeframesIncremental(
@@ -560,7 +560,7 @@ public class MarketDataBatchController {
 		status.put("service", "MarketDataCollectionService");
 		status.put("dataSource", "ALPACA");
 		status.put("dataFeed", "IEX (free tier)");
-		status.put("defaultTimeframes", Arrays.asList("1Day", "1Hour", "1Week", "1Month"));
+		status.put("defaultTimeframes", Arrays.asList("1D", "1H", "1W", "1M"));
 		status.put("defaultBackfillYears", 7);
 		status.put("threadPoolSize", collectionService.getThreadPoolSize());
 		status.put("batchSize", collectionService.getBatchSize());
@@ -574,7 +574,7 @@ public class MarketDataBatchController {
 		endpoints.put("allTimeframesIncremental", "POST /v1/marketdata/admin/incremental/all-timeframes");
 		endpoints.put("cancelBackfill", "POST /v1/marketdata/admin/backfill/cancel");
 		endpoints.put("analyzeCorruption", "GET /v1/marketdata/admin/cleanup/analyze");
-		endpoints.put("deleteCorrupted1Day", "POST /v1/marketdata/admin/cleanup/1day");
+		endpoints.put("deleteCorrupted1D", "POST /v1/marketdata/admin/cleanup/1day");
 		endpoints.put("optimizeTable", "POST /v1/marketdata/admin/cleanup/optimize");
 		status.put("availableEndpoints", endpoints);
 
@@ -586,14 +586,14 @@ public class MarketDataBatchController {
 	/**
 	 * Analyze timestamp corruption patterns before cleanup
 	 *
-	 * GET /v1/marketdata/admin/cleanup/analyze?timeframe=1Day
+	 * GET /v1/marketdata/admin/cleanup/analyze?timeframe=1D
 	 *
 	 * Returns: - Corrupted row counts - Timestamp distribution by hour - Helps decide
 	 * if cleanup is needed
 	 */
 	@GetMapping("/cleanup/analyze")
 	public ResponseEntity<Map<String, Object>> analyzeCorruption(
-			@RequestParam(required = false, defaultValue = "1Day") String timeframe) {
+			@RequestParam(required = false, defaultValue = "1D") String timeframe) {
 		log.info("=== Admin API: Analyze Corruption (timeframe: {}) ===", timeframe);
 
 		try {
@@ -606,12 +606,12 @@ public class MarketDataBatchController {
 			long corruptedCount = 0;
 			String corruptionLogic = "";
 
-			if ("1Day".equals(timeframe)) {
-				corruptedCount = repo.countCorrupted1DayBars();
+			if ("1D".equals(timeframe)) {
+				corruptedCount = repo.countCorrupted1DBars();
 				corruptionLogic = "Daily bars not at midnight UTC (hour != 0)";
 			}
-			else if ("1Hour".equals(timeframe)) {
-				corruptedCount = repo.countCorrupted1HourBars();
+			else if ("1H".equals(timeframe)) {
+				corruptedCount = repo.countCorrupted1HBars();
 				corruptionLogic = "Hourly bars not on-the-hour (minute != 0)";
 			}
 
@@ -642,45 +642,45 @@ public class MarketDataBatchController {
 	}
 
 	/**
-	 * Delete corrupted 1Day bars (timestamps not at midnight UTC)
+	 * Delete corrupted 1D bars (timestamps not at midnight UTC)
 	 *
 	 * POST /v1/marketdata/admin/cleanup/1day
 	 *
 	 * Deletes daily bars where hour != 0 (e.g., 05:00:00Z EST offset timestamps)
 	 */
 	@PostMapping("/cleanup/1day")
-	public ResponseEntity<Map<String, Object>> deleteCorrupted1DayBars() {
-		log.warn("=== Admin API: Delete Corrupted 1Day Bars ===");
+	public ResponseEntity<Map<String, Object>> deleteCorrupted1DBars() {
+		log.warn("=== Admin API: Delete Corrupted 1D Bars ===");
 
 		try {
 			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
 
 			// Count before deletion
-			long countBefore = repo.countCorrupted1DayBars();
+			long countBefore = repo.countCorrupted1DBars();
 
 			if (countBefore == 0) {
 				Map<String, Object> response = new HashMap<>();
 				response.put("status", "info");
-				response.put("message", "No corrupted 1Day bars found");
+				response.put("message", "No corrupted 1D bars found");
 				response.put("corruptedCount", 0);
 				return ResponseEntity.ok(response);
 			}
 
 			// Execute deletion
-			repo.deleteCorrupted1DayBars();
+			repo.deleteCorrupted1DBars();
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
-			response.put("message", String.format("Submitted DELETE for %d corrupted 1Day bars", countBefore));
+			response.put("message", String.format("Submitted DELETE for %d corrupted 1D bars", countBefore));
 			response.put("corruptedCount", countBefore);
 			response.put("note", "Deletion is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately.");
 
-			log.info("Deleted {} corrupted 1Day bars", countBefore);
+			log.info("Deleted {} corrupted 1D bars", countBefore);
 
 			return ResponseEntity.ok(response);
 		}
 		catch (Exception e) {
-			log.error("Failed to delete corrupted 1Day bars: {}", e.getMessage(), e);
+			log.error("Failed to delete corrupted 1D bars: {}", e.getMessage(), e);
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("status", "error");
 			errorResponse.put("message", "Deletion failed: " + e.getMessage());
@@ -693,7 +693,7 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/cleanup/all
 	 *
-	 * Deletes corrupted data from 1Day, 1Week, 1Month (non-midnight UTC) and 1Hour (non-hour) timeframes.
+	 * Deletes corrupted data from 1D, 1W, 1M (non-midnight UTC) and 1H (non-hour) timeframes.
 	 */
 	@PostMapping("/cleanup/all")
 	public ResponseEntity<Map<String, Object>> deleteAllCorruptedBars() {
@@ -708,7 +708,7 @@ public class MarketDataBatchController {
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
 			response.put("message", "Submitted DELETE for ALL corrupted bars across all timeframes");
-			response.put("timeframes", java.util.List.of("1Day", "1Week", "1Month", "1Hour"));
+			response.put("timeframes", java.util.List.of("1D", "1W", "1M", "1H"));
 			response.put("note", "Deletion is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately.");
 
 			log.info("Deleted all corrupted bars across all timeframes");
@@ -763,6 +763,45 @@ public class MarketDataBatchController {
 	}
 
 	/**
+	 * Migrate timeframe format from long format to short format.
+	 *
+	 * POST /v1/marketdata/admin/migrate/timeframe-format
+	 *
+	 * Converts: 1H->1H, 4H->4H, 1D->1D, 1W->1W, 1M->1M
+	 * This is a one-time migration to standardize timeframe format.
+	 */
+	@PostMapping("/migrate/timeframe-format")
+	public ResponseEntity<Map<String, Object>> migrateTimeframeFormat() {
+		log.warn("=== Admin API: Migrate Timeframe Format to Short Format ===");
+
+		try {
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
+
+			long startTime = System.currentTimeMillis();
+			repo.migrateTimeframeToShortFormat();
+			long duration = (System.currentTimeMillis() - startTime) / 1000;
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("message", "Timeframe format migration submitted");
+			response.put("conversions", java.util.List.of("1H->1H", "4H->4H", "1D->1D", "1W->1W", "1M->1M"));
+			response.put("durationSeconds", duration);
+			response.put("note", "Migration is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately, then verify with analyze endpoint.");
+
+			log.info("Timeframe format migration completed in {}s", duration);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to migrate timeframe format: {}", e.getMessage(), e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Migration failed: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
+	}
+
+	/**
 	 * Helper to get ClickHouse repository bean.
 	 */
 	private io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository getMarketDataRepository() {
@@ -806,7 +845,7 @@ public class MarketDataBatchController {
 		@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
 		public LocalDateTime endDate;
 
-		public String timeframe = "1Day";
+		public String timeframe = "1D";
 
 	}
 

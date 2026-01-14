@@ -224,69 +224,69 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Count corrupted 1Day bars (timestamps not at midnight UTC).
+	 * Count corrupted 1D bars (timestamps not at midnight UTC).
 	 * Used for analysis before cleanup.
 	 */
-	public long countCorrupted1DayBars() {
+	public long countCorrupted1DBars() {
 		String sql = """
 				SELECT COUNT(*) FROM market_data
-				WHERE timeframe = '1Day' AND toHour(timestamp) != 0
+				WHERE timeframe = '1D' AND toHour(timestamp) != 0
 				""";
 		Long count = jdbcTemplate.queryForObject(sql, Long.class);
 		return count != null ? count : 0;
 	}
 
 	/**
-	 * Delete corrupted 1Day bars (timestamps not at midnight UTC).
+	 * Delete corrupted 1D bars (timestamps not at midnight UTC).
 	 * Returns immediately; deletion is async in ClickHouse.
 	 */
-	public void deleteCorrupted1DayBars() {
-		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Day' AND toHour(timestamp) != 0";
+	public void deleteCorrupted1DBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1D' AND toHour(timestamp) != 0";
 		jdbcTemplate.update(sql);
-		log.info("Submitted DELETE for corrupted 1Day bars (non-midnight UTC timestamps)");
+		log.info("Submitted DELETE for corrupted 1D bars (non-midnight UTC timestamps)");
 	}
 
 	/**
-	 * Count corrupted 1Hour bars (timestamps not on-the-hour).
+	 * Count corrupted 1H bars (timestamps not on-the-hour).
 	 * Used for analysis before cleanup.
 	 */
-	public long countCorrupted1HourBars() {
+	public long countCorrupted1HBars() {
 		String sql = """
 				SELECT COUNT(*) FROM market_data
-				WHERE timeframe = '1Hour' AND toMinute(timestamp) != 0
+				WHERE timeframe = '1H' AND toMinute(timestamp) != 0
 				""";
 		Long count = jdbcTemplate.queryForObject(sql, Long.class);
 		return count != null ? count : 0;
 	}
 
 	/**
-	 * Delete corrupted 1Hour bars (timestamps not on-the-hour).
+	 * Delete corrupted 1H bars (timestamps not on-the-hour).
 	 * Returns immediately; deletion is async in ClickHouse.
 	 */
-	public void deleteCorrupted1HourBars() {
-		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Hour' AND toMinute(timestamp) != 0";
+	public void deleteCorrupted1HBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1H' AND toMinute(timestamp) != 0";
 		jdbcTemplate.update(sql);
-		log.info("Submitted DELETE for corrupted 1Hour bars (timestamps not on-the-hour)");
+		log.info("Submitted DELETE for corrupted 1H bars (timestamps not on-the-hour)");
 	}
 
 	/**
-	 * Delete corrupted 1Week bars (timestamps not at midnight UTC).
+	 * Delete corrupted 1W bars (timestamps not at midnight UTC).
 	 * Returns immediately; deletion is async in ClickHouse.
 	 */
-	public void deleteCorrupted1WeekBars() {
-		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Week' AND toHour(timestamp) != 0";
+	public void deleteCorrupted1WBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1W' AND toHour(timestamp) != 0";
 		jdbcTemplate.update(sql);
-		log.info("Submitted DELETE for corrupted 1Week bars (non-midnight UTC timestamps)");
+		log.info("Submitted DELETE for corrupted 1W bars (non-midnight UTC timestamps)");
 	}
 
 	/**
-	 * Delete corrupted 1Month bars (timestamps not at midnight UTC).
+	 * Delete corrupted 1M bars (timestamps not at midnight UTC).
 	 * Returns immediately; deletion is async in ClickHouse.
 	 */
-	public void deleteCorrupted1MonthBars() {
-		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1Month' AND toHour(timestamp) != 0";
+	public void deleteCorrupted1MBars() {
+		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1M' AND toHour(timestamp) != 0";
 		jdbcTemplate.update(sql);
-		log.info("Submitted DELETE for corrupted 1Month bars (non-midnight UTC timestamps)");
+		log.info("Submitted DELETE for corrupted 1M bars (non-midnight UTC timestamps)");
 	}
 
 	/**
@@ -294,14 +294,14 @@ public class MarketDataClickHouseRepository {
 	 * Returns immediately; deletion is async in ClickHouse.
 	 */
 	public void deleteAllCorruptedBars() {
-		// Delete 1Day bars not at midnight
-		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Day' AND toHour(timestamp) != 0");
-		// Delete 1Week bars not at midnight
-		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Week' AND toHour(timestamp) != 0");
-		// Delete 1Month bars not at midnight
-		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Month' AND toHour(timestamp) != 0");
-		// Delete 1Hour bars not on-the-hour
-		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1Hour' AND toMinute(timestamp) != 0");
+		// Delete 1D bars not at midnight
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1D' AND toHour(timestamp) != 0");
+		// Delete 1W bars not at midnight
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1W' AND toHour(timestamp) != 0");
+		// Delete 1M bars not at midnight
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1M' AND toHour(timestamp) != 0");
+		// Delete 1H bars not on-the-hour
+		jdbcTemplate.update("ALTER TABLE market_data DELETE WHERE timeframe = '1H' AND toMinute(timestamp) != 0");
 		log.warn("Submitted DELETE for ALL corrupted bars across all timeframes");
 	}
 
@@ -313,6 +313,39 @@ public class MarketDataClickHouseRepository {
 		String sql = "OPTIMIZE TABLE market_data FINAL";
 		jdbcTemplate.update(sql);
 		log.info("Submitted OPTIMIZE TABLE FINAL for market_data");
+	}
+
+	/**
+	 * Migrate timeframe format from long format to short format.
+	 * Converts: 1H->1H, 4Hour->4H, 1D->1D, 1W->1W, 1M->1M
+	 *
+	 * Note: Minute formats (1Min, 5Min, 15Min, 30Min) stay unchanged.
+	 * Note: Data already stored as 1D stays unchanged.
+	 */
+	public void migrateTimeframeToShortFormat() {
+		log.info("=== Starting timeframe format migration to short format ===");
+
+		// Migrate 1H -> 1H
+		log.info("Migrating 1H -> 1H...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1H' WHERE timeframe = '1H'");
+
+		// Migrate 4Hour -> 4H
+		log.info("Migrating 4Hour -> 4H...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '4H' WHERE timeframe = '4Hour'");
+
+		// Migrate 1D -> 1D (in case any exists)
+		log.info("Migrating 1D -> 1D...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1D' WHERE timeframe = '1D'");
+
+		// Migrate 1W -> 1W
+		log.info("Migrating 1W -> 1W...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1W' WHERE timeframe = '1W'");
+
+		// Migrate 1M -> 1M
+		log.info("Migrating 1M -> 1M...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1M' WHERE timeframe = '1M'");
+
+		log.info("=== Timeframe migration submitted. Run OPTIMIZE TABLE FINAL to apply immediately. ===");
 	}
 
 	/**

@@ -94,8 +94,8 @@ public class ConsoleMarketDataSymbolController extends BaseController {
 
         } else {
             // Get all symbols (would need pagination query across all timeframes)
-            // For now, default to 1Day timeframe
-            String defaultTimeframe = "1Day";
+            // For now, default to 1D timeframe
+            String defaultTimeframe = "1D";
             symbolData = symbolStatusService.getSymbolsByTimeframe(defaultTimeframe, page, pageSize);
             totalCount = symbolData.size();  // Approximation
         }
@@ -164,7 +164,7 @@ public class ConsoleMarketDataSymbolController extends BaseController {
     @Operation(summary = "Get stale symbols", description = "Retrieves symbols that need data refresh")
     public ResponseEntity<List<Map<String, Object>>> getStaleSymbols(
             HttpServletRequest request,
-            @RequestParam(defaultValue = "1Day") String timeframe,
+            @RequestParam(defaultValue = "1D") String timeframe,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int pageSize) {
 

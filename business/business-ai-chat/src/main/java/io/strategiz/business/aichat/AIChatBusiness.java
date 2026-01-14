@@ -7,11 +7,14 @@ import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
 import io.strategiz.business.aichat.prompt.LabsPrompts;
 import io.strategiz.business.aichat.prompt.LearnPrompts;
+import io.strategiz.business.preferences.service.TokenUsageService;
 import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
 import io.strategiz.client.base.llm.model.ModelInfo;
+import io.strategiz.data.preferences.entity.TokenUsageRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,11 +38,16 @@ public class AIChatBusiness {
 
 	private final PortfolioContextProvider portfolioContextProvider;
 
+	private final TokenUsageService tokenUsageService;
+
+	@Autowired
 	public AIChatBusiness(LLMRouter llmRouter, MarketContextProvider marketContextProvider,
-			PortfolioContextProvider portfolioContextProvider) {
+			PortfolioContextProvider portfolioContextProvider,
+			@Autowired(required = false) TokenUsageService tokenUsageService) {
 		this.llmRouter = llmRouter;
 		this.marketContextProvider = marketContextProvider;
 		this.portfolioContextProvider = portfolioContextProvider;
+		this.tokenUsageService = tokenUsageService;
 	}
 
 	/**
@@ -54,6 +62,27 @@ public class AIChatBusiness {
 			String model) {
 		logger.info("Processing chat message for feature: {}, page: {}, model: {}", context.getFeature(),
 				context.getCurrentPage(), model);
+
+		String userId = context.getUserId();
+
+		// Check credits before making LLM call (if token tracking is enabled)
+		if (tokenUsageService != null && userId != null) {
+			try {
+				TokenUsageService.UsageStatus status = tokenUsageService.checkUsageStatus(userId);
+				if (status.isBlocked()) {
+					ChatResponse blocked = new ChatResponse();
+					blocked.setSuccess(false);
+					blocked.setError("You've used all your credits for this billing period. Please upgrade to continue.");
+					blocked.setUsageWarningLevel("blocked");
+					blocked.setRemainingCredits(0);
+					return Mono.just(blocked);
+				}
+			}
+			catch (Exception e) {
+				logger.warn("Failed to check usage status for user {}: {}", userId, e.getMessage());
+				// Continue with the request - don't block on tracking failures
+			}
+		}
 
 		try {
 			// Build the enhanced prompt with system context
@@ -81,9 +110,13 @@ public class AIChatBusiness {
 					response.setError(sanitizeErrorMessage(llmResponse.getError()));
 					logger.warn("LLM error occurred: {}", llmResponse.getError());
 				}
+				else {
+					// Record token usage for successful responses
+					recordUsageAndUpdateResponse(userId, llmResponse, context.getFeature(), response);
+				}
 
-				logger.info("Chat response generated successfully, model: {}, tokens used: {}", response.getModel(),
-						response.getTokensUsed());
+				logger.info("Chat response generated successfully, model: {}, tokens used: {}, credits: {}",
+						response.getModel(), response.getTokensUsed(), response.getCreditsUsed());
 				return response;
 			}).onErrorResume(error -> {
 				logger.error("Error generating chat response", error);
@@ -233,6 +266,48 @@ public class AIChatBusiness {
 		}
 
 		return llmHistory;
+	}
+
+	/**
+	 * Record token usage and update the response with credit information.
+	 * @param userId the user ID
+	 * @param llmResponse the LLM response with token counts
+	 * @param feature the feature that made the request (for analytics)
+	 * @param response the ChatResponse to update
+	 */
+	private void recordUsageAndUpdateResponse(String userId, LLMResponse llmResponse, String feature,
+			ChatResponse response) {
+		if (tokenUsageService == null || userId == null) {
+			return;
+		}
+
+		try {
+			int promptTokens = llmResponse.getPromptTokens() != null ? llmResponse.getPromptTokens() : 0;
+			int completionTokens = llmResponse.getCompletionTokens() != null ? llmResponse.getCompletionTokens() : 0;
+			String modelId = llmResponse.getModel();
+
+			// Determine request type from feature
+			String requestType = feature != null ? feature.toLowerCase() : "chat";
+
+			// Record the usage
+			TokenUsageRecord record = tokenUsageService.recordUsage(userId, modelId, promptTokens, completionTokens,
+					requestType);
+
+			// Update response with credit information
+			response.setCreditsUsed(record.getCreditsConsumed());
+
+			// Get current usage status
+			TokenUsageService.UsageStatus status = tokenUsageService.checkUsageStatus(userId);
+			response.setRemainingCredits(status.remainingCredits());
+			response.setUsageWarningLevel(status.level());
+
+			logger.debug("Recorded usage for user {}: {} credits consumed, {} remaining, warning level: {}", userId,
+					record.getCreditsConsumed(), status.remainingCredits(), status.level());
+		}
+		catch (Exception e) {
+			logger.warn("Failed to record usage for user {}: {}", userId, e.getMessage());
+			// Don't fail the response - just skip tracking
+		}
 	}
 
 	/**

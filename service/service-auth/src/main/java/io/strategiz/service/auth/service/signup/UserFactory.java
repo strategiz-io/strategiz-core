@@ -30,7 +30,7 @@ public class UserFactory {
             request.getEmail(),
             request.getPhotoURL(),
             true, // OAuth providers verify email
-            "free", // Default subscription tier
+            "trial", // Default to 30-day trial tier
             true // Default demo mode
         );
 

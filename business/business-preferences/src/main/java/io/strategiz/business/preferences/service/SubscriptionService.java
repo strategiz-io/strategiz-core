@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -26,8 +28,8 @@ public class SubscriptionService {
 
 	/**
 	 * Minimum tier level required for Historical Market Insights (Feeling Lucky).
-	 * Level 1 = TRADER tier and above (TRADER, STRATEGIST, etc.)
-	 * Tier levels: SCOUT=0, TRADER=1, STRATEGIST=2
+	 * Level 1 = EXPLORER tier and above (EXPLORER, STRATEGIST, QUANT)
+	 * Tier levels: TRIAL=0, EXPLORER=1, STRATEGIST=2, QUANT=3
 	 */
 	private static final int MIN_TIER_LEVEL_HISTORICAL_INSIGHTS = 1;
 
@@ -93,7 +95,7 @@ public class SubscriptionService {
 	/**
 	 * Check if user can use Historical Market Insights (Feeling Lucky mode).
 	 * Analyzes 7 years of historical data to generate optimized strategies.
-	 * Historical Market Insights requires tier level 1 or higher (TRADER+).
+	 * Historical Market Insights requires tier level 1 or higher (EXPLORER+).
 	 * ADMIN users have access for testing purposes.
 	 * @param userId The user ID
 	 * @return true if user can use Historical Market Insights
@@ -117,13 +119,12 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user can send a message (within daily limit).
-	 * Covers both Learn AI Chat and Labs Strategy Generation.
+	 * Check if user has credits available.
 	 * ADMIN users bypass all limits for testing purposes.
 	 * @param userId The user ID
-	 * @return true if within limit or user is admin
+	 * @return true if user has remaining credits or is admin
 	 */
-	public boolean canSendMessage(String userId) {
+	public boolean hasCreditsAvailable(String userId) {
 		// Admins bypass all subscription limits for testing
 		if (isAdmin(userId)) {
 			logger.debug("Admin user {} bypassing subscription limits", userId);
@@ -131,39 +132,86 @@ public class SubscriptionService {
 		}
 
 		UserSubscription sub = getSubscription(userId);
-		SubscriptionTier tier = sub.getTierEnum();
 
-		if (tier.hasUnlimitedMessages()) {
-			return true;
+		// Check if trial expired
+		if (sub.isTrialExpired()) {
+			return false;
 		}
 
-		return sub.getDailyMessagesUsed() < tier.getDailyMessageLimit();
+		// Check if blocked due to usage
+		if (sub.isBlocked()) {
+			return false;
+		}
+
+		return sub.getRemainingCredits() > 0;
+	}
+
+	/**
+	 * Get remaining credits for the current billing period.
+	 * @param userId The user ID
+	 * @return Remaining credits
+	 */
+	public int getRemainingCredits(String userId) {
+		UserSubscription sub = getSubscription(userId);
+		return sub.getRemainingCredits();
+	}
+
+	/**
+	 * Get usage percentage for the current billing period (0-100+).
+	 * @param userId The user ID
+	 * @return Usage percentage
+	 */
+	public int getUsagePercentage(String userId) {
+		UserSubscription sub = getSubscription(userId);
+		return sub.getUsagePercentage();
+	}
+
+	/**
+	 * Get current usage warning level.
+	 * @param userId The user ID
+	 * @return Warning level (none, warning, critical, blocked)
+	 */
+	public String getUsageWarningLevel(String userId) {
+		UserSubscription sub = getSubscription(userId);
+		return sub.getUsageWarningLevel();
+	}
+
+	/**
+	 * Check if user can send a message (has credits available).
+	 * Covers both Learn AI Chat and Labs Strategy Generation.
+	 * ADMIN users bypass all limits for testing purposes.
+	 * @param userId The user ID
+	 * @return true if has credits or user is admin
+	 * @deprecated Use {@link #hasCreditsAvailable(String)} instead
+	 */
+	@Deprecated(forRemoval = true)
+	public boolean canSendMessage(String userId) {
+		return hasCreditsAvailable(userId);
 	}
 
 	/**
 	 * Record a message sent by the user (Learn chat or Labs strategy generation).
 	 * @param userId The user ID
 	 * @return The updated subscription
+	 * @deprecated Use TokenUsageService.recordUsage() for accurate credit tracking
 	 */
+	@Deprecated(forRemoval = true)
 	public UserSubscription recordMessageUsage(String userId) {
-		logger.debug("Recording AI chat message usage for user {}", userId);
+		logger.debug("Recording AI chat message usage for user {} (deprecated method)", userId);
 		return repository.incrementMessageUsage(userId);
 	}
 
 	/**
 	 * Get remaining messages for the day.
 	 * @param userId The user ID
-	 * @return Remaining messages
+	 * @return Remaining messages (approximate based on credits)
+	 * @deprecated Use {@link #getRemainingCredits(String)} instead
 	 */
+	@Deprecated(forRemoval = true)
 	public int getRemainingMessages(String userId) {
-		UserSubscription sub = getSubscription(userId);
-		SubscriptionTier tier = sub.getTierEnum();
-
-		if (tier.hasUnlimitedMessages()) {
-			return -1;
-		}
-
-		return Math.max(0, tier.getDailyMessageLimit() - sub.getDailyMessagesUsed());
+		// Approximate: each "message" is roughly 1000 tokens at baseline rate
+		int remainingCredits = getRemainingCredits(userId);
+		return remainingCredits > 0 ? remainingCredits / 10 : 0;
 	}
 
 	/**
@@ -201,21 +249,141 @@ public class SubscriptionService {
 	}
 
 	/**
+	 * Initialize a 30-day trial for a new user.
+	 * @param userId The user ID
+	 * @return The initialized subscription
+	 */
+	public UserSubscription initializeTrial(String userId) {
+		logger.info("Initializing 30-day trial for user {}", userId);
+
+		UserSubscription sub = getSubscription(userId);
+		sub.initializeForTier(SubscriptionTier.TRIAL);
+
+		// Set trial dates
+		Instant now = Instant.now();
+		sub.setTrialStartDate(now);
+		sub.setTrialEndDate(now.plus(30, ChronoUnit.DAYS));
+		sub.setStatus("trialing");
+
+		return repository.save(userId, sub);
+	}
+
+	/**
+	 * Check if user's trial is expired.
+	 * @param userId The user ID
+	 * @return true if trial is expired
+	 */
+	public boolean isTrialExpired(String userId) {
+		UserSubscription sub = getSubscription(userId);
+
+		if (!sub.isTrial()) {
+			return false; // Not on trial
+		}
+
+		if (sub.getTrialEndDate() == null) {
+			return false; // No end date set
+		}
+
+		return Instant.now().isAfter(sub.getTrialEndDate());
+	}
+
+	/**
+	 * Get days remaining in trial.
+	 * @param userId The user ID
+	 * @return Days remaining, 0 if expired, -1 if not on trial
+	 */
+	public int getTrialDaysRemaining(String userId) {
+		UserSubscription sub = getSubscription(userId);
+
+		if (!sub.isTrial() || sub.getTrialEndDate() == null) {
+			return -1;
+		}
+
+		long daysRemaining = ChronoUnit.DAYS.between(Instant.now(), sub.getTrialEndDate());
+		return (int) Math.max(0, daysRemaining);
+	}
+
+	/**
+	 * Expire a user's trial (called by scheduled job or webhook).
+	 * @param userId The user ID
+	 * @return The updated subscription
+	 */
+	public UserSubscription expireTrial(String userId) {
+		logger.info("Expiring trial for user {}", userId);
+
+		UserSubscription sub = getSubscription(userId);
+		sub.setStatus("trial_expired");
+		sub.setUsageWarningLevel("blocked");
+
+		return repository.save(userId, sub);
+	}
+
+	/**
+	 * Upgrade user to a paid tier (resets credits and activates subscription).
+	 * @param userId The user ID
+	 * @param newTier The new tier
+	 * @param stripeCustomerId The Stripe customer ID
+	 * @param stripeSubscriptionId The Stripe subscription ID
+	 * @return The updated subscription
+	 */
+	public UserSubscription upgradeToPaidTier(String userId, SubscriptionTier newTier, String stripeCustomerId,
+			String stripeSubscriptionId) {
+		logger.info("Upgrading user {} to paid tier {}", userId, newTier.getId());
+
+		UserSubscription sub = getSubscription(userId);
+		sub.initializeForTier(newTier);
+		sub.setStripeCustomerId(stripeCustomerId);
+		sub.setStripeSubscriptionId(stripeSubscriptionId);
+		sub.setStatus("active");
+
+		// Clear trial dates
+		sub.setTrialStartDate(null);
+		sub.setTrialEndDate(null);
+
+		return repository.save(userId, sub);
+	}
+
+	/**
 	 * Get all available tiers with their details.
-	 * @return List of all tiers
+	 * @return List of all tiers (excluding TRIAL)
 	 */
 	public List<TierInfo> getAllTiers() {
 		return Arrays.stream(SubscriptionTier.values())
+				.filter(tier -> !tier.isTrial())
 				.map(tier -> new TierInfo(tier.getId(), tier.getDisplayName(), tier.getPriceInCents(),
-						tier.getDescription(), tier.getAllowedModels(), tier.getDailyMessageLimit()))
+						tier.getDescription(), tier.getAllowedModels(), tier.getMonthlyCredits(),
+						tier.getLevel()))
 				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Get subscription summary for a user (useful for UI).
+	 * @param userId The user ID
+	 * @return Subscription summary with usage details
+	 */
+	public SubscriptionSummary getSubscriptionSummary(String userId) {
+		UserSubscription sub = getSubscription(userId);
+		SubscriptionTier tier = sub.getTierEnum();
+
+		return new SubscriptionSummary(sub.getTier(), tier.getDisplayName(), sub.getStatus(),
+				sub.getMonthlyCreditsAllowed(), sub.getMonthlyCreditsUsed(), sub.getRemainingCredits(),
+				sub.getUsagePercentage(), sub.getUsageWarningLevel(), tier.getAllowedModels(),
+				sub.isTrial() ? getTrialDaysRemaining(userId) : -1, sub.getCancelAtPeriodEnd());
 	}
 
 	/**
 	 * DTO for tier information.
 	 */
 	public record TierInfo(String id, String name, int priceInCents, String description, List<String> allowedModels,
-			int dailyMessageLimit) {
+			int monthlyCredits, int level) {
+	}
+
+	/**
+	 * DTO for subscription summary.
+	 */
+	public record SubscriptionSummary(String tierId, String tierName, String status, int totalCredits, int usedCredits,
+			int remainingCredits, int usagePercentage, String warningLevel, List<String> allowedModels,
+			int trialDaysRemaining, boolean cancelAtPeriodEnd) {
 	}
 
 	/**

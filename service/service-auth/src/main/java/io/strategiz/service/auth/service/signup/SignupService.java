@@ -1,5 +1,6 @@
 package io.strategiz.service.auth.service.signup;
 
+import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.data.base.transaction.FirestoreTransactionTemplate;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
@@ -10,7 +11,9 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.signup.OAuthSignupRequest;
 import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
+import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.base.BaseService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -35,19 +38,26 @@ public class SignupService extends BaseService {
     private final SignupResponseBuilder responseBuilder;
     private final FirestoreTransactionTemplate transactionTemplate;
     private final AuthenticationMethodRepository authenticationMethodRepository;
+    private final FraudDetectionService fraudDetectionService;
+    private final SubscriptionService subscriptionService;
 
+    @Autowired
     public SignupService(
         UserRepository userRepository,
         UserFactory userFactory,
         SignupResponseBuilder responseBuilder,
         FirestoreTransactionTemplate transactionTemplate,
-        AuthenticationMethodRepository authenticationMethodRepository
+        AuthenticationMethodRepository authenticationMethodRepository,
+        @Autowired(required = false) FraudDetectionService fraudDetectionService,
+        @Autowired(required = false) SubscriptionService subscriptionService
     ) {
         this.userRepository = userRepository;
         this.userFactory = userFactory;
         this.responseBuilder = responseBuilder;
         this.transactionTemplate = transactionTemplate;
         this.authenticationMethodRepository = authenticationMethodRepository;
+        this.fraudDetectionService = fraudDetectionService;
+        this.subscriptionService = subscriptionService;
     }
 
     /**
@@ -64,6 +74,12 @@ public class SignupService extends BaseService {
         log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", request.getEmail(), authMethod);
 
         try {
+            // Verify reCAPTCHA token for fraud detection (before any database operations)
+            if (fraudDetectionService != null) {
+                fraudDetectionService.verifySignup(request.getRecaptchaToken(), request.getEmail());
+                log.info("=====> SIGNUP SERVICE: reCAPTCHA verification passed for email: {}", request.getEmail());
+            }
+
             // Create the user entity with profile information using the factory
             UserEntity user = userFactory.createUser(request);
             String createdBy = request.getEmail();
@@ -91,6 +107,18 @@ public class SignupService extends BaseService {
             });
 
             log.info("=====> SIGNUP SERVICE: OAuth user created successfully in transaction with security subcollection: {}", createdUser.getUserId());
+
+            // Initialize 30-day trial subscription for new user
+            // Done outside transaction - subscription can be created separately
+            if (subscriptionService != null) {
+                try {
+                    subscriptionService.initializeTrial(createdUser.getUserId());
+                    log.info("=====> SIGNUP SERVICE: Initialized 30-day trial for user: {}", createdUser.getUserId());
+                } catch (Exception e) {
+                    // Non-fatal - subscription will be created lazily if this fails
+                    log.warn("Failed to initialize trial subscription for user {}: {}", createdUser.getUserId(), e.getMessage());
+                }
+            }
 
             // Watchlist initialization removed - Dashboard will create watchlist on-demand
             // This makes signup instant and prevents failures from external API issues

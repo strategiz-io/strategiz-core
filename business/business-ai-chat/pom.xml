@@ -24,6 +24,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Business Preferences (for subscription and credit tracking) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-preferences</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Business Portfolio (for portfolio context) -->
         <dependency>
             <groupId>io.strategiz</groupId>

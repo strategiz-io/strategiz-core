@@ -37,7 +37,14 @@ public enum PreferencesErrorDetails implements ErrorDetails {
 	// === Subscription Preferences Errors ===
 	INVALID_TIER(HttpStatus.BAD_REQUEST, "prefs-invalid-tier"),
 	TIER_DOWNGRADE_NOT_ALLOWED(HttpStatus.FORBIDDEN, "prefs-tier-downgrade-not-allowed"),
-	SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "prefs-subscription-limit-exceeded");
+	SUBSCRIPTION_LIMIT_EXCEEDED(HttpStatus.FORBIDDEN, "prefs-subscription-limit-exceeded"),
+
+	// === Credit/Usage Errors ===
+	INSUFFICIENT_CREDITS(HttpStatus.PAYMENT_REQUIRED, "prefs-insufficient-credits"),
+	CREDITS_EXHAUSTED(HttpStatus.PAYMENT_REQUIRED, "prefs-credits-exhausted"),
+	USAGE_LIMIT_WARNING(HttpStatus.OK, "prefs-usage-limit-warning"),
+	USAGE_LIMIT_CRITICAL(HttpStatus.OK, "prefs-usage-limit-critical"),
+	TRIAL_EXPIRED(HttpStatus.PAYMENT_REQUIRED, "prefs-trial-expired");
 
 	private final HttpStatus httpStatus;
 

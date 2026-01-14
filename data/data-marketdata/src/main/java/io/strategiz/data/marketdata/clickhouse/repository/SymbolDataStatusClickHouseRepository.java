@@ -42,8 +42,8 @@ public class SymbolDataStatusClickHouseRepository {
 	public SymbolDataStatusEntity save(SymbolDataStatusEntity entity) {
 		String sql = """
 				INSERT INTO symbol_data_status (
-				    symbol, timeframe, last_update, last_bar_timestamp, record_count,
-				    consecutive_failures, last_error, status, updated_at
+				    symbol, timeframe, last_collection_at, latest_timestamp, bar_count,
+				    error_count, last_error, status, updated_at
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 				""";
 
@@ -61,11 +61,11 @@ public class SymbolDataStatusClickHouseRepository {
 	 */
 	public List<Map<String, Object>> findLatestStatusBySymbol(String symbol) {
 		String sql = """
-				SELECT symbol, timeframe, last_update, record_count, status
+				SELECT symbol, timeframe, last_collection_at, bar_count, status
 				FROM symbol_data_status
 				WHERE symbol = ?
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    WHERE symbol = ?
 				    GROUP BY symbol, timeframe
@@ -77,8 +77,8 @@ public class SymbolDataStatusClickHouseRepository {
 			Map<String, Object> map = new HashMap<>();
 			map.put("symbol", rs.getString("symbol"));
 			map.put("timeframe", rs.getString("timeframe"));
-			map.put("last_update", rs.getTimestamp("last_update"));
-			map.put("record_count", rs.getLong("record_count"));
+			map.put("last_collection_at", rs.getTimestamp("last_collection_at"));
+			map.put("bar_count", rs.getLong("bar_count"));
 			map.put("status", rs.getString("status"));
 			return map;
 		}, symbol, symbol);
@@ -89,17 +89,17 @@ public class SymbolDataStatusClickHouseRepository {
 	 */
 	public List<Map<String, Object>> findStaleSymbols(String timeframe, Instant staleThreshold, Pageable pageable) {
 		String sql = """
-				SELECT symbol, timeframe, last_update, record_count, status
+				SELECT symbol, timeframe, last_collection_at, bar_count, status
 				FROM symbol_data_status
 				WHERE timeframe = ?
 				AND status = 'STALE'
-				AND last_update < ?
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND last_collection_at < ?
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
-				ORDER BY last_update ASC
+				ORDER BY last_collection_at ASC
 				LIMIT ? OFFSET ?
 				""";
 
@@ -107,8 +107,8 @@ public class SymbolDataStatusClickHouseRepository {
 			Map<String, Object> map = new HashMap<>();
 			map.put("symbol", rs.getString("symbol"));
 			map.put("timeframe", rs.getString("timeframe"));
-			map.put("last_update", rs.getTimestamp("last_update"));
-			map.put("record_count", rs.getLong("record_count"));
+			map.put("last_collection_at", rs.getTimestamp("last_collection_at"));
+			map.put("bar_count", rs.getLong("bar_count"));
 			map.put("status", rs.getString("status"));
 			return map;
 		}, timeframe, Timestamp.from(staleThreshold), pageable.getPageSize(), pageable.getOffset());
@@ -119,25 +119,25 @@ public class SymbolDataStatusClickHouseRepository {
 	 */
 	public List<Map<String, Object>> findFailingSymbols(int threshold) {
 		String sql = """
-				SELECT symbol, timeframe, last_update, record_count,
-				       consecutive_failures, last_error, status
+				SELECT symbol, timeframe, last_collection_at, bar_count,
+				       error_count, last_error, status
 				FROM symbol_data_status
-				WHERE consecutive_failures > ?
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				WHERE error_count > ?
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
-				ORDER BY consecutive_failures DESC
+				ORDER BY error_count DESC
 				""";
 
 		return jdbcTemplate.query(sql, (rs, rowNum) -> {
 			Map<String, Object> map = new HashMap<>();
 			map.put("symbol", rs.getString("symbol"));
 			map.put("timeframe", rs.getString("timeframe"));
-			map.put("last_update", rs.getTimestamp("last_update"));
-			map.put("record_count", rs.getLong("record_count"));
-			map.put("consecutive_failures", rs.getInt("consecutive_failures"));
+			map.put("last_collection_at", rs.getTimestamp("last_collection_at"));
+			map.put("bar_count", rs.getLong("bar_count"));
+			map.put("error_count", rs.getInt("error_count"));
 			map.put("last_error", rs.getString("last_error"));
 			map.put("status", rs.getString("status"));
 			return map;
@@ -151,10 +151,10 @@ public class SymbolDataStatusClickHouseRepository {
 		String sql = """
 				SELECT timeframe,
 				       COUNT(*) as symbol_count,
-				       AVG(dateDiff('second', last_update, now())) as avg_age_seconds
+				       AVG(dateDiff('second', last_collection_at, now())) as avg_age_seconds
 				FROM symbol_data_status
-				WHERE (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				WHERE (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -172,11 +172,11 @@ public class SymbolDataStatusClickHouseRepository {
 	 */
 	public List<Map<String, Object>> findByTimeframe(String timeframe, Pageable pageable) {
 		String sql = """
-				SELECT symbol, timeframe, last_update, record_count, status
+				SELECT symbol, timeframe, last_collection_at, bar_count, status
 				FROM symbol_data_status
 				WHERE timeframe = ?
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -188,8 +188,8 @@ public class SymbolDataStatusClickHouseRepository {
 			Map<String, Object> map = new HashMap<>();
 			map.put("symbol", rs.getString("symbol"));
 			map.put("timeframe", rs.getString("timeframe"));
-			map.put("last_update", rs.getTimestamp("last_update"));
-			map.put("record_count", rs.getLong("record_count"));
+			map.put("last_collection_at", rs.getTimestamp("last_collection_at"));
+			map.put("bar_count", rs.getLong("bar_count"));
 			map.put("status", rs.getString("status"));
 			return map;
 		}, timeframe, pageable.getPageSize(), pageable.getOffset());
@@ -203,8 +203,8 @@ public class SymbolDataStatusClickHouseRepository {
 				SELECT COUNT(DISTINCT symbol) FROM symbol_data_status
 				WHERE timeframe = ?
 				AND status = ?
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -218,11 +218,11 @@ public class SymbolDataStatusClickHouseRepository {
 	 */
 	public List<Map<String, Object>> searchSymbols(String pattern, Pageable pageable) {
 		String sql = """
-				SELECT symbol, timeframe, last_update, record_count, status
+				SELECT symbol, timeframe, last_collection_at, bar_count, status
 				FROM symbol_data_status
 				WHERE symbol LIKE ?
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -234,8 +234,8 @@ public class SymbolDataStatusClickHouseRepository {
 			Map<String, Object> map = new HashMap<>();
 			map.put("symbol", rs.getString("symbol"));
 			map.put("timeframe", rs.getString("timeframe"));
-			map.put("last_update", rs.getTimestamp("last_update"));
-			map.put("record_count", rs.getLong("record_count"));
+			map.put("last_collection_at", rs.getTimestamp("last_collection_at"));
+			map.put("bar_count", rs.getLong("bar_count"));
 			map.put("status", rs.getString("status"));
 			return map;
 		}, pattern, pageable.getPageSize(), pageable.getOffset());
@@ -248,8 +248,8 @@ public class SymbolDataStatusClickHouseRepository {
 		String sql = """
 				SELECT status, COUNT(*) as count
 				FROM symbol_data_status
-				WHERE (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				WHERE (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -278,14 +278,14 @@ public class SymbolDataStatusClickHouseRepository {
 				SELECT
 				    timeframe,
 				    COUNT(DISTINCT symbol) as total_symbols,
-				    countIf(dateDiff('minute', last_update, now()) <= ?) as fresh_symbols,
-				    countIf(dateDiff('minute', last_update, now()) > ? AND status = 'STALE') as stale_symbols,
+				    countIf(dateDiff('minute', last_collection_at, now()) <= ?) as fresh_symbols,
+				    countIf(dateDiff('minute', last_collection_at, now()) > ? AND status = 'STALE') as stale_symbols,
 				    countIf(status = 'FAILED') as failed_symbols,
-				    ROUND((countIf(dateDiff('minute', last_update, now()) <= ?) * 100.0) / COUNT(DISTINCT symbol), 2) as freshness_percent
+				    ROUND((countIf(dateDiff('minute', last_collection_at, now()) <= ?) * 100.0) / COUNT(DISTINCT symbol), 2) as freshness_percent
 				FROM symbol_data_status
 				WHERE timeframe IN (%s)
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -344,18 +344,18 @@ public class SymbolDataStatusClickHouseRepository {
 				SELECT
 				    symbol,
 				    timeframe,
-				    last_update,
-				    last_bar_timestamp,
-				    record_count,
-				    consecutive_failures,
+				    last_collection_at,
+				    latest_timestamp,
+				    bar_count,
+				    error_count,
 				    last_error,
 				    status,
-				    dateDiff('minute', last_update, now()) as minutes_since_update
+				    dateDiff('minute', last_collection_at, now()) as minutes_since_update
 				FROM symbol_data_status
 				WHERE symbol IN (%s)
 				AND timeframe IN (%s)
-				AND (symbol, timeframe, last_update) IN (
-				    SELECT symbol, timeframe, MAX(last_update)
+				AND (symbol, timeframe, last_collection_at) IN (
+				    SELECT symbol, timeframe, MAX(last_collection_at)
 				    FROM symbol_data_status
 				    GROUP BY symbol, timeframe
 				)
@@ -380,10 +380,10 @@ public class SymbolDataStatusClickHouseRepository {
 			Map<String, Object> map = new HashMap<>();
 			map.put("symbol", rs.getString("symbol"));
 			map.put("timeframe", rs.getString("timeframe"));
-			map.put("last_update", rs.getTimestamp("last_update"));
-			map.put("last_bar_timestamp", rs.getTimestamp("last_bar_timestamp"));
-			map.put("record_count", rs.getLong("record_count"));
-			map.put("consecutive_failures", rs.getInt("consecutive_failures"));
+			map.put("last_collection_at", rs.getTimestamp("last_collection_at"));
+			map.put("latest_timestamp", rs.getTimestamp("latest_timestamp"));
+			map.put("bar_count", rs.getLong("bar_count"));
+			map.put("error_count", rs.getInt("error_count"));
 			map.put("last_error", rs.getString("last_error"));
 			map.put("status", rs.getString("status"));
 			map.put("minutes_since_update", rs.getLong("minutes_since_update"));
@@ -401,15 +401,15 @@ public class SymbolDataStatusClickHouseRepository {
 			SymbolDataStatusEntity entity = new SymbolDataStatusEntity();
 			entity.setSymbol(rs.getString("symbol"));
 			entity.setTimeframe(rs.getString("timeframe"));
-			entity.setLastUpdate(rs.getTimestamp("last_update").toInstant());
+			entity.setLastUpdate(rs.getTimestamp("last_collection_at").toInstant());
 
-			Timestamp lastBarTimestamp = rs.getTimestamp("last_bar_timestamp");
+			Timestamp lastBarTimestamp = rs.getTimestamp("latest_timestamp");
 			if (lastBarTimestamp != null) {
 				entity.setLastBarTimestamp(lastBarTimestamp.toInstant());
 			}
 
-			entity.setRecordCount(rs.getLong("record_count"));
-			entity.setConsecutiveFailures(rs.getInt("consecutive_failures"));
+			entity.setRecordCount(rs.getLong("bar_count"));
+			entity.setConsecutiveFailures(rs.getInt("error_count"));
 			entity.setLastError(rs.getString("last_error"));
 			entity.setStatus(rs.getString("status"));
 

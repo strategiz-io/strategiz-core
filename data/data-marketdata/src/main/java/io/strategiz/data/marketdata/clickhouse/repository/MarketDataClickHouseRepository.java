@@ -317,33 +317,32 @@ public class MarketDataClickHouseRepository {
 
 	/**
 	 * Migrate timeframe format from long format to short format.
-	 * Converts: 1H->1H, 4Hour->4H, 1D->1D, 1W->1W, 1M->1M
+	 * Converts: 1Hour->1H, 4Hour->4H, 1Day->1D, 1Week->1W, 1Month->1M
 	 *
 	 * Note: Minute formats (1Min, 5Min, 15Min, 30Min) stay unchanged.
-	 * Note: Data already stored as 1D stays unchanged.
 	 */
 	public void migrateTimeframeToShortFormat() {
 		log.info("=== Starting timeframe format migration to short format ===");
 
-		// Migrate 1H -> 1H
-		log.info("Migrating 1H -> 1H...");
-		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1H' WHERE timeframe = '1H'");
+		// Migrate 1Hour -> 1H
+		log.info("Migrating 1Hour -> 1H...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1H' WHERE timeframe = '1Hour'");
 
 		// Migrate 4Hour -> 4H
 		log.info("Migrating 4Hour -> 4H...");
 		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '4H' WHERE timeframe = '4Hour'");
 
-		// Migrate 1D -> 1D (in case any exists)
-		log.info("Migrating 1D -> 1D...");
-		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1D' WHERE timeframe = '1D'");
+		// Migrate 1Day -> 1D
+		log.info("Migrating 1Day -> 1D...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1D' WHERE timeframe = '1Day'");
 
-		// Migrate 1W -> 1W
-		log.info("Migrating 1W -> 1W...");
-		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1W' WHERE timeframe = '1W'");
+		// Migrate 1Week -> 1W
+		log.info("Migrating 1Week -> 1W...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1W' WHERE timeframe = '1Week'");
 
-		// Migrate 1M -> 1M
-		log.info("Migrating 1M -> 1M...");
-		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1M' WHERE timeframe = '1M'");
+		// Migrate 1Month -> 1M
+		log.info("Migrating 1Month -> 1M...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1M' WHERE timeframe = '1Month'");
 
 		log.info("=== Timeframe migration submitted. Run OPTIMIZE TABLE FINAL to apply immediately. ===");
 	}

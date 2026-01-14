@@ -61,6 +61,11 @@
             <artifactId>framework-authorization</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-token-issuance</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Auth Service (includes all auth controllers and services) -->
         <dependency>

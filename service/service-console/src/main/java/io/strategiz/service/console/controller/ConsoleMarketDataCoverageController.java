@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/v1/console/marketdata/coverage")
 @Tag(name = "Console Market Data Coverage", description = "Admin endpoints for market data coverage monitoring")
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class ConsoleMarketDataCoverageController extends BaseController {
 
     private static final String MODULE_NAME = "CONSOLE";
@@ -253,38 +255,43 @@ public class ConsoleMarketDataCoverageController extends BaseController {
         String adminUserId = (String) request.getAttribute("adminUserId");
         logRequest("getFreshnessMetrics", adminUserId, "threshold=" + freshnessThresholdMinutes);
 
-        // Target timeframes for S&P 500 coverage tracking
-        List<String> targetTimeframes = List.of("1Hour", "1Day", "1Week", "1Month");
-        int totalSymbols = 547;  // S&P 500 symbols
+        try {
+            // Target timeframes for S&P 500 coverage tracking
+            List<String> targetTimeframes = List.of("1Hour", "1Day", "1Week", "1Month");
+            int totalSymbols = 547;  // S&P 500 symbols
 
-        // Calculate freshness metrics per timeframe
-        List<Map<String, Object>> timeframeMetrics = symbolDataStatusService.calculateFreshnessMetrics(
-            targetTimeframes,
-            freshnessThresholdMinutes
-        );
+            // Calculate freshness metrics per timeframe
+            List<Map<String, Object>> timeframeMetrics = symbolDataStatusService.calculateFreshnessMetrics(
+                targetTimeframes,
+                freshnessThresholdMinutes
+            );
 
-        // Calculate overall freshness
-        long totalPairs = (long) totalSymbols * targetTimeframes.size();  // 547 * 4 = 2,188
-        long totalFreshPairs = timeframeMetrics.stream()
-            .mapToLong(m -> (Long) m.get("freshSymbols"))
-            .sum();
-        double overallFreshnessPercent = (totalFreshPairs * 100.0) / totalPairs;
+            // Calculate overall freshness
+            long totalPairs = (long) totalSymbols * targetTimeframes.size();  // 547 * 4 = 2,188
+            long totalFreshPairs = timeframeMetrics.stream()
+                .mapToLong(m -> (Long) m.get("freshSymbols"))
+                .sum();
+            double overallFreshnessPercent = (totalFreshPairs * 100.0) / totalPairs;
 
-        // Build response
-        Map<String, Object> response = new HashMap<>();
-        response.put("overallFreshnessPercent", Math.round(overallFreshnessPercent * 100.0) / 100.0);
-        response.put("totalFreshPairs", totalFreshPairs);
-        response.put("totalPairs", totalPairs);
-        response.put("totalSymbols", totalSymbols);
-        response.put("totalTimeframes", targetTimeframes.size());
-        response.put("freshnessThresholdMinutes", freshnessThresholdMinutes);
-        response.put("timeframeMetrics", timeframeMetrics);
-        response.put("calculatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+            // Build response
+            Map<String, Object> response = new HashMap<>();
+            response.put("overallFreshnessPercent", Math.round(overallFreshnessPercent * 100.0) / 100.0);
+            response.put("totalFreshPairs", totalFreshPairs);
+            response.put("totalPairs", totalPairs);
+            response.put("totalSymbols", totalSymbols);
+            response.put("totalTimeframes", targetTimeframes.size());
+            response.put("freshnessThresholdMinutes", freshnessThresholdMinutes);
+            response.put("timeframeMetrics", timeframeMetrics);
+            response.put("calculatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 
-        log.info("Freshness metrics: {}/{} pairs fresh ({}%)",
-            totalFreshPairs, totalPairs, Math.round(overallFreshnessPercent));
+            log.info("Freshness metrics: {}/{} pairs fresh ({}%)",
+                totalFreshPairs, totalPairs, Math.round(overallFreshnessPercent));
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to calculate freshness metrics: {}", e.getMessage(), e);
+            throw handleException(e, "freshness-metrics-calculation-failed");
+        }
     }
 
     /**

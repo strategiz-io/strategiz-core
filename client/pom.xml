@@ -53,6 +53,7 @@
         <module>client-webpush</module>
         <module>client-finnhub</module>
         <module>client-fmp</module>
+        <module>client-recaptcha</module>
     </modules>
     
     <dependencies>

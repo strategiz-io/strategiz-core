@@ -80,7 +80,11 @@ public enum AuthErrors implements ErrorDetails {
 	// Signup errors
 	EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "auth-email-already-exists"),
 	SIGNUP_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "auth-signup-failed"),
-	USER_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "auth-user-creation-failed");
+	USER_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "auth-user-creation-failed"),
+
+	// Fraud detection errors
+	FRAUD_DETECTED(HttpStatus.FORBIDDEN, "auth-fraud-detected"),
+	RECAPTCHA_FAILED(HttpStatus.BAD_REQUEST, "auth-recaptcha-failed");
 
 	private final HttpStatus httpStatus;
 

@@ -26,6 +26,7 @@ public class OAuthSignupRequest {
     private String photoURL;
     private String phoneNumber;
     private Map<String, String> authData;
+    private String recaptchaToken;
 
     /**
      * Default constructor
@@ -92,5 +93,13 @@ public class OAuthSignupRequest {
 
     public void setAuthData(Map<String, String> authData) {
         this.authData = authData;
+    }
+
+    public String getRecaptchaToken() {
+        return recaptchaToken;
+    }
+
+    public void setRecaptchaToken(String recaptchaToken) {
+        this.recaptchaToken = recaptchaToken;
     }
 }

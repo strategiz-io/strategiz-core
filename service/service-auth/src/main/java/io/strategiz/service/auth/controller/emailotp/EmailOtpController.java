@@ -20,9 +20,8 @@ import java.util.Map;
  * Handles sending and verifying email-based one-time passwords.
  * Uses clean architecture - returns resources directly, no wrappers.
  */
-// Temporarily disabled due to JPA entity issues
-// @RestController
-// @RequestMapping("/auth/emailotp")
+@RestController
+@RequestMapping("/v1/auth/emailotp")
 public class EmailOtpController {
 
     private static final Logger log = LoggerFactory.getLogger(EmailOtpController.class);

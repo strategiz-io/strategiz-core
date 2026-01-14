@@ -42,7 +42,7 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	}
 
 	/**
-	 * Get subscription for a user. Creates default (Scout) subscription if none exists.
+	 * Get subscription for a user. Creates default (Trial) subscription if none exists.
 	 * @param userId The user ID
 	 * @return The user subscription
 	 */
@@ -53,17 +53,14 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 
 		if (existing.isPresent()) {
 			UserSubscription sub = existing.get();
-			// Reset daily usage if it's a new day
+			// Reset daily usage if it's a new day (legacy compatibility)
 			resetDailyUsageIfNeeded(userId, sub);
 			return sub;
 		}
 
-		// Return default subscription (not persisted until upgraded)
-		UserSubscription defaults = new UserSubscription();
+		// Return default subscription (Trial tier - not persisted until upgraded)
+		UserSubscription defaults = new UserSubscription(SubscriptionTier.TRIAL);
 		defaults.setSubscriptionId(UserSubscription.SUBSCRIPTION_ID);
-		defaults.setTier(SubscriptionTier.SCOUT.getId());
-		defaults.setStatus("active");
-		defaults.setUsageResetDate(LocalDate.now().format(DATE_FORMAT));
 		return defaults;
 	}
 

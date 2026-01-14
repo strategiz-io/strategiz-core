@@ -509,9 +509,10 @@ public class AlertController {
      */
     private int getMaxAlertsForTier(SubscriptionTier tier) {
         return switch (tier) {
-            case SCOUT -> 3;        // FREE tier
-            case TRADER -> 10;      // STARTER tier
-            case STRATEGIST -> 0;   // PRO tier (unlimited)
+            case TRIAL -> 3;        // Trial tier (limited)
+            case EXPLORER -> 10;    // Entry paid tier
+            case STRATEGIST -> 0;   // Mid tier (unlimited)
+            case QUANT -> 0;        // Premium tier (unlimited)
         };
     }
 

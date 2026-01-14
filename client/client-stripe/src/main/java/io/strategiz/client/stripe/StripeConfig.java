@@ -24,11 +24,14 @@ public class StripeConfig {
 	@Value("${stripe.webhook.secret:}")
 	private String webhookSecret;
 
-	@Value("${stripe.price.trader:}")
-	private String traderPriceId;
+	@Value("${stripe.price.explorer:}")
+	private String explorerPriceId;
 
 	@Value("${stripe.price.strategist:}")
 	private String strategistPriceId;
+
+	@Value("${stripe.price.quant:}")
+	private String quantPriceId;
 
 	@Value("${app.base-url:https://strategiz.io}")
 	private String appBaseUrl;
@@ -56,12 +59,16 @@ public class StripeConfig {
 		return webhookSecret;
 	}
 
-	public String getTraderPriceId() {
-		return traderPriceId;
+	public String getExplorerPriceId() {
+		return explorerPriceId;
 	}
 
 	public String getStrategistPriceId() {
 		return strategistPriceId;
+	}
+
+	public String getQuantPriceId() {
+		return quantPriceId;
 	}
 
 	public String getAppBaseUrl() {
@@ -70,13 +77,14 @@ public class StripeConfig {
 
 	/**
 	 * Get the Stripe Price ID for a given tier.
-	 * @param tierId The tier ID (trader, strategist)
+	 * @param tierId The tier ID (explorer, strategist, quant)
 	 * @return The Stripe Price ID, or null if not found
 	 */
 	public String getPriceIdForTier(String tierId) {
 		return switch (tierId.toLowerCase()) {
-			case "trader" -> traderPriceId;
+			case "explorer" -> explorerPriceId;
 			case "strategist" -> strategistPriceId;
+			case "quant" -> quantPriceId;
 			default -> null;
 		};
 	}
@@ -102,12 +110,16 @@ public class StripeConfig {
 		this.webhookSecret = webhookSecret;
 	}
 
-	public void setTraderPriceId(String traderPriceId) {
-		this.traderPriceId = traderPriceId;
+	public void setExplorerPriceId(String explorerPriceId) {
+		this.explorerPriceId = explorerPriceId;
 	}
 
 	public void setStrategistPriceId(String strategistPriceId) {
 		this.strategistPriceId = strategistPriceId;
+	}
+
+	public void setQuantPriceId(String quantPriceId) {
+		this.quantPriceId = quantPriceId;
 	}
 
 }

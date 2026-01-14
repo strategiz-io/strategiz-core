@@ -17,8 +17,9 @@ import org.springframework.context.annotation.Configuration;
  * - api-secret-key: Stripe secret key (sk_live_xxx or sk_test_xxx)
  * - api-publishable-key: Stripe publishable key (pk_live_xxx or pk_test_xxx)
  * - webhook-secret: Stripe webhook signing secret (whsec_xxx)
- * - price-trader: Stripe Price ID for Trader tier
- * - price-strategist: Stripe Price ID for Strategist tier
+ * - price-explorer: Stripe Price ID for Explorer tier ($149/mo)
+ * - price-strategist: Stripe Price ID for Strategist tier ($199/mo)
+ * - price-quant: Stripe Price ID for Quant tier ($229/mo)
  */
 @Configuration
 public class StripeVaultConfig {
@@ -64,17 +65,23 @@ public class StripeVaultConfig {
 				log.info("Loaded Stripe webhook secret from Vault");
 			}
 
-			// Load price IDs
-			String traderPriceId = secretManager.readSecret("stripe.price-trader", null);
-			if (traderPriceId != null && !traderPriceId.isEmpty()) {
-				stripeConfig.setTraderPriceId(traderPriceId);
-				log.info("Loaded Stripe Trader price ID from Vault");
+			// Load price IDs for subscription tiers
+			String explorerPriceId = secretManager.readSecret("stripe.price-explorer", null);
+			if (explorerPriceId != null && !explorerPriceId.isEmpty()) {
+				stripeConfig.setExplorerPriceId(explorerPriceId);
+				log.info("Loaded Stripe Explorer price ID from Vault");
 			}
 
 			String strategistPriceId = secretManager.readSecret("stripe.price-strategist", null);
 			if (strategistPriceId != null && !strategistPriceId.isEmpty()) {
 				stripeConfig.setStrategistPriceId(strategistPriceId);
 				log.info("Loaded Stripe Strategist price ID from Vault");
+			}
+
+			String quantPriceId = secretManager.readSecret("stripe.price-quant", null);
+			if (quantPriceId != null && !quantPriceId.isEmpty()) {
+				stripeConfig.setQuantPriceId(quantPriceId);
+				log.info("Loaded Stripe Quant price ID from Vault");
 			}
 
 			if (stripeConfig.isConfigured()) {

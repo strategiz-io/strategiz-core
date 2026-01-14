@@ -23,6 +23,21 @@ public class ChatResponse {
 	private String error;
 
 	/**
+	 * Credits consumed for this request (weighted by model).
+	 */
+	private Integer creditsUsed;
+
+	/**
+	 * Remaining credits for the billing period.
+	 */
+	private Integer remainingCredits;
+
+	/**
+	 * Warning level for usage (none, warning, critical, blocked).
+	 */
+	private String usageWarningLevel;
+
+	/**
 	 * Additional metadata for the response (type, title, summary, riskLevel, etc.)
 	 * Used primarily for portfolio insights caching
 	 */
@@ -107,6 +122,30 @@ public class ChatResponse {
 
 	public void setMetadata(Map<String, Object> metadata) {
 		this.metadata = metadata;
+	}
+
+	public Integer getCreditsUsed() {
+		return creditsUsed;
+	}
+
+	public void setCreditsUsed(Integer creditsUsed) {
+		this.creditsUsed = creditsUsed;
+	}
+
+	public Integer getRemainingCredits() {
+		return remainingCredits;
+	}
+
+	public void setRemainingCredits(Integer remainingCredits) {
+		this.remainingCredits = remainingCredits;
+	}
+
+	public String getUsageWarningLevel() {
+		return usageWarningLevel;
+	}
+
+	public void setUsageWarningLevel(String usageWarningLevel) {
+		this.usageWarningLevel = usageWarningLevel;
 	}
 
 }

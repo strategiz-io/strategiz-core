@@ -30,7 +30,7 @@ public class UserProfileEntity {
     
     @NotBlank(message = "Subscription tier is required")
     @JsonProperty("subscriptionTier")
-    private String subscriptionTier = "free"; // free, premium, enterprise
+    private String subscriptionTier = "trial"; // trial, explorer, strategist, quant
     
     @NotNull(message = "Demo mode is required")
     @JsonProperty("demoMode")
@@ -47,7 +47,7 @@ public class UserProfileEntity {
         this.name = name;
         this.email = email;
         this.isEmailVerified = false;
-        this.subscriptionTier = "free";
+        this.subscriptionTier = "trial";
         this.demoMode = true;
     }
 

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -20,20 +21,29 @@ public class FraudDetectionService {
 
 	private static final Logger logger = LoggerFactory.getLogger(FraudDetectionService.class);
 
-	private final RecaptchaClient recaptchaClient;
+	private RecaptchaClient recaptchaClient;
 
 	@Value("${recaptcha.threshold:0.5}")
 	private double threshold;
 
-	@Value("${recaptcha.enabled:true}")
+	@Value("${recaptcha.enabled:false}")
 	private boolean enabled;
 
 	@Value("${recaptcha.block-on-failure:false}")
 	private boolean blockOnFailure;
 
+	public FraudDetectionService() {
+		// Default constructor - recaptchaClient will be null if not configured
+	}
+
 	@Autowired(required = false)
-	public FraudDetectionService(RecaptchaClient recaptchaClient) {
+	public void setRecaptchaClient(@Nullable RecaptchaClient recaptchaClient) {
 		this.recaptchaClient = recaptchaClient;
+		if (recaptchaClient != null) {
+			logger.info("FraudDetectionService initialized with RecaptchaClient");
+		} else {
+			logger.info("FraudDetectionService initialized without RecaptchaClient - fraud detection disabled");
+		}
 	}
 
 	/**

@@ -1203,10 +1203,11 @@ public class AIStrategyPrompts {
 		prompt.append("     * Use FRACTIONAL Kelly (25-50% of full Kelly) to reduce volatility\n");
 		prompt.append("     * If Kelly suggests >10%, cap it at 10% (full Kelly can be too aggressive)\n\n");
 		prompt.append("2. AVOID COMMON PITFALLS:\n");
-		prompt.append("   - DON'T overtrade (fewer high-quality trades beat many poor ones)\n");
+		prompt.append("   - DON'T be too conservative - aim for 10-100+ trades over 3 years to beat buy-and-hold\n");
 		prompt.append("   - DON'T curve-fit to historical data (avoid overfitting)\n");
 		prompt.append("   - DON'T ignore transaction costs and slippage\n");
-		prompt.append("   - DON'T use too many indicators (creates conflicting signals)\n\n");
+		prompt.append("   - DON'T use too many indicators (creates conflicting signals)\n");
+		prompt.append("   - CRITICAL: A strategy with only 2-5 trades is NOT a real strategy - increase sensitivity!\n\n");
 		prompt.append("3. ENTRY/EXIT TIMING:\n");
 		prompt.append("   - Wait for confirmation before entry (don't chase)\n");
 		prompt.append("   - Use proper take-profit targets (risk:reward ratio minimum 2:1)\n");
@@ -1225,11 +1226,11 @@ public class AIStrategyPrompts {
 		prompt.append("      - Ignore signals during very low volume periods (< 50% avg)\n");
 		prompt.append("      - Volume = validation that institutions are participating\n\n");
 
-		prompt.append("   b) DRAWDOWN MANAGEMENT (Prevents Blowups):\n");
-		prompt.append("      - After 15% drawdown: reduce ALL position sizes to 50%\n");
-		prompt.append("      - After 25% drawdown: reduce to 25% until recovery to 20%\n");
-		prompt.append("      - After 3 consecutive losses: cut size to 25% until 1 win\n");
-		prompt.append("      - This prevents revenge trading and catastrophic losses\n\n");
+		prompt.append("   b) DRAWDOWN MANAGEMENT (Optional - use sparingly):\n");
+		prompt.append("      - SKIP drawdown management if it would reduce trade frequency below 10 trades/3 years\n");
+		prompt.append("      - Simple stop-loss per trade is usually sufficient\n");
+		prompt.append("      - Focus on GENERATING ENOUGH TRADES to beat buy-and-hold, not avoiding losses\n");
+		prompt.append("      - A strategy that trades rarely cannot beat buy-and-hold in trending markets\n\n");
 
 		prompt.append("   c) TRAILING STOPS (Lock in Profits):\n");
 		prompt.append("      - Once profit reaches 1.5R: move stop to breakeven immediately\n");

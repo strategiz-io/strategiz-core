@@ -1,5 +1,5 @@
 steps:
-# Build the Docker image (using production Dockerfile with embedded Vault)
+# Build the Docker image (using production Dockerfile with external Vault)
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-f', 'application-auth/Dockerfile.production', '-t', 'gcr.io/$PROJECT_ID/strategiz-auth', '.']
 
@@ -25,8 +25,8 @@ steps:
     - '--max-instances=10'
     - '--timeout=60'
     - '--cpu-boost'
-    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod'
-    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest,VAULT_UNSEAL_KEY=vault-unseal-keys:latest'
+    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod,VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app,STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app,OTEL_TRACES_EXPORTER=none,OTEL_METRICS_EXPORTER=none,OTEL_LOGS_EXPORTER=none'
+    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:
 - 'gcr.io/$PROJECT_ID/strategiz-auth'

@@ -10,5 +10,6 @@ public record PasskeyAuthenticationCompletionRequest(
     String authenticatorData,
     String signature,
     String userHandle,
-    String deviceId
+    String deviceId,
+    String recaptchaToken
 ) {}

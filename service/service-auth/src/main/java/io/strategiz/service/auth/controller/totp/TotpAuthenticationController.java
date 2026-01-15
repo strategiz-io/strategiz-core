@@ -2,6 +2,7 @@ package io.strategiz.service.auth.controller.totp;
 
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
+import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.auth.service.totp.TotpAuthenticationService;
 import io.strategiz.service.auth.model.totp.TotpAuthenticationRequest;
 import io.strategiz.service.auth.model.ApiTokenResponse;
@@ -44,9 +45,12 @@ public class TotpAuthenticationController extends BaseController {
     
     @Autowired
     private TotpAuthenticationService totpAuthService;
-    
+
     @Autowired
     private CookieUtil cookieUtil;
+
+    @Autowired(required = false)
+    private FraudDetectionService fraudDetectionService;
     
     /**
      * Authenticate using TOTP code - Create full authentication session
@@ -65,10 +69,15 @@ public class TotpAuthenticationController extends BaseController {
             HttpServletResponse servletResponse) {
         
         logRequest("totpAuthentication", request.userId());
-        
+
+        // Verify reCAPTCHA token for fraud detection
+        if (fraudDetectionService != null) {
+            fraudDetectionService.verifyLogin(request.recaptchaToken(), request.userId());
+        }
+
         // Extract client IP address
         String ipAddress = servletRequest.getRemoteAddr();
-        
+
         // Authenticate with TOTP and create session - let exceptions bubble up
         ApiTokenResponse tokens = totpAuthService.authenticateWithTotp(
             request.userId(), 

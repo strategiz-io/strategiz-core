@@ -2,6 +2,7 @@ package io.strategiz.service.auth.controller.smsotp;
 
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
+import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.auth.service.smsotp.SmsOtpAuthenticationService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
@@ -31,9 +32,12 @@ public class SmsOtpAuthenticationController extends BaseController {
     
     @Autowired
     private SmsOtpAuthenticationService smsOtpAuthenticationService;
-    
+
     @Autowired
     private CookieUtil cookieUtil;
+
+    @Autowired(required = false)
+    private FraudDetectionService fraudDetectionService;
     
     @Override
     protected String getModuleName() {
@@ -54,7 +58,12 @@ public class SmsOtpAuthenticationController extends BaseController {
             @RequestHeader(value = "X-Forwarded-For", required = false) String ipAddress) {
         
         logRequest("requestAuthenticationOtp", request.phoneNumber);
-        
+
+        // Verify reCAPTCHA token for fraud detection
+        if (fraudDetectionService != null) {
+            fraudDetectionService.verifyLogin(request.recaptchaToken(), request.phoneNumber);
+        }
+
         // Send authentication OTP - requires userId
         String sessionId = smsOtpAuthenticationService.sendAuthenticationOtp(
             request.userId,
@@ -88,7 +97,12 @@ public class SmsOtpAuthenticationController extends BaseController {
             @RequestHeader(value = "X-Forwarded-For", required = false) String ipAddress) {
         
         logRequest("requestAuthenticationByPhone", request.phoneNumber);
-        
+
+        // Verify reCAPTCHA token for fraud detection
+        if (fraudDetectionService != null) {
+            fraudDetectionService.verifyLogin(request.recaptchaToken(), request.phoneNumber);
+        }
+
         // Send authentication OTP by phone lookup
         String sessionId = smsOtpAuthenticationService.sendAuthenticationOtpByPhone(
             request.phoneNumber,
@@ -171,11 +185,13 @@ public class SmsOtpAuthenticationController extends BaseController {
     public record AuthenticationOtpRequest(
         @NotBlank(message = "User ID is required")
         String userId,
-        
+
         @NotBlank(message = "Phone number is required")
         String phoneNumber,
-        
-        String countryCode
+
+        String countryCode,
+
+        String recaptchaToken
     ) {}
     
     /**
@@ -184,8 +200,10 @@ public class SmsOtpAuthenticationController extends BaseController {
     public record PhoneAuthenticationRequest(
         @NotBlank(message = "Phone number is required")
         String phoneNumber,
-        
-        String countryCode
+
+        String countryCode,
+
+        String recaptchaToken
     ) {}
     
     /**

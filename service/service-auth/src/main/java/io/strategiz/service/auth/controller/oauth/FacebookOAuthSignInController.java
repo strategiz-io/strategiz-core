@@ -1,11 +1,13 @@
 package io.strategiz.service.auth.controller.oauth;
 
+import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.auth.service.oauth.FacebookOAuthService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
@@ -29,6 +31,9 @@ public class FacebookOAuthSignInController extends BaseController {
     
     private final FacebookOAuthService facebookOAuthService;
     private final CookieUtil cookieUtil;
+
+    @Autowired(required = false)
+    private FraudDetectionService fraudDetectionService;
 
     public FacebookOAuthSignInController(FacebookOAuthService facebookOAuthService, CookieUtil cookieUtil) {
         this.facebookOAuthService = facebookOAuthService;
@@ -81,8 +86,14 @@ public class FacebookOAuthSignInController extends BaseController {
 
         String code = callbackRequest.get("code");
         String state = callbackRequest.get("state");
+        String recaptchaToken = callbackRequest.get("recaptchaToken");
 
         logger.info("Received OAuth sign-in callback JSON with state: {}", state);
+
+        // Verify reCAPTCHA token for fraud detection
+        if (fraudDetectionService != null) {
+            fraudDetectionService.verifyLogin(recaptchaToken, "facebook-oauth");
+        }
 
         try {
             Map<String, Object> result = facebookOAuthService.handleOAuthCallback(code, state, null, false);

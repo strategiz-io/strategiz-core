@@ -264,7 +264,7 @@ public class SymbolDataStatusClickHouseRepository {
 	 * Calculate freshness metrics for specific timeframes.
 	 * Returns counts of fresh symbols (updated within threshold) per timeframe.
 	 *
-	 * @param timeframes List of timeframes to check (e.g., ["1H", "1D", "1W", "1M"])
+	 * @param timeframes List of timeframes to check (e.g., ["1h", "1D", "1W", "1M"])
 	 * @param freshnessThresholdMinutes Threshold in minutes (e.g., 15 for "within last 15 min")
 	 * @return Map of timeframe -> freshness data (totalSymbols, freshSymbols, staleSymbols, failedSymbols, freshnessPercent)
 	 */

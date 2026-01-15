@@ -50,7 +50,7 @@ public class MarketDataBatchController {
 	 * Execute full backfill - configurable years of data for all symbols
 	 *
 	 * POST /v1/marketdata/admin/backfill/full Request body: { "timeframes": ["1D",
-	 * "1H", "1W", "1M"], "years": 7 } (optional)
+	 * "1h", "1W", "1M"], "years": 7 } (optional)
 	 *
 	 * Processes all timeframes synchronously and returns results when complete.
 	 *
@@ -60,7 +60,7 @@ public class MarketDataBatchController {
 	public ResponseEntity<Map<String, Object>> executeFullBackfill(@RequestBody(required = false) BackfillRequest request) {
 
 		List<String> timeframes = request != null && request.timeframes != null && !request.timeframes.isEmpty()
-				? request.timeframes : Arrays.asList("1D", "1H", "1W", "1M");
+				? request.timeframes : Arrays.asList("1D", "1h", "1W", "1M");
 
 		int years = request != null && request.years > 0 ? request.years : 7;
 
@@ -560,7 +560,7 @@ public class MarketDataBatchController {
 		status.put("service", "MarketDataCollectionService");
 		status.put("dataSource", "ALPACA");
 		status.put("dataFeed", "IEX (free tier)");
-		status.put("defaultTimeframes", Arrays.asList("1D", "1H", "1W", "1M"));
+		status.put("defaultTimeframes", Arrays.asList("1D", "1h", "1W", "1M"));
 		status.put("defaultBackfillYears", 7);
 		status.put("threadPoolSize", collectionService.getThreadPoolSize());
 		status.put("batchSize", collectionService.getBatchSize());
@@ -610,7 +610,7 @@ public class MarketDataBatchController {
 				corruptedCount = repo.countCorrupted1DBars();
 				corruptionLogic = "Daily bars not at midnight UTC (hour != 0)";
 			}
-			else if ("1H".equals(timeframe)) {
+			else if ("1h".equals(timeframe)) {
 				corruptedCount = repo.countCorrupted1HBars();
 				corruptionLogic = "Hourly bars not on-the-hour (minute != 0)";
 			}
@@ -708,7 +708,7 @@ public class MarketDataBatchController {
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
 			response.put("message", "Submitted DELETE for ALL corrupted bars across all timeframes");
-			response.put("timeframes", java.util.List.of("1D", "1W", "1M", "1H"));
+			response.put("timeframes", java.util.List.of("1D", "1W", "1M", "1h"));
 			response.put("note", "Deletion is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately.");
 
 			log.info("Deleted all corrupted bars across all timeframes");
@@ -763,16 +763,17 @@ public class MarketDataBatchController {
 	}
 
 	/**
-	 * Migrate timeframe format from long format to short format.
+	 * Migrate timeframe format to canonical format.
 	 *
 	 * POST /v1/marketdata/admin/migrate/timeframe-format
 	 *
-	 * Converts: 1H->1H, 4H->4H, 1D->1D, 1W->1W, 1M->1M
-	 * This is a one-time migration to standardize timeframe format.
+	 * Target format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
+	 * - Minutes/hours: lowercase (1m, 30m, 1h, 4h)
+	 * - Day/week/month: uppercase (1D, 1W, 1M)
 	 */
 	@PostMapping("/migrate/timeframe-format")
 	public ResponseEntity<Map<String, Object>> migrateTimeframeFormat() {
-		log.warn("=== Admin API: Migrate Timeframe Format to Short Format ===");
+		log.warn("=== Admin API: Migrate Timeframe Format to Canonical Format ===");
 
 		try {
 			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
@@ -784,7 +785,11 @@ public class MarketDataBatchController {
 			Map<String, Object> response = new HashMap<>();
 			response.put("status", "success");
 			response.put("message", "Timeframe format migration submitted");
-			response.put("conversions", java.util.List.of("1H->1H", "4H->4H", "1D->1D", "1W->1W", "1M->1M"));
+			response.put("targetFormat", "1m, 30m, 1h, 4h, 1D, 1W, 1M");
+			response.put("conversions", java.util.List.of(
+					"1Hour->1h", "1H->1h", "4Hour->4h", "4H->4h",
+					"1Day->1D", "1Week->1W", "1Month->1M",
+					"1Min->1m", "30Min->30m"));
 			response.put("durationSeconds", duration);
 			response.put("note", "Migration is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately, then verify with analyze endpoint.");
 

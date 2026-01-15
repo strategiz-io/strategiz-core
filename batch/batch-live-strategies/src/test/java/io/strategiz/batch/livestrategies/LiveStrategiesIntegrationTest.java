@@ -287,7 +287,7 @@ class LiveStrategiesIntegrationTest {
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
 			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1H");
+					"AAPL", startDate, endDate, "1h");
 
 			log.info("Found {} hourly bars for AAPL in last 7 days", bars.size());
 			// Market hours: 9:30 AM - 4:00 PM ET = 6.5 hours per day, ~5 trading days

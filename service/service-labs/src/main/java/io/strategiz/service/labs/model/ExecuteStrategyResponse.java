@@ -264,7 +264,7 @@ public class ExecuteStrategyResponse {
         private String testPeriod; // Formatted period (e.g., "2 years, 3 months")
 
         @JsonProperty("timeframe")
-        private String timeframe; // Candlestick interval (e.g., "1D", "1H", "15m")
+        private String timeframe; // Candlestick interval (e.g., "1D", "1h", "30m")
 
         // Buy-and-hold comparison metrics
         @JsonProperty("buyAndHoldReturn")

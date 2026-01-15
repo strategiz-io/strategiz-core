@@ -59,7 +59,7 @@ public class StrategyExecutionService extends BaseService {
      * @param code Python strategy code
      * @param language Programming language (always "python" for now)
      * @param symbol Stock/crypto symbol (e.g., "AAPL", "BTC")
-     * @param timeframe Chart timeframe (e.g., "1D", "1H")
+     * @param timeframe Chart timeframe (e.g., "1D", "1h")
      * @param period Backtest period (e.g., "6mo", "1y", "2y", "5y", "7y", "max")
      * @param userId User ID for tracking
      * @param strategy Optional strategy entity (for seedFundingDate)
@@ -208,7 +208,7 @@ public class StrategyExecutionService extends BaseService {
      */
     private LocalDate calculateDynamicStartDate(LocalDate endDate, String timeframe) {
         return switch (timeframe) {
-            case "1H", "4H" -> endDate.minusMonths(6);   // Hourly: 6 months
+            case "1h", "4h" -> endDate.minusMonths(6);   // Hourly: 6 months
             case "1D" -> endDate.minusYears(2);          // Daily: 2 years (current)
             case "1W" -> endDate.minusYears(5);          // Weekly: 5 years
             case "1M" -> endDate.minusYears(7);          // Monthly: 7 years
@@ -219,13 +219,16 @@ public class StrategyExecutionService extends BaseService {
     /**
      * Convert frontend timeframe format to database format.
      *
-     * Frontend/Python uses: 1H, 1D, 1W, 1M
-     * Database stores: 1H, 1D, 1W, 1M
+     * Frontend/Python uses: 1h, 4h, 1D, 1W, 1M
+     * Database stores: 1h, 4h, 1D, 1W, 1M
+     * Convention: lowercase for minutes/hours (1m, 30m, 1h, 4h), uppercase for day+ (1D, 1W, 1M)
      */
     private String convertToDbTimeframe(String timeframe) {
         return switch (timeframe) {
-            case "1H" -> "1H";
-            case "4H" -> "4H";
+            case "1m" -> "1m";
+            case "30m" -> "30m";
+            case "1h" -> "1h";
+            case "4h" -> "4h";
             case "1D" -> "1D";
             case "1W" -> "1W";
             case "1M" -> "1M";

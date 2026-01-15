@@ -55,7 +55,7 @@ public class MarketDataEntity extends BaseEntity implements Serializable {
 
     @PropertyName("timeframe")
     @JsonProperty("timeframe")
-    private String timeframe;        // "1Min", "5Min", "15Min", "1H", "1D", "1W", "1M"
+    private String timeframe;        // "1m", "30m", "1h", "4h", "1D", "1W", "1M"
 
     // OHLCV data
     @PropertyName("open")

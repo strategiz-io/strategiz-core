@@ -68,7 +68,7 @@ public class StrategyPerformance implements Serializable {
     private Integer backtestPeriodDays; // Actual days tested
 
     @JsonProperty("timeframe")
-    private String timeframe; // Candlestick interval (e.g., "1D", "1H", "15m")
+    private String timeframe; // Candlestick interval (e.g., "1D", "1h", "30m")
 
     // Constructors
     public StrategyPerformance() {

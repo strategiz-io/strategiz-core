@@ -100,15 +100,15 @@ public class BDDTestConfiguration {
             private String extractTimeframe(String prompt) {
                 String lower = prompt.toLowerCase();
                 // Check longer patterns first to avoid substring matches
-                if (lower.contains("15 min") || lower.contains("15 minute")) return "15Min";
-                if (lower.contains("4 hour") || lower.contains("4h")) return "4H";
-                if (lower.contains("1 minute") || lower.contains("1min")) return "1Min";
-                if (lower.contains("5 min")) return "5Min";
-                if (lower.contains("1 hour") || lower.contains("hourly") || lower.contains("1h")) return "1H";
-                if (lower.contains("hourly basis")) return "1H";
+                // Convention: lowercase for minutes/hours (1m, 30m, 1h, 4h), uppercase for day+ (1D, 1W, 1M)
+                if (lower.contains("30 min") || lower.contains("30 minute")) return "30m";
+                if (lower.contains("4 hour") || lower.contains("4h")) return "4h";
+                if (lower.contains("1 minute") || lower.contains("1min")) return "1m";
+                if (lower.contains("1 hour") || lower.contains("hourly") || lower.contains("1h")) return "1h";
+                if (lower.contains("hourly basis")) return "1h";
                 if (lower.contains("daily") || lower.contains("1 day") || lower.contains("1d")) return "1D";
                 if (lower.contains("weekly") || lower.contains("1 week") || lower.contains("1w")) return "1W";
-                if (lower.contains("monthly") || lower.contains("1m")) return "1M";
+                if (lower.contains("monthly")) return "1M";
                 return "1D"; // Default
             }
 

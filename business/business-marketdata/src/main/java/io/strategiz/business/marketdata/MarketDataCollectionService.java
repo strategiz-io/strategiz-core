@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
  * - Batch saves (500 entities per batch)
  * - Comprehensive field mapping to MarketDataEntity
  * - Symbol metadata enrichment from Assets API
- * - All timeframe support (1Min, 5Min, 15Min, 1H, 1D, 1W, 1M)
+ * - All timeframe support (1m, 30m, 1h, 4h, 1D, 1W, 1M)
  * - Automatic pagination handling
  * - Rate limiting and error recovery
  *
@@ -105,7 +105,7 @@ public class MarketDataCollectionService {
      * Backfill historical data for all symbols from Firestore.
      * Uses multi-threading for parallel symbol processing.
      *
-     * @param timeframe Bar interval ("1Min", "5Min", "15Min", "1H", "1D", "1W", "1M")
+     * @param timeframe Bar interval ("1m", "30m", "1h", "4h", "1D", "1W", "1M")
      * @return Collection result with statistics
      */
     public CollectionResult backfillIntradayData(String timeframe) {
@@ -270,11 +270,13 @@ public class MarketDataCollectionService {
     private String toAlpacaTimeframe(String timeframe) {
         if (timeframe == null) return "1Day";
         switch (timeframe) {
-            case "1H": return "1Hour";
-            case "4H": return "4Hour";
+            case "1h": return "1Hour";
+            case "4h": return "4Hour";
             case "1D": return "1Day";
             case "1W": return "1Week";
             case "1M": return "1Month";
+            case "1m": return "1Min";
+            case "30m": return "30Min";
             // Handle if already in long format
             case "1Hour": return "1Hour";
             case "4Hour": return "4Hour";
@@ -287,24 +289,28 @@ public class MarketDataCollectionService {
 
     /**
      * Convert Alpaca/legacy long format to our canonical short format for storage.
-     * Storage format: 1Min, 5Min, 15Min, 30Min, 1H, 4H, 1D, 1W, 1M
+     * Storage format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
      */
     private String toStorageTimeframe(String timeframe) {
         if (timeframe == null) return "1D";
         switch (timeframe) {
             // Convert from long format to short
-            case "1Hour": return "1H";
-            case "4Hour": return "4H";
+            case "1Hour": return "1h";
+            case "4Hour": return "4h";
             case "1Day": return "1D";
             case "1Week": return "1W";
             case "1Month": return "1M";
+            case "1Min": return "1m";
+            case "30Min": return "30m";
             // Already in short format
-            case "1H": return "1H";
-            case "4H": return "4H";
+            case "1h": return "1h";
+            case "4h": return "4h";
             case "1D": return "1D";
             case "1W": return "1W";
             case "1M": return "1M";
-            default: return timeframe; // Minute-based timeframes pass through
+            case "1m": return "1m";
+            case "30m": return "30m";
+            default: return timeframe; // Unknown timeframes pass through
         }
     }
 

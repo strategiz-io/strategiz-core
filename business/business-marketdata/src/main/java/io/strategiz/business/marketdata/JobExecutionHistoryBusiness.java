@@ -50,7 +50,7 @@ public class JobExecutionHistoryBusiness {
      *
      * @param jobId Job ID from jobs table (e.g., "MARKETDATA_INCREMENTAL")
      * @param jobName Legacy job name for backward compatibility
-     * @param timeframes JSON array of timeframes being processed (e.g., ["1D", "1H"])
+     * @param timeframes JSON array of timeframes being processed (e.g., ["1D", "1h"])
      * @return The execution ID for tracking (may be dummy ID if DB fails)
      */
     public String recordJobStart(String jobId, String jobName, String timeframes) {

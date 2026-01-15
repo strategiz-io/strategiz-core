@@ -43,7 +43,7 @@ public class MarketDataController extends BaseController {
      * GET /v1/market-data/bars?symbol=AAPL&timeframe=1D&startDate=2024-01-01T00:00:00Z&endDate=2024-12-31T23:59:59Z
      *
      * @param symbol Stock symbol (required, e.g., "AAPL")
-     * @param timeframe Timeframe for the bars (required, e.g., "1D", "1H")
+     * @param timeframe Timeframe for the bars (required, e.g., "1D", "1h")
      * @param period Period shorthand (optional, e.g., "7d", "30d", "90d", "6m", "1y", "2y", "3y", "5y", "7y", "max")
      * @param startDate Start date in ISO 8601 format (optional, e.g., "2024-01-01T00:00:00Z")
      * @param endDate End date in ISO 8601 format (optional, e.g., "2024-12-31T23:59:59Z")

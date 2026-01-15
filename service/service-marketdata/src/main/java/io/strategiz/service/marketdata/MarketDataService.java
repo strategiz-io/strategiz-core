@@ -45,7 +45,7 @@ public class MarketDataService extends BaseService {
      * Cached for 5 minutes to reduce Firestore reads
      *
      * @param symbol The stock symbol (e.g., "AAPL")
-     * @param timeframe The timeframe (e.g., "1D", "1H", "1Min") - accepts both canonical and legacy formats
+     * @param timeframe The timeframe (e.g., "1D", "1h", "1m") - accepts both canonical and legacy formats
      * @param startDate Start date in ISO format (e.g., "2024-01-01T00:00:00Z")
      * @param endDate End date in ISO format (e.g., "2024-12-31T23:59:59Z")
      * @return List of market data entities sorted by timestamp ascending

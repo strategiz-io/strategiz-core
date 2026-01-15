@@ -807,6 +807,37 @@ public class MarketDataBatchController {
 	}
 
 	/**
+	 * Get distinct timeframes in the database with their counts.
+	 * Useful for diagnosing data format issues.
+	 *
+	 * GET /v1/marketdata/admin/timeframes
+	 */
+	@GetMapping("/timeframes")
+	public ResponseEntity<Map<String, Object>> getDistinctTimeframes() {
+		log.info("=== Admin API: Get Distinct Timeframes ===");
+
+		try {
+			io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository repo = getMarketDataRepository();
+			List<Map<String, Object>> timeframes = repo.findDistinctTimeframesWithCounts();
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("status", "success");
+			response.put("timeframes", timeframes);
+			response.put("totalFormats", timeframes.size());
+
+			log.info("Found {} distinct timeframe formats", timeframes.size());
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to get distinct timeframes: {}", e.getMessage(), e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("status", "error");
+			errorResponse.put("message", "Failed: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
+		}
+	}
+
+	/**
 	 * Helper to get ClickHouse repository bean.
 	 */
 	private io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository getMarketDataRepository() {

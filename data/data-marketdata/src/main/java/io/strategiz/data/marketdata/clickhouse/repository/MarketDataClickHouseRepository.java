@@ -136,6 +136,14 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
+	 * Get all distinct timeframes across all data with counts.
+	 */
+	public List<Map<String, Object>> findDistinctTimeframesWithCounts() {
+		String sql = "SELECT timeframe, COUNT(*) as count FROM market_data GROUP BY timeframe ORDER BY count DESC";
+		return jdbcTemplate.queryForList(sql);
+	}
+
+	/**
 	 * Count records by symbol.
 	 */
 	public long countBySymbol(String symbol) {

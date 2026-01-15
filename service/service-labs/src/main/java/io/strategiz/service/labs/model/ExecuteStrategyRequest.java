@@ -20,7 +20,7 @@ public class ExecuteStrategyRequest {
     private String language; // For direct code execution
     
     @JsonProperty("timeframe")
-    private String timeframe = "1D"; // 1M, 5M, 1H, 1D, etc.
+    private String timeframe = "1D"; // 1m, 30m, 1h, 4h, 1D, 1W, 1M
 
     @JsonProperty("period")
     private String period = "2y"; // 6mo, 1y, 2y, 5y, 7y, max

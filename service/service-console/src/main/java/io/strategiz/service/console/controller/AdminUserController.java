@@ -126,4 +126,19 @@ public class AdminUserController extends BaseController {
         log.warn("User {} permanently deleted by admin {}", userId, adminUserId);
         return ResponseEntity.ok(Map.of("message", "User permanently deleted"));
     }
+
+    @PostMapping("/{userId}/role")
+    @Operation(summary = "Update user role", description = "Updates the role for a specific user (USER or ADMIN)")
+    public ResponseEntity<AdminUserResponse> updateUserRole(
+            @Parameter(description = "User ID") @PathVariable String userId,
+            @RequestBody Map<String, String> body,
+            HttpServletRequest request) {
+        String adminUserId = (String) request.getAttribute("adminUserId");
+        String newRole = body.get("role");
+        logRequest("updateUserRole", adminUserId, "targetUserId=" + userId + ", newRole=" + newRole);
+
+        AdminUserResponse user = adminUserService.updateUserRole(userId, newRole, adminUserId);
+        log.info("User {} role updated to {} by admin {}", userId, newRole, adminUserId);
+        return ResponseEntity.ok(user);
+    }
 }

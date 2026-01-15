@@ -42,7 +42,7 @@ public class HistoricalInsightsService {
 	/**
 	 * Main entry point: Analyze a symbol and return comprehensive historical insights.
 	 * @param symbol Symbol to analyze
-	 * @param timeframe Timeframe (e.g., "1D", "1H")
+	 * @param timeframe Timeframe (e.g., "1D", "1h")
 	 * @param lookbackDays Number of days to look back (default 2600 for ~7 years)
 	 * @param includeFundamentals Whether to include fundamental analysis
 	 * @return SymbolInsights object with all computed insights

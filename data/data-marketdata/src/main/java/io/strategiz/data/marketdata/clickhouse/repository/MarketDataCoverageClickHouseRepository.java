@@ -60,17 +60,17 @@ public class MarketDataCoverageClickHouseRepository {
 				""";
 
 		// Extract timeframe metrics
-		Map<String, Object> tf1H = extractTimeframeMetrics(entity, "1H");
+		Map<String, Object> tf1h = extractTimeframeMetrics(entity, "1h");
 		Map<String, Object> tf1D = extractTimeframeMetrics(entity, "1D");
 		Map<String, Object> tf1W = extractTimeframeMetrics(entity, "1W");
 		Map<String, Object> tf1M = extractTimeframeMetrics(entity, "1M");
 
 		// Calculate overall freshness from timeframe data
-		long totalFresh = (long) tf1H.get("fresh") + (long) tf1D.get("fresh") +
+		long totalFresh = (long) tf1h.get("fresh") + (long) tf1D.get("fresh") +
 				(long) tf1W.get("fresh") + (long) tf1M.get("fresh");
-		long totalStale = (long) tf1H.get("stale") + (long) tf1D.get("stale") +
+		long totalStale = (long) tf1h.get("stale") + (long) tf1D.get("stale") +
 				(long) tf1W.get("stale") + (long) tf1M.get("stale");
-		long totalFailed = (long) tf1H.get("failed") + (long) tf1D.get("failed") +
+		long totalFailed = (long) tf1h.get("failed") + (long) tf1D.get("failed") +
 				(long) tf1W.get("failed") + (long) tf1M.get("failed");
 		long totalPairs = totalFresh + totalStale + totalFailed;
 		double overallPercent = totalPairs > 0 ? (totalFresh * 100.0 / totalPairs) : 0.0;
@@ -86,11 +86,11 @@ public class MarketDataCoverageClickHouseRepository {
 				totalFailed,
 				totalPairs,
 
-				// 1H metrics
-				tf1H.get("total"), tf1H.get("fresh"), tf1H.get("stale"), tf1H.get("failed"),
-				tf1H.get("percent"),
-				tf1H.get("totalBars"), tf1H.get("avgBars"),
-				tf1H.get("dateStart"), tf1H.get("dateEnd"),
+				// 1h metrics
+				tf1h.get("total"), tf1h.get("fresh"), tf1h.get("stale"), tf1h.get("failed"),
+				tf1h.get("percent"),
+				tf1h.get("totalBars"), tf1h.get("avgBars"),
+				tf1h.get("dateStart"), tf1h.get("dateEnd"),
 
 				// 1D metrics
 				tf1D.get("total"), tf1D.get("fresh"), tf1D.get("stale"), tf1D.get("failed"),
@@ -256,7 +256,7 @@ public class MarketDataCoverageClickHouseRepository {
 
 			// Reconstruct timeframe coverage map
 			Map<String, MarketDataCoverageEntity.TimeframeCoverage> byTimeframe = new HashMap<>();
-			byTimeframe.put("1H", mapTimeframeCoverage(rs, "tf_1hour_"));
+			byTimeframe.put("1h", mapTimeframeCoverage(rs, "tf_1hour_"));
 			byTimeframe.put("1D", mapTimeframeCoverage(rs, "tf_1day_"));
 			byTimeframe.put("1W", mapTimeframeCoverage(rs, "tf_1week_"));
 			byTimeframe.put("1M", mapTimeframeCoverage(rs, "tf_1month_"));

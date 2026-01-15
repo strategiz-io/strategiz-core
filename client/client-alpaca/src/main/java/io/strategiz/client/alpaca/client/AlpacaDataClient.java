@@ -72,7 +72,7 @@ public class AlpacaDataClient {
      * Get portfolio history
      * @param accessToken OAuth access token
      * @param period Time period (e.g., "1D", "1W", "1M")
-     * @param timeframe Resolution (e.g., "1Min", "5Min", "1H", "1D")
+     * @param timeframe Resolution (e.g., "1m", "30m", "1h", "4h", "1D")
      * @return Portfolio history data
      */
     public Map<String, Object> getPortfolioHistory(String accessToken, String period, String timeframe) {

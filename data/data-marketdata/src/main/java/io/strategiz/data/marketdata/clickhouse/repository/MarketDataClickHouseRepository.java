@@ -316,33 +316,44 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Migrate timeframe format from long format to short format.
-	 * Converts: 1Hour->1H, 4Hour->4H, 1Day->1D, 1Week->1W, 1Month->1M
-	 *
-	 * Note: Minute formats (1Min, 5Min, 15Min, 30Min) stay unchanged.
+	 * Migrate timeframe format to canonical format.
+	 * Target format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
+	 * - Minutes/hours: lowercase (1m, 30m, 1h, 4h)
+	 * - Day/week/month: uppercase (1D, 1W, 1M)
 	 */
 	public void migrateTimeframeToShortFormat() {
-		log.info("=== Starting timeframe format migration to short format ===");
+		log.info("=== Starting timeframe format migration to canonical format ===");
+		log.info("Target format: 1m, 30m, 1h, 4h, 1D, 1W, 1M");
 
-		// Migrate 1Hour -> 1H
-		log.info("Migrating 1Hour -> 1H...");
-		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1H' WHERE timeframe = '1Hour'");
+		// Migrate hour formats to lowercase
+		log.info("Migrating 1Hour -> 1h...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1h' WHERE timeframe = '1Hour'");
 
-		// Migrate 4Hour -> 4H
-		log.info("Migrating 4Hour -> 4H...");
-		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '4H' WHERE timeframe = '4Hour'");
+		log.info("Migrating 1H -> 1h...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1h' WHERE timeframe = '1H'");
 
-		// Migrate 1Day -> 1D
+		log.info("Migrating 4Hour -> 4h...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '4h' WHERE timeframe = '4Hour'");
+
+		log.info("Migrating 4H -> 4h...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '4h' WHERE timeframe = '4H'");
+
+		// Migrate day/week/month to uppercase (if any long format exists)
 		log.info("Migrating 1Day -> 1D...");
 		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1D' WHERE timeframe = '1Day'");
 
-		// Migrate 1Week -> 1W
 		log.info("Migrating 1Week -> 1W...");
 		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1W' WHERE timeframe = '1Week'");
 
-		// Migrate 1Month -> 1M
 		log.info("Migrating 1Month -> 1M...");
 		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1M' WHERE timeframe = '1Month'");
+
+		// Migrate minute formats to lowercase
+		log.info("Migrating 1Min -> 1m...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '1m' WHERE timeframe = '1Min'");
+
+		log.info("Migrating 30Min -> 30m...");
+		jdbcTemplate.update("ALTER TABLE market_data UPDATE timeframe = '30m' WHERE timeframe = '30Min'");
 
 		log.info("=== Timeframe migration submitted. Run OPTIMIZE TABLE FINAL to apply immediately. ===");
 	}

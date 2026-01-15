@@ -796,7 +796,7 @@ public class SymbolSeedController {
         entity.setProviderSymbols(Map.of("YAHOO", symbol, "ALPACA", symbol));
         entity.setCollectionActive(true);
         entity.setPrimaryDataSource("ALPACA");  // Use Alpaca for stocks
-        entity.setTimeframes(List.of("1Min", "5Min", "15Min", "1H", "1D"));
+        entity.setTimeframes(List.of("1m", "30m", "1h", "4h", "1D"));
         entity.setStatus("ACTIVE");
         return entity;
     }
@@ -809,7 +809,7 @@ public class SymbolSeedController {
         entity.setProviderSymbols(Map.of("YAHOO", symbol, "ALPACA", symbol));
         entity.setCollectionActive(true);
         entity.setPrimaryDataSource("ALPACA");  // Use Alpaca for ETFs
-        entity.setTimeframes(List.of("1Min", "5Min", "15Min", "1H", "1D"));
+        entity.setTimeframes(List.of("1m", "30m", "1h", "4h", "1D"));
         entity.setStatus("ACTIVE");
         return entity;
     }

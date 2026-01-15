@@ -77,7 +77,7 @@ public class SymbolEntity extends BaseEntity {
 
     @PropertyName("timeframes")
     @JsonProperty("timeframes")
-    private List<String> timeframes;  // ["1D", "1H"] - which timeframes collected
+    private List<String> timeframes;  // ["1D", "1h"] - which timeframes collected
 
     @PropertyName("lastCollectedAt")
     @JsonProperty("lastCollectedAt")

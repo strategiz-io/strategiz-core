@@ -77,7 +77,7 @@ public class MarketDataCoverageService {
             snapshot.setTotalSymbols(totalSymbols);
 
             // Standard timeframes to check
-            String[] timeframes = {"1Min", "5Min", "15Min", "1H", "1D", "1W", "1M"};
+            String[] timeframes = {"1m", "30m", "1h", "4h", "1D", "1W", "1M"};
             snapshot.setTotalTimeframes(timeframes.length);
 
             // Calculate coverage for each timeframe

@@ -53,7 +53,7 @@ public class SymbolDataStatusService {
      * Update status after successful data collection for a symbol.
      *
      * @param symbol The symbol (e.g., "AAPL", "BTC/USD")
-     * @param timeframe Timeframe (e.g., "1D", "1H")
+     * @param timeframe Timeframe (e.g., "1D", "1h")
      * @param recordCount Number of records collected
      * @param lastBarTimestamp Timestamp of most recent bar
      */
@@ -357,7 +357,7 @@ public class SymbolDataStatusService {
      * Calculate freshness metrics for specific timeframes.
      * This is the key method for the consolidated coverage view showing "% fresh within 15 minutes".
      *
-     * @param timeframes List of timeframes to check (e.g., ["1H", "1D", "1W", "1M"])
+     * @param timeframes List of timeframes to check (e.g., ["1h", "1D", "1W", "1M"])
      * @param freshnessThresholdMinutes Threshold in minutes (default 15)
      * @return List of maps with freshness data per timeframe
      */
@@ -388,7 +388,7 @@ public class SymbolDataStatusService {
      * Get all symbols with their status across multiple timeframes.
      * Used for the consolidated symbol view showing each symbol's freshness across all target timeframes.
      *
-     * @param timeframes List of timeframes to include (e.g., ["1H", "1D", "1W", "1M"])
+     * @param timeframes List of timeframes to include (e.g., ["1h", "1D", "1W", "1M"])
      * @param page Page number (0-indexed)
      * @param pageSize Number of symbols per page
      * @return List of symbol status maps with timeframe data

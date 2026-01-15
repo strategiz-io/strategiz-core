@@ -8,10 +8,10 @@ import java.util.Set;
 /**
  * Standard timeframe constants for market data.
  *
- * <p>Industry-standard short format: 1Min, 5Min, 15Min, 30Min, 1H, 4H, 1D, 1W, 1M
+ * <p>Industry convention: lowercase below a day, uppercase for day and above.
+ * Format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
  *
  * <p>IMPORTANT: Use these constants throughout all layers for consistency.
- * No aliases or normalization - strict short format only.
  */
 public final class Timeframe {
 
@@ -19,25 +19,19 @@ public final class Timeframe {
 		// Prevent instantiation
 	}
 
-	// === CANONICAL VALUES (short format - industry standard) ===
+	// === CANONICAL VALUES (industry convention) ===
 
 	/** 1 minute bars. */
-	public static final String ONE_MINUTE = "1Min";
-
-	/** 5 minute bars. */
-	public static final String FIVE_MINUTES = "5Min";
-
-	/** 15 minute bars. */
-	public static final String FIFTEEN_MINUTES = "15Min";
+	public static final String ONE_MINUTE = "1m";
 
 	/** 30 minute bars. */
-	public static final String THIRTY_MINUTES = "30Min";
+	public static final String THIRTY_MINUTES = "30m";
 
 	/** 1 hour bars. */
-	public static final String ONE_HOUR = "1H";
+	public static final String ONE_HOUR = "1h";
 
 	/** 4 hour bars. */
-	public static final String FOUR_HOURS = "4H";
+	public static final String FOUR_HOURS = "4h";
 
 	/** Daily bars. */
 	public static final String ONE_DAY = "1D";
@@ -49,8 +43,8 @@ public final class Timeframe {
 	public static final String ONE_MONTH = "1M";
 
 	/** All valid timeframe values. */
-	public static final Set<String> VALID_TIMEFRAMES = Collections.unmodifiableSet(new HashSet<>(
-			Arrays.asList(ONE_MINUTE, FIVE_MINUTES, FIFTEEN_MINUTES, THIRTY_MINUTES, ONE_HOUR, FOUR_HOURS, ONE_DAY, ONE_WEEK, ONE_MONTH)));
+	public static final Set<String> VALID_TIMEFRAMES = Collections
+		.unmodifiableSet(new HashSet<>(Arrays.asList(ONE_MINUTE, THIRTY_MINUTES, ONE_HOUR, FOUR_HOURS, ONE_DAY, ONE_WEEK, ONE_MONTH)));
 
 	/**
 	 * Check if a timeframe string is valid.

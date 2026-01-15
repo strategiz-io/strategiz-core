@@ -99,12 +99,13 @@ public class AIStrategyPrompts {
 			        * "Buy when RSI crosses 30" (no symbol) → SYMBOL = 'SPY' (default)
 
 			   b) TIMEFRAME (REQUIRED):
-			      - Extract from: "1 minute", "5 min", "hourly", "1 hour", "4H", "daily", "1 day", "weekly", etc.
-			      - Convert to standard format: "1Min", "5Min", "15Min", "1H", "4H", "1D", "1W", "1M"
+			      - Extract from: "1 minute", "30 min", "hourly", "1 hour", "4h", "daily", "1 day", "weekly", etc.
+			      - Convert to standard format: "1m", "30m", "1h", "4h", "1D", "1W", "1M"
+			      - Convention: lowercase for minutes/hours (1m, 30m, 1h, 4h), uppercase for day+ (1D, 1W, 1M)
 			      - If NO timeframe mentioned, default to: "1D" (daily)
 			      - Examples:
-			        * "on the 1 hour chart" → TIMEFRAME = '1H'
-			        * "intraday 15 minute strategy" → TIMEFRAME = '15Min'
+			        * "on the 1 hour chart" → TIMEFRAME = '1h'
+			        * "intraday 30 minute strategy" → TIMEFRAME = '30m'
 			        * "daily MACD crossover" → TIMEFRAME = '1D'
 			        * No mention → TIMEFRAME = '1D' (default)
 
@@ -143,7 +144,7 @@ public class AIStrategyPrompts {
 
 			   YOU extract:
 			   SYMBOL = 'AAPL'           # From "Buy AAPL"
-			   TIMEFRAME = '1D'          # From "timeframe of 1 day"
+			   TIMEFRAME = '1D'          # From "timeframe of 1 day" (uppercase for day+)
 			   STOP_LOSS = 3.0           # From "3% stop loss"
 			   TAKE_PROFIT = 8.0         # From "8% take profit"
 			   POSITION_SIZE = 5         # Not specified, use default
@@ -181,7 +182,7 @@ public class AIStrategyPrompts {
 
 			   # Configuration (extracted from user's natural language prompt)
 			   SYMBOL = 'AAPL'        # Extracted: "Buy AAPL when..."
-			   TIMEFRAME = '1H'       # Extracted: "on 1 hour chart" OR default '1D'
+			   TIMEFRAME = '1h'       # Extracted: "on 1 hour chart" OR default '1D' (lowercase for hours)
 			   STOP_LOSS = 3.0        # Extracted: "3% stop loss" OR intelligent default
 			   TAKE_PROFIT = 8.0      # Extracted: "8% take profit" OR 3:1 ratio default
 			   POSITION_SIZE = 5      # Default 5% unless specified

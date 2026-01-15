@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Data repository for company fundamentals. Stores company financial
- * metrics (P/E, EPS, revenue, etc.) for stock screening and analysis.
+ * Data repository for company fundamentals. Stores company financial metrics (P/E, EPS,
+ * revenue, etc.) for stock screening and analysis.
  */
 @Repository
 public class FundamentalsDataRepository {
@@ -56,16 +56,15 @@ public class FundamentalsDataRepository {
 				""";
 
 		Instant now = Instant.now();
-		jdbcTemplate.update(sql, entity.getId(), entity.getSymbol(),
-				java.sql.Date.valueOf(entity.getFiscalPeriod()), entity.getPeriodType(), entity.getRevenue(),
-				entity.getCostOfRevenue(), entity.getGrossProfit(), entity.getOperatingIncome(), entity.getEbitda(),
-				entity.getNetIncome(), entity.getEpsBasic(), entity.getEpsDiluted(), entity.getGrossMargin(),
-				entity.getOperatingMargin(), entity.getProfitMargin(), entity.getReturnOnEquity(),
-				entity.getReturnOnAssets(), entity.getPriceToEarnings(), entity.getPriceToBook(),
-				entity.getPriceToSales(), entity.getPegRatio(), entity.getEnterpriseValue(), entity.getEvToEbitda(),
-				entity.getTotalAssets(), entity.getTotalLiabilities(), entity.getShareholdersEquity(),
-				entity.getCurrentAssets(), entity.getCurrentLiabilities(), entity.getTotalDebt(),
-				entity.getCashAndEquivalents(), entity.getCurrentRatio(), entity.getQuickRatio(),
+		jdbcTemplate.update(sql, entity.getId(), entity.getSymbol(), java.sql.Date.valueOf(entity.getFiscalPeriod()),
+				entity.getPeriodType(), entity.getRevenue(), entity.getCostOfRevenue(), entity.getGrossProfit(),
+				entity.getOperatingIncome(), entity.getEbitda(), entity.getNetIncome(), entity.getEpsBasic(),
+				entity.getEpsDiluted(), entity.getGrossMargin(), entity.getOperatingMargin(), entity.getProfitMargin(),
+				entity.getReturnOnEquity(), entity.getReturnOnAssets(), entity.getPriceToEarnings(),
+				entity.getPriceToBook(), entity.getPriceToSales(), entity.getPegRatio(), entity.getEnterpriseValue(),
+				entity.getEvToEbitda(), entity.getTotalAssets(), entity.getTotalLiabilities(),
+				entity.getShareholdersEquity(), entity.getCurrentAssets(), entity.getCurrentLiabilities(),
+				entity.getTotalDebt(), entity.getCashAndEquivalents(), entity.getCurrentRatio(), entity.getQuickRatio(),
 				entity.getDebtToEquity(), entity.getDebtToAssets(), entity.getDividendPerShare(),
 				entity.getDividendYield(), entity.getPayoutRatio(), entity.getSharesOutstanding(),
 				entity.getMarketCap(), entity.getBookValuePerShare(), entity.getRevenueGrowthYoy(),
@@ -141,8 +140,7 @@ public class FundamentalsDataRepository {
 	/**
 	 * Find fundamentals by symbol and period type.
 	 */
-	public List<FundamentalsEntity> findBySymbolAndPeriodTypeOrderByFiscalPeriodDesc(String symbol,
-			String periodType) {
+	public List<FundamentalsEntity> findBySymbolAndPeriodTypeOrderByFiscalPeriodDesc(String symbol, String periodType) {
 		String sql = """
 				SELECT * FROM company_fundamentals
 				WHERE symbol = ? AND period_type = ?
@@ -155,8 +153,7 @@ public class FundamentalsDataRepository {
 	/**
 	 * Find fundamentals within a date range.
 	 */
-	public List<FundamentalsEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate,
-			LocalDate endDate) {
+	public List<FundamentalsEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate) {
 		String sql = """
 				SELECT * FROM company_fundamentals
 				WHERE symbol = ?
@@ -290,6 +287,59 @@ public class FundamentalsDataRepository {
 	public void deleteBySymbol(String symbol) {
 		String sql = "ALTER TABLE company_fundamentals DELETE WHERE symbol = ?";
 		jdbcTemplate.update(sql, symbol);
+	}
+
+	/**
+	 * Get total count of all fundamentals records.
+	 */
+	public long countAll() {
+		String sql = "SELECT COUNT(*) FROM company_fundamentals";
+		Long count = jdbcTemplate.queryForObject(sql, Long.class);
+		return count != null ? count : 0;
+	}
+
+	/**
+	 * Get count of distinct symbols.
+	 */
+	public int countDistinctSymbols() {
+		String sql = "SELECT COUNT(DISTINCT symbol) FROM company_fundamentals";
+		Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
+		return count != null ? count : 0;
+	}
+
+	/**
+	 * Get date range of fiscal periods (earliest and latest). Returns a map with
+	 * "earliest" and "latest" keys.
+	 */
+	public java.util.Map<String, LocalDate> getDateRange() {
+		String sql = "SELECT MIN(fiscal_period) as earliest, MAX(fiscal_period) as latest FROM company_fundamentals";
+
+		return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+			java.util.Map<String, LocalDate> range = new java.util.HashMap<>();
+			java.sql.Date earliest = rs.getDate("earliest");
+			java.sql.Date latest = rs.getDate("latest");
+			if (earliest != null) {
+				range.put("earliest", earliest.toLocalDate());
+			}
+			if (latest != null) {
+				range.put("latest", latest.toLocalDate());
+			}
+			return range;
+		});
+	}
+
+	/**
+	 * Get count of records grouped by period type. Returns a map with period_type as key
+	 * and count as value.
+	 */
+	public java.util.Map<String, Long> countByPeriodType() {
+		String sql = "SELECT period_type, COUNT(*) as cnt FROM company_fundamentals GROUP BY period_type";
+
+		java.util.Map<String, Long> result = new java.util.HashMap<>();
+		jdbcTemplate.query(sql, (rs) -> {
+			result.put(rs.getString("period_type"), rs.getLong("cnt"));
+		});
+		return result;
 	}
 
 	/**

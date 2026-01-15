@@ -1094,6 +1094,9 @@ public class AIStrategyPrompts {
 	public static String buildHistoricalInsightsPrompt(SymbolInsights insights) {
 		StringBuilder prompt = new StringBuilder();
 
+		// Include comprehensive technical analysis knowledge
+		prompt.append(TECHNICAL_ANALYSIS_KNOWLEDGE).append("\n\n");
+
 		prompt.append("=".repeat(80)).append("\n");
 		prompt.append("HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS\n");
 		prompt.append("=".repeat(80)).append("\n\n");
@@ -1252,13 +1255,59 @@ public class AIStrategyPrompts {
 		prompt.append("      - For breakouts: wait for pullback to retest before entry\n");
 		prompt.append("      - 70% of breakouts fail - confirmation filters out most\n\n");
 
-		prompt.append("Example summaryCard for Feeling Lucky mode:\n");
-		prompt.append(String.format("\"This strategy beats buy-and-hold for %s by using proven patterns from 7 years of data. ",
-				insights.getSymbol()));
-		prompt.append(String.format("RSI with 28/72 thresholds achieved a 68%% win rate historically. "));
-		prompt.append(String.format("This %s volatility symbol responds to mean-reversion with %.1f%% stops and %.1f%% targets, ",
-				insights.getVolatilityRegime().toLowerCase(), recommendedStopLoss, recommendedTakeProfit));
-		prompt.append("generating alpha through strategic entry/exit timing.\"\n");
+		// Add CRITICAL section for trending markets
+		prompt.append("6. CRITICAL: HOW TO BEAT BUY-AND-HOLD IN TRENDING MARKETS:\n");
+		prompt.append("   ⚠️ THE #1 MISTAKE: Sitting in cash waiting for 'perfect' entries in a bull market!\n\n");
+		prompt.append("   If Market Type above is 'Trending' or Trend Direction is 'BULLISH':\n");
+		prompt.append("   a) DO NOT use mean-reversion strategies (RSI < 30 rarely triggers in bull markets)\n");
+		prompt.append("   b) DO NOT use fixed take-profit caps (8% TP in a 100%+ bull run = disaster)\n");
+		prompt.append("   c) DO NOT wait for extreme oversold conditions\n\n");
+		prompt.append("   INSTEAD, for TRENDING/BULLISH markets:\n");
+		prompt.append("   a) USE TREND-FOLLOWING: Buy pullbacks to moving averages (not oversold extremes)\n");
+		prompt.append("   b) USE TRAILING STOPS instead of fixed take-profit:\n");
+		prompt.append("      * Remove TAKE_PROFIT constant entirely OR set it very high (50%+)\n");
+		prompt.append("      * Implement trailing stop in strategy() function:\n");
+		prompt.append("        - Track highest price since entry\n");
+		prompt.append("        - Exit when price drops X% from peak (e.g., 10% trailing)\n");
+		prompt.append("      * This lets winners run in trending markets\n");
+		prompt.append("   c) STAY INVESTED: Better to be in market with stop-loss than sitting in cash\n");
+		prompt.append("   d) BUY DIPS: Entry on pullbacks to 20-day SMA, not RSI < 30\n");
+		prompt.append("   e) PYRAMIDING: Add to winning positions (not losing ones)\n\n");
+		prompt.append("   EXAMPLE TREND-FOLLOWING STRATEGY:\n");
+		prompt.append("   ```python\n");
+		prompt.append("   # Entry: Price pulls back to 20-day SMA in uptrend\n");
+		prompt.append("   sma_20 = data['close'].rolling(20).mean()\n");
+		prompt.append("   sma_50 = data['close'].rolling(50).mean()\n");
+		prompt.append("   uptrend = sma_20.iloc[-1] > sma_50.iloc[-1]  # SMA20 above SMA50\n");
+		prompt.append("   pullback = data['close'].iloc[-1] <= sma_20.iloc[-1] * 1.02  # Within 2% of SMA20\n");
+		prompt.append("   if uptrend and pullback:\n");
+		prompt.append("       return 'BUY'\n");
+		prompt.append("   # Exit: Only on trend reversal (SMA cross) or stop-loss hit\n");
+		prompt.append("   if sma_20.iloc[-1] < sma_50.iloc[-1]:\n");
+		prompt.append("       return 'SELL'\n");
+		prompt.append("   ```\n\n");
+		prompt.append("   WHY THIS BEATS BUY-AND-HOLD:\n");
+		prompt.append("   - Stays invested during uptrends (captures most of the move)\n");
+		prompt.append("   - Exits on trend reversal (avoids major drawdowns)\n");
+		prompt.append("   - Buys dips (better entry prices than buy-and-hold)\n");
+		prompt.append("   - No fixed TP cap (lets winners run to full potential)\n\n");
+
+		// Provide appropriate example based on market type
+		if (!insights.isMeanReverting()) {
+			prompt.append("Example summaryCard for TRENDING market (Feeling Lucky mode):\n");
+			prompt.append(String.format("\"This trend-following strategy beats buy-and-hold for %s by staying invested during uptrends ",
+					insights.getSymbol()));
+			prompt.append("and exiting on trend reversals. Uses SMA crossover to identify trend direction, ");
+			prompt.append(String.format("buys pullbacks to the 20-day SMA with %.1f%% trailing stops. ", recommendedStopLoss * 2));
+			prompt.append("No fixed take-profit cap - lets winners run to maximize gains in trending markets.\"\n");
+		} else {
+			prompt.append("Example summaryCard for MEAN-REVERTING market (Feeling Lucky mode):\n");
+			prompt.append(String.format("\"This mean-reversion strategy beats buy-and-hold for %s by buying oversold conditions ",
+					insights.getSymbol()));
+			prompt.append("and selling at fair value. Uses RSI with optimized 28/72 thresholds from 7 years of data. ");
+			prompt.append(String.format("%.1f%% stop-loss and %.1f%% take-profit based on historical volatility.\"\n",
+					recommendedStopLoss, recommendedTakeProfit));
+		}
 
 		return prompt.toString();
 	}
@@ -1279,7 +1328,16 @@ public class AIStrategyPrompts {
 
 	private static double computeRecommendedTakeProfit(SymbolInsights insights) {
 		double stopLoss = computeRecommendedStopLoss(insights);
-		// Use 3:1 reward-to-risk ratio as default
+
+		// For trending markets, use much higher take-profit (or trailing stop)
+		// This prevents capping gains in bull/bear markets
+		if (!insights.isMeanReverting()) {
+			// Trending market: 10:1 ratio or higher (let winners run)
+			// The prompt will suggest using trailing stops instead
+			return Math.max(stopLoss * 10.0, 30.0);
+		}
+
+		// Mean-reverting market: Use standard 3:1 ratio
 		return stopLoss * 3.0;
 	}
 
@@ -1298,6 +1356,1744 @@ public class AIStrategyPrompts {
 
 		return sb.toString();
 	}
+
+	// ========================================
+	// TECHNICAL ANALYSIS KNOWLEDGE BASE
+	// ========================================
+
+	/**
+	 * Comprehensive technical analysis knowledge including all chart patterns,
+	 * candlestick patterns, and technical indicators from the Strategiz Learning Center.
+	 * This knowledge base teaches the AI to recognize and use proven patterns.
+	 */
+	public static final String TECHNICAL_ANALYSIS_KNOWLEDGE = """
+
+			===========================================
+			TECHNICAL ANALYSIS PATTERN RECOGNITION GUIDE
+			===========================================
+
+			Use this knowledge to identify high-probability setups and generate profitable strategies.
+
+			-------------------------------------------
+			BULLISH CANDLESTICK PATTERNS (Buy Signals)
+			-------------------------------------------
+
+			1. HAMMER (Reliability: HIGH)
+			   - Small body at top, long lower shadow (2x body size minimum)
+			   - Appears after downtrend at support levels
+			   - Entry: Buy on confirmation candle close above hammer high
+			   - Best with: RSI oversold (<30), support levels, volume confirmation
+			   Python detection:
+			   ```
+			   lower_shadow = min(open, close) - low
+			   body = abs(close - open)
+			   is_hammer = lower_shadow > 2 * body and upper_shadow < body * 0.3
+			   ```
+
+			2. THREE WHITE SOLDIERS (Reliability: VERY HIGH)
+			   - Three consecutive bullish candles, each closing higher
+			   - Each opens within previous body, minimal upper shadows
+			   - Strong upward momentum signal
+			   - Entry: Buy on third candle close or pullback
+			   - Best with: Volume confirmation, breakout levels
+
+			3. BULLISH ENGULFING (Reliability: HIGH)
+			   - Large green candle completely engulfs previous red candle
+			   - Appears after downtrend
+			   - Entry: Buy on engulfing candle close
+			   - Best with: Support levels, RSI divergence, high volume
+			   Python detection:
+			   ```
+			   bullish_engulfing = (prev_close < prev_open) and (close > open) and
+			                       (close > prev_open) and (open < prev_close)
+			   ```
+
+			4. MORNING STAR (Reliability: HIGH)
+			   - Three-candle pattern: bearish, small body/doji, bullish
+			   - Star gaps down, third candle closes into first body
+			   - Entry: Buy on third candle close
+			   - Best with: Support levels, RSI oversold
+
+			5. BULLISH HARAMI (Reliability: MEDIUM)
+			   - Small bullish candle inside large bearish candle
+			   - Shows indecision, potential reversal
+			   - Entry: Buy on confirmation above harami high
+			   - Best with: Volume decrease, RSI divergence
+
+			-------------------------------------------
+			BEARISH CANDLESTICK PATTERNS (Sell Signals)
+			-------------------------------------------
+
+			1. SHOOTING STAR (Reliability: HIGH)
+			   - Small body at bottom, long upper shadow
+			   - Appears after uptrend at resistance
+			   - Entry: Sell on confirmation candle close below shooting star low
+			   - Best with: RSI overbought (>70), resistance levels
+			   Python detection:
+			   ```
+			   upper_shadow = high - max(open, close)
+			   body = abs(close - open)
+			   is_shooting_star = upper_shadow > 2 * body and lower_shadow < body * 0.3
+			   ```
+
+			2. THREE BLACK CROWS (Reliability: VERY HIGH)
+			   - Three consecutive bearish candles, each closing lower
+			   - Each opens within previous body, minimal lower shadows
+			   - Strong downward momentum signal
+			   - Entry: Sell/short on third candle close
+			   - Best with: Volume confirmation, breakdown levels
+
+			3. BEARISH ENGULFING (Reliability: HIGH)
+			   - Large red candle completely engulfs previous green candle
+			   - Appears after uptrend
+			   - Entry: Sell on engulfing candle close
+			   - Best with: Resistance levels, RSI divergence
+
+			4. EVENING STAR (Reliability: HIGH)
+			   - Three-candle pattern: bullish, small body/doji, bearish
+			   - Star gaps up, third candle closes into first body
+			   - Entry: Sell on third candle close
+			   - Best with: Resistance levels, RSI overbought
+
+			5. HANGING MAN (Reliability: HIGH)
+			   - Same shape as hammer but appears after uptrend
+			   - Long lower shadow shows selling pressure
+			   - Entry: Sell on confirmation below hanging man low
+			   - Best with: RSI overbought, resistance levels
+
+			-------------------------------------------
+			CHART PATTERNS (Higher Timeframe Setups)
+			-------------------------------------------
+
+			=== BULLISH CONTINUATION/REVERSAL PATTERNS ===
+
+			1. ASCENDING TRIANGLE (Reliability: HIGH, Timeframe: Medium-Long)
+			   - Horizontal resistance, rising support (higher lows)
+			   - Indicates accumulation, typically breaks UP
+			   - Entry: Buy on breakout above resistance with volume
+			   - Target: Height of triangle added to breakout point
+			   - Stop: Below most recent higher low
+			   Python detection:
+			   ```
+			   resistance_level = data['high'].rolling(20).max().iloc[-1]
+			   higher_lows = data['low'].iloc[-10:].is_monotonic_increasing
+			   near_resistance = data['close'].iloc[-1] > resistance_level * 0.98
+			   ascending_triangle = higher_lows and near_resistance
+			   ```
+
+			2. DOUBLE BOTTOM (Reliability: HIGH, Timeframe: Medium-Long)
+			   - Two distinct lows at same level, separated by peak
+			   - "W" shape formation
+			   - Entry: Buy on breakout above neckline (peak)
+			   - Target: Neckline + distance to lows
+			   - Stop: Below the double bottom lows
+
+			3. TRIPLE BOTTOM (Reliability: VERY HIGH, Timeframe: Long)
+			   - Three lows at same level - very strong support
+			   - Entry: Buy on breakout above resistance
+			   - Highest reliability reversal pattern
+
+			4. INVERTED HEAD AND SHOULDERS (Reliability: VERY HIGH, Timeframe: Medium-Long)
+			   - Three troughs: left shoulder, head (lowest), right shoulder
+			   - Most reliable bullish reversal pattern
+			   - Entry: Buy on breakout above neckline
+			   - Target: Neckline + distance from head to neckline
+			   Python detection:
+			   ```
+			   # Simplified detection
+			   head = data['low'].iloc[-20:-10].min()
+			   left_shoulder = data['low'].iloc[-30:-20].min()
+			   right_shoulder = data['low'].iloc[-10:].min()
+			   inv_hs = head < left_shoulder and head < right_shoulder and
+			            abs(left_shoulder - right_shoulder) / left_shoulder < 0.05
+			   ```
+
+			5. BULL FLAG (Reliability: HIGH, Timeframe: Short-Medium)
+			   - Strong upward move (flagpole) + brief consolidation (flag)
+			   - Flag slopes slightly downward or sideways
+			   - Entry: Buy on breakout above flag with volume
+			   - Target: Flagpole height added to breakout
+			   - Best continuation pattern in trending markets
+
+			6. FALLING WEDGE (Reliability: MEDIUM, Timeframe: Medium)
+			   - Both trendlines slope downward and converge
+			   - Bullish despite downward slope
+			   - Entry: Buy on breakout above upper trendline
+			   - Shows weakening selling pressure
+
+			7. CUP AND HANDLE (Reliability: VERY HIGH, Timeframe: Medium-Long)
+			   - U-shaped recovery (cup) + small pullback (handle)
+			   - Handle should be in upper half of cup
+			   - Entry: Buy on breakout above handle resistance
+			   - One of the most reliable continuation patterns
+
+			=== BEARISH CONTINUATION/REVERSAL PATTERNS ===
+
+			1. DESCENDING TRIANGLE (Reliability: HIGH, Timeframe: Medium-Long)
+			   - Horizontal support, falling resistance (lower highs)
+			   - Indicates distribution, typically breaks DOWN
+			   - Entry: Sell on breakdown below support with volume
+			   - Target: Height of triangle subtracted from breakdown
+			   - Stop: Above most recent lower high
+
+			2. DOUBLE TOP (Reliability: HIGH, Timeframe: Medium-Long)
+			   - Two distinct highs at same level, separated by trough
+			   - "M" shape formation
+			   - Entry: Sell on breakdown below neckline
+			   - Target: Neckline - distance to highs
+
+			3. TRIPLE TOP (Reliability: VERY HIGH, Timeframe: Long)
+			   - Three highs at same level - very strong resistance
+			   - Entry: Sell on breakdown below support
+			   - Highest reliability bearish reversal
+
+			4. HEAD AND SHOULDERS (Reliability: VERY HIGH, Timeframe: Medium-Long)
+			   - Three peaks: left shoulder, head (highest), right shoulder
+			   - Most reliable bearish reversal pattern
+			   - Entry: Sell on breakdown below neckline
+			   - Target: Neckline - distance from head to neckline
+			   Python detection:
+			   ```
+			   head = data['high'].iloc[-20:-10].max()
+			   left_shoulder = data['high'].iloc[-30:-20].max()
+			   right_shoulder = data['high'].iloc[-10:].max()
+			   hs = head > left_shoulder and head > right_shoulder and
+			        abs(left_shoulder - right_shoulder) / left_shoulder < 0.05
+			   ```
+
+			5. BEAR FLAG (Reliability: HIGH, Timeframe: Short-Medium)
+			   - Strong downward move (flagpole) + brief consolidation (flag)
+			   - Flag slopes slightly upward or sideways
+			   - Entry: Sell on breakdown below flag with volume
+			   - Best continuation pattern in downtrends
+
+			6. RISING WEDGE (Reliability: MEDIUM, Timeframe: Medium)
+			   - Both trendlines slope upward and converge
+			   - Bearish despite upward slope
+			   - Entry: Sell on breakdown below lower trendline
+			   - Shows weakening buying pressure
+
+			-------------------------------------------
+			KEY MOVING AVERAGE SIGNALS
+			-------------------------------------------
+
+			1. GOLDEN CROSS (Reliability: HIGH, Timeframe: Long-term)
+			   - 50-day MA crosses ABOVE 200-day MA
+			   - Major bullish signal - start of potential long-term uptrend
+			   - Entry: Buy on cross or pullback to 50-day MA
+			   Python:
+			   ```
+			   sma_50 = data['close'].rolling(50).mean()
+			   sma_200 = data['close'].rolling(200).mean()
+			   golden_cross = (sma_50.iloc[-1] > sma_200.iloc[-1]) and (sma_50.iloc[-2] <= sma_200.iloc[-2])
+			   ```
+
+			2. DEATH CROSS (Reliability: HIGH, Timeframe: Long-term)
+			   - 50-day MA crosses BELOW 200-day MA
+			   - Major bearish signal - start of potential long-term downtrend
+			   - Entry: Sell on cross or rally to 50-day MA
+			   Python:
+			   ```
+			   death_cross = (sma_50.iloc[-1] < sma_200.iloc[-1]) and (sma_50.iloc[-2] >= sma_200.iloc[-2])
+			   ```
+
+			3. PRICE ABOVE ALL MAJOR MAs (BULLISH ALIGNMENT)
+			   - Price > 20 MA > 50 MA > 200 MA
+			   - Strongest bullish configuration
+			   - Buy dips to 20-day or 50-day MA
+
+			4. PRICE BELOW ALL MAJOR MAs (BEARISH ALIGNMENT)
+			   - Price < 20 MA < 50 MA < 200 MA
+			   - Strongest bearish configuration
+			   - Sell rallies to 20-day or 50-day MA
+
+			-------------------------------------------
+			MOMENTUM INDICATOR SIGNALS
+			-------------------------------------------
+
+			1. RSI (Relative Strength Index)
+			   - Oversold: RSI < 30 → potential buy signal
+			   - Overbought: RSI > 70 → potential sell signal
+			   - Bullish divergence: Price makes lower low, RSI makes higher low
+			   - Bearish divergence: Price makes higher high, RSI makes lower high
+
+			2. MACD
+			   - Bullish: MACD line crosses above signal line
+			   - Bearish: MACD line crosses below signal line
+			   - Stronger signal when crossover happens below/above zero line
+
+			3. STOCHASTIC
+			   - Oversold: Below 20 → potential buy
+			   - Overbought: Above 80 → potential sell
+			   - %K crossing %D for entry signals
+
+			-------------------------------------------
+			STANDARD DEVIATION & VOLATILITY BANDS
+			-------------------------------------------
+
+			UNDERSTANDING STANDARD DEVIATION (σ):
+			- Measures how spread out prices are from the mean (average)
+			- 1 Standard Deviation: ~68% of prices fall within this range
+			- 2 Standard Deviations: ~95% of prices fall within this range
+			- 3 Standard Deviations: ~99.7% of prices fall within this range
+			- Higher σ = More volatile, Lower σ = Less volatile
+
+			Python calculation:
+			```
+			# Standard deviation of closing prices over 20 periods
+			std_dev = data['close'].rolling(20).std()
+			mean_price = data['close'].rolling(20).mean()
+
+			# Price is X standard deviations from mean
+			z_score = (data['close'] - mean_price) / std_dev
+			```
+
+			=== BOLLINGER BANDS (Most Popular Volatility Indicator) ===
+
+			COMPONENTS:
+			- Middle Band: 20-period Simple Moving Average (SMA)
+			- Upper Band: Middle Band + (2 × Standard Deviation)
+			- Lower Band: Middle Band - (2 × Standard Deviation)
+			- Band Width: (Upper - Lower) / Middle × 100
+
+			Python calculation:
+			```
+			period = 20
+			num_std = 2
+
+			sma = data['close'].rolling(period).mean()
+			std = data['close'].rolling(period).std()
+
+			bb_upper = sma + (std * num_std)
+			bb_middle = sma
+			bb_lower = sma - (std * num_std)
+			bb_width = (bb_upper - bb_lower) / bb_middle * 100
+			```
+
+			BOLLINGER BAND STRATEGIES:
+
+			1. MEAN REVERSION (Range-Bound Markets)
+			   - Buy when price touches/crosses BELOW lower band
+			   - Sell when price touches/crosses ABOVE upper band
+			   - Best in: Sideways, non-trending markets
+			   - Confirmation: RSI oversold/overbought
+			   Python:
+			   ```
+			   # Buy signal: Price at or below lower band
+			   buy_signal = data['close'].iloc[-1] <= bb_lower.iloc[-1]
+
+			   # Sell signal: Price at or above upper band
+			   sell_signal = data['close'].iloc[-1] >= bb_upper.iloc[-1]
+			   ```
+
+			2. BOLLINGER BAND SQUEEZE (Volatility Breakout)
+			   - Squeeze: Bands contract to narrowest point (low volatility)
+			   - Breakout: Price explodes out of squeeze with volume
+			   - Direction: Follow the breakout direction
+			   - Best predictor of big moves!
+			   Python:
+			   ```
+			   # Detect squeeze: Band width at 6-month low
+			   current_width = bb_width.iloc[-1]
+			   min_width_6m = bb_width.rolling(126).min().iloc[-1]
+			   is_squeeze = current_width <= min_width_6m * 1.1
+
+			   # Breakout from squeeze
+			   breakout_up = is_squeeze and data['close'].iloc[-1] > bb_upper.iloc[-1]
+			   breakout_down = is_squeeze and data['close'].iloc[-1] < bb_lower.iloc[-1]
+			   ```
+
+			3. BOLLINGER BAND WALK (Trending Markets)
+			   - Strong uptrend: Price "walks" along upper band
+			   - Strong downtrend: Price "walks" along lower band
+			   - DO NOT fade the trend! (Don't sell just because at upper band)
+			   - Exit only when price crosses back to middle band
+			   Python:
+			   ```
+			   # Bullish band walk: Price consistently above middle band
+			   bullish_walk = (data['close'].iloc[-5:] > bb_middle.iloc[-5:]).all()
+
+			   # Bearish band walk: Price consistently below middle band
+			   bearish_walk = (data['close'].iloc[-5:] < bb_middle.iloc[-5:]).all()
+			   ```
+
+			4. DOUBLE BOTTOM AT LOWER BAND (High Reliability)
+			   - First touch of lower band → bounce
+			   - Second touch of lower band → forms double bottom
+			   - Entry: Buy on second bounce with RSI divergence
+			   - Very high probability reversal setup
+
+			5. %B INDICATOR (Position within Bands)
+			   - %B = (Price - Lower Band) / (Upper Band - Lower Band)
+			   - %B > 1.0: Price above upper band (overbought)
+			   - %B < 0.0: Price below lower band (oversold)
+			   - %B = 0.5: Price at middle band
+			   Python:
+			   ```
+			   percent_b = (data['close'] - bb_lower) / (bb_upper - bb_lower)
+
+			   # Trading signals
+			   oversold = percent_b.iloc[-1] < 0
+			   overbought = percent_b.iloc[-1] > 1
+			   ```
+
+			=== KELTNER CHANNELS (ATR-Based Bands) ===
+
+			COMPONENTS:
+			- Middle Line: 20-period EMA
+			- Upper Channel: EMA + (2 × ATR)
+			- Lower Channel: EMA - (2 × ATR)
+
+			DIFFERENCE FROM BOLLINGER:
+			- Bollinger uses Standard Deviation (more reactive)
+			- Keltner uses ATR (smoother, less whipsaw)
+			- Keltner better for trend-following
+			- Bollinger better for mean-reversion
+
+			Python calculation:
+			```
+			period = 20
+			atr_mult = 2
+
+			ema = data['close'].ewm(span=period).mean()
+
+			# ATR calculation
+			high_low = data['high'] - data['low']
+			high_close = abs(data['high'] - data['close'].shift(1))
+			low_close = abs(data['low'] - data['close'].shift(1))
+			tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+			atr = tr.rolling(period).mean()
+
+			kc_upper = ema + (atr * atr_mult)
+			kc_middle = ema
+			kc_lower = ema - (atr * atr_mult)
+			```
+
+			KELTNER CHANNEL STRATEGIES:
+
+			1. BREAKOUT STRATEGY
+			   - Buy: Price closes above upper channel
+			   - Sell: Price closes below lower channel
+			   - Best with volume confirmation
+
+			2. PULLBACK IN TREND
+			   - Uptrend: Buy when price pulls back to middle line
+			   - Downtrend: Sell when price rallies to middle line
+
+			=== BOLLINGER + KELTNER SQUEEZE (TTM Squeeze) ===
+
+			POWERFUL COMBINATION:
+			- Squeeze ON: Bollinger Bands INSIDE Keltner Channels
+			- Squeeze OFF: Bollinger Bands OUTSIDE Keltner Channels
+			- Momentum: Use histogram to determine direction
+
+			Python:
+			```
+			# Squeeze detection
+			squeeze_on = (bb_lower.iloc[-1] > kc_lower.iloc[-1]) and (bb_upper.iloc[-1] < kc_upper.iloc[-1])
+			squeeze_off = not squeeze_on
+
+			# Momentum (using linear regression or MACD histogram)
+			momentum = data['close'].iloc[-1] - sma.iloc[-1]
+			momentum_rising = momentum > 0 and momentum > data['close'].iloc[-2] - sma.iloc[-2]
+
+			# Trade signal
+			if squeeze_off and momentum_rising:
+			    signal = 'BUY'  # Breakout with bullish momentum
+			```
+
+			=== ATR BANDS (Dynamic Stop-Loss Bands) ===
+
+			USE CASE: Setting dynamic stop-losses based on volatility
+
+			Python:
+			```
+			atr_multiplier = 2.0  # Adjust based on risk tolerance
+
+			# Chandelier Exit (trailing stop)
+			highest_high = data['high'].rolling(22).max()
+			chandelier_exit_long = highest_high - (atr * atr_multiplier)
+
+			lowest_low = data['low'].rolling(22).min()
+			chandelier_exit_short = lowest_low + (atr * atr_multiplier)
+
+			# Exit long if price drops below chandelier exit
+			exit_long = data['close'].iloc[-1] < chandelier_exit_long.iloc[-1]
+			```
+
+			=== VOLATILITY BAND BEST PRACTICES ===
+
+			1. IDENTIFY MARKET REGIME FIRST:
+			   - Trending: Use band walks, don't fade the trend
+			   - Ranging: Use mean reversion, buy low band, sell high band
+			   - Squeezing: Prepare for breakout, trade the direction
+
+			2. COMBINE WITH OTHER INDICATORS:
+			   - RSI for overbought/oversold confirmation
+			   - Volume for breakout validation
+			   - MACD for momentum direction
+
+			3. ADJUST PARAMETERS FOR TIMEFRAME:
+			   - Intraday (1m-1h): Use 10-period, 1.5 std dev
+			   - Swing (4h-1D): Use 20-period, 2.0 std dev (default)
+			   - Position (1W+): Use 50-period, 2.5 std dev
+
+			4. AVOID COMMON MISTAKES:
+			   - DON'T sell just because price hits upper band in uptrend
+			   - DON'T buy just because price hits lower band in downtrend
+			   - DO use band walks to ride trends
+			   - DO wait for squeeze breakouts with volume
+
+			-------------------------------------------
+			FIBONACCI RETRACEMENT & EXTENSIONS
+			-------------------------------------------
+
+			THE FIBONACCI SEQUENCE IN TRADING:
+			Based on the golden ratio (1.618), Fibonacci levels identify potential
+			support/resistance zones where price may reverse or consolidate.
+
+			KEY FIBONACCI RETRACEMENT LEVELS:
+			- 23.6% - Shallow retracement (strong trend)
+			- 38.2% - Common retracement level
+			- 50.0% - Psychological halfway point (not true Fib but widely used)
+			- 61.8% - "Golden ratio" - MOST IMPORTANT level
+			- 78.6% - Deep retracement (trend may be weakening)
+
+			HOW TO DRAW FIBONACCI RETRACEMENTS:
+			- UPTREND: Draw from swing LOW to swing HIGH
+			- DOWNTREND: Draw from swing HIGH to swing LOW
+			- Retracement levels show where pullbacks may find support/resistance
+
+			Python calculation:
+			```
+			def calculate_fib_levels(high, low, is_uptrend=True):
+			    diff = high - low
+
+			    if is_uptrend:
+			        # In uptrend, measure retracements DOWN from high
+			        levels = {
+			            '0.0%': high,           # Swing high
+			            '23.6%': high - (diff * 0.236),
+			            '38.2%': high - (diff * 0.382),
+			            '50.0%': high - (diff * 0.500),
+			            '61.8%': high - (diff * 0.618),
+			            '78.6%': high - (diff * 0.786),
+			            '100%': low             # Swing low
+			        }
+			    else:
+			        # In downtrend, measure retracements UP from low
+			        levels = {
+			            '0.0%': low,            # Swing low
+			            '23.6%': low + (diff * 0.236),
+			            '38.2%': low + (diff * 0.382),
+			            '50.0%': low + (diff * 0.500),
+			            '61.8%': low + (diff * 0.618),
+			            '78.6%': low + (diff * 0.786),
+			            '100%': high            # Swing high
+			        }
+			    return levels
+
+			# Find swing high/low over lookback period
+			lookback = 50
+			swing_high = data['high'].rolling(lookback).max().iloc[-1]
+			swing_low = data['low'].rolling(lookback).min().iloc[-1]
+			fib_levels = calculate_fib_levels(swing_high, swing_low, is_uptrend=True)
+			```
+
+			FIBONACCI TRADING STRATEGIES:
+
+			1. BUY THE DIP AT FIB SUPPORT (Uptrend)
+			   - Wait for pullback to 38.2%, 50%, or 61.8% level
+			   - Look for bullish candle pattern at level (hammer, engulfing)
+			   - Enter with stop below next Fib level
+			   - Target: Previous high or Fib extension
+			   Python:
+			   ```
+			   current_price = data['close'].iloc[-1]
+			   fib_38 = fib_levels['38.2%']
+			   fib_50 = fib_levels['50.0%']
+			   fib_61 = fib_levels['61.8%']
+
+			   # Price at Fibonacci support zone
+			   at_fib_support = (current_price >= fib_61 * 0.99) and (current_price <= fib_38 * 1.01)
+			   ```
+
+			2. SELL THE RALLY AT FIB RESISTANCE (Downtrend)
+			   - Wait for bounce to 38.2%, 50%, or 61.8% level
+			   - Look for bearish candle pattern (shooting star, engulfing)
+			   - Enter short with stop above next Fib level
+			   - Target: Previous low or Fib extension
+
+			3. FIBONACCI CONFLUENCE (High Probability)
+			   - When multiple Fib levels align from different swings
+			   - Or when Fib aligns with moving average, trendline, or S/R
+			   - These "confluence zones" have highest probability
+
+			FIBONACCI EXTENSIONS (Profit Targets):
+			Used to project where price might go AFTER breaking previous high/low
+
+			KEY EXTENSION LEVELS:
+			- 100% - Equal move (measured move)
+			- 127.2% - Common first target
+			- 161.8% - Golden extension - MOST IMPORTANT
+			- 200% - Double the original move
+			- 261.8% - Extended target
+
+			Python:
+			```
+			def calculate_fib_extensions(high, low, is_uptrend=True):
+			    diff = high - low
+
+			    if is_uptrend:
+			        # Project above the high
+			        extensions = {
+			            '100%': high,
+			            '127.2%': high + (diff * 0.272),
+			            '161.8%': high + (diff * 0.618),
+			            '200%': high + diff,
+			            '261.8%': high + (diff * 1.618)
+			        }
+			    else:
+			        # Project below the low
+			        extensions = {
+			            '100%': low,
+			            '127.2%': low - (diff * 0.272),
+			            '161.8%': low - (diff * 0.618),
+			            '200%': low - diff,
+			            '261.8%': low - (diff * 1.618)
+			        }
+			    return extensions
+			```
+
+			FIBONACCI BEST PRACTICES:
+			1. Use on higher timeframes (4h, Daily, Weekly) for reliability
+			2. Always wait for price action confirmation at levels
+			3. Combine with other indicators (RSI, volume) for confluence
+			4. 61.8% is the "make or break" level - if broken, trend may reverse
+			5. Don't force Fibonacci - use clear, obvious swings
+
+			-------------------------------------------
+			SUPPORT & RESISTANCE LEVELS
+			-------------------------------------------
+
+			WHAT IS SUPPORT?
+			- Price level where buying pressure exceeds selling pressure
+			- Price tends to "bounce" off support
+			- Previous lows often become support
+			- When broken, support becomes resistance ("polarity flip")
+
+			WHAT IS RESISTANCE?
+			- Price level where selling pressure exceeds buying pressure
+			- Price tends to "reject" at resistance
+			- Previous highs often become resistance
+			- When broken, resistance becomes support ("polarity flip")
+
+			TYPES OF SUPPORT/RESISTANCE:
+
+			1. HORIZONTAL S/R (Most Common)
+			   - Based on previous price levels (highs/lows)
+			   - The more times tested, the stronger the level
+			   Python detection:
+			   ```
+			   def find_horizontal_sr(data, lookback=100, tolerance=0.02):
+			       highs = data['high'].iloc[-lookback:]
+			       lows = data['low'].iloc[-lookback:]
+
+			       # Find price levels that were touched multiple times
+			       all_levels = pd.concat([highs, lows])
+
+			       # Cluster nearby prices
+			       levels = []
+			       for price in all_levels:
+			           # Check if this price is near an existing level
+			           found = False
+			           for level in levels:
+			               if abs(price - level['price']) / level['price'] < tolerance:
+			                   level['touches'] += 1
+			                   found = True
+			                   break
+			           if not found:
+			               levels.append({'price': price, 'touches': 1})
+
+			       # Return levels with 3+ touches (significant S/R)
+			       significant = [l for l in levels if l['touches'] >= 3]
+			       return sorted(significant, key=lambda x: x['touches'], reverse=True)
+			   ```
+
+			2. DYNAMIC S/R (Moving Averages)
+			   - 20 EMA: Short-term dynamic support/resistance
+			   - 50 SMA: Medium-term dynamic support/resistance
+			   - 200 SMA: Long-term dynamic support/resistance (most important)
+			   Python:
+			   ```
+			   ema_20 = data['close'].ewm(span=20).mean()
+			   sma_50 = data['close'].rolling(50).mean()
+			   sma_200 = data['close'].rolling(200).mean()
+
+			   # Price at dynamic support
+			   at_20ema = abs(data['close'].iloc[-1] - ema_20.iloc[-1]) / ema_20.iloc[-1] < 0.01
+			   at_50sma = abs(data['close'].iloc[-1] - sma_50.iloc[-1]) / sma_50.iloc[-1] < 0.01
+			   at_200sma = abs(data['close'].iloc[-1] - sma_200.iloc[-1]) / sma_200.iloc[-1] < 0.01
+			   ```
+
+			3. TRENDLINE S/R
+			   - Connect swing lows for uptrend support
+			   - Connect swing highs for downtrend resistance
+			   - The more touches, the more valid the trendline
+
+			4. PSYCHOLOGICAL LEVELS (Round Numbers)
+			   - Major round numbers act as S/R: $100, $50, $10
+			   - Also works with indices: 4000, 5000, 20000
+			   Python:
+			   ```
+			   def nearest_round_number(price):
+			       if price > 1000:
+			           return round(price / 100) * 100
+			       elif price > 100:
+			           return round(price / 10) * 10
+			       elif price > 10:
+			           return round(price)
+			       else:
+			           return round(price, 1)
+
+			   psychological_level = nearest_round_number(data['close'].iloc[-1])
+			   near_psych_level = abs(data['close'].iloc[-1] - psychological_level) / psychological_level < 0.01
+			   ```
+
+			5. PIVOT POINTS (Intraday S/R)
+			   - Calculated from previous day's high, low, close
+			   - Popular for day trading
+			   Python:
+			   ```
+			   prev_high = data['high'].iloc[-2]
+			   prev_low = data['low'].iloc[-2]
+			   prev_close = data['close'].iloc[-2]
+
+			   pivot = (prev_high + prev_low + prev_close) / 3
+			   r1 = (2 * pivot) - prev_low      # Resistance 1
+			   r2 = pivot + (prev_high - prev_low)  # Resistance 2
+			   s1 = (2 * pivot) - prev_high     # Support 1
+			   s2 = pivot - (prev_high - prev_low)  # Support 2
+			   ```
+
+			S/R TRADING STRATEGIES:
+
+			1. BOUNCE STRATEGY (Mean Reversion)
+			   - Buy at support with stop below
+			   - Sell at resistance with stop above
+			   - Best in ranging/sideways markets
+			   Python:
+			   ```
+			   support_level = find_nearest_support(data)
+			   resistance_level = find_nearest_resistance(data)
+
+			   # Buy near support
+			   near_support = data['close'].iloc[-1] <= support_level * 1.01
+
+			   # Sell near resistance
+			   near_resistance = data['close'].iloc[-1] >= resistance_level * 0.99
+			   ```
+
+			2. BREAKOUT STRATEGY (Trend Following)
+			   - Buy when price breaks ABOVE resistance with volume
+			   - Sell when price breaks BELOW support with volume
+			   - Wait for candle CLOSE above/below level (avoid fakeouts)
+			   Python:
+			   ```
+			   resistance = data['high'].rolling(20).max().iloc[-2]  # Previous resistance
+			   support = data['low'].rolling(20).min().iloc[-2]      # Previous support
+
+			   # Breakout with volume confirmation
+			   avg_volume = data['volume'].rolling(20).mean().iloc[-1]
+			   high_volume = data['volume'].iloc[-1] > avg_volume * 1.5
+
+			   breakout_up = data['close'].iloc[-1] > resistance and high_volume
+			   breakout_down = data['close'].iloc[-1] < support and high_volume
+			   ```
+
+			3. RETEST STRATEGY (Safest Entry)
+			   - Wait for breakout above resistance
+			   - Wait for price to pull back and RETEST the broken level
+			   - Old resistance becomes new support
+			   - Enter on successful retest (level holds)
+			   Python:
+			   ```
+			   # Previous resistance now acting as support
+			   old_resistance = resistance_level
+
+			   # Price broke above, pulled back, and holding
+			   broke_above = data['high'].iloc[-5:-1].max() > old_resistance
+			   pulled_back = data['low'].iloc[-1] <= old_resistance * 1.02
+			   holding = data['close'].iloc[-1] > old_resistance
+
+			   retest_buy = broke_above and pulled_back and holding
+			   ```
+
+			4. S/R CONFLUENCE (Highest Probability)
+			   - Multiple S/R types at same level
+			   - Example: 200 SMA + Fibonacci 61.8% + Previous high
+			   - These zones have very high probability of reaction
+
+			S/R STRENGTH ASSESSMENT:
+			Stronger levels have:
+			- More touches/tests (3+ is significant)
+			- Higher timeframe significance (weekly > daily > hourly)
+			- Higher volume at the level
+			- Confluence with other technical factors
+			- Round psychological numbers
+
+			S/R BEST PRACTICES:
+			1. Use ZONES not exact prices (±1-2% tolerance)
+			2. The more times tested, the weaker it gets (eventually breaks)
+			3. Broken S/R often gets retested before continuing
+			4. Always use stops beyond the S/R zone
+			5. Volume confirms breakouts - low volume = likely fakeout
+
+			-------------------------------------------
+			VOLUME CONFIRMATION RULES
+			-------------------------------------------
+
+			CRITICAL: Volume confirms or denies price action!
+
+			1. BULLISH VOLUME PATTERNS:
+			   - Breakout with 2x+ average volume = strong confirmation
+			   - Higher volume on up days than down days = accumulation
+			   - Volume surge on bullish candles = institutional buying
+
+			2. BEARISH VOLUME PATTERNS:
+			   - Breakdown with 2x+ average volume = strong confirmation
+			   - Higher volume on down days than up days = distribution
+			   - Volume surge on bearish candles = institutional selling
+
+			3. WARNING SIGNS:
+			   - Breakout without volume = likely false breakout
+			   - Price rise on declining volume = weakening momentum
+			   - Price fall on declining volume = selling exhaustion
+
+			-------------------------------------------
+			MARKET REGIME DETECTION
+			-------------------------------------------
+
+			CRITICAL: The #1 reason strategies fail is using the WRONG strategy type
+			for the current market regime. ALWAYS identify the regime FIRST!
+
+			THREE MARKET REGIMES:
+			1. TRENDING (Directional) - Use trend-following strategies
+			2. RANGING (Sideways) - Use mean-reversion strategies
+			3. VOLATILE (Choppy) - Reduce position size or stay out
+
+			=== ADX (Average Directional Index) - Best Regime Indicator ===
+
+			ADX measures TREND STRENGTH (not direction):
+			- ADX < 20: NO TREND (ranging/sideways market)
+			- ADX 20-25: Trend EMERGING
+			- ADX 25-50: STRONG TREND
+			- ADX 50-75: VERY STRONG TREND
+			- ADX > 75: EXTREME TREND (may be exhausted)
+
+			+DI and -DI show trend DIRECTION:
+			- +DI > -DI: Bullish trend
+			- -DI > +DI: Bearish trend
+
+			Python calculation:
+			```
+			def calculate_adx(data, period=14):
+			    high = data['high']
+			    low = data['low']
+			    close = data['close']
+
+			    # True Range
+			    tr1 = high - low
+			    tr2 = abs(high - close.shift(1))
+			    tr3 = abs(low - close.shift(1))
+			    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+			    atr = tr.rolling(period).mean()
+
+			    # Directional Movement
+			    up_move = high - high.shift(1)
+			    down_move = low.shift(1) - low
+
+			    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0)
+			    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0)
+
+			    plus_di = 100 * pd.Series(plus_dm).rolling(period).mean() / atr
+			    minus_di = 100 * pd.Series(minus_dm).rolling(period).mean() / atr
+
+			    # ADX
+			    dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
+			    adx = dx.rolling(period).mean()
+
+			    return adx, plus_di, minus_di
+
+			adx, plus_di, minus_di = calculate_adx(data)
+
+			# Regime detection
+			is_trending = adx.iloc[-1] > 25
+			is_ranging = adx.iloc[-1] < 20
+			trend_direction = 'BULLISH' if plus_di.iloc[-1] > minus_di.iloc[-1] else 'BEARISH'
+			```
+
+			=== SLOPE ANALYSIS (Simple Alternative) ===
+
+			Measure the slope of a moving average:
+			```
+			sma_20 = data['close'].rolling(20).mean()
+			slope = (sma_20.iloc[-1] - sma_20.iloc[-20]) / sma_20.iloc[-20] * 100
+
+			# Regime based on slope
+			if abs(slope) > 5:  # More than 5% move in 20 periods
+			    regime = 'TRENDING'
+			    direction = 'BULLISH' if slope > 0 else 'BEARISH'
+			else:
+			    regime = 'RANGING'
+			```
+
+			=== BOLLINGER BAND WIDTH (Volatility Regime) ===
+
+			```
+			bb_width = (bb_upper - bb_lower) / bb_middle * 100
+			avg_width = bb_width.rolling(100).mean().iloc[-1]
+			current_width = bb_width.iloc[-1]
+
+			if current_width < avg_width * 0.5:
+			    volatility_regime = 'LOW'  # Squeeze forming
+			elif current_width > avg_width * 1.5:
+			    volatility_regime = 'HIGH'  # Expanded, may contract
+			else:
+			    volatility_regime = 'NORMAL'
+			```
+
+			REGIME-BASED STRATEGY SELECTION:
+
+			| Regime    | ADX   | Strategy Type      | Examples                    |
+			|-----------|-------|--------------------|-----------------------------|
+			| Trending  | > 25  | Trend-following    | MA crossover, breakouts     |
+			| Ranging   | < 20  | Mean-reversion     | RSI oversold/overbought, BB |
+			| Volatile  | Any   | Reduce size/wait   | Smaller positions, wider SL |
+
+			-------------------------------------------
+			MULTI-TIMEFRAME ANALYSIS (MTF)
+			-------------------------------------------
+
+			THE POWER OF MTF:
+			Use HIGHER timeframes for DIRECTION (trend bias)
+			Use LOWER timeframes for ENTRY (precise timing)
+
+			COMMON MTF COMBINATIONS:
+			| Trading Style | Higher TF (Trend) | Lower TF (Entry) |
+			|---------------|-------------------|------------------|
+			| Scalping      | 1h                | 1m, 5m           |
+			| Day Trading   | 4h, Daily         | 15m, 1h          |
+			| Swing Trading | Weekly            | Daily, 4h        |
+			| Position      | Monthly           | Weekly, Daily    |
+
+			MTF ALIGNMENT RULES:
+
+			1. TOP-DOWN ANALYSIS:
+			   - Start with highest timeframe (Weekly/Daily)
+			   - Identify major trend direction
+			   - Move to lower timeframe for entry
+			   - Only take trades IN DIRECTION of higher TF trend
+
+			2. THREE-TIMEFRAME RULE:
+			   - TF1 (Highest): Trend direction
+			   - TF2 (Middle): Trade setup
+			   - TF3 (Lowest): Entry trigger
+
+			Python implementation:
+			```
+			def get_mtf_bias(data_daily, data_4h, data_1h):
+			    # Daily trend (highest TF)
+			    sma_50_daily = data_daily['close'].rolling(50).mean()
+			    daily_trend = 'BULLISH' if data_daily['close'].iloc[-1] > sma_50_daily.iloc[-1] else 'BEARISH'
+
+			    # 4H setup (middle TF)
+			    rsi_4h = calculate_rsi(data_4h, 14)
+			    setup_4h = None
+			    if daily_trend == 'BULLISH' and rsi_4h.iloc[-1] < 40:
+			        setup_4h = 'BUY_SETUP'  # Pullback in uptrend
+			    elif daily_trend == 'BEARISH' and rsi_4h.iloc[-1] > 60:
+			        setup_4h = 'SELL_SETUP'  # Rally in downtrend
+
+			    # 1H entry (lowest TF)
+			    entry_1h = None
+			    if setup_4h == 'BUY_SETUP':
+			        # Look for bullish candle pattern on 1H
+			        if is_hammer(data_1h) or is_bullish_engulfing(data_1h):
+			            entry_1h = 'BUY'
+			    elif setup_4h == 'SELL_SETUP':
+			        if is_shooting_star(data_1h) or is_bearish_engulfing(data_1h):
+			            entry_1h = 'SELL'
+
+			    return {
+			        'daily_trend': daily_trend,
+			        'setup': setup_4h,
+			        'entry': entry_1h
+			    }
+			```
+
+			MTF CONFLUENCE EXAMPLE:
+			```
+			# All timeframes aligned = highest probability
+
+			# Weekly: Price above 50 SMA (BULLISH)
+			weekly_bullish = weekly_close > weekly_sma_50
+
+			# Daily: RSI pulled back to 40-50 zone
+			daily_pullback = daily_rsi > 40 and daily_rsi < 50
+
+			# 4H: Hammer at 20 EMA support
+			hourly_entry = is_hammer and price_at_ema_20
+
+			# MTF aligned buy signal
+			if weekly_bullish and daily_pullback and hourly_entry:
+			    signal = 'STRONG_BUY'
+			```
+
+			MTF BEST PRACTICES:
+			1. NEVER trade against higher timeframe trend
+			2. Use higher TF for stop-loss placement (more room)
+			3. Higher TF signals > Lower TF signals in importance
+			4. Wait for alignment - no alignment = no trade
+			5. The more timeframes aligned, the higher probability
+
+			-------------------------------------------
+			DIVERGENCE DETECTION
+			-------------------------------------------
+
+			WHAT IS DIVERGENCE?
+			When price and an indicator (RSI, MACD) move in OPPOSITE directions.
+			Divergence signals potential trend REVERSAL or CONTINUATION.
+
+			TYPES OF DIVERGENCE:
+
+			=== REGULAR DIVERGENCE (Reversal Signal) ===
+
+			1. BULLISH REGULAR DIVERGENCE:
+			   - Price makes LOWER LOW
+			   - Indicator makes HIGHER LOW
+			   - Signal: Selling exhaustion, potential reversal UP
+			   - Action: Look for BUY entry
+
+			2. BEARISH REGULAR DIVERGENCE:
+			   - Price makes HIGHER HIGH
+			   - Indicator makes LOWER HIGH
+			   - Signal: Buying exhaustion, potential reversal DOWN
+			   - Action: Look for SELL entry
+
+			=== HIDDEN DIVERGENCE (Continuation Signal) ===
+
+			1. BULLISH HIDDEN DIVERGENCE:
+			   - Price makes HIGHER LOW
+			   - Indicator makes LOWER LOW
+			   - Signal: Uptrend continuation
+			   - Action: Buy the dip
+
+			2. BEARISH HIDDEN DIVERGENCE:
+			   - Price makes LOWER HIGH
+			   - Indicator makes HIGHER HIGH
+			   - Signal: Downtrend continuation
+			   - Action: Sell the rally
+
+			Python divergence detection:
+			```
+			def detect_divergence(price, indicator, lookback=14):
+			    # Find recent swing points
+			    price_data = price.iloc[-lookback:]
+			    ind_data = indicator.iloc[-lookback:]
+
+			    # Price highs and lows
+			    price_high_idx = price_data.idxmax()
+			    price_low_idx = price_data.idxmin()
+			    prev_price_high = price_data.iloc[:-5].max()
+			    prev_price_low = price_data.iloc[:-5].min()
+			    curr_price_high = price_data.iloc[-5:].max()
+			    curr_price_low = price_data.iloc[-5:].min()
+
+			    # Indicator highs and lows
+			    prev_ind_high = ind_data.iloc[:-5].max()
+			    prev_ind_low = ind_data.iloc[:-5].min()
+			    curr_ind_high = ind_data.iloc[-5:].max()
+			    curr_ind_low = ind_data.iloc[-5:].min()
+
+			    divergence = None
+
+			    # Bullish Regular: Price lower low, indicator higher low
+			    if curr_price_low < prev_price_low and curr_ind_low > prev_ind_low:
+			        divergence = 'BULLISH_REGULAR'
+
+			    # Bearish Regular: Price higher high, indicator lower high
+			    elif curr_price_high > prev_price_high and curr_ind_high < prev_ind_high:
+			        divergence = 'BEARISH_REGULAR'
+
+			    # Bullish Hidden: Price higher low, indicator lower low
+			    elif curr_price_low > prev_price_low and curr_ind_low < prev_ind_low:
+			        divergence = 'BULLISH_HIDDEN'
+
+			    # Bearish Hidden: Price lower high, indicator higher high
+			    elif curr_price_high < prev_price_high and curr_ind_high > prev_ind_high:
+			        divergence = 'BEARISH_HIDDEN'
+
+			    return divergence
+
+			# Usage
+			rsi = calculate_rsi(data['close'], 14)
+			divergence = detect_divergence(data['close'], rsi)
+
+			if divergence == 'BULLISH_REGULAR':
+			    signal = 'BUY'  # Potential bottom
+			elif divergence == 'BEARISH_REGULAR':
+			    signal = 'SELL'  # Potential top
+			```
+
+			RSI DIVERGENCE SPECIFICS:
+			```
+			# RSI Bullish Divergence at oversold
+			rsi_oversold = rsi.iloc[-1] < 35
+			bullish_div = detect_divergence(data['close'], rsi) == 'BULLISH_REGULAR'
+
+			if rsi_oversold and bullish_div:
+			    signal = 'STRONG_BUY'  # High probability reversal
+
+			# RSI Bearish Divergence at overbought
+			rsi_overbought = rsi.iloc[-1] > 65
+			bearish_div = detect_divergence(data['close'], rsi) == 'BEARISH_REGULAR'
+
+			if rsi_overbought and bearish_div:
+			    signal = 'STRONG_SELL'  # High probability reversal
+			```
+
+			MACD DIVERGENCE:
+			```
+			macd_line = ema_12 - ema_26
+			macd_histogram = macd_line - signal_line
+
+			# MACD histogram divergence (more sensitive)
+			macd_div = detect_divergence(data['close'], macd_histogram)
+			```
+
+			DIVERGENCE BEST PRACTICES:
+			1. Regular divergence = REVERSAL (counter-trend)
+			2. Hidden divergence = CONTINUATION (with-trend)
+			3. Works best at key S/R levels
+			4. Multiple indicator divergence = stronger signal
+			5. Always wait for price confirmation (don't front-run)
+			6. Higher timeframe divergence > lower timeframe
+
+			-------------------------------------------
+			PRICE ACTION PATTERNS
+			-------------------------------------------
+
+			Pure price action patterns without indicators.
+			These work on any timeframe and any market.
+
+			=== SINGLE BAR PATTERNS ===
+
+			1. PIN BAR (Rejection Candle)
+			   - Long wick (tail) showing rejection
+			   - Small body at opposite end
+			   - Bullish pin bar: Long lower wick, body at top
+			   - Bearish pin bar: Long upper wick, body at bottom
+			   Python:
+			   ```
+			   def is_pin_bar(data):
+			       o, h, l, c = data['open'].iloc[-1], data['high'].iloc[-1], data['low'].iloc[-1], data['close'].iloc[-1]
+			       body = abs(c - o)
+			       upper_wick = h - max(o, c)
+			       lower_wick = min(o, c) - l
+			       total_range = h - l
+
+			       # Bullish pin bar
+			       if lower_wick > 2 * body and upper_wick < body * 0.5:
+			           return 'BULLISH_PIN'
+			       # Bearish pin bar
+			       elif upper_wick > 2 * body and lower_wick < body * 0.5:
+			           return 'BEARISH_PIN'
+			       return None
+			   ```
+
+			2. INSIDE BAR (Consolidation)
+			   - Current bar's high/low WITHIN previous bar's range
+			   - Shows consolidation/indecision
+			   - Trade the breakout direction
+			   Python:
+			   ```
+			   def is_inside_bar(data):
+			       curr_high = data['high'].iloc[-1]
+			       curr_low = data['low'].iloc[-1]
+			       prev_high = data['high'].iloc[-2]
+			       prev_low = data['low'].iloc[-2]
+
+			       return curr_high < prev_high and curr_low > prev_low
+
+			   # Inside bar breakout
+			   if is_inside_bar(data):
+			       mother_bar_high = data['high'].iloc[-2]
+			       mother_bar_low = data['low'].iloc[-2]
+
+			       # Wait for breakout
+			       if data['close'].iloc[-1] > mother_bar_high:
+			           signal = 'BUY'
+			       elif data['close'].iloc[-1] < mother_bar_low:
+			           signal = 'SELL'
+			   ```
+
+			3. OUTSIDE BAR (Engulfing Range)
+			   - Current bar's range EXCEEDS previous bar
+			   - High is higher AND low is lower
+			   - Strong momentum signal
+			   Python:
+			   ```
+			   def is_outside_bar(data):
+			       curr_high = data['high'].iloc[-1]
+			       curr_low = data['low'].iloc[-1]
+			       prev_high = data['high'].iloc[-2]
+			       prev_low = data['low'].iloc[-2]
+
+			       return curr_high > prev_high and curr_low < prev_low
+
+			   if is_outside_bar(data):
+			       # Direction based on close
+			       if data['close'].iloc[-1] > data['open'].iloc[-1]:
+			           signal = 'BULLISH_OUTSIDE'
+			       else:
+			           signal = 'BEARISH_OUTSIDE'
+			   ```
+
+			4. DOJI (Indecision)
+			   - Open and close nearly equal
+			   - Shows market indecision
+			   - Often precedes reversals at key levels
+			   Python:
+			   ```
+			   def is_doji(data, threshold=0.1):
+			       o, h, l, c = data['open'].iloc[-1], data['high'].iloc[-1], data['low'].iloc[-1], data['close'].iloc[-1]
+			       body = abs(c - o)
+			       total_range = h - l
+
+			       return body < total_range * threshold if total_range > 0 else False
+			   ```
+
+			=== MULTI-BAR PATTERNS ===
+
+			1. TWO-BAR REVERSAL
+			   - Two consecutive bars that reverse direction
+			   - First bar extends in trend direction
+			   - Second bar reverses and closes beyond first bar's open
+
+			2. THREE-BAR REVERSAL
+			   - Middle bar makes extreme (highest high or lowest low)
+			   - Third bar reverses and closes beyond first bar
+			   - Classic swing point formation
+
+			3. FAKEY (False Breakout)
+			   - Inside bar forms
+			   - Breakout occurs but immediately reverses
+			   - Trade in direction of reversal (trapped traders)
+			   Python:
+			   ```
+			   def is_fakey(data):
+			       # Check for inside bar 2 bars ago
+			       was_inside = data['high'].iloc[-3] < data['high'].iloc[-4] and data['low'].iloc[-3] > data['low'].iloc[-4]
+
+			       if was_inside:
+			           mother_high = data['high'].iloc[-4]
+			           mother_low = data['low'].iloc[-4]
+
+			           # False breakout up, then reversal down
+			           broke_up = data['high'].iloc[-2] > mother_high
+			           reversed_down = data['close'].iloc[-1] < mother_low
+			           if broke_up and reversed_down:
+			               return 'BEARISH_FAKEY'
+
+			           # False breakout down, then reversal up
+			           broke_down = data['low'].iloc[-2] < mother_low
+			           reversed_up = data['close'].iloc[-1] > mother_high
+			           if broke_down and reversed_up:
+			               return 'BULLISH_FAKEY'
+
+			       return None
+			   ```
+
+			=== MARKET STRUCTURE ===
+
+			1. HIGHER HIGHS & HIGHER LOWS (Uptrend)
+			   - Each swing high > previous swing high
+			   - Each swing low > previous swing low
+			   - Trend intact while this continues
+
+			2. LOWER HIGHS & LOWER LOWS (Downtrend)
+			   - Each swing high < previous swing high
+			   - Each swing low < previous swing low
+			   - Trend intact while this continues
+
+			3. BREAK OF STRUCTURE (BOS)
+			   - In uptrend: Price breaks below previous swing low
+			   - In downtrend: Price breaks above previous swing high
+			   - Signals potential trend change
+
+			4. CHANGE OF CHARACTER (ChoCH)
+			   - First sign of trend weakness
+			   - Uptrend: Fails to make new high, breaks structure
+			   - Downtrend: Fails to make new low, breaks structure
+
+			Python:
+			```
+			def detect_market_structure(data, lookback=20):
+			    highs = data['high'].iloc[-lookback:]
+			    lows = data['low'].iloc[-lookback:]
+
+			    # Find swing points (simplified)
+			    swing_highs = highs.rolling(5, center=True).max() == highs
+			    swing_lows = lows.rolling(5, center=True).min() == lows
+
+			    recent_swing_highs = highs[swing_highs].tail(3)
+			    recent_swing_lows = lows[swing_lows].tail(3)
+
+			    if len(recent_swing_highs) >= 2 and len(recent_swing_lows) >= 2:
+			        hh = recent_swing_highs.iloc[-1] > recent_swing_highs.iloc[-2]  # Higher high
+			        hl = recent_swing_lows.iloc[-1] > recent_swing_lows.iloc[-2]    # Higher low
+			        lh = recent_swing_highs.iloc[-1] < recent_swing_highs.iloc[-2]  # Lower high
+			        ll = recent_swing_lows.iloc[-1] < recent_swing_lows.iloc[-2]    # Lower low
+
+			        if hh and hl:
+			            return 'UPTREND'
+			        elif lh and ll:
+			            return 'DOWNTREND'
+			        else:
+			            return 'TRANSITIONING'
+
+			    return 'UNKNOWN'
+			```
+
+			-------------------------------------------
+			ICHIMOKU CLOUD
+			-------------------------------------------
+
+			Complete trading system from Japan. Provides:
+			- Trend direction
+			- Support/resistance levels
+			- Momentum
+			- Entry/exit signals
+
+			=== ICHIMOKU COMPONENTS ===
+
+			1. TENKAN-SEN (Conversion Line) - Period: 9
+			   - (Highest High + Lowest Low) / 2 over 9 periods
+			   - Short-term trend indicator
+			   - Similar to fast moving average
+
+			2. KIJUN-SEN (Base Line) - Period: 26
+			   - (Highest High + Lowest Low) / 2 over 26 periods
+			   - Medium-term trend indicator
+			   - Key support/resistance level
+
+			3. SENKOU SPAN A (Leading Span A)
+			   - (Tenkan + Kijun) / 2, plotted 26 periods ahead
+			   - First cloud boundary
+
+			4. SENKOU SPAN B (Leading Span B) - Period: 52
+			   - (Highest High + Lowest Low) / 2 over 52 periods, plotted 26 ahead
+			   - Second cloud boundary
+
+			5. CHIKOU SPAN (Lagging Span)
+			   - Current close plotted 26 periods BACK
+			   - Confirms trend by comparing to past price
+
+			6. KUMO (Cloud)
+			   - Area between Senkou Span A and B
+			   - Green cloud (bullish): Span A > Span B
+			   - Red cloud (bearish): Span A < Span B
+
+			Python calculation:
+			```
+			def calculate_ichimoku(data):
+			    high = data['high']
+			    low = data['low']
+			    close = data['close']
+
+			    # Tenkan-sen (Conversion Line): 9-period
+			    tenkan = (high.rolling(9).max() + low.rolling(9).min()) / 2
+
+			    # Kijun-sen (Base Line): 26-period
+			    kijun = (high.rolling(26).max() + low.rolling(26).min()) / 2
+
+			    # Senkou Span A (Leading Span A): (Tenkan + Kijun) / 2, shifted 26 forward
+			    senkou_a = ((tenkan + kijun) / 2).shift(26)
+
+			    # Senkou Span B (Leading Span B): 52-period, shifted 26 forward
+			    senkou_b = ((high.rolling(52).max() + low.rolling(52).min()) / 2).shift(26)
+
+			    # Chikou Span (Lagging Span): Close shifted 26 back
+			    chikou = close.shift(-26)
+
+			    return {
+			        'tenkan': tenkan,
+			        'kijun': kijun,
+			        'senkou_a': senkou_a,
+			        'senkou_b': senkou_b,
+			        'chikou': chikou
+			    }
+
+			ichi = calculate_ichimoku(data)
+			```
+
+			=== ICHIMOKU SIGNALS ===
+
+			1. TK CROSS (Tenkan/Kijun Cross)
+			   - Bullish: Tenkan crosses ABOVE Kijun
+			   - Bearish: Tenkan crosses BELOW Kijun
+			   - Stronger when above/below cloud
+			   ```
+			   bullish_tk = ichi['tenkan'].iloc[-1] > ichi['kijun'].iloc[-1] and ichi['tenkan'].iloc[-2] <= ichi['kijun'].iloc[-2]
+			   bearish_tk = ichi['tenkan'].iloc[-1] < ichi['kijun'].iloc[-1] and ichi['tenkan'].iloc[-2] >= ichi['kijun'].iloc[-2]
+			   ```
+
+			2. PRICE vs CLOUD
+			   - Price ABOVE cloud = Bullish (only take longs)
+			   - Price BELOW cloud = Bearish (only take shorts)
+			   - Price IN cloud = No trade (consolidation)
+			   ```
+			   cloud_top = max(ichi['senkou_a'].iloc[-1], ichi['senkou_b'].iloc[-1])
+			   cloud_bottom = min(ichi['senkou_a'].iloc[-1], ichi['senkou_b'].iloc[-1])
+
+			   above_cloud = data['close'].iloc[-1] > cloud_top
+			   below_cloud = data['close'].iloc[-1] < cloud_bottom
+			   in_cloud = not above_cloud and not below_cloud
+			   ```
+
+			3. CLOUD COLOR (Future Trend)
+			   - Green cloud ahead = Bullish bias
+			   - Red cloud ahead = Bearish bias
+			   ```
+			   bullish_cloud = ichi['senkou_a'].iloc[-1] > ichi['senkou_b'].iloc[-1]
+			   ```
+
+			4. CHIKOU CONFIRMATION
+			   - Chikou above price (26 bars ago) = Bullish
+			   - Chikou below price (26 bars ago) = Bearish
+			   ```
+			   chikou_bullish = ichi['chikou'].iloc[-27] > data['close'].iloc[-27]
+			   ```
+
+			=== COMPLETE ICHIMOKU STRATEGY ===
+			```
+			def ichimoku_signal(data):
+			    ichi = calculate_ichimoku(data)
+			    close = data['close'].iloc[-1]
+
+			    cloud_top = max(ichi['senkou_a'].iloc[-1], ichi['senkou_b'].iloc[-1])
+			    cloud_bottom = min(ichi['senkou_a'].iloc[-1], ichi['senkou_b'].iloc[-1])
+
+			    # All 5 conditions for STRONG signal
+			    # 1. Price above cloud
+			    above_cloud = close > cloud_top
+
+			    # 2. Tenkan above Kijun
+			    tk_bullish = ichi['tenkan'].iloc[-1] > ichi['kijun'].iloc[-1]
+
+			    # 3. Chikou above past price
+			    chikou_bullish = ichi['chikou'].iloc[-27] > data['close'].iloc[-27] if len(data) > 27 else True
+
+			    # 4. Future cloud is bullish
+			    future_bullish = ichi['senkou_a'].iloc[-1] > ichi['senkou_b'].iloc[-1]
+
+			    # 5. TK cross just occurred
+			    tk_cross = ichi['tenkan'].iloc[-2] <= ichi['kijun'].iloc[-2]
+
+			    if above_cloud and tk_bullish and chikou_bullish and future_bullish and tk_cross:
+			        return 'STRONG_BUY'
+			    elif above_cloud and tk_bullish:
+			        return 'BUY'
+			    elif close < cloud_bottom and not tk_bullish:
+			        return 'SELL'
+			    else:
+			        return 'HOLD'
+			```
+
+			ICHIMOKU BEST PRACTICES:
+			1. Best on Daily and Weekly timeframes
+			2. Wait for price to clear the cloud (not in cloud)
+			3. Cloud acts as support/resistance
+			4. More conditions aligned = stronger signal
+			5. Flat Kijun = strong S/R level
+
+			-------------------------------------------
+			GAP ANALYSIS
+			-------------------------------------------
+
+			WHAT IS A GAP?
+			When price opens significantly higher or lower than previous close.
+			No trading occurred at prices in between.
+
+			GAP TYPES:
+
+			1. COMMON GAP
+			   - Occurs in ranging markets
+			   - Usually fills quickly (within days)
+			   - Low significance
+
+			2. BREAKAWAY GAP
+			   - Occurs at start of new trend
+			   - Breaks through S/R with gap
+			   - High volume confirms
+			   - Often does NOT fill
+
+			3. RUNAWAY/CONTINUATION GAP
+			   - Occurs in middle of trend
+			   - Shows strong momentum
+			   - Partial fill then continues
+
+			4. EXHAUSTION GAP
+			   - Occurs at end of trend
+			   - Final push before reversal
+			   - Usually fills quickly
+
+			Python gap detection:
+			```
+			def detect_gap(data, min_gap_pct=1.0):
+			    prev_close = data['close'].iloc[-2]
+			    curr_open = data['open'].iloc[-1]
+			    curr_close = data['close'].iloc[-1]
+
+			    gap_pct = (curr_open - prev_close) / prev_close * 100
+
+			    if abs(gap_pct) < min_gap_pct:
+			        return None
+
+			    gap_type = 'GAP_UP' if gap_pct > 0 else 'GAP_DOWN'
+
+			    # Check if gap filled during the day
+			    if gap_type == 'GAP_UP':
+			        gap_filled = data['low'].iloc[-1] <= prev_close
+			    else:
+			        gap_filled = data['high'].iloc[-1] >= prev_close
+
+			    return {
+			        'type': gap_type,
+			        'size_pct': gap_pct,
+			        'filled': gap_filled
+			    }
+			```
+
+			GAP TRADING STRATEGIES:
+
+			1. GAP AND GO (Momentum)
+			   - Trade in direction of gap
+			   - Works best with breakaway gaps
+			   - Enter on first pullback after gap
+			   ```
+			   gap = detect_gap(data)
+			   if gap and gap['type'] == 'GAP_UP' and not gap['filled']:
+			       # Gap held, momentum continues
+			       if data['close'].iloc[-1] > data['open'].iloc[-1]:
+			           signal = 'BUY'
+			   ```
+
+			2. GAP FILL (Mean Reversion)
+			   - Bet that gap will fill
+			   - Works best with common gaps
+			   - Fade the gap direction
+			   ```
+			   gap = detect_gap(data)
+			   if gap and gap['type'] == 'GAP_UP' and gap['size_pct'] < 3:
+			       # Small gap likely to fill
+			       signal = 'SELL'  # Fade the gap
+			       target = prev_close  # Gap fill level
+			   ```
+
+			3. GAP SUPPORT/RESISTANCE
+			   - Unfilled gaps act as S/R zones
+			   - Gap up creates support at gap bottom
+			   - Gap down creates resistance at gap top
+
+			GAP STATISTICS:
+			- ~70% of common gaps fill within a few days
+			- Breakaway gaps at new highs/lows often don't fill
+			- Gaps into earnings usually fill (overreaction)
+			- Monday gaps often fill by week end
+
+			-------------------------------------------
+			SENTIMENT INDICATORS
+			-------------------------------------------
+
+			Measure crowd psychology and positioning.
+			Often contrarian - extreme sentiment = potential reversal.
+
+			=== VIX (Volatility Index) ===
+
+			"Fear Gauge" - measures expected S&P 500 volatility
+
+			VIX LEVELS:
+			- VIX < 12: Extreme complacency (potential top)
+			- VIX 12-20: Normal/low volatility
+			- VIX 20-30: Elevated fear
+			- VIX > 30: High fear (potential bottom)
+			- VIX > 40: Extreme fear (major bottom likely)
+
+			CONTRARIAN VIX STRATEGY:
+			```
+			# VIX data (if available)
+			vix = get_vix_data()
+
+			if vix.iloc[-1] > 35:
+			    # Extreme fear - contrarian buy signal
+			    sentiment = 'EXTREME_FEAR'
+			    contrarian_signal = 'BUY'
+			elif vix.iloc[-1] < 12:
+			    # Extreme complacency - contrarian sell signal
+			    sentiment = 'EXTREME_GREED'
+			    contrarian_signal = 'SELL'
+			else:
+			    sentiment = 'NEUTRAL'
+			```
+
+			VIX TERM STRUCTURE:
+			- Contango (normal): VIX futures > VIX spot = bullish
+			- Backwardation: VIX futures < VIX spot = bearish/fearful
+
+			=== PUT/CALL RATIO ===
+
+			Measures options market sentiment
+
+			- Ratio = Put Volume / Call Volume
+			- High ratio (>1.0): More puts = bearish sentiment
+			- Low ratio (<0.7): More calls = bullish sentiment
+
+			CONTRARIAN SIGNALS:
+			```
+			put_call_ratio = calculate_put_call_ratio()
+
+			if put_call_ratio > 1.2:
+			    # Extreme put buying = fear = contrarian buy
+			    signal = 'CONTRARIAN_BUY'
+			elif put_call_ratio < 0.5:
+			    # Extreme call buying = greed = contrarian sell
+			    signal = 'CONTRARIAN_SELL'
+			```
+
+			=== FEAR & GREED INDEX ===
+
+			Composite sentiment indicator (0-100 scale)
+
+			COMPONENTS:
+			- Market momentum (S&P 500 vs 125-day MA)
+			- Stock price strength (52-week highs vs lows)
+			- Stock price breadth (advancing vs declining volume)
+			- Put/Call ratio
+			- Market volatility (VIX)
+			- Safe haven demand (stocks vs bonds)
+			- Junk bond demand (yield spread)
+
+			LEVELS:
+			- 0-25: Extreme Fear (buy signal)
+			- 25-45: Fear
+			- 45-55: Neutral
+			- 55-75: Greed
+			- 75-100: Extreme Greed (sell signal)
+
+			```
+			# Simplified Fear & Greed calculation
+			def calculate_fear_greed(data, spy_data):
+			    score = 50  # Start neutral
+
+			    # Momentum: Price vs 125-day MA
+			    ma_125 = spy_data['close'].rolling(125).mean().iloc[-1]
+			    if spy_data['close'].iloc[-1] > ma_125 * 1.05:
+			        score += 15  # Greed
+			    elif spy_data['close'].iloc[-1] < ma_125 * 0.95:
+			        score -= 15  # Fear
+
+			    # Volatility: VIX level
+			    # (would need VIX data)
+
+			    # 52-week highs vs lows
+			    high_52w = spy_data['high'].rolling(252).max().iloc[-1]
+			    low_52w = spy_data['low'].rolling(252).min().iloc[-1]
+			    price_position = (spy_data['close'].iloc[-1] - low_52w) / (high_52w - low_52w)
+			    score += (price_position - 0.5) * 30
+
+			    return max(0, min(100, score))
+			```
+
+			=== AAII SENTIMENT SURVEY ===
+
+			Weekly survey of individual investors
+
+			- Bullish %: Expect market to rise
+			- Bearish %: Expect market to fall
+			- Neutral %: Expect market flat
+
+			CONTRARIAN SIGNALS:
+			- Bull-Bear Spread > 30%: Extreme optimism (sell)
+			- Bull-Bear Spread < -30%: Extreme pessimism (buy)
+
+			SENTIMENT BEST PRACTICES:
+			1. Sentiment is CONTRARIAN - go against extremes
+			2. Sentiment alone is not timing - combine with technicals
+			3. "Be fearful when others are greedy, greedy when others are fearful"
+			4. Extreme sentiment can persist - wait for price confirmation
+			5. Works best at major market turning points
+
+			-------------------------------------------
+			PATTERN COMBINATION STRATEGIES
+			-------------------------------------------
+
+			HIGHEST PROBABILITY SETUPS (combine multiple confirmations):
+
+			1. BULLISH SETUP EXAMPLE:
+			   - Golden Cross occurred (long-term bullish)
+			   - Price pulls back to 50-day MA (entry opportunity)
+			   - Hammer candle forms at MA (reversal signal)
+			   - RSI rising from below 40 (momentum confirmation)
+			   - Volume increases on bounce (institutional interest)
+			   → HIGH PROBABILITY LONG ENTRY
+
+			2. BEARISH SETUP EXAMPLE:
+			   - Death Cross occurred (long-term bearish)
+			   - Price rallies to 50-day MA (entry opportunity)
+			   - Shooting star at MA (reversal signal)
+			   - RSI falling from above 60 (momentum confirmation)
+			   - Volume increases on rejection (institutional selling)
+			   → HIGH PROBABILITY SHORT ENTRY
+
+			-------------------------------------------
+			PATTERN-BASED STRATEGY IMPLEMENTATION
+			-------------------------------------------
+
+			When generating strategies, USE these patterns by:
+
+			1. DETECT the pattern in code (see Python examples above)
+			2. CONFIRM with supporting indicators
+			3. SET entry at pattern completion/breakout
+			4. SET stop-loss at pattern invalidation level
+			5. SET target based on pattern measurement rules
+
+			Example Pattern-Based Strategy Structure:
+			```python
+			def strategy(data):
+			    # Pattern detection
+			    golden_cross = sma_50.iloc[-1] > sma_200.iloc[-1] and sma_50.iloc[-2] <= sma_200.iloc[-2]
+			    price_at_support = data['close'].iloc[-1] <= sma_50.iloc[-1] * 1.02
+
+			    # Candlestick confirmation
+			    hammer = detect_hammer(data)
+			    bullish_engulfing = detect_engulfing(data, 'bullish')
+
+			    # Momentum confirmation
+			    rsi_oversold_reversal = rsi.iloc[-1] > 30 and rsi.iloc[-2] < 30
+
+			    # Entry: Multiple confirmations
+			    if golden_cross and price_at_support and (hammer or bullish_engulfing) and rsi_oversold_reversal:
+			        return 'BUY'
+
+			    # Exit on pattern failure
+			    if data['close'].iloc[-1] < sma_200.iloc[-1]:
+			        return 'SELL'
+
+			    return 'HOLD'
+			```
+			""";
 
 	// ========================================
 	// STRATEGY OPTIMIZATION PROMPTS

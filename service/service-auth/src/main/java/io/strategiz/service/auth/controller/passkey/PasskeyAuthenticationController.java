@@ -4,6 +4,7 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.ApiTokenResponse;
 import io.strategiz.service.auth.model.AuthenticationResponse;
+import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.user.entity.UserEntity;
@@ -61,6 +62,9 @@ public class PasskeyAuthenticationController extends BaseController {
     @Autowired
     private io.strategiz.service.auth.service.AuthTokenService authTokenService;
 
+    @Autowired(required = false)
+    private FraudDetectionService fraudDetectionService;
+
     // Constructor to log controller initialization
     public PasskeyAuthenticationController() {
         log.info("PasskeyAuthenticationController constructor called - endpoints will be registered at /v1/auth/passkeys/*");
@@ -115,6 +119,11 @@ public class PasskeyAuthenticationController extends BaseController {
             HttpServletResponse servletResponse) {
 
         logRequest("completeAuthentication", request.credentialId());
+
+        // Verify reCAPTCHA token for fraud detection
+        if (fraudDetectionService != null) {
+            fraudDetectionService.verifyLogin(request.recaptchaToken(), request.credentialId());
+        }
 
         // Extract client IP address
         String ipAddress = servletRequest.getRemoteAddr();

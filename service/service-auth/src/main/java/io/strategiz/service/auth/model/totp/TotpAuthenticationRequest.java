@@ -9,11 +9,13 @@ import jakarta.validation.constraints.Pattern;
 public record TotpAuthenticationRequest(
         @NotBlank(message = "User ID is required")
         String userId,
-        
+
         @NotBlank(message = "TOTP code is required")
         @Pattern(regexp = "\\d{6}", message = "TOTP code must be exactly 6 digits")
         String code,
-        
-        String deviceId
+
+        String deviceId,
+
+        String recaptchaToken
 ) {
 }

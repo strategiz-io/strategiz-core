@@ -55,14 +55,12 @@ public class FundamentalsRepositoryImpl implements FundamentalsRepository {
 	}
 
 	@Override
-	public List<FundamentalsEntity> findBySymbolAndPeriodTypeOrderByFiscalPeriodDesc(String symbol,
-			String periodType) {
+	public List<FundamentalsEntity> findBySymbolAndPeriodTypeOrderByFiscalPeriodDesc(String symbol, String periodType) {
 		return dataRepo.findBySymbolAndPeriodTypeOrderByFiscalPeriodDesc(symbol, periodType);
 	}
 
 	@Override
-	public List<FundamentalsEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate,
-			LocalDate endDate) {
+	public List<FundamentalsEntity> findBySymbolAndDateRange(String symbol, LocalDate startDate, LocalDate endDate) {
 		return dataRepo.findBySymbolAndDateRange(symbol, startDate, endDate);
 	}
 

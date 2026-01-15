@@ -21,344 +21,332 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service for Automation & Agents
- * Manages automated security and maintenance tasks via GitHub Actions workflows
+ * Service for Automation & Agents Manages automated security and maintenance tasks via
+ * GitHub Actions workflows
  */
 @Service
 public class AutomationAgentService {
 
-    private static final Logger log = LoggerFactory.getLogger(AutomationAgentService.class);
+	private static final Logger log = LoggerFactory.getLogger(AutomationAgentService.class);
 
-    private final RestTemplate restTemplate;
-    private final GitHubAppAuthClient githubAppAuthClient;
-    private final GitHubAppConfig githubAppConfig;
-    private final String githubApiUrl = "https://api.github.com";
+	private final RestTemplate restTemplate;
 
-    @Autowired
-    public AutomationAgentService(
-            RestTemplate restTemplate,
-            @Autowired(required = false) GitHubAppAuthClient githubAppAuthClient,
-            GitHubAppConfig githubAppConfig
-    ) {
-        this.restTemplate = restTemplate;
-        this.githubAppAuthClient = githubAppAuthClient;
-        this.githubAppConfig = githubAppConfig;
+	private final GitHubAppAuthClient githubAppAuthClient;
 
-        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
-            log.warn("GitHub App not configured - Automation & Agents will return default status");
-        }
-    }
+	private final GitHubAppConfig githubAppConfig;
 
-    /**
-     * Get list of all configured agents
-     */
-    public List<AgentStatus> getAllAgents() {
-        List<AgentStatus> agents = new ArrayList<>();
+	private final String githubApiUrl = "https://api.github.com";
 
-        // Backend Security Agent
-        agents.add(getAgentStatus("security-agent-backend", "strategiz-io/strategiz-core"));
+	@Autowired
+	public AutomationAgentService(RestTemplate restTemplate,
+			@Autowired(required = false) GitHubAppAuthClient githubAppAuthClient, GitHubAppConfig githubAppConfig) {
+		this.restTemplate = restTemplate;
+		this.githubAppAuthClient = githubAppAuthClient;
+		this.githubAppConfig = githubAppConfig;
 
-        // Frontend Security Agent
-        agents.add(getAgentStatus("security-agent-frontend", "strategiz-io/strategiz-ui"));
+		if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+			log.warn("GitHub App not configured - Automation & Agents will return default status");
+		}
+	}
 
-        return agents;
-    }
+	/**
+	 * Get list of all configured agents
+	 */
+	public List<AgentStatus> getAllAgents() {
+		List<AgentStatus> agents = new ArrayList<>();
 
-    /**
-     * Get status of a specific agent
-     */
-    public AgentStatus getAgentStatus(String agentId, String repository) {
-        // Return default status if GitHub App not configured
-        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
-            return createDefaultAgentStatus(agentId, repository);
-        }
+		// Backend Security Agent
+		agents.add(getAgentStatus("security-agent-backend", "strategiz-io/strategiz-core"));
 
-        try {
-            // Fetch workflow runs from GitHub API
-            String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?per_page=10",
-                    githubApiUrl, repository);
+		// Frontend Security Agent
+		agents.add(getAgentStatus("security-agent-frontend", "strategiz-io/strategiz-ui"));
 
-            HttpHeaders headers = createAuthHeaders(repository);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+		return agents;
+	}
 
-            Map<String, Object> data = response.getBody();
-            List<Map<String, Object>> workflowRuns = (List<Map<String, Object>>) data.get("workflow_runs");
+	/**
+	 * Get status of a specific agent
+	 */
+	public AgentStatus getAgentStatus(String agentId, String repository) {
+		// Return default status if GitHub App not configured
+		if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+			return createDefaultAgentStatus(agentId, repository);
+		}
 
-            // Calculate metrics from workflow runs
-            AgentStatus.AgentMetrics metrics = calculateMetrics(workflowRuns);
+		try {
+			// Fetch workflow runs from GitHub API
+			String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?per_page=10",
+					githubApiUrl, repository);
 
-            // Get last run info
-            Instant lastRun = null;
-            String status = "IDLE";
+			HttpHeaders headers = createAuthHeaders(repository);
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 
-            if (workflowRuns != null && !workflowRuns.isEmpty()) {
-                Map<String, Object> lastWorkflow = workflowRuns.get(0);
-                lastRun = Instant.parse((String) lastWorkflow.get("updated_at"));
-                String conclusion = (String) lastWorkflow.get("conclusion");
-                String workflowStatus = (String) lastWorkflow.get("status");
+			Map<String, Object> data = response.getBody();
+			List<Map<String, Object>> workflowRuns = (List<Map<String, Object>>) data.get("workflow_runs");
 
-                if ("in_progress".equals(workflowStatus) || "queued".equals(workflowStatus)) {
-                    status = "RUNNING";
-                } else if ("success".equals(conclusion)) {
-                    status = "IDLE";
-                } else if ("failure".equals(conclusion)) {
-                    status = "FAILED";
-                }
-            }
+			// Calculate metrics from workflow runs
+			AgentStatus.AgentMetrics metrics = calculateMetrics(workflowRuns);
 
-            // Calculate next scheduled run (every 6 hours)
-            Instant nextRun = lastRun != null ? lastRun.plus(6, ChronoUnit.HOURS) : Instant.now();
+			// Get last run info
+			Instant lastRun = null;
+			String status = "IDLE";
 
-            String name = agentId.contains("backend") ? "Backend Security Agent" : "Frontend Security Agent";
-            String description = agentId.contains("backend")
-                ? "Monitors and updates Maven dependencies for security vulnerabilities"
-                : "Monitors and updates NPM dependencies for security vulnerabilities";
+			if (workflowRuns != null && !workflowRuns.isEmpty()) {
+				Map<String, Object> lastWorkflow = workflowRuns.get(0);
+				lastRun = Instant.parse((String) lastWorkflow.get("updated_at"));
+				String conclusion = (String) lastWorkflow.get("conclusion");
+				String workflowStatus = (String) lastWorkflow.get("status");
 
-            return new AgentStatus(
-                    agentId,
-                    name,
-                    description,
-                    status,
-                    true, // enabled by default
-                    lastRun,
-                    nextRun,
-                    metrics,
-                    repository
-            );
+				if ("in_progress".equals(workflowStatus) || "queued".equals(workflowStatus)) {
+					status = "RUNNING";
+				}
+				else if ("success".equals(conclusion)) {
+					status = "IDLE";
+				}
+				else if ("failure".equals(conclusion)) {
+					status = "FAILED";
+				}
+			}
 
-        } catch (Exception e) {
-            log.error("Error fetching agent status for {}: {}", agentId, e.getMessage());
-            return createDefaultAgentStatus(agentId, repository);
-        }
-    }
+			// Calculate next scheduled run (every 6 hours)
+			Instant nextRun = lastRun != null ? lastRun.plus(6, ChronoUnit.HOURS) : Instant.now();
 
-    /**
-     * Get execution history for an agent
-     */
-    public AgentHistory getAgentHistory(String agentId, String repository, int page, int pageSize) {
-        // Return empty history if GitHub App not configured
-        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
-            return new AgentHistory(agentId, List.of(), 0, page, pageSize);
-        }
+			String name = agentId.contains("backend") ? "Backend Security Agent" : "Frontend Security Agent";
+			String description = agentId.contains("backend")
+					? "Monitors and updates Maven dependencies for security vulnerabilities"
+					: "Monitors and updates NPM dependencies for security vulnerabilities";
 
-        try {
-            String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?page=%d&per_page=%d",
-                    githubApiUrl, repository, page + 1, pageSize);
+			return new AgentStatus(agentId, name, description, status, true, // enabled by
+																				// default
+					lastRun, nextRun, metrics, repository);
 
-            HttpHeaders headers = createAuthHeaders(repository);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+		}
+		catch (Exception e) {
+			log.error("Error fetching agent status for {}: {}", agentId, e.getMessage());
+			return createDefaultAgentStatus(agentId, repository);
+		}
+	}
 
-            Map<String, Object> data = response.getBody();
-            List<Map<String, Object>> workflowRuns = (List<Map<String, Object>>) data.get("workflow_runs");
-            int totalCount = (int) data.get("total_count");
+	/**
+	 * Get execution history for an agent
+	 */
+	public AgentHistory getAgentHistory(String agentId, String repository, int page, int pageSize) {
+		// Return empty history if GitHub App not configured
+		if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+			return new AgentHistory(agentId, List.of(), 0, page, pageSize);
+		}
 
-            List<AgentHistory.AgentExecution> executions = new ArrayList<>();
-            if (workflowRuns != null) {
-                for (Map<String, Object> run : workflowRuns) {
-                    executions.add(mapWorkflowRunToExecution(run, repository));
-                }
-            }
+		try {
+			String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/runs?page=%d&per_page=%d",
+					githubApiUrl, repository, page + 1, pageSize);
 
-            return new AgentHistory(agentId, executions, totalCount, page, pageSize);
+			HttpHeaders headers = createAuthHeaders(repository);
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 
-        } catch (Exception e) {
-            log.error("Error fetching agent history for {}: {}", agentId, e.getMessage());
-            return new AgentHistory(agentId, List.of(), 0, page, pageSize);
-        }
-    }
+			Map<String, Object> data = response.getBody();
+			List<Map<String, Object>> workflowRuns = (List<Map<String, Object>>) data.get("workflow_runs");
+			int totalCount = (int) data.get("total_count");
 
-    /**
-     * Trigger an agent to run now
-     */
-    public boolean triggerAgent(String agentId, String repository, String triggeredBy) {
-        // Cannot trigger if GitHub App not configured
-        if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
-            log.error("GitHub App not configured, cannot trigger workflow");
-            return false;
-        }
+			List<AgentHistory.AgentExecution> executions = new ArrayList<>();
+			if (workflowRuns != null) {
+				for (Map<String, Object> run : workflowRuns) {
+					executions.add(mapWorkflowRunToExecution(run, repository));
+				}
+			}
 
-        try {
+			return new AgentHistory(agentId, executions, totalCount, page, pageSize);
 
-            String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/dispatches",
-                    githubApiUrl, repository);
+		}
+		catch (Exception e) {
+			log.error("Error fetching agent history for {}: {}", agentId, e.getMessage());
+			return new AgentHistory(agentId, List.of(), 0, page, pageSize);
+		}
+	}
 
-            HttpHeaders headers = createAuthHeaders(repository);
-            headers.set("Content-Type", "application/json");
+	/**
+	 * Trigger an agent to run now
+	 */
+	public boolean triggerAgent(String agentId, String repository, String triggeredBy) {
+		// Cannot trigger if GitHub App not configured
+		if (githubAppAuthClient == null || !githubAppConfig.isConfigured()) {
+			log.error("GitHub App not configured, cannot trigger workflow");
+			return false;
+		}
 
-            Map<String, Object> payload = Map.of(
-                    "ref", "main",
-                    "inputs", Map.of("force_update", "false")
-            );
+		try {
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-            restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);
+			String url = String.format("%s/repos/%s/actions/workflows/security-agent.yml/dispatches", githubApiUrl,
+					repository);
 
-            log.info("Successfully triggered {} by {}", agentId, triggeredBy);
-            return true;
+			HttpHeaders headers = createAuthHeaders(repository);
+			headers.set("Content-Type", "application/json");
 
-        } catch (Exception e) {
-            log.error("Error triggering agent {}: {}", agentId, e.getMessage());
-            return false;
-        }
-    }
+			Map<String, Object> payload = Map.of("ref", "main", "inputs", Map.of("force_update", "false"));
 
-    /**
-     * Enable or disable an agent
-     */
-    public boolean setAgentEnabled(String agentId, boolean enabled) {
-        // For now, this is a placeholder
-        // In a real implementation, this would update a configuration store
-        // or use GitHub's workflow enable/disable API
-        log.info("Agent {} {}", agentId, enabled ? "enabled" : "disabled");
-        return true;
-    }
+			HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+			restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);
 
-    // Helper methods
+			log.info("Successfully triggered {} by {}", agentId, triggeredBy);
+			return true;
 
-    private AgentStatus.AgentMetrics calculateMetrics(List<Map<String, Object>> workflowRuns) {
-        if (workflowRuns == null || workflowRuns.isEmpty()) {
-            return new AgentStatus.AgentMetrics(0, 0, 0, 0, 0, 0.0);
-        }
+		}
+		catch (Exception e) {
+			log.error("Error triggering agent {}: {}", agentId, e.getMessage());
+			return false;
+		}
+	}
 
-        int total = workflowRuns.size();
-        int successful = 0;
-        int failed = 0;
+	/**
+	 * Enable or disable an agent
+	 */
+	public boolean setAgentEnabled(String agentId, boolean enabled) {
+		// For now, this is a placeholder
+		// In a real implementation, this would update a configuration store
+		// or use GitHub's workflow enable/disable API
+		log.info("Agent {} {}", agentId, enabled ? "enabled" : "disabled");
+		return true;
+	}
 
-        for (Map<String, Object> run : workflowRuns) {
-            String conclusion = (String) run.get("conclusion");
-            if ("success".equals(conclusion)) {
-                successful++;
-            } else if ("failure".equals(conclusion)) {
-                failed++;
-            }
-        }
+	// Helper methods
 
-        double successRate = total > 0 ? (successful * 100.0 / total) : 0.0;
+	private AgentStatus.AgentMetrics calculateMetrics(List<Map<String, Object>> workflowRuns) {
+		if (workflowRuns == null || workflowRuns.isEmpty()) {
+			return new AgentStatus.AgentMetrics(0, 0, 0, 0, 0, 0.0);
+		}
 
-        // Estimate PRs created (rough estimate based on successful runs)
-        int prsCreated = (int) (successful * 0.3); // Assume 30% of runs create PRs
+		int total = workflowRuns.size();
+		int successful = 0;
+		int failed = 0;
 
-        // Estimate vulnerabilities fixed (rough estimate)
-        int vulnerabilitiesFixed = prsCreated * 2; // Assume 2 vulnerabilities per PR on average
+		for (Map<String, Object> run : workflowRuns) {
+			String conclusion = (String) run.get("conclusion");
+			if ("success".equals(conclusion)) {
+				successful++;
+			}
+			else if ("failure".equals(conclusion)) {
+				failed++;
+			}
+		}
 
-        return new AgentStatus.AgentMetrics(total, successful, failed, prsCreated, vulnerabilitiesFixed, successRate);
-    }
+		double successRate = total > 0 ? (successful * 100.0 / total) : 0.0;
 
-    private AgentHistory.AgentExecution mapWorkflowRunToExecution(Map<String, Object> run, String repository) {
-        String runId = String.valueOf(run.get("id"));
-        Instant timestamp = Instant.parse((String) run.get("created_at"));
-        String workflowStatus = (String) run.get("status");
-        String conclusion = (String) run.get("conclusion");
-        String triggerEvent = (String) run.get("event");
+		// Estimate PRs created (rough estimate based on successful runs)
+		int prsCreated = (int) (successful * 0.3); // Assume 30% of runs create PRs
 
-        String status = "IN_PROGRESS";
-        if ("completed".equals(workflowStatus)) {
-            status = "success".equals(conclusion) ? "SUCCESS" : "FAILED";
-        }
+		// Estimate vulnerabilities fixed (rough estimate)
+		int vulnerabilitiesFixed = prsCreated * 2; // Assume 2 vulnerabilities per PR on
+													// average
 
-        String trigger = "workflow_dispatch".equals(triggerEvent) ? "MANUAL" : "SCHEDULED";
-        String triggeredBy = "system"; // Could be extracted from run.actor if available
+		return new AgentStatus.AgentMetrics(total, successful, failed, prsCreated, vulnerabilitiesFixed, successRate);
+	}
 
-        // Get workflow run URL
-        String workflowRunUrl = (String) run.get("html_url");
+	private AgentHistory.AgentExecution mapWorkflowRunToExecution(Map<String, Object> run, String repository) {
+		String runId = String.valueOf(run.get("id"));
+		Instant timestamp = Instant.parse((String) run.get("created_at"));
+		String workflowStatus = (String) run.get("status");
+		String conclusion = (String) run.get("conclusion");
+		String triggerEvent = (String) run.get("event");
 
-        // Try to find associated PR
-        String pullRequestUrl = findAssociatedPR(repository, timestamp);
+		String status = "IN_PROGRESS";
+		if ("completed".equals(workflowStatus)) {
+			status = "success".equals(conclusion) ? "SUCCESS" : "FAILED";
+		}
 
-        AgentHistory.ExecutionResult result = new AgentHistory.ExecutionResult(
-                0, // Would need to parse logs to get actual numbers
-                0,
-                "success".equals(conclusion),
-                "success".equals(conclusion),
-                conclusion != null ? conclusion : "Running"
-        );
+		String trigger = "workflow_dispatch".equals(triggerEvent) ? "MANUAL" : "SCHEDULED";
+		String triggeredBy = "system"; // Could be extracted from run.actor if available
 
-        return new AgentHistory.AgentExecution(
-                runId,
-                timestamp,
-                status,
-                trigger,
-                triggeredBy,
-                result,
-                workflowRunUrl,
-                pullRequestUrl
-        );
-    }
+		// Get workflow run URL
+		String workflowRunUrl = (String) run.get("html_url");
 
-    private String findAssociatedPR(String repository, Instant timestamp) {
-        try {
-            // Look for PRs created around the same time as the workflow run
-            String url = String.format("%s/repos/%s/pulls?state=all&per_page=10&sort=created&direction=desc",
-                    githubApiUrl, repository);
+		// Try to find associated PR
+		String pullRequestUrl = findAssociatedPR(repository, timestamp);
 
-            HttpHeaders headers = createAuthHeaders(repository);
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
+		AgentHistory.ExecutionResult result = new AgentHistory.ExecutionResult(0, // Would
+																					// need
+																					// to
+																					// parse
+																					// logs
+																					// to
+																					// get
+																					// actual
+																					// numbers
+				0, "success".equals(conclusion), "success".equals(conclusion),
+				conclusion != null ? conclusion : "Running");
 
-            List<Map<String, Object>> prs = response.getBody();
-            if (prs != null) {
-                for (Map<String, Object> pr : prs) {
-                    String title = (String) pr.get("title");
-                    if (title != null && title.contains("Security Agent")) {
-                        return (String) pr.get("html_url");
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Could not find associated PR: {}", e.getMessage());
-        }
-        return null;
-    }
+		return new AgentHistory.AgentExecution(runId, timestamp, status, trigger, triggeredBy, result, workflowRunUrl,
+				pullRequestUrl);
+	}
 
-    private AgentStatus createDefaultAgentStatus(String agentId, String repository) {
-        String name = agentId.contains("backend") ? "Backend Security Agent" : "Frontend Security Agent";
-        String description = agentId.contains("backend")
-            ? "Monitors and updates Maven dependencies for security vulnerabilities"
-            : "Monitors and updates NPM dependencies for security vulnerabilities";
+	private String findAssociatedPR(String repository, Instant timestamp) {
+		try {
+			// Look for PRs created around the same time as the workflow run
+			String url = String.format("%s/repos/%s/pulls?state=all&per_page=10&sort=created&direction=desc",
+					githubApiUrl, repository);
 
-        return new AgentStatus(
-                agentId,
-                name,
-                description,
-                "IDLE",
-                true,
-                null,
-                Instant.now(),
-                new AgentStatus.AgentMetrics(0, 0, 0, 0, 0, 0.0),
-                repository
-        );
-    }
+			HttpHeaders headers = createAuthHeaders(repository);
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
 
-    /**
-     * Create HTTP headers with GitHub App authentication
-     */
-    private HttpHeaders createAuthHeaders(String repository) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Accept", "application/vnd.github+json");
+			List<Map<String, Object>> prs = response.getBody();
+			if (prs != null) {
+				for (Map<String, Object> pr : prs) {
+					String title = (String) pr.get("title");
+					if (title != null && title.contains("Security Agent")) {
+						return (String) pr.get("html_url");
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			log.debug("Could not find associated PR: {}", e.getMessage());
+		}
+		return null;
+	}
 
-        if (githubAppConfig.isConfigured()) {
-            // Parse repository string (format: "owner/repo")
-            String[] parts = repository.split("/");
-            if (parts.length == 2) {
-                String owner = parts[0];
-                String repo = parts[1];
+	private AgentStatus createDefaultAgentStatus(String agentId, String repository) {
+		String name = agentId.contains("backend") ? "Backend Security Agent" : "Frontend Security Agent";
+		String description = agentId.contains("backend")
+				? "Monitors and updates Maven dependencies for security vulnerabilities"
+				: "Monitors and updates NPM dependencies for security vulnerabilities";
 
-                // Get installation access token from GitHub App
-                String token = githubAppAuthClient.getInstallationToken(owner, repo);
-                if (token != null) {
-                    headers.set("Authorization", "Bearer " + token);
-                } else {
-                    log.warn("Failed to obtain GitHub App installation token for {}", repository);
-                }
-            } else {
-                log.error("Invalid repository format: {}. Expected 'owner/repo'", repository);
-            }
-        } else {
-            log.warn("GitHub App not configured - API calls may fail");
-        }
+		return new AgentStatus(agentId, name, description, "IDLE", true, null, Instant.now(),
+				new AgentStatus.AgentMetrics(0, 0, 0, 0, 0, 0.0), repository);
+	}
 
-        return headers;
-    }
+	/**
+	 * Create HTTP headers with GitHub App authentication
+	 */
+	private HttpHeaders createAuthHeaders(String repository) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Accept", "application/vnd.github+json");
+
+		if (githubAppConfig.isConfigured()) {
+			// Parse repository string (format: "owner/repo")
+			String[] parts = repository.split("/");
+			if (parts.length == 2) {
+				String owner = parts[0];
+				String repo = parts[1];
+
+				// Get installation access token from GitHub App
+				String token = githubAppAuthClient.getInstallationToken(owner, repo);
+				if (token != null) {
+					headers.set("Authorization", "Bearer " + token);
+				}
+				else {
+					log.warn("Failed to obtain GitHub App installation token for {}", repository);
+				}
+			}
+			else {
+				log.error("Invalid repository format: {}. Expected 'owner/repo'", repository);
+			}
+		}
+		else {
+			log.warn("GitHub App not configured - API calls may fail");
+		}
+
+		return headers;
+	}
+
 }

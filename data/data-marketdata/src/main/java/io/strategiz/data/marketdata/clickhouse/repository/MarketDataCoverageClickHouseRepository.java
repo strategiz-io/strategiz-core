@@ -16,8 +16,8 @@ import java.time.Instant;
 import java.util.*;
 
 /**
- * ClickHouse repository for market data coverage snapshots.
- * Stores periodic (daily) snapshots of coverage metrics for trend analysis.
+ * ClickHouse repository for market data coverage snapshots. Stores periodic (daily)
+ * snapshots of coverage metrics for trend analysis.
  */
 @Repository
 @ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
@@ -66,49 +66,34 @@ public class MarketDataCoverageClickHouseRepository {
 		Map<String, Object> tf1M = extractTimeframeMetrics(entity, "1M");
 
 		// Calculate overall freshness from timeframe data
-		long totalFresh = (long) tf1h.get("fresh") + (long) tf1D.get("fresh") +
-				(long) tf1W.get("fresh") + (long) tf1M.get("fresh");
-		long totalStale = (long) tf1h.get("stale") + (long) tf1D.get("stale") +
-				(long) tf1W.get("stale") + (long) tf1M.get("stale");
-		long totalFailed = (long) tf1h.get("failed") + (long) tf1D.get("failed") +
-				(long) tf1W.get("failed") + (long) tf1M.get("failed");
+		long totalFresh = (long) tf1h.get("fresh") + (long) tf1D.get("fresh") + (long) tf1W.get("fresh")
+				+ (long) tf1M.get("fresh");
+		long totalStale = (long) tf1h.get("stale") + (long) tf1D.get("stale") + (long) tf1W.get("stale")
+				+ (long) tf1M.get("stale");
+		long totalFailed = (long) tf1h.get("failed") + (long) tf1D.get("failed") + (long) tf1W.get("failed")
+				+ (long) tf1M.get("failed");
 		long totalPairs = totalFresh + totalStale + totalFailed;
 		double overallPercent = totalPairs > 0 ? (totalFresh * 100.0 / totalPairs) : 0.0;
 
-		jdbcTemplate.update(sql,
-				entity.getSnapshotId(),
-				Timestamp.from(toInstant(entity.getCalculatedAt())),
-				entity.getTotalSymbols(),
-				entity.getTotalTimeframes(),
-				overallPercent,
-				totalFresh,
-				totalStale,
-				totalFailed,
-				totalPairs,
+		jdbcTemplate.update(sql, entity.getSnapshotId(), Timestamp.from(toInstant(entity.getCalculatedAt())),
+				entity.getTotalSymbols(), entity.getTotalTimeframes(), overallPercent, totalFresh, totalStale,
+				totalFailed, totalPairs,
 
 				// 1h metrics
-				tf1h.get("total"), tf1h.get("fresh"), tf1h.get("stale"), tf1h.get("failed"),
-				tf1h.get("percent"),
-				tf1h.get("totalBars"), tf1h.get("avgBars"),
-				tf1h.get("dateStart"), tf1h.get("dateEnd"),
+				tf1h.get("total"), tf1h.get("fresh"), tf1h.get("stale"), tf1h.get("failed"), tf1h.get("percent"),
+				tf1h.get("totalBars"), tf1h.get("avgBars"), tf1h.get("dateStart"), tf1h.get("dateEnd"),
 
 				// 1D metrics
-				tf1D.get("total"), tf1D.get("fresh"), tf1D.get("stale"), tf1D.get("failed"),
-				tf1D.get("percent"),
-				tf1D.get("totalBars"), tf1D.get("avgBars"),
-				tf1D.get("dateStart"), tf1D.get("dateEnd"),
+				tf1D.get("total"), tf1D.get("fresh"), tf1D.get("stale"), tf1D.get("failed"), tf1D.get("percent"),
+				tf1D.get("totalBars"), tf1D.get("avgBars"), tf1D.get("dateStart"), tf1D.get("dateEnd"),
 
 				// 1W metrics
-				tf1W.get("total"), tf1W.get("fresh"), tf1W.get("stale"), tf1W.get("failed"),
-				tf1W.get("percent"),
-				tf1W.get("totalBars"), tf1W.get("avgBars"),
-				tf1W.get("dateStart"), tf1W.get("dateEnd"),
+				tf1W.get("total"), tf1W.get("fresh"), tf1W.get("stale"), tf1W.get("failed"), tf1W.get("percent"),
+				tf1W.get("totalBars"), tf1W.get("avgBars"), tf1W.get("dateStart"), tf1W.get("dateEnd"),
 
 				// 1M metrics
-				tf1M.get("total"), tf1M.get("fresh"), tf1M.get("stale"), tf1M.get("failed"),
-				tf1M.get("percent"),
-				tf1M.get("totalBars"), tf1M.get("avgBars"),
-				tf1M.get("dateStart"), tf1M.get("dateEnd"),
+				tf1M.get("total"), tf1M.get("fresh"), tf1M.get("stale"), tf1M.get("failed"), tf1M.get("percent"),
+				tf1M.get("totalBars"), tf1M.get("avgBars"), tf1M.get("dateStart"), tf1M.get("dateEnd"),
 
 				// Storage stats
 				entity.getStorage() != null ? entity.getStorage().getTimescaleDbRowCount() : 0L,
@@ -125,8 +110,8 @@ public class MarketDataCoverageClickHouseRepository {
 				0, // calculation_duration_ms (not tracked yet)
 
 				// JSON strings
-				toJsonString(entity.getGaps()),
-				"[]" // missing_symbols_json (not implemented yet)
+				toJsonString(entity.getGaps()), "[]" // missing_symbols_json (not
+														// implemented yet)
 		);
 
 		log.debug("Saved coverage snapshot: {}", entity.getSnapshotId());
@@ -170,8 +155,8 @@ public class MarketDataCoverageClickHouseRepository {
 				ORDER BY calculated_at DESC
 				""";
 
-		return jdbcTemplate.query(sql, new CoverageSnapshotRowMapper(),
-				Timestamp.from(startDate), Timestamp.from(endDate));
+		return jdbcTemplate.query(sql, new CoverageSnapshotRowMapper(), Timestamp.from(startDate),
+				Timestamp.from(endDate));
 	}
 
 	/**
@@ -192,12 +177,14 @@ public class MarketDataCoverageClickHouseRepository {
 
 			metrics.put("total", entity.getTotalSymbols());
 			metrics.put("fresh", (long) coverage.getSymbolsWithData());
-			metrics.put("stale", (long) (coverage.getMissingSymbols() != null ? coverage.getMissingSymbols().size() : 0));
+			metrics.put("stale",
+					(long) (coverage.getMissingSymbols() != null ? coverage.getMissingSymbols().size() : 0));
 			metrics.put("failed", 0L); // Not tracked in old entity
 			metrics.put("percent", coverage.getCoveragePercent());
 			metrics.put("totalBars", coverage.getTotalBars());
 			// Convert Long to Double for ClickHouse Float64 column
-			metrics.put("avgBars", coverage.getAvgBarsPerSymbol() != null ? coverage.getAvgBarsPerSymbol().doubleValue() : 0.0);
+			metrics.put("avgBars",
+					coverage.getAvgBarsPerSymbol() != null ? coverage.getAvgBarsPerSymbol().doubleValue() : 0.0);
 			metrics.put("dateStart", coverage.getDateRangeStart() != null ? coverage.getDateRangeStart() : "");
 			metrics.put("dateEnd", coverage.getDateRangeEnd() != null ? coverage.getDateRangeEnd() : "");
 		}
@@ -247,9 +234,9 @@ public class MarketDataCoverageClickHouseRepository {
 			MarketDataCoverageEntity entity = new MarketDataCoverageEntity();
 
 			entity.setSnapshotId(rs.getString("snapshot_id"));
-			entity.setCalculatedAt(com.google.cloud.Timestamp.ofTimeSecondsAndNanos(
-					rs.getTimestamp("calculated_at").getTime() / 1000,
-					(int) ((rs.getTimestamp("calculated_at").getTime() % 1000) * 1000000)));
+			entity.setCalculatedAt(
+					com.google.cloud.Timestamp.ofTimeSecondsAndNanos(rs.getTimestamp("calculated_at").getTime() / 1000,
+							(int) ((rs.getTimestamp("calculated_at").getTime() % 1000) * 1000000)));
 
 			entity.setTotalSymbols(rs.getInt("total_symbols"));
 			entity.setTotalTimeframes(rs.getInt("total_timeframes"));

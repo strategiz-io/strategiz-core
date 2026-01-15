@@ -37,7 +37,6 @@ public class TestRunnerService extends BaseService {
 
 	/**
 	 * Execute Playwright tests for the specified suite.
-	 *
 	 * @param suiteId Test suite ID (system, smoke, journeys-auth, etc.)
 	 * @return Test results
 	 */
@@ -70,8 +69,7 @@ public class TestRunnerService extends BaseService {
 
 			// Read output
 			StringBuilder output = new StringBuilder();
-			try (BufferedReader reader = new BufferedReader(
-					new InputStreamReader(process.getInputStream()))) {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
 					output.append(line).append("\n");
@@ -114,8 +112,8 @@ public class TestRunnerService extends BaseService {
 				response.setStatus("failed");
 			}
 
-			log.info("Test suite {} completed: {} passed, {} failed, duration: {}ms", suiteId,
-					response.getPassed(), response.getFailed(), duration);
+			log.info("Test suite {} completed: {} passed, {} failed, duration: {}ms", suiteId, response.getPassed(),
+					response.getFailed(), duration);
 
 			return response;
 

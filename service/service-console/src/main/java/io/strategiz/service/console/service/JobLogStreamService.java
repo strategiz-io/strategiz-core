@@ -20,18 +20,13 @@ import java.util.concurrent.CopyOnWriteArraySet;
 /**
  * Service for managing live log streaming to SSE clients.
  *
- * Features:
- * - Thread-safe client registration/removal
- * - Circular buffer for recent logs (late joiners get last 500 logs)
- * - Async broadcasting (doesn't block logging thread)
- * - Automatic client cleanup on disconnect/error
- * - Memory-bounded (max 500 logs per job)
+ * Features: - Thread-safe client registration/removal - Circular buffer for recent logs
+ * (late joiners get last 500 logs) - Async broadcasting (doesn't block logging thread) -
+ * Automatic client cleanup on disconnect/error - Memory-bounded (max 500 logs per job)
  *
- * Lifecycle:
- * 1. Job starts → createJobStream(jobName)
- * 2. Admin opens console → registerClient(jobName, emitter)
- * 3. Job logs → broadcastLog(jobName, logEvent)
- * 4. Job completes → cleanupJob(jobName) after 5 minute delay
+ * Lifecycle: 1. Job starts → createJobStream(jobName) 2. Admin opens console →
+ * registerClient(jobName, emitter) 3. Job logs → broadcastLog(jobName, logEvent) 4. Job
+ * completes → cleanupJob(jobName) after 5 minute delay
  */
 @Service
 public class JobLogStreamService extends BaseService {
@@ -40,7 +35,8 @@ public class JobLogStreamService extends BaseService {
 
 	private static final long CLIENT_TIMEOUT_MS = 300_000; // 5 minutes
 
-	private static final long JOB_CLEANUP_DELAY_MS = 300_000; // 5 minutes after job completion
+	private static final long JOB_CLEANUP_DELAY_MS = 300_000; // 5 minutes after job
+																// completion
 
 	// jobName → CircularLogBuffer
 	private final Map<String, CircularLogBuffer> logBuffers = new ConcurrentHashMap<>();
@@ -63,8 +59,7 @@ public class JobLogStreamService extends BaseService {
 	}
 
 	/**
-	 * Register SSE client for job logs.
-	 * Returns recent logs for late joiners.
+	 * Register SSE client for job logs. Returns recent logs for late joiners.
 	 */
 	public List<LogEvent> registerClient(String jobName, SseEmitter emitter) {
 		log.info("Registering SSE client for job: {}", jobName);
@@ -102,8 +97,8 @@ public class JobLogStreamService extends BaseService {
 	}
 
 	/**
-	 * Broadcast log event to all connected clients (async, non-blocking).
-	 * Called by BatchJobLogAppender from logging thread.
+	 * Broadcast log event to all connected clients (async, non-blocking). Called by
+	 * BatchJobLogAppender from logging thread.
 	 */
 	@Async
 	public void broadcastLog(String jobName, LogEvent logEvent) {

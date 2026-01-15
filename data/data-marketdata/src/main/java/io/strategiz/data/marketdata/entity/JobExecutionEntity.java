@@ -3,8 +3,8 @@ package io.strategiz.data.marketdata.entity;
 import java.time.Instant;
 
 /**
- * Entity for job execution tracking in ClickHouse.
- * Stores execution history for batch data collection jobs.
+ * Entity for job execution tracking in ClickHouse. Stores execution history for batch
+ * data collection jobs.
  */
 public class JobExecutionEntity {
 

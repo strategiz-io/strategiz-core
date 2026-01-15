@@ -22,105 +22,109 @@ import java.util.Map;
 @Service
 public class SystemMetricsService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-console";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-console";
+	}
 
-    private final UserRepository userRepository;
+	private final UserRepository userRepository;
 
-    @Value("${spring.application.name:strategiz-console}")
-    private String applicationName;
+	@Value("${spring.application.name:strategiz-console}")
+	private String applicationName;
 
-    @Value("${strategiz.version:1.0-SNAPSHOT}")
-    private String applicationVersion;
+	@Value("${strategiz.version:1.0-SNAPSHOT}")
+	private String applicationVersion;
 
-    private final Instant startTime = Instant.now();
+	private final Instant startTime = Instant.now();
 
-    @Autowired
-    public SystemMetricsService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+	@Autowired
+	public SystemMetricsService(UserRepository userRepository) {
+		this.userRepository = userRepository;
+	}
 
-    public SystemHealthResponse getSystemHealth() {
-        log.debug("Collecting system health metrics");
+	public SystemHealthResponse getSystemHealth() {
+		log.debug("Collecting system health metrics");
 
-        SystemHealthResponse response = new SystemHealthResponse();
+		SystemHealthResponse response = new SystemHealthResponse();
 
-        // Basic info
-        response.setStartTime(startTime);
-        response.setUptime(formatUptime());
-        response.setVersion(applicationVersion);
+		// Basic info
+		response.setStartTime(startTime);
+		response.setUptime(formatUptime());
+		response.setVersion(applicationVersion);
 
-        // Memory usage
-        Runtime runtime = Runtime.getRuntime();
-        long maxMemory = runtime.maxMemory();
-        long totalMemory = runtime.totalMemory();
-        long freeMemory = runtime.freeMemory();
-        long usedMemory = totalMemory - freeMemory;
+		// Memory usage
+		Runtime runtime = Runtime.getRuntime();
+		long maxMemory = runtime.maxMemory();
+		long totalMemory = runtime.totalMemory();
+		long freeMemory = runtime.freeMemory();
+		long usedMemory = totalMemory - freeMemory;
 
-        response.setMemoryUsage(new MemoryUsage(usedMemory, maxMemory, maxMemory - usedMemory));
+		response.setMemoryUsage(new MemoryUsage(usedMemory, maxMemory, maxMemory - usedMemory));
 
-        // Set status based on basic checks
-        response.setStatus("UP");
+		// Set status based on basic checks
+		response.setStatus("UP");
 
-        // Component health
-        Map<String, ComponentHealth> components = new HashMap<>();
-        components.put("database", new ComponentHealth("UP"));
-        components.put("vault", new ComponentHealth("UP"));
-        response.setComponents(components);
+		// Component health
+		Map<String, ComponentHealth> components = new HashMap<>();
+		components.put("database", new ComponentHealth("UP"));
+		components.put("vault", new ComponentHealth("UP"));
+		response.setComponents(components);
 
-        // User counts
-        try {
-            response.setActiveUsers(userRepository.findAll().size());
-            response.setActiveSessions(0); // TODO: Add session counting
-        } catch (Exception e) {
-            log.warn("Failed to get user counts: {}", e.getMessage());
-            response.setActiveUsers(0);
-            response.setActiveSessions(0);
-        }
+		// User counts
+		try {
+			response.setActiveUsers(userRepository.findAll().size());
+			response.setActiveSessions(0); // TODO: Add session counting
+		}
+		catch (Exception e) {
+			log.warn("Failed to get user counts: {}", e.getMessage());
+			response.setActiveUsers(0);
+			response.setActiveSessions(0);
+		}
 
-        return response;
-    }
+		return response;
+	}
 
-    public Map<String, Object> getDetailedMetrics() {
-        Map<String, Object> metrics = new HashMap<>();
+	public Map<String, Object> getDetailedMetrics() {
+		Map<String, Object> metrics = new HashMap<>();
 
-        // JVM metrics
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        metrics.put("jvm.uptime.ms", runtimeMXBean.getUptime());
-        metrics.put("jvm.start.time", runtimeMXBean.getStartTime());
-        metrics.put("jvm.name", runtimeMXBean.getVmName());
-        metrics.put("jvm.version", runtimeMXBean.getVmVersion());
+		// JVM metrics
+		RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+		metrics.put("jvm.uptime.ms", runtimeMXBean.getUptime());
+		metrics.put("jvm.start.time", runtimeMXBean.getStartTime());
+		metrics.put("jvm.name", runtimeMXBean.getVmName());
+		metrics.put("jvm.version", runtimeMXBean.getVmVersion());
 
-        // Memory metrics
-        Runtime runtime = Runtime.getRuntime();
-        metrics.put("memory.max.bytes", runtime.maxMemory());
-        metrics.put("memory.total.bytes", runtime.totalMemory());
-        metrics.put("memory.free.bytes", runtime.freeMemory());
-        metrics.put("memory.used.bytes", runtime.totalMemory() - runtime.freeMemory());
+		// Memory metrics
+		Runtime runtime = Runtime.getRuntime();
+		metrics.put("memory.max.bytes", runtime.maxMemory());
+		metrics.put("memory.total.bytes", runtime.totalMemory());
+		metrics.put("memory.free.bytes", runtime.freeMemory());
+		metrics.put("memory.used.bytes", runtime.totalMemory() - runtime.freeMemory());
 
-        // Thread metrics
-        metrics.put("threads.active", Thread.activeCount());
+		// Thread metrics
+		metrics.put("threads.active", Thread.activeCount());
 
-        // Processor metrics
-        metrics.put("processors.available", runtime.availableProcessors());
+		// Processor metrics
+		metrics.put("processors.available", runtime.availableProcessors());
 
-        return metrics;
-    }
+		return metrics;
+	}
 
-    private String formatUptime() {
-        Duration uptime = Duration.between(startTime, Instant.now());
-        long days = uptime.toDays();
-        long hours = uptime.toHoursPart();
-        long minutes = uptime.toMinutesPart();
+	private String formatUptime() {
+		Duration uptime = Duration.between(startTime, Instant.now());
+		long days = uptime.toDays();
+		long hours = uptime.toHoursPart();
+		long minutes = uptime.toMinutesPart();
 
-        if (days > 0) {
-            return String.format("%dd %dh %dm", days, hours, minutes);
-        } else if (hours > 0) {
-            return String.format("%dh %dm", hours, minutes);
-        } else {
-            return String.format("%dm", minutes);
-        }
-    }
+		if (days > 0) {
+			return String.format("%dd %dh %dm", days, hours, minutes);
+		}
+		else if (hours > 0) {
+			return String.format("%dh %dm", hours, minutes);
+		}
+		else {
+			return String.format("%dm", minutes);
+		}
+	}
+
 }

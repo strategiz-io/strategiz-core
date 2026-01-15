@@ -9,114 +9,115 @@ import java.time.Instant;
  */
 public class ProviderStatusResponse {
 
-    @JsonProperty("name")
-    private String name;
+	@JsonProperty("name")
+	private String name;
 
-    @JsonProperty("displayName")
-    private String displayName;
+	@JsonProperty("displayName")
+	private String displayName;
 
-    @JsonProperty("type")
-    private String type; // CRYPTO, STOCK, OAUTH
+	@JsonProperty("type")
+	private String type; // CRYPTO, STOCK, OAUTH
 
-    @JsonProperty("status")
-    private String status; // UP, DOWN, DEGRADED
+	@JsonProperty("status")
+	private String status; // UP, DOWN, DEGRADED
 
-    @JsonProperty("activeIntegrations")
-    private Integer activeIntegrations;
+	@JsonProperty("activeIntegrations")
+	private Integer activeIntegrations;
 
-    @JsonProperty("lastSyncTime")
-    private Instant lastSyncTime;
+	@JsonProperty("lastSyncTime")
+	private Instant lastSyncTime;
 
-    @JsonProperty("lastSyncStatus")
-    private String lastSyncStatus;
+	@JsonProperty("lastSyncStatus")
+	private String lastSyncStatus;
 
-    @JsonProperty("errorRate")
-    private Double errorRate;
+	@JsonProperty("errorRate")
+	private Double errorRate;
 
-    @JsonProperty("avgLatencyMs")
-    private Long avgLatencyMs;
+	@JsonProperty("avgLatencyMs")
+	private Long avgLatencyMs;
 
-    // Constructors
-    public ProviderStatusResponse() {
-    }
+	// Constructors
+	public ProviderStatusResponse() {
+	}
 
-    public ProviderStatusResponse(String name, String displayName, String type) {
-        this.name = name;
-        this.displayName = displayName;
-        this.type = type;
-        this.status = "UP";
-    }
+	public ProviderStatusResponse(String name, String displayName, String type) {
+		this.name = name;
+		this.displayName = displayName;
+		this.type = type;
+		this.status = "UP";
+	}
 
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
+	// Getters and Setters
+	public String getName() {
+		return name;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public String getDisplayName() {
-        return displayName;
-    }
+	public String getDisplayName() {
+		return displayName;
+	}
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
 
-    public String getType() {
-        return type;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public Integer getActiveIntegrations() {
-        return activeIntegrations;
-    }
+	public Integer getActiveIntegrations() {
+		return activeIntegrations;
+	}
 
-    public void setActiveIntegrations(Integer activeIntegrations) {
-        this.activeIntegrations = activeIntegrations;
-    }
+	public void setActiveIntegrations(Integer activeIntegrations) {
+		this.activeIntegrations = activeIntegrations;
+	}
 
-    public Instant getLastSyncTime() {
-        return lastSyncTime;
-    }
+	public Instant getLastSyncTime() {
+		return lastSyncTime;
+	}
 
-    public void setLastSyncTime(Instant lastSyncTime) {
-        this.lastSyncTime = lastSyncTime;
-    }
+	public void setLastSyncTime(Instant lastSyncTime) {
+		this.lastSyncTime = lastSyncTime;
+	}
 
-    public String getLastSyncStatus() {
-        return lastSyncStatus;
-    }
+	public String getLastSyncStatus() {
+		return lastSyncStatus;
+	}
 
-    public void setLastSyncStatus(String lastSyncStatus) {
-        this.lastSyncStatus = lastSyncStatus;
-    }
+	public void setLastSyncStatus(String lastSyncStatus) {
+		this.lastSyncStatus = lastSyncStatus;
+	}
 
-    public Double getErrorRate() {
-        return errorRate;
-    }
+	public Double getErrorRate() {
+		return errorRate;
+	}
 
-    public void setErrorRate(Double errorRate) {
-        this.errorRate = errorRate;
-    }
+	public void setErrorRate(Double errorRate) {
+		this.errorRate = errorRate;
+	}
 
-    public Long getAvgLatencyMs() {
-        return avgLatencyMs;
-    }
+	public Long getAvgLatencyMs() {
+		return avgLatencyMs;
+	}
 
-    public void setAvgLatencyMs(Long avgLatencyMs) {
-        this.avgLatencyMs = avgLatencyMs;
-    }
+	public void setAvgLatencyMs(Long avgLatencyMs) {
+		this.avgLatencyMs = avgLatencyMs;
+	}
+
 }

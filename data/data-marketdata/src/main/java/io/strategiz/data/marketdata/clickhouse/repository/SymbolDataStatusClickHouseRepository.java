@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ClickHouse implementation of symbol data status repository. Tracks data freshness
- * for each symbol/timeframe combination.
+ * ClickHouse implementation of symbol data status repository. Tracks data freshness for
+ * each symbol/timeframe combination.
  */
 @Repository
 @ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
@@ -47,8 +47,7 @@ public class SymbolDataStatusClickHouseRepository {
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 				""";
 
-		jdbcTemplate.update(sql, entity.getSymbol(), entity.getTimeframe(),
-				Timestamp.from(entity.getLastUpdate()),
+		jdbcTemplate.update(sql, entity.getSymbol(), entity.getTimeframe(), Timestamp.from(entity.getLastUpdate()),
 				entity.getLastBarTimestamp() != null ? Timestamp.from(entity.getLastBarTimestamp()) : null,
 				entity.getRecordCount(), entity.getConsecutiveFailures(), entity.getLastError(), entity.getStatus(),
 				Timestamp.from(entity.getUpdatedAt() != null ? entity.getUpdatedAt() : Instant.now()));
@@ -162,9 +161,8 @@ public class SymbolDataStatusClickHouseRepository {
 				ORDER BY timeframe
 				""";
 
-		return jdbcTemplate.query(sql,
-				(rs, rowNum) -> new Object[] { rs.getString("timeframe"), rs.getLong("symbol_count"),
-						rs.getDouble("avg_age_seconds") });
+		return jdbcTemplate.query(sql, (rs, rowNum) -> new Object[] { rs.getString("timeframe"),
+				rs.getLong("symbol_count"), rs.getDouble("avg_age_seconds") });
 	}
 
 	/**
@@ -261,37 +259,38 @@ public class SymbolDataStatusClickHouseRepository {
 	}
 
 	/**
-	 * Calculate freshness metrics for specific timeframes.
-	 * Returns counts of fresh symbols (updated within threshold) per timeframe.
-	 *
+	 * Calculate freshness metrics for specific timeframes. Returns counts of fresh
+	 * symbols (updated within threshold) per timeframe.
 	 * @param timeframes List of timeframes to check (e.g., ["1h", "1D", "1W", "1M"])
-	 * @param freshnessThresholdMinutes Threshold in minutes (e.g., 15 for "within last 15 min")
-	 * @return Map of timeframe -> freshness data (totalSymbols, freshSymbols, staleSymbols, failedSymbols, freshnessPercent)
+	 * @param freshnessThresholdMinutes Threshold in minutes (e.g., 15 for "within last 15
+	 * min")
+	 * @return Map of timeframe -> freshness data (totalSymbols, freshSymbols,
+	 * staleSymbols, failedSymbols, freshnessPercent)
 	 */
 	public List<Map<String, Object>> calculateFreshnessMetrics(List<String> timeframes, int freshnessThresholdMinutes) {
 		// Build IN clause for timeframes
-		String timeframeInClause = timeframes.stream()
-			.map(tf -> "?")
-			.collect(java.util.stream.Collectors.joining(","));
+		String timeframeInClause = timeframes.stream().map(tf -> "?").collect(java.util.stream.Collectors.joining(","));
 
-		String sql = String.format("""
-				SELECT
-				    timeframe,
-				    COUNT(DISTINCT symbol) as total_symbols,
-				    countIf(dateDiff('minute', last_collection_at, now()) <= ?) as fresh_symbols,
-				    countIf(dateDiff('minute', last_collection_at, now()) > ? AND status = 'STALE') as stale_symbols,
-				    countIf(status = 'FAILED') as failed_symbols,
-				    ROUND((countIf(dateDiff('minute', last_collection_at, now()) <= ?) * 100.0) / COUNT(DISTINCT symbol), 2) as freshness_percent
-				FROM symbol_data_status
-				WHERE timeframe IN (%s)
-				AND (symbol, timeframe, last_collection_at) IN (
-				    SELECT symbol, timeframe, MAX(last_collection_at)
-				    FROM symbol_data_status
-				    GROUP BY symbol, timeframe
-				)
-				GROUP BY timeframe
-				ORDER BY timeframe
-				""", timeframeInClause);
+		String sql = String.format(
+				"""
+						SELECT
+						    timeframe,
+						    COUNT(DISTINCT symbol) as total_symbols,
+						    countIf(dateDiff('minute', last_collection_at, now()) <= ?) as fresh_symbols,
+						    countIf(dateDiff('minute', last_collection_at, now()) > ? AND status = 'STALE') as stale_symbols,
+						    countIf(status = 'FAILED') as failed_symbols,
+						    ROUND((countIf(dateDiff('minute', last_collection_at, now()) <= ?) * 100.0) / COUNT(DISTINCT symbol), 2) as freshness_percent
+						FROM symbol_data_status
+						WHERE timeframe IN (%s)
+						AND (symbol, timeframe, last_collection_at) IN (
+						    SELECT symbol, timeframe, MAX(last_collection_at)
+						    FROM symbol_data_status
+						    GROUP BY symbol, timeframe
+						)
+						GROUP BY timeframe
+						ORDER BY timeframe
+						""",
+				timeframeInClause);
 
 		// Prepare parameters: freshnessThresholdMinutes (3 times) + timeframes
 		Object[] params = new Object[3 + timeframes.size()];
@@ -315,9 +314,9 @@ public class SymbolDataStatusClickHouseRepository {
 	}
 
 	/**
-	 * Get all symbols with their latest status across multiple timeframes.
-	 * Used for the consolidated symbol view showing freshness for each symbol across all target timeframes.
-	 *
+	 * Get all symbols with their latest status across multiple timeframes. Used for the
+	 * consolidated symbol view showing freshness for each symbol across all target
+	 * timeframes.
 	 * @param timeframes List of timeframes to include
 	 * @param pageable Pagination parameters
 	 * @return List of symbols with their status for each timeframe
@@ -331,9 +330,8 @@ public class SymbolDataStatusClickHouseRepository {
 				LIMIT ? OFFSET ?
 				""";
 
-		List<String> symbols = jdbcTemplate.query(symbolsSql,
-			(rs, rowNum) -> rs.getString("symbol"),
-			pageable.getPageSize(), pageable.getOffset());
+		List<String> symbols = jdbcTemplate.query(symbolsSql, (rs, rowNum) -> rs.getString("symbol"),
+				pageable.getPageSize(), pageable.getOffset());
 
 		if (symbols.isEmpty()) {
 			return List.of();

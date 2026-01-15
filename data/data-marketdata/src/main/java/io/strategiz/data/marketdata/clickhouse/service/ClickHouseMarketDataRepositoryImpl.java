@@ -45,8 +45,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 
 	@Override
 	public List<MarketDataEntity> saveAll(List<MarketDataEntity> entities) {
-		List<MarketDataEntity> tsEntities = entities.stream()
-						.collect(Collectors.toList());
+		List<MarketDataEntity> tsEntities = entities.stream().collect(Collectors.toList());
 		clickHouseRepo.saveAll(tsEntities);
 		return entities;
 	}
@@ -67,8 +66,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 	public List<MarketDataEntity> findBySymbolAndDate(String symbol, LocalDate date) {
 		Instant startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant();
 		Instant endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeRange(symbol, startOfDay, endOfDay,
-				null);
+		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeRange(symbol, startOfDay, endOfDay, null);
 		return results;
 	}
 
@@ -86,8 +84,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 		Instant start = startDate.atStartOfDay(ZoneOffset.UTC).toInstant();
 		Instant end = endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeRange(symbol, start, end,
-				timeframe);
+		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeRange(symbol, start, end, timeframe);
 
 		if (results.size() > limit) {
 			results = results.subList(0, limit);
@@ -109,7 +106,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 
 		return symbols.stream()
 			.flatMap(symbol -> clickHouseRepo.findBySymbolAndTimeRange(symbol, startOfDay, endOfDay, null).stream())
-						.collect(Collectors.toList());
+			.collect(Collectors.toList());
 	}
 
 	@Override
@@ -123,7 +120,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 			.map(clickHouseRepo::findLatestBySymbol)
 			.filter(Optional::isPresent)
 			.map(Optional::get)
-						.collect(Collectors.toList());
+			.collect(Collectors.toList());
 	}
 
 	@Override
@@ -141,8 +138,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 	public boolean existsBySymbolAndDate(String symbol, LocalDate date) {
 		Instant startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant();
 		Instant endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeRange(symbol, startOfDay, endOfDay,
-				null);
+		List<MarketDataEntity> results = clickHouseRepo.findBySymbolAndTimeRange(symbol, startOfDay, endOfDay, null);
 		return !results.isEmpty();
 	}
 
@@ -166,8 +162,7 @@ public class ClickHouseMarketDataRepositoryImpl implements MarketDataRepository 
 			return null;
 		}
 
-		LocalDate startDate = Instant.ofEpochMilli(results.get(0).getTimestamp()).atZone(ZoneOffset.UTC)
-			.toLocalDate();
+		LocalDate startDate = Instant.ofEpochMilli(results.get(0).getTimestamp()).atZone(ZoneOffset.UTC).toLocalDate();
 		LocalDate endDate = Instant.ofEpochMilli(latest.get().getTimestamp()).atZone(ZoneOffset.UTC).toLocalDate();
 
 		return new DateRange(startDate, endDate);

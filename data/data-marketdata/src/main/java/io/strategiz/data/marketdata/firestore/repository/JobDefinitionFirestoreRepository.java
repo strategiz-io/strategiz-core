@@ -17,8 +17,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Firestore repository for job definitions. Stores job metadata and schedules.
- * Replaces TimescaleDB JobDefinitionRepository.
+ * Firestore repository for job definitions. Stores job metadata and schedules. Replaces
+ * TimescaleDB JobDefinitionRepository.
  *
  * Collection: batch_jobs
  */
@@ -169,14 +169,11 @@ public class JobDefinitionFirestoreRepository {
 		try {
 			Query query = getCollection().whereEqualTo("scheduleType", "CRON").whereEqualTo("enabled", true);
 			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
-			return docs.stream()
-				.filter(doc -> doc.getString("scheduleCron") != null)
-				.map(doc -> {
-					JobDefinitionFirestoreEntity entity = doc.toObject(JobDefinitionFirestoreEntity.class);
-					entity.setJobId(doc.getId());
-					return entity;
-				})
-				.collect(Collectors.toList());
+			return docs.stream().filter(doc -> doc.getString("scheduleCron") != null).map(doc -> {
+				JobDefinitionFirestoreEntity entity = doc.toObject(JobDefinitionFirestoreEntity.class);
+				entity.setJobId(doc.getId());
+				return entity;
+			}).collect(Collectors.toList());
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
@@ -198,7 +195,9 @@ public class JobDefinitionFirestoreRepository {
 				JobDefinitionFirestoreEntity entity = doc.toObject(JobDefinitionFirestoreEntity.class);
 				entity.setJobId(doc.getId());
 				return entity;
-			}).sorted((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName())).collect(Collectors.toList());
+			})
+				.sorted((a, b) -> a.getDisplayName().compareToIgnoreCase(b.getDisplayName()))
+				.collect(Collectors.toList());
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
@@ -230,17 +229,15 @@ public class JobDefinitionFirestoreRepository {
 	 * Find all jobs ordered by group and name.
 	 */
 	public List<JobDefinitionFirestoreEntity> findAllOrderByGroupAndName() {
-		return findAll().stream()
-			.sorted((a, b) -> {
-				int groupCompare = (a.getJobGroup() != null ? a.getJobGroup() : "")
-					.compareToIgnoreCase(b.getJobGroup() != null ? b.getJobGroup() : "");
-				if (groupCompare != 0) {
-					return groupCompare;
-				}
-				return (a.getDisplayName() != null ? a.getDisplayName() : "")
-					.compareToIgnoreCase(b.getDisplayName() != null ? b.getDisplayName() : "");
-			})
-			.collect(Collectors.toList());
+		return findAll().stream().sorted((a, b) -> {
+			int groupCompare = (a.getJobGroup() != null ? a.getJobGroup() : "")
+				.compareToIgnoreCase(b.getJobGroup() != null ? b.getJobGroup() : "");
+			if (groupCompare != 0) {
+				return groupCompare;
+			}
+			return (a.getDisplayName() != null ? a.getDisplayName() : "")
+				.compareToIgnoreCase(b.getDisplayName() != null ? b.getDisplayName() : "");
+		}).collect(Collectors.toList());
 	}
 
 	/**

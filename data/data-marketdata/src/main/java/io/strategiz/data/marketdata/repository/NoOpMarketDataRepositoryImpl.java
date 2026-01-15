@@ -10,9 +10,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * No-op implementation of MarketDataRepository for local development.
- * Used when neither ClickHouse nor TimescaleDB is enabled.
- * This bean is registered in DataMarketDataConfig when no other MarketDataRepository exists.
+ * No-op implementation of MarketDataRepository for local development. Used when neither
+ * ClickHouse nor TimescaleDB is enabled. This bean is registered in DataMarketDataConfig
+ * when no other MarketDataRepository exists.
  */
 public class NoOpMarketDataRepositoryImpl implements MarketDataRepository {
 

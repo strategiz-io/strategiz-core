@@ -9,140 +9,141 @@ import java.time.Instant;
  */
 public class JobExecutionRecord {
 
-    @JsonProperty("executionId")
-    private String executionId;
+	@JsonProperty("executionId")
+	private String executionId;
 
-    @JsonProperty("jobName")
-    private String jobName;
+	@JsonProperty("jobName")
+	private String jobName;
 
-    @JsonProperty("startTime")
-    private Instant startTime;
+	@JsonProperty("startTime")
+	private Instant startTime;
 
-    @JsonProperty("endTime")
-    private Instant endTime;
+	@JsonProperty("endTime")
+	private Instant endTime;
 
-    @JsonProperty("durationMs")
-    private Long durationMs;
+	@JsonProperty("durationMs")
+	private Long durationMs;
 
-    @JsonProperty("status")
-    private String status; // SUCCESS, FAILED, RUNNING
+	@JsonProperty("status")
+	private String status; // SUCCESS, FAILED, RUNNING
 
-    @JsonProperty("symbolsProcessed")
-    private Integer symbolsProcessed;
+	@JsonProperty("symbolsProcessed")
+	private Integer symbolsProcessed;
 
-    @JsonProperty("dataPointsStored")
-    private Long dataPointsStored;
+	@JsonProperty("dataPointsStored")
+	private Long dataPointsStored;
 
-    @JsonProperty("errorCount")
-    private Integer errorCount;
+	@JsonProperty("errorCount")
+	private Integer errorCount;
 
-    @JsonProperty("errorDetails")
-    private String errorDetails; // JSON array
+	@JsonProperty("errorDetails")
+	private String errorDetails; // JSON array
 
-    @JsonProperty("timeframes")
-    private String timeframes; // JSON array of timeframes processed
+	@JsonProperty("timeframes")
+	private String timeframes; // JSON array of timeframes processed
 
-    @JsonProperty("context")
-    private String context; // Human-readable context (e.g., "7yr, 547 S&P symbols")
+	@JsonProperty("context")
+	private String context; // Human-readable context (e.g., "7yr, 547 S&P symbols")
 
-    // Constructors
-    public JobExecutionRecord() {
-    }
+	// Constructors
+	public JobExecutionRecord() {
+	}
 
-    // Getters and Setters
-    public String getExecutionId() {
-        return executionId;
-    }
+	// Getters and Setters
+	public String getExecutionId() {
+		return executionId;
+	}
 
-    public void setExecutionId(String executionId) {
-        this.executionId = executionId;
-    }
+	public void setExecutionId(String executionId) {
+		this.executionId = executionId;
+	}
 
-    public String getJobName() {
-        return jobName;
-    }
+	public String getJobName() {
+		return jobName;
+	}
 
-    public void setJobName(String jobName) {
-        this.jobName = jobName;
-    }
+	public void setJobName(String jobName) {
+		this.jobName = jobName;
+	}
 
-    public Instant getStartTime() {
-        return startTime;
-    }
+	public Instant getStartTime() {
+		return startTime;
+	}
 
-    public void setStartTime(Instant startTime) {
-        this.startTime = startTime;
-    }
+	public void setStartTime(Instant startTime) {
+		this.startTime = startTime;
+	}
 
-    public Instant getEndTime() {
-        return endTime;
-    }
+	public Instant getEndTime() {
+		return endTime;
+	}
 
-    public void setEndTime(Instant endTime) {
-        this.endTime = endTime;
-    }
+	public void setEndTime(Instant endTime) {
+		this.endTime = endTime;
+	}
 
-    public Long getDurationMs() {
-        return durationMs;
-    }
+	public Long getDurationMs() {
+		return durationMs;
+	}
 
-    public void setDurationMs(Long durationMs) {
-        this.durationMs = durationMs;
-    }
+	public void setDurationMs(Long durationMs) {
+		this.durationMs = durationMs;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public Integer getSymbolsProcessed() {
-        return symbolsProcessed;
-    }
+	public Integer getSymbolsProcessed() {
+		return symbolsProcessed;
+	}
 
-    public void setSymbolsProcessed(Integer symbolsProcessed) {
-        this.symbolsProcessed = symbolsProcessed;
-    }
+	public void setSymbolsProcessed(Integer symbolsProcessed) {
+		this.symbolsProcessed = symbolsProcessed;
+	}
 
-    public Long getDataPointsStored() {
-        return dataPointsStored;
-    }
+	public Long getDataPointsStored() {
+		return dataPointsStored;
+	}
 
-    public void setDataPointsStored(Long dataPointsStored) {
-        this.dataPointsStored = dataPointsStored;
-    }
+	public void setDataPointsStored(Long dataPointsStored) {
+		this.dataPointsStored = dataPointsStored;
+	}
 
-    public Integer getErrorCount() {
-        return errorCount;
-    }
+	public Integer getErrorCount() {
+		return errorCount;
+	}
 
-    public void setErrorCount(Integer errorCount) {
-        this.errorCount = errorCount;
-    }
+	public void setErrorCount(Integer errorCount) {
+		this.errorCount = errorCount;
+	}
 
-    public String getErrorDetails() {
-        return errorDetails;
-    }
+	public String getErrorDetails() {
+		return errorDetails;
+	}
 
-    public void setErrorDetails(String errorDetails) {
-        this.errorDetails = errorDetails;
-    }
+	public void setErrorDetails(String errorDetails) {
+		this.errorDetails = errorDetails;
+	}
 
-    public String getTimeframes() {
-        return timeframes;
-    }
+	public String getTimeframes() {
+		return timeframes;
+	}
 
-    public void setTimeframes(String timeframes) {
-        this.timeframes = timeframes;
-    }
+	public void setTimeframes(String timeframes) {
+		this.timeframes = timeframes;
+	}
 
-    public String getContext() {
-        return context;
-    }
+	public String getContext() {
+		return context;
+	}
 
-    public void setContext(String context) {
-        this.context = context;
-    }
+	public void setContext(String context) {
+		this.context = context;
+	}
+
 }

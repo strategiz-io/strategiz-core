@@ -85,7 +85,7 @@ public class AIStrategyService extends BaseService {
 
 			// VALIDATION LOOP: For Feeling Lucky mode, validate strategy beats buy-and-hold
 			boolean requiresValidation = Boolean.TRUE.equals(request.getUseHistoricalInsights());
-			int maxAttempts = requiresValidation ? 5 : 1;
+			int maxAttempts = requiresValidation ? 20 : 1; // 20 attempts for good balance of quality vs time
 			AIStrategyResponse bestResponse = null;
 			double bestOutperformance = Double.NEGATIVE_INFINITY;
 
@@ -106,17 +106,21 @@ public class AIStrategyService extends BaseService {
 
 					// Add feedback from previous attempts
 					if (attempt > 1 && bestResponse != null) {
-						systemPrompt += String.format("\n\nPREVIOUS ATTEMPT FEEDBACK:\n" +
-							"Attempt %d failed validation. Strategy only achieved %.2f%% outperformance vs buy-and-hold.\n" +
-							"REQUIREMENTS:\n" +
-							"1. Must beat buy-and-hold by at least 15%%\n" +
-							"2. Must generate at least 10 trades over 3 years (avoid ultra-conservative strategies)\n\n" +
-							"IMPORTANT: If your previous strategy had too few trades, make entry/exit conditions MORE SENSITIVE:\n" +
-							"- Use shorter indicator periods (e.g., RSI(7) instead of RSI(14))\n" +
-							"- Use tighter thresholds (e.g., RSI < 35 instead of RSI < 30)\n" +
-							"- Add more entry triggers or relax exit conditions\n" +
-							"- Consider adding trend-following rules that trigger more frequently\n",
-							attempt - 1, bestOutperformance);
+						systemPrompt += String.format("\n\n⚠️ PREVIOUS ATTEMPT FEEDBACK (Attempt %d/%d):\n" +
+							"Your last strategy achieved %.2f%% outperformance vs buy-and-hold.\n" +
+							"Target: +15%% outperformance | Current best: %.2f%%\n\n" +
+							"HARD REQUIREMENTS (non-negotiable):\n" +
+							"1. Must beat buy-and-hold by AT LEAST 15%%\n" +
+							"2. Must generate AT LEAST 20 trades (strategies with <20 trades are rejected)\n" +
+							"3. In bull markets, must be INVESTED most of the time\n\n" +
+							"TRY A DIFFERENT APPROACH:\n" +
+							"- If trend-following isn't working, try momentum breakouts\n" +
+							"- If RSI isn't triggering, try MACD or MA crossovers\n" +
+							"- Use SHORTER indicator periods (EMA(8), RSI(7)) for more signals\n" +
+							"- Use LOOSER entry conditions to generate more trades\n" +
+							"- In uptrends: BUY more often, HOLD longer, EXIT less frequently\n" +
+							"- Consider: EMA(8) crosses above EMA(21) = simple but effective in trends\n",
+							attempt - 1, maxAttempts, bestOutperformance, bestOutperformance);
 					}
 				}
 
@@ -182,17 +186,26 @@ public class AIStrategyService extends BaseService {
 			log.error("All {} attempts failed to generate a strategy beating buy-and-hold by 15%. Best: {:.2f}%",
 				maxAttempts, bestOutperformance);
 
-			if (bestResponse != null) {
+			// CRITICAL: Do NOT return a strategy that doesn't beat buy-and-hold by 15%
+			// User explicitly wants at least 15% outperformance - returning a loser is unacceptable
+			if (bestResponse != null && bestOutperformance >= 0.0) {
+				// Only return if it at least matches buy-and-hold (0% outperformance)
 				bestResponse.setWarning(String.format(
-					"Warning: Could not generate a strategy beating buy-and-hold by 15%% after %d attempts. " +
-					"Best achieved: %.1f%% outperformance. Consider a different symbol or timeframe.",
+					"⚠️ Strategy did not meet 15%% outperformance target after %d attempts. " +
+					"Best achieved: %.1f%% vs buy-and-hold. Consider trying again or using a different approach.",
 					maxAttempts, bestOutperformance));
 				bestResponse.setHistoricalInsightsUsed(true);
 				bestResponse.setHistoricalInsights(insights);
 				return bestResponse;
 			}
 
-			return AIStrategyResponse.error("Failed to generate a validated strategy after " + maxAttempts + " attempts.");
+			// If ALL strategies UNDERPERFORM buy-and-hold, don't return garbage
+			return AIStrategyResponse.error(String.format(
+				"Unable to generate a winning strategy after %d attempts. " +
+				"All generated strategies underperformed buy-and-hold (best: %.1f%%). " +
+				"This often happens in strong bull markets where buy-and-hold is very hard to beat. " +
+				"Try: 1) A different symbol, 2) Shorter timeframe, or 3) Accept that buy-and-hold may be optimal for this asset.",
+				maxAttempts, bestOutperformance));
 		}
 		catch (Exception e) {
 			log.error("Error generating strategy", e);
@@ -723,11 +736,12 @@ public class AIStrategyService extends BaseService {
 
 			// CRITICAL: Validate minimum trade count to prevent "lucky 2-trade" strategies
 			int totalTrades = backtestResult.getPerformance().getTotalTrades();
-			int minimumTrades = 10; // Require at least 10 trades over 3 years to be considered a real strategy
+			int minimumTrades = 20; // Require at least 20 trades to be a generalizable strategy
 			if (totalTrades < minimumTrades) {
-				log.warn("Strategy has too few trades ({}) - minimum {} required. Not a generalizable strategy.",
+				log.warn("Strategy has too few trades ({}) - minimum {} required. " +
+					"Strategy is too conservative and will miss market opportunities.",
 					totalTrades, minimumTrades);
-				return Double.NEGATIVE_INFINITY;
+				return -999999.0; // Use large negative number instead of INFINITY so we can track "best of bad"
 			}
 
 			// Get strategy return (already in percentage)

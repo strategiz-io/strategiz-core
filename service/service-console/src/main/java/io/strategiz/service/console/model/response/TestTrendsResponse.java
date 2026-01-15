@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Response for test trends over time
- * Shows pass rate, execution count, and performance metrics
+ * Response for test trends over time Shows pass rate, execution count, and performance
+ * metrics
  */
 public class TestTrendsResponse {
 

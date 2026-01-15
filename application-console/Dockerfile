@@ -15,6 +15,7 @@ COPY business/ business/
 COPY service/ service/
 COPY batch/ batch/
 COPY application-api/ application-api/
+COPY application-auth/ application-auth/
 COPY application-console/ application-console/
 
 # Build the console application (targeted build for console module and dependencies)

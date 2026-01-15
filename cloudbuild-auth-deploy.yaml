@@ -1,7 +1,7 @@
 steps:
-# Build the Docker image (using production Dockerfile with external Vault)
+# Build the Docker image (standard Dockerfile with external Vault)
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-f', 'application-auth/Dockerfile.production', '-t', 'gcr.io/$PROJECT_ID/strategiz-auth', '.']
+  args: ['build', '-f', 'application-auth/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/strategiz-auth', '.']
 
 # Push the Docker image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'

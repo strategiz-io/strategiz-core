@@ -31,283 +31,267 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Admin controller for managing scheduled jobs.
- * Provides REST endpoints for viewing, triggering, and configuring jobs from the admin console.
- * Supports dynamic schedule updates and enable/disable functionality.
+ * Admin controller for managing scheduled jobs. Provides REST endpoints for viewing,
+ * triggering, and configuring jobs from the admin console. Supports dynamic schedule
+ * updates and enable/disable functionality.
  */
 @RestController
 @RequestMapping("/v1/console/jobs")
 @Tag(name = "Admin - Jobs", description = "Job management endpoints for administrators")
 public class AdminJobController extends BaseController {
 
-    private static final String MODULE_NAME = "CONSOLE";
+	private static final String MODULE_NAME = "CONSOLE";
 
-    private final JobManagementService jobManagementService;
-    private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
-    private final JobDefinitionFirestoreRepository jobDefinitionRepository;
-    private final DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness;
+	private final JobManagementService jobManagementService;
 
-    @Autowired
-    public AdminJobController(
-            JobManagementService jobManagementService,
-            JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
-            JobDefinitionFirestoreRepository jobDefinitionRepository,
-            DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness) {
-        this.jobManagementService = jobManagementService;
-        this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
-        this.jobDefinitionRepository = jobDefinitionRepository;
-        this.dynamicJobSchedulerBusiness = dynamicJobSchedulerBusiness;
-    }
+	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
 
-    @Override
-    protected String getModuleName() {
-        return MODULE_NAME;
-    }
+	private final JobDefinitionFirestoreRepository jobDefinitionRepository;
 
-    @GetMapping
-    @Operation(summary = "List all scheduled jobs", description = "Returns a list of all scheduled jobs with their status")
-    public ResponseEntity<List<JobResponse>> listJobs(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("listJobs", adminUserId);
+	private final DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness;
 
-        List<JobResponse> jobs = jobManagementService.listJobs();
-        return ResponseEntity.ok(jobs);
-    }
+	@Autowired
+	public AdminJobController(JobManagementService jobManagementService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
+			JobDefinitionFirestoreRepository jobDefinitionRepository,
+			DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness) {
+		this.jobManagementService = jobManagementService;
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+		this.jobDefinitionRepository = jobDefinitionRepository;
+		this.dynamicJobSchedulerBusiness = dynamicJobSchedulerBusiness;
+	}
 
-    @GetMapping("/{name}")
-    @Operation(summary = "Get job details", description = "Returns details for a specific scheduled job")
-    public ResponseEntity<JobResponse> getJob(
-            @Parameter(description = "Job name") @PathVariable String name,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("getJob", adminUserId, "jobName=" + name);
+	@Override
+	protected String getModuleName() {
+		return MODULE_NAME;
+	}
 
-        JobResponse job = jobManagementService.getJob(name);
-        return ResponseEntity.ok(job);
-    }
+	@GetMapping
+	@Operation(summary = "List all scheduled jobs",
+			description = "Returns a list of all scheduled jobs with their status")
+	public ResponseEntity<List<JobResponse>> listJobs(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("listJobs", adminUserId);
 
-    @PostMapping("/{name}/trigger")
-    @Operation(summary = "Trigger job execution", description = "Manually triggers immediate execution of a scheduled job")
-    public ResponseEntity<JobResponse> triggerJob(
-            @Parameter(description = "Job name") @PathVariable String name,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("triggerJob", adminUserId, "jobName=" + name);
+		List<JobResponse> jobs = jobManagementService.listJobs();
+		return ResponseEntity.ok(jobs);
+	}
 
-        JobResponse job = jobManagementService.triggerJob(name);
-        log.info("Job {} triggered by admin {}", name, adminUserId);
-        return ResponseEntity.ok(job);
-    }
+	@GetMapping("/{name}")
+	@Operation(summary = "Get job details", description = "Returns details for a specific scheduled job")
+	public ResponseEntity<JobResponse> getJob(@Parameter(description = "Job name") @PathVariable String name,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getJob", adminUserId, "jobName=" + name);
 
-    @GetMapping("/history")
-    @Operation(summary = "Get all job execution history", description = "Returns paginated execution history across all jobs with statistics")
-    public ResponseEntity<JobExecutionHistoryResponse> getAllJobHistory(
-            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "50") int pageSize,
-            @Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("getAllJobHistory", adminUserId, "page=" + page);
+		JobResponse job = jobManagementService.getJob(name);
+		return ResponseEntity.ok(job);
+	}
 
-        // Get paginated execution history across all jobs
-        Pageable pageable = PageRequest.of(page, pageSize);
-        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getAllExecutionHistory(pageable);
+	@PostMapping("/{name}/trigger")
+	@Operation(summary = "Trigger job execution",
+			description = "Manually triggers immediate execution of a scheduled job")
+	public ResponseEntity<JobResponse> triggerJob(@Parameter(description = "Job name") @PathVariable String name,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("triggerJob", adminUserId, "jobName=" + name);
 
-        // Convert to DTOs
-        List<JobExecutionRecord> executionRecords = executionsPage.getContent().stream()
-            .map(this::convertToJobExecutionRecord)
-            .collect(Collectors.toList());
+		JobResponse job = jobManagementService.triggerJob(name);
+		log.info("Job {} triggered by admin {}", name, adminUserId);
+		return ResponseEntity.ok(job);
+	}
 
-        // Calculate aggregate statistics across all jobs
-        Instant since = Instant.ofEpochMilli(System.currentTimeMillis() - sinceDays * 24L * 60L * 60L * 1000L);
-        List<JobExecutionEntity> recentExecutions = jobExecutionHistoryBusiness.getAllExecutionsSince(since);
+	@GetMapping("/history")
+	@Operation(summary = "Get all job execution history",
+			description = "Returns paginated execution history across all jobs with statistics")
+	public ResponseEntity<JobExecutionHistoryResponse> getAllJobHistory(
+			@Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+			@Parameter(description = "Page size") @RequestParam(defaultValue = "50") int pageSize,
+			@Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getAllJobHistory", adminUserId, "page=" + page);
 
-        long successCount = recentExecutions.stream().filter(e -> "SUCCESS".equals(e.getStatus())).count();
-        long failureCount = recentExecutions.stream().filter(e -> "FAILED".equals(e.getStatus())).count();
-        long totalCount = successCount + failureCount;
-        double successRate = (totalCount > 0) ? (double) successCount / totalCount * 100.0 : 0.0;
+		// Get paginated execution history across all jobs
+		Pageable pageable = PageRequest.of(page, pageSize);
+		Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getAllExecutionHistory(pageable);
 
-        long avgDuration = (long) recentExecutions.stream()
-            .filter(e -> "SUCCESS".equals(e.getStatus()) && e.getDurationMs() != null)
-            .mapToLong(JobExecutionEntity::getDurationMs)
-            .average()
-            .orElse(0.0);
+		// Convert to DTOs
+		List<JobExecutionRecord> executionRecords = executionsPage.getContent()
+			.stream()
+			.map(this::convertToJobExecutionRecord)
+			.collect(Collectors.toList());
 
-        Map<String, Object> stats = Map.of(
-            "successCount", successCount,
-            "failureCount", failureCount,
-            "totalCount", totalCount,
-            "successRate", Math.round(successRate * 100.0) / 100.0,
-            "avgDurationMs", avgDuration,
-            "periodDays", sinceDays
-        );
+		// Calculate aggregate statistics across all jobs
+		Instant since = Instant.ofEpochMilli(System.currentTimeMillis() - sinceDays * 24L * 60L * 60L * 1000L);
+		List<JobExecutionEntity> recentExecutions = jobExecutionHistoryBusiness.getAllExecutionsSince(since);
 
-        // Build response
-        JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(
-            executionRecords,
-            stats,
-            page,
-            pageSize,
-            executionsPage.getTotalElements(),
-            executionsPage.getTotalPages()
-        );
+		long successCount = recentExecutions.stream().filter(e -> "SUCCESS".equals(e.getStatus())).count();
+		long failureCount = recentExecutions.stream().filter(e -> "FAILED".equals(e.getStatus())).count();
+		long totalCount = successCount + failureCount;
+		double successRate = (totalCount > 0) ? (double) successCount / totalCount * 100.0 : 0.0;
 
-        return ResponseEntity.ok(response);
-    }
+		long avgDuration = (long) recentExecutions.stream()
+			.filter(e -> "SUCCESS".equals(e.getStatus()) && e.getDurationMs() != null)
+			.mapToLong(JobExecutionEntity::getDurationMs)
+			.average()
+			.orElse(0.0);
 
-    @GetMapping("/{name}/history")
-    @Operation(summary = "Get job execution history", description = "Returns paginated execution history for a job with statistics")
-    public ResponseEntity<JobExecutionHistoryResponse> getJobHistory(
-            @Parameter(description = "Job name") @PathVariable String name,
-            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Page size") @RequestParam(defaultValue = "50") int pageSize,
-            @Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("getJobHistory", adminUserId, "jobName=" + name + ", page=" + page);
+		Map<String, Object> stats = Map.of("successCount", successCount, "failureCount", failureCount, "totalCount",
+				totalCount, "successRate", Math.round(successRate * 100.0) / 100.0, "avgDurationMs", avgDuration,
+				"periodDays", sinceDays);
 
-        // Get paginated execution history
-        Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getExecutionHistory(name, page, pageSize);
+		// Build response
+		JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(executionRecords, stats, page, pageSize,
+				executionsPage.getTotalElements(), executionsPage.getTotalPages());
 
-        // Convert to DTOs
-        List<JobExecutionRecord> executionRecords = executionsPage.getContent().stream()
-            .map(this::convertToJobExecutionRecord)
-            .collect(Collectors.toList());
+		return ResponseEntity.ok(response);
+	}
 
-        // Get statistics for the period
-        Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
+	@GetMapping("/{name}/history")
+	@Operation(summary = "Get job execution history",
+			description = "Returns paginated execution history for a job with statistics")
+	public ResponseEntity<JobExecutionHistoryResponse> getJobHistory(
+			@Parameter(description = "Job name") @PathVariable String name,
+			@Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+			@Parameter(description = "Page size") @RequestParam(defaultValue = "50") int pageSize,
+			@Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getJobHistory", adminUserId, "jobName=" + name + ", page=" + page);
 
-        // Build response
-        JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(
-            executionRecords,
-            stats,
-            page,
-            pageSize,
-            executionsPage.getTotalElements(),
-            executionsPage.getTotalPages()
-        );
+		// Get paginated execution history
+		Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getExecutionHistory(name, page, pageSize);
 
-        return ResponseEntity.ok(response);
-    }
+		// Convert to DTOs
+		List<JobExecutionRecord> executionRecords = executionsPage.getContent()
+			.stream()
+			.map(this::convertToJobExecutionRecord)
+			.collect(Collectors.toList());
 
-    @GetMapping("/{name}/stats")
-    @Operation(summary = "Get job statistics", description = "Returns execution statistics for a job over a specified period")
-    public ResponseEntity<Map<String, Object>> getJobStats(
-            @Parameter(description = "Job name") @PathVariable String name,
-            @Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("getJobStats", adminUserId, "jobName=" + name + ", sinceDays=" + sinceDays);
+		// Get statistics for the period
+		Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
 
-        Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
+		// Build response
+		JobExecutionHistoryResponse response = new JobExecutionHistoryResponse(executionRecords, stats, page, pageSize,
+				executionsPage.getTotalElements(), executionsPage.getTotalPages());
 
-        log.debug("Job stats for {}: {}", name, stats);
-        return ResponseEntity.ok(stats);
-    }
+		return ResponseEntity.ok(response);
+	}
 
-    @PutMapping("/{jobId}/schedule")
-    @Operation(summary = "Update job schedule", description = "Updates the cron schedule for a scheduled job")
-    public ResponseEntity<Map<String, Object>> updateJobSchedule(
-            @Parameter(description = "Job ID") @PathVariable String jobId,
-            @Parameter(description = "New cron expression") @RequestParam String cron,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("updateJobSchedule", adminUserId, "jobId=" + jobId + ", cron=" + cron);
+	@GetMapping("/{name}/stats")
+	@Operation(summary = "Get job statistics",
+			description = "Returns execution statistics for a job over a specified period")
+	public ResponseEntity<Map<String, Object>> getJobStats(
+			@Parameter(description = "Job name") @PathVariable String name,
+			@Parameter(description = "Statistics period in days") @RequestParam(defaultValue = "30") int sinceDays,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getJobStats", adminUserId, "jobName=" + name + ", sinceDays=" + sinceDays);
 
-        // Verify job exists and is a scheduled job
-        JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
-            .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
+		Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
 
-        if (!"CRON".equals(jobDef.getScheduleType())) {
-            throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_SCHEDULED, MODULE_NAME,
-                    "Job " + jobId + " is not a scheduled job (type: " + jobDef.getScheduleType() + ")");
-        }
+		log.debug("Job stats for {}: {}", name, stats);
+		return ResponseEntity.ok(stats);
+	}
 
-        // Update schedule in database
-        String oldCron = jobDef.getScheduleCron();
-        jobDef.setScheduleCron(cron);
-        jobDefinitionRepository.save(jobDef);
+	@PutMapping("/{jobId}/schedule")
+	@Operation(summary = "Update job schedule", description = "Updates the cron schedule for a scheduled job")
+	public ResponseEntity<Map<String, Object>> updateJobSchedule(
+			@Parameter(description = "Job ID") @PathVariable String jobId,
+			@Parameter(description = "New cron expression") @RequestParam String cron, HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("updateJobSchedule", adminUserId, "jobId=" + jobId + ", cron=" + cron);
 
-        // Update running scheduler
-        dynamicJobSchedulerBusiness.updateSchedule(jobId, cron);
+		// Verify job exists and is a scheduled job
+		JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
 
-        log.info("Job {} schedule updated by admin {}: {} -> {}", jobId, adminUserId, oldCron, cron);
+		if (!"CRON".equals(jobDef.getScheduleType())) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_SCHEDULED, MODULE_NAME,
+					"Job " + jobId + " is not a scheduled job (type: " + jobDef.getScheduleType() + ")");
+		}
 
-        return ResponseEntity.ok(Map.of(
-            "jobId", jobId,
-            "oldSchedule", oldCron,
-            "newSchedule", cron,
-            "message", "Schedule updated successfully"
-        ));
-    }
+		// Update schedule in database
+		String oldCron = jobDef.getScheduleCron();
+		jobDef.setScheduleCron(cron);
+		jobDefinitionRepository.save(jobDef);
 
-    @PutMapping("/{jobId}/enabled")
-    @Operation(summary = "Enable or disable job", description = "Enables or disables a job (both scheduled and manual)")
-    public ResponseEntity<Map<String, Object>> updateJobEnabled(
-            @Parameter(description = "Job ID") @PathVariable String jobId,
-            @Parameter(description = "Enable (true) or disable (false)") @RequestParam boolean enabled,
-            HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        logRequest("updateJobEnabled", adminUserId, "jobId=" + jobId + ", enabled=" + enabled);
+		// Update running scheduler
+		dynamicJobSchedulerBusiness.updateSchedule(jobId, cron);
 
-        // Verify job exists
-        JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
-            .orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
+		log.info("Job {} schedule updated by admin {}: {} -> {}", jobId, adminUserId, oldCron, cron);
 
-        // Update enabled status in database
-        boolean wasEnabled = jobDef.getEnabled();
-        jobDef.setEnabled(enabled);
-        jobDefinitionRepository.save(jobDef);
+		return ResponseEntity.ok(Map.of("jobId", jobId, "oldSchedule", oldCron, "newSchedule", cron, "message",
+				"Schedule updated successfully"));
+	}
 
-        // If this is a scheduled job, update the scheduler
-        if ("CRON".equals(jobDef.getScheduleType())) {
-            if (enabled && !wasEnabled) {
-                // Enable: Schedule the job
-                dynamicJobSchedulerBusiness.scheduleJob(jobDef);
-                log.info("Job {} enabled and scheduled by admin {}", jobId, adminUserId);
-            } else if (!enabled && wasEnabled) {
-                // Disable: Cancel the scheduled task
-                dynamicJobSchedulerBusiness.cancelJob(jobId);
-                log.info("Job {} disabled and unscheduled by admin {}", jobId, adminUserId);
-            }
-        } else {
-            log.info("Manual job {} {} by admin {}", jobId, enabled ? "enabled" : "disabled", adminUserId);
-        }
+	@PutMapping("/{jobId}/enabled")
+	@Operation(summary = "Enable or disable job", description = "Enables or disables a job (both scheduled and manual)")
+	public ResponseEntity<Map<String, Object>> updateJobEnabled(
+			@Parameter(description = "Job ID") @PathVariable String jobId,
+			@Parameter(description = "Enable (true) or disable (false)") @RequestParam boolean enabled,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("updateJobEnabled", adminUserId, "jobId=" + jobId + ", enabled=" + enabled);
 
-        return ResponseEntity.ok(Map.of(
-            "jobId", jobId,
-            "enabled", enabled,
-            "wasEnabled", wasEnabled,
-            "message", enabled ? "Job enabled successfully" : "Job disabled successfully"
-        ));
-    }
+		// Verify job exists
+		JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
+			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, MODULE_NAME, jobId));
 
-    // Converter methods
+		// Update enabled status in database
+		boolean wasEnabled = jobDef.getEnabled();
+		jobDef.setEnabled(enabled);
+		jobDefinitionRepository.save(jobDef);
 
-    /**
-     * Convert JobExecutionEntity to JobExecutionRecord DTO.
-     */
-    private JobExecutionRecord convertToJobExecutionRecord(JobExecutionEntity entity) {
-        JobExecutionRecord record = new JobExecutionRecord();
-        record.setExecutionId(entity.getExecutionId());
-        record.setJobName(entity.getJobName());
-        record.setStartTime(formatInstant(entity.getStartTime()));
-        record.setEndTime(formatInstant(entity.getEndTime()));
-        record.setDurationMs(entity.getDurationMs());
-        record.setStatus(entity.getStatus());
-        record.setSymbolsProcessed(entity.getSymbolsProcessed());
-        record.setDataPointsStored(entity.getDataPointsStored());
-        record.setErrorCount(entity.getErrorCount());
-        record.setErrorDetails(entity.getErrorDetails());
-        record.setTimeframes(entity.getTimeframes());
-        record.setContext(entity.getTimeframes()); // Context stored in timeframes field
-        return record;
-    }
+		// If this is a scheduled job, update the scheduler
+		if ("CRON".equals(jobDef.getScheduleType())) {
+			if (enabled && !wasEnabled) {
+				// Enable: Schedule the job
+				dynamicJobSchedulerBusiness.scheduleJob(jobDef);
+				log.info("Job {} enabled and scheduled by admin {}", jobId, adminUserId);
+			}
+			else if (!enabled && wasEnabled) {
+				// Disable: Cancel the scheduled task
+				dynamicJobSchedulerBusiness.cancelJob(jobId);
+				log.info("Job {} disabled and unscheduled by admin {}", jobId, adminUserId);
+			}
+		}
+		else {
+			log.info("Manual job {} {} by admin {}", jobId, enabled ? "enabled" : "disabled", adminUserId);
+		}
 
-    /**
-     * Format Instant to ISO 8601 string.
-     */
-    private Instant formatInstant(Instant instant) {
-        return instant;  // Return as-is, Jackson will serialize to ISO 8601
-    }
+		return ResponseEntity.ok(Map.of("jobId", jobId, "enabled", enabled, "wasEnabled", wasEnabled, "message",
+				enabled ? "Job enabled successfully" : "Job disabled successfully"));
+	}
+
+	// Converter methods
+
+	/**
+	 * Convert JobExecutionEntity to JobExecutionRecord DTO.
+	 */
+	private JobExecutionRecord convertToJobExecutionRecord(JobExecutionEntity entity) {
+		JobExecutionRecord record = new JobExecutionRecord();
+		record.setExecutionId(entity.getExecutionId());
+		record.setJobName(entity.getJobName());
+		record.setStartTime(formatInstant(entity.getStartTime()));
+		record.setEndTime(formatInstant(entity.getEndTime()));
+		record.setDurationMs(entity.getDurationMs());
+		record.setStatus(entity.getStatus());
+		record.setSymbolsProcessed(entity.getSymbolsProcessed());
+		record.setDataPointsStored(entity.getDataPointsStored());
+		record.setErrorCount(entity.getErrorCount());
+		record.setErrorDetails(entity.getErrorDetails());
+		record.setTimeframes(entity.getTimeframes());
+		record.setContext(entity.getTimeframes()); // Context stored in timeframes field
+		return record;
+	}
+
+	/**
+	 * Format Instant to ISO 8601 string.
+	 */
+	private Instant formatInstant(Instant instant) {
+		return instant; // Return as-is, Jackson will serialize to ISO 8601
+	}
+
 }

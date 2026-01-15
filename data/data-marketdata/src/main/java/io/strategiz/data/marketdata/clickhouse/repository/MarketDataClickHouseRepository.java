@@ -53,7 +53,7 @@ public class MarketDataClickHouseRepository {
 			params = new Object[] { symbol, startTime.getEpochSecond() + (startTime.getNano() / 1_000_000_000.0),
 					endTime.getEpochSecond() + (endTime.getNano() / 1_000_000_000.0), timeframe };
 			log.info("Executing ClickHouse query with timeframe filter: symbol={}, start={}, end={}, timeframe={}",
-				symbol, startTime, endTime, timeframe);
+					symbol, startTime, endTime, timeframe);
 		}
 		else {
 			sql = """
@@ -63,8 +63,8 @@ public class MarketDataClickHouseRepository {
 					""";
 			params = new Object[] { symbol, startTime.getEpochSecond() + (startTime.getNano() / 1_000_000_000.0),
 					endTime.getEpochSecond() + (endTime.getNano() / 1_000_000_000.0) };
-			log.info("Executing ClickHouse query without timeframe filter: symbol={}, start={}, end={}",
-				symbol, startTime, endTime);
+			log.info("Executing ClickHouse query without timeframe filter: symbol={}, start={}, end={}", symbol,
+					startTime, endTime);
 		}
 
 		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, params);
@@ -99,8 +99,8 @@ public class MarketDataClickHouseRepository {
 		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, symbol);
 		if (!results.isEmpty()) {
 			MarketDataEntity latest = results.get(0);
-			log.info("Latest data for {}: timestamp={}, timeframe={}, close={}",
-				symbol, latest.getTimestamp(), latest.getTimeframe(), latest.getClose());
+			log.info("Latest data for {}: timestamp={}, timeframe={}, close={}", symbol, latest.getTimestamp(),
+					latest.getTimeframe(), latest.getClose());
 		}
 		return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
 	}
@@ -232,8 +232,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Count corrupted 1D bars (timestamps not at midnight UTC).
-	 * Used for analysis before cleanup.
+	 * Count corrupted 1D bars (timestamps not at midnight UTC). Used for analysis before
+	 * cleanup.
 	 */
 	public long countCorrupted1DBars() {
 		String sql = """
@@ -245,8 +245,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Delete corrupted 1D bars (timestamps not at midnight UTC).
-	 * Returns immediately; deletion is async in ClickHouse.
+	 * Delete corrupted 1D bars (timestamps not at midnight UTC). Returns immediately;
+	 * deletion is async in ClickHouse.
 	 */
 	public void deleteCorrupted1DBars() {
 		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1D' AND toHour(timestamp) != 0";
@@ -255,8 +255,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Count corrupted 1H bars (timestamps not on-the-hour).
-	 * Used for analysis before cleanup.
+	 * Count corrupted 1H bars (timestamps not on-the-hour). Used for analysis before
+	 * cleanup.
 	 */
 	public long countCorrupted1HBars() {
 		String sql = """
@@ -268,8 +268,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Delete corrupted 1H bars (timestamps not on-the-hour).
-	 * Returns immediately; deletion is async in ClickHouse.
+	 * Delete corrupted 1H bars (timestamps not on-the-hour). Returns immediately;
+	 * deletion is async in ClickHouse.
 	 */
 	public void deleteCorrupted1HBars() {
 		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1H' AND toMinute(timestamp) != 0";
@@ -278,8 +278,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Delete corrupted 1W bars (timestamps not at midnight UTC).
-	 * Returns immediately; deletion is async in ClickHouse.
+	 * Delete corrupted 1W bars (timestamps not at midnight UTC). Returns immediately;
+	 * deletion is async in ClickHouse.
 	 */
 	public void deleteCorrupted1WBars() {
 		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1W' AND toHour(timestamp) != 0";
@@ -288,8 +288,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Delete corrupted 1M bars (timestamps not at midnight UTC).
-	 * Returns immediately; deletion is async in ClickHouse.
+	 * Delete corrupted 1M bars (timestamps not at midnight UTC). Returns immediately;
+	 * deletion is async in ClickHouse.
 	 */
 	public void deleteCorrupted1MBars() {
 		String sql = "ALTER TABLE market_data DELETE WHERE timeframe = '1M' AND toHour(timestamp) != 0";
@@ -298,8 +298,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Delete ALL corrupted bars across all timeframes (non-UTC timestamps).
-	 * Returns immediately; deletion is async in ClickHouse.
+	 * Delete ALL corrupted bars across all timeframes (non-UTC timestamps). Returns
+	 * immediately; deletion is async in ClickHouse.
 	 */
 	public void deleteAllCorruptedBars() {
 		// Delete 1D bars not at midnight
@@ -314,8 +314,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Optimize table to apply pending mutations (deletions) immediately.
-	 * This forces ClickHouse to merge data parts and apply ALTER TABLE DELETE.
+	 * Optimize table to apply pending mutations (deletions) immediately. This forces
+	 * ClickHouse to merge data parts and apply ALTER TABLE DELETE.
 	 */
 	public void optimizeTableFinal() {
 		String sql = "OPTIMIZE TABLE market_data FINAL";
@@ -324,10 +324,9 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Migrate timeframe format to canonical format.
-	 * Target format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
-	 * - Minutes/hours: lowercase (1m, 30m, 1h, 4h)
-	 * - Day/week/month: uppercase (1D, 1W, 1M)
+	 * Migrate timeframe format to canonical format. Target format: 1m, 30m, 1h, 4h, 1D,
+	 * 1W, 1M - Minutes/hours: lowercase (1m, 30m, 1h, 4h) - Day/week/month: uppercase
+	 * (1D, 1W, 1M)
 	 */
 	public void migrateTimeframeToShortFormat() {
 		log.info("=== Starting timeframe format migration to canonical format ===");
@@ -367,8 +366,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Get timestamp analysis for a timeframe.
-	 * Returns counts grouped by hour of day to identify corruption patterns.
+	 * Get timestamp analysis for a timeframe. Returns counts grouped by hour of day to
+	 * identify corruption patterns.
 	 */
 	public List<Map<String, Object>> analyzeTimestampsByTimeframe(String timeframe) {
 		String sql = """

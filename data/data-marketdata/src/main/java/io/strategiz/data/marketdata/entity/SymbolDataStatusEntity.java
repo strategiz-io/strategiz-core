@@ -3,8 +3,8 @@ package io.strategiz.data.marketdata.entity;
 import java.time.Instant;
 
 /**
- * Entity for symbol data status tracking in ClickHouse.
- * Tracks the last update time and data coverage for each symbol/timeframe combination.
+ * Entity for symbol data status tracking in ClickHouse. Tracks the last update time and
+ * data coverage for each symbol/timeframe combination.
  */
 public class SymbolDataStatusEntity {
 

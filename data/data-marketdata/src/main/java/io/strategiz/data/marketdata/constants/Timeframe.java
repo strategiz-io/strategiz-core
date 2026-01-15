@@ -8,10 +8,12 @@ import java.util.Set;
 /**
  * Standard timeframe constants for market data.
  *
- * <p>Industry convention: lowercase below a day, uppercase for day and above.
- * Format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
+ * <p>
+ * Industry convention: lowercase below a day, uppercase for day and above. Format: 1m,
+ * 30m, 1h, 4h, 1D, 1W, 1M
  *
- * <p>IMPORTANT: Use these constants throughout all layers for consistency.
+ * <p>
+ * IMPORTANT: Use these constants throughout all layers for consistency.
  */
 public final class Timeframe {
 
@@ -43,12 +45,11 @@ public final class Timeframe {
 	public static final String ONE_MONTH = "1M";
 
 	/** All valid timeframe values. */
-	public static final Set<String> VALID_TIMEFRAMES = Collections
-		.unmodifiableSet(new HashSet<>(Arrays.asList(ONE_MINUTE, THIRTY_MINUTES, ONE_HOUR, FOUR_HOURS, ONE_DAY, ONE_WEEK, ONE_MONTH)));
+	public static final Set<String> VALID_TIMEFRAMES = Collections.unmodifiableSet(new HashSet<>(
+			Arrays.asList(ONE_MINUTE, THIRTY_MINUTES, ONE_HOUR, FOUR_HOURS, ONE_DAY, ONE_WEEK, ONE_MONTH)));
 
 	/**
 	 * Check if a timeframe string is valid.
-	 *
 	 * @param timeframe The timeframe to validate
 	 * @return true if valid, false otherwise
 	 */
@@ -58,7 +59,6 @@ public final class Timeframe {
 
 	/**
 	 * Get default timeframe if null or empty provided.
-	 *
 	 * @param timeframe Input timeframe (may be null or empty)
 	 * @return The input if valid, or ONE_DAY as default
 	 */

@@ -1094,8 +1094,11 @@ public class AIStrategyPrompts {
 	public static String buildHistoricalInsightsPrompt(SymbolInsights insights) {
 		StringBuilder prompt = new StringBuilder();
 
-		// Include comprehensive technical analysis knowledge
-		prompt.append(TECHNICAL_ANALYSIS_KNOWLEDGE).append("\n\n");
+		// Include comprehensive technical analysis knowledge (split into parts due to Java string length limits)
+		prompt.append(TECHNICAL_ANALYSIS_KNOWLEDGE_PART1)
+				.append(TECHNICAL_ANALYSIS_KNOWLEDGE_PART2)
+				.append(TECHNICAL_ANALYSIS_KNOWLEDGE_PART3)
+				.append("\n\n");
 
 		prompt.append("=".repeat(80)).append("\n");
 		prompt.append("HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS\n");
@@ -1147,6 +1150,46 @@ public class AIStrategyPrompts {
 				insights.isMeanReverting() ? "Mean-Reverting" : "Trending"));
 		prompt.append(String.format("- Recommended Strategy Type: %s\n\n",
 				insights.isMeanReverting() ? "Mean-Reversion" : "Trend-Following"));
+
+		// CRITICAL: Add strong guidance for trending markets
+		if (!insights.isMeanReverting() && "BULLISH".equals(insights.getTrendDirection())) {
+			prompt.append("⚠️ CRITICAL WARNING - STRONGLY TRENDING BULL MARKET ⚠️\n");
+			prompt.append("=".repeat(60)).append("\n");
+			prompt.append("This market has been in a STRONG UPTREND. In bull markets:\n");
+			prompt.append("- BUY AND HOLD will return 50-150%+ over multi-year periods\n");
+			prompt.append("- ANY strategy that sits out of the market will LOSE to buy-and-hold\n");
+			prompt.append("- Conservative strategies with <20 trades are GUARANTEED TO FAIL\n\n");
+			prompt.append("YOU MUST:\n");
+			prompt.append("1. Use a TREND-FOLLOWING strategy, NOT mean-reversion\n");
+			prompt.append("2. Generate at LEAST 30-50+ trades over the backtest period\n");
+			prompt.append("3. Stay INVESTED most of the time (be in a position 60-80% of days)\n");
+			prompt.append("4. Use sensitive entry signals that trigger frequently in uptrends\n");
+			prompt.append("5. Let winning trades RUN (use trailing stops or wide take-profit)\n");
+			prompt.append("6. Only exit on clear trend reversal signals, NOT quick profit-taking\n\n");
+			prompt.append("WHAT WILL FAIL:\n");
+			prompt.append("- RSI oversold strategies (rarely triggers in bull markets)\n");
+			prompt.append("- Mean-reversion (market doesn't revert in strong trends)\n");
+			prompt.append("- Strategies waiting for 'perfect' setups (miss the trend)\n");
+			prompt.append("- Conservative 5-10 trade strategies (not enough exposure)\n\n");
+			prompt.append("WHAT WILL WIN:\n");
+			prompt.append("- Trend-following with moving average systems\n");
+			prompt.append("- Breakout strategies that enter on momentum\n");
+			prompt.append("- Pullback-to-moving-average entries in uptrends\n");
+			prompt.append("- STAY IN THE MARKET and ride the trend!\n");
+			prompt.append("=".repeat(60)).append("\n\n");
+		}
+		else if (!insights.isMeanReverting() && "BEARISH".equals(insights.getTrendDirection())) {
+			prompt.append("⚠️ CRITICAL WARNING - STRONGLY TRENDING BEAR MARKET ⚠️\n");
+			prompt.append("=".repeat(60)).append("\n");
+			prompt.append("This market has been in a STRONG DOWNTREND. In bear markets:\n");
+			prompt.append("- Staying OUT of the market or going SHORT beats buy-and-hold\n");
+			prompt.append("- Any 'buy the dip' strategy will get destroyed\n\n");
+			prompt.append("YOU MUST:\n");
+			prompt.append("1. Use defensive strategies or SHORT-selling approaches\n");
+			prompt.append("2. Consider cash preservation as a valid strategy\n");
+			prompt.append("3. Only enter LONG on very strong reversal signals\n");
+			prompt.append("=".repeat(60)).append("\n\n");
+		}
 
 		// Risk Insights
 		prompt.append("RISK INSIGHTS:\n");
@@ -1366,7 +1409,8 @@ public class AIStrategyPrompts {
 	 * candlestick patterns, and technical indicators from the Strategiz Learning Center.
 	 * This knowledge base teaches the AI to recognize and use proven patterns.
 	 */
-	public static final String TECHNICAL_ANALYSIS_KNOWLEDGE = """
+	// Technical Analysis Knowledge Base split into parts due to Java's 65535 byte string literal limit
+	public static final String TECHNICAL_ANALYSIS_KNOWLEDGE_PART1 = """
 
 			===========================================
 			TECHNICAL ANALYSIS PATTERN RECOGNITION GUIDE
@@ -2170,6 +2214,9 @@ public class AIStrategyPrompts {
 			   - Price rise on declining volume = weakening momentum
 			   - Price fall on declining volume = selling exhaustion
 
+			""";
+
+	public static final String TECHNICAL_ANALYSIS_KNOWLEDGE_PART2 = """
 			-------------------------------------------
 			MARKET REGIME DETECTION
 			-------------------------------------------
@@ -3093,6 +3140,856 @@ public class AIStrategyPrompts {
 
 			    return 'HOLD'
 			```
+
+			""";
+
+	public static final String TECHNICAL_ANALYSIS_KNOWLEDGE_PART3 = """
+			============================================
+			PROVEN WINNING STRATEGY TEMPLATES
+			============================================
+
+			These are battle-tested strategies with documented historical performance.
+			USE THESE AS TEMPLATES when generating strategies.
+
+			=== STRATEGY 1: GOLDEN CROSS TREND FOLLOWING ===
+			Historical Win Rate: 55-60% | Profit Factor: 1.8-2.2 | Best For: Trending Markets
+
+			LOGIC:
+			- Enter LONG when 50 SMA crosses above 200 SMA (Golden Cross)
+			- Stay in trade while price remains above 50 SMA
+			- Exit when price closes below 50 SMA OR 50 SMA crosses below 200 SMA
+
+			WHY IT WORKS:
+			- Captures major trends (months to years)
+			- Avoids choppy markets (no signal when MAs flat)
+			- Lets winners run, cuts losers short
+
+			COMPLETE IMPLEMENTATION:
+			```python
+			import pandas as pd
+			import numpy as np
+
+			SYMBOL = 'SPY'
+			TIMEFRAME = '1D'
+			STOP_LOSS = 8.0      # Wide stop for trend following
+			TAKE_PROFIT = 50.0   # Let winners run (or use trailing)
+			POSITION_SIZE = 10
+
+			def strategy(data):
+			    sma_50 = data['close'].rolling(50).mean()
+			    sma_200 = data['close'].rolling(200).mean()
+
+			    # Current values
+			    curr_price = data['close'].iloc[-1]
+			    curr_sma50 = sma_50.iloc[-1]
+			    curr_sma200 = sma_200.iloc[-1]
+			    prev_sma50 = sma_50.iloc[-2]
+			    prev_sma200 = sma_200.iloc[-2]
+
+			    # Golden Cross: 50 SMA crosses above 200 SMA
+			    golden_cross = prev_sma50 <= prev_sma200 and curr_sma50 > curr_sma200
+
+			    # Death Cross: 50 SMA crosses below 200 SMA
+			    death_cross = prev_sma50 >= prev_sma200 and curr_sma50 < curr_sma200
+
+			    # Trend confirmation: Price above both MAs
+			    bullish_trend = curr_price > curr_sma50 > curr_sma200
+
+			    # Entry on Golden Cross
+			    if golden_cross:
+			        return 'BUY'
+
+			    # Exit on Death Cross or price breakdown
+			    if death_cross or curr_price < curr_sma50:
+			        return 'SELL'
+
+			    return 'HOLD'
+			```
+
+			=== STRATEGY 2: RSI DIVERGENCE REVERSAL ===
+			Historical Win Rate: 62-68% | Profit Factor: 1.6-2.0 | Best For: Range-Bound Markets
+
+			LOGIC:
+			- Identify bullish divergence: Price makes lower low, RSI makes higher low
+			- Enter LONG when RSI crosses back above 30 after divergence
+			- Exit at RSI 60-70 or at resistance
+
+			WHY IT WORKS:
+			- Catches exhaustion moves before reversal
+			- High win rate at key support levels
+			- Works in ranging and early trend markets
+
+			COMPLETE IMPLEMENTATION:
+			```python
+			SYMBOL = 'AAPL'
+			TIMEFRAME = '1D'
+			STOP_LOSS = 4.0
+			TAKE_PROFIT = 12.0   # 3:1 reward/risk
+			POSITION_SIZE = 5
+
+			def strategy(data):
+			    # RSI calculation
+			    delta = data['close'].diff()
+			    gain = delta.where(delta > 0, 0).rolling(14).mean()
+			    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+			    rs = gain / loss
+			    rsi = 100 - (100 / (1 + rs))
+
+			    # Detect bullish divergence (last 14 bars)
+			    price_low_curr = data['close'].iloc[-7:].min()
+			    price_low_prev = data['close'].iloc[-14:-7].min()
+			    rsi_low_curr = rsi.iloc[-7:].min()
+			    rsi_low_prev = rsi.iloc[-14:-7].min()
+
+			    bullish_divergence = (price_low_curr < price_low_prev) and (rsi_low_curr > rsi_low_prev)
+
+			    # Entry: RSI crossing above 30 after divergence
+			    rsi_cross_up = rsi.iloc[-1] > 30 and rsi.iloc[-2] <= 30
+
+			    if bullish_divergence and rsi_cross_up:
+			        return 'BUY'
+
+			    # Exit: RSI overbought
+			    if rsi.iloc[-1] > 65:
+			        return 'SELL'
+
+			    return 'HOLD'
+			```
+
+			=== STRATEGY 3: BOLLINGER SQUEEZE BREAKOUT ===
+			Historical Win Rate: 58-65% | Profit Factor: 2.0-2.5 | Best For: All Markets
+
+			LOGIC:
+			- Identify squeeze: Bollinger Band width at 6-month low
+			- Wait for breakout: Price closes outside bands with volume
+			- Enter in direction of breakout
+			- Exit on return to middle band or opposite band touch
+
+			WHY IT WORKS:
+			- Low volatility ALWAYS precedes high volatility
+			- Squeeze identifies exact timing of big moves
+			- Volume confirms institutional participation
+
+			COMPLETE IMPLEMENTATION:
+			```python
+			SYMBOL = 'TSLA'
+			TIMEFRAME = '1D'
+			STOP_LOSS = 5.0
+			TAKE_PROFIT = 15.0
+			POSITION_SIZE = 5
+
+			def strategy(data):
+			    # Bollinger Bands
+			    sma = data['close'].rolling(20).mean()
+			    std = data['close'].rolling(20).std()
+			    bb_upper = sma + (std * 2)
+			    bb_lower = sma - (std * 2)
+			    bb_width = (bb_upper - bb_lower) / sma * 100
+
+			    # Squeeze detection: Width at 6-month low
+			    min_width = bb_width.rolling(126).min()
+			    is_squeeze = bb_width.iloc[-1] <= min_width.iloc[-1] * 1.1
+
+			    # Volume confirmation
+			    avg_volume = data['volume'].rolling(20).mean()
+			    high_volume = data['volume'].iloc[-1] > avg_volume.iloc[-1] * 1.5
+
+			    # Breakout detection
+			    curr_close = data['close'].iloc[-1]
+			    breakout_up = curr_close > bb_upper.iloc[-1]
+			    breakout_down = curr_close < bb_lower.iloc[-1]
+
+			    # Entry: Squeeze breakout with volume
+			    if is_squeeze and breakout_up and high_volume:
+			        return 'BUY'
+
+			    if is_squeeze and breakout_down and high_volume:
+			        return 'SELL'
+
+			    # Exit: Return to middle band
+			    at_middle = abs(curr_close - sma.iloc[-1]) / sma.iloc[-1] < 0.01
+			    if at_middle:
+			        return 'SELL'  # Close position
+
+			    return 'HOLD'
+			```
+
+			=== STRATEGY 4: PULLBACK TO 20 EMA IN UPTREND ===
+			Historical Win Rate: 60-65% | Profit Factor: 1.8-2.2 | Best For: Trending Markets
+
+			LOGIC:
+			- Confirm uptrend: Price > 20 EMA > 50 SMA > 200 SMA
+			- Wait for pullback to 20 EMA (within 1%)
+			- Enter on bullish candle at EMA
+			- Exit on break below 50 SMA
+
+			WHY IT WORKS:
+			- Buys dips in confirmed uptrends
+			- EMA acts as dynamic support
+			- Trend alignment filters losers
+
+			COMPLETE IMPLEMENTATION:
+			```python
+			SYMBOL = 'NVDA'
+			TIMEFRAME = '1D'
+			STOP_LOSS = 5.0
+			TAKE_PROFIT = 15.0
+			POSITION_SIZE = 5
+
+			def strategy(data):
+			    ema_20 = data['close'].ewm(span=20).mean()
+			    sma_50 = data['close'].rolling(50).mean()
+			    sma_200 = data['close'].rolling(200).mean()
+
+			    curr_close = data['close'].iloc[-1]
+			    curr_ema20 = ema_20.iloc[-1]
+			    curr_sma50 = sma_50.iloc[-1]
+			    curr_sma200 = sma_200.iloc[-1]
+
+			    # Uptrend confirmation: Bullish MA alignment
+			    uptrend = curr_ema20 > curr_sma50 > curr_sma200
+
+			    # Pullback to 20 EMA (within 1%)
+			    at_ema = abs(curr_close - curr_ema20) / curr_ema20 < 0.01
+
+			    # Bullish candle confirmation
+			    bullish_candle = data['close'].iloc[-1] > data['open'].iloc[-1]
+			    prev_bearish = data['close'].iloc[-2] < data['open'].iloc[-2]
+
+			    # Entry: Pullback to EMA in uptrend
+			    if uptrend and at_ema and bullish_candle and prev_bearish:
+			        return 'BUY'
+
+			    # Exit: Break below 50 SMA
+			    if curr_close < curr_sma50:
+			        return 'SELL'
+
+			    return 'HOLD'
+			```
+
+			=== STRATEGY 5: MACD HISTOGRAM REVERSAL ===
+			Historical Win Rate: 55-60% | Profit Factor: 1.5-1.8 | Best For: All Markets
+
+			LOGIC:
+			- Wait for MACD histogram to reach extreme (< -0.5 or > 0.5)
+			- Enter when histogram starts reversing (change in direction)
+			- Exit when histogram crosses zero or reaches opposite extreme
+
+			COMPLETE IMPLEMENTATION:
+			```python
+			SYMBOL = 'MSFT'
+			TIMEFRAME = '1D'
+			STOP_LOSS = 4.0
+			TAKE_PROFIT = 10.0
+			POSITION_SIZE = 5
+
+			def strategy(data):
+			    # MACD calculation
+			    ema_12 = data['close'].ewm(span=12).mean()
+			    ema_26 = data['close'].ewm(span=26).mean()
+			    macd_line = ema_12 - ema_26
+			    signal_line = macd_line.ewm(span=9).mean()
+			    histogram = macd_line - signal_line
+
+			    curr_hist = histogram.iloc[-1]
+			    prev_hist = histogram.iloc[-2]
+			    prev_prev_hist = histogram.iloc[-3]
+
+			    # Histogram reversal from negative extreme
+			    bullish_reversal = (prev_prev_hist < prev_hist < curr_hist) and (prev_hist < -0.3)
+
+			    # Histogram reversal from positive extreme
+			    bearish_reversal = (prev_prev_hist > prev_hist > curr_hist) and (prev_hist > 0.3)
+
+			    if bullish_reversal:
+			        return 'BUY'
+
+			    if bearish_reversal:
+			        return 'SELL'
+
+			    # Exit on zero cross
+			    zero_cross_down = prev_hist > 0 and curr_hist <= 0
+			    zero_cross_up = prev_hist < 0 and curr_hist >= 0
+
+			    if zero_cross_down or zero_cross_up:
+			        return 'SELL'
+
+			    return 'HOLD'
+			```
+
+			============================================
+			RISK MANAGEMENT & POSITION SIZING
+			============================================
+
+			CRITICAL: Risk management is MORE IMPORTANT than entry signals!
+			A mediocre strategy with great risk management beats a great strategy with poor risk management.
+
+			=== THE 2% RULE ===
+
+			Never risk more than 2% of account on a single trade.
+
+			```python
+			def calculate_position_size(account_balance, entry_price, stop_loss_price):
+			    risk_per_trade = account_balance * 0.02  # 2% max risk
+			    risk_per_share = abs(entry_price - stop_loss_price)
+			    position_size = risk_per_trade / risk_per_share
+			    return int(position_size)
+
+			# Example:
+			# Account: $10,000
+			# Entry: $100
+			# Stop: $95 (5% stop)
+			# Risk per share: $5
+			# Max risk: $200 (2% of $10,000)
+			# Position size: $200 / $5 = 40 shares
+			```
+
+			=== KELLY CRITERION (Optimal Position Sizing) ===
+
+			Mathematically optimal position size based on win rate and reward/risk.
+
+			Formula: Kelly % = W - [(1-W) / R]
+			Where:
+			- W = Win rate (as decimal)
+			- R = Reward/Risk ratio
+
+			```python
+			def kelly_criterion(win_rate, reward_risk_ratio):
+			    kelly = win_rate - ((1 - win_rate) / reward_risk_ratio)
+			    # Never use full Kelly - use half or quarter
+			    half_kelly = kelly / 2
+			    return max(0, min(0.25, half_kelly))  # Cap at 25%
+
+			# Example:
+			# Win rate: 55%
+			# Reward/Risk: 2:1
+			# Kelly = 0.55 - (0.45 / 2) = 0.55 - 0.225 = 0.325 (32.5%)
+			# Half Kelly = 16.25%
+			# Use: 16% of account per trade
+
+			def calculate_kelly_position(account_balance, win_rate, avg_win, avg_loss):
+			    reward_risk = abs(avg_win / avg_loss)
+			    kelly_pct = kelly_criterion(win_rate, reward_risk)
+			    position_value = account_balance * kelly_pct
+			    return position_value
+			```
+
+			=== FIXED FRACTIONAL POSITION SIZING ===
+
+			Risk a fixed percentage of current account balance.
+
+			```python
+			def fixed_fractional_size(account_balance, risk_pct, entry, stop_loss):
+			    risk_amount = account_balance * (risk_pct / 100)
+			    risk_per_share = abs(entry - stop_loss)
+			    shares = risk_amount / risk_per_share
+			    return int(shares)
+
+			# Aggressive: 3% risk per trade
+			# Moderate: 2% risk per trade
+			# Conservative: 1% risk per trade
+			```
+
+			=== VOLATILITY-ADJUSTED POSITION SIZING ===
+
+			Adjust position size based on current volatility (ATR).
+
+			```python
+			def volatility_adjusted_size(account_balance, data, risk_pct=2.0):
+			    # Calculate ATR
+			    tr = pd.concat([
+			        data['high'] - data['low'],
+			        abs(data['high'] - data['close'].shift(1)),
+			        abs(data['low'] - data['close'].shift(1))
+			    ], axis=1).max(axis=1)
+			    atr = tr.rolling(14).mean().iloc[-1]
+
+			    # Position size inversely proportional to volatility
+			    risk_amount = account_balance * (risk_pct / 100)
+			    # Use 2x ATR as stop distance
+			    stop_distance = atr * 2
+			    shares = risk_amount / stop_distance
+			    return int(shares)
+			```
+
+			=== MAXIMUM PORTFOLIO HEAT ===
+
+			Total portfolio risk should not exceed 6-10%.
+
+			```python
+			def check_portfolio_heat(open_positions, account_balance, max_heat=6.0):
+			    total_risk = 0
+			    for position in open_positions:
+			        risk = position['shares'] * abs(position['entry'] - position['stop'])
+			        total_risk += risk
+
+			    heat_pct = (total_risk / account_balance) * 100
+
+			    if heat_pct >= max_heat:
+			        return False  # Don't add new positions
+			    return True
+
+			# Rules:
+			# - Max 3-5 open positions at once
+			# - Total portfolio risk < 6%
+			# - No correlated positions (e.g., AAPL + QQQ)
+			```
+
+			=== MAXIMUM DRAWDOWN RULES ===
+
+			```python
+			def check_drawdown(current_balance, peak_balance, max_drawdown=15.0):
+			    drawdown = ((peak_balance - current_balance) / peak_balance) * 100
+
+			    if drawdown >= max_drawdown:
+			        return 'STOP_TRADING'  # Hit max drawdown, stop
+			    elif drawdown >= max_drawdown * 0.75:
+			        return 'REDUCE_SIZE'   # Near max, reduce position sizes
+			    else:
+			        return 'NORMAL'
+
+			# Drawdown rules:
+			# - 10% drawdown: Reduce position size by 50%
+			# - 15% drawdown: Stop trading, review strategy
+			# - 20% drawdown: Major review required
+			```
+
+			============================================
+			BACKTESTING BEST PRACTICES
+			============================================
+
+			Avoid OVERFITTING - the #1 killer of trading strategies!
+
+			=== WHAT IS OVERFITTING? ===
+
+			Overfitting = Strategy is "curve-fitted" to historical data
+			Result = Great backtest, terrible live performance
+
+			Signs of overfitting:
+			- Too many parameters (>5 is suspicious)
+			- Very specific parameter values (RSI 37.2 instead of 30)
+			- Perfect entries/exits in backtest
+			- Strategy fails on different time periods
+
+			=== WALK-FORWARD OPTIMIZATION ===
+
+			The GOLD STANDARD for strategy validation.
+
+			Process:
+			1. Divide data into segments (e.g., 12 months each)
+			2. Optimize on segment 1, test on segment 2
+			3. Optimize on segments 1-2, test on segment 3
+			4. Continue walking forward
+			5. Strategy must work on ALL out-of-sample segments
+
+			```python
+			def walk_forward_test(data, strategy, window_size=252, test_size=63):
+			    results = []
+			    for i in range(window_size, len(data) - test_size, test_size):
+			        train_data = data.iloc[i-window_size:i]
+			        test_data = data.iloc[i:i+test_size]
+
+			        # Optimize on train data
+			        best_params = optimize_strategy(train_data, strategy)
+
+			        # Test on out-of-sample data
+			        test_result = backtest(test_data, strategy, best_params)
+			        results.append(test_result)
+
+			    # Strategy is valid if profitable in >70% of test periods
+			    profitable_periods = sum(1 for r in results if r['return'] > 0)
+			    return profitable_periods / len(results) > 0.7
+			```
+
+			=== OUT-OF-SAMPLE TESTING ===
+
+			ALWAYS reserve 20-30% of data for final validation.
+
+			```python
+			def split_data_for_testing(data):
+			    split_point = int(len(data) * 0.7)
+			    in_sample = data.iloc[:split_point]    # 70% for development
+			    out_of_sample = data.iloc[split_point:]  # 30% for validation
+
+			    # NEVER look at out_of_sample during development!
+			    # Only test ONCE when strategy is finalized
+			    return in_sample, out_of_sample
+			```
+
+			=== MINIMUM TRADE REQUIREMENTS ===
+
+			Statistical significance requires enough trades.
+
+			```python
+			def validate_sample_size(total_trades, win_rate):
+			    # Minimum trades for statistical significance
+			    if total_trades < 30:
+			        return 'INSUFFICIENT_DATA'
+
+			    # For 95% confidence:
+			    # n >= (1.96^2 * p * (1-p)) / E^2
+			    # Where E is margin of error (typically 5%)
+			    required = (1.96**2 * win_rate * (1 - win_rate)) / (0.05**2)
+
+			    if total_trades >= required:
+			        return 'STATISTICALLY_SIGNIFICANT'
+			    else:
+			        return 'NEED_MORE_TRADES'
+
+			# Rules:
+			# - Minimum 30 trades for any conclusions
+			# - Minimum 100 trades for reliable statistics
+			# - Minimum 3 years of data for daily strategies
+			```
+
+			=== SLIPPAGE AND COMMISSION AWARENESS ===
+
+			Real trading has costs that kill marginal strategies.
+
+			```python
+			def apply_realistic_costs(backtest_result, trades):
+			    # Typical costs
+			    commission_per_trade = 1.00  # $1 per trade
+			    slippage_pct = 0.05  # 0.05% slippage per trade
+
+			    total_commission = len(trades) * commission_per_trade * 2  # Entry + exit
+			    total_slippage = sum(t['value'] * slippage_pct / 100 * 2 for t in trades)
+
+			    adjusted_return = backtest_result['gross_return'] - total_commission - total_slippage
+
+			    # Strategy must be profitable AFTER costs
+			    return adjusted_return
+
+			# Rules:
+			# - Include $1-2 commission per trade
+			# - Include 0.05-0.1% slippage
+			# - High-frequency strategies need even more buffer
+			# - If strategy barely profitable before costs, it will lose money
+			```
+
+			=== ROBUSTNESS TESTING ===
+
+			Strategy should work with slightly different parameters.
+
+			```python
+			def test_parameter_robustness(strategy, base_params):
+			    variations = []
+			    for param, value in base_params.items():
+			        # Test +/- 20% of parameter value
+			        for mult in [0.8, 0.9, 1.0, 1.1, 1.2]:
+			            test_params = base_params.copy()
+			            test_params[param] = value * mult
+			            result = backtest(strategy, test_params)
+			            variations.append(result)
+
+			    # Strategy is robust if profitable with all variations
+			    profitable = sum(1 for v in variations if v['return'] > 0)
+			    return profitable / len(variations) > 0.8  # 80%+ should be profitable
+			```
+
+			============================================
+			STATISTICAL EDGE REQUIREMENTS
+			============================================
+
+			A strategy MUST have a quantifiable edge to be worth trading.
+
+			=== MINIMUM PERFORMANCE THRESHOLDS ===
+
+			REQUIRE these minimums before considering a strategy:
+
+			```python
+			def validate_strategy_edge(backtest_result):
+			    checks = {
+			        'win_rate': backtest_result['win_rate'] >= 0.45,  # Min 45%
+			        'profit_factor': backtest_result['profit_factor'] >= 1.5,  # Min 1.5
+			        'sharpe_ratio': backtest_result['sharpe'] >= 1.0,  # Min 1.0
+			        'max_drawdown': backtest_result['max_dd'] <= 20.0,  # Max 20%
+			        'total_trades': backtest_result['trades'] >= 50,  # Min 50 trades
+			        'avg_trade': backtest_result['avg_trade_pct'] >= 0.5,  # Min 0.5% avg
+			    }
+
+			    passed = all(checks.values())
+			    return passed, checks
+
+			# Ideal targets:
+			# - Win rate: 50-60%
+			# - Profit factor: 2.0+
+			# - Sharpe ratio: 1.5+
+			# - Max drawdown: <15%
+			# - Avg trade: >1%
+			```
+
+			=== EXPECTANCY CALCULATION ===
+
+			Expected value per trade.
+
+			```python
+			def calculate_expectancy(win_rate, avg_win, avg_loss):
+			    # Expectancy = (Win% × Avg Win) - (Loss% × Avg Loss)
+			    expectancy = (win_rate * avg_win) - ((1 - win_rate) * abs(avg_loss))
+			    return expectancy
+
+			# Example:
+			# Win rate: 55%
+			# Avg win: $200
+			# Avg loss: $100
+			# Expectancy = (0.55 × 200) - (0.45 × 100) = 110 - 45 = $65 per trade
+
+			# Rules:
+			# - Expectancy MUST be positive
+			# - Higher expectancy = better strategy
+			# - Expectancy × Trade frequency = Expected monthly return
+			```
+
+			=== PROFIT FACTOR ===
+
+			Ratio of gross profits to gross losses.
+
+			```python
+			def calculate_profit_factor(trades):
+			    gross_profit = sum(t['pnl'] for t in trades if t['pnl'] > 0)
+			    gross_loss = abs(sum(t['pnl'] for t in trades if t['pnl'] < 0))
+
+			    if gross_loss == 0:
+			        return float('inf')
+
+			    profit_factor = gross_profit / gross_loss
+			    return profit_factor
+
+			# Interpretation:
+			# - PF < 1.0: Losing strategy
+			# - PF 1.0-1.5: Marginal (probably not worth trading after costs)
+			# - PF 1.5-2.0: Good strategy
+			# - PF 2.0-3.0: Excellent strategy
+			# - PF > 3.0: Exceptional (verify not overfitted!)
+			```
+
+			=== SHARPE RATIO ===
+
+			Risk-adjusted return measurement.
+
+			```python
+			def calculate_sharpe(returns, risk_free_rate=0.02):
+			    excess_returns = returns - (risk_free_rate / 252)  # Daily risk-free
+			    sharpe = (excess_returns.mean() / excess_returns.std()) * np.sqrt(252)
+			    return sharpe
+
+			# Interpretation:
+			# - Sharpe < 0: Losing money
+			# - Sharpe 0-1: Subpar risk-adjusted returns
+			# - Sharpe 1-2: Good risk-adjusted returns
+			# - Sharpe 2-3: Excellent
+			# - Sharpe > 3: Exceptional (verify not overfitted!)
+			```
+
+			=== SORTINO RATIO ===
+
+			Like Sharpe but only penalizes downside volatility.
+
+			```python
+			def calculate_sortino(returns, risk_free_rate=0.02):
+			    excess_returns = returns - (risk_free_rate / 252)
+			    downside_returns = excess_returns[excess_returns < 0]
+			    downside_std = downside_returns.std()
+
+			    if downside_std == 0:
+			        return float('inf')
+
+			    sortino = (excess_returns.mean() / downside_std) * np.sqrt(252)
+			    return sortino
+
+			# Sortino > Sharpe means strategy has more upside than downside volatility
+			# This is desirable!
+			```
+
+			============================================
+			ADAPTIVE PARAMETERS
+			============================================
+
+			Static parameters fail in changing markets.
+			ADAPT parameters to current conditions.
+
+			=== ATR-BASED STOP LOSS ===
+
+			Dynamic stop loss based on current volatility.
+
+			```python
+			def calculate_atr_stop(data, atr_multiplier=2.0):
+			    # ATR calculation
+			    tr = pd.concat([
+			        data['high'] - data['low'],
+			        abs(data['high'] - data['close'].shift(1)),
+			        abs(data['low'] - data['close'].shift(1))
+			    ], axis=1).max(axis=1)
+			    atr = tr.rolling(14).mean().iloc[-1]
+
+			    entry_price = data['close'].iloc[-1]
+			    stop_loss = entry_price - (atr * atr_multiplier)
+
+			    return stop_loss
+
+			# Advantages:
+			# - Wider stops in volatile markets (avoid noise)
+			# - Tighter stops in calm markets (protect profits)
+			# - Automatically adjusts to market conditions
+			```
+
+			=== VOLATILITY-ADJUSTED TAKE PROFIT ===
+
+			```python
+			def calculate_atr_target(data, reward_risk=3.0, atr_multiplier=2.0):
+			    tr = pd.concat([
+			        data['high'] - data['low'],
+			        abs(data['high'] - data['close'].shift(1)),
+			        abs(data['low'] - data['close'].shift(1))
+			    ], axis=1).max(axis=1)
+			    atr = tr.rolling(14).mean().iloc[-1]
+
+			    entry_price = data['close'].iloc[-1]
+			    stop_distance = atr * atr_multiplier
+			    target_distance = stop_distance * reward_risk
+
+			    take_profit = entry_price + target_distance
+
+			    return take_profit
+			```
+
+			=== REGIME-ADAPTIVE PARAMETERS ===
+
+			Different parameters for different market regimes.
+
+			```python
+			def get_adaptive_params(data):
+			    # Detect regime using ADX
+			    adx = calculate_adx(data)
+
+			    if adx.iloc[-1] > 25:
+			        # Trending market
+			        return {
+			            'strategy_type': 'trend_following',
+			            'stop_loss_atr_mult': 2.5,  # Wider stops
+			            'take_profit_atr_mult': 5.0,  # Let winners run
+			            'rsi_oversold': 40,  # Less extreme threshold
+			            'rsi_overbought': 60
+			        }
+			    else:
+			        # Ranging market
+			        return {
+			            'strategy_type': 'mean_reversion',
+			            'stop_loss_atr_mult': 1.5,  # Tighter stops
+			            'take_profit_atr_mult': 2.0,  # Take profits quickly
+			            'rsi_oversold': 30,  # Standard thresholds
+			            'rsi_overbought': 70
+			        }
+			```
+
+			=== TRAILING STOP IMPLEMENTATION ===
+
+			Let winners run while protecting profits.
+
+			```python
+			def trailing_stop(data, entry_price, position_type='long', trail_pct=10.0):
+			    if position_type == 'long':
+			        highest_since_entry = data['high'].max()
+			        trail_stop = highest_since_entry * (1 - trail_pct/100)
+			        current_stop = max(entry_price * 0.95, trail_stop)  # Never below initial stop
+			    else:
+			        lowest_since_entry = data['low'].min()
+			        trail_stop = lowest_since_entry * (1 + trail_pct/100)
+			        current_stop = min(entry_price * 1.05, trail_stop)
+
+			    return current_stop
+
+			# Or ATR-based trailing:
+			def atr_trailing_stop(data, atr_mult=2.5):
+			    atr = calculate_atr(data)
+			    highest = data['high'].iloc[-20:].max()
+			    trail_stop = highest - (atr * atr_mult)
+			    return trail_stop
+			```
+
+			=== DYNAMIC POSITION SIZING ===
+
+			Adjust size based on strategy confidence.
+
+			```python
+			def confidence_adjusted_size(base_size, signal_strength, max_multiplier=2.0):
+			    # signal_strength from 0 to 1 (0 = weak, 1 = strong)
+
+			    # More conditions aligned = larger position
+			    if signal_strength > 0.8:
+			        multiplier = max_multiplier
+			    elif signal_strength > 0.6:
+			        multiplier = 1.5
+			    elif signal_strength > 0.4:
+			        multiplier = 1.0
+			    else:
+			        multiplier = 0.5  # Weak signal = smaller position
+
+			    return base_size * multiplier
+
+			# Example usage:
+			# signal_strength = count_confirmations() / total_possible_confirmations
+			# position = confidence_adjusted_size(1000, signal_strength)
+			```
+
+			=== MARKET CONDITION FILTERS ===
+
+			Don't trade in unfavorable conditions.
+
+			```python
+			def check_trading_conditions(data, spy_data=None):
+			    conditions = {
+			        'sufficient_volume': data['volume'].iloc[-1] > data['volume'].rolling(20).mean().iloc[-1] * 0.5,
+			        'not_extreme_volatility': calculate_atr(data) < calculate_atr(data).rolling(100).mean().iloc[-1] * 2,
+			        'market_open': True,  # Would check actual market hours
+			    }
+
+			    # Check market regime if SPY data available
+			    if spy_data is not None:
+			        spy_trend = spy_data['close'].iloc[-1] > spy_data['close'].rolling(50).mean().iloc[-1]
+			        conditions['market_favorable'] = spy_trend
+
+			    # Only trade if ALL conditions met
+			    return all(conditions.values())
+			```
+
+			============================================
+			STRATEGY GENERATION CHECKLIST
+			============================================
+
+			Before returning ANY strategy, verify:
+
+			□ ENTRY RULES
+			  - Clear, specific entry conditions
+			  - Multiple confirmations (2-3 minimum)
+			  - Not over-optimized (simple parameters)
+
+			□ EXIT RULES
+			  - Stop loss defined (ATR-based preferred)
+			  - Take profit defined OR trailing stop
+			  - Time-based exit if needed
+
+			□ RISK MANAGEMENT
+			  - Position sizing formula included
+			  - Maximum 2% risk per trade
+			  - No more than 5 open positions
+
+			□ MARKET REGIME
+			  - Strategy type matches market regime
+			  - Trend-following for trending markets
+			  - Mean-reversion for ranging markets
+
+			□ VALIDATION
+			  - Win rate > 45%
+			  - Profit factor > 1.5
+			  - Max drawdown < 20%
+			  - Minimum 50 trades in backtest
+
+			□ ROBUSTNESS
+			  - Works on different time periods
+			  - Works with slightly different parameters
+			  - Accounts for slippage and commissions
 			""";
 
 	// ========================================

@@ -9,147 +9,149 @@ import java.time.Instant;
  */
 public class JobResponse {
 
-    @JsonProperty("name")
-    private String name;
+	@JsonProperty("name")
+	private String name;
 
-    @JsonProperty("displayName")
-    private String displayName;
+	@JsonProperty("displayName")
+	private String displayName;
 
-    @JsonProperty("description")
-    private String description;
+	@JsonProperty("description")
+	private String description;
 
-    @JsonProperty("jobGroup")
-    private String jobGroup; // MARKETDATA, FUNDAMENTALS, ALERTS, VULNERABILITIES, SYSTEM, OTHER
+	@JsonProperty("jobGroup")
+	private String jobGroup; // MARKETDATA, FUNDAMENTALS, ALERTS, VULNERABILITIES, SYSTEM,
+								// OTHER
 
-    @JsonProperty("status")
-    private String status; // RUNNING, PAUSED, IDLE
+	@JsonProperty("status")
+	private String status; // RUNNING, PAUSED, IDLE
 
-    @JsonProperty("schedule")
-    private String schedule; // Cron expression
+	@JsonProperty("schedule")
+	private String schedule; // Cron expression
 
-    @JsonProperty("scheduleType")
-    private String scheduleType; // CRON, MANUAL
+	@JsonProperty("scheduleType")
+	private String scheduleType; // CRON, MANUAL
 
-    @JsonProperty("lastRunTime")
-    private Instant lastRunTime;
+	@JsonProperty("lastRunTime")
+	private Instant lastRunTime;
 
-    @JsonProperty("nextRunTime")
-    private Instant nextRunTime;
+	@JsonProperty("nextRunTime")
+	private Instant nextRunTime;
 
-    @JsonProperty("lastRunStatus")
-    private String lastRunStatus; // SUCCESS, FAILED, RUNNING
+	@JsonProperty("lastRunStatus")
+	private String lastRunStatus; // SUCCESS, FAILED, RUNNING
 
-    @JsonProperty("lastRunDurationMs")
-    private Long lastRunDurationMs;
+	@JsonProperty("lastRunDurationMs")
+	private Long lastRunDurationMs;
 
-    @JsonProperty("enabled")
-    private boolean enabled = true;
+	@JsonProperty("enabled")
+	private boolean enabled = true;
 
-    // Constructors
-    public JobResponse() {
-    }
+	// Constructors
+	public JobResponse() {
+	}
 
-    public JobResponse(String name, String description, String status, String schedule) {
-        this.name = name;
-        this.description = description;
-        this.status = status;
-        this.schedule = schedule;
-    }
+	public JobResponse(String name, String description, String status, String schedule) {
+		this.name = name;
+		this.description = description;
+		this.status = status;
+		this.schedule = schedule;
+	}
 
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
+	// Getters and Setters
+	public String getName() {
+		return name;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public String getDescription() {
-        return description;
-    }
+	public String getDescription() {
+		return description;
+	}
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public String getSchedule() {
-        return schedule;
-    }
+	public String getSchedule() {
+		return schedule;
+	}
 
-    public void setSchedule(String schedule) {
-        this.schedule = schedule;
-    }
+	public void setSchedule(String schedule) {
+		this.schedule = schedule;
+	}
 
-    public Instant getLastRunTime() {
-        return lastRunTime;
-    }
+	public Instant getLastRunTime() {
+		return lastRunTime;
+	}
 
-    public void setLastRunTime(Instant lastRunTime) {
-        this.lastRunTime = lastRunTime;
-    }
+	public void setLastRunTime(Instant lastRunTime) {
+		this.lastRunTime = lastRunTime;
+	}
 
-    public Instant getNextRunTime() {
-        return nextRunTime;
-    }
+	public Instant getNextRunTime() {
+		return nextRunTime;
+	}
 
-    public void setNextRunTime(Instant nextRunTime) {
-        this.nextRunTime = nextRunTime;
-    }
+	public void setNextRunTime(Instant nextRunTime) {
+		this.nextRunTime = nextRunTime;
+	}
 
-    public String getLastRunStatus() {
-        return lastRunStatus;
-    }
+	public String getLastRunStatus() {
+		return lastRunStatus;
+	}
 
-    public void setLastRunStatus(String lastRunStatus) {
-        this.lastRunStatus = lastRunStatus;
-    }
+	public void setLastRunStatus(String lastRunStatus) {
+		this.lastRunStatus = lastRunStatus;
+	}
 
-    public Long getLastRunDurationMs() {
-        return lastRunDurationMs;
-    }
+	public Long getLastRunDurationMs() {
+		return lastRunDurationMs;
+	}
 
-    public void setLastRunDurationMs(Long lastRunDurationMs) {
-        this.lastRunDurationMs = lastRunDurationMs;
-    }
+	public void setLastRunDurationMs(Long lastRunDurationMs) {
+		this.lastRunDurationMs = lastRunDurationMs;
+	}
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+	public boolean isEnabled() {
+		return enabled;
+	}
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
 
-    public String getDisplayName() {
-        return displayName;
-    }
+	public String getDisplayName() {
+		return displayName;
+	}
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
 
-    public String getJobGroup() {
-        return jobGroup;
-    }
+	public String getJobGroup() {
+		return jobGroup;
+	}
 
-    public void setJobGroup(String jobGroup) {
-        this.jobGroup = jobGroup;
-    }
+	public void setJobGroup(String jobGroup) {
+		this.jobGroup = jobGroup;
+	}
 
-    public String getScheduleType() {
-        return scheduleType;
-    }
+	public String getScheduleType() {
+		return scheduleType;
+	}
 
-    public void setScheduleType(String scheduleType) {
-        this.scheduleType = scheduleType;
-    }
+	public void setScheduleType(String scheduleType) {
+		this.scheduleType = scheduleType;
+	}
+
 }

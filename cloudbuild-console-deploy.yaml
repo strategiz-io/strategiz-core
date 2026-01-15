@@ -1,7 +1,7 @@
 steps:
-# Build the Docker image (using production Dockerfile with embedded Vault)
+# Build the Docker image (standard Dockerfile with external Vault)
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-f', 'application-console/Dockerfile.production', '-t', 'gcr.io/$PROJECT_ID/strategiz-console', '.']
+  args: ['build', '-f', 'application-console/Dockerfile', '-t', 'gcr.io/$PROJECT_ID/strategiz-console', '.']
 
 # Push the Docker image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
@@ -25,8 +25,8 @@ steps:
     - '--max-instances=5'
     - '--timeout=600'
     - '--cpu-boost'
-    - '--set-env-vars=SPRING_PROFILES_ACTIVE=prod^:^scheduler,console.auth.enabled=true,strategiz.clickhouse.enabled=true,strategiz.timescale.enabled=false'
-    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest,VAULT_UNSEAL_KEY=vault-unseal-keys:latest'
+    - '--set-env-vars=^|^SPRING_PROFILES_ACTIVE=prod,scheduler|console.auth.enabled=true|strategiz.clickhouse.enabled=true|strategiz.timescale.enabled=false|VAULT_ADDR=https://strategiz-vault-bflhiwsnmq-ue.a.run.app|STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-bflhiwsnmq-ue.a.run.app'
+    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
 images:
 - 'gcr.io/$PROJECT_ID/strategiz-console'

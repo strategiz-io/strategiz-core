@@ -11,22 +11,20 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 /**
- * Custom Logback appender that captures batch job logs and streams them to connected SSE clients.
+ * Custom Logback appender that captures batch job logs and streams them to connected SSE
+ * clients.
  *
- * Thread-safe design:
- * - Appenders are called synchronously by Logback, so append() must be fast
- * - Uses async broadcast to avoid blocking the logging thread
- * - Circular buffer prevents unbounded memory growth
+ * Thread-safe design: - Appenders are called synchronously by Logback, so append() must
+ * be fast - Uses async broadcast to avoid blocking the logging thread - Circular buffer
+ * prevents unbounded memory growth
  *
- * Integration:
- * - Configured in logback-spring.xml with filter for batch jobs
- * - Auto-detects job context via MDC or thread name
- * - Lazy initialization of JobLogStreamService via ApplicationContext
+ * Integration: - Configured in logback-spring.xml with filter for batch jobs -
+ * Auto-detects job context via MDC or thread name - Lazy initialization of
+ * JobLogStreamService via ApplicationContext
  */
 public class BatchJobLogAppender extends AppenderBase<ILoggingEvent> {
 
-	private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter
-		.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+	private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
 		.withZone(ZoneId.systemDefault());
 
 	// Job name patterns to monitor (configured via logback-spring.xml)
@@ -62,8 +60,8 @@ public class BatchJobLogAppender extends AppenderBase<ILoggingEvent> {
 	}
 
 	/**
-	 * Extract job name from MDC context or thread name.
-	 * Priority: MDC["jobName"] > MDC["jobExecutionId"] > thread name pattern
+	 * Extract job name from MDC context or thread name. Priority: MDC["jobName"] >
+	 * MDC["jobExecutionId"] > thread name pattern
 	 */
 	private String extractJobName(ILoggingEvent event) {
 		Map<String, String> mdcProperties = event.getMDCPropertyMap();
@@ -121,13 +119,13 @@ public class BatchJobLogAppender extends AppenderBase<ILoggingEvent> {
 	 */
 	private LogEvent formatLogEvent(ILoggingEvent event, String jobName) {
 		return new LogEvent(TIMESTAMP_FORMATTER.format(Instant.ofEpochMilli(event.getTimeStamp())),
-				event.getLevel().toString(), event.getFormattedMessage(), event.getLoggerName(),
-				event.getThreadName(), jobName, event.getMDCPropertyMap());
+				event.getLevel().toString(), event.getFormattedMessage(), event.getLoggerName(), event.getThreadName(),
+				jobName, event.getMDCPropertyMap());
 	}
 
 	/**
-	 * Lazy initialize JobLogStreamService from Spring ApplicationContext.
-	 * Called only once when first log event arrives.
+	 * Lazy initialize JobLogStreamService from Spring ApplicationContext. Called only
+	 * once when first log event arrives.
 	 */
 	private synchronized void initializeService() {
 		if (logStreamService != null) {

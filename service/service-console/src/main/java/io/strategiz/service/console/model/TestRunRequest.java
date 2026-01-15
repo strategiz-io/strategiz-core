@@ -8,7 +8,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Request to run Playwright E2E tests")
 public class TestRunRequest {
 
-	@Schema(description = "Test suite ID to run (system, smoke, journeys-auth, etc.)", required = true, example = "system")
+	@Schema(description = "Test suite ID to run (system, smoke, journeys-auth, etc.)", required = true,
+			example = "system")
 	private String suiteId;
 
 	public TestRunRequest() {

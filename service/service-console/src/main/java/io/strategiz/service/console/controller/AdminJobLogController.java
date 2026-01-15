@@ -22,8 +22,7 @@ import java.util.List;
 /**
  * Controller for streaming batch job logs via Server-Sent Events (SSE).
  *
- * Endpoints:
- * - GET /v1/console/jobs/{jobName}/logs/stream → SSE stream of real-time logs
+ * Endpoints: - GET /v1/console/jobs/{jobName}/logs/stream → SSE stream of real-time logs
  * - GET /v1/console/jobs/{jobName}/logs/recent → Recent logs (last 500)
  *
  * Security: @RequireAuth ensures only authenticated admins can access

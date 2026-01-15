@@ -57,10 +57,8 @@ public class JobManagementService extends BaseService {
 	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
 			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
 			Optional<FundamentalsBackfillJob> fundamentalsBackfillJob,
-			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob,
-			Optional<DispatchJob> dispatchJob,
-			JobLogStreamService jobLogStreamService,
-			JobDefinitionFirestoreRepository jobDefinitionRepository) {
+			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob, Optional<DispatchJob> dispatchJob,
+			JobLogStreamService jobLogStreamService, JobDefinitionFirestoreRepository jobDefinitionRepository) {
 		this.marketDataBackfillJob = marketDataBackfillJob;
 		this.marketDataIncrementalJob = marketDataIncrementalJob;
 		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
@@ -72,8 +70,7 @@ public class JobManagementService extends BaseService {
 		log.info(
 				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}, dispatchJob={}",
 				marketDataBackfillJob.isPresent(), marketDataIncrementalJob.isPresent(),
-				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent(),
-				dispatchJob.isPresent());
+				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent(), dispatchJob.isPresent());
 	}
 
 	public List<JobResponse> listJobs() {
@@ -125,8 +122,8 @@ public class JobManagementService extends BaseService {
 	public JobResponse getJob(String jobId) {
 		// Read job definition from Firestore
 		JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
-			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console",
-					jobId));
+			.orElseThrow(
+					() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console", jobId));
 
 		JobResponse job = new JobResponse();
 		job.setName(jobDef.getJobId());
@@ -168,8 +165,8 @@ public class JobManagementService extends BaseService {
 
 		// Verify job exists in Firestore
 		JobDefinitionFirestoreEntity jobDef = jobDefinitionRepository.findByJobId(jobId)
-			.orElseThrow(() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console",
-					jobId));
+			.orElseThrow(
+					() -> new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_FOUND, "service-console", jobId));
 
 		// Check if already running
 		JobExecutionInfo existing = jobExecutions.get(jobId);
@@ -254,8 +251,7 @@ public class JobManagementService extends BaseService {
 
 	private void executeMarketDataBackfillJob() {
 		if (marketDataBackfillJob.isEmpty()) {
-			log.warn(
-					"MarketDataBackfillJob bean not available. Start with scheduler profile or restart application.");
+			log.warn("MarketDataBackfillJob bean not available. Start with scheduler profile or restart application.");
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Backfill job not available. Ensure scheduler profile is active or job bean is instantiated.");
 		}
@@ -354,8 +350,7 @@ public class JobManagementService extends BaseService {
 
 	private void executeDispatchJob(String tier) {
 		if (dispatchJob.isEmpty()) {
-			log.warn(
-					"DispatchJob bean not available. Start with scheduler profile or restart application.");
+			log.warn("DispatchJob bean not available. Start with scheduler profile or restart application.");
 			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
 					"Live strategies dispatch job not available. Ensure scheduler profile is active.");
 		}
@@ -373,9 +368,9 @@ public class JobManagementService extends BaseService {
 					"Dispatch failed for tier " + tier + ": " + result.errorMessage());
 		}
 
-		log.info("Dispatch {} completed: {} alerts, {} bots, {} symbol sets, {} messages published",
-				tier, result.alertsProcessed(), result.botsProcessed(),
-				result.symbolSetsCreated(), result.messagesPublished());
+		log.info("Dispatch {} completed: {} alerts, {} bots, {} symbol sets, {} messages published", tier,
+				result.alertsProcessed(), result.botsProcessed(), result.symbolSetsCreated(),
+				result.messagesPublished());
 	}
 
 	private boolean isJobBeanAvailable(String jobId) {

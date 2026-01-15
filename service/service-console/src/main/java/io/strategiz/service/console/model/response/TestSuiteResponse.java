@@ -56,8 +56,8 @@ public class TestSuiteResponse {
 	public TestSuiteResponse() {
 	}
 
-	public TestSuiteResponse(String id, String appId, String moduleId, String name, String description,
-			String filePath, String framework, int testCount, long estimatedDurationSeconds, Instant lastExecutedAt,
+	public TestSuiteResponse(String id, String appId, String moduleId, String name, String description, String filePath,
+			String framework, int testCount, long estimatedDurationSeconds, Instant lastExecutedAt,
 			String lastExecutionStatus, String[] tags, Instant createdAt, Instant updatedAt) {
 		this.id = id;
 		this.appId = appId;

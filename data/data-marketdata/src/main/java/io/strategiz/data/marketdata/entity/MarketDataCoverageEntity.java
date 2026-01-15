@@ -15,288 +15,404 @@ import java.util.Map;
 /**
  * Firestore entity for storing market data coverage snapshots.
  *
- * Collection structure in Firestore:
- * - Collection: "marketdata_coverage_stats"
- * - Document ID: Snapshot timestamp (e.g., "coverage_2025-12-24T10:00:00Z")
+ * Collection structure in Firestore: - Collection: "marketdata_coverage_stats" - Document
+ * ID: Snapshot timestamp (e.g., "coverage_2025-12-24T10:00:00Z")
  *
- * Stores aggregate statistics about data completeness:
- * - Coverage percentage by timeframe (how many symbols have data)
- * - Storage metrics (TimescaleDB size, row counts)
- * - Data quality distribution
- * - Identified gaps in data
+ * Stores aggregate statistics about data completeness: - Coverage percentage by timeframe
+ * (how many symbols have data) - Storage metrics (TimescaleDB size, row counts) - Data
+ * quality distribution - Identified gaps in data
  *
  * Calculated periodically (daily at 2 AM) or on-demand via API.
  */
 @Collection("marketdata_coverage_stats")
 public class MarketDataCoverageEntity extends BaseEntity {
 
-    @DocumentId
-    @PropertyName("snapshotId")
-    @JsonProperty("snapshotId")
-    private String snapshotId;  // e.g., "coverage_2025-12-24T10:00:00Z"
+	@DocumentId
+	@PropertyName("snapshotId")
+	@JsonProperty("snapshotId")
+	private String snapshotId; // e.g., "coverage_2025-12-24T10:00:00Z"
 
-    @PropertyName("calculatedAt")
-    @JsonProperty("calculatedAt")
-    private Timestamp calculatedAt;
+	@PropertyName("calculatedAt")
+	@JsonProperty("calculatedAt")
+	private Timestamp calculatedAt;
 
-    @PropertyName("totalSymbols")
-    @JsonProperty("totalSymbols")
-    private Integer totalSymbols;
+	@PropertyName("totalSymbols")
+	@JsonProperty("totalSymbols")
+	private Integer totalSymbols;
 
-    @PropertyName("totalTimeframes")
-    @JsonProperty("totalTimeframes")
-    private Integer totalTimeframes;
+	@PropertyName("totalTimeframes")
+	@JsonProperty("totalTimeframes")
+	private Integer totalTimeframes;
 
-    @PropertyName("byTimeframe")
-    @JsonProperty("byTimeframe")
-    private Map<String, TimeframeCoverage> byTimeframe;
+	@PropertyName("byTimeframe")
+	@JsonProperty("byTimeframe")
+	private Map<String, TimeframeCoverage> byTimeframe;
 
-    @PropertyName("storage")
-    @JsonProperty("storage")
-    private StorageStats storage;
+	@PropertyName("storage")
+	@JsonProperty("storage")
+	private StorageStats storage;
 
-    @PropertyName("dataQuality")
-    @JsonProperty("dataQuality")
-    private QualityStats dataQuality;
+	@PropertyName("dataQuality")
+	@JsonProperty("dataQuality")
+	private QualityStats dataQuality;
 
-    @PropertyName("gaps")
-    @JsonProperty("gaps")
-    private List<DataGap> gaps;
+	@PropertyName("gaps")
+	@JsonProperty("gaps")
+	private List<DataGap> gaps;
 
-    // Constructor
-    public MarketDataCoverageEntity() {
-        this.byTimeframe = new HashMap<>();
-        this.gaps = new ArrayList<>();
-        this.calculatedAt = Timestamp.now();
-    }
+	// Constructor
+	public MarketDataCoverageEntity() {
+		this.byTimeframe = new HashMap<>();
+		this.gaps = new ArrayList<>();
+		this.calculatedAt = Timestamp.now();
+	}
 
-    // Nested Classes
+	// Nested Classes
 
-    /**
-     * Coverage statistics for a single timeframe.
-     */
-    public static class TimeframeCoverage {
-        @PropertyName("symbolsWithData")
-        @JsonProperty("symbolsWithData")
-        private Integer symbolsWithData;
+	/**
+	 * Coverage statistics for a single timeframe.
+	 */
+	public static class TimeframeCoverage {
 
-        @PropertyName("coveragePercent")
-        @JsonProperty("coveragePercent")
-        private Double coveragePercent;
+		@PropertyName("symbolsWithData")
+		@JsonProperty("symbolsWithData")
+		private Integer symbolsWithData;
 
-        @PropertyName("totalBars")
-        @JsonProperty("totalBars")
-        private Long totalBars;
+		@PropertyName("coveragePercent")
+		@JsonProperty("coveragePercent")
+		private Double coveragePercent;
 
-        @PropertyName("avgBarsPerSymbol")
-        @JsonProperty("avgBarsPerSymbol")
-        private Long avgBarsPerSymbol;
+		@PropertyName("totalBars")
+		@JsonProperty("totalBars")
+		private Long totalBars;
 
-        @PropertyName("dateRangeStart")
-        @JsonProperty("dateRangeStart")
-        private String dateRangeStart;  // ISO date string
+		@PropertyName("avgBarsPerSymbol")
+		@JsonProperty("avgBarsPerSymbol")
+		private Long avgBarsPerSymbol;
 
-        @PropertyName("dateRangeEnd")
-        @JsonProperty("dateRangeEnd")
-        private String dateRangeEnd;  // ISO date string
+		@PropertyName("dateRangeStart")
+		@JsonProperty("dateRangeStart")
+		private String dateRangeStart; // ISO date string
 
-        @PropertyName("missingSymbols")
-        @JsonProperty("missingSymbols")
-        private List<String> missingSymbols;
+		@PropertyName("dateRangeEnd")
+		@JsonProperty("dateRangeEnd")
+		private String dateRangeEnd; // ISO date string
 
-        public TimeframeCoverage() {
-            this.missingSymbols = new ArrayList<>();
-        }
+		@PropertyName("missingSymbols")
+		@JsonProperty("missingSymbols")
+		private List<String> missingSymbols;
 
-        // Getters and Setters
-        public Integer getSymbolsWithData() { return symbolsWithData; }
-        public void setSymbolsWithData(Integer symbolsWithData) { this.symbolsWithData = symbolsWithData; }
-        public Double getCoveragePercent() { return coveragePercent; }
-        public void setCoveragePercent(Double coveragePercent) { this.coveragePercent = coveragePercent; }
-        public Long getTotalBars() { return totalBars; }
-        public void setTotalBars(Long totalBars) { this.totalBars = totalBars; }
-        public Long getAvgBarsPerSymbol() { return avgBarsPerSymbol; }
-        public void setAvgBarsPerSymbol(Long avgBarsPerSymbol) { this.avgBarsPerSymbol = avgBarsPerSymbol; }
-        public String getDateRangeStart() { return dateRangeStart; }
-        public void setDateRangeStart(String dateRangeStart) { this.dateRangeStart = dateRangeStart; }
-        public String getDateRangeEnd() { return dateRangeEnd; }
-        public void setDateRangeEnd(String dateRangeEnd) { this.dateRangeEnd = dateRangeEnd; }
-        public List<String> getMissingSymbols() { return missingSymbols; }
-        public void setMissingSymbols(List<String> missingSymbols) { this.missingSymbols = missingSymbols; }
-    }
+		public TimeframeCoverage() {
+			this.missingSymbols = new ArrayList<>();
+		}
 
-    /**
-     * Storage and cost statistics from TimescaleDB.
-     */
-    public static class StorageStats {
-        @PropertyName("timescaleDbRowCount")
-        @JsonProperty("timescaleDbRowCount")
-        private Long timescaleDbRowCount;
+		// Getters and Setters
+		public Integer getSymbolsWithData() {
+			return symbolsWithData;
+		}
 
-        @PropertyName("timescaleDbSizeBytes")
-        @JsonProperty("timescaleDbSizeBytes")
-        private Long timescaleDbSizeBytes;
+		public void setSymbolsWithData(Integer symbolsWithData) {
+			this.symbolsWithData = symbolsWithData;
+		}
 
-        @PropertyName("firestoreDocCount")
-        @JsonProperty("firestoreDocCount")
-        private Long firestoreDocCount;  // Fallback storage if TimescaleDB disabled
+		public Double getCoveragePercent() {
+			return coveragePercent;
+		}
 
-        @PropertyName("estimatedCostPerMonth")
-        @JsonProperty("estimatedCostPerMonth")
-        private Double estimatedCostPerMonth;
+		public void setCoveragePercent(Double coveragePercent) {
+			this.coveragePercent = coveragePercent;
+		}
 
-        // Getters and Setters
-        public Long getTimescaleDbRowCount() { return timescaleDbRowCount; }
-        public void setTimescaleDbRowCount(Long timescaleDbRowCount) { this.timescaleDbRowCount = timescaleDbRowCount; }
-        public Long getTimescaleDbSizeBytes() { return timescaleDbSizeBytes; }
-        public void setTimescaleDbSizeBytes(Long timescaleDbSizeBytes) { this.timescaleDbSizeBytes = timescaleDbSizeBytes; }
-        public Long getFirestoreDocCount() { return firestoreDocCount; }
-        public void setFirestoreDocCount(Long firestoreDocCount) { this.firestoreDocCount = firestoreDocCount; }
-        public Double getEstimatedCostPerMonth() { return estimatedCostPerMonth; }
-        public void setEstimatedCostPerMonth(Double estimatedCostPerMonth) { this.estimatedCostPerMonth = estimatedCostPerMonth; }
-    }
+		public Long getTotalBars() {
+			return totalBars;
+		}
 
-    /**
-     * Data quality distribution.
-     */
-    public static class QualityStats {
-        @PropertyName("goodQuality")
-        @JsonProperty("goodQuality")
-        private Integer goodQuality;  // Symbols with complete, recent data
+		public void setTotalBars(Long totalBars) {
+			this.totalBars = totalBars;
+		}
 
-        @PropertyName("partialQuality")
-        @JsonProperty("partialQuality")
-        private Integer partialQuality;  // Symbols with gaps or stale data
+		public Long getAvgBarsPerSymbol() {
+			return avgBarsPerSymbol;
+		}
 
-        @PropertyName("poorQuality")
-        @JsonProperty("poorQuality")
-        private Integer poorQuality;  // Symbols with major issues
+		public void setAvgBarsPerSymbol(Long avgBarsPerSymbol) {
+			this.avgBarsPerSymbol = avgBarsPerSymbol;
+		}
 
-        // Getters and Setters
-        public Integer getGoodQuality() { return goodQuality; }
-        public void setGoodQuality(Integer goodQuality) { this.goodQuality = goodQuality; }
-        public Integer getPartialQuality() { return partialQuality; }
-        public void setPartialQuality(Integer partialQuality) { this.partialQuality = partialQuality; }
-        public Integer getPoorQuality() { return poorQuality; }
-        public void setPoorQuality(Integer poorQuality) { this.poorQuality = poorQuality; }
-    }
+		public String getDateRangeStart() {
+			return dateRangeStart;
+		}
 
-    /**
-     * Represents a gap in market data.
-     */
-    public static class DataGap {
-        @PropertyName("symbol")
-        @JsonProperty("symbol")
-        private String symbol;
+		public void setDateRangeStart(String dateRangeStart) {
+			this.dateRangeStart = dateRangeStart;
+		}
 
-        @PropertyName("timeframe")
-        @JsonProperty("timeframe")
-        private String timeframe;
+		public String getDateRangeEnd() {
+			return dateRangeEnd;
+		}
 
-        @PropertyName("gapStart")
-        @JsonProperty("gapStart")
-        private String gapStart;  // ISO date string
+		public void setDateRangeEnd(String dateRangeEnd) {
+			this.dateRangeEnd = dateRangeEnd;
+		}
 
-        @PropertyName("gapEnd")
-        @JsonProperty("gapEnd")
-        private String gapEnd;  // ISO date string
+		public List<String> getMissingSymbols() {
+			return missingSymbols;
+		}
 
-        @PropertyName("missingBars")
-        @JsonProperty("missingBars")
-        private Integer missingBars;
+		public void setMissingSymbols(List<String> missingSymbols) {
+			this.missingSymbols = missingSymbols;
+		}
 
-        // Getters and Setters
-        public String getSymbol() { return symbol; }
-        public void setSymbol(String symbol) { this.symbol = symbol; }
-        public String getTimeframe() { return timeframe; }
-        public void setTimeframe(String timeframe) { this.timeframe = timeframe; }
-        public String getGapStart() { return gapStart; }
-        public void setGapStart(String gapStart) { this.gapStart = gapStart; }
-        public String getGapEnd() { return gapEnd; }
-        public void setGapEnd(String gapEnd) { this.gapEnd = gapEnd; }
-        public Integer getMissingBars() { return missingBars; }
-        public void setMissingBars(Integer missingBars) { this.missingBars = missingBars; }
-    }
+	}
 
-    // BaseEntity required methods
-    @Override
-    public String getId() {
-        return snapshotId;
-    }
+	/**
+	 * Storage and cost statistics from TimescaleDB.
+	 */
+	public static class StorageStats {
 
-    @Override
-    public void setId(String id) {
-        this.snapshotId = id;
-    }
+		@PropertyName("timescaleDbRowCount")
+		@JsonProperty("timescaleDbRowCount")
+		private Long timescaleDbRowCount;
 
-    // Getters and Setters
-    public String getSnapshotId() {
-        return snapshotId;
-    }
+		@PropertyName("timescaleDbSizeBytes")
+		@JsonProperty("timescaleDbSizeBytes")
+		private Long timescaleDbSizeBytes;
 
-    public void setSnapshotId(String snapshotId) {
-        this.snapshotId = snapshotId;
-    }
+		@PropertyName("firestoreDocCount")
+		@JsonProperty("firestoreDocCount")
+		private Long firestoreDocCount; // Fallback storage if TimescaleDB disabled
 
-    public Timestamp getCalculatedAt() {
-        return calculatedAt;
-    }
+		@PropertyName("estimatedCostPerMonth")
+		@JsonProperty("estimatedCostPerMonth")
+		private Double estimatedCostPerMonth;
 
-    public void setCalculatedAt(Timestamp calculatedAt) {
-        this.calculatedAt = calculatedAt;
-    }
+		// Getters and Setters
+		public Long getTimescaleDbRowCount() {
+			return timescaleDbRowCount;
+		}
 
-    public Integer getTotalSymbols() {
-        return totalSymbols;
-    }
+		public void setTimescaleDbRowCount(Long timescaleDbRowCount) {
+			this.timescaleDbRowCount = timescaleDbRowCount;
+		}
 
-    public void setTotalSymbols(Integer totalSymbols) {
-        this.totalSymbols = totalSymbols;
-    }
+		public Long getTimescaleDbSizeBytes() {
+			return timescaleDbSizeBytes;
+		}
 
-    public Integer getTotalTimeframes() {
-        return totalTimeframes;
-    }
+		public void setTimescaleDbSizeBytes(Long timescaleDbSizeBytes) {
+			this.timescaleDbSizeBytes = timescaleDbSizeBytes;
+		}
 
-    public void setTotalTimeframes(Integer totalTimeframes) {
-        this.totalTimeframes = totalTimeframes;
-    }
+		public Long getFirestoreDocCount() {
+			return firestoreDocCount;
+		}
 
-    public Map<String, TimeframeCoverage> getByTimeframe() {
-        return byTimeframe;
-    }
+		public void setFirestoreDocCount(Long firestoreDocCount) {
+			this.firestoreDocCount = firestoreDocCount;
+		}
 
-    public void setByTimeframe(Map<String, TimeframeCoverage> byTimeframe) {
-        this.byTimeframe = byTimeframe;
-    }
+		public Double getEstimatedCostPerMonth() {
+			return estimatedCostPerMonth;
+		}
 
-    public StorageStats getStorage() {
-        return storage;
-    }
+		public void setEstimatedCostPerMonth(Double estimatedCostPerMonth) {
+			this.estimatedCostPerMonth = estimatedCostPerMonth;
+		}
 
-    public void setStorage(StorageStats storage) {
-        this.storage = storage;
-    }
+	}
 
-    public QualityStats getDataQuality() {
-        return dataQuality;
-    }
+	/**
+	 * Data quality distribution.
+	 */
+	public static class QualityStats {
 
-    public void setDataQuality(QualityStats dataQuality) {
-        this.dataQuality = dataQuality;
-    }
+		@PropertyName("goodQuality")
+		@JsonProperty("goodQuality")
+		private Integer goodQuality; // Symbols with complete, recent data
 
-    public List<DataGap> getGaps() {
-        return gaps;
-    }
+		@PropertyName("partialQuality")
+		@JsonProperty("partialQuality")
+		private Integer partialQuality; // Symbols with gaps or stale data
 
-    public void setGaps(List<DataGap> gaps) {
-        this.gaps = gaps;
-    }
+		@PropertyName("poorQuality")
+		@JsonProperty("poorQuality")
+		private Integer poorQuality; // Symbols with major issues
 
-    @Override
-    public String toString() {
-        return String.format("MarketDataCoverage[%s: %d symbols, %d timeframes]",
-            snapshotId, totalSymbols, totalTimeframes);
-    }
+		// Getters and Setters
+		public Integer getGoodQuality() {
+			return goodQuality;
+		}
+
+		public void setGoodQuality(Integer goodQuality) {
+			this.goodQuality = goodQuality;
+		}
+
+		public Integer getPartialQuality() {
+			return partialQuality;
+		}
+
+		public void setPartialQuality(Integer partialQuality) {
+			this.partialQuality = partialQuality;
+		}
+
+		public Integer getPoorQuality() {
+			return poorQuality;
+		}
+
+		public void setPoorQuality(Integer poorQuality) {
+			this.poorQuality = poorQuality;
+		}
+
+	}
+
+	/**
+	 * Represents a gap in market data.
+	 */
+	public static class DataGap {
+
+		@PropertyName("symbol")
+		@JsonProperty("symbol")
+		private String symbol;
+
+		@PropertyName("timeframe")
+		@JsonProperty("timeframe")
+		private String timeframe;
+
+		@PropertyName("gapStart")
+		@JsonProperty("gapStart")
+		private String gapStart; // ISO date string
+
+		@PropertyName("gapEnd")
+		@JsonProperty("gapEnd")
+		private String gapEnd; // ISO date string
+
+		@PropertyName("missingBars")
+		@JsonProperty("missingBars")
+		private Integer missingBars;
+
+		// Getters and Setters
+		public String getSymbol() {
+			return symbol;
+		}
+
+		public void setSymbol(String symbol) {
+			this.symbol = symbol;
+		}
+
+		public String getTimeframe() {
+			return timeframe;
+		}
+
+		public void setTimeframe(String timeframe) {
+			this.timeframe = timeframe;
+		}
+
+		public String getGapStart() {
+			return gapStart;
+		}
+
+		public void setGapStart(String gapStart) {
+			this.gapStart = gapStart;
+		}
+
+		public String getGapEnd() {
+			return gapEnd;
+		}
+
+		public void setGapEnd(String gapEnd) {
+			this.gapEnd = gapEnd;
+		}
+
+		public Integer getMissingBars() {
+			return missingBars;
+		}
+
+		public void setMissingBars(Integer missingBars) {
+			this.missingBars = missingBars;
+		}
+
+	}
+
+	// BaseEntity required methods
+	@Override
+	public String getId() {
+		return snapshotId;
+	}
+
+	@Override
+	public void setId(String id) {
+		this.snapshotId = id;
+	}
+
+	// Getters and Setters
+	public String getSnapshotId() {
+		return snapshotId;
+	}
+
+	public void setSnapshotId(String snapshotId) {
+		this.snapshotId = snapshotId;
+	}
+
+	public Timestamp getCalculatedAt() {
+		return calculatedAt;
+	}
+
+	public void setCalculatedAt(Timestamp calculatedAt) {
+		this.calculatedAt = calculatedAt;
+	}
+
+	public Integer getTotalSymbols() {
+		return totalSymbols;
+	}
+
+	public void setTotalSymbols(Integer totalSymbols) {
+		this.totalSymbols = totalSymbols;
+	}
+
+	public Integer getTotalTimeframes() {
+		return totalTimeframes;
+	}
+
+	public void setTotalTimeframes(Integer totalTimeframes) {
+		this.totalTimeframes = totalTimeframes;
+	}
+
+	public Map<String, TimeframeCoverage> getByTimeframe() {
+		return byTimeframe;
+	}
+
+	public void setByTimeframe(Map<String, TimeframeCoverage> byTimeframe) {
+		this.byTimeframe = byTimeframe;
+	}
+
+	public StorageStats getStorage() {
+		return storage;
+	}
+
+	public void setStorage(StorageStats storage) {
+		this.storage = storage;
+	}
+
+	public QualityStats getDataQuality() {
+		return dataQuality;
+	}
+
+	public void setDataQuality(QualityStats dataQuality) {
+		this.dataQuality = dataQuality;
+	}
+
+	public List<DataGap> getGaps() {
+		return gaps;
+	}
+
+	public void setGaps(List<DataGap> gaps) {
+		this.gaps = gaps;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("MarketDataCoverage[%s: %d symbols, %d timeframes]", snapshotId, totalSymbols,
+				totalTimeframes);
+	}
+
 }

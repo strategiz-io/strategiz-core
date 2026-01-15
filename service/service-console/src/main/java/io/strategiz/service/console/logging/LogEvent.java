@@ -7,8 +7,8 @@ import java.util.Map;
 /**
  * Structured log event for streaming to frontend via SSE.
  *
- * Represents a single log entry from a batch job execution with all metadata
- * necessary for display and filtering in the admin console.
+ * Represents a single log entry from a batch job execution with all metadata necessary
+ * for display and filtering in the admin console.
  */
 public class LogEvent {
 

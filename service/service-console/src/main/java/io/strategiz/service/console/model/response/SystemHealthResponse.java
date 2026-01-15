@@ -10,185 +10,190 @@ import java.util.Map;
  */
 public class SystemHealthResponse {
 
-    @JsonProperty("status")
-    private String status; // UP, DOWN, DEGRADED
+	@JsonProperty("status")
+	private String status; // UP, DOWN, DEGRADED
 
-    @JsonProperty("uptime")
-    private String uptime;
+	@JsonProperty("uptime")
+	private String uptime;
 
-    @JsonProperty("startTime")
-    private Instant startTime;
+	@JsonProperty("startTime")
+	private Instant startTime;
 
-    @JsonProperty("version")
-    private String version;
+	@JsonProperty("version")
+	private String version;
 
-    @JsonProperty("activeUsers")
-    private Integer activeUsers;
+	@JsonProperty("activeUsers")
+	private Integer activeUsers;
 
-    @JsonProperty("activeSessions")
-    private Integer activeSessions;
+	@JsonProperty("activeSessions")
+	private Integer activeSessions;
 
-    @JsonProperty("memoryUsage")
-    private MemoryUsage memoryUsage;
+	@JsonProperty("memoryUsage")
+	private MemoryUsage memoryUsage;
 
-    @JsonProperty("components")
-    private Map<String, ComponentHealth> components;
+	@JsonProperty("components")
+	private Map<String, ComponentHealth> components;
 
-    // Nested classes
-    public static class MemoryUsage {
-        @JsonProperty("used")
-        private Long used;
+	// Nested classes
+	public static class MemoryUsage {
 
-        @JsonProperty("max")
-        private Long max;
+		@JsonProperty("used")
+		private Long used;
 
-        @JsonProperty("free")
-        private Long free;
+		@JsonProperty("max")
+		private Long max;
 
-        @JsonProperty("usagePercent")
-        private Double usagePercent;
+		@JsonProperty("free")
+		private Long free;
 
-        public MemoryUsage() {
-        }
+		@JsonProperty("usagePercent")
+		private Double usagePercent;
 
-        public MemoryUsage(Long used, Long max, Long free) {
-            this.used = used;
-            this.max = max;
-            this.free = free;
-            this.usagePercent = max > 0 ? (used * 100.0 / max) : 0;
-        }
+		public MemoryUsage() {
+		}
 
-        // Getters and Setters
-        public Long getUsed() {
-            return used;
-        }
+		public MemoryUsage(Long used, Long max, Long free) {
+			this.used = used;
+			this.max = max;
+			this.free = free;
+			this.usagePercent = max > 0 ? (used * 100.0 / max) : 0;
+		}
 
-        public void setUsed(Long used) {
-            this.used = used;
-        }
+		// Getters and Setters
+		public Long getUsed() {
+			return used;
+		}
 
-        public Long getMax() {
-            return max;
-        }
+		public void setUsed(Long used) {
+			this.used = used;
+		}
 
-        public void setMax(Long max) {
-            this.max = max;
-        }
+		public Long getMax() {
+			return max;
+		}
 
-        public Long getFree() {
-            return free;
-        }
+		public void setMax(Long max) {
+			this.max = max;
+		}
 
-        public void setFree(Long free) {
-            this.free = free;
-        }
+		public Long getFree() {
+			return free;
+		}
 
-        public Double getUsagePercent() {
-            return usagePercent;
-        }
+		public void setFree(Long free) {
+			this.free = free;
+		}
 
-        public void setUsagePercent(Double usagePercent) {
-            this.usagePercent = usagePercent;
-        }
-    }
+		public Double getUsagePercent() {
+			return usagePercent;
+		}
 
-    public static class ComponentHealth {
-        @JsonProperty("status")
-        private String status;
+		public void setUsagePercent(Double usagePercent) {
+			this.usagePercent = usagePercent;
+		}
 
-        @JsonProperty("details")
-        private Map<String, Object> details;
+	}
 
-        public ComponentHealth() {
-        }
+	public static class ComponentHealth {
 
-        public ComponentHealth(String status) {
-            this.status = status;
-        }
+		@JsonProperty("status")
+		private String status;
 
-        public String getStatus() {
-            return status;
-        }
+		@JsonProperty("details")
+		private Map<String, Object> details;
 
-        public void setStatus(String status) {
-            this.status = status;
-        }
+		public ComponentHealth() {
+		}
 
-        public Map<String, Object> getDetails() {
-            return details;
-        }
+		public ComponentHealth(String status) {
+			this.status = status;
+		}
 
-        public void setDetails(Map<String, Object> details) {
-            this.details = details;
-        }
-    }
+		public String getStatus() {
+			return status;
+		}
 
-    // Constructors
-    public SystemHealthResponse() {
-    }
+		public void setStatus(String status) {
+			this.status = status;
+		}
 
-    // Getters and Setters
-    public String getStatus() {
-        return status;
-    }
+		public Map<String, Object> getDetails() {
+			return details;
+		}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+		public void setDetails(Map<String, Object> details) {
+			this.details = details;
+		}
 
-    public String getUptime() {
-        return uptime;
-    }
+	}
 
-    public void setUptime(String uptime) {
-        this.uptime = uptime;
-    }
+	// Constructors
+	public SystemHealthResponse() {
+	}
 
-    public Instant getStartTime() {
-        return startTime;
-    }
+	// Getters and Setters
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStartTime(Instant startTime) {
-        this.startTime = startTime;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public String getVersion() {
-        return version;
-    }
+	public String getUptime() {
+		return uptime;
+	}
 
-    public void setVersion(String version) {
-        this.version = version;
-    }
+	public void setUptime(String uptime) {
+		this.uptime = uptime;
+	}
 
-    public Integer getActiveUsers() {
-        return activeUsers;
-    }
+	public Instant getStartTime() {
+		return startTime;
+	}
 
-    public void setActiveUsers(Integer activeUsers) {
-        this.activeUsers = activeUsers;
-    }
+	public void setStartTime(Instant startTime) {
+		this.startTime = startTime;
+	}
 
-    public Integer getActiveSessions() {
-        return activeSessions;
-    }
+	public String getVersion() {
+		return version;
+	}
 
-    public void setActiveSessions(Integer activeSessions) {
-        this.activeSessions = activeSessions;
-    }
+	public void setVersion(String version) {
+		this.version = version;
+	}
 
-    public MemoryUsage getMemoryUsage() {
-        return memoryUsage;
-    }
+	public Integer getActiveUsers() {
+		return activeUsers;
+	}
 
-    public void setMemoryUsage(MemoryUsage memoryUsage) {
-        this.memoryUsage = memoryUsage;
-    }
+	public void setActiveUsers(Integer activeUsers) {
+		this.activeUsers = activeUsers;
+	}
 
-    public Map<String, ComponentHealth> getComponents() {
-        return components;
-    }
+	public Integer getActiveSessions() {
+		return activeSessions;
+	}
 
-    public void setComponents(Map<String, ComponentHealth> components) {
-        this.components = components;
-    }
+	public void setActiveSessions(Integer activeSessions) {
+		this.activeSessions = activeSessions;
+	}
+
+	public MemoryUsage getMemoryUsage() {
+		return memoryUsage;
+	}
+
+	public void setMemoryUsage(MemoryUsage memoryUsage) {
+		this.memoryUsage = memoryUsage;
+	}
+
+	public Map<String, ComponentHealth> getComponents() {
+		return components;
+	}
+
+	public void setComponents(Map<String, ComponentHealth> components) {
+		this.components = components;
+	}
+
 }

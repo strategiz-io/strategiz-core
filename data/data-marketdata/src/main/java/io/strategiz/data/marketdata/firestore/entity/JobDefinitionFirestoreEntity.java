@@ -6,13 +6,13 @@ import com.google.cloud.spring.data.firestore.Document;
 import java.time.Instant;
 
 /**
- * Firestore entity for job definitions. Stores job metadata and schedules for
- * batch jobs like market data backfill and incremental updates.
+ * Firestore entity for job definitions. Stores job metadata and schedules for batch jobs
+ * like market data backfill and incremental updates.
  *
  * Collection: batch_jobs
  *
- * This enables database-driven job scheduling instead of hardcoded @Scheduled annotations.
- * Jobs can be enabled/disabled and schedules updated from the admin console.
+ * This enables database-driven job scheduling instead of hardcoded @Scheduled
+ * annotations. Jobs can be enabled/disabled and schedules updated from the admin console.
  */
 @Document(collectionName = "batch_jobs")
 public class JobDefinitionFirestoreEntity {

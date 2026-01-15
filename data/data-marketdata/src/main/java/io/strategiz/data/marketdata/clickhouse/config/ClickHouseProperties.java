@@ -3,8 +3,8 @@ package io.strategiz.data.marketdata.clickhouse.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuration properties for ClickHouse connection. Loaded from
- * application.properties with prefix 'strategiz.clickhouse'
+ * Configuration properties for ClickHouse connection. Loaded from application.properties
+ * with prefix 'strategiz.clickhouse'
  */
 @ConfigurationProperties(prefix = "strategiz.clickhouse")
 public class ClickHouseProperties {

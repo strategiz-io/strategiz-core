@@ -29,9 +29,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Admin controller for operating costs tracking and analysis.
- * Provides endpoints for cost summary, daily breakdowns, service costs,
- * Firestore usage, and cost predictions.
+ * Admin controller for operating costs tracking and analysis. Provides endpoints for cost
+ * summary, daily breakdowns, service costs, Firestore usage, and cost predictions.
  *
  * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
  */
@@ -42,267 +41,234 @@ import java.util.Optional;
 @ConditionalOnProperty(name = "gcp.billing.demo-mode", havingValue = "false", matchIfMissing = false)
 public class AdminCostsController extends BaseController {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminCostsController.class);
-    private static final String MODULE_NAME = "CONSOLE";
+	private static final Logger log = LoggerFactory.getLogger(AdminCostsController.class);
 
-    private final CostAggregationService costAggregationService;
-    private final CostPredictionService costPredictionService;
-    private final GcpAssetInventoryClient assetInventoryClient;
-    private final Optional<AiCostsAggregationService> aiCostsService;
+	private static final String MODULE_NAME = "CONSOLE";
 
-    // Primary constructor with all dependencies
-    public AdminCostsController(
-            CostAggregationService costAggregationService,
-            CostPredictionService costPredictionService,
-            GcpAssetInventoryClient assetInventoryClient,
-            AiCostsAggregationService aiCostsService) {
-        this.costAggregationService = costAggregationService;
-        this.costPredictionService = costPredictionService;
-        this.assetInventoryClient = assetInventoryClient;
-        this.aiCostsService = Optional.ofNullable(aiCostsService);
-    }
+	private final CostAggregationService costAggregationService;
 
-    // Fallback constructor when AI costs service is not available
-    @Autowired
-    public AdminCostsController(
-            CostAggregationService costAggregationService,
-            CostPredictionService costPredictionService,
-            GcpAssetInventoryClient assetInventoryClient) {
-        this(costAggregationService, costPredictionService, assetInventoryClient, null);
-    }
+	private final CostPredictionService costPredictionService;
 
-    @Override
-    protected String getModuleName() {
-        return MODULE_NAME;
-    }
+	private final GcpAssetInventoryClient assetInventoryClient;
 
-    /**
-     * Get current month cost summary
-     */
-    @GetMapping("/summary")
-    @Operation(
-            summary = "Get current month cost summary",
-            description = "Returns aggregated costs from GCP and TimescaleDB for the current month"
-    )
-    public ResponseEntity<CostSummary> getCostSummary(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting cost summary", adminUserId);
+	private final Optional<AiCostsAggregationService> aiCostsService;
 
-        CostSummary summary = costAggregationService.getCurrentMonthSummary();
-        return ResponseEntity.ok(summary);
-    }
+	// Primary constructor with all dependencies
+	public AdminCostsController(CostAggregationService costAggregationService,
+			CostPredictionService costPredictionService, GcpAssetInventoryClient assetInventoryClient,
+			AiCostsAggregationService aiCostsService) {
+		this.costAggregationService = costAggregationService;
+		this.costPredictionService = costPredictionService;
+		this.assetInventoryClient = assetInventoryClient;
+		this.aiCostsService = Optional.ofNullable(aiCostsService);
+	}
 
-    /**
-     * Get daily cost breakdown
-     */
-    @GetMapping("/daily")
-    @Operation(
-            summary = "Get daily cost breakdown",
-            description = "Returns daily cost breakdown for the specified number of days"
-    )
-    public ResponseEntity<List<DailyCost>> getDailyCosts(
-            HttpServletRequest request,
-            @Parameter(description = "Number of days to retrieve (default: 30)")
-            @RequestParam(defaultValue = "30") int days) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting daily costs for {} days", adminUserId, days);
+	// Fallback constructor when AI costs service is not available
+	@Autowired
+	public AdminCostsController(CostAggregationService costAggregationService,
+			CostPredictionService costPredictionService, GcpAssetInventoryClient assetInventoryClient) {
+		this(costAggregationService, costPredictionService, assetInventoryClient, null);
+	}
 
-        List<DailyCost> dailyCosts = costAggregationService.getDailyCosts(days);
-        return ResponseEntity.ok(dailyCosts);
-    }
+	@Override
+	protected String getModuleName() {
+		return MODULE_NAME;
+	}
 
-    /**
-     * Get costs grouped by service
-     */
-    @GetMapping("/by-service")
-    @Operation(
-            summary = "Get costs by service",
-            description = "Returns current month costs grouped by service (Cloud Run, Firestore, TimescaleDB, etc.)"
-    )
-    public ResponseEntity<Map<String, BigDecimal>> getCostsByService(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting costs by service", adminUserId);
+	/**
+	 * Get current month cost summary
+	 */
+	@GetMapping("/summary")
+	@Operation(summary = "Get current month cost summary",
+			description = "Returns aggregated costs from GCP and TimescaleDB for the current month")
+	public ResponseEntity<CostSummary> getCostSummary(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting cost summary", adminUserId);
 
-        Map<String, BigDecimal> costsByService = costAggregationService.getCostsByService();
-        return ResponseEntity.ok(costsByService);
-    }
+		CostSummary summary = costAggregationService.getCurrentMonthSummary();
+		return ResponseEntity.ok(summary);
+	}
 
-    /**
-     * Get Firestore usage metrics
-     */
-    @GetMapping("/firestore-usage")
-    @Operation(
-            summary = "Get Firestore usage metrics",
-            description = "Returns Firestore read/write metrics per collection for the specified number of days"
-    )
-    public ResponseEntity<List<FirestoreUsage>> getFirestoreUsage(
-            HttpServletRequest request,
-            @Parameter(description = "Number of days to retrieve (default: 7)")
-            @RequestParam(defaultValue = "7") int days) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting Firestore usage for {} days", adminUserId, days);
+	/**
+	 * Get daily cost breakdown
+	 */
+	@GetMapping("/daily")
+	@Operation(summary = "Get daily cost breakdown",
+			description = "Returns daily cost breakdown for the specified number of days")
+	public ResponseEntity<List<DailyCost>> getDailyCosts(HttpServletRequest request, @Parameter(
+			description = "Number of days to retrieve (default: 30)") @RequestParam(defaultValue = "30") int days) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting daily costs for {} days", adminUserId, days);
 
-        List<FirestoreUsage> usage = costAggregationService.getFirestoreUsage(days);
-        return ResponseEntity.ok(usage);
-    }
+		List<DailyCost> dailyCosts = costAggregationService.getDailyCosts(days);
+		return ResponseEntity.ok(dailyCosts);
+	}
 
-    /**
-     * Get cost prediction for current month
-     */
-    @GetMapping("/prediction")
-    @Operation(
-            summary = "Get cost prediction",
-            description = "Returns predicted end-of-month costs using weighted linear regression with confidence intervals"
-    )
-    public ResponseEntity<CostPrediction> getCostPrediction(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting cost prediction", adminUserId);
+	/**
+	 * Get costs grouped by service
+	 */
+	@GetMapping("/by-service")
+	@Operation(summary = "Get costs by service",
+			description = "Returns current month costs grouped by service (Cloud Run, Firestore, TimescaleDB, etc.)")
+	public ResponseEntity<Map<String, BigDecimal>> getCostsByService(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting costs by service", adminUserId);
 
-        CostPrediction prediction = costPredictionService.predictMonthlyCosts();
-        return ResponseEntity.ok(prediction);
-    }
+		Map<String, BigDecimal> costsByService = costAggregationService.getCostsByService();
+		return ResponseEntity.ok(costsByService);
+	}
 
-    /**
-     * Force refresh of cost data
-     */
-    @PostMapping("/refresh")
-    @Operation(
-            summary = "Force refresh cost data",
-            description = "Triggers immediate aggregation of cost data from GCP and TimescaleDB"
-    )
-    public ResponseEntity<CostSummary> refreshCosts(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} forcing cost data refresh", adminUserId);
+	/**
+	 * Get Firestore usage metrics
+	 */
+	@GetMapping("/firestore-usage")
+	@Operation(summary = "Get Firestore usage metrics",
+			description = "Returns Firestore read/write metrics per collection for the specified number of days")
+	public ResponseEntity<List<FirestoreUsage>> getFirestoreUsage(HttpServletRequest request, @Parameter(
+			description = "Number of days to retrieve (default: 7)") @RequestParam(defaultValue = "7") int days) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting Firestore usage for {} days", adminUserId, days);
 
-        // Trigger the aggregation job manually
-        costAggregationService.aggregateDailyCosts();
+		List<FirestoreUsage> usage = costAggregationService.getFirestoreUsage(days);
+		return ResponseEntity.ok(usage);
+	}
 
-        // Return fresh summary
-        CostSummary summary = costAggregationService.getCurrentMonthSummary();
-        return ResponseEntity.ok(summary);
-    }
+	/**
+	 * Get cost prediction for current month
+	 */
+	@GetMapping("/prediction")
+	@Operation(summary = "Get cost prediction",
+			description = "Returns predicted end-of-month costs using weighted linear regression with confidence intervals")
+	public ResponseEntity<CostPrediction> getCostPrediction(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting cost prediction", adminUserId);
 
-    /**
-     * Get comprehensive infrastructure inventory
-     */
-    @GetMapping("/infrastructure")
-    @Operation(
-            summary = "Get infrastructure inventory",
-            description = "Returns comprehensive inventory of all GCP resources with estimated costs (uses FREE Cloud Asset API)"
-    )
-    public ResponseEntity<GcpInfrastructureSummary> getInfrastructure(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting infrastructure inventory", adminUserId);
+		CostPrediction prediction = costPredictionService.predictMonthlyCosts();
+		return ResponseEntity.ok(prediction);
+	}
 
-        GcpInfrastructureSummary summary = assetInventoryClient.getInfrastructureSummary();
-        return ResponseEntity.ok(summary);
-    }
+	/**
+	 * Force refresh of cost data
+	 */
+	@PostMapping("/refresh")
+	@Operation(summary = "Force refresh cost data",
+			description = "Triggers immediate aggregation of cost data from GCP and TimescaleDB")
+	public ResponseEntity<CostSummary> refreshCosts(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} forcing cost data refresh", adminUserId);
 
-    /**
-     * Get resources filtered by type
-     */
-    @GetMapping("/infrastructure/by-type/{resourceType}")
-    @Operation(
-            summary = "Get resources by type",
-            description = "Returns all resources of a specific type (e.g., 'Cloud Run', 'Firestore', 'Cloud Storage')"
-    )
-    public ResponseEntity<List<GcpResource>> getResourcesByType(
-            HttpServletRequest request,
-            @Parameter(description = "Resource type (e.g., 'Cloud Run', 'Firestore')")
-            @PathVariable String resourceType) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting resources of type: {}", adminUserId, resourceType);
+		// Trigger the aggregation job manually
+		costAggregationService.aggregateDailyCosts();
 
-        List<GcpResource> resources = assetInventoryClient.getResourcesByType(resourceType);
-        return ResponseEntity.ok(resources);
-    }
+		// Return fresh summary
+		CostSummary summary = costAggregationService.getCurrentMonthSummary();
+		return ResponseEntity.ok(summary);
+	}
 
-    /**
-     * Get resources filtered by region
-     */
-    @GetMapping("/infrastructure/by-region/{region}")
-    @Operation(
-            summary = "Get resources by region",
-            description = "Returns all resources in a specific GCP region (e.g., 'us-central1', 'us-east1')"
-    )
-    public ResponseEntity<List<GcpResource>> getResourcesByRegion(
-            HttpServletRequest request,
-            @Parameter(description = "GCP region (e.g., 'us-central1', 'us-east1')")
-            @PathVariable String region) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting resources in region: {}", adminUserId, region);
+	/**
+	 * Get comprehensive infrastructure inventory
+	 */
+	@GetMapping("/infrastructure")
+	@Operation(summary = "Get infrastructure inventory",
+			description = "Returns comprehensive inventory of all GCP resources with estimated costs (uses FREE Cloud Asset API)")
+	public ResponseEntity<GcpInfrastructureSummary> getInfrastructure(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting infrastructure inventory", adminUserId);
 
-        List<GcpResource> resources = assetInventoryClient.getResourcesByRegion(region);
-        return ResponseEntity.ok(resources);
-    }
+		GcpInfrastructureSummary summary = assetInventoryClient.getInfrastructureSummary();
+		return ResponseEntity.ok(summary);
+	}
 
-    /**
-     * Get AI/LLM costs summary
-     */
-    @GetMapping("/ai-costs/summary")
-    @Operation(
-            summary = "Get AI/LLM costs summary",
-            description = "Returns aggregated AI costs from Anthropic Claude, OpenAI, xAI Grok, and personal dev accounts"
-    )
-    public ResponseEntity<AiCostsSummary> getAiCostsSummary(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting AI costs summary", adminUserId);
+	/**
+	 * Get resources filtered by type
+	 */
+	@GetMapping("/infrastructure/by-type/{resourceType}")
+	@Operation(summary = "Get resources by type",
+			description = "Returns all resources of a specific type (e.g., 'Cloud Run', 'Firestore', 'Cloud Storage')")
+	public ResponseEntity<List<GcpResource>> getResourcesByType(HttpServletRequest request, @Parameter(
+			description = "Resource type (e.g., 'Cloud Run', 'Firestore')") @PathVariable String resourceType) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting resources of type: {}", adminUserId, resourceType);
 
-        if (aiCostsService.isEmpty()) {
-            log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
-            java.time.LocalDate today = java.time.LocalDate.now();
-            java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
-            return ResponseEntity.ok(AiCostsSummary.empty(startOfMonth, today));
-        }
+		List<GcpResource> resources = assetInventoryClient.getResourcesByType(resourceType);
+		return ResponseEntity.ok(resources);
+	}
 
-        AiCostsSummary summary = aiCostsService.get().getCurrentMonthAiCosts();
-        return ResponseEntity.ok(summary);
-    }
+	/**
+	 * Get resources filtered by region
+	 */
+	@GetMapping("/infrastructure/by-region/{region}")
+	@Operation(summary = "Get resources by region",
+			description = "Returns all resources in a specific GCP region (e.g., 'us-central1', 'us-east1')")
+	public ResponseEntity<List<GcpResource>> getResourcesByRegion(HttpServletRequest request,
+			@Parameter(description = "GCP region (e.g., 'us-central1', 'us-east1')") @PathVariable String region) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting resources in region: {}", adminUserId, region);
 
-    /**
-     * Get AI costs breakdown by model
-     */
-    @GetMapping("/ai-costs/by-model")
-    @Operation(
-            summary = "Get AI costs by model",
-            description = "Returns current month AI costs grouped by model (gpt-4, claude-opus-4, grok-4, etc.)"
-    )
-    public ResponseEntity<Map<String, BigDecimal>> getAiCostsByModel(HttpServletRequest request) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting AI costs by model", adminUserId);
+		List<GcpResource> resources = assetInventoryClient.getResourcesByRegion(region);
+		return ResponseEntity.ok(resources);
+	}
 
-        if (aiCostsService.isEmpty()) {
-            log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
-            return ResponseEntity.ok(Map.of());
-        }
+	/**
+	 * Get AI/LLM costs summary
+	 */
+	@GetMapping("/ai-costs/summary")
+	@Operation(summary = "Get AI/LLM costs summary",
+			description = "Returns aggregated AI costs from Anthropic Claude, OpenAI, xAI Grok, and personal dev accounts")
+	public ResponseEntity<AiCostsSummary> getAiCostsSummary(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting AI costs summary", adminUserId);
 
-        java.time.LocalDate today = java.time.LocalDate.now();
-        java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
-        Map<String, BigDecimal> costsByModel = aiCostsService.get().getCostsByModel(startOfMonth, today);
-        return ResponseEntity.ok(costsByModel);
-    }
+		if (aiCostsService.isEmpty()) {
+			log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
+			java.time.LocalDate today = java.time.LocalDate.now();
+			java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
+			return ResponseEntity.ok(AiCostsSummary.empty(startOfMonth, today));
+		}
 
-    /**
-     * Get daily AI costs for trend analysis
-     */
-    @GetMapping("/ai-costs/daily")
-    @Operation(
-            summary = "Get daily AI costs",
-            description = "Returns daily AI cost breakdown for the specified number of days"
-    )
-    public ResponseEntity<List<Map<String, Object>>> getDailyAiCosts(
-            HttpServletRequest request,
-            @Parameter(description = "Number of days to retrieve (default: 30)")
-            @RequestParam(defaultValue = "30") int days) {
-        String adminUserId = (String) request.getAttribute("adminUserId");
-        log.info("Admin {} requesting daily AI costs for {} days", adminUserId, days);
+		AiCostsSummary summary = aiCostsService.get().getCurrentMonthAiCosts();
+		return ResponseEntity.ok(summary);
+	}
 
-        if (aiCostsService.isEmpty()) {
-            log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
-            return ResponseEntity.ok(List.of());
-        }
+	/**
+	 * Get AI costs breakdown by model
+	 */
+	@GetMapping("/ai-costs/by-model")
+	@Operation(summary = "Get AI costs by model",
+			description = "Returns current month AI costs grouped by model (gpt-4, claude-opus-4, grok-4, etc.)")
+	public ResponseEntity<Map<String, BigDecimal>> getAiCostsByModel(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting AI costs by model", adminUserId);
 
-        List<Map<String, Object>> dailyCosts = aiCostsService.get().getDailyAiCosts(days);
-        return ResponseEntity.ok(dailyCosts);
-    }
+		if (aiCostsService.isEmpty()) {
+			log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
+			return ResponseEntity.ok(Map.of());
+		}
+
+		java.time.LocalDate today = java.time.LocalDate.now();
+		java.time.LocalDate startOfMonth = today.withDayOfMonth(1);
+		Map<String, BigDecimal> costsByModel = aiCostsService.get().getCostsByModel(startOfMonth, today);
+		return ResponseEntity.ok(costsByModel);
+	}
+
+	/**
+	 * Get daily AI costs for trend analysis
+	 */
+	@GetMapping("/ai-costs/daily")
+	@Operation(summary = "Get daily AI costs",
+			description = "Returns daily AI cost breakdown for the specified number of days")
+	public ResponseEntity<List<Map<String, Object>>> getDailyAiCosts(HttpServletRequest request, @Parameter(
+			description = "Number of days to retrieve (default: 30)") @RequestParam(defaultValue = "30") int days) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		log.info("Admin {} requesting daily AI costs for {} days", adminUserId, days);
+
+		if (aiCostsService.isEmpty()) {
+			log.warn("AI costs tracking is disabled (ai.billing.enabled=false)");
+			return ResponseEntity.ok(List.of());
+		}
+
+		List<Map<String, Object>> dailyCosts = aiCostsService.get().getDailyAiCosts(days);
+		return ResponseEntity.ok(dailyCosts);
+	}
+
 }

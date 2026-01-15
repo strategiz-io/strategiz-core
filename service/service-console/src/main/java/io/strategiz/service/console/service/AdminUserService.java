@@ -166,6 +166,39 @@ public class AdminUserService extends BaseService {
         log.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
     }
 
+    public AdminUserResponse updateUserRole(String userId, String newRole, String adminUserId) {
+        log.info("Updating user role: userId={}, newRole={}, by adminUserId={}", userId, newRole, adminUserId);
+
+        // Validate role
+        if (newRole == null || (!newRole.equals("USER") && !newRole.equals("ADMIN"))) {
+            throw new StrategizException(ServiceConsoleErrorDetails.INVALID_ROLE, "service-console",
+                    "Role must be USER or ADMIN");
+        }
+
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+        }
+
+        UserEntity user = userOpt.get();
+
+        // Prevent admin from demoting themselves
+        if (userId.equals(adminUserId) && newRole.equals("USER")) {
+            throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
+                    "Cannot demote your own account");
+        }
+
+        // Update role
+        UserProfileEntity profile = user.getProfile();
+        if (profile != null) {
+            profile.setRole(newRole);
+            userRepository.save(user);
+        }
+
+        log.info("User {} role updated to {} by admin {}", userId, newRole, adminUserId);
+        return convertToResponse(user);
+    }
+
     private AdminUserResponse convertToResponse(UserEntity user) {
         AdminUserResponse response = new AdminUserResponse();
         response.setId(user.getId());

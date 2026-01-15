@@ -23,220 +23,223 @@ import java.util.Optional;
 @Service
 public class AdminUserService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-console";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-console";
+	}
 
-    private final UserRepository userRepository;
-    private final SessionRepository sessionRepository;
+	private final UserRepository userRepository;
 
-    @Autowired
-    public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository) {
-        this.userRepository = userRepository;
-        this.sessionRepository = sessionRepository;
-    }
+	private final SessionRepository sessionRepository;
 
-    public List<AdminUserResponse> listUsers(int page, int pageSize) {
-        log.info("Listing users: page={}, pageSize={}", page, pageSize);
+	@Autowired
+	public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository) {
+		this.userRepository = userRepository;
+		this.sessionRepository = sessionRepository;
+	}
 
-        // TODO: Implement pagination at the repository level
-        List<UserEntity> allUsers = userRepository.findAll();
+	public List<AdminUserResponse> listUsers(int page, int pageSize) {
+		log.info("Listing users: page={}, pageSize={}", page, pageSize);
 
-        // Simple in-memory pagination for now
-        int start = page * pageSize;
-        int end = Math.min(start + pageSize, allUsers.size());
+		// TODO: Implement pagination at the repository level
+		List<UserEntity> allUsers = userRepository.findAll();
 
-        if (start >= allUsers.size()) {
-            return List.of();
-        }
+		// Simple in-memory pagination for now
+		int start = page * pageSize;
+		int end = Math.min(start + pageSize, allUsers.size());
 
-        List<AdminUserResponse> responses = new ArrayList<>();
-        for (int i = start; i < end; i++) {
-            UserEntity user = allUsers.get(i);
-            responses.add(convertToResponse(user));
-        }
+		if (start >= allUsers.size()) {
+			return List.of();
+		}
 
-        return responses;
-    }
+		List<AdminUserResponse> responses = new ArrayList<>();
+		for (int i = start; i < end; i++) {
+			UserEntity user = allUsers.get(i);
+			responses.add(convertToResponse(user));
+		}
 
-    public AdminUserResponse getUser(String userId) {
-        log.info("Getting user details: userId={}", userId);
+		return responses;
+	}
 
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
-        }
+	public AdminUserResponse getUser(String userId) {
+		log.info("Getting user details: userId={}", userId);
 
-        return convertToResponse(userOpt.get());
-    }
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
 
-    public AdminUserResponse disableUser(String userId, String adminUserId) {
-        log.info("Disabling user: userId={}, by adminUserId={}", userId, adminUserId);
+		return convertToResponse(userOpt.get());
+	}
 
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
-        }
+	public AdminUserResponse disableUser(String userId, String adminUserId) {
+		log.info("Disabling user: userId={}, by adminUserId={}", userId, adminUserId);
 
-        UserEntity user = userOpt.get();
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
 
-        // Prevent admin from disabling themselves
-        if (userId.equals(adminUserId)) {
-            throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
-                    "Cannot disable your own account");
-        }
+		UserEntity user = userOpt.get();
 
-        // Set user as inactive
-        user.setIsActive(false);
-        userRepository.save(user);
+		// Prevent admin from disabling themselves
+		if (userId.equals(adminUserId)) {
+			throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
+					"Cannot disable your own account");
+		}
 
-        // Invalidate all sessions
-        List<SessionEntity> sessions = sessionRepository.findByUserIdAndRevokedFalse(userId);
-        for (SessionEntity session : sessions) {
-            session.setRevoked(true);
-            sessionRepository.save(session);
-        }
+		// Set user as inactive
+		user.setIsActive(false);
+		userRepository.save(user);
 
-        log.info("User {} has been disabled", userId);
-        return convertToResponse(user);
-    }
+		// Invalidate all sessions
+		List<SessionEntity> sessions = sessionRepository.findByUserIdAndRevokedFalse(userId);
+		for (SessionEntity session : sessions) {
+			session.setRevoked(true);
+			sessionRepository.save(session);
+		}
 
-    public AdminUserResponse enableUser(String userId) {
-        log.info("Enabling user: userId={}", userId);
+		log.info("User {} has been disabled", userId);
+		return convertToResponse(user);
+	}
 
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
-        }
+	public AdminUserResponse enableUser(String userId) {
+		log.info("Enabling user: userId={}", userId);
 
-        UserEntity user = userOpt.get();
-        user.setIsActive(true);
-        userRepository.save(user);
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
 
-        log.info("User {} has been enabled", userId);
-        return convertToResponse(user);
-    }
+		UserEntity user = userOpt.get();
+		user.setIsActive(true);
+		userRepository.save(user);
 
-    public List<SessionEntity> getUserSessions(String userId) {
-        log.info("Getting sessions for user: userId={}", userId);
-        return sessionRepository.findByUserIdAndRevokedFalse(userId);
-    }
+		log.info("User {} has been enabled", userId);
+		return convertToResponse(user);
+	}
 
-    public void terminateSession(String userId, String sessionId) {
-        log.info("Terminating session: userId={}, sessionId={}", userId, sessionId);
+	public List<SessionEntity> getUserSessions(String userId) {
+		log.info("Getting sessions for user: userId={}", userId);
+		return sessionRepository.findByUserIdAndRevokedFalse(userId);
+	}
 
-        Optional<SessionEntity> sessionOpt = sessionRepository.findById(sessionId);
-        if (sessionOpt.isEmpty()) {
-            throw new StrategizException(ServiceConsoleErrorDetails.SESSION_NOT_FOUND, "service-console", sessionId);
-        }
+	public void terminateSession(String userId, String sessionId) {
+		log.info("Terminating session: userId={}, sessionId={}", userId, sessionId);
 
-        SessionEntity session = sessionOpt.get();
-        if (!session.getUserId().equals(userId)) {
-            throw new StrategizException(ServiceConsoleErrorDetails.SESSION_USER_MISMATCH, "service-console",
-                    "Session " + sessionId + " does not belong to user " + userId);
-        }
+		Optional<SessionEntity> sessionOpt = sessionRepository.findById(sessionId);
+		if (sessionOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.SESSION_NOT_FOUND, "service-console", sessionId);
+		}
 
-        session.setRevoked(true);
-        sessionRepository.save(session);
+		SessionEntity session = sessionOpt.get();
+		if (!session.getUserId().equals(userId)) {
+			throw new StrategizException(ServiceConsoleErrorDetails.SESSION_USER_MISMATCH, "service-console",
+					"Session " + sessionId + " does not belong to user " + userId);
+		}
 
-        log.info("Session {} has been terminated", sessionId);
-    }
+		session.setRevoked(true);
+		sessionRepository.save(session);
 
-    public void deleteUser(String userId, String adminUserId) {
-        log.info("Deleting user: userId={}, by adminUserId={}", userId, adminUserId);
+		log.info("Session {} has been terminated", sessionId);
+	}
 
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
-        }
+	public void deleteUser(String userId, String adminUserId) {
+		log.info("Deleting user: userId={}, by adminUserId={}", userId, adminUserId);
 
-        // Prevent admin from deleting themselves
-        if (userId.equals(adminUserId)) {
-            throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
-                    "Cannot delete your own account");
-        }
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
 
-        // Terminate all sessions before deleting user
-        sessionRepository.deleteByUserId(userId);
+		// Prevent admin from deleting themselves
+		if (userId.equals(adminUserId)) {
+			throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
+					"Cannot delete your own account");
+		}
 
-        // Delete the user
-        userRepository.deleteUser(userId);
+		// Terminate all sessions before deleting user
+		sessionRepository.deleteByUserId(userId);
 
-        log.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
-    }
+		// Delete the user
+		userRepository.deleteUser(userId);
 
-    public AdminUserResponse updateUserRole(String userId, String newRole, String adminUserId) {
-        log.info("Updating user role: userId={}, newRole={}, by adminUserId={}", userId, newRole, adminUserId);
+		log.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
+	}
 
-        // Validate role
-        if (newRole == null || (!newRole.equals("USER") && !newRole.equals("ADMIN"))) {
-            throw new StrategizException(ServiceConsoleErrorDetails.INVALID_ROLE, "service-console",
-                    "Role must be USER or ADMIN");
-        }
+	public AdminUserResponse updateUserRole(String userId, String newRole, String adminUserId) {
+		log.info("Updating user role: userId={}, newRole={}, by adminUserId={}", userId, newRole, adminUserId);
 
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
-        }
+		// Validate role
+		if (newRole == null || (!newRole.equals("USER") && !newRole.equals("ADMIN"))) {
+			throw new StrategizException(ServiceConsoleErrorDetails.INVALID_ROLE, "service-console",
+					"Role must be USER or ADMIN");
+		}
 
-        UserEntity user = userOpt.get();
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
 
-        // Prevent admin from demoting themselves
-        if (userId.equals(adminUserId) && newRole.equals("USER")) {
-            throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
-                    "Cannot demote your own account");
-        }
+		UserEntity user = userOpt.get();
 
-        // Update role
-        UserProfileEntity profile = user.getProfile();
-        if (profile != null) {
-            profile.setRole(newRole);
-            userRepository.save(user);
-        }
+		// Prevent admin from demoting themselves
+		if (userId.equals(adminUserId) && newRole.equals("USER")) {
+			throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
+					"Cannot demote your own account");
+		}
 
-        log.info("User {} role updated to {} by admin {}", userId, newRole, adminUserId);
-        return convertToResponse(user);
-    }
+		// Update role
+		UserProfileEntity profile = user.getProfile();
+		if (profile != null) {
+			profile.setRole(newRole);
+			userRepository.save(user);
+		}
 
-    private AdminUserResponse convertToResponse(UserEntity user) {
-        AdminUserResponse response = new AdminUserResponse();
-        response.setId(user.getId());
+		log.info("User {} role updated to {} by admin {}", userId, newRole, adminUserId);
+		return convertToResponse(user);
+	}
 
-        UserProfileEntity profile = user.getProfile();
-        if (profile != null) {
-            response.setEmail(profile.getEmail());
-            response.setName(profile.getName());
-            response.setRole(profile.getRole());
-            response.setSubscriptionTier(profile.getSubscriptionTier());
-            response.setIsEmailVerified(profile.getIsEmailVerified());
-            response.setDemoMode(profile.getDemoMode());
-        }
+	private AdminUserResponse convertToResponse(UserEntity user) {
+		AdminUserResponse response = new AdminUserResponse();
+		response.setId(user.getId());
 
-        response.setStatus(Boolean.TRUE.equals(user.getIsActive()) ? "ACTIVE" : "DISABLED");
+		UserProfileEntity profile = user.getProfile();
+		if (profile != null) {
+			response.setEmail(profile.getEmail());
+			response.setName(profile.getName());
+			response.setRole(profile.getRole());
+			response.setSubscriptionTier(profile.getSubscriptionTier());
+			response.setIsEmailVerified(profile.getIsEmailVerified());
+			response.setDemoMode(profile.getDemoMode());
+		}
 
-        if (user.getCreatedDate() != null) {
-            response.setCreatedAt(user.getCreatedDate().toDate().toInstant());
-        }
+		response.setStatus(Boolean.TRUE.equals(user.getIsActive()) ? "ACTIVE" : "DISABLED");
 
-        // Count active sessions (ACCESS tokens only, exclude expired)
-        Instant now = Instant.now();
-        List<SessionEntity> sessions = sessionRepository
-                .findByUserIdAndTokenTypeAndRevokedFalse(user.getId(), "ACCESS");
-        List<SessionEntity> activeSessions = sessions.stream()
-                .filter(s -> s.getExpiresAt() != null && s.getExpiresAt().isAfter(now))
-                .toList();
-        response.setActiveSessions(activeSessions.size());
+		if (user.getCreatedDate() != null) {
+			response.setCreatedAt(user.getCreatedDate().toDate().toInstant());
+		}
 
-        // Get last login from most recent session activity (use lastAccessedAt, not issuedAt)
-        if (!sessions.isEmpty()) {
-            sessions.stream()
-                    .filter(s -> s.getLastAccessedAt() != null)
-                    .map(SessionEntity::getLastAccessedAt)
-                    .max(Instant::compareTo)
-                    .ifPresent(response::setLastLoginAt);
-        }
+		// Count active sessions (ACCESS tokens only, exclude expired)
+		Instant now = Instant.now();
+		List<SessionEntity> sessions = sessionRepository.findByUserIdAndTokenTypeAndRevokedFalse(user.getId(),
+				"ACCESS");
+		List<SessionEntity> activeSessions = sessions.stream()
+			.filter(s -> s.getExpiresAt() != null && s.getExpiresAt().isAfter(now))
+			.toList();
+		response.setActiveSessions(activeSessions.size());
 
-        return response;
-    }
+		// Get last login from most recent session activity (use lastAccessedAt, not
+		// issuedAt)
+		if (!sessions.isEmpty()) {
+			sessions.stream()
+				.filter(s -> s.getLastAccessedAt() != null)
+				.map(SessionEntity::getLastAccessedAt)
+				.max(Instant::compareTo)
+				.ifPresent(response::setLastLoginAt);
+		}
+
+		return response;
+	}
+
 }

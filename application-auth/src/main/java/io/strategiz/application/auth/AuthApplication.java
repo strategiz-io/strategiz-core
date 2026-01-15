@@ -36,9 +36,6 @@ import org.springframework.context.annotation.ComponentScan;
 
     // Business Layer
     "io.strategiz.business.tokenauth",
-    "io.strategiz.business.provider.kraken",
-    "io.strategiz.business.provider.binanceus",
-    "io.strategiz.business.provider.coinbase",
 
     // Data Layer
     "io.strategiz.data.auth",

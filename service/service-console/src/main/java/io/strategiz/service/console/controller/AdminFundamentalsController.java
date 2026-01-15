@@ -5,7 +5,9 @@ import io.strategiz.batch.fundamentals.FundamentalsIncrementalJob;
 import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.business.fundamentals.service.FundamentalsQueryService;
 import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
+import io.strategiz.data.marketdata.clickhouse.repository.FundamentalsDataRepository;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.console.model.response.FundamentalsCoverageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +17,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,17 +29,18 @@ import java.util.Map;
  * Admin controller for managing company fundamentals data collection.
  *
  * <p>
- * Endpoints:
- * - POST /v1/console/fundamentals/jobs/incremental/trigger - Trigger daily update job
- * - POST /v1/console/fundamentals/jobs/backfill/trigger - Trigger full backfill
- * - POST /v1/console/fundamentals/jobs/backfill/custom - Custom backfill with specific symbols
- * - GET /v1/console/fundamentals/jobs/incremental/status - Get incremental job status
- * - GET /v1/console/fundamentals/jobs/backfill/status - Get backfill job status
- * - GET /v1/console/fundamentals/data/{symbol} - Get fundamentals data for symbol
- * - GET /v1/console/fundamentals/status - Get service status
+ * Endpoints: - POST /v1/console/fundamentals/jobs/incremental/trigger - Trigger daily
+ * update job - POST /v1/console/fundamentals/jobs/backfill/trigger - Trigger full
+ * backfill - POST /v1/console/fundamentals/jobs/backfill/custom - Custom backfill with
+ * specific symbols - GET /v1/console/fundamentals/jobs/incremental/status - Get
+ * incremental job status - GET /v1/console/fundamentals/jobs/backfill/status - Get
+ * backfill job status - GET /v1/console/fundamentals/data/{symbol} - Get fundamentals
+ * data for symbol - GET /v1/console/fundamentals/status - Get service status
  * </p>
  *
- * <p>Note: This controller is only active when fundamentals jobs are configured.</p>
+ * <p>
+ * Note: This controller is only active when fundamentals jobs are configured.
+ * </p>
  */
 @RestController
 @RequestMapping("/v1/console/fundamentals")
@@ -49,12 +56,15 @@ public class AdminFundamentalsController extends BaseController {
 
 	private final FundamentalsQueryService queryService;
 
+	private final FundamentalsDataRepository dataRepository;
+
 	@Autowired
 	public AdminFundamentalsController(FundamentalsIncrementalJob incrementalJob, FundamentalsBackfillJob backfillJob,
-			FundamentalsQueryService queryService) {
+			FundamentalsQueryService queryService, FundamentalsDataRepository dataRepository) {
 		this.incrementalJob = incrementalJob;
 		this.backfillJob = backfillJob;
 		this.queryService = queryService;
+		this.dataRepository = dataRepository;
 	}
 
 	@Override
@@ -111,7 +121,8 @@ public class AdminFundamentalsController extends BaseController {
 	 *
 	 * POST /v1/console/fundamentals/jobs/backfill/trigger
 	 *
-	 * Fetches fundamentals for all configured symbols. WARNING: Resource-intensive operation.
+	 * Fetches fundamentals for all configured symbols. WARNING: Resource-intensive
+	 * operation.
 	 */
 	@PostMapping("/jobs/backfill/trigger")
 	@Operation(summary = "Trigger full fundamentals backfill",
@@ -294,6 +305,77 @@ public class AdminFundamentalsController extends BaseController {
 		status.put("availableEndpoints", endpoints);
 
 		return ResponseEntity.ok(status);
+	}
+
+	// ========== Coverage Endpoints ==========
+
+	/**
+	 * Get fundamentals data coverage statistics.
+	 *
+	 * GET /v1/console/fundamentals/coverage
+	 *
+	 * Returns aggregate statistics about stored fundamentals data including total
+	 * records, unique symbols, date range, and breakdown by period type.
+	 */
+	@GetMapping("/coverage")
+	@Operation(summary = "Get fundamentals coverage statistics",
+			description = "Returns aggregate statistics about stored fundamentals data")
+	public ResponseEntity<FundamentalsCoverageResponse> getCoverage(HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getCoverage", adminUserId);
+
+		try {
+			FundamentalsCoverageResponse response = new FundamentalsCoverageResponse();
+
+			// Get total records
+			long totalRecords = dataRepository.countAll();
+			response.setTotalRecords(totalRecords);
+
+			// Get unique symbols
+			int uniqueSymbols = dataRepository.countDistinctSymbols();
+			response.setUniqueSymbols(uniqueSymbols);
+
+			// Get date range
+			Map<String, LocalDate> dateRange = dataRepository.getDateRange();
+			if (dateRange != null && !dateRange.isEmpty()) {
+				LocalDate earliest = dateRange.get("earliest");
+				LocalDate latest = dateRange.get("latest");
+
+				if (earliest != null) {
+					response.setEarliestPeriod(earliest.format(DateTimeFormatter.ISO_DATE));
+				}
+				if (latest != null) {
+					response.setLatestPeriod(latest.format(DateTimeFormatter.ISO_DATE));
+				}
+
+				// Calculate years of data
+				if (earliest != null && latest != null) {
+					long years = ChronoUnit.YEARS.between(earliest, latest);
+					response.setYearsOfData((int) years);
+				}
+			}
+
+			// Get breakdown by period type
+			Map<String, Long> byPeriodType = dataRepository.countByPeriodType();
+			response.setByPeriodType(byPeriodType);
+
+			// Calculate average records per symbol
+			if (uniqueSymbols > 0) {
+				response.setAvgRecordsPerSymbol(Math.round((double) totalRecords / uniqueSymbols * 100.0) / 100.0);
+			}
+
+			// Set calculated timestamp
+			response.setCalculatedAt(DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+
+			log.info("Fundamentals coverage: {} records, {} symbols, {} years of data", totalRecords, uniqueSymbols,
+					response.getYearsOfData());
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception ex) {
+			log.error("Failed to get fundamentals coverage", ex);
+			throw handleException(ex, "fundamentals-coverage-failed");
+		}
 	}
 
 	// ========== Helper Methods ==========

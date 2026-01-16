@@ -7,7 +7,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/strategiz-api']
 
-# Deploy to Cloud Run with external Vault and GitHub App secrets
+# Deploy to Cloud Run - update image only, preserve existing env vars
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args:
@@ -23,8 +23,7 @@ steps:
     - '--port=8080'
     - '--min-instances=0'
     - '--max-instances=10'
-    - '--set-env-vars=^|^SPRING_PROFILES_ACTIVE=prod|VAULT_ADDR=https://strategiz-vault-bflhiwsnmq-ue.a.run.app'
-    - '--set-secrets=VAULT_TOKEN=vault-root-token:latest,GITHUB_APP_ID=github-app-id:latest,GITHUB_APP_INSTALLATION_ID=github-app-installation-id:latest,GITHUB_APP_PRIVATE_KEY=github-app-private-key:latest'
+    - '--update-secrets=GITHUB_APP_ID=github-app-id:latest,GITHUB_APP_INSTALLATION_ID=github-app-installation-id:latest,GITHUB_APP_PRIVATE_KEY=github-app-private-key:latest'
 
 images:
 - 'gcr.io/$PROJECT_ID/strategiz-api'

@@ -180,6 +180,20 @@ public class SymbolService {
     }
 
     /**
+     * Get list of canonical symbols for fundamentals collection.
+     * Returns all active collection symbols regardless of primary data source,
+     * since fundamentals can be fetched from FMP for any stock symbol.
+     * @return List of canonical symbols
+     */
+    public List<String> getSymbolsForFundamentals() {
+        List<SymbolEntity> symbols = symbolRepository.findActiveForCollection();
+        return symbols.stream()
+            .filter(s -> "STOCK".equalsIgnoreCase(s.getAssetType()) || "ETF".equalsIgnoreCase(s.getAssetType()))
+            .map(SymbolEntity::getId)
+            .collect(Collectors.toList());
+    }
+
+    /**
      * Mark a symbol as collected (update lastCollectedAt timestamp)
      * @param canonicalSymbol The canonical symbol
      * @param timestamp When it was collected

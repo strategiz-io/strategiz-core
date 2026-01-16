@@ -67,6 +67,11 @@
             <artifactId>business-provider-robinhood</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-etrade</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Temporarily disabled - API mismatches with current entities/repositories
         <dependency>
             <groupId>io.strategiz</groupId>
@@ -87,6 +92,11 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-webull</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-etrade</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

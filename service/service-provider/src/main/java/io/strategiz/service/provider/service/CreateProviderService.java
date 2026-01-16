@@ -11,6 +11,7 @@ import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
 import io.strategiz.business.provider.webull.business.WebullProviderBusiness;
+import io.strategiz.business.provider.etrade.EtradeProviderBusiness;
 import io.strategiz.business.base.provider.model.CreateProviderIntegrationRequest;
 import io.strategiz.business.base.provider.model.ProviderIntegrationResult;
 import io.strategiz.business.base.provider.ProviderIntegrationHandler;
@@ -70,6 +71,7 @@ public class CreateProviderService extends BaseService {
             SchwabProviderBusiness schwabProviderBusiness,
             RobinhoodProviderBusiness robinhoodProviderBusiness,
             WebullProviderBusiness webullProviderBusiness,
+            EtradeProviderBusiness etradeProviderBusiness,
             ProfileService profileService,
             ReadProviderIntegrationRepository readProviderIntegrationRepository,
             PortfolioInsightsCacheRepository insightsCacheRepository) {
@@ -84,6 +86,7 @@ public class CreateProviderService extends BaseService {
         this.providerHandlers.put("schwab", schwabProviderBusiness);
         this.providerHandlers.put("robinhood", robinhoodProviderBusiness);
         this.providerHandlers.put("webull", webullProviderBusiness);
+        this.providerHandlers.put("etrade", etradeProviderBusiness);
 
         this.profileService = profileService;
         this.readProviderIntegrationRepository = readProviderIntegrationRepository;
@@ -387,6 +390,8 @@ public class CreateProviderService extends BaseService {
                 return "Robinhood";
             case "webull":
                 return "Webull";
+            case "etrade":
+                return "E*TRADE";
             default:
                 return providerId;
         }

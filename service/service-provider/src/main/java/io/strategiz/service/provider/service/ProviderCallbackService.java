@@ -8,6 +8,7 @@ import io.strategiz.business.provider.alpaca.AlpacaProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.robinhood.RobinhoodProviderBusiness;
+import io.strategiz.business.provider.etrade.EtradeProviderBusiness;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.service.profile.service.ProfileService;
@@ -39,6 +40,7 @@ public class ProviderCallbackService extends BaseService {
     private final AlpacaProviderBusiness alpacaProviderBusiness;
     private final SchwabProviderBusiness schwabProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
+    private final EtradeProviderBusiness etradeProviderBusiness;
     private final PortfolioSummaryManager portfolioSummaryManager;
     private final SessionAuthBusiness sessionAuthBusiness;
     private final ProfileService profileService;
@@ -51,6 +53,7 @@ public class ProviderCallbackService extends BaseService {
                                    AlpacaProviderBusiness alpacaProviderBusiness,
                                    SchwabProviderBusiness schwabProviderBusiness,
                                    KrakenProviderBusiness krakenProviderBusiness,
+                                   EtradeProviderBusiness etradeProviderBusiness,
                                    PortfolioSummaryManager portfolioSummaryManager,
                                    SessionAuthBusiness sessionAuthBusiness,
                                    ProfileService profileService) {
@@ -58,6 +61,7 @@ public class ProviderCallbackService extends BaseService {
         this.alpacaProviderBusiness = alpacaProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
+        this.etradeProviderBusiness = etradeProviderBusiness;
         this.portfolioSummaryManager = portfolioSummaryManager;
         this.sessionAuthBusiness = sessionAuthBusiness;
         this.profileService = profileService;
@@ -110,11 +114,15 @@ public class ProviderCallbackService extends BaseService {
                 case "kraken":
                     processKrakenCallback(userId, code, state, response);
                     break;
-                    
+
+                case "etrade":
+                    processEtradeCallback(userId, code, state, response);
+                    break;
+
                 case "binance":
                     // TODO: Implement Binance OAuth callback processing
                     throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider", provider);
-                    
+
                 default:
                     throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
             }
@@ -464,7 +472,7 @@ public class ProviderCallbackService extends BaseService {
         }
         
         String p = provider.toLowerCase();
-        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p) || "schwab".equals(p) || "robinhood".equals(p);
+        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p) || "schwab".equals(p) || "robinhood".equals(p) || "etrade".equals(p);
     }
     
     /**
@@ -491,8 +499,45 @@ public class ProviderCallbackService extends BaseService {
                 return "Charles Schwab";
             case "robinhood":
                 return "Robinhood";
+            case "etrade":
+                return "E*TRADE";
             default:
                 return provider;
+        }
+    }
+
+    /**
+     * Process E*TRADE OAuth 1.0a callback.
+     * E*TRADE uses OAuth 1.0a, so the callback contains oauth_verifier instead of code.
+     *
+     * @param userId The user ID (extracted from state)
+     * @param code The oauth_verifier from callback (E*TRADE calls it this way)
+     * @param state The state parameter
+     * @param response The response to populate
+     */
+    private void processEtradeCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+        log.info("Processing E*TRADE OAuth 1.0a callback for user: {}", userId);
+
+        try {
+            // For E*TRADE OAuth 1.0a, the 'code' parameter is actually the oauth_verifier
+            // The state contains userId-uuid format, and we need the full state for token lookup
+            etradeProviderBusiness.completeOAuthFlow(state, code);
+
+            response.setStatus("connected");
+            response.setMessage("Successfully connected E*TRADE account");
+            response.setConnectedAt(Instant.now());
+
+            // Add connection metadata
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("provider", "etrade");
+            metadata.put("connectionType", "oauth1a");
+            metadata.put("userId", userId);
+            response.setConnectionData(metadata);
+
+        } catch (Exception e) {
+            log.error("Failed to complete E*TRADE OAuth flow for user: {}", userId, e);
+            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+                userId, "etrade", e.getMessage());
         }
     }
 }

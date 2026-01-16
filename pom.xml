@@ -34,6 +34,7 @@
         <module>business/business-provider-schwab</module>
         <module>business/business-provider-robinhood</module>
         <module>business/business-provider-webull</module>
+        <module>business/business-provider-etrade</module>
         <!-- Temporarily disabled - API mismatches with current entities/repositories -->
         <!-- <module>business/business-provider-plaid</module> -->
         <module>business/business-strategy-execution</module>
@@ -85,6 +86,7 @@
         <module>client/client-yahoofinance</module>
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
+        <module>client/client-etrade</module>
         <module>client/client-alpaca</module>
         <module>client/client-gemini-vertex</module>
         <module>client/client-openai-vertex</module>

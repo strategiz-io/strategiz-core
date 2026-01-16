@@ -107,9 +107,9 @@ public class FundamentalsIncrementalJob {
 
 		log.info("=== Fundamentals Incremental Collection Started ===");
 
-		// Get list of symbols to collect
-		List<String> symbols = symbolService.getSymbolsForCollection(dataSource);
-		log.info("Found {} symbols configured for {} fundamentals collection", symbols.size(), dataSource);
+		// Get list of symbols to collect - all STOCK/ETF symbols regardless of primary data source
+		List<String> symbols = symbolService.getSymbolsForFundamentals();
+		log.info("Found {} STOCK/ETF symbols for fundamentals collection", symbols.size());
 
 		if (symbols.isEmpty()) {
 			log.warn("No symbols configured for fundamentals collection, exiting");

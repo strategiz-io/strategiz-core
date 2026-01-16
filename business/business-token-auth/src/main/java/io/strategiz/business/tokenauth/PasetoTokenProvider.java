@@ -91,12 +91,17 @@ public class PasetoTokenProvider {
 	 */
 	@PostConstruct
 	public void init() {
+		log.info("=== PASETO TOKEN PROVIDER INITIALIZATION ===");
 		log.info("Initializing PASETO v4.local token provider with dual-key system");
+		log.info("Active profile from config: {}", activeProfile);
 
 		// Determine environment - handle comma-separated profiles (e.g.,
 		// "prod,scheduler")
 		String env = activeProfile != null && activeProfile.contains("prod") ? "prod" : "dev";
-		log.info("Loading token keys for environment: {}", env);
+		log.info("Determined environment: {}", env);
+
+		log.info("VaultSecretService injected: {}", vaultSecretService != null);
+		log.info("VaultSecretService class: {}", vaultSecretService != null ? vaultSecretService.getClass().getName() : "NULL");
 
 		if (vaultSecretService != null) {
 			try {
@@ -104,9 +109,10 @@ public class PasetoTokenProvider {
 				String identityKeyPath = "tokens." + env + ".identity-key";
 				log.info("Attempting to load identity key from Vault path: {}", identityKeyPath);
 				String identityKeyStr = vaultSecretService.readSecret(identityKeyPath);
+				log.info("Identity key result: {}", identityKeyStr != null ? "loaded (" + identityKeyStr.length() + " chars)" : "NULL");
 				if (identityKeyStr != null && !identityKeyStr.isEmpty()) {
 					identityKey = new SecretKey(Base64.getDecoder().decode(identityKeyStr), Version.V4);
-					log.info("Loaded identity token key from Vault for {}", env);
+					log.info("Successfully decoded identity token key from Vault for {}", env);
 				}
 				else {
 					log.warn("Identity key is null or empty for path: {}", identityKeyPath);
@@ -116,9 +122,10 @@ public class PasetoTokenProvider {
 				String sessionKeyPath = "tokens." + env + ".session-key";
 				log.info("Attempting to load session key from Vault path: {}", sessionKeyPath);
 				String sessionKeyStr = vaultSecretService.readSecret(sessionKeyPath);
+				log.info("Session key result: {}", sessionKeyStr != null ? "loaded (" + sessionKeyStr.length() + " chars)" : "NULL");
 				if (sessionKeyStr != null && !sessionKeyStr.isEmpty()) {
 					sessionKey = new SecretKey(Base64.getDecoder().decode(sessionKeyStr), Version.V4);
-					log.info("Loaded session token key from Vault for {}", env);
+					log.info("Successfully decoded session token key from Vault for {}", env);
 				}
 				else {
 					log.warn("Session key is null or empty for path: {}", sessionKeyPath);
@@ -126,13 +133,16 @@ public class PasetoTokenProvider {
 			}
 			catch (Exception e) {
 				log.error("Failed to load keys from Vault: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+				log.error("Full stack trace:", e);
 			}
 		}
 		else {
-			log.warn("VaultSecretService is null - cannot load keys from Vault");
+			log.error("CRITICAL: VaultSecretService is NULL - cannot load keys from Vault");
+			log.error("Check that VaultSecretService bean is being created and component scanning includes io.strategiz.framework.secrets");
 		}
 
 		// Require keys to be configured in Vault - no temporary keys
+		log.info("Final state - identityKey: {}, sessionKey: {}", identityKey != null ? "SET" : "NULL", sessionKey != null ? "SET" : "NULL");
 		if (identityKey == null || sessionKey == null) {
 			log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
 			log.error("Please configure keys in Vault at:");
@@ -141,6 +151,7 @@ public class PasetoTokenProvider {
 			throw new StrategizException(AuthorizationErrorDetails.CONFIGURATION_ERROR, "PasetoTokenProvider",
 					"Token keys must be configured in Vault");
 		}
+		log.info("=== PASETO TOKEN PROVIDER INITIALIZED SUCCESSFULLY ===");
 	}
 
 	/**

@@ -119,12 +119,13 @@ public class FundamentalsBackfillJob {
 		// Get list of symbols to collect
 		List<String> targetSymbols;
 		if (symbols == null || symbols.isEmpty()) {
-			targetSymbols = symbolService.getSymbolsForCollection(dataSource);
-			log.info("Backfilling all {} symbols configured for {} fundamentals", targetSymbols.size(), dataSource);
+			// Use getSymbolsForFundamentals() to get all STOCK/ETF symbols regardless of primary data source
+			targetSymbols = symbolService.getSymbolsForFundamentals();
+			log.info("Backfilling all {} STOCK/ETF symbols for fundamentals", targetSymbols.size());
 		}
 		else {
 			targetSymbols = symbols;
-			log.info("Backfilling {} specified symbols for {} fundamentals", targetSymbols.size(), dataSource);
+			log.info("Backfilling {} specified symbols for fundamentals", targetSymbols.size());
 		}
 
 		if (targetSymbols.isEmpty()) {

@@ -3,6 +3,7 @@ package io.strategiz.service.provider.service;
 import io.strategiz.business.provider.coinbase.CoinbaseProviderBusiness;
 import io.strategiz.business.provider.kraken.business.KrakenProviderBusiness;
 import io.strategiz.business.provider.schwab.SchwabProviderBusiness;
+import io.strategiz.business.provider.etrade.EtradeProviderBusiness;
 // import io.strategiz.business.provider.webull.business.WebullProviderBusiness; // TODO: Add when webull module is ready
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
 import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
@@ -35,6 +36,7 @@ public class SyncProviderService extends BaseService {
     private final CoinbaseProviderBusiness coinbaseProviderBusiness;
     private final KrakenProviderBusiness krakenProviderBusiness;
     private final SchwabProviderBusiness schwabProviderBusiness;
+    private final EtradeProviderBusiness etradeProviderBusiness;
     // private final WebullProviderBusiness webullProviderBusiness; // TODO: Add when webull module is ready
     private final PortfolioSummaryManager portfolioSummaryManager;
     private final PortfolioInsightsCacheRepository insightsCacheRepository;
@@ -43,12 +45,14 @@ public class SyncProviderService extends BaseService {
     public SyncProviderService(CoinbaseProviderBusiness coinbaseProviderBusiness,
                                KrakenProviderBusiness krakenProviderBusiness,
                                SchwabProviderBusiness schwabProviderBusiness,
+                               EtradeProviderBusiness etradeProviderBusiness,
                                // WebullProviderBusiness webullProviderBusiness, // TODO: Add when webull module is ready
                                PortfolioSummaryManager portfolioSummaryManager,
                                PortfolioInsightsCacheRepository insightsCacheRepository) {
         this.coinbaseProviderBusiness = coinbaseProviderBusiness;
         this.krakenProviderBusiness = krakenProviderBusiness;
         this.schwabProviderBusiness = schwabProviderBusiness;
+        this.etradeProviderBusiness = etradeProviderBusiness;
         // this.webullProviderBusiness = webullProviderBusiness; // TODO: Add when webull module is ready
         this.portfolioSummaryManager = portfolioSummaryManager;
         this.insightsCacheRepository = insightsCacheRepository;
@@ -80,6 +84,10 @@ public class SyncProviderService extends BaseService {
 
                 case "schwab":
                     syncedData = schwabProviderBusiness.syncProviderData(userId);
+                    break;
+
+                case "etrade":
+                    syncedData = etradeProviderBusiness.syncProviderData(userId);
                     break;
 
                 case "webull":

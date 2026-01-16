@@ -20,6 +20,9 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.math.BigDecimal;
 import org.springframework.web.client.HttpClientErrorException;
 
 /**
@@ -277,5 +280,182 @@ public class AlpacaHistoricalClient {
             lastException,
             String.format("Failed to fetch bars for %s after %d retries due to rate limiting", symbol, maxRetries)
         );
+    }
+
+    /**
+     * Get latest quotes for multiple stock symbols.
+     * Uses Alpaca's multi-quote endpoint for efficiency.
+     *
+     * @param symbols List of stock symbols (e.g., ["AAPL", "MSFT", "GOOG"])
+     * @return Map of symbol to quote data (price, change, etc.)
+     */
+    public Map<String, LatestQuote> getLatestStockQuotes(List<String> symbols) {
+        if (!isAvailable()) {
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "AlpacaHistoricalClient is not available - credentials not configured");
+        }
+
+        Map<String, LatestQuote> result = new HashMap<>();
+
+        if (symbols == null || symbols.isEmpty()) {
+            return result;
+        }
+
+        try {
+            // Join symbols with comma
+            String symbolsParam = String.join(",", symbols);
+            String fullUrl = apiUrl + "/v2/stocks/bars/latest?symbols=" + symbolsParam + "&feed=" + feed;
+
+            log.debug("Fetching latest quotes for: {}", symbolsParam);
+
+            HttpEntity<String> entity = new HttpEntity<>(createHeaders());
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                fullUrl,
+                HttpMethod.GET,
+                entity,
+                String.class
+            );
+
+            String responseBody = responseEntity.getBody();
+            if (responseBody == null || responseBody.isEmpty()) {
+                log.warn("Empty response for latest quotes");
+                return result;
+            }
+
+            // Parse the response
+            Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+            Map<String, Object> bars = (Map<String, Object>) response.get("bars");
+
+            if (bars != null) {
+                for (Map.Entry<String, Object> entry : bars.entrySet()) {
+                    String symbol = entry.getKey();
+                    Map<String, Object> barData = (Map<String, Object>) entry.getValue();
+
+                    // Extract price from the bar (close price is the latest)
+                    BigDecimal close = new BigDecimal(barData.get("c").toString());
+                    BigDecimal open = new BigDecimal(barData.get("o").toString());
+                    BigDecimal change = close.subtract(open);
+                    BigDecimal changePercent = open.compareTo(BigDecimal.ZERO) != 0
+                        ? change.multiply(new BigDecimal("100")).divide(open, 2, java.math.RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
+                    result.put(symbol, new LatestQuote(symbol, close, change, changePercent));
+                }
+            }
+
+            log.info("Fetched {} latest quotes", result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("Error fetching latest quotes: {}", e.getMessage());
+            throw new StrategizException(
+                AlpacaErrorDetails.API_ERROR_RESPONSE,
+                MODULE_NAME,
+                e,
+                "Failed to fetch latest quotes"
+            );
+        }
+    }
+
+    /**
+     * Get latest quotes for crypto symbols.
+     * Uses Alpaca's crypto data endpoint.
+     *
+     * @param symbols List of crypto symbols (e.g., ["BTC", "ETH"])
+     * @return Map of symbol to quote data
+     */
+    public Map<String, LatestQuote> getLatestCryptoQuotes(List<String> symbols) {
+        if (!isAvailable()) {
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "AlpacaHistoricalClient is not available - credentials not configured");
+        }
+
+        Map<String, LatestQuote> result = new HashMap<>();
+
+        if (symbols == null || symbols.isEmpty()) {
+            return result;
+        }
+
+        try {
+            // Convert symbols to Alpaca crypto format (BTC -> BTC/USD)
+            List<String> cryptoPairs = symbols.stream()
+                .map(s -> s + "/USD")
+                .toList();
+            String symbolsParam = String.join(",", cryptoPairs);
+
+            String fullUrl = apiUrl + "/v1beta3/crypto/us/latest/bars?symbols=" + symbolsParam;
+
+            log.debug("Fetching latest crypto quotes for: {}", symbolsParam);
+
+            HttpEntity<String> entity = new HttpEntity<>(createHeaders());
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                fullUrl,
+                HttpMethod.GET,
+                entity,
+                String.class
+            );
+
+            String responseBody = responseEntity.getBody();
+            if (responseBody == null || responseBody.isEmpty()) {
+                log.warn("Empty response for latest crypto quotes");
+                return result;
+            }
+
+            // Parse the response
+            Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+            Map<String, Object> bars = (Map<String, Object>) response.get("bars");
+
+            if (bars != null) {
+                for (Map.Entry<String, Object> entry : bars.entrySet()) {
+                    String cryptoPair = entry.getKey(); // e.g., "BTC/USD"
+                    String symbol = cryptoPair.replace("/USD", ""); // Back to "BTC"
+                    Map<String, Object> barData = (Map<String, Object>) entry.getValue();
+
+                    BigDecimal close = new BigDecimal(barData.get("c").toString());
+                    BigDecimal open = new BigDecimal(barData.get("o").toString());
+                    BigDecimal change = close.subtract(open);
+                    BigDecimal changePercent = open.compareTo(BigDecimal.ZERO) != 0
+                        ? change.multiply(new BigDecimal("100")).divide(open, 2, java.math.RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+
+                    result.put(symbol, new LatestQuote(symbol, close, change, changePercent));
+                }
+            }
+
+            log.info("Fetched {} latest crypto quotes", result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("Error fetching latest crypto quotes: {}", e.getMessage());
+            throw new StrategizException(
+                AlpacaErrorDetails.API_ERROR_RESPONSE,
+                MODULE_NAME,
+                e,
+                "Failed to fetch latest crypto quotes"
+            );
+        }
+    }
+
+    /**
+     * Simple data class for latest quote information
+     */
+    public static class LatestQuote {
+        private final String symbol;
+        private final BigDecimal price;
+        private final BigDecimal change;
+        private final BigDecimal changePercent;
+
+        public LatestQuote(String symbol, BigDecimal price, BigDecimal change, BigDecimal changePercent) {
+            this.symbol = symbol;
+            this.price = price;
+            this.change = change;
+            this.changePercent = changePercent;
+        }
+
+        public String getSymbol() { return symbol; }
+        public BigDecimal getPrice() { return price; }
+        public BigDecimal getChange() { return change; }
+        public BigDecimal getChangePercent() { return changePercent; }
+        public boolean isPositive() { return change.compareTo(BigDecimal.ZERO) >= 0; }
     }
 }

@@ -40,14 +40,25 @@ import org.springframework.util.AntPathMatcher;
 public class PasetoAuthenticationFilter implements Filter {
 
   private static final Logger log = LoggerFactory.getLogger(PasetoAuthenticationFilter.class);
+
   private static final String ACCESS_TOKEN_COOKIE = "strategiz-access-token";
+
   private static final String AUTHORIZATION_HEADER = "Authorization";
+
   private static final String BEARER_PREFIX = "Bearer ";
 
   private final PasetoTokenValidator tokenValidator;
+
   private final AuthorizationProperties properties;
+
   private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
+  /**
+   * Creates a new PasetoAuthenticationFilter.
+   *
+   * @param tokenValidator the token validator
+   * @param properties the authorization properties
+   */
   public PasetoAuthenticationFilter(
       PasetoTokenValidator tokenValidator, AuthorizationProperties properties) {
     this.tokenValidator = tokenValidator;
@@ -137,4 +148,5 @@ public class PasetoAuthenticationFilter implements Filter {
 
     return null;
   }
+
 }

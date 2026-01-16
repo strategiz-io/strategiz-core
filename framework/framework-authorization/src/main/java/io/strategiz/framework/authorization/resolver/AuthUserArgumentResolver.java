@@ -24,7 +24,8 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  * }
  *
  * &#64;GetMapping("/public")
- * public ResponseEntity&lt;?&gt; publicEndpoint(&#64;AuthUser(required = false) AuthenticatedUser user) {
+ * public ResponseEntity&lt;?&gt; publicEndpoint(
+ *     &#64;AuthUser(required = false) AuthenticatedUser user) {
  *     // user may be null if not authenticated
  * }
  * </pre>
@@ -56,4 +57,5 @@ public class AuthUserArgumentResolver implements HandlerMethodArgumentResolver {
       return SecurityContextHolder.getAuthenticatedUser().orElse(null);
     }
   }
+
 }

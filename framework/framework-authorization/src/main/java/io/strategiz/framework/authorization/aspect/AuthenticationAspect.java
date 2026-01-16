@@ -32,8 +32,15 @@ import org.springframework.stereotype.Component;
 public class AuthenticationAspect {
 
   private static final Logger log = LoggerFactory.getLogger(AuthenticationAspect.class);
+
   private static final String MODULE_NAME = "authorization";
 
+  /**
+   * Checks authentication requirements before method execution.
+   *
+   * @param joinPoint the join point
+   * @param requireAuth the require auth annotation
+   */
   @Before("@annotation(requireAuth)")
   public void checkAuthentication(JoinPoint joinPoint, RequireAuth requireAuth) {
     // If authentication is not required, skip all checks
@@ -83,10 +90,17 @@ public class AuthenticationAspect {
         user.isDemoMode());
   }
 
+  /**
+   * Checks authentication requirements at class level.
+   *
+   * @param joinPoint the join point
+   * @param requireAuth the require auth annotation
+   */
   @Before("@within(requireAuth)")
   public void checkAuthenticationOnClass(JoinPoint joinPoint, RequireAuth requireAuth) {
     // Note: Method-level @RequireAuth should override class-level annotation
     // The checkAuthentication method will handle the `required` attribute
     checkAuthentication(joinPoint, requireAuth);
   }
+
 }

@@ -29,8 +29,15 @@ import org.springframework.stereotype.Component;
 public class ScopeAuthorizationAspect {
 
   private static final Logger log = LoggerFactory.getLogger(ScopeAuthorizationAspect.class);
+
   private static final String MODULE_NAME = "authorization";
 
+  /**
+   * Checks scope requirements before method execution.
+   *
+   * @param joinPoint the join point
+   * @param requireScope the require scope annotation
+   */
   @Before("@annotation(requireScope)")
   public void checkScope(JoinPoint joinPoint, RequireScope requireScope) {
     AuthenticatedUser user = SecurityContextHolder.requireAuthenticatedUser();
@@ -38,11 +45,10 @@ public class ScopeAuthorizationAspect {
     String[] requiredScopes = requireScope.value();
     ScopeMode mode = requireScope.mode();
 
-    boolean hasScope =
-        switch (mode) {
-          case ANY -> user.hasAnyScope(requiredScopes);
-          case ALL -> user.hasAllScopes(requiredScopes);
-        };
+    boolean hasScope = switch (mode) {
+      case ANY -> user.hasAnyScope(requiredScopes);
+      case ALL -> user.hasAllScopes(requiredScopes);
+    };
 
     if (!hasScope) {
       // Log details for debugging, but don't expose in error message
@@ -62,8 +68,15 @@ public class ScopeAuthorizationAspect {
         mode);
   }
 
+  /**
+   * Checks scope requirements at class level.
+   *
+   * @param joinPoint the join point
+   * @param requireScope the require scope annotation
+   */
   @Before("@within(requireScope)")
   public void checkScopeOnClass(JoinPoint joinPoint, RequireScope requireScope) {
     checkScope(joinPoint, requireScope);
   }
+
 }

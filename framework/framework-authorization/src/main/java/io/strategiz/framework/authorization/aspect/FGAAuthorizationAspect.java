@@ -34,26 +34,41 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 @Order(200)
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class FGAAuthorizationAspect {
 
   private static final Logger log = LoggerFactory.getLogger(FGAAuthorizationAspect.class);
+
   private static final String MODULE_NAME = "authorization";
 
   private final FGAClient fgaClient;
+
   private final ExpressionParser expressionParser = new SpelExpressionParser();
+
   private final ParameterNameDiscoverer parameterNameDiscoverer =
       new DefaultParameterNameDiscoverer();
 
+  /**
+   * Creates a new FGAAuthorizationAspect.
+   *
+   * @param fgaClient the FGA client
+   */
   public FGAAuthorizationAspect(FGAClient fgaClient) {
     this.fgaClient = fgaClient;
   }
 
+  /**
+   * Checks authorization before method execution.
+   *
+   * @param joinPoint the join point
+   * @param authorize the authorize annotation
+   */
   @Before("@annotation(authorize)")
   public void checkAuthorization(JoinPoint joinPoint, Authorize authorize) {
     AuthenticatedUser user = SecurityContextHolder.requireAuthenticatedUser();
 
     // Extract resource ID using SpEL
-    String resourceId = evaluateSpEL(authorize.resourceId(), joinPoint);
+    String resourceId = evaluateSpel(authorize.resourceId(), joinPoint);
     if (resourceId == null || resourceId.isBlank()) {
       log.error("Could not evaluate resourceId expression: {}", authorize.resourceId());
       throw new StrategizException(AuthorizationErrorDetails.ACCESS_DENIED, MODULE_NAME);
@@ -95,7 +110,8 @@ public class FGAAuthorizationAspect {
    * @param joinPoint the join point
    * @return the evaluated value as a string
    */
-  private String evaluateSpEL(String expression, JoinPoint joinPoint) {
+  @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+  private String evaluateSpel(String expression, JoinPoint joinPoint) {
     try {
       MethodSignature signature = (MethodSignature) joinPoint.getSignature();
       Method method = signature.getMethod();
@@ -119,4 +135,5 @@ public class FGAAuthorizationAspect {
       return null;
     }
   }
+
 }

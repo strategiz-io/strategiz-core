@@ -56,6 +56,11 @@ public class AuthorizationAutoConfiguration implements WebMvcConfigurer {
 
   private final AuthorizationProperties properties;
 
+  /**
+   * Creates a new AuthorizationAutoConfiguration.
+   *
+   * @param properties the authorization properties
+   */
   public AuthorizationAutoConfiguration(AuthorizationProperties properties) {
     this.properties = properties;
     log.info("Authorization framework auto-configuration enabled");
@@ -64,6 +69,8 @@ public class AuthorizationAutoConfiguration implements WebMvcConfigurer {
   /**
    * Creates the PasetoTokenValidator bean - the single source of truth for ALL token validation.
    * Keys are loaded from Vault automatically.
+   *
+   * @return the PasetoTokenValidator bean
    */
   @Bean
   @ConditionalOnMissingBean
@@ -72,7 +79,12 @@ public class AuthorizationAutoConfiguration implements WebMvcConfigurer {
     return new PasetoTokenValidator();
   }
 
-  /** Creates the PasetoAuthenticationFilter bean using the validator for token validation. */
+  /**
+   * Creates the PasetoAuthenticationFilter bean using the validator for token validation.
+   *
+   * @param tokenValidator the token validator
+   * @return the filter registration bean
+   */
   @Bean
   public FilterRegistrationBean<PasetoAuthenticationFilter> pasetoAuthenticationFilter(
       PasetoTokenValidator tokenValidator) {
@@ -92,6 +104,11 @@ public class AuthorizationAutoConfiguration implements WebMvcConfigurer {
     return registration;
   }
 
+  /**
+   * Creates the AuthUserArgumentResolver bean.
+   *
+   * @return the AuthUserArgumentResolver bean
+   */
   @Bean
   public AuthUserArgumentResolver authUserArgumentResolver() {
     return new AuthUserArgumentResolver();
@@ -101,4 +118,5 @@ public class AuthorizationAutoConfiguration implements WebMvcConfigurer {
   public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
     resolvers.add(authUserArgumentResolver());
   }
+
 }

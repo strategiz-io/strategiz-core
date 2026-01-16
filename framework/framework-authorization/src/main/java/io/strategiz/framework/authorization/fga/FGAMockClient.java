@@ -23,12 +23,14 @@ import org.springframework.stereotype.Component;
  * handle relationship hierarchies based on the authorization model.
  */
 @Component
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class FGAMockClient implements FGAClient {
 
   private static final Logger log = LoggerFactory.getLogger(FGAMockClient.class);
 
   private final Set<TupleKey> tuples = ConcurrentHashMap.newKeySet();
 
+  /** Creates a new FGAMockClient. */
   public FGAMockClient() {
     log.info("Using FGA mock client (in-memory). For production, add client-openfga dependency.");
   }
@@ -89,4 +91,5 @@ public class FGAMockClient implements FGAClient {
   public int size() {
     return tuples.size();
   }
+
 }

@@ -22,8 +22,11 @@ import java.util.*;
  * - Stock screening by financial metrics
  * - Python strategy integration (map format)
  * </p>
+ *
+ * Requires ClickHouse to be enabled.
  */
 @Service
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class FundamentalsQueryService {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsQueryService.class);

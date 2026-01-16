@@ -54,7 +54,7 @@ public class ExecuteStrategyController extends BaseController {
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
                                    MarketDataRepository marketDataRepository,
-                                   FundamentalsQueryService fundamentalsQueryService) {
+                                   @Autowired(required = false) FundamentalsQueryService fundamentalsQueryService) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
@@ -62,6 +62,9 @@ public class ExecuteStrategyController extends BaseController {
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
         this.fundamentalsQueryService = fundamentalsQueryService;
+        if (fundamentalsQueryService == null) {
+            logger.warn("FundamentalsQueryService not available - fundamentals features will be disabled");
+        }
     }
     
     @PostMapping("/{strategyId}/execute")

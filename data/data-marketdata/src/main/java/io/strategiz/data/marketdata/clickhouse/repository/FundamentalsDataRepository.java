@@ -21,8 +21,11 @@ import java.util.Optional;
 /**
  * Data repository for company fundamentals. Stores company financial metrics (P/E, EPS,
  * revenue, etc.) for stock screening and analysis.
+ *
+ * Requires ClickHouse to be enabled.
  */
 @Repository
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class FundamentalsDataRepository {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsDataRepository.class);

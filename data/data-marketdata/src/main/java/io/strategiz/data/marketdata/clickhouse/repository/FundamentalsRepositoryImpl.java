@@ -15,8 +15,11 @@ import java.util.Optional;
 /**
  * Implementation of FundamentalsRepository that delegates to the data access layer.
  * Provides a clean abstraction over the underlying data storage implementation.
+ *
+ * Requires ClickHouse to be enabled.
  */
 @Repository
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class FundamentalsRepositoryImpl implements FundamentalsRepository {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsRepositoryImpl.class);

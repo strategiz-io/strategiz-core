@@ -5,6 +5,7 @@ import io.strategiz.business.marketdata.MarketDataCollectionService;
 import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +26,12 @@ import java.util.*;
  * Security: Should be restricted to admin users only (add security annotations)
  *
  * Architecture: Controllers call services directly (business logic layer)
+ *
+ * Requires ClickHouse to be enabled.
  */
 @RestController
 @RequestMapping("/v1/marketdata/admin")
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class MarketDataBatchController {
 
 	private static final Logger log = LoggerFactory.getLogger(MarketDataBatchController.class);

@@ -49,10 +49,13 @@ public class ClickHouseConfig {
 		String username = loadSecret("clickhouse.username", properties.getUsername());
 		String password = loadSecret("clickhouse.password", properties.getPassword());
 
-		// Build JDBC URL with explicit UTC timezone to prevent conversion issues
+		// Build JDBC URL with proper SSL settings for ClickHouse Cloud
+		// Using 'ch' protocol prefix for newer driver compatibility
+		// sslmode=STRICT ensures certificate validation
+		// socket_timeout prevents indefinite hangs during SSL handshake
 		String jdbcUrl = String.format(
-				"jdbc:clickhouse://%s:%s/%s?ssl=true&use_server_time_zone=false&use_time_zone=UTC", host, port,
-				database);
+				"jdbc:ch://%s:%s/%s?ssl=true&sslmode=STRICT&socket_timeout=60000&connection_timeout=60000&use_server_time_zone=false&use_time_zone=UTC",
+				host, port, database);
 
 		config.setJdbcUrl(jdbcUrl);
 		config.setUsername(username);

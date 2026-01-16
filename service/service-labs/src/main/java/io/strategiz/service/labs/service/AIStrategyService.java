@@ -42,13 +42,14 @@ public class AIStrategyService extends BaseService {
 
 	private final ObjectMapper objectMapper;
 
+	// Optional - only available when ClickHouse is enabled
 	private final HistoricalInsightsService historicalInsightsService;
 	private final HistoricalInsightsCacheService cacheService;
 	private final StrategyExecutionService executionService;
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
-			HistoricalInsightsService historicalInsightsService,
+			@Autowired(required = false) HistoricalInsightsService historicalInsightsService,
 			HistoricalInsightsCacheService cacheService,
 			StrategyExecutionService executionService) {
 		this.llmRouter = llmRouter;
@@ -56,6 +57,9 @@ public class AIStrategyService extends BaseService {
 		this.historicalInsightsService = historicalInsightsService;
 		this.cacheService = cacheService;
 		this.executionService = executionService;
+		if (historicalInsightsService == null) {
+			log.warn("HistoricalInsightsService not available - Feeling Lucky mode will be disabled");
+		}
 	}
 
 	/**
@@ -774,6 +778,12 @@ public class AIStrategyService extends BaseService {
 	 * Checks cache first, computes if needed, handles errors gracefully.
 	 */
 	private SymbolInsights getHistoricalInsights(AIStrategyRequest request) {
+		// Check if HistoricalInsightsService is available (requires ClickHouse)
+		if (historicalInsightsService == null) {
+			log.warn("Historical Market Insights not available - ClickHouse is disabled");
+			return null;
+		}
+
 		// Extract symbol from prompt or context
 		String symbol = extractPrimarySymbol(request);
 		if (symbol == null) {

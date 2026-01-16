@@ -1,6 +1,6 @@
 package io.strategiz.service.marketing.config;
 
-import io.strategiz.service.marketing.controller.MarketTickerController;
+import io.strategiz.service.marketing.service.MarketTickerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -16,10 +16,10 @@ public class MarketTickerCacheWarmer {
 
     private static final Logger log = LoggerFactory.getLogger(MarketTickerCacheWarmer.class);
 
-    private final MarketTickerController marketTickerController;
+    private final MarketTickerService marketTickerService;
 
-    public MarketTickerCacheWarmer(MarketTickerController marketTickerController) {
-        this.marketTickerController = marketTickerController;
+    public MarketTickerCacheWarmer(MarketTickerService marketTickerService) {
+        this.marketTickerService = marketTickerService;
     }
 
     /**
@@ -30,7 +30,7 @@ public class MarketTickerCacheWarmer {
     public void warmUpCache() {
         log.info("Warming up market ticker cache...");
         try {
-            marketTickerController.getMarketTicker();
+            marketTickerService.getMarketTicker();
             log.info("Market ticker cache warmed up successfully");
         } catch (Exception e) {
             log.warn("Failed to warm up market ticker cache: {}", e.getMessage());

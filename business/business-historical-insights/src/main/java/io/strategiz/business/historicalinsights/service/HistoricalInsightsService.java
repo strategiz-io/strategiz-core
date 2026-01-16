@@ -8,6 +8,7 @@ import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRe
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,8 +20,11 @@ import java.util.*;
  * Service for analyzing historical market data to generate insights for Historical Market Insights (Feeling Lucky mode).
  * Computes volatility profiles, ranks indicators by effectiveness, finds optimal parameters,
  * and detects market characteristics using 7 years of historical OHLCV data.
+ *
+ * Requires ClickHouse to be enabled - this service will not be available when ClickHouse is disabled.
  */
 @Service
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class HistoricalInsightsService {
 
 	private static final Logger log = LoggerFactory.getLogger(HistoricalInsightsService.class);

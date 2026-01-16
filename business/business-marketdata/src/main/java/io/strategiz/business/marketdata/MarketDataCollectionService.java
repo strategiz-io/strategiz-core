@@ -288,6 +288,31 @@ public class MarketDataCollectionService {
     }
 
     /**
+     * Determine if a symbol is a cryptocurrency.
+     * Crypto symbols in Alpaca format contain "/USD" (e.g., "BTC/USD").
+     * Also checks SymbolService for asset type.
+     */
+    private boolean isCryptoSymbol(String symbol) {
+        // Quick check for Alpaca crypto format
+        if (symbol.contains("/USD")) {
+            return true;
+        }
+
+        // Check SymbolService for asset type
+        try {
+            String canonicalSymbol = symbolService.getCanonicalSymbol(symbol, DATA_SOURCE);
+            var symbolEntity = symbolService.getSymbolMetadata(canonicalSymbol);
+            if (symbolEntity != null && "CRYPTO".equalsIgnoreCase(symbolEntity.getAssetType())) {
+                return true;
+            }
+        } catch (Exception e) {
+            log.debug("Could not determine asset type for {}: {}", symbol, e.getMessage());
+        }
+
+        return false;
+    }
+
+    /**
      * Convert Alpaca/legacy long format to our canonical short format for storage.
      * Storage format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
      */
@@ -315,7 +340,8 @@ public class MarketDataCollectionService {
     }
 
     /**
-     * Process a single symbol - fetch bars and store in batches
+     * Process a single symbol - fetch bars and store in batches.
+     * Automatically detects crypto symbols and uses the appropriate API endpoint.
      */
     private SymbolResult processSymbol(String symbol, LocalDateTime startDate, LocalDateTime endDate,
                                        String timeframe, AlpacaAsset assetMetadata) {
@@ -325,9 +351,20 @@ public class MarketDataCollectionService {
             // Convert timeframe to Alpaca format
             String alpacaTimeframe = toAlpacaTimeframe(timeframe);
 
+            // Determine if this is a crypto symbol
+            boolean isCrypto = isCryptoSymbol(symbol);
+
             // Fetch all bars for this symbol (handles pagination internally)
-            log.info(">>> Fetching bars for {} via historicalClient (alpaca timeframe: {})...", symbol, alpacaTimeframe);
-            List<AlpacaBar> bars = historicalClient.getBars(symbol, startDate, endDate, alpacaTimeframe);
+            List<AlpacaBar> bars;
+            if (isCrypto) {
+                // For crypto, extract the base symbol (e.g., "BTC/USD" -> "BTC")
+                String cryptoSymbol = symbol.contains("/") ? symbol.split("/")[0] : symbol;
+                log.info(">>> Fetching crypto bars for {} via historicalClient (alpaca timeframe: {})...", cryptoSymbol, alpacaTimeframe);
+                bars = historicalClient.getCryptoBars(cryptoSymbol, startDate, endDate, alpacaTimeframe);
+            } else {
+                log.info(">>> Fetching stock bars for {} via historicalClient (alpaca timeframe: {})...", symbol, alpacaTimeframe);
+                bars = historicalClient.getBars(symbol, startDate, endDate, alpacaTimeframe);
+            }
             log.info(">>> Got {} bars for {}", bars != null ? bars.size() : "null", symbol);
 
             if (bars == null || bars.isEmpty()) {
@@ -445,8 +482,14 @@ public class MarketDataCollectionService {
                 entity.getMetadata().put("minOrderSize", assetMetadata.getMinOrderSizeDecimal());
                 entity.getMetadata().put("priceIncrement", assetMetadata.getPriceIncrementDecimal());
             } else {
-                entity.setAssetType("us_equity");
-                entity.setExchange("UNKNOWN");
+                // Determine asset type based on symbol format
+                if (isCryptoSymbol(symbol)) {
+                    entity.setAssetType("crypto");
+                    entity.setExchange("CRYPTO");
+                } else {
+                    entity.setAssetType("us_equity");
+                    entity.setExchange("UNKNOWN");
+                }
                 entity.getMetadata().put("status", "active");
             }
 

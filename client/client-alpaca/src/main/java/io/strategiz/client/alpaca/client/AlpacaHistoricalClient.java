@@ -358,6 +358,189 @@ public class AlpacaHistoricalClient {
     }
 
     /**
+     * Fetch all historical crypto bars with automatic pagination.
+     * Uses Alpaca's crypto data endpoint: /v1beta3/crypto/us/bars
+     *
+     * @param symbol Canonical crypto symbol (e.g., "BTC", "ETH")
+     * @param startDate Start date for data
+     * @param endDate End date for data
+     * @param timeframe Timeframe (1Min, 5Min, 15Min, 1Hour, 1Day)
+     * @return List of AlpacaBar objects
+     */
+    public List<AlpacaBar> getCryptoBars(String symbol, LocalDateTime startDate, LocalDateTime endDate, String timeframe) {
+        if (!isAvailable()) {
+            throw new StrategizException(AlpacaErrorDetails.CONFIGURATION_ERROR,
+                MODULE_NAME, "AlpacaHistoricalClient is not available - credentials not configured");
+        }
+
+        // Convert to Alpaca crypto format (BTC -> BTC/USD)
+        String cryptoPair = symbol + "/USD";
+        log.debug("Fetching crypto bars for {} ({}) from {} to {} ({})", symbol, cryptoPair, startDate, endDate, timeframe);
+
+        List<AlpacaBar> allBars = new ArrayList<>();
+        String nextPageToken = null;
+        int pageCount = 0;
+
+        do {
+            try {
+                if (delayMs > 0 && pageCount > 0) {
+                    Thread.sleep(delayMs);
+                }
+
+                AlpacaBarsResponse response = getCryptoBarsPage(cryptoPair, symbol, startDate, endDate, timeframe, nextPageToken);
+
+                if (response.getBars() != null && !response.getBars().isEmpty()) {
+                    allBars.addAll(response.getBars());
+                    log.debug("Page {}: fetched {} crypto bars for {}", pageCount + 1, response.getBars().size(), symbol);
+                }
+
+                nextPageToken = response.getNextPageToken();
+                pageCount++;
+
+                if (pageCount > 1000) {
+                    log.warn("Exceeded 1000 pages for crypto {}, stopping", symbol);
+                    break;
+                }
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new StrategizException(
+                    AlpacaErrorDetails.PAGINATION_ERROR,
+                    MODULE_NAME,
+                    e,
+                    "Thread interrupted during crypto pagination"
+                );
+            }
+
+        } while (nextPageToken != null && !nextPageToken.isEmpty());
+
+        log.info("Fetched {} total crypto bars for {} across {} pages", allBars.size(), symbol, pageCount);
+        return allBars;
+    }
+
+    /**
+     * Fetch a single page of crypto bars with retry logic for rate limiting
+     */
+    private AlpacaBarsResponse getCryptoBarsPage(String cryptoPair, String canonicalSymbol, LocalDateTime startDate,
+                                                  LocalDateTime endDate, String timeframe, String pageToken) {
+        String start = startDate.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+        String end = endDate.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+
+        StringBuilder path = new StringBuilder(String.format(
+            "/v1beta3/crypto/us/bars?symbols=%s&start=%s&end=%s&timeframe=%s&limit=10000",
+            cryptoPair, start, end, timeframe
+        ));
+
+        if (pageToken != null && !pageToken.isEmpty()) {
+            path.append("&page_token=").append(pageToken);
+        }
+
+        String fullUrl = apiUrl + path.toString();
+
+        // Retry loop with exponential backoff for 429 errors
+        int retryCount = 0;
+        Exception lastException = null;
+
+        while (retryCount <= maxRetries) {
+            try {
+                log.debug(">>> ALPACA CRYPTO API CALL (attempt {}): {}", retryCount + 1, fullUrl);
+
+                HttpEntity<String> entity = new HttpEntity<>(createHeaders());
+                ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    fullUrl,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
+                );
+
+                String responseBody = responseEntity.getBody();
+                log.debug(">>> ALPACA CRYPTO RAW RESPONSE (first 500 chars): {}",
+                    responseBody != null ? responseBody.substring(0, Math.min(500, responseBody.length())) : "NULL");
+
+                if (responseBody == null || responseBody.isEmpty()) {
+                    throw new StrategizException(
+                        AlpacaErrorDetails.NO_DATA_AVAILABLE,
+                        MODULE_NAME,
+                        String.format("Empty response for crypto symbol: %s", canonicalSymbol)
+                    );
+                }
+
+                // Parse crypto response - structure is different from stocks
+                // Crypto returns: { "bars": { "BTC/USD": [ {...}, {...} ] }, "next_page_token": "..." }
+                Map<String, Object> rawResponse = objectMapper.readValue(responseBody, Map.class);
+                Map<String, Object> barsMap = (Map<String, Object>) rawResponse.get("bars");
+                String nextToken = (String) rawResponse.get("next_page_token");
+
+                AlpacaBarsResponse response = new AlpacaBarsResponse();
+                response.setSymbol(canonicalSymbol);
+                response.setNextPageToken(nextToken);
+
+                if (barsMap != null && barsMap.containsKey(cryptoPair)) {
+                    List<Map<String, Object>> barsList = (List<Map<String, Object>>) barsMap.get(cryptoPair);
+                    List<AlpacaBar> bars = new ArrayList<>();
+
+                    for (Map<String, Object> barData : barsList) {
+                        AlpacaBar bar = new AlpacaBar();
+                        bar.setTimestamp((String) barData.get("t"));
+                        bar.setOpen(new BigDecimal(barData.get("o").toString()));
+                        bar.setHigh(new BigDecimal(barData.get("h").toString()));
+                        bar.setLow(new BigDecimal(barData.get("l").toString()));
+                        bar.setClose(new BigDecimal(barData.get("c").toString()));
+                        bar.setVolume(((Number) barData.get("v")).longValue());
+                        bars.add(bar);
+                    }
+
+                    response.setBars(bars);
+                }
+
+                log.debug(">>> PARSED CRYPTO RESPONSE: bars count={}, nextPageToken={}",
+                    response.getBars() != null ? response.getBars().size() : 0, response.getNextPageToken());
+
+                return response;
+
+            } catch (HttpClientErrorException.TooManyRequests e) {
+                lastException = e;
+                retryCount++;
+                if (retryCount > maxRetries) {
+                    log.error("Max retries ({}) exceeded for crypto {} - rate limit still in effect", maxRetries, canonicalSymbol);
+                    break;
+                }
+
+                long backoffMs = retryDelayMs * (long) Math.pow(2, retryCount - 1);
+                log.warn("Rate limited (429) for crypto {}, attempt {}/{}, waiting {}ms before retry",
+                    canonicalSymbol, retryCount, maxRetries, backoffMs);
+
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new StrategizException(
+                        AlpacaErrorDetails.PAGINATION_ERROR,
+                        MODULE_NAME,
+                        ie,
+                        "Thread interrupted during rate limit backoff"
+                    );
+                }
+            } catch (Exception e) {
+                log.error("Error fetching crypto bars for {}: {}", canonicalSymbol, e.getMessage());
+                throw new StrategizException(
+                    AlpacaErrorDetails.API_ERROR_RESPONSE,
+                    MODULE_NAME,
+                    e,
+                    String.format("Failed to fetch crypto bars for symbol: %s", canonicalSymbol)
+                );
+            }
+        }
+
+        throw new StrategizException(
+            AlpacaErrorDetails.API_ERROR_RESPONSE,
+            MODULE_NAME,
+            lastException,
+            String.format("Failed to fetch crypto bars for %s after %d retries due to rate limiting", canonicalSymbol, maxRetries)
+        );
+    }
+
+    /**
      * Get latest quotes for crypto symbols.
      * Uses Alpaca's crypto data endpoint.
      *

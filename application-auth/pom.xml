@@ -21,6 +21,12 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Web MVC (required for REST controllers) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
         <!-- Mail support (required by MailVaultConfig) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -44,20 +44,27 @@ public class AdminJobController extends BaseController {
 
 	private final JobManagementService jobManagementService;
 
-	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
-
 	private final JobDefinitionFirestoreRepository jobDefinitionRepository;
 
-	private final DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness;
+	// Optional dependencies - only available when ClickHouse is enabled
+	private JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+
+	private DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness;
 
 	@Autowired
 	public AdminJobController(JobManagementService jobManagementService,
-			JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
-			JobDefinitionFirestoreRepository jobDefinitionRepository,
-			DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness) {
+			JobDefinitionFirestoreRepository jobDefinitionRepository) {
 		this.jobManagementService = jobManagementService;
-		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
 		this.jobDefinitionRepository = jobDefinitionRepository;
+	}
+
+	@Autowired(required = false)
+	public void setJobExecutionHistoryBusiness(JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
+		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+	}
+
+	@Autowired(required = false)
+	public void setDynamicJobSchedulerBusiness(DynamicJobSchedulerBusiness dynamicJobSchedulerBusiness) {
 		this.dynamicJobSchedulerBusiness = dynamicJobSchedulerBusiness;
 	}
 
@@ -112,6 +119,12 @@ public class AdminJobController extends BaseController {
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		logRequest("getAllJobHistory", adminUserId, "page=" + page);
 
+		// Check if ClickHouse-dependent service is available
+		if (jobExecutionHistoryBusiness == null) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, MODULE_NAME,
+					"Job execution history requires ClickHouse to be enabled");
+		}
+
 		// Get paginated execution history across all jobs
 		Pageable pageable = PageRequest.of(page, pageSize);
 		Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getAllExecutionHistory(pageable);
@@ -160,6 +173,12 @@ public class AdminJobController extends BaseController {
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		logRequest("getJobHistory", adminUserId, "jobName=" + name + ", page=" + page);
 
+		// Check if ClickHouse-dependent service is available
+		if (jobExecutionHistoryBusiness == null) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, MODULE_NAME,
+					"Job execution history requires ClickHouse to be enabled");
+		}
+
 		// Get paginated execution history
 		Page<JobExecutionEntity> executionsPage = jobExecutionHistoryBusiness.getExecutionHistory(name, page, pageSize);
 
@@ -189,6 +208,12 @@ public class AdminJobController extends BaseController {
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		logRequest("getJobStats", adminUserId, "jobName=" + name + ", sinceDays=" + sinceDays);
 
+		// Check if ClickHouse-dependent service is available
+		if (jobExecutionHistoryBusiness == null) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, MODULE_NAME,
+					"Job statistics requires ClickHouse to be enabled");
+		}
+
 		Map<String, Object> stats = jobExecutionHistoryBusiness.getExecutionStats(name, sinceDays);
 
 		log.debug("Job stats for {}: {}", name, stats);
@@ -217,8 +242,10 @@ public class AdminJobController extends BaseController {
 		jobDef.setScheduleCron(cron);
 		jobDefinitionRepository.save(jobDef);
 
-		// Update running scheduler
-		dynamicJobSchedulerBusiness.updateSchedule(jobId, cron);
+		// Update running scheduler if available
+		if (dynamicJobSchedulerBusiness != null) {
+			dynamicJobSchedulerBusiness.updateSchedule(jobId, cron);
+		}
 
 		log.info("Job {} schedule updated by admin {}: {} -> {}", jobId, adminUserId, oldCron, cron);
 
@@ -244,8 +271,8 @@ public class AdminJobController extends BaseController {
 		jobDef.setEnabled(enabled);
 		jobDefinitionRepository.save(jobDef);
 
-		// If this is a scheduled job, update the scheduler
-		if ("CRON".equals(jobDef.getScheduleType())) {
+		// If this is a scheduled job and scheduler is available, update the scheduler
+		if ("CRON".equals(jobDef.getScheduleType()) && dynamicJobSchedulerBusiness != null) {
 			if (enabled && !wasEnabled) {
 				// Enable: Schedule the job
 				dynamicJobSchedulerBusiness.scheduleJob(jobDef);
@@ -258,7 +285,7 @@ public class AdminJobController extends BaseController {
 			}
 		}
 		else {
-			log.info("Manual job {} {} by admin {}", jobId, enabled ? "enabled" : "disabled", adminUserId);
+			log.info("Job {} {} by admin {}", jobId, enabled ? "enabled" : "disabled", adminUserId);
 		}
 
 		return ResponseEntity.ok(Map.of("jobId", jobId, "enabled", enabled, "wasEnabled", wasEnabled, "message",

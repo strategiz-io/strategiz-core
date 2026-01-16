@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Provides comprehensive earnings context for AI agents
@@ -30,10 +31,10 @@ public class EarningsContextProvider {
     @Autowired
     public EarningsContextProvider(
             FinnhubEarningsClient earningsClient,
-            @Autowired(required = false) FundamentalsQueryService fundamentalsQueryService) {
+            Optional<FundamentalsQueryService> fundamentalsQueryService) {
         this.earningsClient = earningsClient;
-        this.fundamentalsQueryService = fundamentalsQueryService;
-        if (fundamentalsQueryService == null) {
+        this.fundamentalsQueryService = fundamentalsQueryService.orElse(null);
+        if (this.fundamentalsQueryService == null) {
             log.info("FundamentalsQueryService not available - fundamentals context will be limited");
         }
     }

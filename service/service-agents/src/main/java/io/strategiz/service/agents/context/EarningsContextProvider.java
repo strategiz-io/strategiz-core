@@ -5,6 +5,7 @@ import io.strategiz.client.finnhub.FinnhubEarningsClient;
 import io.strategiz.client.finnhub.dto.EarningsCalendarEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -26,11 +27,15 @@ public class EarningsContextProvider {
     private final FinnhubEarningsClient earningsClient;
     private final FundamentalsQueryService fundamentalsQueryService;
 
+    @Autowired
     public EarningsContextProvider(
             FinnhubEarningsClient earningsClient,
-            FundamentalsQueryService fundamentalsQueryService) {
+            @Autowired(required = false) FundamentalsQueryService fundamentalsQueryService) {
         this.earningsClient = earningsClient;
         this.fundamentalsQueryService = fundamentalsQueryService;
+        if (fundamentalsQueryService == null) {
+            log.info("FundamentalsQueryService not available - fundamentals context will be limited");
+        }
     }
 
     /**
@@ -165,6 +170,11 @@ public class EarningsContextProvider {
     }
 
     private void appendSymbolFundamentals(StringBuilder context, String symbol) {
+        if (fundamentalsQueryService == null) {
+            context.append("\n").append(symbol.toUpperCase()).append(": [Fundamentals service not available]\n");
+            return;
+        }
+
         try {
             var fundamentals = fundamentalsQueryService.getLatestFundamentalsOrNull(symbol);
             if (fundamentals != null) {

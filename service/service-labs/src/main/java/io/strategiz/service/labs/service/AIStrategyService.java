@@ -49,15 +49,15 @@ public class AIStrategyService extends BaseService {
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
-			@Autowired(required = false) HistoricalInsightsService historicalInsightsService,
+			Optional<HistoricalInsightsService> historicalInsightsService,
 			HistoricalInsightsCacheService cacheService,
 			StrategyExecutionService executionService) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
-		this.historicalInsightsService = historicalInsightsService;
+		this.historicalInsightsService = historicalInsightsService.orElse(null);
 		this.cacheService = cacheService;
 		this.executionService = executionService;
-		if (historicalInsightsService == null) {
+		if (this.historicalInsightsService == null) {
 			log.warn("HistoricalInsightsService not available - Feeling Lucky mode will be disabled");
 		}
 	}

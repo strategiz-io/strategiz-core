@@ -782,8 +782,8 @@ public class SymbolSeedController {
         entity.setDecimals(decimals);
         entity.setProviderSymbols(new HashMap<>(providerSymbols));
         entity.setCollectionActive(true);
-        entity.setPrimaryDataSource("YAHOO");
-        entity.setTimeframes(List.of("1D"));
+        entity.setPrimaryDataSource("ALPACA");  // Use Alpaca for crypto (supports /v1beta3/crypto/us/bars)
+        entity.setTimeframes(List.of("1m", "30m", "1h", "4h", "1D"));  // Crypto supports same timeframes as stocks
         entity.setStatus("ACTIVE");
         return entity;
     }

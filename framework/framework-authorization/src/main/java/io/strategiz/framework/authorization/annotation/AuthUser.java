@@ -21,7 +21,8 @@ import java.lang.annotation.Target;
  *
  * // Optional - returns null if not authenticated
  * &#64;GetMapping("/public")
- * public ResponseEntity&lt;?&gt; publicEndpoint(&#64;AuthUser(required = false) AuthenticatedUser user) {
+ * public ResponseEntity&lt;?&gt; publicEndpoint(
+ *     &#64;AuthUser(required = false) AuthenticatedUser user) {
  *     if (user != null) {
  *         // Personalized response
  *     }
@@ -37,10 +38,11 @@ import java.lang.annotation.Target;
 public @interface AuthUser {
 
   /**
-   * Whether authentication is required. If true (default) and no user is authenticated, throws 401.
-   * If false, the parameter will be null when not authenticated.
+   * Whether authentication is required. If true (default) and no user is authenticated,
+   * throws 401. If false, the parameter will be null when not authenticated.
    *
    * @return true if authentication is required
    */
   boolean required() default true;
+
 }

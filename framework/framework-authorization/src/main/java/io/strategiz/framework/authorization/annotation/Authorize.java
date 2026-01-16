@@ -24,12 +24,18 @@ import java.lang.annotation.Target;
  *
  * <pre>
  * // Check if user is owner of the portfolio
- * &#64;Authorize(relation = "owner", resource = ResourceType.PORTFOLIO, resourceId = "#portfolioId")
- * public ResponseEntity&lt;?&gt; deletePortfolio(&#64;PathVariable String portfolioId) { ... }
+ * &#64;Authorize(relation = "owner", resource = ResourceType.PORTFOLIO,
+ *     resourceId = "#portfolioId")
+ * public ResponseEntity&lt;?&gt; deletePortfolio(&#64;PathVariable String portfolioId) {
+ *     // ...
+ * }
  *
  * // Check if user can view a strategy (owner, editor, or viewer)
- * &#64;Authorize(relation = "viewer", resource = ResourceType.STRATEGY, resourceId = "#request.strategyId")
- * public ResponseEntity&lt;?&gt; viewStrategy(&#64;RequestBody ViewRequest request) { ... }
+ * &#64;Authorize(relation = "viewer", resource = ResourceType.STRATEGY,
+ *     resourceId = "#request.strategyId")
+ * public ResponseEntity&lt;?&gt; viewStrategy(&#64;RequestBody ViewRequest request) {
+ *     // ...
+ * }
  * </pre>
  *
  * @see io.strategiz.framework.authorization.aspect.FGAAuthorizationAspect
@@ -54,10 +60,11 @@ public @interface Authorize {
   ResourceType resource();
 
   /**
-   * SpEL expression to extract the resource ID from method parameters. Examples: "#portfolioId",
-   * "#request.id"
+   * SpEL expression to extract the resource ID from method parameters.
+   * Examples: "#portfolioId", "#request.id"
    *
    * @return the SpEL expression for the resource ID
    */
   String resourceId();
+
 }

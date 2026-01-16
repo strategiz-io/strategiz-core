@@ -24,6 +24,7 @@ import java.util.List;
  * fgaClient.delete("user:123", "owner", "portfolio:456");
  * </pre>
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public interface FGAClient {
 
   /**
@@ -63,4 +64,5 @@ public interface FGAClient {
    * @return list of object identifiers
    */
   List<String> listObjects(String user, String relation, String type);
+
 }

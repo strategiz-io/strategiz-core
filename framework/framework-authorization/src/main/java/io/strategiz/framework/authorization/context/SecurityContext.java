@@ -10,6 +10,7 @@ public final class SecurityContext {
 
   private AuthenticatedUser authenticatedUser;
 
+  /** Creates a new empty SecurityContext. */
   public SecurityContext() {
     this.authenticatedUser = null;
   }

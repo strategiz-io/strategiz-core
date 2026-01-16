@@ -16,6 +16,7 @@ import java.util.Objects;
  */
 public record TupleKey(String user, String relation, String object) {
 
+  /** Creates a new TupleKey with validation. */
   public TupleKey {
     Objects.requireNonNull(user, "user must not be null");
     Objects.requireNonNull(relation, "relation must not be null");

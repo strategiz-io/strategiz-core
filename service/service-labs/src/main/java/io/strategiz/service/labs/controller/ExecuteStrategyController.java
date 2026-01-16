@@ -29,13 +29,14 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/v1/strategies")
 @RequireAuth(minAcr = "1")
 @Tag(name = "Strategy Execution", description = "Execute and backtest trading strategies")
 public class ExecuteStrategyController extends BaseController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ExecuteStrategyController.class);
 
     private final ExecutionEngineService executionEngineService;
@@ -54,15 +55,15 @@ public class ExecuteStrategyController extends BaseController {
                                    PythonStrategyExecutor pythonStrategyExecutor,
                                    BacktestCalculatorBusiness backtestCalculatorBusiness,
                                    MarketDataRepository marketDataRepository,
-                                   @Autowired(required = false) FundamentalsQueryService fundamentalsQueryService) {
+                                   Optional<FundamentalsQueryService> fundamentalsQueryService) {
         this.executionEngineService = executionEngineService;
         this.strategyExecutionService = strategyExecutionService;
         this.readStrategyService = readStrategyService;
         this.pythonStrategyExecutor = pythonStrategyExecutor;
         this.backtestCalculatorBusiness = backtestCalculatorBusiness;
         this.marketDataRepository = marketDataRepository;
-        this.fundamentalsQueryService = fundamentalsQueryService;
-        if (fundamentalsQueryService == null) {
+        this.fundamentalsQueryService = fundamentalsQueryService.orElse(null);
+        if (this.fundamentalsQueryService == null) {
             logger.warn("FundamentalsQueryService not available - fundamentals features will be disabled");
         }
     }

@@ -89,7 +89,7 @@ public class AIStrategyService extends BaseService {
 
 			// VALIDATION LOOP: For Feeling Lucky mode, validate strategy beats buy-and-hold
 			boolean requiresValidation = Boolean.TRUE.equals(request.getUseHistoricalInsights());
-			int maxAttempts = requiresValidation ? 20 : 1; // 20 attempts for good balance of quality vs time
+			int maxAttempts = requiresValidation ? 5 : 1; // 5 attempts max - AI has knowledge of highs/lows
 			AIStrategyResponse bestResponse = null;
 			double bestOutperformance = Double.NEGATIVE_INFINITY;
 

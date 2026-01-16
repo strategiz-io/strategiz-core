@@ -106,7 +106,12 @@ public class HistoricalInsightsService {
 		insights.setAvgWinRate(riskMetrics.avgWinRate);
 		insights.setRecommendedRiskLevel(riskMetrics.recommendedLevel);
 
-		// 8. Optional: Include fundamentals
+		// 8. Detect major price turning points (peaks and troughs) for Feeling Lucky hindsight
+		List<PriceTurningPoint> turningPoints = detectMajorTurningPoints(data);
+		insights.setTurningPoints(turningPoints);
+		log.info("Detected {} major turning points for {}", turningPoints.size(), symbol);
+
+		// 9. Optional: Include fundamentals
 		if (includeFundamentals) {
 			FundamentalsInsights fundInsights = getFundamentalsInsights(symbol);
 			insights.setFundamentals(fundInsights);
@@ -625,6 +630,125 @@ public class HistoricalInsightsService {
 		}
 
 		return metrics;
+	}
+
+	// ========== TURNING POINTS DETECTION (Feeling Lucky Hindsight) ==========
+
+	/**
+	 * Detect major price turning points (peaks and troughs) from historical data.
+	 * These are the optimal buy/sell points that the AI should try to capture.
+	 * Uses a zigzag algorithm with minimum threshold to filter noise.
+	 */
+	private List<PriceTurningPoint> detectMajorTurningPoints(List<MarketDataEntity> data) {
+		List<PriceTurningPoint> turningPoints = new ArrayList<>();
+
+		if (data.size() < 10) {
+			return turningPoints;
+		}
+
+		// Minimum % change to qualify as a major turning point (filter noise)
+		double minChangePercent = 5.0;
+
+		// Track the last confirmed turning point
+		double lastTurningPrice = data.get(0).getClose().doubleValue();
+		Instant lastTurningTime = Instant.ofEpochMilli(data.get(0).getTimestamp());
+		PriceTurningPoint.PointType lastType = null;
+
+		// Track current potential turning point
+		double potentialHigh = data.get(0).getHigh().doubleValue();
+		double potentialLow = data.get(0).getLow().doubleValue();
+		Instant potentialHighTime = Instant.ofEpochMilli(data.get(0).getTimestamp());
+		Instant potentialLowTime = Instant.ofEpochMilli(data.get(0).getTimestamp());
+
+		for (int i = 1; i < data.size(); i++) {
+			MarketDataEntity bar = data.get(i);
+			double high = bar.getHigh().doubleValue();
+			double low = bar.getLow().doubleValue();
+
+			// Update potential peaks/troughs
+			if (high > potentialHigh) {
+				potentialHigh = high;
+				potentialHighTime = Instant.ofEpochMilli(bar.getTimestamp());
+			}
+			if (low < potentialLow) {
+				potentialLow = low;
+				potentialLowTime = Instant.ofEpochMilli(bar.getTimestamp());
+			}
+
+			// Check for confirmed TROUGH (price rallied from low by minChangePercent)
+			if (potentialLow < lastTurningPrice) {
+				double rallyPercent = ((high - potentialLow) / potentialLow) * 100;
+				if (rallyPercent >= minChangePercent) {
+					// Confirmed trough - this was an optimal BUY point
+					PriceTurningPoint trough = new PriceTurningPoint(
+							PriceTurningPoint.PointType.TROUGH,
+							potentialLowTime,
+							potentialLow
+					);
+
+					if (lastType != null) {
+						double changeFromPrev = ((potentialLow - lastTurningPrice) / lastTurningPrice) * 100;
+						trough.setPriceChangeFromPrevious(changeFromPrev);
+						long daysBetween = java.time.Duration.between(lastTurningTime, potentialLowTime).toDays();
+						trough.setDaysFromPrevious((int) daysBetween);
+					}
+
+					turningPoints.add(trough);
+					lastTurningPrice = potentialLow;
+					lastTurningTime = potentialLowTime;
+					lastType = PriceTurningPoint.PointType.TROUGH;
+
+					// Reset potential high from this trough
+					potentialHigh = high;
+					potentialHighTime = Instant.ofEpochMilli(bar.getTimestamp());
+				}
+			}
+
+			// Check for confirmed PEAK (price dropped from high by minChangePercent)
+			if (potentialHigh > lastTurningPrice) {
+				double dropPercent = ((potentialHigh - low) / potentialHigh) * 100;
+				if (dropPercent >= minChangePercent) {
+					// Confirmed peak - this was an optimal SELL point
+					PriceTurningPoint peak = new PriceTurningPoint(
+							PriceTurningPoint.PointType.PEAK,
+							potentialHighTime,
+							potentialHigh
+					);
+
+					if (lastType != null) {
+						double changeFromPrev = ((potentialHigh - lastTurningPrice) / lastTurningPrice) * 100;
+						peak.setPriceChangeFromPrevious(changeFromPrev);
+						long daysBetween = java.time.Duration.between(lastTurningTime, potentialHighTime).toDays();
+						peak.setDaysFromPrevious((int) daysBetween);
+					}
+
+					turningPoints.add(peak);
+					lastTurningPrice = potentialHigh;
+					lastTurningTime = potentialHighTime;
+					lastType = PriceTurningPoint.PointType.PEAK;
+
+					// Reset potential low from this peak
+					potentialLow = low;
+					potentialLowTime = Instant.ofEpochMilli(bar.getTimestamp());
+				}
+			}
+		}
+
+		// Sort by timestamp
+		turningPoints.sort(Comparator.comparing(PriceTurningPoint::getTimestamp));
+
+		// Limit to most significant turning points (max 20 for token limits)
+		if (turningPoints.size() > 20) {
+			// Keep the ones with largest price changes
+			turningPoints.sort((a, b) -> Double.compare(
+					Math.abs(b.getPriceChangeFromPrevious()),
+					Math.abs(a.getPriceChangeFromPrevious())
+			));
+			turningPoints = new ArrayList<>(turningPoints.subList(0, 20));
+			turningPoints.sort(Comparator.comparing(PriceTurningPoint::getTimestamp));
+		}
+
+		return turningPoints;
 	}
 
 	// ========== FUNDAMENTALS ==========

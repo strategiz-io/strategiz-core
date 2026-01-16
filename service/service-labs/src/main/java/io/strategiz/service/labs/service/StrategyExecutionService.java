@@ -208,11 +208,11 @@ public class StrategyExecutionService extends BaseService {
      */
     private LocalDate calculateDynamicStartDate(LocalDate endDate, String timeframe) {
         return switch (timeframe) {
-            case "1h", "4h" -> endDate.minusMonths(6);   // Hourly: 6 months
-            case "1D" -> endDate.minusYears(2);          // Daily: 2 years (current)
+            case "1h", "4h" -> endDate.minusYears(1);    // Hourly: 1 year
+            case "1D" -> endDate.minusYears(3);          // Daily: 3 years
             case "1W" -> endDate.minusYears(5);          // Weekly: 5 years
             case "1M" -> endDate.minusYears(7);          // Monthly: 7 years
-            default -> endDate.minusYears(2);            // Safe default
+            default -> endDate.minusYears(3);            // Default: 3 years
         };
     }
 

@@ -255,15 +255,14 @@ public class ConsoleMarketDataCoverageController extends BaseController {
 		try {
 			// Target timeframes for S&P 500 coverage tracking
 			List<String> targetTimeframes = List.of("1h", "1D", "1W", "1M");
-			int totalSymbols = 547; // S&P 500 symbols
+			int totalSymbols = 567; // S&P 500 symbols
 
 			// Calculate freshness metrics per timeframe
 			List<Map<String, Object>> timeframeMetrics = symbolDataStatusService
 				.calculateFreshnessMetrics(targetTimeframes, freshnessThresholdMinutes);
 
 			// Calculate overall freshness
-			long totalPairs = (long) totalSymbols * targetTimeframes.size(); // 547 * 4 =
-																				// 2,188
+			long totalPairs = (long) totalSymbols * targetTimeframes.size(); // 567 * 4 = 2,268
 			long totalFreshPairs = timeframeMetrics.stream().mapToLong(m -> (Long) m.get("freshSymbols")).sum();
 			double overallFreshnessPercent = (totalFreshPairs * 100.0) / totalPairs;
 

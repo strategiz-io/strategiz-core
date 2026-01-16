@@ -247,6 +247,12 @@ public class PortfolioAggregatorService extends BaseService {
                         .ifPresent(holdings -> {
                             providerSummary.setDayChange(holdings.getDayChange());
                             providerSummary.setCashBalance(holdings.getCashBalance());
+                            providerSummary.setTotalProfitLoss(holdings.getTotalProfitLoss());
+
+                            // Margin account fields
+                            providerSummary.setBuyingPower(holdings.getBuyingPower());
+                            providerSummary.setMarginBalance(holdings.getMarginBalance());
+                            providerSummary.setLiquidationValue(holdings.getLiquidationValue());
 
                             if (holdings.getHoldings() != null) {
                                 for (ProviderHoldingsEntity.Holding holding : holdings.getHoldings()) {

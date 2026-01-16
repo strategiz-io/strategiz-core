@@ -33,6 +33,10 @@ public class PortfolioOverviewResponse {
         private BigDecimal totalValue;
         private BigDecimal dayChange;
         private BigDecimal cashBalance;
+        private BigDecimal buyingPower;
+        private BigDecimal marginBalance;
+        private BigDecimal liquidationValue;
+        private BigDecimal totalProfitLoss;
         private int positionCount;
         private String syncStatus;
         private long lastSynced;
@@ -101,7 +105,39 @@ public class PortfolioOverviewResponse {
         public void setCashBalance(BigDecimal cashBalance) {
             this.cashBalance = cashBalance;
         }
-        
+
+        public BigDecimal getBuyingPower() {
+            return buyingPower;
+        }
+
+        public void setBuyingPower(BigDecimal buyingPower) {
+            this.buyingPower = buyingPower;
+        }
+
+        public BigDecimal getMarginBalance() {
+            return marginBalance;
+        }
+
+        public void setMarginBalance(BigDecimal marginBalance) {
+            this.marginBalance = marginBalance;
+        }
+
+        public BigDecimal getLiquidationValue() {
+            return liquidationValue;
+        }
+
+        public void setLiquidationValue(BigDecimal liquidationValue) {
+            this.liquidationValue = liquidationValue;
+        }
+
+        public BigDecimal getTotalProfitLoss() {
+            return totalProfitLoss;
+        }
+
+        public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
+            this.totalProfitLoss = totalProfitLoss;
+        }
+
         public int getPositionCount() {
             return positionCount;
         }

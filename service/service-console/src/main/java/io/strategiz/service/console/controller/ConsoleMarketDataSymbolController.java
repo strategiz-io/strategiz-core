@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,10 +25,13 @@ import java.util.stream.Collectors;
  * filters - GET /v1/console/marketdata/symbols/{symbol} - Detailed status for one symbol
  * - GET /v1/console/marketdata/symbols/stale - Symbols needing refresh - GET
  * /v1/console/marketdata/symbols/failing - Symbols with consecutive failures
+ *
+ * Requires ClickHouse to be enabled.
  */
 @RestController
 @RequestMapping("/v1/console/marketdata/symbols")
 @Tag(name = "Console Market Data Symbols", description = "Admin endpoints for per-symbol data monitoring")
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class ConsoleMarketDataSymbolController extends BaseController {
 
 	private static final String MODULE_NAME = "CONSOLE";

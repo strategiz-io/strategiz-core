@@ -49,18 +49,29 @@ public class VaultHttpClient implements VaultClient {
 
   @Override
   public Map<String, Object> read(String path) {
+    log.info("=== VaultHttpClient.read START ===");
+    log.info("Input path: {}", path);
+    log.info("Vault address from properties: {}", properties.getAddress());
     try {
       String url = properties.getAddress() + "/v1/" + path;
-      log.info("Reading from Vault URL: {}", url);
+      log.info("Full Vault URL: {}", url);
       HttpHeaders headers = createHeaders();
+      log.info("VAULT_TOKEN present in headers: {}", headers.containsKey("X-Vault-Token"));
       HttpEntity<String> entity = new HttpEntity<>(headers);
 
+      log.info("Making HTTP GET request to Vault...");
       ResponseEntity<Map<String, Object>> response =
           restTemplate.exchange(
               url,
               HttpMethod.GET,
               entity,
               new ParameterizedTypeReference<Map<String, Object>>() {});
+
+      log.info("Response status: {}", response.getStatusCode());
+      log.info("Response body present: {}", response.getBody() != null);
+      if (response.getBody() != null) {
+        log.info("Response body keys: {}", response.getBody().keySet());
+      }
 
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         Map<String, Object> responseBody = response.getBody();
@@ -101,10 +112,21 @@ public class VaultHttpClient implements VaultClient {
       return null;
 
     } catch (HttpClientErrorException e) {
+      log.error("=== VaultHttpClient HTTP ERROR ===");
+      log.error("HTTP Status: {}", e.getStatusCode());
+      log.error("Response body: {}", e.getResponseBodyAsString());
+      log.error("Path: {}", path);
       if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+        log.warn("Secret not found at path: {}", path);
         return null;
       }
       throw new StrategizException(SecretsErrors.VAULT_READ_FAILED, "framework-secrets", e, path);
+    } catch (Exception e) {
+      log.error("=== VaultHttpClient UNEXPECTED ERROR ===");
+      log.error("Exception type: {}", e.getClass().getName());
+      log.error("Message: {}", e.getMessage());
+      log.error("Path: {}", path);
+      throw e;
     }
   }
 
@@ -160,14 +182,20 @@ public class VaultHttpClient implements VaultClient {
 
     // Get token from environment or Spring Cloud Vault configuration
     String token = environment.getProperty("VAULT_TOKEN");
+    log.info("VAULT_TOKEN from environment.getProperty: {}", token != null ? "present (" + token.length() + " chars)" : "NULL");
+
     if (token == null) {
       token = environment.getProperty("spring.cloud.vault.token", "root-token");
+      log.info("Fallback to spring.cloud.vault.token: {}", token != null ? "present (" + token.length() + " chars)" : "using default");
     }
     // Trim any whitespace/newlines that might come from Secret Manager
     if (token != null) {
+      String originalLength = String.valueOf(token.length());
       token = token.trim().replaceAll("[\\r\\n]", "");
+      log.info("Token after trim - original length: {}, new length: {}", originalLength, token.length());
     }
     headers.set("X-Vault-Token", token);
+    log.info("X-Vault-Token header set: {}", token != null && !token.isEmpty());
 
     return headers;
   }

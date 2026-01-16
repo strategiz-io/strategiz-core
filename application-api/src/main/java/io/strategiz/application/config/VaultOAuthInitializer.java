@@ -99,17 +99,20 @@ public class VaultOAuthInitializer implements ApplicationContextInitializer<Conf
     }
     
     private void loadProviderCredentials(VaultTemplate vaultTemplate, Map<String, Object> properties) {
-        // Load Coinbase OAuth
+        // Load Coinbase OAuth (OAuth 2.0)
         loadProvider(vaultTemplate, "coinbase", properties);
-        
-        // Load Kraken OAuth
+
+        // Load Kraken OAuth (OAuth 2.0)
         loadProvider(vaultTemplate, "kraken", properties);
-        
-        // Load Binance OAuth
+
+        // Load Binance OAuth (OAuth 2.0)
         loadProvider(vaultTemplate, "binance", properties);
-        
-        // Load Alpaca OAuth
+
+        // Load Alpaca OAuth (OAuth 2.0)
         loadProvider(vaultTemplate, "alpaca", properties);
+
+        // Load E*TRADE OAuth (OAuth 1.0a - uses consumer-key/secret instead of client-id/secret)
+        loadEtradeProvider(vaultTemplate, properties);
     }
     
     private void loadAuthCredentials(VaultTemplate vaultTemplate, Map<String, Object> properties) {
@@ -191,6 +194,52 @@ public class VaultOAuthInitializer implements ApplicationContextInitializer<Conf
     private void addPropertyIfNotNull(Map<String, Object> properties, String key, Object value) {
         if (value != null) {
             properties.put(key, value.toString());
+        }
+    }
+
+    /**
+     * Load E*TRADE OAuth 1.0a credentials from Vault.
+     * E*TRADE uses consumer-key/consumer-secret (OAuth 1.0a terminology)
+     * instead of client-id/client-secret (OAuth 2.0 terminology).
+     */
+    private void loadEtradeProvider(VaultTemplate vaultTemplate, Map<String, Object> properties) {
+        try {
+            String path = "secret/data/strategiz/oauth/etrade";
+            VaultResponse response = vaultTemplate.read(path);
+
+            if (response != null && response.getData() != null) {
+                Map<String, Object> data = (Map<String, Object>) response.getData().get("data");
+                if (data != null) {
+                    // E*TRADE uses consumer-key/consumer-secret (OAuth 1.0a)
+                    String consumerKey = (String) data.get("consumer-key");
+                    String consumerSecret = (String) data.get("consumer-secret");
+                    String redirectUriLocal = (String) data.get("redirect-uri-local");
+                    String redirectUriProd = (String) data.get("redirect-uri-prod");
+
+                    if (consumerKey != null) {
+                        properties.put("oauth.providers.etrade.consumer-key", consumerKey);
+                        log.info("Loaded E*TRADE OAuth consumer-key from Vault");
+                    }
+
+                    if (consumerSecret != null) {
+                        properties.put("oauth.providers.etrade.consumer-secret", consumerSecret);
+                        log.info("Loaded E*TRADE OAuth consumer-secret from Vault");
+                    }
+
+                    // Load redirect URI based on active profile
+                    String activeProfiles = System.getProperty("spring.profiles.active",
+                        System.getenv().getOrDefault("SPRING_PROFILES_ACTIVE", "dev"));
+                    String redirectUri = activeProfiles.contains("prod") ? redirectUriProd : redirectUriLocal;
+
+                    if (redirectUri != null) {
+                        properties.put("oauth.providers.etrade.redirect-uri", redirectUri);
+                        log.info("Loaded E*TRADE OAuth redirect-uri from Vault (using {})",
+                            activeProfiles.contains("prod") ? "prod" : "local");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("E*TRADE OAuth credentials not found in Vault: {}", e.getMessage());
         }
     }
 }

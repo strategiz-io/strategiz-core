@@ -188,10 +188,13 @@ public class AIStrategyPrompts {
 			   POSITION_SIZE = 5      # Default 5% unless specified
 			   ```
 
-			3. REQUIRED: Define a strategy(data) function that:
+			3. ⚠️ MANDATORY - THIS IS THE MOST CRITICAL REQUIREMENT ⚠️
+			   You MUST define a function named EXACTLY: def strategy(data):
 			   - Takes a pandas DataFrame 'data' with columns: open, high, low, close, volume
 			   - Returns EXACTLY one of these strings: 'BUY', 'SELL', or 'HOLD'
 			   - Uses the LAST row of data (data.iloc[-1] or data['close'].iloc[-1]) for current values
+			   - WITHOUT this function, the code WILL NOT WORK and will be REJECTED
+			   - The function name MUST be exactly "strategy" (not "run_strategy", not "main", etc.)
 			   - Example structure:
 			     ```python
 			     def strategy(data):
@@ -206,6 +209,8 @@ public class AIStrategyPrompts {
 			         else:
 			             return 'HOLD'
 			     ```
+
+			   ⚠️ VERIFY: Before returning, confirm your pythonCode contains "def strategy(data):"
 
 			4. DO NOT:
 			   - Download data (data is provided)
@@ -1201,6 +1206,43 @@ public class AIStrategyPrompts {
 		if (insights.getFundamentals() != null) {
 			prompt.append("FUNDAMENTALS SNAPSHOT:\n");
 			prompt.append(insights.getFundamentals().getSummary()).append("\n\n");
+		}
+
+		// CRITICAL: Major Price Turning Points (Perfect Hindsight for Feeling Lucky)
+		if (insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
+			prompt.append("=".repeat(80)).append("\n");
+			prompt.append("🎯 PERFECT HINDSIGHT: OPTIMAL BUY/SELL POINTS\n");
+			prompt.append("=".repeat(80)).append("\n");
+			prompt.append("Below are the EXACT dates and prices where you should have bought and sold.\n");
+			prompt.append("Your strategy MUST trigger signals near these turning points to beat buy-and-hold.\n\n");
+
+			prompt.append("OPTIMAL TRADING POINTS (use these to design your strategy):\n");
+			java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter
+					.ofPattern("MMM dd, yyyy")
+					.withZone(java.time.ZoneId.of("UTC"));
+
+			for (var tp : insights.getTurningPoints()) {
+				String action = tp.getType().name().equals("TROUGH") ? "🟢 BUY " : "🔴 SELL";
+				String date = formatter.format(tp.getTimestamp());
+				prompt.append(String.format("  %s @ %s: $%.2f", action, date, tp.getPrice()));
+				if (tp.getPriceChangeFromPrevious() != 0) {
+					prompt.append(String.format(" (%+.1f%% from previous, %d days later)",
+							tp.getPriceChangeFromPrevious(), tp.getDaysFromPrevious()));
+				}
+				prompt.append("\n");
+			}
+			prompt.append("\n");
+
+			prompt.append("HOW TO USE THIS DATA:\n");
+			prompt.append("1. Look at what indicator conditions existed at each BUY point (troughs)\n");
+			prompt.append("2. Look at what indicator conditions existed at each SELL point (peaks)\n");
+			prompt.append("3. Design entry rules that would have triggered at/near the BUY dates\n");
+			prompt.append("4. Design exit rules that would have triggered at/near the SELL dates\n");
+			prompt.append("5. Your strategy should capture most of these swings\n\n");
+
+			prompt.append("⚠️ THIS IS YOUR CHEAT SHEET - USE IT!\n");
+			prompt.append("You know EXACTLY when the optimal buy/sell points were.\n");
+			prompt.append("Design a strategy that would have caught these moves.\n\n");
 		}
 
 		// AI Instructions - CRITICAL: Primary goal is beating buy and hold

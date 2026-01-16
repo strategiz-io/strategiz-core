@@ -53,9 +53,14 @@ public class SymbolInsights {
 	// Optional fundamentals (if requested)
 	private FundamentalsInsights fundamentals;
 
+	// Major price turning points (peaks and troughs) for Feeling Lucky hindsight
+	@JsonProperty("turningPoints")
+	private List<PriceTurningPoint> turningPoints;
+
 	public SymbolInsights() {
 		this.topIndicators = new ArrayList<>();
 		this.optimalParameters = new HashMap<>();
+		this.turningPoints = new ArrayList<>();
 	}
 
 	// Getters and setters
@@ -178,6 +183,14 @@ public class SymbolInsights {
 
 	public void setFundamentals(FundamentalsInsights fundamentals) {
 		this.fundamentals = fundamentals;
+	}
+
+	public List<PriceTurningPoint> getTurningPoints() {
+		return turningPoints;
+	}
+
+	public void setTurningPoints(List<PriceTurningPoint> turningPoints) {
+		this.turningPoints = turningPoints;
 	}
 
 	/**

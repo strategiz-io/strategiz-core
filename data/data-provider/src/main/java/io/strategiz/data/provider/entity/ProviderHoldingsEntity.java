@@ -54,6 +54,18 @@ public class ProviderHoldingsEntity extends BaseEntity {
     @JsonProperty("cashBalance")
     private BigDecimal cashBalance;
 
+    @PropertyName("buyingPower")
+    @JsonProperty("buyingPower")
+    private BigDecimal buyingPower;
+
+    @PropertyName("marginBalance")
+    @JsonProperty("marginBalance")
+    private BigDecimal marginBalance;
+
+    @PropertyName("liquidationValue")
+    @JsonProperty("liquidationValue")
+    private BigDecimal liquidationValue;
+
     @PropertyName("holdings")
     @JsonProperty("holdings")
     private List<Holding> holdings;
@@ -155,6 +167,30 @@ public class ProviderHoldingsEntity extends BaseEntity {
 
     public void setCashBalance(BigDecimal cashBalance) {
         this.cashBalance = cashBalance;
+    }
+
+    public BigDecimal getBuyingPower() {
+        return buyingPower;
+    }
+
+    public void setBuyingPower(BigDecimal buyingPower) {
+        this.buyingPower = buyingPower;
+    }
+
+    public BigDecimal getMarginBalance() {
+        return marginBalance;
+    }
+
+    public void setMarginBalance(BigDecimal marginBalance) {
+        this.marginBalance = marginBalance;
+    }
+
+    public BigDecimal getLiquidationValue() {
+        return liquidationValue;
+    }
+
+    public void setLiquidationValue(BigDecimal liquidationValue) {
+        this.liquidationValue = liquidationValue;
     }
 
     public List<Holding> getHoldings() {

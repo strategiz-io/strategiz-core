@@ -21,6 +21,9 @@ public class ProviderPortfolioResponse {
     private BigDecimal totalProfitLoss;
     private BigDecimal totalProfitLossPercent;
     private BigDecimal cashBalance;
+    private BigDecimal buyingPower;
+    private BigDecimal marginBalance;
+    private BigDecimal liquidationValue;
     private List<PortfolioPositionResponse> positions;
     private Map<String, BigDecimal> balances; // Raw balance data from provider
     private String syncStatus;
@@ -118,7 +121,31 @@ public class ProviderPortfolioResponse {
     public void setCashBalance(BigDecimal cashBalance) {
         this.cashBalance = cashBalance;
     }
-    
+
+    public BigDecimal getBuyingPower() {
+        return buyingPower;
+    }
+
+    public void setBuyingPower(BigDecimal buyingPower) {
+        this.buyingPower = buyingPower;
+    }
+
+    public BigDecimal getMarginBalance() {
+        return marginBalance;
+    }
+
+    public void setMarginBalance(BigDecimal marginBalance) {
+        this.marginBalance = marginBalance;
+    }
+
+    public BigDecimal getLiquidationValue() {
+        return liquidationValue;
+    }
+
+    public void setLiquidationValue(BigDecimal liquidationValue) {
+        this.liquidationValue = liquidationValue;
+    }
+
     public List<PortfolioPositionResponse> getPositions() {
         return positions;
     }

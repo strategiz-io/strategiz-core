@@ -445,6 +445,10 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         BigDecimal totalValue = BigDecimal.ZERO;
         BigDecimal cashBalance = BigDecimal.ZERO;
         BigDecimal totalProfitLoss = BigDecimal.ZERO;
+        BigDecimal buyingPower = BigDecimal.ZERO;
+        BigDecimal marginBalance = BigDecimal.ZERO;
+        BigDecimal liquidationValue = BigDecimal.ZERO;
+        Map<String, Object> aggregatedBalances = new HashMap<>();
 
         if (accounts == null || accounts.isEmpty()) {
             log.warn("No account data in Schwab response");
@@ -466,13 +470,38 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
                     continue;
                 }
 
-                // Get cash balance from currentBalances
+                // Get balance data from currentBalances (includes margin info)
                 Map<String, Object> currentBalances = (Map<String, Object>) securitiesAccount.get("currentBalances");
                 if (currentBalances != null) {
+                    // Store raw balance data for reference
+                    aggregatedBalances.putAll(currentBalances);
+
+                    // Extract cash balance
                     BigDecimal accountCash = extractBigDecimal(currentBalances, "cashBalance");
                     if (accountCash != null) {
                         cashBalance = cashBalance.add(accountCash);
                     }
+
+                    // Extract margin-related fields
+                    BigDecimal accountBuyingPower = extractBigDecimal(currentBalances, "buyingPower");
+                    if (accountBuyingPower != null) {
+                        buyingPower = buyingPower.add(accountBuyingPower);
+                    }
+
+                    // marginBalance represents margin debt (negative = borrowed)
+                    BigDecimal accountMarginBalance = extractBigDecimal(currentBalances, "marginBalance");
+                    if (accountMarginBalance != null) {
+                        marginBalance = marginBalance.add(accountMarginBalance);
+                    }
+
+                    // liquidationValue is the true net account value (assets - margin debt)
+                    BigDecimal accountLiquidationValue = extractBigDecimal(currentBalances, "liquidationValue");
+                    if (accountLiquidationValue != null) {
+                        liquidationValue = liquidationValue.add(accountLiquidationValue);
+                    }
+
+                    log.debug("Schwab balance data - cash: {}, buyingPower: {}, marginBalance: {}, liquidationValue: {}",
+                        accountCash, accountBuyingPower, accountMarginBalance, accountLiquidationValue);
                 }
 
                 // Process positions
@@ -547,9 +576,25 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         }
 
         entity.setHoldings(holdings);
-        entity.setTotalValue(totalValue); // totalValue already includes cash from recalculateTotalValue
+
+        // Use liquidationValue as the true total if available (accounts for margin debt)
+        // Otherwise fall back to calculated totalValue
+        if (liquidationValue.compareTo(BigDecimal.ZERO) > 0) {
+            entity.setTotalValue(liquidationValue);
+            log.info("Using liquidationValue {} as totalValue (margin account)", liquidationValue);
+        } else {
+            entity.setTotalValue(totalValue); // totalValue already includes cash from recalculateTotalValue
+        }
+
         entity.setCashBalance(cashBalance);
+        entity.setBuyingPower(buyingPower);
+        entity.setMarginBalance(marginBalance);
+        entity.setLiquidationValue(liquidationValue);
+        entity.setBalances(aggregatedBalances);
         entity.setTotalProfitLoss(totalProfitLoss);
+
+        log.info("Schwab portfolio summary - totalValue: {}, cashBalance: {}, buyingPower: {}, marginBalance: {}, liquidationValue: {}",
+            entity.getTotalValue(), cashBalance, buyingPower, marginBalance, liquidationValue);
 
         // Calculate total P&L percent
         BigDecimal totalCostBasis = holdings.stream()

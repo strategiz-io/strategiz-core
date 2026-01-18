@@ -6,6 +6,7 @@ import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.profile.model.EnableSubscriptionsRequest;
 import io.strategiz.service.profile.model.OwnerSubscriptionSettingsResponse;
+import io.strategiz.service.profile.model.StripeConnectStatusResponse;
 import io.strategiz.service.profile.model.UpdateSubscriptionSettingsRequest;
 import io.strategiz.service.profile.service.OwnerSubscriptionService;
 import org.slf4j.Logger;
@@ -27,6 +28,16 @@ import java.util.Map;
  * - POST /v1/owner-subscriptions/enable - Enable subscriptions
  * - POST /v1/owner-subscriptions/disable - Disable subscriptions
  * - PUT /v1/owner-subscriptions/settings - Update settings
+ * - GET /v1/owner-subscriptions/status - Check if subscriptions are enabled
+ * - GET /v1/owner-subscriptions/public/{ownerId} - Get public info for an owner
+ *
+ * Stripe Connect Endpoints:
+ * - POST /v1/owner-subscriptions/stripe-connect/create - Create Stripe Connect account
+ * - GET /v1/owner-subscriptions/stripe-connect/status - Get Connect account status
+ * - GET /v1/owner-subscriptions/stripe-connect/onboarding-link - Get onboarding URL
+ * - GET /v1/owner-subscriptions/stripe-connect/dashboard-link - Get dashboard URL
+ * - POST /v1/owner-subscriptions/stripe-connect/refresh - Refresh Connect status
+ * - GET /v1/owner-subscriptions/stripe-connect/configured - Check if Stripe Connect is configured
  */
 @RestController
 @RequestMapping("/v1/owner-subscriptions")
@@ -159,6 +170,112 @@ public class OwnerSubscriptionController extends BaseController {
                 "profilePitch", settings.getProfilePitch() != null ? settings.getProfilePitch() : "",
                 "subscriberCount", settings.getSubscriberCount(),
                 "publicStrategyCount", settings.getPublicStrategyCount()
+        ));
+    }
+
+    // === Stripe Connect Endpoints ===
+
+    /**
+     * Create a Stripe Connect account for the current user.
+     * This is the first step in enabling subscriptions - must be done before enabling.
+     *
+     * @param user The authenticated user
+     * @return The onboarding URL to complete Stripe Connect setup
+     */
+    @PostMapping("/stripe-connect/create")
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<Map<String, String>> createStripeConnectAccount(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
+        logger.info("Creating Stripe Connect account for user: {}", userId);
+
+        String onboardingUrl = ownerSubscriptionService.createStripeConnectAccount(userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "onboardingUrl", onboardingUrl
+        ));
+    }
+
+    /**
+     * Get the Stripe Connect account status for the current user.
+     *
+     * @param user The authenticated user
+     * @return The Connect account status
+     */
+    @GetMapping("/stripe-connect/status")
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<StripeConnectStatusResponse> getStripeConnectStatus(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
+        logger.debug("Getting Stripe Connect status for user: {}", userId);
+
+        StripeConnectStatusResponse status = ownerSubscriptionService.getStripeConnectStatus(userId);
+        return ResponseEntity.ok(status);
+    }
+
+    /**
+     * Get the Stripe Connect onboarding link.
+     * Use this when the user needs to continue or refresh onboarding.
+     *
+     * @param user The authenticated user
+     * @return The onboarding URL
+     */
+    @GetMapping("/stripe-connect/onboarding-link")
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<Map<String, String>> getStripeConnectOnboardingLink(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
+        logger.info("Getting Stripe Connect onboarding link for user: {}", userId);
+
+        String onboardingUrl = ownerSubscriptionService.getStripeConnectOnboardingLink(userId);
+        return ResponseEntity.ok(Map.of(
+                "onboardingUrl", onboardingUrl
+        ));
+    }
+
+    /**
+     * Get the Stripe Express dashboard login link.
+     * Allows the owner to view their Stripe Express dashboard.
+     *
+     * @param user The authenticated user
+     * @return The dashboard login URL
+     */
+    @GetMapping("/stripe-connect/dashboard-link")
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<Map<String, String>> getStripeConnectDashboardLink(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
+        logger.info("Getting Stripe Connect dashboard link for user: {}", userId);
+
+        String dashboardUrl = ownerSubscriptionService.getStripeConnectDashboardLink(userId);
+        return ResponseEntity.ok(Map.of(
+                "dashboardUrl", dashboardUrl
+        ));
+    }
+
+    /**
+     * Refresh Stripe Connect status from Stripe API.
+     * Call this after user completes onboarding.
+     *
+     * @param user The authenticated user
+     * @return Updated subscription settings
+     */
+    @PostMapping("/stripe-connect/refresh")
+    @RequireAuth(minAcr = "1")
+    public ResponseEntity<OwnerSubscriptionSettingsResponse> refreshStripeConnectStatus(@AuthUser AuthenticatedUser user) {
+        String userId = user.getUserId();
+        logger.info("Refreshing Stripe Connect status for user: {}", userId);
+
+        OwnerSubscriptionSettingsResponse settings = ownerSubscriptionService.refreshStripeConnectStatus(userId);
+        return ResponseEntity.ok(settings);
+    }
+
+    /**
+     * Check if Stripe Connect is configured for the platform.
+     * This is a public endpoint to check if the subscription feature is available.
+     *
+     * @return Whether Stripe Connect is configured
+     */
+    @GetMapping("/stripe-connect/configured")
+    public ResponseEntity<Map<String, Boolean>> isStripeConnectConfigured() {
+        boolean configured = ownerSubscriptionService.isStripeConnectConfigured();
+        return ResponseEntity.ok(Map.of(
+                "configured", configured
         ));
     }
 }

@@ -33,6 +33,15 @@ public enum StripeErrorDetails implements ErrorDetails {
 	SUBSCRIPTION_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-subscription-update-failed"),
 	SUBSCRIPTION_CANCELLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-subscription-cancellation-failed"),
 
+	// === Stripe Connect Errors ===
+	CONNECT_ACCOUNT_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-connect-account-creation-failed"),
+	CONNECT_ACCOUNT_RETRIEVAL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-connect-account-retrieval-failed"),
+	CONNECT_ACCOUNT_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-connect-account-update-failed"),
+	CONNECT_ONBOARDING_LINK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-connect-onboarding-link-failed"),
+	CONNECT_LOGIN_LINK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "stripe-connect-login-link-failed"),
+	CONNECT_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "stripe-connect-not-completed"),
+	CONNECT_PAYOUTS_DISABLED(HttpStatus.BAD_REQUEST, "stripe-connect-payouts-disabled"),
+
 	// === API Errors ===
 	API_ERROR(HttpStatus.BAD_GATEWAY, "stripe-api-error"),
 	NETWORK_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "stripe-network-error"),

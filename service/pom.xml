@@ -37,5 +37,6 @@
         <module>service-console</module>
         <module>service-console-quality</module>
         <module>service-social</module>
+        <module>service-crypto-token</module>
     </modules>
 </project>

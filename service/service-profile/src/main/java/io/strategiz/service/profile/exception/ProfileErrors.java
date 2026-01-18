@@ -20,7 +20,16 @@ public enum ProfileErrors implements ErrorDetails {
 	PROFILE_ACCESS_DENIED(HttpStatus.FORBIDDEN, "profile-access-denied"),
 
 	// Market data errors
-	MARKET_DATA_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "profile-market-data-fetch-failed");
+	MARKET_DATA_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "profile-market-data-fetch-failed"),
+
+	// Owner subscription errors
+	SUBSCRIPTION_SETTINGS_NOT_FOUND(HttpStatus.NOT_FOUND, "subscription-settings-not-found"),
+	SUBSCRIPTION_NOT_ENABLED(HttpStatus.BAD_REQUEST, "subscription-not-enabled"),
+	SUBSCRIPTION_ALREADY_ENABLED(HttpStatus.CONFLICT, "subscription-already-enabled"),
+	STRIPE_NOT_CONNECTED(HttpStatus.BAD_REQUEST, "stripe-not-connected"),
+	INVALID_SUBSCRIPTION_PRICE(HttpStatus.BAD_REQUEST, "invalid-subscription-price"),
+	INVALID_PROFILE_PITCH(HttpStatus.BAD_REQUEST, "invalid-profile-pitch"),
+	SUBSCRIPTION_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "subscription-update-failed");
 
 	private final HttpStatus httpStatus;
 

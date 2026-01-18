@@ -29,7 +29,18 @@ public enum ProfileErrors implements ErrorDetails {
 	STRIPE_NOT_CONNECTED(HttpStatus.BAD_REQUEST, "stripe-not-connected"),
 	INVALID_SUBSCRIPTION_PRICE(HttpStatus.BAD_REQUEST, "invalid-subscription-price"),
 	INVALID_PROFILE_PITCH(HttpStatus.BAD_REQUEST, "invalid-profile-pitch"),
-	SUBSCRIPTION_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "subscription-update-failed");
+	SUBSCRIPTION_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "subscription-update-failed"),
+
+	// User subscription errors
+	USER_SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "user-subscription-not-found"),
+	USER_SUBSCRIPTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "user-subscription-already-exists"),
+	USER_SUBSCRIPTION_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "user-subscription-creation-failed"),
+	USER_SUBSCRIPTION_CANCELLATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "user-subscription-cancellation-failed"),
+	CANNOT_SUBSCRIBE_TO_SELF(HttpStatus.BAD_REQUEST, "cannot-subscribe-to-self"),
+	OWNER_NOT_ACCEPTING_SUBSCRIPTIONS(HttpStatus.BAD_REQUEST, "owner-not-accepting-subscriptions"),
+	OWNER_STRIPE_NOT_READY(HttpStatus.BAD_REQUEST, "owner-stripe-not-ready"),
+	STRATEGY_NOT_FOUND(HttpStatus.NOT_FOUND, "strategy-not-found"),
+	STRATEGY_ACCESS_DENIED(HttpStatus.FORBIDDEN, "strategy-access-denied");
 
 	private final HttpStatus httpStatus;
 

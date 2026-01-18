@@ -398,6 +398,62 @@ public class OwnerSubscriptionService extends BaseService {
         return stripeConnectService.isConfigured();
     }
 
+    /**
+     * Handle Stripe Connect account webhook update.
+     * Called when account.updated event is received from Stripe.
+     *
+     * @param accountId The Stripe Connect account ID
+     * @param userId The owner's user ID
+     * @param chargesEnabled Whether the account can accept charges
+     * @param payoutsEnabled Whether the account can receive payouts
+     * @param detailsSubmitted Whether onboarding details are submitted
+     */
+    public void handleStripeConnectWebhook(String accountId, String userId, boolean chargesEnabled,
+            boolean payoutsEnabled, boolean detailsSubmitted) {
+        log.info("Handling Stripe Connect webhook for user {}: chargesEnabled={}, payoutsEnabled={}, detailsSubmitted={}",
+                userId, chargesEnabled, payoutsEnabled, detailsSubmitted);
+
+        try {
+            Optional<OwnerSubscriptionSettings> settingsOpt = subscriptionSettingsRepository.findByUserId(userId);
+            if (settingsOpt.isEmpty()) {
+                log.warn("No subscription settings found for user {} during Connect webhook", userId);
+                return;
+            }
+
+            OwnerSubscriptionSettings settings = settingsOpt.get();
+
+            // Verify this is the right account
+            if (!accountId.equals(settings.getStripeConnectAccountId())) {
+                log.warn("Account ID mismatch for user {}: expected {}, got {}",
+                        userId, settings.getStripeConnectAccountId(), accountId);
+                return;
+            }
+
+            // Determine new status
+            String newStatus;
+            if (chargesEnabled && payoutsEnabled) {
+                newStatus = "active";
+            } else if (detailsSubmitted) {
+                newStatus = "restricted"; // Details submitted but not yet approved
+            } else {
+                newStatus = "pending";
+            }
+
+            // Update status
+            subscriptionSettingsRepository.updateStripeConnectStatus(userId, accountId, newStatus);
+
+            // Update payouts enabled flag
+            if (payoutsEnabled != settings.isPayoutsEnabled()) {
+                settings.setPayoutsEnabled(payoutsEnabled);
+                subscriptionSettingsRepository.save(settings, userId);
+            }
+
+            log.info("Updated Stripe Connect status for user {}: {}", userId, newStatus);
+        } catch (Exception e) {
+            log.error("Error handling Stripe Connect webhook for user {}: {}", userId, e.getMessage(), e);
+        }
+    }
+
     // === Private helper methods ===
 
     private void validatePrice(BigDecimal price) {

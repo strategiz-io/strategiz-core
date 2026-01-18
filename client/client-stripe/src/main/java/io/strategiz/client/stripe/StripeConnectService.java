@@ -3,16 +3,25 @@ package io.strategiz.client.stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
+import com.stripe.model.Customer;
 import com.stripe.model.LoginLink;
+import com.stripe.model.Subscription;
+import com.stripe.model.checkout.Session;
 import com.stripe.param.AccountCreateParams;
 import com.stripe.param.AccountLinkCreateParams;
+import com.stripe.param.CustomerCreateParams;
+import com.stripe.param.SubscriptionUpdateParams;
+import com.stripe.param.checkout.SessionCreateParams;
 import io.strategiz.client.stripe.exception.StripeErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for Stripe Connect operations.
@@ -25,6 +34,11 @@ import java.util.List;
 public class StripeConnectService {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeConnectService.class);
+
+    /**
+     * Platform fee percentage (15%). Owner keeps 85%.
+     */
+    private static final BigDecimal PLATFORM_FEE_PERCENT = new BigDecimal("0.15");
 
     private final StripeConfig config;
 
@@ -185,6 +199,207 @@ public class StripeConnectService {
      */
     public boolean isConfigured() {
         return config.isConfigured();
+    }
+
+    // === Owner Subscription Checkout Methods ===
+
+    /**
+     * Create a checkout session for subscribing to a strategy owner.
+     * Payments are routed to the owner's Connect account with platform fee deducted.
+     *
+     * @param subscriberId         The subscriber's user ID
+     * @param subscriberEmail      The subscriber's email
+     * @param ownerId              The owner's user ID
+     * @param ownerConnectAccountId The owner's Stripe Connect account ID
+     * @param monthlyPriceInCents  The monthly price in cents
+     * @param customerId           Existing Stripe customer ID (optional)
+     * @return Checkout session result with URL
+     */
+    public OwnerSubscriptionCheckoutResult createOwnerSubscriptionCheckout(
+            String subscriberId,
+            String subscriberEmail,
+            String ownerId,
+            String ownerConnectAccountId,
+            long monthlyPriceInCents,
+            String customerId) {
+
+        if (!config.isConfigured()) {
+            throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+        }
+
+        logger.info("Creating owner subscription checkout: subscriber={}, owner={}, price={}",
+                subscriberId, ownerId, monthlyPriceInCents);
+
+        try {
+            // Create or get customer
+            String stripeCustomerId = customerId;
+            if (stripeCustomerId == null || stripeCustomerId.isEmpty()) {
+                stripeCustomerId = createCustomer(subscriberId, subscriberEmail);
+            }
+
+            // Calculate platform fee (15%)
+            long platformFee = Math.round(monthlyPriceInCents * PLATFORM_FEE_PERCENT.doubleValue());
+
+            // Build checkout session with destination charge (payment to connected account)
+            SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
+                    .setCustomer(stripeCustomerId)
+                    .setSuccessUrl(config.getAppBaseUrl() + "/profile/" + ownerId + "?subscribe=success&session_id={CHECKOUT_SESSION_ID}")
+                    .setCancelUrl(config.getAppBaseUrl() + "/profile/" + ownerId + "?subscribe=canceled")
+                    .addLineItem(SessionCreateParams.LineItem.builder()
+                            .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency("usd")
+                                    .setUnitAmount(monthlyPriceInCents)
+                                    .setRecurring(SessionCreateParams.LineItem.PriceData.Recurring.builder()
+                                            .setInterval(SessionCreateParams.LineItem.PriceData.Recurring.Interval.MONTH)
+                                            .build())
+                                    .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                            .setName("Owner Subscription")
+                                            .setDescription("Monthly subscription to deploy strategies")
+                                            .build())
+                                    .build())
+                            .setQuantity(1L)
+                            .build())
+                    .setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
+                            .setApplicationFeePercent(PLATFORM_FEE_PERCENT.multiply(new BigDecimal("100")))
+                            .setTransferData(SessionCreateParams.SubscriptionData.TransferData.builder()
+                                    .setDestination(ownerConnectAccountId)
+                                    .build())
+                            .putMetadata("subscriberId", subscriberId)
+                            .putMetadata("ownerId", ownerId)
+                            .putMetadata("type", "owner_subscription")
+                            .build())
+                    .putMetadata("subscriberId", subscriberId)
+                    .putMetadata("ownerId", ownerId)
+                    .putMetadata("type", "owner_subscription");
+
+            Session session = Session.create(paramsBuilder.build());
+
+            logger.info("Created owner subscription checkout session {} for subscriber {}",
+                    session.getId(), subscriberId);
+
+            return new OwnerSubscriptionCheckoutResult(
+                    session.getId(),
+                    session.getUrl(),
+                    stripeCustomerId,
+                    monthlyPriceInCents,
+                    platformFee
+            );
+        }
+        catch (StripeException e) {
+            logger.error("Failed to create owner subscription checkout for subscriber {}: {}",
+                    subscriberId, e.getMessage());
+            throw new StrategizException(StripeErrorDetails.CHECKOUT_SESSION_CREATION_FAILED,
+                    "client-stripe", e, subscriberId);
+        }
+    }
+
+    /**
+     * Create a Stripe customer.
+     * @param userId The internal user ID
+     * @param email The user's email
+     * @return The Stripe customer ID
+     */
+    private String createCustomer(String userId, String email) {
+        try {
+            CustomerCreateParams params = CustomerCreateParams.builder()
+                    .setEmail(email)
+                    .putMetadata("userId", userId)
+                    .build();
+
+            Customer customer = Customer.create(params);
+            logger.info("Created Stripe customer {} for user {}", customer.getId(), userId);
+            return customer.getId();
+        }
+        catch (StripeException e) {
+            logger.error("Failed to create Stripe customer for user {}: {}", userId, e.getMessage());
+            throw new StrategizException(StripeErrorDetails.CUSTOMER_CREATION_FAILED, "client-stripe", e, userId);
+        }
+    }
+
+    /**
+     * Cancel an owner subscription in Stripe.
+     * Cancels at the end of the current billing period.
+     *
+     * @param stripeSubscriptionId The Stripe subscription ID
+     */
+    public void cancelOwnerSubscription(String stripeSubscriptionId) {
+        if (!config.isConfigured()) {
+            throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+        }
+
+        try {
+            Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+
+            SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
+                    .setCancelAtPeriodEnd(true)
+                    .build();
+
+            subscription.update(params);
+
+            logger.info("Scheduled owner subscription {} for cancellation at period end", stripeSubscriptionId);
+        }
+        catch (StripeException e) {
+            logger.error("Failed to cancel owner subscription {}: {}", stripeSubscriptionId, e.getMessage());
+            throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_CANCELLATION_FAILED,
+                    "client-stripe", e, stripeSubscriptionId);
+        }
+    }
+
+    /**
+     * Cancel an owner subscription immediately.
+     *
+     * @param stripeSubscriptionId The Stripe subscription ID
+     */
+    public void cancelOwnerSubscriptionImmediately(String stripeSubscriptionId) {
+        if (!config.isConfigured()) {
+            throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+        }
+
+        try {
+            Subscription subscription = Subscription.retrieve(stripeSubscriptionId);
+            subscription.cancel();
+
+            logger.info("Canceled owner subscription {} immediately", stripeSubscriptionId);
+        }
+        catch (StripeException e) {
+            logger.error("Failed to cancel owner subscription {} immediately: {}", stripeSubscriptionId, e.getMessage());
+            throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_CANCELLATION_FAILED,
+                    "client-stripe", e, stripeSubscriptionId);
+        }
+    }
+
+    /**
+     * Retrieve a Stripe subscription.
+     *
+     * @param stripeSubscriptionId The Stripe subscription ID
+     * @return The Subscription object
+     */
+    public Subscription getSubscription(String stripeSubscriptionId) {
+        if (!config.isConfigured()) {
+            throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+        }
+
+        try {
+            return Subscription.retrieve(stripeSubscriptionId);
+        }
+        catch (StripeException e) {
+            logger.error("Failed to retrieve subscription {}: {}", stripeSubscriptionId, e.getMessage());
+            throw new StrategizException(StripeErrorDetails.SUBSCRIPTION_RETRIEVAL_FAILED,
+                    "client-stripe", e, stripeSubscriptionId);
+        }
+    }
+
+    /**
+     * Result of creating an owner subscription checkout session.
+     */
+    public record OwnerSubscriptionCheckoutResult(
+            String sessionId,
+            String url,
+            String customerId,
+            long priceInCents,
+            long platformFeeInCents
+    ) {
     }
 
     /**

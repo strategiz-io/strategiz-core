@@ -170,6 +170,161 @@ public class FmpFundamentalsClient {
 	}
 
 	/**
+	 * Get real-time quote for multiple symbols.
+	 * Uses FMP's /api/v3/quote endpoint for accurate real-time prices.
+	 * @param symbols List of stock symbols (e.g., ["AAPL", "MSFT", "GOOG"])
+	 * @return List of FmpQuote objects with current prices
+	 */
+	public List<FmpQuote> getQuotes(List<String> symbols) {
+		if (symbols == null || symbols.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		if (!config.isConfigured()) {
+			throw new StrategizException(FmpErrorDetails.API_KEY_MISSING, "FMP API key is not configured");
+		}
+
+		log.debug("Fetching quotes for {} symbols", symbols.size());
+
+		try {
+			// Wait for rate limiter
+			if (!rateLimiter.tryConsume(1)) {
+				log.debug("Rate limit reached, waiting for token...");
+				boolean acquired = rateLimiter.asBlocking().tryConsume(1, Duration.ofSeconds(10));
+				if (!acquired) {
+					throw new StrategizException(FmpErrorDetails.RATE_LIMIT_EXCEEDED,
+							"Rate limit exceeded for FMP API");
+				}
+			}
+
+			// Build URL - FMP supports comma-separated symbols
+			String symbolsParam = String.join(",", symbols);
+			String url = String.format("%s/quote/%s?apikey=%s", config.getBaseUrl(), symbolsParam, config.getApiKey());
+
+			// Execute request
+			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
+			if (response.getBody() == null || !response.getStatusCode().is2xxSuccessful()) {
+				throw new StrategizException(FmpErrorDetails.NO_DATA_AVAILABLE, "No quote data returned");
+			}
+
+			// Parse response - FMP returns array of quote objects
+			List<Map<String, Object>> data = objectMapper.readValue(response.getBody(),
+					new TypeReference<List<Map<String, Object>>>() {
+					});
+
+			if (data == null || data.isEmpty()) {
+				log.warn("No quotes returned for symbols: {}", symbolsParam);
+				return new ArrayList<>();
+			}
+
+			// Convert to FmpQuote objects
+			List<FmpQuote> quotes = new ArrayList<>();
+			for (Map<String, Object> quoteData : data) {
+				quotes.add(mapToQuote(quoteData));
+			}
+
+			log.info("Successfully fetched {} quotes", quotes.size());
+			return quotes;
+
+		}
+		catch (HttpClientErrorException ex) {
+			if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+				log.warn("Rate limit exceeded for FMP API (429)");
+				throw new StrategizException(FmpErrorDetails.RATE_LIMIT_EXCEEDED, "Rate limit exceeded", ex);
+			}
+			log.error("FMP API error: {} - {}", ex.getStatusCode(), ex.getMessage());
+			throw new StrategizException(FmpErrorDetails.API_ERROR_RESPONSE, ex.getMessage(), ex);
+		}
+		catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			throw new StrategizException(FmpErrorDetails.RATE_LIMIT_EXCEEDED, "Rate limiter interrupted", ex);
+		}
+		catch (StrategizException ex) {
+			throw ex;
+		}
+		catch (Exception ex) {
+			log.error("Failed to fetch quotes: {}", ex.getMessage(), ex);
+			throw new StrategizException(FmpErrorDetails.API_ERROR_RESPONSE, ex.getMessage(), ex);
+		}
+	}
+
+	/**
+	 * Map FMP quote response to FmpQuote DTO.
+	 */
+	private FmpQuote mapToQuote(Map<String, Object> data) {
+		FmpQuote quote = new FmpQuote();
+		quote.setSymbol(getString(data, "symbol"));
+		quote.setName(getString(data, "name"));
+		quote.setPrice(getBigDecimal(data, "price"));
+		quote.setChange(getBigDecimal(data, "change"));
+		quote.setChangePercent(getBigDecimal(data, "changesPercentage"));
+		quote.setPreviousClose(getBigDecimal(data, "previousClose"));
+		quote.setOpen(getBigDecimal(data, "open"));
+		quote.setDayHigh(getBigDecimal(data, "dayHigh"));
+		quote.setDayLow(getBigDecimal(data, "dayLow"));
+		quote.setVolume(getLong(data, "volume"));
+		return quote;
+	}
+
+	private Long getLong(Map<String, Object> data, String key) {
+		Object value = data.get(key);
+		if (value == null) {
+			return null;
+		}
+		try {
+			if (value instanceof Number) {
+				return ((Number) value).longValue();
+			}
+			return Long.parseLong(value.toString());
+		}
+		catch (Exception e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Simple DTO for FMP quote data.
+	 */
+	public static class FmpQuote {
+		private String symbol;
+		private String name;
+		private java.math.BigDecimal price;
+		private java.math.BigDecimal change;
+		private java.math.BigDecimal changePercent;
+		private java.math.BigDecimal previousClose;
+		private java.math.BigDecimal open;
+		private java.math.BigDecimal dayHigh;
+		private java.math.BigDecimal dayLow;
+		private Long volume;
+
+		public String getSymbol() { return symbol; }
+		public void setSymbol(String symbol) { this.symbol = symbol; }
+		public String getName() { return name; }
+		public void setName(String name) { this.name = name; }
+		public java.math.BigDecimal getPrice() { return price; }
+		public void setPrice(java.math.BigDecimal price) { this.price = price; }
+		public java.math.BigDecimal getChange() { return change; }
+		public void setChange(java.math.BigDecimal change) { this.change = change; }
+		public java.math.BigDecimal getChangePercent() { return changePercent; }
+		public void setChangePercent(java.math.BigDecimal changePercent) { this.changePercent = changePercent; }
+		public java.math.BigDecimal getPreviousClose() { return previousClose; }
+		public void setPreviousClose(java.math.BigDecimal previousClose) { this.previousClose = previousClose; }
+		public java.math.BigDecimal getOpen() { return open; }
+		public void setOpen(java.math.BigDecimal open) { this.open = open; }
+		public java.math.BigDecimal getDayHigh() { return dayHigh; }
+		public void setDayHigh(java.math.BigDecimal dayHigh) { this.dayHigh = dayHigh; }
+		public java.math.BigDecimal getDayLow() { return dayLow; }
+		public void setDayLow(java.math.BigDecimal dayLow) { this.dayLow = dayLow; }
+		public Long getVolume() { return volume; }
+		public void setVolume(Long volume) { this.volume = volume; }
+
+		public boolean isPositive() {
+			return change != null && change.compareTo(java.math.BigDecimal.ZERO) >= 0;
+		}
+	}
+
+	/**
 	 * Map FMP API response to FmpFundamentals DTO.
 	 */
 	private FmpFundamentals mapToFundamentals(Map<String, Object> data, String symbol) {

@@ -1,7 +1,7 @@
 # Strategiz Business Model
 
-**Version**: 1.0
-**Last Updated**: December 31, 2025
+**Version**: 1.2
+**Last Updated**: January 17, 2026
 **Status**: APPROVED - Implementation in Progress
 
 ---
@@ -15,7 +15,11 @@
 5. [User Scenarios](#user-scenarios)
 6. [Ownership Transfer](#ownership-transfer)
 7. [Subscription Model](#subscription-model)
-8. [Implementation Notes](#implementation-notes)
+8. [Platform Tiers](#platform-tiers)
+9. [Product Feature Matrix](#product-feature-matrix)
+10. [User Journeys](#user-journeys)
+11. [Owner Subscription Setup](#owner-subscription-setup)
+12. [Implementation Notes](#implementation-notes)
 
 ---
 
@@ -61,19 +65,21 @@ Strategiz is a strategy marketplace where creators can publish trading strategie
 **How it works:**
 - Subscribe to an **OWNER** (not individual strategies)
 - Monthly payment (e.g., $50/month) via Stripe
-- Access to deploy **all published strategies** owned by that user
+- Access to deploy **all PUBLIC strategies** owned by that user
 
 **Subscriber capabilities:**
-- ✅ Deploy any PUBLISHED strategy from subscribed owner (as bot or alert)
-- ✅ View performance metrics (same as public users for PUBLIC strategies)
-- ✅ View PRIVATE strategies from subscribed owner (members-only access)
+- ✅ Deploy any PUBLISHED + PUBLIC strategy from subscribed owner (as bot or alert)
+- ✅ View performance metrics for PUBLIC strategies
+- ❌ **CANNOT** access PRIVATE strategies (owner-only)
 - ❌ **CANNOT** view strategy code
 - ❌ **CANNOT** edit strategies
 - ❌ **CANNOT** transfer ownership
 
 **Important**: Subscription is to the OWNER, not strategies
-- If Alice owns 5 strategies and sells 2 to Bob, subscribers to Alice can now only deploy her remaining 3 strategies
+- If Alice owns 5 strategies (3 PUBLIC, 2 PRIVATE), subscribers can only deploy the 3 PUBLIC ones
+- If Alice sells a strategy to Bob, subscribers to Alice lose access to that strategy
 - Subscriptions do NOT transfer with strategy ownership
+- Owner controls what subscribers can access by setting strategies to PUBLIC
 
 ---
 
@@ -105,7 +111,7 @@ Each strategy has **two independent fields**:
 **Values**: `DRAFT` | `PUBLISHED`
 
 **Meaning**:
-- `DRAFT` - Strategy is still in development, not ready for use
+- `DRAFT` - Strategy is still in development, cannot be deployed
 - `PUBLISHED` - Strategy is complete and ready for deployment
 
 ### 2. publicStatus
@@ -113,8 +119,8 @@ Each strategy has **two independent fields**:
 **Values**: `PRIVATE` | `PUBLIC`
 
 **Meaning**:
-- `PRIVATE` - Only owner and subscribers can see it
-- `PUBLIC` - Everyone can see name and performance (but not code)
+- `PRIVATE` - Owner-only access, not visible to anyone else (including subscribers)
+- `PUBLIC` - Visible to everyone, subscribers can deploy
 
 ---
 
@@ -122,10 +128,36 @@ Each strategy has **two independent fields**:
 
 | publishStatus | publicStatus | Valid? | Description |
 |---------------|--------------|--------|-------------|
-| `DRAFT` | `PRIVATE` | ✅ | Working on it, owner-only access |
+| `DRAFT` | `PRIVATE` | ✅ | Work in progress, owner-only, cannot deploy |
 | `DRAFT` | `PUBLIC` | ❌ | **INVALID** - Prevent in UI/API |
-| `PUBLISHED` | `PRIVATE` | ✅ | "Members-only" - only subscribers can see/deploy |
-| `PUBLISHED` | `PUBLIC` | ✅ | Public marketplace - everyone sees performance, subscribers deploy |
+| `PUBLISHED` | `PRIVATE` | ✅ | Personal use - owner can deploy, no one else can see/access |
+| `PUBLISHED` | `PUBLIC` | ✅ | Shared - visible in marketplace, subscribers can deploy |
+
+---
+
+### Detailed Capability Matrix
+
+| Capability | DRAFT + PRIVATE | PUBLISHED + PRIVATE | PUBLISHED + PUBLIC |
+|------------|-----------------|---------------------|-------------------|
+| **Owner can view code** | ✅ | ✅ | ✅ |
+| **Owner can edit** | ✅ | ✅ | ✅ |
+| **Owner can deploy** | ❌ | ✅ | ✅ |
+| **Visible in marketplace** | ❌ | ❌ | ✅ |
+| **Subscribers can see** | ❌ | ❌ | ✅ |
+| **Subscribers can deploy** | ❌ | ❌ | ✅ |
+| **Public can see performance** | ❌ | ❌ | ✅ |
+| **Can be listed for SALE** | ❌ | ❌ | ✅ |
+
+---
+
+### Use Cases
+
+| Goal | State |
+|------|-------|
+| "I'm building a strategy" | DRAFT + PRIVATE |
+| "I'm running this for myself, don't want to share" | PUBLISHED + PRIVATE |
+| "I want my subscribers to use this" | PUBLISHED + PUBLIC |
+| "I want to sell this strategy" | PUBLISHED + PUBLIC + Listed for Sale |
 
 ---
 
@@ -162,22 +194,21 @@ if (publishStatus.equals("DRAFT") && publicStatus.equals("PUBLIC")) {
 | User Type | DRAFT + PRIVATE | PUBLISHED + PRIVATE | PUBLISHED + PUBLIC |
 |-----------|-----------------|---------------------|-------------------|
 | **Owner** | Everything | Everything | Everything |
-| **Subscriber** | Cannot see | See name, performance, deploy | See name, performance, deploy |
+| **Subscriber** | Cannot see | Cannot see | See name, performance, deploy |
 | **Follower** | Cannot see | Cannot see | See name, performance (like public) |
 | **Public** | Cannot see | Cannot see | See name, performance |
 
 ### Detailed Capabilities
 
-#### DRAFT + PRIVATE
-- **Owner**: Full access (edit, view, deploy)
+#### DRAFT + PRIVATE (Work in Progress)
+- **Owner**: Can view, edit, but CANNOT deploy
 - **Everyone else**: Cannot see it exists
 
-#### PUBLISHED + PRIVATE (Members-Only)
-- **Owner**: Full access
-- **Subscribers**: Can see name, full performance, can deploy
-- **Everyone else**: Cannot see it exists (not in search/browse)
+#### PUBLISHED + PRIVATE (Personal Use)
+- **Owner**: Full access - can view, edit, deploy
+- **Everyone else**: Cannot see it exists (not in search/browse, not accessible to subscribers)
 
-#### PUBLISHED + PUBLIC (Public Marketplace)
+#### PUBLISHED + PUBLIC (Shared / Marketplace)
 - **Owner**: Full access
 - **Subscribers**: Can see name, full performance, can deploy
 - **Everyone**: Can see name, full performance, **cannot deploy**
@@ -208,10 +239,10 @@ if (publishStatus.equals("DRAFT") && publicStatus.equals("PUBLIC")) {
 ### Scenario B: I'm Subscribed to Alice (who owns Strategy X)
 
 **What I can do:**
-- ✅ Deploy Strategy X as bot/alert (if PUBLISHED)
-- ✅ View full performance metrics
-- ✅ View Strategy X even if PRIVATE (members-only access)
-- ✅ Deploy ALL of Alice's published strategies (not just Strategy X)
+- ✅ Deploy Strategy X as bot/alert (if PUBLISHED + PUBLIC)
+- ✅ View full performance metrics for PUBLIC strategies
+- ✅ Deploy ALL of Alice's PUBLIC strategies
+- ❌ **CANNOT** access Alice's PRIVATE strategies (owner-only)
 - ❌ Cannot view strategy code
 - ❌ Cannot edit strategy
 - ❌ Cannot transfer ownership
@@ -221,6 +252,11 @@ if (publishStatus.equals("DRAFT") && publicStatus.equals("PUBLIC")) {
 - Uses MY money/positions
 - I configure MY risk settings (stop loss, position size)
 - Alice does NOT see my deployment performance (privacy)
+
+**What Alice controls:**
+- Alice decides which strategies to make PUBLIC (shared with subscribers)
+- Alice can keep certain strategies PRIVATE (her personal edge)
+- If Alice changes a strategy from PUBLIC to PRIVATE, I lose access
 
 ---
 
@@ -257,7 +293,7 @@ if (publishStatus.equals("DRAFT") && publicStatus.equals("PUBLIC")) {
 **What happens:**
 - ❌ Cannot find in search/browse (invisible)
 - ❌ Cannot access via direct link (404 or "Access Denied")
-- 💡 Only visible to: Owner and subscribers (if PUBLISHED + PRIVATE)
+- 💡 PRIVATE strategies are owner-only (not even subscribers can see them)
 
 ---
 
@@ -296,6 +332,20 @@ if (publishStatus.equals("DRAFT") && publicStatus.equals("PUBLIC")) {
 - ✅ Unlimited ownership transfers allowed
 - ✅ New owner can resell to another user
 
+### Default State After Purchase
+
+When a strategy is purchased, it automatically changes to:
+- **publishStatus**: `PUBLISHED` (unchanged - was already published to be listed)
+- **publicStatus**: `PRIVATE` (changed from PUBLIC to PRIVATE)
+
+This means:
+1. New owner can immediately deploy the strategy
+2. Strategy is removed from marketplace (no longer visible to public)
+3. New owner's subscribers do NOT automatically get access
+4. New owner must explicitly set to PUBLIC to share with subscribers or resell
+
+**Rationale**: Buyer paid for the strategy - they should control if/when to share it
+
 ---
 
 ## Subscription Model
@@ -305,7 +355,8 @@ if (publishStatus.equals("DRAFT") && publicStatus.equals("PUBLIC")) {
 **Current design**: Single tier per owner
 
 - Owner sets their monthly price (e.g., $50/month)
-- Subscriber gets access to deploy ALL published strategies from that owner
+- Subscriber gets access to deploy ALL **PUBLIC** strategies from that owner
+- PRIVATE strategies remain owner-only (not included in subscription)
 - No revenue sharing with platform (for MVP)
 
 ### Future Tiers (Optional)
@@ -321,7 +372,8 @@ Could implement multiple tiers per owner:
    - Monthly recurring payment
 
 2. **Subscription active:**
-   - User can deploy all of Alice's PUBLISHED strategies
+   - User can deploy all of Alice's PUBLISHED + PUBLIC strategies
+   - PRIVATE strategies are excluded (Alice's personal use)
    - Renewed monthly automatically
 
 3. **User cancels:**
@@ -333,6 +385,174 @@ Could implement multiple tiers per owner:
    - Alice sells a strategy to Bob
    - Subscribers to Alice CANNOT deploy that strategy anymore
    - No refund, no transfer to Bob's subscriber list
+
+5. **Visibility change:**
+   - If Alice changes a strategy from PUBLIC to PRIVATE, subscribers lose access
+   - If Alice changes a strategy from PRIVATE to PUBLIC, subscribers gain access
+
+---
+
+## Platform Tiers
+
+### Two-Gate Access Model
+
+Users must pass TWO gates to deploy strategies:
+
+1. **Strategy Access** (Pay Owner) - Right to USE the strategy
+2. **Platform Tier** (Pay Platform) - Ability to RUN it (alerts, bots, execution)
+
+```
+┌──────────────────┐         ┌──────────────────┐
+│  STRATEGY ACCESS │    +    │  PLATFORM TIER   │    =    ALERTS
+│  (Pay Owner)     │         │  (Pay Platform)  │
+└──────────────────┘         └──────────────────┘
+
+    "What to trade"      +      "Get notified"     =    Value delivered
+```
+
+### Platform Fee
+
+- **Owner keeps**: 85%
+- **Platform fee**: 15%
+- Example: $50/month subscription → Owner earns $42.50/subscriber
+
+### Tier Structure
+
+| Tier | Price | Alerts | Strategies | AI Credits | AI Models |
+|------|-------|--------|------------|------------|-----------|
+| **Free** | $0 | 0 | 0 | 0 | 0 |
+| **Explorer** | $149/mo | 3 | 3 | 40K | 6 |
+| **Pro** | $199/mo | Unlimited | Unlimited | 65K | 19 (all) |
+
+---
+
+## Product Feature Matrix
+
+### Complete Feature Breakdown
+
+| Feature | Free | Explorer ($149/mo) | Pro ($199/mo) |
+|---------|------|--------------------|-----------------------|
+| **MARKETPLACE** ||||
+| Browse & view strategies | ✅ | ✅ | ✅ |
+| Follow owners | ✅ | ✅ | ✅ |
+| Subscribe/Purchase strategies | ✅ | ✅ | ✅ |
+| **DEPLOYMENT** ||||
+| Deploy alerts | ❌ | ✅ (3 alerts) | ✅ (unlimited) |
+| Deploy bots | ❌ | ❌ | 🔜 Future |
+| **CREATION** ||||
+| Create strategies | ❌ | ✅ (3 strategies) | ✅ (unlimited) |
+| Backtest | ❌ | ✅ | ✅ |
+| Publish & sell | ❌ | ✅ | ✅ |
+| Enable owner subscriptions | ❌ | ✅ | ✅ |
+| **PORTFOLIO** ||||
+| Connect broker | ✅ | ✅ | ✅ |
+| Basic stats (holdings, P&L) | ✅ | ✅ | ✅ |
+| Advanced analysis | ❌ | ✅ | ✅ |
+| Export reports | ❌ | ✅ | ✅ |
+| **LEARN** ||||
+| Basic courses | ✅ | ✅ | ✅ |
+| Advanced masterclasses | ❌ | ✅ | ✅ |
+| **AI ASSISTANT** ||||
+| AI chat | ❌ | ✅ (40K credits) | ✅ (65K credits) |
+| AI models | ❌ | 6 models | 19 models (all) |
+
+### Free Tier Value
+
+| What's Free | Purpose |
+|-------------|---------|
+| Browse marketplace | Discovery funnel |
+| View all PUBLIC strategy performance | Builds trust in platform |
+| Follow owners (activity feed) | Engagement & retention |
+| Subscribe/Purchase strategies (pay owner) | Owner revenue stream |
+| Connect broker + basic stats | Hook for portfolio users |
+| Basic learning courses | Trust building, SEO, onboarding |
+
+### Paid Tier Value
+
+| What's Paid | Why It's Paid |
+|-------------|---------------|
+| Deploy alerts | Core monetization - the main value |
+| Create strategies | Requires compute for backtesting |
+| Advanced portfolio analysis | Premium insights |
+| Advanced courses | Value-add for subscribers |
+| AI assistant | Compute costs |
+
+---
+
+## User Journeys
+
+### Consumer Journey (Buys strategies)
+
+```
+Free: Browse → Follow owners → View performance → Basic portfolio
+                    │
+    Upgrade trigger: "I want alerts on this strategy"
+                    │
+                    ▼
+Explorer ($149/mo): Subscribe to owner + Deploy alerts (3 max)
+                    │
+    Upgrade trigger: "I need more than 3 alerts"
+                    │
+                    ▼
+Pro ($199/mo): Unlimited alerts + all AI models
+```
+
+### Creator Journey (Builds strategies)
+
+```
+Free: Browse → Learn basics → Study others' strategies
+                    │
+    Upgrade trigger: "I want to build my own"
+                    │
+                    ▼
+Explorer ($149/mo): Create (3 max), backtest, publish → Enable subscriptions → Earn revenue
+                    │
+    Upgrade trigger: "I need more than 3 strategies"
+                    │
+                    ▼
+Pro ($199/mo): Unlimited strategies + all AI models
+```
+
+### Analyst Journey (Portfolio focused)
+
+```
+Free: Connect broker → View holdings → Basic P&L
+                    │
+    Upgrade trigger: "I want risk metrics and reports"
+                    │
+                    ▼
+Explorer ($149/mo): Full analysis suite + Export
+```
+
+---
+
+## Owner Subscription Setup
+
+### Requirements to Enable Subscriptions
+
+**Required (hard block):**
+- Verified email
+- At least 1 PUBLISHED + PUBLIC strategy
+- Stripe Connect account connected
+
+**Recommended (soft warning):**
+- Profile photo
+- Profile bio
+- At least 30 days backtest history on strategies
+
+### Owner Subscription Settings
+
+Owners can configure:
+- **Monthly price**: Owner sets their price (suggested: $25-100/month)
+- **Profile pitch**: Description shown to potential subscribers (500 char max)
+
+Note: No trial period for owner subscriptions. Users can follow for free to validate before subscribing.
+
+### Payout Schedule
+
+- Payouts processed via Stripe Connect
+- Payout frequency: Every 2 weeks
+- Platform handles 1099 tax forms for US creators
 
 ---
 
@@ -389,37 +609,37 @@ public boolean canViewStrategy(String strategyId, String userId) {
         return true;
     }
 
-    // Published + Public = everyone can view
+    // Must be PUBLISHED + PUBLIC for anyone else to view
+    // PRIVATE strategies are owner-only (not even subscribers)
     if ("PUBLISHED".equals(strategy.getPublishStatus()) &&
         "PUBLIC".equals(strategy.getPublicStatus())) {
         return true;
     }
 
-    // Published + Private = only subscribers can view
-    if ("PUBLISHED".equals(strategy.getPublishStatus()) &&
-        "PRIVATE".equals(strategy.getPublicStatus())) {
-        return hasActiveSubscription(userId, strategy.getOwnerId());
-    }
-
-    // Draft = owner only
+    // Draft or Private = owner only
     return false;
 }
 
 public boolean canDeployStrategy(String strategyId, String userId) {
     Strategy strategy = findById(strategyId);
 
-    // Owner can always deploy
-    if (userId.equals(strategy.getOwnerId())) {
-        return true;
-    }
-
-    // Must be published for subscribers to deploy
+    // Must be published to deploy
     if (!"PUBLISHED".equals(strategy.getPublishStatus())) {
         return false;
     }
 
-    // Subscriber can deploy published strategies
-    return hasActiveSubscription(userId, strategy.getOwnerId());
+    // Owner can deploy any of their published strategies (public or private)
+    if (userId.equals(strategy.getOwnerId())) {
+        return true;
+    }
+
+    // Subscribers can only deploy PUBLIC strategies
+    if ("PUBLIC".equals(strategy.getPublicStatus())) {
+        return hasActiveSubscription(userId, strategy.getOwnerId());
+    }
+
+    // PRIVATE = owner only
+    return false;
 }
 
 public boolean canViewCode(String strategyId, String userId) {
@@ -480,3 +700,5 @@ This business model is **APPROVED** for implementation.
 | Date | Version | Changes |
 |------|---------|---------|
 | 2025-12-31 | 1.0 | Initial business model documentation |
+| 2026-01-16 | 1.1 | Clarified PRIVATE visibility: PRIVATE = owner-only (subscribers cannot access). Added detailed capability matrix. Added default state after purchase (PUBLISHED + PRIVATE). |
+| 2026-01-17 | 1.2 | Added Two-Gate Access Model (Strategy Access + Platform Tier). Added complete Product Feature Matrix. Consolidated to 3 Platform Tiers: Free ($0), Explorer ($149/mo, 3 alerts/strategies, 40K credits, 6 models), Pro ($199/mo, unlimited, 65K credits, all 19 models). Added User Journeys with upgrade triggers. Added Owner Subscription Setup requirements. Added 15% platform fee. No trial for owner subscriptions. |

@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -49,8 +50,11 @@ import java.util.stream.Collectors;
  * 3. Loads strategy code for each deployment
  * 4. Calls gRPC ExecuteList to evaluate all strategies
  * 5. Routes signals to appropriate adapters (Alert or Bot)
+ *
+ * Requires ClickHouse to be enabled for market data access.
  */
 @Component
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class SymbolSetProcessorJob {
 
 	private static final Logger log = LoggerFactory.getLogger(SymbolSetProcessorJob.class);

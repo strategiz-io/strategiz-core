@@ -284,7 +284,8 @@ public class AlpacaHistoricalClient {
 
     /**
      * Get latest quotes for multiple stock symbols.
-     * Uses Alpaca's multi-quote endpoint for efficiency.
+     * Uses Alpaca's snapshots endpoint for accurate daily change calculation.
+     * Snapshots include prevDailyBar which gives us yesterday's close for proper % change.
      *
      * @param symbols List of stock symbols (e.g., ["AAPL", "MSFT", "GOOG"])
      * @return Map of symbol to quote data (price, change, etc.)
@@ -304,9 +305,10 @@ public class AlpacaHistoricalClient {
         try {
             // Join symbols with comma
             String symbolsParam = String.join(",", symbols);
-            String fullUrl = apiUrl + "/v2/stocks/bars/latest?symbols=" + symbolsParam + "&feed=" + feed;
+            // Use snapshots endpoint which includes prevDailyBar for accurate daily change
+            String fullUrl = apiUrl + "/v2/stocks/snapshots?symbols=" + symbolsParam + "&feed=" + feed;
 
-            log.debug("Fetching latest quotes for: {}", symbolsParam);
+            log.debug("Fetching snapshots for: {}", symbolsParam);
 
             HttpEntity<String> entity = new HttpEntity<>(createHeaders());
             ResponseEntity<String> responseEntity = restTemplate.exchange(
@@ -318,41 +320,57 @@ public class AlpacaHistoricalClient {
 
             String responseBody = responseEntity.getBody();
             if (responseBody == null || responseBody.isEmpty()) {
-                log.warn("Empty response for latest quotes");
+                log.warn("Empty response for snapshots");
                 return result;
             }
 
-            // Parse the response
-            Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
-            Map<String, Object> bars = (Map<String, Object>) response.get("bars");
+            // Parse the response - snapshots returns { "AAPL": { "latestTrade": {...}, "dailyBar": {...}, "prevDailyBar": {...} }, ... }
+            Map<String, Object> snapshots = objectMapper.readValue(responseBody, Map.class);
 
-            if (bars != null) {
-                for (Map.Entry<String, Object> entry : bars.entrySet()) {
-                    String symbol = entry.getKey();
-                    Map<String, Object> barData = (Map<String, Object>) entry.getValue();
+            for (Map.Entry<String, Object> entry : snapshots.entrySet()) {
+                String symbol = entry.getKey();
+                Map<String, Object> snapshotData = (Map<String, Object>) entry.getValue();
 
-                    // Extract price from the bar (close price is the latest)
-                    BigDecimal close = new BigDecimal(barData.get("c").toString());
-                    BigDecimal open = new BigDecimal(barData.get("o").toString());
-                    BigDecimal change = close.subtract(open);
-                    BigDecimal changePercent = open.compareTo(BigDecimal.ZERO) != 0
-                        ? change.multiply(new BigDecimal("100")).divide(open, 2, java.math.RoundingMode.HALF_UP)
+                try {
+                    // Get current price from latestTrade (most accurate real-time price)
+                    Map<String, Object> latestTrade = (Map<String, Object>) snapshotData.get("latestTrade");
+                    Map<String, Object> prevDailyBar = (Map<String, Object>) snapshotData.get("prevDailyBar");
+
+                    if (latestTrade == null || prevDailyBar == null) {
+                        log.warn("Missing latestTrade or prevDailyBar for {}", symbol);
+                        continue;
+                    }
+
+                    // Current price from latest trade
+                    BigDecimal currentPrice = new BigDecimal(latestTrade.get("p").toString());
+                    // Previous day's close for accurate daily change
+                    BigDecimal prevClose = new BigDecimal(prevDailyBar.get("c").toString());
+
+                    // Calculate daily change (current price vs previous close)
+                    BigDecimal change = currentPrice.subtract(prevClose);
+                    BigDecimal changePercent = prevClose.compareTo(BigDecimal.ZERO) != 0
+                        ? change.multiply(new BigDecimal("100")).divide(prevClose, 2, java.math.RoundingMode.HALF_UP)
                         : BigDecimal.ZERO;
 
-                    result.put(symbol, new LatestQuote(symbol, close, change, changePercent));
+                    result.put(symbol, new LatestQuote(symbol, currentPrice, change, changePercent));
+                    log.debug("Snapshot for {}: price={}, prevClose={}, change={}%",
+                        symbol, currentPrice, prevClose, changePercent);
+
+                } catch (Exception e) {
+                    log.warn("Failed to parse snapshot for {}: {}", symbol, e.getMessage());
                 }
             }
 
-            log.info("Fetched {} latest quotes", result.size());
+            log.info("Fetched {} snapshots", result.size());
             return result;
 
         } catch (Exception e) {
-            log.error("Error fetching latest quotes: {}", e.getMessage());
+            log.error("Error fetching snapshots: {}", e.getMessage());
             throw new StrategizException(
                 AlpacaErrorDetails.API_ERROR_RESPONSE,
                 MODULE_NAME,
                 e,
-                "Failed to fetch latest quotes"
+                "Failed to fetch stock snapshots"
             );
         }
     }
@@ -542,7 +560,7 @@ public class AlpacaHistoricalClient {
 
     /**
      * Get latest quotes for crypto symbols.
-     * Uses Alpaca's crypto data endpoint.
+     * Uses Alpaca's crypto snapshots endpoint for accurate daily change calculation.
      *
      * @param symbols List of crypto symbols (e.g., ["BTC", "ETH"])
      * @return Map of symbol to quote data
@@ -566,9 +584,10 @@ public class AlpacaHistoricalClient {
                 .toList();
             String symbolsParam = String.join(",", cryptoPairs);
 
-            String fullUrl = apiUrl + "/v1beta3/crypto/us/latest/bars?symbols=" + symbolsParam;
+            // Use snapshots endpoint for accurate daily change calculation
+            String fullUrl = apiUrl + "/v1beta3/crypto/us/snapshots?symbols=" + symbolsParam;
 
-            log.debug("Fetching latest crypto quotes for: {}", symbolsParam);
+            log.debug("Fetching crypto snapshots for: {}", symbolsParam);
 
             HttpEntity<String> entity = new HttpEntity<>(createHeaders());
             ResponseEntity<String> responseEntity = restTemplate.exchange(
@@ -580,41 +599,61 @@ public class AlpacaHistoricalClient {
 
             String responseBody = responseEntity.getBody();
             if (responseBody == null || responseBody.isEmpty()) {
-                log.warn("Empty response for latest crypto quotes");
+                log.warn("Empty response for crypto snapshots");
                 return result;
             }
 
-            // Parse the response
+            // Parse the response - crypto snapshots returns { "snapshots": { "BTC/USD": { "latestTrade": {...}, "prevDailyBar": {...} }, ... } }
             Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
-            Map<String, Object> bars = (Map<String, Object>) response.get("bars");
+            Map<String, Object> snapshots = (Map<String, Object>) response.get("snapshots");
 
-            if (bars != null) {
-                for (Map.Entry<String, Object> entry : bars.entrySet()) {
+            if (snapshots != null) {
+                for (Map.Entry<String, Object> entry : snapshots.entrySet()) {
                     String cryptoPair = entry.getKey(); // e.g., "BTC/USD"
                     String symbol = cryptoPair.replace("/USD", ""); // Back to "BTC"
-                    Map<String, Object> barData = (Map<String, Object>) entry.getValue();
+                    Map<String, Object> snapshotData = (Map<String, Object>) entry.getValue();
 
-                    BigDecimal close = new BigDecimal(barData.get("c").toString());
-                    BigDecimal open = new BigDecimal(barData.get("o").toString());
-                    BigDecimal change = close.subtract(open);
-                    BigDecimal changePercent = open.compareTo(BigDecimal.ZERO) != 0
-                        ? change.multiply(new BigDecimal("100")).divide(open, 2, java.math.RoundingMode.HALF_UP)
-                        : BigDecimal.ZERO;
+                    try {
+                        // Get current price from latestTrade
+                        Map<String, Object> latestTrade = (Map<String, Object>) snapshotData.get("latestTrade");
+                        Map<String, Object> prevDailyBar = (Map<String, Object>) snapshotData.get("prevDailyBar");
 
-                    result.put(symbol, new LatestQuote(symbol, close, change, changePercent));
+                        if (latestTrade == null || prevDailyBar == null) {
+                            log.warn("Missing latestTrade or prevDailyBar for crypto {}", symbol);
+                            continue;
+                        }
+
+                        // Current price from latest trade
+                        BigDecimal currentPrice = new BigDecimal(latestTrade.get("p").toString());
+                        // Previous day's close for accurate daily change
+                        BigDecimal prevClose = new BigDecimal(prevDailyBar.get("c").toString());
+
+                        // Calculate daily change (current price vs previous close)
+                        BigDecimal change = currentPrice.subtract(prevClose);
+                        BigDecimal changePercent = prevClose.compareTo(BigDecimal.ZERO) != 0
+                            ? change.multiply(new BigDecimal("100")).divide(prevClose, 2, java.math.RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO;
+
+                        result.put(symbol, new LatestQuote(symbol, currentPrice, change, changePercent));
+                        log.debug("Crypto snapshot for {}: price={}, prevClose={}, change={}%",
+                            symbol, currentPrice, prevClose, changePercent);
+
+                    } catch (Exception e) {
+                        log.warn("Failed to parse crypto snapshot for {}: {}", symbol, e.getMessage());
+                    }
                 }
             }
 
-            log.info("Fetched {} latest crypto quotes", result.size());
+            log.info("Fetched {} crypto snapshots", result.size());
             return result;
 
         } catch (Exception e) {
-            log.error("Error fetching latest crypto quotes: {}", e.getMessage());
+            log.error("Error fetching crypto snapshots: {}", e.getMessage());
             throw new StrategizException(
                 AlpacaErrorDetails.API_ERROR_RESPONSE,
                 MODULE_NAME,
                 e,
-                "Failed to fetch latest crypto quotes"
+                "Failed to fetch crypto snapshots"
             );
         }
     }

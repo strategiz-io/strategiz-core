@@ -1,7 +1,7 @@
 package io.strategiz.service.marketing.service;
 
-import io.strategiz.client.alpaca.client.AlpacaHistoricalClient;
-import io.strategiz.client.alpaca.client.AlpacaHistoricalClient.LatestQuote;
+import io.strategiz.client.fmp.client.FmpFundamentalsClient;
+import io.strategiz.client.fmp.client.FmpFundamentalsClient.FmpQuote;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.marketing.exception.ServiceMarketingErrorDetails;
 import io.strategiz.service.marketing.model.response.MarketTickerResponse;
@@ -9,22 +9,25 @@ import io.strategiz.service.marketing.model.response.TickerItem;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 /**
  * Service for fetching market ticker data.
  * Contains business logic for which symbols to display.
- * Delegates to AlpacaHistoricalClient for actual data fetching.
+ * Delegates to FmpFundamentalsClient for actual data fetching.
  */
 @Service
+@ConditionalOnBean(FmpFundamentalsClient.class)
 public class MarketTickerService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketTickerService.class);
 
-    // Popular crypto symbols to display
-    private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTC", "ETH", "SOL", "DOGE");
+    // Popular crypto symbols to display (FMP uses USD pairs)
+    private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTCUSD", "ETHUSD", "SOLUSD", "DOGEUSD");
 
     // Popular stock symbols to display
     private static final List<String> STOCK_SYMBOLS = Arrays.asList(
@@ -49,37 +52,45 @@ public class MarketTickerService {
         Map.entry("AMD", "AMD Inc."),
         Map.entry("CRM", "Salesforce Inc."),
         Map.entry("ORCL", "Oracle Corp."),
-        Map.entry("BTC", "Bitcoin"),
-        Map.entry("ETH", "Ethereum"),
-        Map.entry("SOL", "Solana"),
-        Map.entry("DOGE", "Dogecoin")
+        Map.entry("BTCUSD", "Bitcoin"),
+        Map.entry("ETHUSD", "Ethereum"),
+        Map.entry("SOLUSD", "Solana"),
+        Map.entry("DOGEUSD", "Dogecoin")
     );
 
-    private final AlpacaHistoricalClient alpacaClient;
+    // Display symbol mapping (for crypto to show BTC instead of BTCUSD)
+    private static final Map<String, String> DISPLAY_SYMBOLS = Map.of(
+        "BTCUSD", "BTC",
+        "ETHUSD", "ETH",
+        "SOLUSD", "SOL",
+        "DOGEUSD", "DOGE"
+    );
 
-    public MarketTickerService(AlpacaHistoricalClient alpacaClient) {
-        this.alpacaClient = alpacaClient;
+    private final FmpFundamentalsClient fmpClient;
+
+    public MarketTickerService(FmpFundamentalsClient fmpClient) {
+        this.fmpClient = fmpClient;
     }
 
     /**
-     * Check if the Alpaca client is available.
+     * Check if the FMP client is available.
      */
-    public boolean isAlpacaAvailable() {
-        return alpacaClient.isAvailable();
+    public boolean isFmpAvailable() {
+        return fmpClient != null;
     }
 
     /**
-     * Fetch market ticker data for popular assets from Alpaca.
+     * Fetch market ticker data for popular assets from FMP.
      * Throws exception if data cannot be fetched - no demo data fallback.
      *
      * @return MarketTickerResponse with stock and crypto prices
-     * @throws StrategizException if Alpaca is unavailable or returns no data
+     * @throws StrategizException if FMP is unavailable or returns no data
      */
     public MarketTickerResponse getMarketTicker() {
-        log.info("Fetching market ticker data from Alpaca");
+        log.info("Fetching market ticker data from FMP");
 
-        if (!alpacaClient.isAvailable()) {
-            log.error("Alpaca client not available");
+        if (!isFmpAvailable()) {
+            log.error("FMP client not available");
             throw new StrategizException(
                 ServiceMarketingErrorDetails.MARKET_DATA_UNAVAILABLE,
                 "service-marketing",
@@ -87,7 +98,7 @@ public class MarketTickerService {
             );
         }
 
-        // Fetch data from Alpaca
+        // Fetch data from FMP
         List<TickerItem> stockItems = fetchStockData();
         List<TickerItem> cryptoItems = fetchCryptoData();
 
@@ -98,7 +109,7 @@ public class MarketTickerService {
 
         // If no data returned, throw error
         if (allItems.isEmpty()) {
-            log.error("No data returned from Alpaca");
+            log.error("No data returned from FMP");
             throw new StrategizException(
                 ServiceMarketingErrorDetails.MARKET_DATA_UNAVAILABLE,
                 "service-marketing",
@@ -114,66 +125,65 @@ public class MarketTickerService {
     }
 
     /**
-     * Fetch stock data from Alpaca API
+     * Fetch stock data from FMP API
      */
     private List<TickerItem> fetchStockData() {
         List<TickerItem> items = new ArrayList<>();
 
         try {
-            log.info("Fetching stock data from Alpaca for {} symbols", STOCK_SYMBOLS.size());
-            Map<String, LatestQuote> quotes = alpacaClient.getLatestStockQuotes(STOCK_SYMBOLS);
+            log.info("Fetching stock data from FMP for {} symbols", STOCK_SYMBOLS.size());
+            List<FmpQuote> quotes = fmpClient.getQuotes(STOCK_SYMBOLS);
 
-            for (Map.Entry<String, LatestQuote> entry : quotes.entrySet()) {
-                String symbol = entry.getKey();
-                LatestQuote quote = entry.getValue();
+            for (FmpQuote quote : quotes) {
+                String symbol = quote.getSymbol();
 
                 items.add(new TickerItem(
                     symbol,
-                    SYMBOL_NAMES.getOrDefault(symbol, symbol),
+                    quote.getName() != null ? quote.getName() : SYMBOL_NAMES.getOrDefault(symbol, symbol),
                     "stock",
-                    quote.getPrice(),
-                    quote.getChange(),
-                    quote.getChangePercent(),
+                    quote.getPrice() != null ? quote.getPrice() : BigDecimal.ZERO,
+                    quote.getChange() != null ? quote.getChange() : BigDecimal.ZERO,
+                    quote.getChangePercent() != null ? quote.getChangePercent() : BigDecimal.ZERO,
                     quote.isPositive()
                 ));
             }
 
-            log.info("Fetched {} stock quotes from Alpaca", items.size());
+            log.info("Fetched {} stock quotes from FMP", items.size());
         } catch (Exception e) {
-            log.warn("Failed to fetch stock data from Alpaca: {}", e.getMessage());
+            log.warn("Failed to fetch stock data from FMP: {}", e.getMessage());
         }
 
         return items;
     }
 
     /**
-     * Fetch crypto data from Alpaca API
+     * Fetch crypto data from FMP API
      */
     private List<TickerItem> fetchCryptoData() {
         List<TickerItem> items = new ArrayList<>();
 
         try {
-            log.info("Fetching crypto data from Alpaca for {} symbols", CRYPTO_SYMBOLS.size());
-            Map<String, LatestQuote> quotes = alpacaClient.getLatestCryptoQuotes(CRYPTO_SYMBOLS);
+            log.info("Fetching crypto data from FMP for {} symbols", CRYPTO_SYMBOLS.size());
+            List<FmpQuote> quotes = fmpClient.getQuotes(CRYPTO_SYMBOLS);
 
-            for (Map.Entry<String, LatestQuote> entry : quotes.entrySet()) {
-                String symbol = entry.getKey();
-                LatestQuote quote = entry.getValue();
+            for (FmpQuote quote : quotes) {
+                String symbol = quote.getSymbol();
+                String displaySymbol = DISPLAY_SYMBOLS.getOrDefault(symbol, symbol);
 
                 items.add(new TickerItem(
-                    symbol,
-                    SYMBOL_NAMES.getOrDefault(symbol, symbol),
+                    displaySymbol,
+                    SYMBOL_NAMES.getOrDefault(symbol, displaySymbol),
                     "crypto",
-                    quote.getPrice(),
-                    quote.getChange(),
-                    quote.getChangePercent(),
+                    quote.getPrice() != null ? quote.getPrice() : BigDecimal.ZERO,
+                    quote.getChange() != null ? quote.getChange() : BigDecimal.ZERO,
+                    quote.getChangePercent() != null ? quote.getChangePercent() : BigDecimal.ZERO,
                     quote.isPositive()
                 ));
             }
 
-            log.info("Fetched {} crypto quotes from Alpaca", items.size());
+            log.info("Fetched {} crypto quotes from FMP", items.size());
         } catch (Exception e) {
-            log.warn("Failed to fetch crypto data from Alpaca: {}", e.getMessage());
+            log.warn("Failed to fetch crypto data from FMP: {}", e.getMessage());
         }
 
         return items;

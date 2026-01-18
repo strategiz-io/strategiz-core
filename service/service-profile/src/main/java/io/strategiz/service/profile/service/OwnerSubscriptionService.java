@@ -1,18 +1,22 @@
 package io.strategiz.service.profile.service;
 
+import com.stripe.model.Account;
+import io.strategiz.client.stripe.StripeConnectService;
+import io.strategiz.client.stripe.StripeConnectService.ConnectAccountStatus;
 import io.strategiz.data.social.entity.OwnerSubscriptionSettings;
 import io.strategiz.data.social.repository.OwnerSubscriptionSettingsRepository;
+import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.profile.exception.ProfileErrors;
 import io.strategiz.service.profile.model.EnableSubscriptionsRequest;
 import io.strategiz.service.profile.model.OwnerSubscriptionSettingsResponse;
+import io.strategiz.service.profile.model.StripeConnectStatusResponse;
 import io.strategiz.service.profile.model.UpdateSubscriptionSettingsRequest;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -35,12 +39,15 @@ public class OwnerSubscriptionService extends BaseService {
 
     private final OwnerSubscriptionSettingsRepository subscriptionSettingsRepository;
     private final UserRepository userRepository;
+    private final StripeConnectService stripeConnectService;
 
     public OwnerSubscriptionService(
             OwnerSubscriptionSettingsRepository subscriptionSettingsRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            StripeConnectService stripeConnectService) {
         this.subscriptionSettingsRepository = subscriptionSettingsRepository;
         this.userRepository = userRepository;
+        this.stripeConnectService = stripeConnectService;
     }
 
     /**
@@ -231,6 +238,164 @@ public class OwnerSubscriptionService extends BaseService {
     public void updatePublicStrategyCount(String userId, int count) {
         subscriptionSettingsRepository.updatePublicStrategyCount(userId, count);
         log.debug("Updated public strategy count for user: {} to {}", userId, count);
+    }
+
+    // === Stripe Connect Methods ===
+
+    /**
+     * Create a Stripe Connect account for the user.
+     * This is the first step in enabling subscriptions.
+     *
+     * @param userId The owner's user ID
+     * @return The onboarding URL to complete Stripe Connect setup
+     */
+    public String createStripeConnectAccount(String userId) {
+        log.info("Creating Stripe Connect account for user: {}", userId);
+
+        // Get user email
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, MODULE_NAME, "User not found: " + userId);
+        }
+
+        String userEmail = userOpt.get().getProfile().getEmail();
+
+        // Check if user already has a Connect account
+        Optional<OwnerSubscriptionSettings> settingsOpt = subscriptionSettingsRepository.findByUserId(userId);
+        if (settingsOpt.isPresent() && settingsOpt.get().getStripeConnectAccountId() != null) {
+            // Already has an account - return onboarding link to continue/refresh
+            String accountId = settingsOpt.get().getStripeConnectAccountId();
+            log.info("User {} already has Connect account {}, returning onboarding link", userId, accountId);
+            return stripeConnectService.createOnboardingLink(accountId);
+        }
+
+        // Create new Connect account
+        Account account = stripeConnectService.createConnectAccount(userId, userEmail);
+
+        // Save the account ID to user settings
+        subscriptionSettingsRepository.updateStripeConnectStatus(userId, account.getId(), "pending");
+
+        // Create and return onboarding link
+        String onboardingUrl = stripeConnectService.createOnboardingLink(account.getId());
+
+        log.info("Created Stripe Connect account {} for user {}", account.getId(), userId);
+        return onboardingUrl;
+    }
+
+    /**
+     * Get the Stripe Connect onboarding link for a user.
+     * Use this when the user needs to continue or refresh onboarding.
+     *
+     * @param userId The owner's user ID
+     * @return The onboarding URL
+     */
+    public String getStripeConnectOnboardingLink(String userId) {
+        log.info("Getting Stripe Connect onboarding link for user: {}", userId);
+
+        Optional<OwnerSubscriptionSettings> settingsOpt = subscriptionSettingsRepository.findByUserId(userId);
+        if (settingsOpt.isEmpty() || settingsOpt.get().getStripeConnectAccountId() == null) {
+            throw new StrategizException(ProfileErrors.STRIPE_NOT_CONNECTED, MODULE_NAME,
+                    "No Stripe Connect account found for user: " + userId);
+        }
+
+        String accountId = settingsOpt.get().getStripeConnectAccountId();
+        return stripeConnectService.createOnboardingLink(accountId);
+    }
+
+    /**
+     * Get the Stripe Express dashboard login link for a connected account.
+     *
+     * @param userId The owner's user ID
+     * @return The dashboard login URL
+     */
+    public String getStripeConnectDashboardLink(String userId) {
+        log.info("Getting Stripe Connect dashboard link for user: {}", userId);
+
+        Optional<OwnerSubscriptionSettings> settingsOpt = subscriptionSettingsRepository.findByUserId(userId);
+        if (settingsOpt.isEmpty() || settingsOpt.get().getStripeConnectAccountId() == null) {
+            throw new StrategizException(ProfileErrors.STRIPE_NOT_CONNECTED, MODULE_NAME,
+                    "No Stripe Connect account found for user: " + userId);
+        }
+
+        String accountId = settingsOpt.get().getStripeConnectAccountId();
+        return stripeConnectService.createLoginLink(accountId);
+    }
+
+    /**
+     * Get the Stripe Connect status for a user.
+     *
+     * @param userId The owner's user ID
+     * @return The Connect account status
+     */
+    public StripeConnectStatusResponse getStripeConnectStatus(String userId) {
+        log.debug("Getting Stripe Connect status for user: {}", userId);
+
+        Optional<OwnerSubscriptionSettings> settingsOpt = subscriptionSettingsRepository.findByUserId(userId);
+        if (settingsOpt.isEmpty() || settingsOpt.get().getStripeConnectAccountId() == null) {
+            // No Connect account yet
+            return new StripeConnectStatusResponse(
+                    null,
+                    "not_started",
+                    false,
+                    false,
+                    false,
+                    null,
+                    null
+            );
+        }
+
+        String accountId = settingsOpt.get().getStripeConnectAccountId();
+        ConnectAccountStatus status = stripeConnectService.getAccountStatus(accountId);
+
+        // Update our stored status if it changed
+        if (!status.status().equals(settingsOpt.get().getStripeConnectStatus())) {
+            subscriptionSettingsRepository.updateStripeConnectStatus(userId, accountId, status.status());
+        }
+
+        return StripeConnectStatusResponse.fromConnectStatus(status);
+    }
+
+    /**
+     * Refresh Stripe Connect status from Stripe API.
+     * Called after user completes onboarding or from webhook.
+     *
+     * @param userId The owner's user ID
+     * @return Updated subscription settings
+     */
+    public OwnerSubscriptionSettingsResponse refreshStripeConnectStatus(String userId) {
+        log.info("Refreshing Stripe Connect status for user: {}", userId);
+
+        Optional<OwnerSubscriptionSettings> settingsOpt = subscriptionSettingsRepository.findByUserId(userId);
+        if (settingsOpt.isEmpty() || settingsOpt.get().getStripeConnectAccountId() == null) {
+            throw new StrategizException(ProfileErrors.STRIPE_NOT_CONNECTED, MODULE_NAME,
+                    "No Stripe Connect account found for user: " + userId);
+        }
+
+        String accountId = settingsOpt.get().getStripeConnectAccountId();
+        ConnectAccountStatus status = stripeConnectService.getAccountStatus(accountId);
+
+        // Update stored status
+        OwnerSubscriptionSettings settings = subscriptionSettingsRepository.updateStripeConnectStatus(
+                userId, accountId, status.status()
+        );
+
+        // Update payouts enabled flag
+        if (status.payoutsEnabled() != settings.isPayoutsEnabled()) {
+            settings.setPayoutsEnabled(status.payoutsEnabled());
+            subscriptionSettingsRepository.save(settings, userId);
+        }
+
+        log.info("Stripe Connect status refreshed for user {}: {}", userId, status.status());
+        return OwnerSubscriptionSettingsResponse.fromEntity(settings);
+    }
+
+    /**
+     * Check if Stripe Connect is configured for the platform.
+     *
+     * @return True if Stripe Connect is available
+     */
+    public boolean isStripeConnectConfigured() {
+        return stripeConnectService.isConfigured();
     }
 
     // === Private helper methods ===

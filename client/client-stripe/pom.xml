@@ -23,6 +23,13 @@
             <version>26.1.0</version>
         </dependency>
 
+        <!-- Gson (used by Stripe SDK for JSON parsing) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
         <!-- Spring Framework -->
         <dependency>
             <groupId>org.springframework</groupId>

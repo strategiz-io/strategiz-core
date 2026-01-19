@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 @Component
 @Profile("scheduler")
+@ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
 public class FundamentalsBackfillJob {
 
 	private static final Logger log = LoggerFactory.getLogger(FundamentalsBackfillJob.class);

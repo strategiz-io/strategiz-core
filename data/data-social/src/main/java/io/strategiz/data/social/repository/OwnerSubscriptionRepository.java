@@ -114,24 +114,6 @@ public interface OwnerSubscriptionRepository {
      */
     boolean hasActiveSubscription(String subscriberId, String ownerId);
 
-    // === Update Operations ===
-
-    /**
-     * Update subscription status.
-     * @param subscriptionId The subscription ID
-     * @param status The new status (ACTIVE, CANCELLED, EXPIRED)
-     * @return The updated subscription
-     */
-    OwnerSubscription updateStatus(String subscriptionId, String status);
-
-    /**
-     * Cancel a subscription.
-     * @param subscriptionId The subscription ID
-     * @param reason The cancellation reason
-     * @return The updated subscription
-     */
-    OwnerSubscription cancel(String subscriptionId, String reason);
-
     // === Delete Operations ===
 
     /**

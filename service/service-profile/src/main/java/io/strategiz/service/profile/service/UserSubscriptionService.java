@@ -196,8 +196,10 @@ public class UserSubscriptionService extends BaseService {
 		}
 
 		// Update subscription record
-		OwnerSubscription cancelled = ownerSubscriptionRepository.cancel(subscriptionId,
-				reason != null ? reason : "User cancelled");
+		subscription.setStatus(OwnerSubscription.STATUS_CANCELLED);
+		subscription.setCancelledAt(Timestamp.now());
+		subscription.setCancellationReason(reason != null ? reason : "User cancelled");
+		OwnerSubscription cancelled = ownerSubscriptionRepository.save(subscription, userId);
 
 		// Decrement owner's subscriber count
 		decrementSubscriberCount(subscription.getOwnerId());
@@ -330,13 +332,15 @@ public class UserSubscriptionService extends BaseService {
 		};
 
 		if (!newStatus.equals(subscription.getStatus())) {
-			ownerSubscriptionRepository.updateStatus(subscription.getId(), newStatus);
+			String oldStatus = subscription.getStatus();
+			subscription.setStatus(newStatus);
+			ownerSubscriptionRepository.save(subscription, subscription.getSubscriberId());
 
 			// Update subscriber count if status changed to/from active
-			if ("ACTIVE".equals(newStatus) && !"ACTIVE".equals(subscription.getStatus())) {
+			if ("ACTIVE".equals(newStatus) && !"ACTIVE".equals(oldStatus)) {
 				incrementSubscriberCount(ownerId);
 			}
-			else if (!"ACTIVE".equals(newStatus) && "ACTIVE".equals(subscription.getStatus())) {
+			else if (!"ACTIVE".equals(newStatus) && "ACTIVE".equals(oldStatus)) {
 				decrementSubscriberCount(ownerId);
 			}
 		}
@@ -360,7 +364,10 @@ public class UserSubscriptionService extends BaseService {
 		OwnerSubscription subscription = subscriptionOpt.get();
 
 		if (subscription.isActive()) {
-			ownerSubscriptionRepository.cancel(subscription.getId(), "Stripe subscription ended");
+			subscription.setStatus(OwnerSubscription.STATUS_CANCELLED);
+			subscription.setCancelledAt(Timestamp.now());
+			subscription.setCancellationReason("Stripe subscription ended");
+			ownerSubscriptionRepository.save(subscription, subscription.getSubscriberId());
 			decrementSubscriberCount(subscription.getOwnerId());
 		}
 	}

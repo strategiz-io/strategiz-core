@@ -97,6 +97,8 @@ public class CryptoTransaction extends BaseEntity {
 
 	public static final String REF_STRIPE = "stripe";
 
+	public static final String REF_STRAT_PACK = "strat_pack";
+
 	public static final String STATUS_PENDING = "pending";
 
 	public static final String STATUS_COMPLETED = "completed";

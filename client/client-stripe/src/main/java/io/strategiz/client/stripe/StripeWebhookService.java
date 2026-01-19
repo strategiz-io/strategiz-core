@@ -275,6 +275,67 @@ public class StripeWebhookService {
 	}
 
 	/**
+	 * Parse a checkout.session.completed event for STRAT pack purchases.
+	 * @param event The Stripe event
+	 * @return Parsed checkout session data, or empty if not a STRAT pack purchase
+	 */
+	public Optional<StratPackCheckoutData> parseStratPackCheckoutCompleted(Event event) {
+		if (!"checkout.session.completed".equals(event.getType())) {
+			return Optional.empty();
+		}
+
+		EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
+		if (deserializer.getObject().isEmpty()) {
+			logger.warn("Could not deserialize checkout session from event {}", event.getId());
+			return Optional.empty();
+		}
+
+		StripeObject stripeObject = deserializer.getObject().get();
+		if (!(stripeObject instanceof Session session)) {
+			logger.warn("Expected Session but got {} for event {}", stripeObject.getClass().getSimpleName(),
+					event.getId());
+			return Optional.empty();
+		}
+
+		// Check if this is a STRAT pack purchase checkout
+		Map<String, String> metadata = session.getMetadata();
+		if (metadata == null || !"strat_pack_purchase".equals(metadata.get("type"))) {
+			logger.debug("Checkout session {} is not a STRAT pack purchase", session.getId());
+			return Optional.empty();
+		}
+
+		String userId = metadata.get("userId");
+		String packId = metadata.get("packId");
+		String stratAmountStr = metadata.get("stratAmount");
+
+		if (userId == null || packId == null) {
+			logger.warn("Missing metadata in STRAT pack checkout session {}: userId={}, packId={}", session.getId(),
+					userId, packId);
+			return Optional.empty();
+		}
+
+		long stratAmount = 0;
+		try {
+			if (stratAmountStr != null) {
+				stratAmount = Long.parseLong(stratAmountStr);
+			}
+		}
+		catch (NumberFormatException e) {
+			logger.warn("Invalid stratAmount in checkout session {}: {}", session.getId(), stratAmountStr);
+		}
+
+		return Optional.of(new StratPackCheckoutData(session.getId(), userId, packId, stratAmount,
+				session.getCustomer(), session.getAmountTotal()));
+	}
+
+	/**
+	 * Data from a checkout.session.completed event for STRAT pack purchases.
+	 */
+	public record StratPackCheckoutData(String sessionId, String userId, String packId, long stratAmount,
+			String customerId, Long amountTotal) {
+	}
+
+	/**
 	 * Data from a checkout.session.completed event for owner subscriptions.
 	 */
 	public record OwnerSubscriptionCheckoutData(String sessionId, String subscriptionId, String subscriberId,

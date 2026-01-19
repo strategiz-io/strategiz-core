@@ -116,6 +116,46 @@ public class CryptoTokenService {
 	}
 
 	/**
+	 * Credit STRAT tokens from a pack purchase.
+	 *
+	 * @param userId User to credit
+	 * @param stratAmount Amount of STRAT tokens to credit (not micro-units)
+	 * @param packId The STRAT pack ID
+	 * @param stripeSessionId Stripe checkout session ID for reference
+	 * @return Transaction record
+	 */
+	public CryptoTransactionResponse creditStratPackPurchase(String userId, long stratAmount, String packId,
+			String stripeSessionId) {
+		long microUnits = stratAmount * CryptoWallet.MICRO_UNITS;
+
+		CryptoWallet wallet = walletRepository.credit(userId, microUnits, userId);
+
+		// Update total purchased
+		wallet.setTotalPurchased(wallet.getTotalPurchased() + microUnits);
+		walletRepository.save(wallet, userId);
+
+		// Create transaction record
+		CryptoTransaction tx = new CryptoTransaction();
+		tx.setId(UUID.randomUUID().toString());
+		tx.setUserId(userId);
+		tx.setType(CryptoTransaction.TYPE_PURCHASE);
+		tx.setAmount(microUnits);
+		tx.setBalanceAfter(wallet.getBalance());
+		tx.setReferenceType(CryptoTransaction.REF_STRAT_PACK);
+		tx.setReferenceId(packId + ":" + stripeSessionId);
+		tx.setDescription("STRAT pack purchase: " + packId);
+		tx.setStatus(CryptoTransaction.STATUS_COMPLETED);
+		tx.setCreatedAt(Timestamp.now());
+		tx.setCompletedAt(Timestamp.now());
+
+		transactionRepository.save(tx, userId);
+		logger.info("Credited {} STRAT to user {} from pack {} purchase (session: {})", stratAmount, userId, packId,
+				stripeSessionId);
+
+		return CryptoTransactionResponse.fromEntity(tx);
+	}
+
+	/**
 	 * Credit reward tokens to user.
 	 */
 	public CryptoTransactionResponse creditRewardTokens(String userId, long tokenAmount, String rewardType,

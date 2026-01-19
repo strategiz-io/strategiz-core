@@ -1,5 +1,6 @@
 package io.strategiz.service.marketing.controller;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,11 +14,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Public controller for market ticker data.
  * No authentication required - provides real-time market data for the landing page.
- * Delegates to MarketTickerService for business logic and Alpaca API calls.
+ * Delegates to MarketTickerService for business logic and FMP API calls.
+ *
+ * Requires FMP integration to be enabled (strategiz.fmp.enabled=true).
  */
 @RestController
 @RequestMapping("/v1/market/tickers")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
+@ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class MarketTickerController extends BaseController {
 
     @Override

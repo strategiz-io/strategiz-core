@@ -9,7 +9,7 @@ import io.strategiz.service.marketing.model.response.TickerItem;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,9 +19,11 @@ import java.util.*;
  * Service for fetching market ticker data.
  * Contains business logic for which symbols to display.
  * Delegates to FmpFundamentalsClient for actual data fetching.
+ *
+ * Note: FmpFundamentalsClient is optional. If not configured,
+ * the ticker endpoint will return an error.
  */
 @Service
-@ConditionalOnBean(FmpFundamentalsClient.class)
 public class MarketTickerService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketTickerService.class);
@@ -68,8 +70,13 @@ public class MarketTickerService {
 
     private final FmpFundamentalsClient fmpClient;
 
-    public MarketTickerService(FmpFundamentalsClient fmpClient) {
+    @Autowired
+    public MarketTickerService(@Autowired(required = false) FmpFundamentalsClient fmpClient) {
         this.fmpClient = fmpClient;
+        if (fmpClient == null) {
+            log.warn("FmpFundamentalsClient not available - market ticker will not function. " +
+                    "Ensure strategiz.fmp.enabled=true and fmp.api-key is configured.");
+        }
     }
 
     /**

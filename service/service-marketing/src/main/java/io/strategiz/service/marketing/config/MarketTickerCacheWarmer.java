@@ -3,6 +3,7 @@ package io.strategiz.service.marketing.config;
 import io.strategiz.service.marketing.service.MarketTickerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -10,8 +11,11 @@ import org.springframework.stereotype.Component;
 /**
  * Warms up the market ticker cache on application startup.
  * This ensures the first user request is fast instead of waiting for external API calls.
+ *
+ * Requires FMP integration to be enabled (strategiz.fmp.enabled=true).
  */
 @Component
+@ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class MarketTickerCacheWarmer {
 
     private static final Logger log = LoggerFactory.getLogger(MarketTickerCacheWarmer.class);

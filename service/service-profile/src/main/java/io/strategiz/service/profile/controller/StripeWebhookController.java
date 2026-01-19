@@ -5,8 +5,11 @@ import io.strategiz.client.stripe.StripeWebhookService.ConnectAccountEventData;
 import io.strategiz.client.stripe.StripeWebhookService.OwnerSubscriptionCheckoutData;
 import io.strategiz.client.stripe.StripeWebhookService.OwnerSubscriptionEventData;
 import io.strategiz.client.stripe.StripeWebhookService.OwnerSubscriptionInvoiceData;
+import io.strategiz.client.stripe.StripeWebhookService.StratPackCheckoutData;
+import io.strategiz.client.stripe.event.StratPackPurchaseEvent;
 import io.strategiz.service.profile.service.OwnerSubscriptionService;
 import io.strategiz.service.profile.service.UserSubscriptionService;
+import org.springframework.context.ApplicationEventPublisher;
 import com.stripe.model.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +45,15 @@ public class StripeWebhookController {
 
 	private final OwnerSubscriptionService ownerSubscriptionService;
 
+	private final ApplicationEventPublisher eventPublisher;
+
 	public StripeWebhookController(StripeWebhookService stripeWebhookService,
-			UserSubscriptionService userSubscriptionService, OwnerSubscriptionService ownerSubscriptionService) {
+			UserSubscriptionService userSubscriptionService, OwnerSubscriptionService ownerSubscriptionService,
+			ApplicationEventPublisher eventPublisher) {
 		this.stripeWebhookService = stripeWebhookService;
 		this.userSubscriptionService = userSubscriptionService;
 		this.ownerSubscriptionService = ownerSubscriptionService;
+		this.eventPublisher = eventPublisher;
 	}
 
 	/**
@@ -95,13 +102,22 @@ public class StripeWebhookController {
 
 	/**
 	 * Handle checkout.session.completed event. This is when a user completes the Stripe checkout
-	 * and the subscription is created.
+	 * and the subscription is created (for owner subscriptions) or a one-time purchase is completed
+	 * (for STRAT pack purchases).
 	 */
 	private void handleCheckoutCompleted(Event event) {
+		// First, check if this is a STRAT pack purchase
+		Optional<StratPackCheckoutData> stratPackOpt = stripeWebhookService.parseStratPackCheckoutCompleted(event);
+		if (stratPackOpt.isPresent()) {
+			handleStratPackCheckoutCompleted(stratPackOpt.get());
+			return;
+		}
+
+		// Then check if this is an owner subscription checkout
 		Optional<OwnerSubscriptionCheckoutData> dataOpt = stripeWebhookService.parseCheckoutCompleted(event);
 
 		if (dataOpt.isEmpty()) {
-			logger.debug("Checkout session is not an owner subscription, skipping");
+			logger.debug("Checkout session is not an owner subscription or STRAT pack, skipping");
 			return;
 		}
 
@@ -123,6 +139,30 @@ public class StripeWebhookController {
 		catch (Exception e) {
 			logger.error("Failed to process checkout completion for session {}: {}", data.sessionId(), e.getMessage(),
 					e);
+		}
+	}
+
+	/**
+	 * Handle STRAT pack purchase checkout completion.
+	 * Publishes a StratPackPurchaseEvent that can be listened to by service-crypto-token
+	 * to credit the purchased STRAT tokens to the user's wallet.
+	 */
+	private void handleStratPackCheckoutCompleted(StratPackCheckoutData data) {
+		logger.info("Processing STRAT pack purchase: userId={}, packId={}, stratAmount={}", data.userId(), data.packId(),
+				data.stratAmount());
+
+		try {
+			// Publish event for listeners (service-crypto-token will handle the credit)
+			StratPackPurchaseEvent event = new StratPackPurchaseEvent(this, data.sessionId(), data.userId(),
+					data.packId(), data.stratAmount(), data.customerId(), data.amountTotal());
+			eventPublisher.publishEvent(event);
+
+			logger.info("Published STRAT pack purchase event for user {} pack {} (session: {})", data.userId(),
+					data.packId(), data.sessionId());
+		}
+		catch (Exception e) {
+			logger.error("Failed to publish STRAT pack purchase event for session {}: {}", data.sessionId(),
+					e.getMessage(), e);
 		}
 	}
 

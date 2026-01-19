@@ -1,7 +1,7 @@
 # Strategiz Business Model
 
-**Version**: 1.2
-**Last Updated**: January 17, 2026
+**Version**: 1.3
+**Last Updated**: January 19, 2026
 **Status**: APPROVED - Implementation in Progress
 
 ---
@@ -412,17 +412,20 @@ Users must pass TWO gates to deploy strategies:
 
 ### Platform Fee
 
-- **Owner keeps**: 85%
-- **Platform fee**: 15%
+- **Owner keeps**: Configurable (default 85%)
+- **Platform fee**: Configurable (default 15%)
 - Example: $50/month subscription → Owner earns $42.50/subscriber
+- Fee percentage stored in `PlatformConfig` entity (not hardcoded)
 
 ### Tier Structure
 
 | Tier | Price | Alerts | Strategies | AI Credits | AI Models |
 |------|-------|--------|------------|------------|-----------|
-| **Free** | $0 | 0 | 0 | 0 | 0 |
-| **Explorer** | $149/mo | 3 | 3 | 40K | 6 |
-| **Pro** | $199/mo | Unlimited | Unlimited | 65K | 19 (all) |
+| **Explorer** | FREE | 0 | 0 | 40K | 6 |
+| **Strategist** | $199/mo | 3 | 3 | 55K | 14 |
+| **Quant** | $229/mo | Unlimited | Unlimited | 65K | 19 (all) |
+
+**Note**: Explorer is the freemium entry tier (NO separate "Free" tier, NO "Trial" tier).
 
 ---
 
@@ -430,8 +433,8 @@ Users must pass TWO gates to deploy strategies:
 
 ### Complete Feature Breakdown
 
-| Feature | Free | Explorer ($149/mo) | Pro ($199/mo) |
-|---------|------|--------------------|-----------------------|
+| Feature | Explorer (FREE) | Strategist ($199/mo) | Quant ($229/mo) |
+|---------|-----------------|----------------------|-----------------|
 | **MARKETPLACE** ||||
 | Browse & view strategies | ✅ | ✅ | ✅ |
 | Follow owners | ✅ | ✅ | ✅ |
@@ -453,10 +456,10 @@ Users must pass TWO gates to deploy strategies:
 | Basic courses | ✅ | ✅ | ✅ |
 | Advanced masterclasses | ❌ | ✅ | ✅ |
 | **AI ASSISTANT** ||||
-| AI chat | ❌ | ✅ (40K credits) | ✅ (65K credits) |
-| AI models | ❌ | 6 models | 19 models (all) |
+| AI chat | ✅ (40K credits) | ✅ (55K credits) | ✅ (65K credits) |
+| AI models | 6 models | 14 models | 19 models (all) |
 
-### Free Tier Value
+### Explorer (FREE) Tier Value
 
 | What's Free | Purpose |
 |-------------|---------|
@@ -466,8 +469,9 @@ Users must pass TWO gates to deploy strategies:
 | Subscribe/Purchase strategies (pay owner) | Owner revenue stream |
 | Connect broker + basic stats | Hook for portfolio users |
 | Basic learning courses | Trust building, SEO, onboarding |
+| AI chat (40K credits, 6 models) | Let users experience AI features |
 
-### Paid Tier Value
+### Paid Tier Value (Strategist/Quant)
 
 | What's Paid | Why It's Paid |
 |-------------|---------------|
@@ -475,7 +479,7 @@ Users must pass TWO gates to deploy strategies:
 | Create strategies | Requires compute for backtesting |
 | Advanced portfolio analysis | Premium insights |
 | Advanced courses | Value-add for subscribers |
-| AI assistant | Compute costs |
+| More AI credits & models | Compute costs |
 
 ---
 
@@ -484,44 +488,44 @@ Users must pass TWO gates to deploy strategies:
 ### Consumer Journey (Buys strategies)
 
 ```
-Free: Browse → Follow owners → View performance → Basic portfolio
+Explorer (FREE): Browse → Follow owners → View performance → Basic portfolio → AI chat (40K)
                     │
     Upgrade trigger: "I want alerts on this strategy"
                     │
                     ▼
-Explorer ($149/mo): Subscribe to owner + Deploy alerts (3 max)
+Strategist ($199/mo): Subscribe to owner + Deploy alerts (3 max) + 55K AI credits
                     │
     Upgrade trigger: "I need more than 3 alerts"
                     │
                     ▼
-Pro ($199/mo): Unlimited alerts + all AI models
+Quant ($229/mo): Unlimited alerts + all AI models + 65K credits
 ```
 
 ### Creator Journey (Builds strategies)
 
 ```
-Free: Browse → Learn basics → Study others' strategies
+Explorer (FREE): Browse → Learn basics → Study others' strategies → AI chat
                     │
     Upgrade trigger: "I want to build my own"
                     │
                     ▼
-Explorer ($149/mo): Create (3 max), backtest, publish → Enable subscriptions → Earn revenue
+Strategist ($199/mo): Create (3 max), backtest, publish → Enable subscriptions → Earn revenue
                     │
     Upgrade trigger: "I need more than 3 strategies"
                     │
                     ▼
-Pro ($199/mo): Unlimited strategies + all AI models
+Quant ($229/mo): Unlimited strategies + all AI models
 ```
 
 ### Analyst Journey (Portfolio focused)
 
 ```
-Free: Connect broker → View holdings → Basic P&L
+Explorer (FREE): Connect broker → View holdings → Basic P&L → AI insights (40K)
                     │
     Upgrade trigger: "I want risk metrics and reports"
                     │
                     ▼
-Explorer ($149/mo): Full analysis suite + Export
+Strategist ($199/mo): Full analysis suite + Export + More AI credits
 ```
 
 ---
@@ -702,3 +706,4 @@ This business model is **APPROVED** for implementation.
 | 2025-12-31 | 1.0 | Initial business model documentation |
 | 2026-01-16 | 1.1 | Clarified PRIVATE visibility: PRIVATE = owner-only (subscribers cannot access). Added detailed capability matrix. Added default state after purchase (PUBLISHED + PRIVATE). |
 | 2026-01-17 | 1.2 | Added Two-Gate Access Model (Strategy Access + Platform Tier). Added complete Product Feature Matrix. Consolidated to 3 Platform Tiers: Free ($0), Explorer ($149/mo, 3 alerts/strategies, 40K credits, 6 models), Pro ($199/mo, unlimited, 65K credits, all 19 models). Added User Journeys with upgrade triggers. Added Owner Subscription Setup requirements. Added 15% platform fee. No trial for owner subscriptions. |
+| 2026-01-19 | 1.3 | **TIER RESTRUCTURE**: Removed separate Free/Trial tiers. Explorer is now FREE (freemium entry). Renamed Pro to Strategist ($199/mo) and added Quant ($229/mo). Updated AI credits: Explorer 40K, Strategist 55K, Quant 65K. Platform fee now configurable via PlatformConfig entity (not hardcoded). |

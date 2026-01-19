@@ -3,10 +3,10 @@ package io.strategiz.service.profile.service;
 import com.google.cloud.Timestamp;
 import io.strategiz.client.stripe.StripeConnectService;
 import io.strategiz.client.stripe.StripeConnectService.OwnerSubscriptionCheckoutResult;
+import io.strategiz.data.social.entity.OwnerSubscription;
 import io.strategiz.data.social.entity.OwnerSubscriptionSettings;
-import io.strategiz.data.social.entity.UserSubscription;
+import io.strategiz.data.social.repository.OwnerSubscriptionRepository;
 import io.strategiz.data.social.repository.OwnerSubscriptionSettingsRepository;
-import io.strategiz.data.social.repository.UserSubscriptionRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -38,7 +38,7 @@ public class UserSubscriptionService extends BaseService {
 		return MODULE_NAME;
 	}
 
-	private final UserSubscriptionRepository userSubscriptionRepository;
+	private final OwnerSubscriptionRepository ownerSubscriptionRepository;
 
 	private final OwnerSubscriptionSettingsRepository ownerSubscriptionSettingsRepository;
 
@@ -46,16 +46,13 @@ public class UserSubscriptionService extends BaseService {
 
 	private final StripeConnectService stripeConnectService;
 
-	private final OwnerSubscriptionService ownerSubscriptionService;
-
-	public UserSubscriptionService(UserSubscriptionRepository userSubscriptionRepository,
+	public UserSubscriptionService(OwnerSubscriptionRepository ownerSubscriptionRepository,
 			OwnerSubscriptionSettingsRepository ownerSubscriptionSettingsRepository, UserRepository userRepository,
-			StripeConnectService stripeConnectService, OwnerSubscriptionService ownerSubscriptionService) {
-		this.userSubscriptionRepository = userSubscriptionRepository;
+			StripeConnectService stripeConnectService) {
+		this.ownerSubscriptionRepository = ownerSubscriptionRepository;
 		this.ownerSubscriptionSettingsRepository = ownerSubscriptionSettingsRepository;
 		this.userRepository = userRepository;
 		this.stripeConnectService = stripeConnectService;
-		this.ownerSubscriptionService = ownerSubscriptionService;
 	}
 
 	/**
@@ -83,7 +80,7 @@ public class UserSubscriptionService extends BaseService {
 		}
 
 		// Check if already subscribed
-		if (userSubscriptionRepository.hasActiveSubscription(subscriberId, ownerId)) {
+		if (ownerSubscriptionRepository.hasActiveSubscription(subscriberId, ownerId)) {
 			throw new StrategizException(ProfileErrors.USER_SUBSCRIPTION_ALREADY_EXISTS, MODULE_NAME,
 					"Already subscribed to this owner");
 		}
@@ -126,16 +123,16 @@ public class UserSubscriptionService extends BaseService {
 	 * @param monthlyPrice The price paid
 	 * @return The created subscription
 	 */
-	public UserSubscription createSubscription(String subscriberId, String ownerId, String stripeSubscriptionId,
+	public OwnerSubscription createSubscription(String subscriberId, String ownerId, String stripeSubscriptionId,
 			BigDecimal monthlyPrice) {
 		log.info("Creating subscription record: subscriber={}, owner={}, stripeSubscriptionId={}", subscriberId,
 				ownerId, stripeSubscriptionId);
 
 		// Check if already exists
-		Optional<UserSubscription> existingOpt = userSubscriptionRepository.findBySubscriberIdAndOwnerId(subscriberId,
+		Optional<OwnerSubscription> existingOpt = ownerSubscriptionRepository.findBySubscriberIdAndOwnerId(subscriberId,
 				ownerId);
 		if (existingOpt.isPresent()) {
-			UserSubscription existing = existingOpt.get();
+			OwnerSubscription existing = existingOpt.get();
 			if (existing.isActive()) {
 				log.warn("Subscription already exists and is active: {}", existing.getId());
 				return existing;
@@ -147,23 +144,23 @@ public class UserSubscriptionService extends BaseService {
 			existing.setSubscribedAt(Timestamp.now());
 			existing.setCancelledAt(null);
 			existing.setCancellationReason(null);
-			return userSubscriptionRepository.save(existing, subscriberId);
+			return ownerSubscriptionRepository.save(existing, subscriberId);
 		}
 
 		// Create new subscription
-		UserSubscription subscription = new UserSubscription();
+		OwnerSubscription subscription = new OwnerSubscription();
 		subscription.setSubscriberId(subscriberId);
 		subscription.setOwnerId(ownerId);
-		subscription.setTier("BASIC"); // Default tier
 		subscription.setMonthlyPrice(monthlyPrice);
-		subscription.setStatus("ACTIVE");
+		subscription.setStatus(OwnerSubscription.STATUS_ACTIVE);
+		subscription.setPaymentMethod(OwnerSubscription.PAYMENT_USD);
 		subscription.setSubscribedAt(Timestamp.now());
 		subscription.setStripeSubscriptionId(stripeSubscriptionId);
 
-		UserSubscription saved = userSubscriptionRepository.save(subscription, subscriberId);
+		OwnerSubscription saved = ownerSubscriptionRepository.save(subscription, subscriberId);
 
 		// Increment owner's subscriber count
-		ownerSubscriptionService.incrementSubscriberCount(ownerId);
+		incrementSubscriberCount(ownerId);
 
 		log.info("Created subscription {} for subscriber {} to owner {}", saved.getId(), subscriberId, ownerId);
 		return saved;
@@ -179,13 +176,13 @@ public class UserSubscriptionService extends BaseService {
 	public UserSubscriptionResponse cancelSubscription(String subscriptionId, String userId, String reason) {
 		log.info("Cancelling subscription {} by user {}", subscriptionId, userId);
 
-		Optional<UserSubscription> subscriptionOpt = userSubscriptionRepository.findById(subscriptionId);
+		Optional<OwnerSubscription> subscriptionOpt = ownerSubscriptionRepository.findById(subscriptionId);
 		if (subscriptionOpt.isEmpty()) {
 			throw new StrategizException(ProfileErrors.USER_SUBSCRIPTION_NOT_FOUND, MODULE_NAME,
 					"Subscription not found: " + subscriptionId);
 		}
 
-		UserSubscription subscription = subscriptionOpt.get();
+		OwnerSubscription subscription = subscriptionOpt.get();
 
 		// Only subscriber can cancel their subscription
 		if (!subscription.getSubscriberId().equals(userId)) {
@@ -199,11 +196,11 @@ public class UserSubscriptionService extends BaseService {
 		}
 
 		// Update subscription record
-		UserSubscription cancelled = userSubscriptionRepository.cancel(subscriptionId,
+		OwnerSubscription cancelled = ownerSubscriptionRepository.cancel(subscriptionId,
 				reason != null ? reason : "User cancelled");
 
 		// Decrement owner's subscriber count
-		ownerSubscriptionService.decrementSubscriberCount(subscription.getOwnerId());
+		decrementSubscriberCount(subscription.getOwnerId());
 
 		log.info("Cancelled subscription {}", subscriptionId);
 		return enrichSubscriptionResponse(UserSubscriptionResponse.fromEntity(cancelled));
@@ -217,7 +214,7 @@ public class UserSubscriptionService extends BaseService {
 	public List<UserSubscriptionResponse> getMySubscriptions(String userId) {
 		log.debug("Getting subscriptions for user {}", userId);
 
-		List<UserSubscription> subscriptions = userSubscriptionRepository.findBySubscriberId(userId);
+		List<OwnerSubscription> subscriptions = ownerSubscriptionRepository.findBySubscriberId(userId);
 
 		return subscriptions.stream()
 			.map(UserSubscriptionResponse::fromEntity)
@@ -233,7 +230,7 @@ public class UserSubscriptionService extends BaseService {
 	public List<SubscriberResponse> getMySubscribers(String ownerId) {
 		log.debug("Getting subscribers for owner {}", ownerId);
 
-		List<UserSubscription> subscriptions = userSubscriptionRepository.findActiveByOwnerId(ownerId);
+		List<OwnerSubscription> subscriptions = ownerSubscriptionRepository.findActiveByOwnerId(ownerId);
 
 		return subscriptions.stream()
 			.map(SubscriberResponse::fromEntity)
@@ -256,7 +253,7 @@ public class UserSubscriptionService extends BaseService {
 		}
 
 		// Check for active subscription
-		if (userSubscriptionRepository.hasActiveSubscription(userId, strategyOwnerId)) {
+		if (ownerSubscriptionRepository.hasActiveSubscription(userId, strategyOwnerId)) {
 			return StrategyAccessCheckResponse.subscriptionAccess(strategyOwnerId);
 		}
 
@@ -293,7 +290,7 @@ public class UserSubscriptionService extends BaseService {
 		}
 
 		// Check subscription
-		return userSubscriptionRepository.hasActiveSubscription(userId, strategyOwnerId);
+		return ownerSubscriptionRepository.hasActiveSubscription(userId, strategyOwnerId);
 	}
 
 	/**
@@ -308,7 +305,7 @@ public class UserSubscriptionService extends BaseService {
 		log.info("Handling Stripe subscription update: subscriber={}, owner={}, status={}", subscriberId, ownerId,
 				status);
 
-		Optional<UserSubscription> subscriptionOpt = userSubscriptionRepository
+		Optional<OwnerSubscription> subscriptionOpt = ownerSubscriptionRepository
 			.findByStripeSubscriptionId(stripeSubscriptionId);
 
 		if (subscriptionOpt.isEmpty()) {
@@ -322,7 +319,7 @@ public class UserSubscriptionService extends BaseService {
 			return;
 		}
 
-		UserSubscription subscription = subscriptionOpt.get();
+		OwnerSubscription subscription = subscriptionOpt.get();
 
 		// Update status based on Stripe status
 		String newStatus = switch (status) {
@@ -333,14 +330,14 @@ public class UserSubscriptionService extends BaseService {
 		};
 
 		if (!newStatus.equals(subscription.getStatus())) {
-			userSubscriptionRepository.updateStatus(subscription.getId(), newStatus);
+			ownerSubscriptionRepository.updateStatus(subscription.getId(), newStatus);
 
 			// Update subscriber count if status changed to/from active
 			if ("ACTIVE".equals(newStatus) && !"ACTIVE".equals(subscription.getStatus())) {
-				ownerSubscriptionService.incrementSubscriberCount(ownerId);
+				incrementSubscriberCount(ownerId);
 			}
 			else if (!"ACTIVE".equals(newStatus) && "ACTIVE".equals(subscription.getStatus())) {
-				ownerSubscriptionService.decrementSubscriberCount(ownerId);
+				decrementSubscriberCount(ownerId);
 			}
 		}
 	}
@@ -352,7 +349,7 @@ public class UserSubscriptionService extends BaseService {
 	public void handleStripeSubscriptionDeleted(String stripeSubscriptionId) {
 		log.info("Handling Stripe subscription deleted: {}", stripeSubscriptionId);
 
-		Optional<UserSubscription> subscriptionOpt = userSubscriptionRepository
+		Optional<OwnerSubscription> subscriptionOpt = ownerSubscriptionRepository
 			.findByStripeSubscriptionId(stripeSubscriptionId);
 
 		if (subscriptionOpt.isEmpty()) {
@@ -360,11 +357,11 @@ public class UserSubscriptionService extends BaseService {
 			return;
 		}
 
-		UserSubscription subscription = subscriptionOpt.get();
+		OwnerSubscription subscription = subscriptionOpt.get();
 
 		if (subscription.isActive()) {
-			userSubscriptionRepository.cancel(subscription.getId(), "Stripe subscription ended");
-			ownerSubscriptionService.decrementSubscriberCount(subscription.getOwnerId());
+			ownerSubscriptionRepository.cancel(subscription.getId(), "Stripe subscription ended");
+			decrementSubscriberCount(subscription.getOwnerId());
 		}
 	}
 
@@ -398,6 +395,29 @@ public class UserSubscriptionService extends BaseService {
 			response.setSubscriberAvatarUrl(subscriber.getProfile().getPhotoURL());
 		}
 		return response;
+	}
+
+	/**
+	 * Increment the subscriber count for an owner.
+	 * @param ownerId The owner's user ID
+	 */
+	private void incrementSubscriberCount(String ownerId) {
+		ownerSubscriptionSettingsRepository.findByUserId(ownerId).ifPresent(settings -> {
+			settings.setSubscriberCount(settings.getSubscriberCount() + 1);
+			ownerSubscriptionSettingsRepository.save(settings, ownerId);
+		});
+	}
+
+	/**
+	 * Decrement the subscriber count for an owner.
+	 * @param ownerId The owner's user ID
+	 */
+	private void decrementSubscriberCount(String ownerId) {
+		ownerSubscriptionSettingsRepository.findByUserId(ownerId).ifPresent(settings -> {
+			int count = settings.getSubscriberCount();
+			settings.setSubscriberCount(Math.max(0, count - 1));
+			ownerSubscriptionSettingsRepository.save(settings, ownerId);
+		});
 	}
 
 }

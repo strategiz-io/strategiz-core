@@ -1,7 +1,6 @@
 package io.strategiz.data.social.repository;
 
-import io.strategiz.data.social.entity.UserSubscription;
-import com.google.cloud.Timestamp;
+import io.strategiz.data.social.entity.OwnerSubscription;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -9,112 +8,95 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Implementation of UserSubscriptionRepository using Firestore.
+ * @deprecated Use {@link OwnerSubscriptionRepositoryImpl} instead.
+ * This class is kept for backward compatibility only.
+ *
+ * <p>UserSubscriptionRepositoryImpl has been replaced by OwnerSubscriptionRepositoryImpl.</p>
  */
-@Repository
+@Deprecated(forRemoval = true)
+@Repository("deprecatedUserSubscriptionRepository")
 public class UserSubscriptionRepositoryImpl implements UserSubscriptionRepository {
 
-	private final UserSubscriptionBaseRepository baseRepository;
+    private final OwnerSubscriptionRepositoryImpl delegate;
 
-	@Autowired
-	public UserSubscriptionRepositoryImpl(UserSubscriptionBaseRepository baseRepository) {
-		this.baseRepository = baseRepository;
-	}
+    @Autowired
+    public UserSubscriptionRepositoryImpl(OwnerSubscriptionBaseRepository baseRepository) {
+        this.delegate = new OwnerSubscriptionRepositoryImpl(baseRepository);
+    }
 
-	@Override
-	public UserSubscription save(UserSubscription subscription, String performingUserId) {
-		return baseRepository.save(subscription, performingUserId);
-	}
+    @Override
+    public OwnerSubscription save(OwnerSubscription subscription, String performingUserId) {
+        return delegate.save(subscription, performingUserId);
+    }
 
-	@Override
-	public Optional<UserSubscription> findById(String subscriptionId) {
-		return baseRepository.findById(subscriptionId);
-	}
+    @Override
+    public Optional<OwnerSubscription> findById(String subscriptionId) {
+        return delegate.findById(subscriptionId);
+    }
 
-	@Override
-	public List<UserSubscription> findBySubscriberId(String subscriberId) {
-		return baseRepository.findBySubscriberId(subscriberId);
-	}
+    @Override
+    public List<OwnerSubscription> findBySubscriberId(String subscriberId) {
+        return delegate.findBySubscriberId(subscriberId);
+    }
 
-	@Override
-	public List<UserSubscription> findActiveBySubscriberId(String subscriberId) {
-		return baseRepository.findActiveBySubscriberId(subscriberId);
-	}
+    @Override
+    public List<OwnerSubscription> findActiveBySubscriberId(String subscriberId) {
+        return delegate.findActiveBySubscriberId(subscriberId);
+    }
 
-	@Override
-	public List<UserSubscription> findByOwnerId(String ownerId) {
-		return baseRepository.findByOwnerId(ownerId);
-	}
+    @Override
+    public List<OwnerSubscription> findByOwnerId(String ownerId) {
+        return delegate.findByOwnerId(ownerId);
+    }
 
-	@Override
-	public List<UserSubscription> findActiveByOwnerId(String ownerId) {
-		return baseRepository.findActiveByOwnerId(ownerId);
-	}
+    @Override
+    public List<OwnerSubscription> findActiveByOwnerId(String ownerId) {
+        return delegate.findActiveByOwnerId(ownerId);
+    }
 
-	@Override
-	public Optional<UserSubscription> findBySubscriberIdAndOwnerId(String subscriberId, String ownerId) {
-		return baseRepository.findBySubscriberIdAndOwnerId(subscriberId, ownerId);
-	}
+    @Override
+    public Optional<OwnerSubscription> findBySubscriberIdAndOwnerId(String subscriberId, String ownerId) {
+        return delegate.findBySubscriberIdAndOwnerId(subscriberId, ownerId);
+    }
 
-	@Override
-	public Optional<UserSubscription> findActiveBySubscriberIdAndOwnerId(String subscriberId, String ownerId) {
-		return baseRepository.findActiveBySubscriberIdAndOwnerId(subscriberId, ownerId);
-	}
+    @Override
+    public Optional<OwnerSubscription> findActiveBySubscriberIdAndOwnerId(String subscriberId, String ownerId) {
+        return delegate.findActiveBySubscriberIdAndOwnerId(subscriberId, ownerId);
+    }
 
-	@Override
-	public Optional<UserSubscription> findByStripeSubscriptionId(String stripeSubscriptionId) {
-		return baseRepository.findByStripeSubscriptionId(stripeSubscriptionId);
-	}
+    @Override
+    public Optional<OwnerSubscription> findByStripeSubscriptionId(String stripeSubscriptionId) {
+        return delegate.findByStripeSubscriptionId(stripeSubscriptionId);
+    }
 
-	@Override
-	public int countActiveByOwnerId(String ownerId) {
-		return baseRepository.countActiveByOwnerId(ownerId);
-	}
+    @Override
+    public int countActiveByOwnerId(String ownerId) {
+        return delegate.countActiveByOwnerId(ownerId);
+    }
 
-	@Override
-	public int countActiveBySubscriberId(String subscriberId) {
-		return baseRepository.countActiveBySubscriberId(subscriberId);
-	}
+    @Override
+    public int countActiveBySubscriberId(String subscriberId) {
+        return delegate.countActiveBySubscriberId(subscriberId);
+    }
 
-	@Override
-	public boolean hasActiveSubscription(String subscriberId, String ownerId) {
-		return findActiveBySubscriberIdAndOwnerId(subscriberId, ownerId).isPresent();
-	}
+    @Override
+    public boolean hasActiveSubscription(String subscriberId, String ownerId) {
+        return delegate.hasActiveSubscription(subscriberId, ownerId);
+    }
 
-	@Override
-	public UserSubscription updateStatus(String subscriptionId, String status) {
-		Optional<UserSubscription> subscriptionOpt = findById(subscriptionId);
-		if (subscriptionOpt.isEmpty()) {
-			throw new IllegalStateException("Subscription not found: " + subscriptionId);
-		}
+    @Override
+    public OwnerSubscription updateStatus(String subscriptionId, String status) {
+        return delegate.updateStatus(subscriptionId, status);
+    }
 
-		UserSubscription subscription = subscriptionOpt.get();
-		subscription.setStatus(status);
+    @Override
+    public OwnerSubscription cancel(String subscriptionId, String reason) {
+        return delegate.cancel(subscriptionId, reason);
+    }
 
-		return baseRepository.save(subscription, subscription.getSubscriberId());
-	}
-
-	@Override
-	public UserSubscription cancel(String subscriptionId, String reason) {
-		Optional<UserSubscription> subscriptionOpt = findById(subscriptionId);
-		if (subscriptionOpt.isEmpty()) {
-			throw new IllegalStateException("Subscription not found: " + subscriptionId);
-		}
-
-		UserSubscription subscription = subscriptionOpt.get();
-		subscription.setStatus("CANCELLED");
-		subscription.setCancelledAt(Timestamp.now());
-		subscription.setCancellationReason(reason);
-
-		return baseRepository.save(subscription, subscription.getSubscriberId());
-	}
-
-	@Override
-	public void deleteById(String subscriptionId) {
-		Optional<UserSubscription> subscriptionOpt = findById(subscriptionId);
-		if (subscriptionOpt.isPresent()) {
-			baseRepository.delete(subscriptionId, subscriptionOpt.get().getSubscriberId());
-		}
-	}
+    @Override
+    public void deleteById(String subscriptionId) {
+        delegate.deleteById(subscriptionId);
+    }
 
 }

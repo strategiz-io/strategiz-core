@@ -2,8 +2,8 @@ package io.strategiz.data.preferences.repository;
 
 import com.google.cloud.firestore.Firestore;
 import io.strategiz.data.base.repository.SubcollectionRepository;
+import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
-import io.strategiz.data.preferences.entity.UserSubscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -13,17 +13,17 @@ import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 /**
- * Repository for UserSubscription stored at users/{userId}/subscription/current
+ * Repository for PlatformSubscription stored at users/{userId}/subscription/current
  */
 @Repository
-public class SubscriptionRepository extends SubcollectionRepository<UserSubscription> {
+public class SubscriptionRepository extends SubcollectionRepository<PlatformSubscription> {
 
 	private static final Logger logger = LoggerFactory.getLogger(SubscriptionRepository.class);
 
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
 
 	public SubscriptionRepository(Firestore firestore) {
-		super(firestore, UserSubscription.class);
+		super(firestore, PlatformSubscription.class);
 	}
 
 	@Override
@@ -42,25 +42,25 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	}
 
 	/**
-	 * Get subscription for a user. Creates default (Trial) subscription if none exists.
+	 * Get subscription for a user. Creates default (Explorer) subscription if none exists.
 	 * @param userId The user ID
 	 * @return The user subscription
 	 */
-	public UserSubscription getByUserId(String userId) {
+	public PlatformSubscription getByUserId(String userId) {
 		validateParentId(userId);
 
-		Optional<UserSubscription> existing = findByIdInSubcollection(userId, UserSubscription.SUBSCRIPTION_ID);
+		Optional<PlatformSubscription> existing = findByIdInSubcollection(userId, PlatformSubscription.SUBSCRIPTION_ID);
 
 		if (existing.isPresent()) {
-			UserSubscription sub = existing.get();
+			PlatformSubscription sub = existing.get();
 			// Reset daily usage if it's a new day (legacy compatibility)
 			resetDailyUsageIfNeeded(userId, sub);
 			return sub;
 		}
 
-		// Return default subscription (Trial tier - not persisted until upgraded)
-		UserSubscription defaults = new UserSubscription(SubscriptionTier.TRIAL);
-		defaults.setSubscriptionId(UserSubscription.SUBSCRIPTION_ID);
+		// Return default subscription (Explorer tier - free freemium tier)
+		PlatformSubscription defaults = new PlatformSubscription(SubscriptionTier.EXPLORER);
+		defaults.setSubscriptionId(PlatformSubscription.SUBSCRIPTION_ID);
 		return defaults;
 	}
 
@@ -70,11 +70,11 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	 * @param subscription The subscription to save
 	 * @return The saved subscription
 	 */
-	public UserSubscription save(String userId, UserSubscription subscription) {
+	public PlatformSubscription save(String userId, PlatformSubscription subscription) {
 		validateParentId(userId);
 
 		// Ensure correct document ID
-		subscription.setSubscriptionId(UserSubscription.SUBSCRIPTION_ID);
+		subscription.setSubscriptionId(PlatformSubscription.SUBSCRIPTION_ID);
 
 		// Set usage reset date if not set
 		if (subscription.getUsageResetDate() == null) {
@@ -83,7 +83,7 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 
 		// Check if this is a new subscription (doesn't exist in Firestore yet)
 		// This is needed because getByUserId() returns in-memory defaults with ID already set
-		boolean existsInFirestore = findByIdInSubcollection(userId, UserSubscription.SUBSCRIPTION_ID).isPresent();
+		boolean existsInFirestore = findByIdInSubcollection(userId, PlatformSubscription.SUBSCRIPTION_ID).isPresent();
 
 		if (!existsInFirestore) {
 			// Initialize audit fields for new subscription
@@ -99,12 +99,12 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 		// Save to Firestore (skip audit updates in saveInSubcollection since we handled them here)
 		try {
 			getSubcollection(userId).document(subscription.getId()).set(subscription).get();
-			logger.debug("Saved UserSubscription for user {}", userId);
+			logger.debug("Saved PlatformSubscription for user {}", userId);
 			return subscription;
 		} catch (Exception e) {
 			throw new io.strategiz.data.base.exception.DataRepositoryException(
 				io.strategiz.data.base.exception.DataRepositoryErrorDetails.SUBCOLLECTION_ACCESS_FAILED,
-				e, "UserSubscription", userId);
+				e, "PlatformSubscription", userId);
 		}
 	}
 
@@ -114,8 +114,8 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	 * @param tier The new tier
 	 * @return The updated subscription
 	 */
-	public UserSubscription updateTier(String userId, SubscriptionTier tier) {
-		UserSubscription sub = getByUserId(userId);
+	public PlatformSubscription updateTier(String userId, SubscriptionTier tier) {
+		PlatformSubscription sub = getByUserId(userId);
 		sub.setTier(tier.getId());
 		return save(userId, sub);
 	}
@@ -125,8 +125,8 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	 * @param userId The user ID
 	 * @return The updated subscription
 	 */
-	public UserSubscription incrementMessageUsage(String userId) {
-		UserSubscription sub = getByUserId(userId);
+	public PlatformSubscription incrementMessageUsage(String userId) {
+		PlatformSubscription sub = getByUserId(userId);
 		sub.setDailyMessagesUsed(sub.getDailyMessagesUsed() + 1);
 		return save(userId, sub);
 	}
@@ -136,8 +136,8 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	 * @param userId The user ID
 	 * @return The updated subscription
 	 */
-	public UserSubscription incrementStrategyUsage(String userId) {
-		UserSubscription sub = getByUserId(userId);
+	public PlatformSubscription incrementStrategyUsage(String userId) {
+		PlatformSubscription sub = getByUserId(userId);
 		sub.setDailyMessagesUsed(sub.getDailyMessagesUsed() + 1);
 		return save(userId, sub);
 	}
@@ -145,7 +145,7 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	/**
 	 * Check and reset daily usage if it's a new day.
 	 */
-	private void resetDailyUsageIfNeeded(String userId, UserSubscription sub) {
+	private void resetDailyUsageIfNeeded(String userId, PlatformSubscription sub) {
 		String today = LocalDate.now().format(DATE_FORMAT);
 		if (!today.equals(sub.getUsageResetDate())) {
 			logger.info("Resetting daily usage for user {} (was {})", userId, sub.getUsageResetDate());
@@ -162,7 +162,7 @@ public class SubscriptionRepository extends SubcollectionRepository<UserSubscrip
 	 * @return The subscription tier
 	 */
 	public SubscriptionTier getTier(String userId) {
-		UserSubscription sub = getByUserId(userId);
+		PlatformSubscription sub = getByUserId(userId);
 		return sub.getTierEnum();
 	}
 

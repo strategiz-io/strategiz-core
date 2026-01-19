@@ -19,7 +19,10 @@ public enum CryptoTokenErrors implements ErrorDetails {
 	CONVERSION_FAILED("CRYPTO-010", "Token conversion failed", 500),
 	RATE_NOT_FOUND("CRYPTO-011", "Conversion rate not found", 404),
 	MINIMUM_PURCHASE("CRYPTO-012", "Minimum purchase amount is $5", 400),
-	DAILY_LIMIT_EXCEEDED("CRYPTO-013", "Daily transaction limit exceeded", 400);
+	DAILY_LIMIT_EXCEEDED("CRYPTO-013", "Daily transaction limit exceeded", 400),
+	CONVERSION_NOT_ALLOWED("CRYPTO-014", "STRAT tokens cannot be converted to AI credits. AI credits come from platform subscription tier only.", 400),
+	PACK_NOT_FOUND("CRYPTO-015", "STRAT pack not found", 404),
+	PACK_DISABLED("CRYPTO-016", "This STRAT pack is currently unavailable", 400);
 
 	private final String code;
 

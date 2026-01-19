@@ -113,14 +113,19 @@ public class CryptoTokenController extends BaseController {
 
 	/**
 	 * Convert tokens to AI credits.
+	 *
+	 * @deprecated STRAT tokens CANNOT be converted to AI credits.
+	 *             AI credits come from platform subscription tier only.
+	 *             This endpoint will return an error.
 	 */
+	@Deprecated(forRemoval = true)
 	@PostMapping("/convert/ai-credits")
 	@RequireAuth
 	public ResponseEntity<CryptoTransactionResponse> convertToAiCredits(@RequestBody Map<String, Object> request) {
 		String userId = getCurrentUserId();
 		Long tokenAmount = ((Number) request.get("tokenAmount")).longValue();
 
-		logger.info("User {} converting {} tokens to AI credits", userId, tokenAmount);
+		logger.warn("User {} attempted to convert {} tokens to AI credits (deprecated endpoint)", userId, tokenAmount);
 		return ResponseEntity.ok(cryptoTokenService.convertToAiCredits(userId, tokenAmount));
 	}
 

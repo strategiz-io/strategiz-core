@@ -68,6 +68,12 @@
             <artifactId>data-feature-flags</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Preferences for platform config -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-preferences</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Console observability for metrics and monitoring -->
         <dependency>
             <groupId>io.strategiz</groupId>

@@ -5,6 +5,8 @@ import io.strategiz.data.cryptotoken.entity.CryptoTransaction;
 import io.strategiz.data.cryptotoken.entity.CryptoWallet;
 import io.strategiz.data.cryptotoken.repository.CryptoTransactionRepository;
 import io.strategiz.data.cryptotoken.repository.CryptoWalletRepository;
+import io.strategiz.data.preferences.entity.PlatformConfig;
+import io.strategiz.data.preferences.repository.PlatformConfigRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.cryptotoken.exception.CryptoTokenErrors;
 import io.strategiz.service.cryptotoken.model.CryptoTransactionResponse;
@@ -14,27 +16,46 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * Service for managing STRAT crypto token operations.
+ *
+ * <p>Platform fee is configurable via PlatformConfig entity (admin console).
+ * STRAT tokens are the universal currency for tips and owner subscriptions.</p>
+ *
+ * <p>NOTE: STRAT tokens CANNOT be converted to AI credits.
+ * AI credits come from platform subscription tier only.</p>
  */
 @Service
 public class CryptoTokenService {
 
 	private static final Logger logger = LoggerFactory.getLogger(CryptoTokenService.class);
 
-	private static final double PLATFORM_FEE_PERCENT = 0.15;
-
 	private final CryptoWalletRepository walletRepository;
 
 	private final CryptoTransactionRepository transactionRepository;
 
+	private final PlatformConfigRepository platformConfigRepository;
+
 	public CryptoTokenService(CryptoWalletRepository walletRepository,
-			CryptoTransactionRepository transactionRepository) {
+			CryptoTransactionRepository transactionRepository, PlatformConfigRepository platformConfigRepository) {
 		this.walletRepository = walletRepository;
 		this.transactionRepository = transactionRepository;
+		this.platformConfigRepository = platformConfigRepository;
+	}
+
+	/**
+	 * Get the current platform fee percentage from config.
+	 *
+	 * @return Platform fee as decimal (e.g., 0.15 for 15%)
+	 */
+	private double getPlatformFeePercent() {
+		PlatformConfig config = platformConfigRepository.getCurrent();
+		BigDecimal feePercent = config.getPlatformFeePercent();
+		return feePercent != null ? feePercent.doubleValue() : 0.15;
 	}
 
 	/**
@@ -138,8 +159,9 @@ public class CryptoTokenService {
 			throw new StrategizException(CryptoTokenErrors.INSUFFICIENT_BALANCE, "service-crypto-token");
 		}
 
-		// Calculate platform fee
-		long platformFee = (long) (amount * PLATFORM_FEE_PERCENT);
+		// Calculate platform fee (configurable via PlatformConfig)
+		double feePercent = getPlatformFeePercent();
+		long platformFee = (long) (amount * feePercent);
 		long recipientAmount = amount - platformFee;
 
 		// Debit sender
@@ -203,8 +225,9 @@ public class CryptoTokenService {
 			throw new StrategizException(CryptoTokenErrors.INSUFFICIENT_BALANCE, "service-crypto-token");
 		}
 
-		// Calculate platform fee
-		long platformFee = (long) (amount * PLATFORM_FEE_PERCENT);
+		// Calculate platform fee (configurable via PlatformConfig)
+		double feePercent = getPlatformFeePercent();
+		long platformFee = (long) (amount * feePercent);
 		long ownerAmount = amount - platformFee;
 
 		// Debit subscriber
@@ -255,44 +278,17 @@ public class CryptoTokenService {
 
 	/**
 	 * Convert tokens to AI credits.
+	 *
+	 * @deprecated STRAT tokens CANNOT be converted to AI credits.
+	 *             AI credits come from platform subscription tier only.
+	 *             This method is kept for backward compatibility but will throw an exception.
 	 */
+	@Deprecated(forRemoval = true)
 	public CryptoTransactionResponse convertToAiCredits(String userId, long tokenAmount) {
-		CryptoWallet wallet = walletRepository.findByUserId(userId)
-			.orElseThrow(() -> new StrategizException(CryptoTokenErrors.WALLET_NOT_FOUND, "service-crypto-token"));
-
-		long microUnits = tokenAmount * CryptoWallet.MICRO_UNITS;
-
-		if (!wallet.hasSufficientBalance(microUnits)) {
-			throw new StrategizException(CryptoTokenErrors.INSUFFICIENT_BALANCE, "service-crypto-token");
-		}
-
-		// Debit tokens
-		walletRepository.debit(userId, microUnits, userId);
-
-		// Calculate AI credits (1 STRAT = 10 AI credits)
-		long aiCredits = tokenAmount * 10;
-
-		// TODO: Credit AI credits to user's account
-
-		// Create transaction
-		CryptoTransaction tx = new CryptoTransaction();
-		tx.setId(UUID.randomUUID().toString());
-		tx.setUserId(userId);
-		tx.setType(CryptoTransaction.TYPE_CONVERT);
-		tx.setAmount(-microUnits);
-		tx.setBalanceAfter(wallet.getBalance() - microUnits);
-		tx.setReferenceType(CryptoTransaction.REF_AI_CREDITS);
-		tx.setReferenceId(String.valueOf(aiCredits));
-		tx.setDescription("Converted to " + aiCredits + " AI credits");
-		tx.setStatus(CryptoTransaction.STATUS_COMPLETED);
-		tx.setCreatedAt(Timestamp.now());
-		tx.setCompletedAt(Timestamp.now());
-
-		transactionRepository.save(tx, userId);
-
-		logger.info("User {} converted {} STRAT to {} AI credits", userId, tokenAmount, aiCredits);
-
-		return CryptoTransactionResponse.fromEntity(tx);
+		// STRAT tokens cannot be converted to AI credits.
+		// AI credits come from platform subscription tier only.
+		// See: SubscriptionTier.java for tier-based AI credit allocation.
+		throw new StrategizException(CryptoTokenErrors.CONVERSION_NOT_ALLOWED, "service-crypto-token");
 	}
 
 }

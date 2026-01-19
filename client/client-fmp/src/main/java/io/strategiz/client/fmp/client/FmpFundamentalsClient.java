@@ -171,7 +171,7 @@ public class FmpFundamentalsClient {
 
 	/**
 	 * Get real-time quote for multiple symbols.
-	 * Uses FMP's /api/v3/quote endpoint for accurate real-time prices.
+	 * Fetches each symbol individually due to FMP subscription limitations.
 	 * @param symbols List of stock symbols (e.g., ["AAPL", "MSFT", "GOOG"])
 	 * @return List of FmpQuote objects with current prices
 	 */
@@ -184,72 +184,64 @@ public class FmpFundamentalsClient {
 			throw new StrategizException(FmpErrorDetails.API_KEY_MISSING, "FMP API key is not configured");
 		}
 
-		log.debug("Fetching quotes for {} symbols", symbols.size());
+		log.debug("Fetching quotes for {} symbols (individual requests)", symbols.size());
 
-		try {
-			// Wait for rate limiter
-			if (!rateLimiter.tryConsume(1)) {
-				log.debug("Rate limit reached, waiting for token...");
-				boolean acquired = rateLimiter.asBlocking().tryConsume(1, Duration.ofSeconds(10));
-				if (!acquired) {
-					throw new StrategizException(FmpErrorDetails.RATE_LIMIT_EXCEEDED,
-							"Rate limit exceeded for FMP API");
+		List<FmpQuote> quotes = new ArrayList<>();
+		String baseUrl = config.getBaseUrl().replace("/api/v3", "");
+
+		for (String symbol : symbols) {
+			try {
+				// Wait for rate limiter for each request
+				if (!rateLimiter.tryConsume(1)) {
+					log.debug("Rate limit reached, waiting for token...");
+					boolean acquired = rateLimiter.asBlocking().tryConsume(1, Duration.ofSeconds(10));
+					if (!acquired) {
+						log.warn("Rate limit exceeded, skipping remaining symbols");
+						break;
+					}
 				}
+
+				// Build URL for single symbol
+				String url = String.format("%s/stable/quote?symbol=%s&apikey=%s", baseUrl, symbol,
+						config.getApiKey());
+
+				// Execute request
+				ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
+				if (response.getBody() == null || !response.getStatusCode().is2xxSuccessful()) {
+					log.warn("No data returned for symbol: {}", symbol);
+					continue;
+				}
+
+				// Parse response - FMP returns array with single quote
+				List<Map<String, Object>> data = objectMapper.readValue(response.getBody(),
+						new TypeReference<List<Map<String, Object>>>() {
+						});
+
+				if (data != null && !data.isEmpty()) {
+					quotes.add(mapToQuote(data.get(0)));
+				}
+
 			}
-
-			// Build URL using stable API endpoint - FMP supports comma-separated symbols
-			// Note: stable API uses query param ?symbol= instead of path param
-			String symbolsParam = String.join(",", symbols);
-			String baseUrl = config.getBaseUrl().replace("/api/v3", "");
-			String url = String.format("%s/stable/quote?symbol=%s&apikey=%s", baseUrl, symbolsParam,
-					config.getApiKey());
-
-			// Execute request
-			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-			if (response.getBody() == null || !response.getStatusCode().is2xxSuccessful()) {
-				throw new StrategizException(FmpErrorDetails.NO_DATA_AVAILABLE, "No quote data returned");
+			catch (HttpClientErrorException ex) {
+				if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+					log.warn("Rate limit exceeded for FMP API (429), stopping requests");
+					break;
+				}
+				log.warn("Failed to fetch quote for {}: {}", symbol, ex.getMessage());
 			}
-
-			// Parse response - FMP returns array of quote objects
-			List<Map<String, Object>> data = objectMapper.readValue(response.getBody(),
-					new TypeReference<List<Map<String, Object>>>() {
-					});
-
-			if (data == null || data.isEmpty()) {
-				log.warn("No quotes returned for symbols: {}", symbolsParam);
-				return new ArrayList<>();
+			catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				log.warn("Interrupted while fetching quotes");
+				break;
 			}
-
-			// Convert to FmpQuote objects
-			List<FmpQuote> quotes = new ArrayList<>();
-			for (Map<String, Object> quoteData : data) {
-				quotes.add(mapToQuote(quoteData));
+			catch (Exception ex) {
+				log.warn("Failed to fetch quote for {}: {}", symbol, ex.getMessage());
 			}
+		}
 
-			log.info("Successfully fetched {} quotes", quotes.size());
-			return quotes;
-
-		}
-		catch (HttpClientErrorException ex) {
-			if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-				log.warn("Rate limit exceeded for FMP API (429)");
-				throw new StrategizException(FmpErrorDetails.RATE_LIMIT_EXCEEDED, "Rate limit exceeded", ex);
-			}
-			log.error("FMP API error: {} - {}", ex.getStatusCode(), ex.getMessage());
-			throw new StrategizException(FmpErrorDetails.API_ERROR_RESPONSE, ex.getMessage(), ex);
-		}
-		catch (InterruptedException ex) {
-			Thread.currentThread().interrupt();
-			throw new StrategizException(FmpErrorDetails.RATE_LIMIT_EXCEEDED, "Rate limiter interrupted", ex);
-		}
-		catch (StrategizException ex) {
-			throw ex;
-		}
-		catch (Exception ex) {
-			log.error("Failed to fetch quotes: {}", ex.getMessage(), ex);
-			throw new StrategizException(FmpErrorDetails.API_ERROR_RESPONSE, ex.getMessage(), ex);
-		}
+		log.info("Successfully fetched {} quotes out of {} symbols", quotes.size(), symbols.size());
+		return quotes;
 	}
 
 	/**

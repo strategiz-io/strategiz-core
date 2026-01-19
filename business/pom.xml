@@ -36,5 +36,6 @@
         <module>business-infrastructure-costs</module>
         <module>business-fundamentals</module>
         <module>business-live-strategies</module>
+        <module>business-crypto-token</module>
     </modules>
 </project>

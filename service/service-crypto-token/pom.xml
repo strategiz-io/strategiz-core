@@ -60,6 +60,11 @@
             <artifactId>client-stripe</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-crypto-token</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring dependencies -->
         <dependency>

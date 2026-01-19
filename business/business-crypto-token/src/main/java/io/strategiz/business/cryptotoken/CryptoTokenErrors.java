@@ -1,9 +1,9 @@
-package io.strategiz.service.cryptotoken.exception;
+package io.strategiz.business.cryptotoken;
 
 import io.strategiz.framework.exception.ErrorDetails;
 
 /**
- * Error codes for crypto token service operations.
+ * Error codes for crypto token business operations.
  */
 public enum CryptoTokenErrors implements ErrorDetails {
 
@@ -20,7 +20,9 @@ public enum CryptoTokenErrors implements ErrorDetails {
 	RATE_NOT_FOUND("CRYPTO-011", "Conversion rate not found", 404),
 	MINIMUM_PURCHASE("CRYPTO-012", "Minimum purchase amount is $5", 400),
 	DAILY_LIMIT_EXCEEDED("CRYPTO-013", "Daily transaction limit exceeded", 400),
-	CONVERSION_NOT_ALLOWED("CRYPTO-014", "STRAT tokens cannot be converted to AI credits. AI credits come from platform subscription tier only.", 400),
+	CONVERSION_NOT_ALLOWED("CRYPTO-014",
+			"STRAT tokens cannot be converted to AI credits. AI credits come from platform subscription tier only.",
+			400),
 	PACK_NOT_FOUND("CRYPTO-015", "STRAT pack not found", 404),
 	PACK_DISABLED("CRYPTO-016", "This STRAT pack is currently unavailable", 400);
 

@@ -5,7 +5,7 @@ import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Transaction;
-import io.strategiz.data.base.repository.BaseFirestoreRepository;
+import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.cryptotoken.entity.CryptoWallet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,15 +19,17 @@ import java.util.concurrent.ExecutionException;
  * Firestore implementation of CryptoWalletRepository.
  */
 @Repository
-public class CryptoWalletBaseRepository extends BaseFirestoreRepository<CryptoWallet>
-		implements CryptoWalletRepository {
+public class CryptoWalletBaseRepository extends BaseRepository<CryptoWallet> implements CryptoWalletRepository {
 
 	private static final Logger logger = LoggerFactory.getLogger(CryptoWalletBaseRepository.class);
 
-	private static final String COLLECTION_NAME = "cryptoWallets";
-
 	public CryptoWalletBaseRepository(Firestore firestore) {
-		super(firestore, COLLECTION_NAME, CryptoWallet.class);
+		super(firestore, CryptoWallet.class);
+	}
+
+	@Override
+	protected String getModuleName() {
+		return "data-crypto-token";
 	}
 
 	@Override
@@ -173,8 +175,7 @@ public class CryptoWalletBaseRepository extends BaseFirestoreRepository<CryptoWa
 	@Override
 	public CryptoWallet unlockFunds(String userId, long amount, String performingUserId) {
 		try {
-			CryptoWallet wallet = findByUserId(userId)
-				.orElseThrow(() -> new RuntimeException("Wallet not found"));
+			CryptoWallet wallet = findByUserId(userId).orElseThrow(() -> new RuntimeException("Wallet not found"));
 			DocumentReference docRef = getCollection().document(wallet.getId());
 
 			return firestore.runTransaction((Transaction transaction) -> {

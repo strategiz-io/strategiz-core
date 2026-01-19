@@ -1,7 +1,12 @@
 package io.strategiz.service.cryptotoken.controller;
 
+import io.strategiz.client.stripe.StripeService;
+import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.StratPackConfig;
 import io.strategiz.data.preferences.repository.StratPackConfigRepository;
+import io.strategiz.data.preferences.repository.SubscriptionRepository;
+import io.strategiz.data.user.entity.UserEntity;
+import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.annotation.RequireAuth;
 import io.strategiz.service.base.controller.BaseController;
@@ -15,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,10 +53,20 @@ public class StratPackController extends BaseController {
 
 	private final CryptoTokenService cryptoTokenService;
 
+	private final StripeService stripeService;
+
+	private final UserRepository userRepository;
+
+	private final SubscriptionRepository subscriptionRepository;
+
 	public StratPackController(StratPackConfigRepository stratPackConfigRepository,
-			CryptoTokenService cryptoTokenService) {
+			CryptoTokenService cryptoTokenService, StripeService stripeService, UserRepository userRepository,
+			SubscriptionRepository subscriptionRepository) {
 		this.stratPackConfigRepository = stratPackConfigRepository;
 		this.cryptoTokenService = cryptoTokenService;
+		this.stripeService = stripeService;
+		this.userRepository = userRepository;
+		this.subscriptionRepository = subscriptionRepository;
 	}
 
 	/**
@@ -97,6 +113,7 @@ public class StratPackController extends BaseController {
 		String userId = getCurrentUserId();
 		logger.info("User {} creating checkout for STRAT pack {}", userId, packId);
 
+		// Get pack config
 		StratPackConfig pack = stratPackConfigRepository.getByPackId(packId)
 			.orElseThrow(() -> new StrategizException(CryptoTokenErrors.PACK_NOT_FOUND, "service-crypto-token"));
 
@@ -104,21 +121,44 @@ public class StratPackController extends BaseController {
 			throw new StrategizException(CryptoTokenErrors.PACK_DISABLED, "service-crypto-token");
 		}
 
+		// Get user email
+		UserEntity user = userRepository.findById(userId).orElse(null);
+		String userEmail = user != null ? user.getEmail() : null;
+		if (userEmail == null) {
+			logger.warn("No email found for user {}", userId);
+			userEmail = userId + "@strategiz.io"; // Fallback
+		}
+
+		// Get existing Stripe customer ID if available
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
+		String stripeCustomerId = subscription != null ? subscription.getStripeCustomerId() : null;
+
 		// Get optional success/cancel URLs from request
 		String successUrl = request != null ? request.get("successUrl") : null;
 		String cancelUrl = request != null ? request.get("cancelUrl") : null;
 
-		// TODO: Create Stripe checkout session using pack.getStripePriceId()
-		// For now, return placeholder response
-		return ResponseEntity.ok(Map.of("message", "Stripe checkout not yet implemented", "packId", packId,
-				"displayName", pack.getDisplayName(), "priceCents", pack.getPriceCents(), "stratAmount",
-				pack.getTotalStrat(), "stripePriceId", pack.getStripePriceId() != null ? pack.getStripePriceId() : ""));
+		// Create Stripe checkout session
+		StripeService.CheckoutResult checkout = stripeService.createStratPackCheckoutSession(userId, userEmail,
+				pack.getPackId(), pack.getDisplayName(), pack.getPriceCents(), pack.getTotalStrat(), stripeCustomerId,
+				successUrl, cancelUrl);
+
+		// Return checkout session details
+		Map<String, Object> response = new HashMap<>();
+		response.put("sessionId", checkout.sessionId());
+		response.put("checkoutUrl", checkout.url());
+		response.put("customerId", checkout.customerId());
+		response.put("packId", packId);
+		response.put("displayName", pack.getDisplayName());
+		response.put("priceCents", pack.getPriceCents());
+		response.put("stratAmount", pack.getTotalStrat());
+
+		return ResponseEntity.ok(response);
 	}
 
 	/**
-	 * Handle Stripe webhook for completed STRAT pack purchase.
-	 * This is called by the Stripe webhook handler after checkout.session.completed.
-	 * Not exposed as public endpoint - called internally.
+	 * Handle Stripe webhook for completed STRAT pack purchase. This is called by the
+	 * Stripe webhook handler after checkout.session.completed. Not exposed as public
+	 * endpoint - called internally.
 	 */
 	public void handlePurchaseComplete(String userId, String packId, String stripeSessionId) {
 		logger.info("Processing STRAT pack purchase completion for user {} pack {} session {}", userId, packId,
@@ -129,7 +169,7 @@ public class StratPackController extends BaseController {
 
 		// Credit STRAT tokens to user's wallet
 		long totalStrat = pack.getTotalStrat();
-		cryptoTokenService.creditPurchasedTokens(userId, totalStrat, stripeSessionId);
+		cryptoTokenService.creditStratPackPurchase(userId, totalStrat, packId, stripeSessionId);
 
 		logger.info("User {} credited {} STRAT from pack {} purchase", userId, totalStrat, packId);
 	}

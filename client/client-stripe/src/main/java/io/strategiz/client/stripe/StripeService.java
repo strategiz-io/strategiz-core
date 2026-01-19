@@ -517,6 +517,77 @@ public class StripeService {
 	}
 
 	/**
+	 * Create a Stripe checkout session for STRAT pack purchase.
+	 * STRAT packs are one-time purchases that credit STRAT tokens to user's wallet.
+	 *
+	 * @param userId The internal user ID
+	 * @param userEmail The user's email
+	 * @param packId The STRAT pack ID being purchased
+	 * @param packName The display name of the pack
+	 * @param priceInCents The price in USD cents (e.g., 500 for $5.00)
+	 * @param stratAmount The amount of STRAT tokens to credit
+	 * @param customerId Existing Stripe customer ID (optional)
+	 * @param successUrl Optional custom success URL
+	 * @param cancelUrl Optional custom cancel URL
+	 * @return Checkout session details
+	 */
+	public CheckoutResult createStratPackCheckoutSession(String userId, String userEmail, String packId, String packName,
+			long priceInCents, long stratAmount, String customerId, String successUrl, String cancelUrl) {
+
+		if (!config.isConfigured()) {
+			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
+		}
+
+		logger.info("Creating STRAT pack checkout session for user {} pack {} ({})", userId, packId, packName);
+
+		try {
+			// Create or get customer
+			String stripeCustomerId = customerId;
+			if (stripeCustomerId == null || stripeCustomerId.isEmpty()) {
+				stripeCustomerId = createCustomer(userId, userEmail);
+			}
+
+			// Default URLs if not provided
+			String finalSuccessUrl = successUrl != null ? successUrl
+					: config.getAppBaseUrl() + "/wallet?purchase=success&session_id={CHECKOUT_SESSION_ID}";
+			String finalCancelUrl = cancelUrl != null ? cancelUrl : config.getAppBaseUrl() + "/wallet?purchase=canceled";
+
+			// Build checkout session for one-time STRAT pack payment
+			SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
+				.setMode(SessionCreateParams.Mode.PAYMENT)
+				.setCustomer(stripeCustomerId)
+				.setSuccessUrl(finalSuccessUrl)
+				.setCancelUrl(finalCancelUrl)
+				.addLineItem(SessionCreateParams.LineItem.builder()
+					.setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+						.setCurrency("usd")
+						.setUnitAmount(priceInCents)
+						.setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+							.setName(packName)
+							.setDescription(stratAmount + " STRAT tokens")
+							.build())
+						.build())
+					.setQuantity(1L)
+					.build())
+				.putMetadata("userId", userId)
+				.putMetadata("packId", packId)
+				.putMetadata("stratAmount", String.valueOf(stratAmount))
+				.putMetadata("type", "strat_pack_purchase");
+
+			Session session = Session.create(paramsBuilder.build());
+
+			logger.info("Created STRAT pack checkout session {} for user {} pack {}", session.getId(), userId, packId);
+
+			return new CheckoutResult(session.getId(), session.getUrl(), stripeCustomerId);
+		}
+		catch (StripeException e) {
+			logger.error("Failed to create STRAT pack checkout session for user {}: {}", userId, e.getMessage());
+			throw new StrategizException(StripeErrorDetails.CHECKOUT_SESSION_CREATION_FAILED, "client-stripe", e,
+					userId);
+		}
+	}
+
+	/**
 	 * Get the publishable key for frontend use.
 	 */
 	public String getPublishableKey() {

@@ -197,9 +197,12 @@ public class FmpFundamentalsClient {
 				}
 			}
 
-			// Build URL - FMP supports comma-separated symbols
+			// Build URL using stable API endpoint - FMP supports comma-separated symbols
+			// Note: stable API uses query param ?symbol= instead of path param
 			String symbolsParam = String.join(",", symbols);
-			String url = String.format("%s/quote/%s?apikey=%s", config.getBaseUrl(), symbolsParam, config.getApiKey());
+			String baseUrl = config.getBaseUrl().replace("/api/v3", "");
+			String url = String.format("%s/stable/quote?symbol=%s&apikey=%s", baseUrl, symbolsParam,
+					config.getApiKey());
 
 			// Execute request
 			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);

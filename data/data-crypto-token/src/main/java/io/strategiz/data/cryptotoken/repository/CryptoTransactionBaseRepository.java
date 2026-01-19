@@ -4,7 +4,7 @@ import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
-import io.strategiz.data.base.repository.BaseFirestoreRepository;
+import io.strategiz.data.base.repository.BaseRepository;
 import io.strategiz.data.cryptotoken.entity.CryptoTransaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,15 +20,18 @@ import java.util.concurrent.ExecutionException;
  * Firestore implementation of CryptoTransactionRepository.
  */
 @Repository
-public class CryptoTransactionBaseRepository extends BaseFirestoreRepository<CryptoTransaction>
+public class CryptoTransactionBaseRepository extends BaseRepository<CryptoTransaction>
 		implements CryptoTransactionRepository {
 
 	private static final Logger logger = LoggerFactory.getLogger(CryptoTransactionBaseRepository.class);
 
-	private static final String COLLECTION_NAME = "cryptoTransactions";
-
 	public CryptoTransactionBaseRepository(Firestore firestore) {
-		super(firestore, COLLECTION_NAME, CryptoTransaction.class);
+		super(firestore, CryptoTransaction.class);
+	}
+
+	@Override
+	protected String getModuleName() {
+		return "data-crypto-token";
 	}
 
 	@Override

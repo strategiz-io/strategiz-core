@@ -6,8 +6,8 @@ import io.strategiz.business.preferences.service.SubscriptionService.TierInfo;
 import io.strategiz.client.stripe.StripeService;
 import io.strategiz.client.stripe.StripeService.CheckoutResult;
 import io.strategiz.client.stripe.StripeService.SubscriptionUpdate;
+import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
-import io.strategiz.data.preferences.entity.UserSubscription;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.authorization.annotation.AuthUser;
@@ -68,7 +68,7 @@ public class SubscriptionController extends BaseController {
 		String userId = user.getUserId();
 		logger.info("Getting subscription for user {}", userId);
 
-		UserSubscription sub = subscriptionService.getSubscription(userId);
+		PlatformSubscription sub = subscriptionService.getSubscription(userId);
 		SubscriptionTier tier = sub.getTierEnum();
 
 		SubscriptionResponse response = new SubscriptionResponse();
@@ -94,7 +94,7 @@ public class SubscriptionController extends BaseController {
 	public ResponseEntity<UsageResponse> getUsage(@AuthUser AuthenticatedUser user) {
 		String userId = user.getUserId();
 
-		UserSubscription sub = subscriptionService.getSubscription(userId);
+		PlatformSubscription sub = subscriptionService.getSubscription(userId);
 		SubscriptionTier tier = sub.getTierEnum();
 
 		UsageResponse response = new UsageResponse();
@@ -215,7 +215,7 @@ public class SubscriptionController extends BaseController {
 		}
 
 		// Check if already on this tier or higher
-		UserSubscription currentSub = subscriptionService.getSubscription(userId);
+		PlatformSubscription currentSub = subscriptionService.getSubscription(userId);
 		if (tierId.equals(currentSub.getTier())) {
 			return ResponseEntity.badRequest().body(Map.of("error", "Already on this tier"));
 		}
@@ -266,7 +266,7 @@ public class SubscriptionController extends BaseController {
 
 		if (update != null && update.userId() != null) {
 			// Update user subscription in Firestore
-			UserSubscription subscription = subscriptionService.getSubscription(update.userId());
+			PlatformSubscription subscription = subscriptionService.getSubscription(update.userId());
 
 			if (update.tier() != null) {
 				subscription.setTier(update.tier());

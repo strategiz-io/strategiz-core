@@ -9,14 +9,20 @@ import com.google.cloud.Timestamp;
 /**
  * Entity representing a crypto token transaction in the ledger.
  *
- * Collection path: cryptoTransactions/{transactionId}
+ * <p>Collection path: cryptoTransactions/{transactionId}</p>
  *
- * Transaction Types:
- * - PURCHASE: Buy tokens with USD
- * - EARN: Receive tokens from rewards/engagement
- * - SPEND: Use tokens for subscriptions/tips/credits
- * - TRANSFER: Send tokens to another user
- * - CONVERT: Convert tokens to AI credits
+ * <p>Transaction Types:</p>
+ * <ul>
+ *   <li>PURCHASE: Buy tokens with USD</li>
+ *   <li>EARN: Receive tokens from rewards/engagement</li>
+ *   <li>SPEND: Use tokens for owner subscriptions or tips</li>
+ *   <li>TRANSFER: Send tokens to another user</li>
+ * </ul>
+ *
+ * <p>NOTE: STRAT tokens CANNOT be converted to AI credits.
+ * AI credits come from platform subscription tier only.</p>
+ *
+ * @see io.strategiz.data.cryptotoken.entity.CryptoWallet
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Collection("cryptoTransactions")
@@ -69,12 +75,22 @@ public class CryptoTransaction extends BaseEntity {
 
 	public static final String TYPE_TRANSFER = "TRANSFER";
 
+	/**
+	 * @deprecated STRAT tokens cannot be converted to AI credits.
+	 * AI credits come from platform subscription tier only.
+	 */
+	@Deprecated(forRemoval = true)
 	public static final String TYPE_CONVERT = "CONVERT";
 
 	public static final String REF_SUBSCRIPTION = "subscription";
 
 	public static final String REF_TIP = "tip";
 
+	/**
+	 * @deprecated STRAT tokens cannot be used for AI credits.
+	 * AI credits come from platform subscription tier only.
+	 */
+	@Deprecated(forRemoval = true)
 	public static final String REF_AI_CREDITS = "ai_credits";
 
 	public static final String REF_REWARD = "reward";

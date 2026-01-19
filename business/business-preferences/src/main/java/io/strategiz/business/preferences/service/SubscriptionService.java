@@ -1,7 +1,7 @@
 package io.strategiz.business.preferences.service;
 
+import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
-import io.strategiz.data.preferences.entity.UserSubscription;
 import io.strategiz.data.preferences.repository.SubscriptionRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
@@ -28,8 +28,8 @@ public class SubscriptionService {
 
 	/**
 	 * Minimum tier level required for Historical Market Insights (Feeling Lucky).
-	 * Level 1 = EXPLORER tier and above (EXPLORER, STRATEGIST, QUANT)
-	 * Tier levels: TRIAL=0, EXPLORER=1, STRATEGIST=2, QUANT=3
+	 * Level 1 = STRATEGIST tier and above (STRATEGIST, QUANT)
+	 * Tier levels: EXPLORER=0, STRATEGIST=1, QUANT=2
 	 */
 	private static final int MIN_TIER_LEVEL_HISTORICAL_INSIGHTS = 1;
 
@@ -47,7 +47,7 @@ public class SubscriptionService {
 	 * @param userId The user ID
 	 * @return The user subscription
 	 */
-	public UserSubscription getSubscription(String userId) {
+	public PlatformSubscription getSubscription(String userId) {
 		logger.debug("Getting subscription for user {}", userId);
 		return repository.getByUserId(userId);
 	}
@@ -131,7 +131,7 @@ public class SubscriptionService {
 			return true;
 		}
 
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 
 		// Check if trial expired
 		if (sub.isTrialExpired()) {
@@ -152,7 +152,7 @@ public class SubscriptionService {
 	 * @return Remaining credits
 	 */
 	public int getRemainingCredits(String userId) {
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 		return sub.getRemainingCredits();
 	}
 
@@ -162,7 +162,7 @@ public class SubscriptionService {
 	 * @return Usage percentage
 	 */
 	public int getUsagePercentage(String userId) {
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 		return sub.getUsagePercentage();
 	}
 
@@ -172,7 +172,7 @@ public class SubscriptionService {
 	 * @return Warning level (none, warning, critical, blocked)
 	 */
 	public String getUsageWarningLevel(String userId) {
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 		return sub.getUsageWarningLevel();
 	}
 
@@ -196,7 +196,7 @@ public class SubscriptionService {
 	 * @deprecated Use TokenUsageService.recordUsage() for accurate credit tracking
 	 */
 	@Deprecated(forRemoval = true)
-	public UserSubscription recordMessageUsage(String userId) {
+	public PlatformSubscription recordMessageUsage(String userId) {
 		logger.debug("Recording AI chat message usage for user {} (deprecated method)", userId);
 		return repository.incrementMessageUsage(userId);
 	}
@@ -220,7 +220,7 @@ public class SubscriptionService {
 	 * @param subscription The updated subscription
 	 * @return The saved subscription
 	 */
-	public UserSubscription updateSubscription(String userId, UserSubscription subscription) {
+	public PlatformSubscription updateSubscription(String userId, PlatformSubscription subscription) {
 		logger.info("Updating subscription for user {} to tier {}", userId, subscription.getTier());
 		return repository.save(userId, subscription);
 	}
@@ -231,7 +231,7 @@ public class SubscriptionService {
 	 * @param newTier The new tier
 	 * @return The updated subscription
 	 */
-	public UserSubscription upgradeTier(String userId, SubscriptionTier newTier) {
+	public PlatformSubscription upgradeTier(String userId, SubscriptionTier newTier) {
 		logger.info("Upgrading user {} to tier {}", userId, newTier.getId());
 		return repository.updateTier(userId, newTier);
 	}
@@ -241,29 +241,35 @@ public class SubscriptionService {
 	 * @param userId The user ID
 	 * @return The updated subscription
 	 */
-	public UserSubscription cancelSubscription(String userId) {
+	public PlatformSubscription cancelSubscription(String userId) {
 		logger.info("Canceling subscription for user {}", userId);
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 		sub.setCancelAtPeriodEnd(true);
 		return repository.save(userId, sub);
 	}
 
 	/**
-	 * Initialize a 30-day trial for a new user.
+	 * Initialize a new user with the free Explorer tier.
+	 * @param userId The user ID
+	 * @return The initialized subscription
+	 * @deprecated Trial tier has been removed. Use {@link #initializeExplorer(String)} instead.
+	 */
+	@Deprecated(forRemoval = true)
+	public PlatformSubscription initializeTrial(String userId) {
+		return initializeExplorer(userId);
+	}
+
+	/**
+	 * Initialize a new user with the free Explorer tier.
 	 * @param userId The user ID
 	 * @return The initialized subscription
 	 */
-	public UserSubscription initializeTrial(String userId) {
-		logger.info("Initializing 30-day trial for user {}", userId);
+	public PlatformSubscription initializeExplorer(String userId) {
+		logger.info("Initializing Explorer (free) tier for user {}", userId);
 
-		UserSubscription sub = getSubscription(userId);
-		sub.initializeForTier(SubscriptionTier.TRIAL);
-
-		// Set trial dates
-		Instant now = Instant.now();
-		sub.setTrialStartDate(now);
-		sub.setTrialEndDate(now.plus(30, ChronoUnit.DAYS));
-		sub.setStatus("trialing");
+		PlatformSubscription sub = getSubscription(userId);
+		sub.initializeForTier(SubscriptionTier.EXPLORER);
+		sub.setStatus("active");
 
 		return repository.save(userId, sub);
 	}
@@ -271,51 +277,35 @@ public class SubscriptionService {
 	/**
 	 * Check if user's trial is expired.
 	 * @param userId The user ID
-	 * @return true if trial is expired
+	 * @return Always returns false - trial tier has been removed
+	 * @deprecated Trial tier has been removed. All users start on Explorer (free).
 	 */
+	@Deprecated(forRemoval = true)
 	public boolean isTrialExpired(String userId) {
-		UserSubscription sub = getSubscription(userId);
-
-		if (!sub.isTrial()) {
-			return false; // Not on trial
-		}
-
-		if (sub.getTrialEndDate() == null) {
-			return false; // No end date set
-		}
-
-		return Instant.now().isAfter(sub.getTrialEndDate());
+		return false; // Trial tier removed - no trial expiration
 	}
 
 	/**
 	 * Get days remaining in trial.
 	 * @param userId The user ID
-	 * @return Days remaining, 0 if expired, -1 if not on trial
+	 * @return Always returns -1 - trial tier has been removed
+	 * @deprecated Trial tier has been removed. All users start on Explorer (free).
 	 */
+	@Deprecated(forRemoval = true)
 	public int getTrialDaysRemaining(String userId) {
-		UserSubscription sub = getSubscription(userId);
-
-		if (!sub.isTrial() || sub.getTrialEndDate() == null) {
-			return -1;
-		}
-
-		long daysRemaining = ChronoUnit.DAYS.between(Instant.now(), sub.getTrialEndDate());
-		return (int) Math.max(0, daysRemaining);
+		return -1; // Trial tier removed
 	}
 
 	/**
 	 * Expire a user's trial (called by scheduled job or webhook).
 	 * @param userId The user ID
-	 * @return The updated subscription
+	 * @return The subscription (unchanged)
+	 * @deprecated Trial tier has been removed. All users start on Explorer (free).
 	 */
-	public UserSubscription expireTrial(String userId) {
-		logger.info("Expiring trial for user {}", userId);
-
-		UserSubscription sub = getSubscription(userId);
-		sub.setStatus("trial_expired");
-		sub.setUsageWarningLevel("blocked");
-
-		return repository.save(userId, sub);
+	@Deprecated(forRemoval = true)
+	public PlatformSubscription expireTrial(String userId) {
+		logger.info("expireTrial called but trial tier no longer exists - no action taken");
+		return getSubscription(userId);
 	}
 
 	/**
@@ -326,11 +316,11 @@ public class SubscriptionService {
 	 * @param stripeSubscriptionId The Stripe subscription ID
 	 * @return The updated subscription
 	 */
-	public UserSubscription upgradeToPaidTier(String userId, SubscriptionTier newTier, String stripeCustomerId,
+	public PlatformSubscription upgradeToPaidTier(String userId, SubscriptionTier newTier, String stripeCustomerId,
 			String stripeSubscriptionId) {
 		logger.info("Upgrading user {} to paid tier {}", userId, newTier.getId());
 
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 		sub.initializeForTier(newTier);
 		sub.setStripeCustomerId(stripeCustomerId);
 		sub.setStripeSubscriptionId(stripeSubscriptionId);
@@ -362,7 +352,7 @@ public class SubscriptionService {
 	 * @return Subscription summary with usage details
 	 */
 	public SubscriptionSummary getSubscriptionSummary(String userId) {
-		UserSubscription sub = getSubscription(userId);
+		PlatformSubscription sub = getSubscription(userId);
 		SubscriptionTier tier = sub.getTierEnum();
 
 		return new SubscriptionSummary(sub.getTier(), tier.getDisplayName(), sub.getStatus(),

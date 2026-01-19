@@ -1,7 +1,7 @@
 package io.strategiz.service.profile.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.strategiz.data.social.entity.UserSubscription;
+import io.strategiz.data.social.entity.OwnerSubscription;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -63,7 +63,7 @@ public class UserSubscriptionResponse {
 	/**
 	 * Create a response from an entity.
 	 */
-	public static UserSubscriptionResponse fromEntity(UserSubscription entity) {
+	public static UserSubscriptionResponse fromEntity(OwnerSubscription entity) {
 		UserSubscriptionResponse response = new UserSubscriptionResponse();
 		response.setId(entity.getId());
 		response.setSubscriberId(entity.getSubscriberId());

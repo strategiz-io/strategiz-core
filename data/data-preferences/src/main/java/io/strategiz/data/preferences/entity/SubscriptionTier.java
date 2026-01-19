@@ -13,10 +13,9 @@ import java.util.Map;
  *
  * <p>Tier Levels (ordinal positions):</p>
  * <ul>
- *   <li>Level 0: TRIAL (30-day free trial)</li>
- *   <li>Level 1: EXPLORER (entry paid tier)</li>
- *   <li>Level 2: STRATEGIST (mid tier)</li>
- *   <li>Level 3: QUANT (premium tier)</li>
+ *   <li>Level 0: EXPLORER (free freemium tier)</li>
+ *   <li>Level 1: STRATEGIST (mid tier - $199/month)</li>
+ *   <li>Level 2: QUANT (premium tier - $229/month)</li>
  * </ul>
  *
  * <p>Use {@link #getLevel()} and {@link #meetsMinimumLevel(int)} to check tier access
@@ -24,17 +23,11 @@ import java.util.Map;
  */
 public enum SubscriptionTier {
 
-	TRIAL("trial", "Trial", 0,
-			List.of("gemini-2.5-flash", "gemini-1.5-flash", "gpt-4o-mini", "claude-haiku-4-5",
-					"llama-3.1-8b-instruct-maas", "mistral-nemo"),
-			40000, // 40K credits for trial
-			"30-day free trial"),
-
-	EXPLORER("explorer", "Explorer", 14900, // $149.00 in cents
+	EXPLORER("explorer", "Explorer", 0, // FREE freemium tier
 			List.of("gemini-2.5-flash", "gemini-1.5-flash", "gpt-4o-mini", "claude-haiku-4-5",
 					"llama-3.1-8b-instruct-maas", "mistral-nemo"),
 			40000, // 40K credits
-			"For new traders exploring the platform"),
+			"Free tier for exploring the platform"),
 
 	STRATEGIST("strategist", "Strategist", 19900, // $199.00 in cents
 			List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
@@ -149,14 +142,16 @@ public enum SubscriptionTier {
 
 	/**
 	 * Check if this is a trial tier.
+	 * @deprecated Trial tier has been removed. Use {@link #isFree()} instead.
 	 */
+	@Deprecated(forRemoval = true)
 	public boolean isTrial() {
-		return this == TRIAL;
+		return false; // Trial tier removed - all users start on Explorer (free)
 	}
 
 	/**
 	 * Get the tier level (ordinal position).
-	 * TRIAL = 0, EXPLORER = 1, STRATEGIST = 2, QUANT = 3
+	 * EXPLORER = 0, STRATEGIST = 1, QUANT = 2
 	 *
 	 * @return The tier level
 	 */
@@ -218,14 +213,18 @@ public enum SubscriptionTier {
 	}
 
 	public static SubscriptionTier fromId(String id) {
+		// Handle legacy "trial" ID by returning EXPLORER
+		if ("trial".equalsIgnoreCase(id)) {
+			return EXPLORER;
+		}
 		return Arrays.stream(values())
 				.filter(tier -> tier.id.equalsIgnoreCase(id))
 				.findFirst()
-				.orElse(TRIAL);
+				.orElse(EXPLORER);
 	}
 
 	public static SubscriptionTier getDefault() {
-		return TRIAL;
+		return EXPLORER;
 	}
 
 	// Legacy compatibility methods (deprecated - will be removed in future version)

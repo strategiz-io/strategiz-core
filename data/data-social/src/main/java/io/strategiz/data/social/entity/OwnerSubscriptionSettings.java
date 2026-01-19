@@ -12,16 +12,18 @@ import java.math.BigDecimal;
  * Entity representing an owner's subscription settings.
  * Owners can enable subscriptions to allow others to subscribe and deploy their PUBLIC strategies.
  *
- * Collection path: users/{userId}/ownerSubscriptionSettings/current
+ * <p>Collection path: users/{userId}/ownerSubscriptionSettings/current</p>
  *
- * Business Model:
- * - Platform fee: 15% (owner keeps 85%)
- * - Payments via Stripe Connect
- * - Payouts: Every 2 weeks
- * - Price changes: Existing subscribers are grandfathered at their original rate
+ * <p>Business Model:</p>
+ * <ul>
+ *   <li>Platform fee: Configurable (see PlatformConfig entity)</li>
+ *   <li>Owner sets ONE price in USD (no tiers)</li>
+ *   <li>Payments via Stripe Connect or STRAT tokens</li>
+ *   <li>Payouts: Via Stripe Connect (minus platform fee)</li>
+ *   <li>Price changes: Existing subscribers are grandfathered at their original rate</li>
+ * </ul>
  *
- * @author Strategiz Team
- * @version 1.0
+ * @see io.strategiz.data.social.entity.OwnerSubscription
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Collection("ownerSubscriptionSettings")
@@ -228,23 +230,49 @@ public class OwnerSubscriptionSettings extends BaseEntity {
     }
 
     /**
-     * Calculate owner's net revenue after platform fee (85%)
+     * Calculate owner's net revenue after platform fee.
+     *
+     * @param platformFeePercent The platform fee as a decimal (e.g., 0.15 for 15%)
+     * @return Net revenue after fee deduction
      */
-    public BigDecimal getNetRevenue() {
+    public BigDecimal getNetRevenue(BigDecimal platformFeePercent) {
         if (totalRevenue == null) {
             return BigDecimal.ZERO;
         }
-        return totalRevenue.multiply(new BigDecimal("0.85"));
+        BigDecimal ownerPercent = BigDecimal.ONE.subtract(platformFeePercent);
+        return totalRevenue.multiply(ownerPercent);
     }
 
     /**
-     * Calculate owner's net monthly revenue after platform fee (85%)
+     * Calculate owner's net monthly revenue after platform fee.
+     *
+     * @param platformFeePercent The platform fee as a decimal (e.g., 0.15 for 15%)
+     * @return Net monthly revenue after fee deduction
      */
-    public BigDecimal getNetMonthlyRevenue() {
+    public BigDecimal getNetMonthlyRevenue(BigDecimal platformFeePercent) {
         if (monthlyRevenue == null) {
             return BigDecimal.ZERO;
         }
-        return monthlyRevenue.multiply(new BigDecimal("0.85"));
+        BigDecimal ownerPercent = BigDecimal.ONE.subtract(platformFeePercent);
+        return monthlyRevenue.multiply(ownerPercent);
+    }
+
+    /**
+     * @deprecated Use {@link #getNetRevenue(BigDecimal)} instead. Fee is now configurable.
+     */
+    @Deprecated(forRemoval = true)
+    public BigDecimal getNetRevenue() {
+        // Default to 15% for backward compatibility
+        return getNetRevenue(new BigDecimal("0.15"));
+    }
+
+    /**
+     * @deprecated Use {@link #getNetMonthlyRevenue(BigDecimal)} instead. Fee is now configurable.
+     */
+    @Deprecated(forRemoval = true)
+    public BigDecimal getNetMonthlyRevenue() {
+        // Default to 15% for backward compatibility
+        return getNetMonthlyRevenue(new BigDecimal("0.15"));
     }
 
     @Override

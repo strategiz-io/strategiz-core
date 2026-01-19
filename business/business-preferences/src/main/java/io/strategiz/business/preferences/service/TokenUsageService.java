@@ -1,9 +1,9 @@
 package io.strategiz.business.preferences.service;
 
 import io.strategiz.business.preferences.exception.PreferencesErrorDetails;
+import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.data.preferences.entity.TokenUsageRecord;
-import io.strategiz.data.preferences.entity.UserSubscription;
 import io.strategiz.data.preferences.repository.SubscriptionRepository;
 import io.strategiz.data.preferences.repository.TokenUsageRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -77,7 +77,7 @@ public class TokenUsageService {
 				userId, modelId, promptTokens, completionTokens, requestType);
 
 		// Get current subscription
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 
 		// Calculate credits for this usage
 		int creditsConsumed = SubscriptionTier.calculateCredits(modelId, promptTokens, completionTokens);
@@ -119,7 +119,7 @@ public class TokenUsageService {
 	 * @return Remaining credits
 	 */
 	public int getRemainingCredits(String userId) {
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		return subscription.getRemainingCredits();
 	}
 
@@ -129,7 +129,7 @@ public class TokenUsageService {
 	 * @return Usage percentage
 	 */
 	public int getUsagePercentage(String userId) {
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		return subscription.getUsagePercentage();
 	}
 
@@ -139,7 +139,7 @@ public class TokenUsageService {
 	 * @return UsageStatus with level and message
 	 */
 	public UsageStatus checkUsageStatus(String userId) {
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		int percentage = subscription.getUsagePercentage();
 		int remaining = subscription.getRemainingCredits();
 
@@ -168,7 +168,7 @@ public class TokenUsageService {
 	 * @throws StrategizException if insufficient credits
 	 */
 	public void checkCreditsAvailable(String userId, int creditsNeeded) {
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 
 		// Check if trial is expired
 		if (subscription.isTrialExpired()) {
@@ -198,7 +198,7 @@ public class TokenUsageService {
 	 * @return true if user can use the model with available credits
 	 */
 	public boolean canUseModel(String userId, String modelId, int estimatedTokens) {
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		SubscriptionTier tier = subscription.getTierEnum();
 
 		// Check if model is allowed for tier
@@ -222,7 +222,7 @@ public class TokenUsageService {
 	 * @return UsageAnalytics with breakdown by model and type
 	 */
 	public UsageAnalytics getUsageAnalytics(String userId) {
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		Instant periodStart = subscription.getCreditResetDate() != null ? subscription.getCreditResetDate()
 				: Instant.now().minusSeconds(30 * 24 * 60 * 60);
 
@@ -240,10 +240,10 @@ public class TokenUsageService {
 	 * @param userId The user ID
 	 * @return Updated subscription
 	 */
-	public UserSubscription resetCredits(String userId) {
+	public PlatformSubscription resetCredits(String userId) {
 		logger.info("Resetting credits for user {} - new billing period", userId);
 
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		subscription.resetCredits();
 
 		return subscriptionRepository.save(userId, subscription);
@@ -255,10 +255,10 @@ public class TokenUsageService {
 	 * @param tier The subscription tier
 	 * @return Updated subscription
 	 */
-	public UserSubscription initializeCredits(String userId, SubscriptionTier tier) {
+	public PlatformSubscription initializeCredits(String userId, SubscriptionTier tier) {
 		logger.info("Initializing credits for user {} to tier {}", userId, tier.getId());
 
-		UserSubscription subscription = subscriptionRepository.getByUserId(userId);
+		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		subscription.initializeForTier(tier);
 
 		return subscriptionRepository.save(userId, subscription);

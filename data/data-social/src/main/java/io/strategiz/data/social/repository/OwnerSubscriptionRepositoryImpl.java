@@ -1,7 +1,6 @@
 package io.strategiz.data.social.repository;
 
 import io.strategiz.data.social.entity.OwnerSubscription;
-import com.google.cloud.Timestamp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -82,34 +81,6 @@ public class OwnerSubscriptionRepositoryImpl implements OwnerSubscriptionReposit
     @Override
     public boolean hasActiveSubscription(String subscriberId, String ownerId) {
         return findActiveBySubscriberIdAndOwnerId(subscriberId, ownerId).isPresent();
-    }
-
-    @Override
-    public OwnerSubscription updateStatus(String subscriptionId, String status) {
-        Optional<OwnerSubscription> subscriptionOpt = findById(subscriptionId);
-        if (subscriptionOpt.isEmpty()) {
-            throw new IllegalStateException("Subscription not found: " + subscriptionId);
-        }
-
-        OwnerSubscription subscription = subscriptionOpt.get();
-        subscription.setStatus(status);
-
-        return baseRepository.save(subscription, subscription.getSubscriberId());
-    }
-
-    @Override
-    public OwnerSubscription cancel(String subscriptionId, String reason) {
-        Optional<OwnerSubscription> subscriptionOpt = findById(subscriptionId);
-        if (subscriptionOpt.isEmpty()) {
-            throw new IllegalStateException("Subscription not found: " + subscriptionId);
-        }
-
-        OwnerSubscription subscription = subscriptionOpt.get();
-        subscription.setStatus(OwnerSubscription.STATUS_CANCELLED);
-        subscription.setCancelledAt(Timestamp.now());
-        subscription.setCancellationReason(reason);
-
-        return baseRepository.save(subscription, subscription.getSubscriberId());
     }
 
     @Override

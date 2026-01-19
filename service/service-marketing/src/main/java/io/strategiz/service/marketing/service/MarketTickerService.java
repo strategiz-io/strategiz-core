@@ -32,8 +32,9 @@ public class MarketTickerService {
     private static final List<String> CRYPTO_SYMBOLS = Arrays.asList("BTCUSD", "ETHUSD", "SOLUSD", "DOGEUSD");
 
     // Popular stock symbols to display
+    // Note: Using GOOGL (Class A shares) instead of GOOG (Class C) due to FMP subscription
     private static final List<String> STOCK_SYMBOLS = Arrays.asList(
-        "AAPL", "MSFT", "GOOG", "AMZN", "NVDA", "META", "TSLA",
+        "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
         "JPM", "V", "MA", "DIS", "NFLX", "AMD", "CRM", "ORCL"
     );
 
@@ -41,7 +42,7 @@ public class MarketTickerService {
     private static final Map<String, String> SYMBOL_NAMES = Map.ofEntries(
         Map.entry("AAPL", "Apple Inc."),
         Map.entry("MSFT", "Microsoft Corp."),
-        Map.entry("GOOG", "Alphabet Inc."),
+        Map.entry("GOOGL", "Alphabet Inc."),
         Map.entry("AMZN", "Amazon.com Inc."),
         Map.entry("NVDA", "NVIDIA Corp."),
         Map.entry("META", "Meta Platforms Inc."),

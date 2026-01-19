@@ -74,9 +74,14 @@ public interface UserRepository {
     boolean existsById(String userId);
     
     /**
-     * Get all users (admin function)
+     * Get all active users
      */
     List<UserEntity> findAll();
+
+    /**
+     * Get all users including inactive/disabled ones (admin function)
+     */
+    List<UserEntity> findAllIncludingInactive();
     
     /**
      * Save user (create or update)

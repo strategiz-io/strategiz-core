@@ -41,8 +41,8 @@ public class AdminUserService extends BaseService {
 	public List<AdminUserResponse> listUsers(int page, int pageSize) {
 		log.info("Listing users: page={}, pageSize={}", page, pageSize);
 
-		// TODO: Implement pagination at the repository level
-		List<UserEntity> allUsers = userRepository.findAll();
+		// Get ALL users including inactive ones (admin sees everything)
+		List<UserEntity> allUsers = userRepository.findAllIncludingInactive();
 
 		// Simple in-memory pagination for now
 		int start = page * pageSize;
@@ -147,12 +147,6 @@ public class AdminUserService extends BaseService {
 	public void deleteUser(String userId, String adminUserId) {
 		log.info("Hard deleting user: userId={}, by adminUserId={}", userId, adminUserId);
 
-		// Check if user exists (using direct Firestore check since findById filters by isActive)
-		Optional<UserEntity> userOpt = userRepository.findById(userId);
-		if (userOpt.isEmpty()) {
-			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
-		}
-
 		// Prevent admin from deleting themselves
 		if (userId.equals(adminUserId)) {
 			throw new StrategizException(ServiceConsoleErrorDetails.CANNOT_MODIFY_OWN_ACCOUNT, "service-console",
@@ -163,6 +157,7 @@ public class AdminUserService extends BaseService {
 		sessionRepository.deleteByUserId(userId);
 
 		// Hard delete the user and all subcollections
+		// Note: hardDeleteUser checks if document exists directly in Firestore (regardless of isActive)
 		userRepository.hardDeleteUser(userId, adminUserId);
 
 		log.warn("User {} has been permanently deleted (hard delete) by admin {}", userId, adminUserId);

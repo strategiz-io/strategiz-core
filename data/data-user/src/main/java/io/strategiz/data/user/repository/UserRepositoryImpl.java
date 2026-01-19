@@ -12,6 +12,7 @@ import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -117,6 +118,15 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
         try {
             DocumentReference userDocRef = firestore.collection("users").document(userId);
 
+            // Check if document exists (regardless of isActive status)
+            DocumentSnapshot userDoc = userDocRef.get().get();
+            if (!userDoc.exists()) {
+                log.warn("User document {} does not exist, nothing to delete", userId);
+                return;
+            }
+
+            log.info("Found user document to hard delete: userId={}, isActive={}", userId, userDoc.get("isActive"));
+
             // Delete all documents in each subcollection
             for (String subcollectionName : subcollections) {
                 deleteSubcollection(userDocRef, subcollectionName);
@@ -210,9 +220,31 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
         try {
             Query query = getCollection()
                 .whereEqualTo("isActive", true);
-            
+
             return query.get().get().getDocuments().stream()
                 .map(doc -> doc.toObject(UserEntity.class))
+                .collect(Collectors.toList());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity");
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity");
+        }
+    }
+
+    @Override
+    public List<UserEntity> findAllIncludingInactive() {
+        try {
+            // Get ALL users, regardless of isActive status
+            return getCollection().get().get().getDocuments().stream()
+                .map(doc -> {
+                    UserEntity user = doc.toObject(UserEntity.class);
+                    if (user != null) {
+                        user.setId(doc.getId());
+                    }
+                    return user;
+                })
+                .filter(user -> user != null)
                 .collect(Collectors.toList());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -48,9 +48,20 @@ public interface UserRepository {
     UserEntity updateUser(UserEntity user);
     
     /**
-     * Soft delete user
+     * Soft delete user (sets isActive=false)
      */
     void deleteUser(String userId);
+
+    /**
+     * Hard delete user - permanently removes user document and all subcollections.
+     * This includes: security, devices, watchlist, preferences, provider_data,
+     * provider_integrations, portfolio, portfolio_history, botDeployments,
+     * alertDeployments, token_usage, subscription, ownerSubscriptionSettings
+     *
+     * @param userId The user ID to delete
+     * @param deletedBy Who is performing the deletion (for logging)
+     */
+    void hardDeleteUser(String userId, String deletedBy);
     
     /**
      * Get user by email

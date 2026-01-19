@@ -10,9 +10,12 @@ import io.strategiz.data.user.model.UserWithPreferences;
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
+import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.WriteBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,6 +91,91 @@ public class UserRepositoryImpl extends BaseRepository<UserEntity> implements Us
     @Override
     public void deleteUser(String userId) {
         super.delete(userId, userId);
+    }
+
+    @Override
+    public void hardDeleteUser(String userId, String deletedBy) {
+        log.warn("=== HARD DELETE USER START: userId={}, deletedBy={} ===", userId, deletedBy);
+
+        // List of all known subcollections under users/{userId}/
+        String[] subcollections = {
+            "security",
+            "devices",
+            "watchlist",
+            "preferences",
+            "provider_data",
+            "provider_integrations",
+            "portfolio",
+            "portfolio_history",
+            "botDeployments",
+            "alertDeployments",
+            "token_usage",
+            "subscription",
+            "ownerSubscriptionSettings"
+        };
+
+        try {
+            DocumentReference userDocRef = firestore.collection("users").document(userId);
+
+            // Delete all documents in each subcollection
+            for (String subcollectionName : subcollections) {
+                deleteSubcollection(userDocRef, subcollectionName);
+            }
+
+            // Delete the main user document
+            userDocRef.delete().get();
+            log.warn("=== HARD DELETE USER COMPLETE: userId={} permanently deleted by {} ===", userId, deletedBy);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity", userId);
+        } catch (ExecutionException e) {
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "UserEntity", userId);
+        }
+    }
+
+    /**
+     * Helper method to delete all documents in a subcollection
+     */
+    private void deleteSubcollection(DocumentReference parentDoc, String subcollectionName) {
+        try {
+            CollectionReference subcollection = parentDoc.collection(subcollectionName);
+            List<QueryDocumentSnapshot> documents = subcollection.get().get().getDocuments();
+
+            if (documents.isEmpty()) {
+                log.debug("Subcollection {} is empty, skipping", subcollectionName);
+                return;
+            }
+
+            // Use batched writes for efficiency (max 500 per batch)
+            WriteBatch batch = firestore.batch();
+            int batchCount = 0;
+
+            for (QueryDocumentSnapshot doc : documents) {
+                batch.delete(doc.getReference());
+                batchCount++;
+
+                // Firestore batch limit is 500
+                if (batchCount >= 500) {
+                    batch.commit().get();
+                    batch = firestore.batch();
+                    batchCount = 0;
+                }
+            }
+
+            // Commit remaining deletes
+            if (batchCount > 0) {
+                batch.commit().get();
+            }
+
+            log.info("Deleted {} documents from subcollection {}", documents.size(), subcollectionName);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while deleting subcollection {}: {}", subcollectionName, e.getMessage());
+        } catch (ExecutionException e) {
+            log.error("Failed to delete subcollection {}: {}", subcollectionName, e.getMessage());
+        }
     }
 
     @Override

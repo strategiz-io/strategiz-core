@@ -145,8 +145,9 @@ public class AdminUserService extends BaseService {
 	}
 
 	public void deleteUser(String userId, String adminUserId) {
-		log.info("Deleting user: userId={}, by adminUserId={}", userId, adminUserId);
+		log.info("Hard deleting user: userId={}, by adminUserId={}", userId, adminUserId);
 
+		// Check if user exists (using direct Firestore check since findById filters by isActive)
 		Optional<UserEntity> userOpt = userRepository.findById(userId);
 		if (userOpt.isEmpty()) {
 			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
@@ -158,13 +159,13 @@ public class AdminUserService extends BaseService {
 					"Cannot delete your own account");
 		}
 
-		// Terminate all sessions before deleting user
+		// Delete all sessions for this user
 		sessionRepository.deleteByUserId(userId);
 
-		// Delete the user
-		userRepository.deleteUser(userId);
+		// Hard delete the user and all subcollections
+		userRepository.hardDeleteUser(userId, adminUserId);
 
-		log.warn("User {} has been permanently deleted by admin {}", userId, adminUserId);
+		log.warn("User {} has been permanently deleted (hard delete) by admin {}", userId, adminUserId);
 	}
 
 	public AdminUserResponse updateUserRole(String userId, String newRole, String adminUserId) {

@@ -33,12 +33,13 @@ public class MarketTickerService {
 
     // Popular stock symbols to display
     // Note: Using GOOGL (Class A shares) instead of GOOG (Class C) due to FMP subscription
+    // Note: MA, CRM, ORCL are premium-only on FMP and have been removed
     private static final List<String> STOCK_SYMBOLS = Arrays.asList(
         "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
-        "JPM", "V", "MA", "DIS", "NFLX", "AMD", "CRM", "ORCL"
+        "JPM", "V", "DIS", "NFLX", "AMD"
     );
 
-    // Symbol to company name mapping
+    // Symbol to company name mapping (fallback if API doesn't return name)
     private static final Map<String, String> SYMBOL_NAMES = Map.ofEntries(
         Map.entry("AAPL", "Apple Inc."),
         Map.entry("MSFT", "Microsoft Corp."),
@@ -49,12 +50,9 @@ public class MarketTickerService {
         Map.entry("TSLA", "Tesla Inc."),
         Map.entry("JPM", "JPMorgan Chase"),
         Map.entry("V", "Visa Inc."),
-        Map.entry("MA", "Mastercard Inc."),
         Map.entry("DIS", "Walt Disney Co."),
         Map.entry("NFLX", "Netflix Inc."),
         Map.entry("AMD", "AMD Inc."),
-        Map.entry("CRM", "Salesforce Inc."),
-        Map.entry("ORCL", "Oracle Corp."),
         Map.entry("BTCUSD", "Bitcoin"),
         Map.entry("ETHUSD", "Ethereum"),
         Map.entry("SOLUSD", "Solana"),

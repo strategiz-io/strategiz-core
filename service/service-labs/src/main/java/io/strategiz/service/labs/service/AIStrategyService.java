@@ -89,7 +89,7 @@ public class AIStrategyService extends BaseService {
 
 			// VALIDATION LOOP: For Feeling Lucky mode, validate strategy beats buy-and-hold
 			boolean requiresValidation = Boolean.TRUE.equals(request.getUseHistoricalInsights());
-			int maxAttempts = requiresValidation ? 5 : 1; // 5 attempts max - AI has knowledge of highs/lows
+			int maxAttempts = requiresValidation ? 2 : 1; // 2 attempts max - AI has turning points data
 			AIStrategyResponse bestResponse = null;
 			double bestOutperformance = Double.NEGATIVE_INFINITY;
 
@@ -801,8 +801,9 @@ public class AIStrategyService extends BaseService {
 				? request.getHistoricalInsightsOptions()
 				: new AIStrategyRequest.HistoricalMarketInsightsOptions();
 
-		// Build cache key
-		String cacheKey = String.format("%s:%s:%s", symbol, timeframe, options.getUseFundamentals());
+		// Build cache key (includes fastMode to avoid mixing fast/full results)
+		String cacheKey = String.format("%s:%s:%s:%s", symbol, timeframe, options.getUseFundamentals(),
+				!Boolean.FALSE.equals(options.getFastMode()));
 
 		// Check cache first (unless forceRefresh is enabled)
 		if (!Boolean.TRUE.equals(options.getForceRefresh())) {
@@ -814,12 +815,13 @@ public class AIStrategyService extends BaseService {
 		}
 
 		// Compute fresh insights
-		log.info("Computing Historical Market Insights for {} ({}, {} days)", symbol, timeframe,
-				options.getLookbackDays());
+		boolean fastMode = !Boolean.FALSE.equals(options.getFastMode()); // Default to fast mode
+		log.info("Computing Historical Market Insights for {} ({}, {} days, fastMode={})", symbol, timeframe,
+				options.getLookbackDays(), fastMode);
 
 		try {
 			SymbolInsights insights = historicalInsightsService.analyzeSymbolForStrategyGeneration(symbol, timeframe,
-					options.getLookbackDays(), Boolean.TRUE.equals(options.getUseFundamentals()));
+					options.getLookbackDays(), Boolean.TRUE.equals(options.getUseFundamentals()), fastMode);
 
 			// Cache for future use
 			cacheService.cacheInsights(cacheKey, insights);

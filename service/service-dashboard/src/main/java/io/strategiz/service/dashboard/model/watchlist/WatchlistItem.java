@@ -13,12 +13,13 @@ public class WatchlistItem {
     private BigDecimal changePercent;
     private boolean positiveChange;
     private String chartDataUrl;
+    private Long volume;
 
     // Constructors
     public WatchlistItem() {}
 
     public WatchlistItem(String id, String symbol, String name, String type, BigDecimal price,
-                       BigDecimal change, BigDecimal changePercent, boolean positiveChange, String chartDataUrl) {
+                       BigDecimal change, BigDecimal changePercent, boolean positiveChange, String chartDataUrl, Long volume) {
         this.id = id;
         this.symbol = symbol;
         this.name = name;
@@ -28,6 +29,7 @@ public class WatchlistItem {
         this.changePercent = changePercent;
         this.positiveChange = positiveChange;
         this.chartDataUrl = chartDataUrl;
+        this.volume = volume;
     }
 
     // Getters and Setters
@@ -111,6 +113,14 @@ public class WatchlistItem {
         this.chartDataUrl = chartDataUrl;
     }
 
+    public Long getVolume() {
+        return volume;
+    }
+
+    public void setVolume(Long volume) {
+        this.volume = volume;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -124,12 +134,13 @@ public class WatchlistItem {
                 Objects.equals(price, that.price) &&
                 Objects.equals(change, that.change) &&
                 Objects.equals(changePercent, that.changePercent) &&
-                Objects.equals(chartDataUrl, that.chartDataUrl);
+                Objects.equals(chartDataUrl, that.chartDataUrl) &&
+                Objects.equals(volume, that.volume);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, symbol, name, type, price, change, changePercent, positiveChange, chartDataUrl);
+        return Objects.hash(id, symbol, name, type, price, change, changePercent, positiveChange, chartDataUrl, volume);
     }
 
     @Override
@@ -144,6 +155,7 @@ public class WatchlistItem {
                 ", changePercent=" + changePercent +
                 ", positiveChange=" + positiveChange +
                 ", chartDataUrl='" + chartDataUrl + '\'' +
+                ", volume=" + volume +
                 '}';
     }
 }

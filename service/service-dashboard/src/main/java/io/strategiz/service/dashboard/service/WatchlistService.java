@@ -11,7 +11,6 @@ import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
 import io.strategiz.client.alpaca.client.AlpacaHistoricalClient;
-import io.strategiz.client.alpaca.model.AlpacaBar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -132,11 +131,12 @@ public class WatchlistService extends BaseService {
     /**
      * Initialize default watchlist for new users with 6 default symbols.
      * Uses parallel enrichment for performance (~1-2 seconds total).
-     * Partial success strategy: saves symbols that successfully enrich, skips failures.
+     * FALLBACK STRATEGY: Saves ALL symbols even if enrichment fails.
+     * Items without prices will be enriched on subsequent dashboard loads.
      * Idempotent: returns existing items if watchlist already initialized.
      *
      * @param userId The user ID to initialize watchlist for
-     * @return List of watchlist items (successfully enriched symbols)
+     * @return List of watchlist items (all default symbols, some may lack price data)
      */
     public List<WatchlistItemEntity> initializeDefaultWatchlist(String userId) {
         log.info("Initializing default watchlist for user: {}", userId);
@@ -148,7 +148,7 @@ public class WatchlistService extends BaseService {
             return existing;
         }
 
-        // 2. Create entities for default symbols and enrich in parallel
+        // 2. Create entities for default symbols and try to enrich in parallel
         List<CompletableFuture<WatchlistItemEntity>> enrichmentFutures = new ArrayList<>();
         for (int i = 0; i < DEFAULT_WATCHLIST_SYMBOLS.size(); i++) {
             DefaultSymbol defaultSymbol = DEFAULT_WATCHLIST_SYMBOLS.get(i);
@@ -156,24 +156,30 @@ public class WatchlistService extends BaseService {
 
             // Enrich each symbol in parallel
             CompletableFuture<WatchlistItemEntity> future = CompletableFuture.supplyAsync(() -> {
-                try {
-                    WatchlistItemEntity entity = new WatchlistItemEntity();
-                    entity.setSymbol(defaultSymbol.symbol);
-                    entity.setName(defaultSymbol.name);
-                    entity.setType(defaultSymbol.type);
-                    entity.setSortOrder(sortOrder);
+                // Create entity with basic info (always saved regardless of enrichment)
+                WatchlistItemEntity entity = new WatchlistItemEntity();
+                entity.setSymbol(defaultSymbol.symbol);
+                entity.setName(defaultSymbol.name);
+                entity.setType(defaultSymbol.type);
+                entity.setSortOrder(sortOrder);
 
-                    // Use Alpaca for stocks/ETFs, CoinGecko for crypto
+                // Try to enrich - if it fails, still return entity without price data
+                // Use Alpaca for both stocks and crypto (consistent with working ticker banner)
+                try {
                     if ("CRYPTO".equalsIgnoreCase(defaultSymbol.type)) {
-                        enrichFromCoinGecko(entity);
+                        enrichCryptoFromAlpaca(entity);
+                        log.info("Successfully enriched crypto {} from Alpaca", defaultSymbol.symbol);
                     } else {
                         enrichFromAlpaca(entity);
+                        log.info("Successfully enriched {} from Alpaca", defaultSymbol.symbol);
                     }
-                    return entity;
                 } catch (Exception e) {
-                    log.warn("Failed to enrich symbol {}: {}", defaultSymbol.symbol, e.getMessage());
-                    return null; // Skip failed symbols
+                    // Log warning but STILL return entity - prices can be fetched later
+                    log.warn("Failed to enrich symbol {} (will save without price data): {}",
+                        defaultSymbol.symbol, e.getMessage());
                 }
+
+                return entity; // Always return entity, even without price data
             });
 
             enrichmentFutures.add(future);
@@ -182,85 +188,70 @@ public class WatchlistService extends BaseService {
         // 3. Wait for all enrichments to complete
         CompletableFuture.allOf(enrichmentFutures.toArray(new CompletableFuture[0])).join();
 
-        // 4. Collect successful enrichments and save
-        List<WatchlistItemEntity> enrichedEntities = enrichmentFutures.stream()
+        // 4. Collect ALL entities (enriched or not) and save
+        List<WatchlistItemEntity> entities = enrichmentFutures.stream()
             .map(CompletableFuture::join)
-            .filter(Objects::nonNull) // Filter out nulls (failed enrichments)
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-        // 5. Save to Firestore
-        for (WatchlistItemEntity entity : enrichedEntities) {
+        // 5. Save ALL entities to Firestore
+        int enrichedCount = 0;
+        for (WatchlistItemEntity entity : entities) {
             watchlistRepository.save(entity, userId);
+            if (entity.getCurrentPrice() != null) {
+                enrichedCount++;
+            }
         }
 
-        log.info("Initialized watchlist for user {}: {} of {} symbols succeeded",
-            userId, enrichedEntities.size(), DEFAULT_WATCHLIST_SYMBOLS.size());
+        log.info("Initialized watchlist for user {}: {} symbols saved ({} with price data)",
+            userId, entities.size(), enrichedCount);
 
-        return enrichedEntities;
+        return entities;
     }
 
     /**
      * Enrich entity from Alpaca API for stocks and ETFs.
-     * Uses Alpaca's historical bars endpoint to get latest price data.
+     * Uses Alpaca's snapshots endpoint (same as ticker banner) for real-time data.
      *
      * @param entity The watchlist item entity to enrich
      * @throws StrategizException if Alpaca data cannot be fetched
      */
     private void enrichFromAlpaca(WatchlistItemEntity entity) {
         String symbol = entity.getSymbol();
-        log.info("Enriching {} from Alpaca", symbol);
+        log.info("Enriching {} from Alpaca snapshots", symbol);
 
         try {
-            // Fetch latest bar from Alpaca (last 2 days to ensure we get data)
-            java.time.LocalDateTime endDate = java.time.LocalDateTime.now();
-            java.time.LocalDateTime startDate = endDate.minusDays(2);
+            // Use snapshots endpoint (same as ticker banner - proven to work)
+            Map<String, io.strategiz.client.alpaca.client.AlpacaHistoricalClient.LatestQuote> quotes =
+                alpacaHistoricalClient.getLatestStockQuotes(Arrays.asList(symbol));
 
-            List<AlpacaBar> bars =
-                alpacaHistoricalClient.getBars(symbol, startDate, endDate, "1D");
-
-            if (bars == null || bars.isEmpty()) {
+            if (quotes == null || quotes.isEmpty() || !quotes.containsKey(symbol)) {
                 throw new StrategizException(
                     ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
                     "service-dashboard",
-                    "No bar data from Alpaca for " + symbol
+                    "No snapshot data from Alpaca for " + symbol
                 );
             }
 
-            // Get the latest bar (most recent)
-            AlpacaBar latestBar = bars.get(bars.size() - 1);
+            io.strategiz.client.alpaca.client.AlpacaHistoricalClient.LatestQuote quote = quotes.get(symbol);
 
-            // Extract price data
-            BigDecimal close = latestBar.getClose();
-            BigDecimal open = latestBar.getOpen();
-            Long volume = latestBar.getVolume();
-
-            if (close == null) {
+            if (quote.getPrice() == null) {
                 throw new StrategizException(
                     ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
                     "service-dashboard",
-                    "Alpaca bar missing close price for " + symbol
+                    "Alpaca snapshot missing price for " + symbol
                 );
             }
 
-            // Populate entity
-            entity.setCurrentPrice(close);
-
-            // Calculate change and change percentage
-            if (open != null && open.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal change = close.subtract(open);
-                entity.setChange(change);
-
-                BigDecimal changePercent = change
-                    .divide(open, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
-                entity.setChangePercent(changePercent);
+            // Populate entity from snapshot
+            entity.setCurrentPrice(quote.getPrice());
+            entity.setChange(quote.getChange());
+            entity.setChangePercent(quote.getChangePercent());
+            if (quote.getVolume() != null) {
+                entity.setVolume(quote.getVolume());
             }
 
-            if (volume != null) {
-                entity.setVolume(volume);
-            }
-
-            log.info("Successfully enriched {} from Alpaca: price=${}", symbol, entity.getCurrentPrice());
+            log.info("Successfully enriched {} from Alpaca: price=${}, volume={}", symbol, entity.getCurrentPrice(), quote.getVolume());
 
         } catch (StrategizException e) {
             throw e;
@@ -271,6 +262,63 @@ public class WatchlistService extends BaseService {
                 "service-dashboard",
                 e,
                 "Cannot fetch Alpaca data for " + symbol
+            );
+        }
+    }
+
+    /**
+     * Enrich crypto entity from Alpaca API (same endpoint used by ticker banner).
+     * Uses Alpaca's crypto snapshots endpoint for real-time data.
+     *
+     * @param entity The watchlist item entity to enrich
+     * @throws StrategizException if Alpaca data cannot be fetched
+     */
+    private void enrichCryptoFromAlpaca(WatchlistItemEntity entity) {
+        String symbol = entity.getSymbol();
+        log.info("Enriching crypto {} from Alpaca snapshots", symbol);
+
+        try {
+            // Use crypto snapshots endpoint (same as ticker banner - proven to work)
+            Map<String, io.strategiz.client.alpaca.client.AlpacaHistoricalClient.LatestQuote> quotes =
+                alpacaHistoricalClient.getLatestCryptoQuotes(Arrays.asList(symbol));
+
+            if (quotes == null || quotes.isEmpty() || !quotes.containsKey(symbol)) {
+                throw new StrategizException(
+                    ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                    "service-dashboard",
+                    "No crypto snapshot data from Alpaca for " + symbol
+                );
+            }
+
+            io.strategiz.client.alpaca.client.AlpacaHistoricalClient.LatestQuote quote = quotes.get(symbol);
+
+            if (quote.getPrice() == null) {
+                throw new StrategizException(
+                    ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                    "service-dashboard",
+                    "Alpaca crypto snapshot missing price for " + symbol
+                );
+            }
+
+            // Populate entity from snapshot
+            entity.setCurrentPrice(quote.getPrice());
+            entity.setChange(quote.getChange());
+            entity.setChangePercent(quote.getChangePercent());
+            if (quote.getVolume() != null) {
+                entity.setVolume(quote.getVolume());
+            }
+
+            log.info("Successfully enriched crypto {} from Alpaca: price=${}, volume={}", symbol, entity.getCurrentPrice(), quote.getVolume());
+
+        } catch (StrategizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to enrich crypto {} from Alpaca: {}", symbol, e.getMessage());
+            throw new StrategizException(
+                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
+                "service-dashboard",
+                e,
+                "Cannot fetch Alpaca crypto data for " + symbol
             );
         }
     }

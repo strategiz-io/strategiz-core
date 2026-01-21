@@ -380,8 +380,9 @@ public class WatchlistController extends BaseController {
                     WatchlistItemEntity enriched = watchlistService.enrichWatchlistItem(entity);
                     items.add(convertToWatchlistItem(enriched));
                 } catch (Exception e) {
-                    log.warn("Failed to enrich {}: {}", entity.getSymbol(), e.getMessage());
-                    // Skip failed items - NO MOCK DATA
+                    log.warn("Failed to enrich {}: {} - showing with saved data", entity.getSymbol(), e.getMessage());
+                    // Still include item even without fresh data - show saved/cached prices
+                    items.add(convertToWatchlistItem(entity));
                 }
             }
 
@@ -421,16 +422,23 @@ public class WatchlistController extends BaseController {
             entity.getChange(),
             entity.getChangePercent(),
             entity.getChange() != null && entity.getChange().compareTo(BigDecimal.ZERO) > 0,
-            "/chart/" + entity.getSymbol().toLowerCase()
+            "/chart/" + entity.getSymbol().toLowerCase(),
+            entity.getVolume()
         );
     }
 
 
     /**
-     * Fetch crypto market data from CoinGecko for saved symbols
+     * Fetch crypto market data from CoinGecko for saved symbols.
+     * Falls back to saved entity data if CoinGecko is unavailable.
      */
     private List<WatchlistItem> fetchCryptoMarketData(List<String> symbols, List<WatchlistItemEntity> savedItems) {
         List<WatchlistItem> items = new ArrayList<>();
+
+        // Get saved crypto entities for fallback
+        List<WatchlistItemEntity> cryptoEntities = savedItems.stream()
+            .filter(e -> "CRYPTO".equalsIgnoreCase(e.getType()))
+            .collect(Collectors.toList());
 
         try {
             // Map symbols to CoinGecko IDs
@@ -468,6 +476,7 @@ public class WatchlistController extends BaseController {
                 BigDecimal price = crypto.getCurrentPrice();
                 BigDecimal change = crypto.getPriceChange24h();
                 BigDecimal changePercent = crypto.getPriceChangePercentage24h();
+                Long volume = crypto.getTotalVolume() != null ? crypto.getTotalVolume().longValue() : null;
 
                 items.add(new WatchlistItem(
                     id,
@@ -478,11 +487,16 @@ public class WatchlistController extends BaseController {
                     change,
                     changePercent,
                     change != null && change.compareTo(BigDecimal.ZERO) > 0,
-                    "/chart/" + crypto.getSymbol().toLowerCase()
+                    "/chart/" + crypto.getSymbol().toLowerCase(),
+                    volume
                 ));
             }
         } catch (Exception e) {
-            log.error("Error fetching crypto market data", e);
+            log.warn("CoinGecko unavailable, using saved crypto data: {}", e.getMessage());
+            // Fallback: return saved crypto entities without fresh prices
+            for (WatchlistItemEntity entity : cryptoEntities) {
+                items.add(convertToWatchlistItem(entity));
+            }
         }
 
         return items;

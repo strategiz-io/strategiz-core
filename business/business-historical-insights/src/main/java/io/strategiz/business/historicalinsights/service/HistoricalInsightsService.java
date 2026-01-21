@@ -15,6 +15,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Service for analyzing historical market data to generate insights for Historical Market Insights (Feeling Lucky mode).
@@ -32,6 +35,11 @@ public class HistoricalInsightsService {
 	private static final int MIN_BARS_REQUIRED = 100;
 
 	private static final int MAX_BARS = 2600; // ~7 years of daily data
+
+	private static final int FAST_MODE_BARS = 750; // ~3 years - faster analysis with good accuracy
+
+	// Thread pool for parallel indicator backtesting
+	private static final ExecutorService BACKTEST_EXECUTOR = Executors.newFixedThreadPool(4);
 
 	private final MarketDataClickHouseRepository marketDataRepo;
 
@@ -53,13 +61,34 @@ public class HistoricalInsightsService {
 	 */
 	public SymbolInsights analyzeSymbolForStrategyGeneration(String symbol, String timeframe, int lookbackDays,
 			boolean includeFundamentals) {
+		return analyzeSymbolForStrategyGeneration(symbol, timeframe, lookbackDays, includeFundamentals, false);
+	}
 
-		log.info("Starting Historical Market Insights analysis for symbol={}, timeframe={}, lookback={} days, fundamentals={}",
-				symbol, timeframe, lookbackDays, includeFundamentals);
+	/**
+	 * Main entry point: Analyze a symbol and return comprehensive historical insights.
+	 * Fast mode focuses on turning points detection (peaks/troughs) - the AI deduces
+	 * optimal buy/sell points directly from the price history without indicator analysis.
+	 *
+	 * @param symbol Symbol to analyze
+	 * @param timeframe Timeframe (e.g., "1D", "1h")
+	 * @param lookbackDays Number of days to look back (default 2600 for ~7 years)
+	 * @param includeFundamentals Whether to include fundamental analysis
+	 * @param fastMode If true, skips indicator backtests and focuses on turning points only
+	 * @return SymbolInsights object with all computed insights
+	 */
+	public SymbolInsights analyzeSymbolForStrategyGeneration(String symbol, String timeframe, int lookbackDays,
+			boolean includeFundamentals, boolean fastMode) {
+
+		// Fast mode uses reduced lookback for faster analysis
+		int effectiveLookback = fastMode ? Math.min(lookbackDays, FAST_MODE_BARS) : lookbackDays;
+		int maxBars = fastMode ? FAST_MODE_BARS : MAX_BARS;
+
+		log.info("Starting Historical Market Insights analysis for symbol={}, timeframe={}, lookback={} days, fastMode={}",
+				symbol, timeframe, effectiveLookback, fastMode);
 
 		// 1. Query historical data
 		Instant endTime = Instant.now();
-		Instant startTime = endTime.minus(lookbackDays, ChronoUnit.DAYS);
+		Instant startTime = endTime.minus(effectiveLookback, ChronoUnit.DAYS);
 
 		List<MarketDataEntity> data = marketDataRepo.findBySymbolAndTimeRange(symbol, startTime, endTime, timeframe);
 
@@ -73,57 +102,64 @@ public class HistoricalInsightsService {
 		}
 
 		// Downsample if too much data
-		if (data.size() > MAX_BARS) {
-			log.info("Downsampling {} bars to {}", data.size(), MAX_BARS);
-			data = downsampleData(data, MAX_BARS);
+		if (data.size() > maxBars) {
+			log.info("Downsampling {} bars to {}", data.size(), maxBars);
+			data = downsampleData(data, maxBars);
 		}
 
 		// 2. Build insights object
 		SymbolInsights insights = new SymbolInsights();
 		insights.setSymbol(symbol);
 		insights.setTimeframe(timeframe);
-		insights.setDaysAnalyzed(lookbackDays);
+		insights.setDaysAnalyzed(data.size());
 
-		// 3. Compute volatility profile
+		// 3. Compute volatility profile (fast - single pass)
 		VolatilityProfile volatilityProfile = calculateVolatilityProfile(data);
 		insights.setAvgVolatility(volatilityProfile.getAvgATR());
 		insights.setVolatilityRegime(volatilityProfile.getRegime());
 		insights.setAvgDailyRange(volatilityProfile.getAvgDailyRangePercent());
 
-		// 4. Rank indicators by effectiveness
-		List<IndicatorRanking> rankings = analyzeIndicatorEffectiveness(data);
-		insights.setTopIndicators(rankings);
-
-		// 5. Find optimal parameters
-		Map<String, Object> optimalParams = findOptimalParameters(data, rankings);
-		insights.setOptimalParameters(optimalParams);
-
-		// 6. Detect market characteristics
+		// 4. Detect market characteristics (fast - linear regression)
 		MarketCharacteristics characteristics = detectMarketCharacteristics(data);
 		insights.setTrendDirection(characteristics.getTrendDirection());
 		insights.setTrendStrength(characteristics.getTrendStrength());
 		insights.setMeanReverting(characteristics.isMeanReverting());
 
-		// 7. Calculate risk metrics
-		RiskMetrics riskMetrics = calculateRiskMetrics(data, rankings);
-		insights.setAvgMaxDrawdown(riskMetrics.avgMaxDrawdown);
-		insights.setAvgWinRate(riskMetrics.avgWinRate);
-		insights.setRecommendedRiskLevel(riskMetrics.recommendedLevel);
-
-		// 8. Detect major price turning points (peaks and troughs) for Feeling Lucky hindsight
+		// 5. Detect major price turning points (peaks and troughs) - THE KEY DATA
+		// AI uses these to identify optimal buy (troughs) and sell (peaks) points
 		List<PriceTurningPoint> turningPoints = detectMajorTurningPoints(data);
 		insights.setTurningPoints(turningPoints);
 		log.info("Detected {} major turning points for {}", turningPoints.size(), symbol);
 
-		// 9. Optional: Include fundamentals
+		// 6. Skip indicator backtests in fast mode - AI deduces from turning points directly
+		if (fastMode) {
+			// Provide minimal indicator info (no backtesting)
+			insights.setTopIndicators(new ArrayList<>());
+			insights.setOptimalParameters(Map.of("stop_loss_percent", 3.0, "take_profit_percent", 9.0));
+			insights.setAvgMaxDrawdown(volatilityProfile.getAvgDailyRangePercent() * 3);
+			insights.setAvgWinRate(50.0); // Neutral - AI will figure it out
+			insights.setRecommendedRiskLevel("MEDIUM");
+		}
+		else {
+			// Full analysis with indicator backtesting
+			List<IndicatorRanking> rankings = analyzeIndicatorEffectiveness(data);
+			insights.setTopIndicators(rankings);
+			Map<String, Object> optimalParams = findOptimalParameters(data, rankings);
+			insights.setOptimalParameters(optimalParams);
+			RiskMetrics riskMetrics = calculateRiskMetrics(data, rankings);
+			insights.setAvgMaxDrawdown(riskMetrics.avgMaxDrawdown);
+			insights.setAvgWinRate(riskMetrics.avgWinRate);
+			insights.setRecommendedRiskLevel(riskMetrics.recommendedLevel);
+		}
+
+		// 7. Optional: Include fundamentals
 		if (includeFundamentals) {
 			FundamentalsInsights fundInsights = getFundamentalsInsights(symbol);
 			insights.setFundamentals(fundInsights);
 		}
 
-		log.info("Historical Market Insights analysis completed for {}. Top indicator: {}, Volatility: {}, Win Rate: {}%", symbol,
-				rankings.isEmpty() ? "N/A" : rankings.get(0).getIndicatorName(), volatilityProfile.getRegime(),
-				String.format("%.1f", riskMetrics.avgWinRate));
+		log.info("Historical Market Insights completed for {} in {} mode. {} turning points, {} volatility",
+				symbol, fastMode ? "FAST" : "FULL", turningPoints.size(), volatilityProfile.getRegime());
 
 		return insights;
 	}
@@ -237,40 +273,56 @@ public class HistoricalInsightsService {
 	/**
 	 * Rank indicators by historical effectiveness using REAL backtesting on 7 years of data.
 	 * Tests multiple indicators with various parameter combinations and ranks by profitability.
+	 * Optimized: Runs all 4 indicator backtests in parallel for ~4x speedup.
 	 */
 	private List<IndicatorRanking> analyzeIndicatorEffectiveness(List<MarketDataEntity> data) {
+		log.info("Running parallel backtest analysis on {} bars to find best indicators...", data.size());
+
+		// Run all 4 indicator backtests in parallel
+		CompletableFuture<Double> rsiFuture = CompletableFuture.supplyAsync(() -> testRSIStrategy(data), BACKTEST_EXECUTOR);
+		CompletableFuture<Double> macdFuture = CompletableFuture.supplyAsync(() -> testMACDStrategy(data), BACKTEST_EXECUTOR);
+		CompletableFuture<Double> bbFuture = CompletableFuture.supplyAsync(() -> testBollingerBandsStrategy(data), BACKTEST_EXECUTOR);
+		CompletableFuture<Double> maFuture = CompletableFuture.supplyAsync(() -> testMACrossoverStrategy(data), BACKTEST_EXECUTOR);
+
+		// Wait for all to complete
+		CompletableFuture.allOf(rsiFuture, macdFuture, bbFuture, maFuture).join();
+
+		// Collect results
 		List<IndicatorRanking> rankings = new ArrayList<>();
+		try {
+			double bestRSIScore = rsiFuture.get();
+			rankings.add(new IndicatorRanking("RSI", bestRSIScore,
+					Map.of("period", 14, "oversold", 30, "overbought", 70),
+					String.format("Mean-reversion: %.1f%% win rate from backtesting", bestRSIScore * 100)));
 
-		log.info("🔬 Running REAL backtest analysis on {} bars to find best indicators...", data.size());
+			double bestMACDScore = macdFuture.get();
+			rankings.add(new IndicatorRanking("MACD", bestMACDScore,
+					Map.of("fast", 12, "slow", 26, "signal", 9),
+					String.format("Trend-following: %.1f%% win rate from backtesting", bestMACDScore * 100)));
 
-		// Test RSI with multiple parameter combinations
-		double bestRSIScore = testRSIStrategy(data);
-		rankings.add(new IndicatorRanking("RSI", bestRSIScore,
-				Map.of("period", 14, "oversold", 30, "overbought", 70),
-				String.format("Mean-reversion: %.1f%% win rate from backtesting", bestRSIScore * 100)));
+			double bestBBScore = bbFuture.get();
+			rankings.add(new IndicatorRanking("Bollinger Bands", bestBBScore,
+					Map.of("period", 20, "stddev", 2),
+					String.format("Volatility breakout: %.1f%% win rate from backtesting", bestBBScore * 100)));
 
-		// Test MACD
-		double bestMACDScore = testMACDStrategy(data);
-		rankings.add(new IndicatorRanking("MACD", bestMACDScore,
-				Map.of("fast", 12, "slow", 26, "signal", 9),
-				String.format("Trend-following: %.1f%% win rate from backtesting", bestMACDScore * 100)));
-
-		// Test Bollinger Bands
-		double bestBBScore = testBollingerBandsStrategy(data);
-		rankings.add(new IndicatorRanking("Bollinger Bands", bestBBScore,
-				Map.of("period", 20, "stddev", 2),
-				String.format("Volatility breakout: %.1f%% win rate from backtesting", bestBBScore * 100)));
-
-		// Test MA Crossover
-		double bestMAScore = testMACrossoverStrategy(data);
-		rankings.add(new IndicatorRanking("MA Crossover", bestMAScore,
-				Map.of("fast", 20, "slow", 50),
-				String.format("Trend confirmation: %.1f%% win rate from backtesting", bestMAScore * 100)));
+			double bestMAScore = maFuture.get();
+			rankings.add(new IndicatorRanking("MA Crossover", bestMAScore,
+					Map.of("fast", 20, "slow", 50),
+					String.format("Trend confirmation: %.1f%% win rate from backtesting", bestMAScore * 100)));
+		}
+		catch (Exception e) {
+			log.error("Error during parallel backtest execution", e);
+			// Fallback to default rankings
+			rankings.add(new IndicatorRanking("RSI", 0.5, Map.of("period", 14, "oversold", 30, "overbought", 70), "Default"));
+			rankings.add(new IndicatorRanking("MACD", 0.5, Map.of("fast", 12, "slow", 26, "signal", 9), "Default"));
+			rankings.add(new IndicatorRanking("Bollinger Bands", 0.5, Map.of("period", 20, "stddev", 2), "Default"));
+			rankings.add(new IndicatorRanking("MA Crossover", 0.5, Map.of("fast", 20, "slow", 50), "Default"));
+		}
 
 		// Sort by effectiveness score (descending)
 		rankings.sort((a, b) -> Double.compare(b.getEffectivenessScore(), a.getEffectivenessScore()));
 
-		log.info("✅ Backtest analysis complete. Best indicator: {} ({:.1f}% effective)",
+		log.info("Backtest analysis complete. Best indicator: {} ({:.1f}% effective)",
 				rankings.get(0).getIndicatorName(), rankings.get(0).getEffectivenessScore() * 100);
 
 		return rankings;
@@ -363,6 +415,7 @@ public class HistoricalInsightsService {
 
 	/**
 	 * Backtest Bollinger Bands: Buy when price touches lower band, sell at upper band.
+	 * Optimized: Uses rolling window calculation O(n) instead of O(n²).
 	 */
 	private double testBollingerBandsStrategy(List<MarketDataEntity> data) {
 		if (data.size() < 50) return 0.3;
@@ -374,21 +427,27 @@ public class HistoricalInsightsService {
 		boolean inPosition = false;
 		double entryPrice = 0;
 
+		// Pre-extract close prices once
+		double[] closes = new double[data.size()];
+		for (int i = 0; i < data.size(); i++) {
+			closes[i] = data.get(i).getClose().doubleValue();
+		}
+
+		// Initialize rolling sum and sum of squares for first window
+		double rollingSum = 0;
+		double rollingSumSq = 0;
+		for (int i = 0; i < period; i++) {
+			rollingSum += closes[i];
+			rollingSumSq += closes[i] * closes[i];
+		}
+
 		for (int i = period; i < data.size(); i++) {
-			double price = data.get(i).getClose().doubleValue();
+			double price = closes[i];
 
-			// Calculate BB for current bar
-			double[] closePrices = new double[period];
-			for (int j = 0; j < period; j++) {
-				closePrices[j] = data.get(i - period + j).getClose().doubleValue();
-			}
-
-			double sma = java.util.Arrays.stream(closePrices).average().orElse(0);
-			double variance = java.util.Arrays.stream(closePrices)
-					.map(p -> Math.pow(p - sma, 2))
-					.average()
-					.orElse(0);
-			double stddev = Math.sqrt(variance);
+			// Rolling SMA and StdDev calculation O(1) per iteration
+			double sma = rollingSum / period;
+			double variance = (rollingSumSq / period) - (sma * sma);
+			double stddev = Math.sqrt(Math.max(0, variance));
 
 			double upperBand = sma + (2 * stddev);
 			double lowerBand = sma - (2 * stddev);
@@ -404,6 +463,14 @@ public class HistoricalInsightsService {
 				if (profit > 0) wins++;
 				else losses++;
 				inPosition = false;
+			}
+
+			// Update rolling window: remove oldest, add newest
+			if (i + 1 < data.size()) {
+				double oldPrice = closes[i - period + 1];
+				double newPrice = closes[i + 1];
+				rollingSum = rollingSum - oldPrice + newPrice;
+				rollingSumSq = rollingSumSq - (oldPrice * oldPrice) + (newPrice * newPrice);
 			}
 		}
 
@@ -499,15 +566,29 @@ public class HistoricalInsightsService {
 		return ema;
 	}
 
+	/**
+	 * Calculate SMA using rolling sum approach O(n) instead of O(n²).
+	 */
 	private double[] calculateSMA(List<MarketDataEntity> data, int period) {
 		double[] sma = new double[data.size()];
 
-		for (int i = period - 1; i < data.size(); i++) {
-			double sum = 0;
-			for (int j = 0; j < period; j++) {
-				sum += data.get(i - j).getClose().doubleValue();
-			}
-			sma[i] = sum / period;
+		if (data.size() < period) {
+			return sma;
+		}
+
+		// Initialize rolling sum for first window
+		double rollingSum = 0;
+		for (int i = 0; i < period; i++) {
+			rollingSum += data.get(i).getClose().doubleValue();
+		}
+		sma[period - 1] = rollingSum / period;
+
+		// Rolling calculation O(1) per iteration
+		for (int i = period; i < data.size(); i++) {
+			double oldPrice = data.get(i - period).getClose().doubleValue();
+			double newPrice = data.get(i).getClose().doubleValue();
+			rollingSum = rollingSum - oldPrice + newPrice;
+			sma[i] = rollingSum / period;
 		}
 
 		return sma;

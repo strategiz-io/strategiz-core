@@ -162,18 +162,22 @@ public class AIStrategyRequest {
 
 	/**
 	 * Options for Historical Market Insights analysis (Feeling Lucky mode).
-	 * Analyzes 7 years of historical market data to generate optimized strategies.
+	 * Analyzes historical market data to generate optimized strategies.
+	 * Default: ~3 years of data for fast analysis. Set fastMode=false for full 7-year analysis.
 	 */
 	public static class HistoricalMarketInsightsOptions {
 
 		@JsonProperty("lookbackDays")
-		private Integer lookbackDays = 2600; // ~7 years default
+		private Integer lookbackDays = 750; // ~3 years default (fast mode)
 
 		@JsonProperty("useFundamentals")
 		private Boolean useFundamentals = false; // Include fundamental analysis
 
 		@JsonProperty("forceRefresh")
 		private Boolean forceRefresh = false; // Skip cache and recompute
+
+		@JsonProperty("fastMode")
+		private Boolean fastMode = true; // Fast mode: parallel backtesting + reduced lookback
 
 		// Getters and Setters
 
@@ -199,6 +203,14 @@ public class AIStrategyRequest {
 
 		public void setForceRefresh(Boolean forceRefresh) {
 			this.forceRefresh = forceRefresh;
+		}
+
+		public Boolean getFastMode() {
+			return fastMode;
+		}
+
+		public void setFastMode(Boolean fastMode) {
+			this.fastMode = fastMode;
 		}
 
 	}

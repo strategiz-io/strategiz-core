@@ -204,22 +204,16 @@ public class AiModelConfig extends BaseEntity {
 		models.add(createModel("gemini-1.5-pro", "Gemini 1.5 Pro", PROVIDER_GOOGLE, 13,
 				TierConfig.TIER_STRATEGIST, "balanced", "Balanced performance"));
 
-		// OpenAI models
+		// OpenAI models (via Vertex AI - only gpt-4o-mini available)
 		models.add(createModel("gpt-4o-mini", "GPT-4o Mini", PROVIDER_OPENAI, 4,
 				TierConfig.TIER_EXPLORER, "fast", "Fast and affordable"));
-		models.add(createModel("gpt-4o", "GPT-4o", PROVIDER_OPENAI, 33,
-				TierConfig.TIER_STRATEGIST, "balanced", "Flagship model with vision"));
-		models.add(createModel("o1", "o1", PROVIDER_OPENAI, 50,
-				TierConfig.TIER_QUANT, "powerful", "Advanced reasoning"));
-		models.add(createModel("o1-mini", "o1 Mini", PROVIDER_OPENAI, 15,
-				TierConfig.TIER_QUANT, "balanced", "Efficient reasoning"));
 
-		// Claude models (Anthropic)
-		models.add(createModel("claude-haiku-4-5", "Claude Haiku 4.5", PROVIDER_ANTHROPIC, 6,
+		// Claude models (via Vertex AI - Claude 3.x)
+		models.add(createModel("claude-3-haiku", "Claude 3 Haiku", PROVIDER_ANTHROPIC, 6,
 				TierConfig.TIER_EXPLORER, "fast", "Fastest Claude model"));
-		models.add(createModel("claude-sonnet-4-5", "Claude Sonnet 4.5", PROVIDER_ANTHROPIC, 23,
-				TierConfig.TIER_STRATEGIST, "balanced", "Balanced Claude model"));
-		models.add(createModel("claude-opus-4-5", "Claude Opus 4.5", PROVIDER_ANTHROPIC, 115,
+		models.add(createModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", PROVIDER_ANTHROPIC, 23,
+				TierConfig.TIER_STRATEGIST, "balanced", "Best balanced model"));
+		models.add(createModel("claude-3-opus", "Claude 3 Opus", PROVIDER_ANTHROPIC, 115,
 				TierConfig.TIER_QUANT, "powerful", "Most capable Claude model"));
 
 		// Llama models (Meta)

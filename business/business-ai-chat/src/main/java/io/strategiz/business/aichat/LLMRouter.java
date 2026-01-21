@@ -116,22 +116,11 @@ public class LLMRouter {
 		// NOTE: Only gpt-4o-mini is available in us-east1 via Vertex AI
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
 
-		// OpenAI models (via Direct OpenAI API)
-		models.add(new ModelInfo("gpt-4o", "GPT-4o", "openai", "Most capable GPT-4"));
-		models.add(new ModelInfo("gpt-4-turbo", "GPT-4 Turbo", "openai", "Fast GPT-4"));
-		models.add(new ModelInfo("o1", "o1", "openai", "Advanced reasoning model"));
-		models.add(new ModelInfo("o1-mini", "o1-mini", "openai", "Fast reasoning model"));
-
 		// Claude models (via Vertex AI Model Garden - Claude 3.x)
 		models.add(new ModelInfo("claude-3-haiku", "Claude 3 Haiku", "anthropic", "Fast & affordable"));
 		models.add(new ModelInfo("claude-3-5-sonnet", "Claude 3.5 Sonnet", "anthropic", "Best balanced model"));
 		models.add(new ModelInfo("claude-3-opus", "Claude 3 Opus", "anthropic",
 				"Most capable for complex tasks"));
-
-		// Claude models (via Direct Anthropic API - Claude 4.5)
-		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fastest Claude 4.5"));
-		models.add(new ModelInfo("claude-sonnet-4-5", "Claude Sonnet 4.5", "anthropic", "Balanced Claude 4.5"));
-		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic", "Most capable Claude 4.5"));
 
 		// Llama models (Meta)
 		models.add(new ModelInfo("llama-3.1-8b-instruct-maas", "Llama 3.1 8B", "meta", "Fast & efficient"));
@@ -148,11 +137,7 @@ public class LLMRouter {
 		models.add(new ModelInfo("command-r", "Command R", "cohere", "Balanced Cohere model"));
 		models.add(new ModelInfo("command-r-plus", "Command R+", "cohere", "Best Cohere model"));
 
-		// Grok models (xAI via Direct API)
-		models.add(new ModelInfo("grok-4.1-fast", "Grok 4.1 Fast", "xai", "Best tool-calling, 2M context"));
-		models.add(new ModelInfo("grok-4", "Grok 4", "xai", "Advanced reasoning & coding"));
-		models.add(new ModelInfo("grok-3", "Grok 3", "xai", "General purpose"));
-		models.add(new ModelInfo("grok-3-mini", "Grok 3 Mini", "xai", "Fast & economical"));
+		// Note: Direct API models (GPT-4o, o1, Claude 4.5, Grok) are hidden until API keys are configured
 
 		// Mark models as available based on registered providers AND feature flags
 		for (ModelInfo model : models) {

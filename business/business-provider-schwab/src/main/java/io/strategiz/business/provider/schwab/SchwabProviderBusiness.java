@@ -14,6 +14,8 @@ import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.framework.exception.ErrorCode;
 import io.strategiz.framework.secrets.controller.SecretManager;
 import io.strategiz.business.portfolio.PortfolioSummaryManager;
+import io.strategiz.business.portfolio.enhancer.mapper.UniversalSymbolMapper;
+import io.strategiz.business.portfolio.enhancer.model.AssetMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
     private final PortfolioProviderRepository portfolioProviderRepository;
     private final ProviderHoldingsRepository providerHoldingsRepository;
     private final SecretManager secretManager;
+    private final UniversalSymbolMapper symbolMapper;
 
     @Autowired(required = false)
     private PortfolioSummaryManager portfolioSummaryManager;
@@ -83,11 +86,13 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
             SchwabClient schwabClient,
             PortfolioProviderRepository portfolioProviderRepository,
             ProviderHoldingsRepository providerHoldingsRepository,
-            @Qualifier("vaultSecretService") SecretManager secretManager) {
+            @Qualifier("vaultSecretService") SecretManager secretManager,
+            UniversalSymbolMapper symbolMapper) {
         this.schwabClient = schwabClient;
         this.portfolioProviderRepository = portfolioProviderRepository;
         this.providerHoldingsRepository = providerHoldingsRepository;
         this.secretManager = secretManager;
+        this.symbolMapper = symbolMapper;
     }
 
     /**
@@ -671,7 +676,29 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         // Create Holding
         ProviderHoldingsEntity.Holding holding = new ProviderHoldingsEntity.Holding();
         holding.setAsset(symbol);
-        holding.setName((String) instrument.get("description"));
+
+        // Try to enrich with data from symbols collection
+        String name = (String) instrument.get("description");
+        String assetType = (String) instrument.get("assetType");
+
+        try {
+            AssetMetadata metadata = symbolMapper.getMetadata(symbol);
+            if (metadata != null && metadata.getName() != null && !metadata.getName().equals(symbol)) {
+                // Use enriched name from symbols collection
+                name = metadata.getName();
+                log.debug("Enriched symbol {} with name from symbols collection: {}", symbol, name);
+
+                // Also enrich asset type if available
+                if (metadata.getAssetType() != null && !"unknown".equals(metadata.getAssetType())) {
+                    assetType = metadata.getAssetType();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Could not enrich symbol {} from symbols collection: {}", symbol, e.getMessage());
+            // Fall back to Schwab's description
+        }
+
+        holding.setName(name);
         holding.setQuantity(quantity.setScale(8, RoundingMode.HALF_UP));
         holding.setCurrentPrice(currentPrice);
         holding.setCurrentValue(marketValue.setScale(2, RoundingMode.HALF_UP));
@@ -683,8 +710,7 @@ public class SchwabProviderBusiness implements ProviderIntegrationHandler {
         holding.setOriginalSymbol(symbol);
         holding.setIsStaked(false);
 
-        // Set asset type based on instrument type
-        String assetType = (String) instrument.get("assetType");
+        // Set asset type based on enriched type or instrument type
         if (assetType != null) {
             holding.setAssetType(assetType.toLowerCase());
         }

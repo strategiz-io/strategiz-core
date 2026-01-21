@@ -335,6 +335,7 @@ public class AlpacaHistoricalClient {
                     // Get current price from latestTrade (most accurate real-time price)
                     Map<String, Object> latestTrade = (Map<String, Object>) snapshotData.get("latestTrade");
                     Map<String, Object> prevDailyBar = (Map<String, Object>) snapshotData.get("prevDailyBar");
+                    Map<String, Object> dailyBar = (Map<String, Object>) snapshotData.get("dailyBar");
 
                     if (latestTrade == null || prevDailyBar == null) {
                         log.warn("Missing latestTrade or prevDailyBar for {}", symbol);
@@ -352,9 +353,15 @@ public class AlpacaHistoricalClient {
                         ? change.multiply(new BigDecimal("100")).divide(prevClose, 2, java.math.RoundingMode.HALF_UP)
                         : BigDecimal.ZERO;
 
-                    result.put(symbol, new LatestQuote(symbol, currentPrice, change, changePercent));
-                    log.debug("Snapshot for {}: price={}, prevClose={}, change={}%",
-                        symbol, currentPrice, prevClose, changePercent);
+                    // Get volume from dailyBar (today's trading volume)
+                    Long volume = null;
+                    if (dailyBar != null && dailyBar.get("v") != null) {
+                        volume = ((Number) dailyBar.get("v")).longValue();
+                    }
+
+                    result.put(symbol, new LatestQuote(symbol, currentPrice, change, changePercent, volume));
+                    log.debug("Snapshot for {}: price={}, prevClose={}, change={}%, volume={}",
+                        symbol, currentPrice, prevClose, changePercent, volume);
 
                 } catch (Exception e) {
                     log.warn("Failed to parse snapshot for {}: {}", symbol, e.getMessage());
@@ -617,6 +624,7 @@ public class AlpacaHistoricalClient {
                         // Get current price from latestTrade
                         Map<String, Object> latestTrade = (Map<String, Object>) snapshotData.get("latestTrade");
                         Map<String, Object> prevDailyBar = (Map<String, Object>) snapshotData.get("prevDailyBar");
+                        Map<String, Object> dailyBar = (Map<String, Object>) snapshotData.get("dailyBar");
 
                         if (latestTrade == null || prevDailyBar == null) {
                             log.warn("Missing latestTrade or prevDailyBar for crypto {}", symbol);
@@ -634,9 +642,15 @@ public class AlpacaHistoricalClient {
                             ? change.multiply(new BigDecimal("100")).divide(prevClose, 2, java.math.RoundingMode.HALF_UP)
                             : BigDecimal.ZERO;
 
-                        result.put(symbol, new LatestQuote(symbol, currentPrice, change, changePercent));
-                        log.debug("Crypto snapshot for {}: price={}, prevClose={}, change={}%",
-                            symbol, currentPrice, prevClose, changePercent);
+                        // Get volume from dailyBar (today's trading volume)
+                        Long volume = null;
+                        if (dailyBar != null && dailyBar.get("v") != null) {
+                            volume = ((Number) dailyBar.get("v")).longValue();
+                        }
+
+                        result.put(symbol, new LatestQuote(symbol, currentPrice, change, changePercent, volume));
+                        log.debug("Crypto snapshot for {}: price={}, prevClose={}, change={}%, volume={}",
+                            symbol, currentPrice, prevClose, changePercent, volume);
 
                     } catch (Exception e) {
                         log.warn("Failed to parse crypto snapshot for {}: {}", symbol, e.getMessage());
@@ -666,18 +680,21 @@ public class AlpacaHistoricalClient {
         private final BigDecimal price;
         private final BigDecimal change;
         private final BigDecimal changePercent;
+        private final Long volume;
 
-        public LatestQuote(String symbol, BigDecimal price, BigDecimal change, BigDecimal changePercent) {
+        public LatestQuote(String symbol, BigDecimal price, BigDecimal change, BigDecimal changePercent, Long volume) {
             this.symbol = symbol;
             this.price = price;
             this.change = change;
             this.changePercent = changePercent;
+            this.volume = volume;
         }
 
         public String getSymbol() { return symbol; }
         public BigDecimal getPrice() { return price; }
         public BigDecimal getChange() { return change; }
         public BigDecimal getChangePercent() { return changePercent; }
+        public Long getVolume() { return volume; }
         public boolean isPositive() { return change.compareTo(BigDecimal.ZERO) >= 0; }
     }
 }

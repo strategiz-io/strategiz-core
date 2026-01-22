@@ -131,6 +131,12 @@
             <artifactId>data-testing</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- AI Chat for LLM cost tracking -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-ai-chat</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring dependencies -->
         <dependency>

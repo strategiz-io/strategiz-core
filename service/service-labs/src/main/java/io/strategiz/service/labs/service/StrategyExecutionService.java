@@ -113,9 +113,10 @@ public class StrategyExecutionService extends BaseService {
         // Calculate date range
         LocalDate endDate = LocalDate.now().minusDays(1);
         LocalDate startDate = calculateStartDate(strategy, endDate, timeframe, period);
+        long requestedDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
 
-        logger.info("Date range: {} to {} ({} days)",
-            startDate, endDate, java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate));
+        logger.info("REQUESTED date range: {} to {} ({} days / ~{} years)",
+            startDate, endDate, requestedDays, String.format("%.1f", requestedDays / 365.0));
 
         // Convert timeframe to database format (1H -> 1H, 1D -> 1D, etc.)
         String dbTimeframe = convertToDbTimeframe(timeframe);
@@ -133,6 +134,23 @@ public class StrategyExecutionService extends BaseService {
                 ServiceStrategyErrorDetails.MARKET_DATA_NOT_FOUND,
                 String.format("No market data found for symbol: %s. Please ensure batch job has run.", symbol)
             );
+        }
+
+        // Log actual data range vs requested range
+        if (!entities.isEmpty()) {
+            LocalDate actualStartDate = entities.get(0).getTimestampAsLocalDateTime().toLocalDate();
+            LocalDate actualEndDate = entities.get(entities.size() - 1).getTimestampAsLocalDateTime().toLocalDate();
+            long actualDays = java.time.temporal.ChronoUnit.DAYS.between(actualStartDate, actualEndDate);
+
+            logger.info("ACTUAL data range: {} to {} ({} days / ~{} years)",
+                actualStartDate, actualEndDate, actualDays, String.format("%.1f", actualDays / 365.0));
+
+            if (actualStartDate.isAfter(startDate)) {
+                long missingDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, actualStartDate);
+                logger.warn("DATA AVAILABILITY WARNING: Requested {} years but data only starts from {} " +
+                    "(missing {} days of historical data for {})",
+                    String.format("%.1f", requestedDays / 365.0), actualStartDate, missingDays, symbol);
+            }
         }
 
         // Convert to map format for gRPC

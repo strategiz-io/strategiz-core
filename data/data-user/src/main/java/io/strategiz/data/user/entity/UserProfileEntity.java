@@ -1,6 +1,7 @@
 package io.strategiz.data.user.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.strategiz.data.base.constants.SubscriptionTierConstants;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -30,7 +31,7 @@ public class UserProfileEntity {
     
     @NotBlank(message = "Subscription tier is required")
     @JsonProperty("subscriptionTier")
-    private String subscriptionTier = "explorer"; // explorer, strategist, quant
+    private String subscriptionTier = SubscriptionTierConstants.DEFAULT;
     
     @NotNull(message = "Demo mode is required")
     @JsonProperty("demoMode")
@@ -47,7 +48,7 @@ public class UserProfileEntity {
         this.name = name;
         this.email = email;
         this.isEmailVerified = false;
-        this.subscriptionTier = "explorer";
+        this.subscriptionTier = SubscriptionTierConstants.DEFAULT;
         this.demoMode = true;
     }
 

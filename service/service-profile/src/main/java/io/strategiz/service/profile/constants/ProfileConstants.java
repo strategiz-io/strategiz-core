@@ -18,7 +18,7 @@ public final class ProfileConstants {
     
     // Default Values
     public static final class Defaults {
-        public static final String SUBSCRIPTION_TIER = "explorer";
+        public static final String SUBSCRIPTION_TIER = io.strategiz.data.base.constants.SubscriptionTierConstants.DEFAULT;
         public static final boolean DEMO_MODE = true;
         public static final boolean EMAIL_VERIFIED = false;
         public static final boolean IS_ACTIVE = true;
@@ -36,11 +36,11 @@ public final class ProfileConstants {
         private Auth() {}
     }
     
-    // Subscription Tiers
+    // Subscription Tiers - delegates to SubscriptionTierConstants in data-framework-base
     public static final class SubscriptionTier {
-        public static final String EXPLORER = "explorer";
-        public static final String STRATEGIST = "strategist";
-        public static final String QUANT = "quant";
+        public static final String EXPLORER = io.strategiz.data.base.constants.SubscriptionTierConstants.EXPLORER;
+        public static final String STRATEGIST = io.strategiz.data.base.constants.SubscriptionTierConstants.STRATEGIST;
+        public static final String QUANT = io.strategiz.data.base.constants.SubscriptionTierConstants.QUANT;
 
         private SubscriptionTier() {}
     }

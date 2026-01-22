@@ -21,7 +21,7 @@ public class GeminiVertexConfig {
 	@Value("${gemini.vertex.temperature:0.7}")
 	private Double temperature;
 
-	@Value("${gemini.vertex.max-tokens:8192}")
+	@Value("${gemini.vertex.max-tokens:16384}")
 	private Integer maxTokens;
 
 	@Value("${gemini.vertex.enabled:true}")

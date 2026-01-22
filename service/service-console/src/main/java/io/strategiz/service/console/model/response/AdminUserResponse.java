@@ -42,6 +42,9 @@ public class AdminUserResponse {
 	@JsonProperty("activeSessions")
 	private Integer activeSessions;
 
+	@JsonProperty("phoneNumber")
+	private String phoneNumber;
+
 	// Constructors
 	public AdminUserResponse() {
 	}
@@ -133,6 +136,14 @@ public class AdminUserResponse {
 
 	public void setActiveSessions(Integer activeSessions) {
 		this.activeSessions = activeSessions;
+	}
+
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
 	}
 
 }

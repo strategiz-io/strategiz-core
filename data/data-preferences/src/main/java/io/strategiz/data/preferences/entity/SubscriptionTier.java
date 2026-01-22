@@ -1,5 +1,7 @@
 package io.strategiz.data.preferences.entity;
 
+import io.strategiz.data.base.constants.SubscriptionTierConstants;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
@@ -23,13 +25,13 @@ import java.util.Map;
  */
 public enum SubscriptionTier {
 
-	EXPLORER("explorer", "Explorer", 0, // FREE freemium tier
+	EXPLORER(SubscriptionTierConstants.EXPLORER, "Explorer", 0, // FREE freemium tier
 			List.of("gemini-2.5-flash", "gemini-1.5-flash", "gpt-4o-mini", "claude-haiku-4-5",
 					"llama-3.1-8b-instruct-maas", "mistral-nemo"),
 			40000, // 40K credits
 			"Free tier for exploring the platform"),
 
-	STRATEGIST("strategist", "Strategist", 19900, // $199.00 in cents
+	STRATEGIST(SubscriptionTierConstants.STRATEGIST, "Strategist", 19900, // $199.00 in cents
 			List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
 					"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5",
 					"llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
@@ -37,7 +39,7 @@ public enum SubscriptionTier {
 			55000, // 55K credits
 			"For active traders building strategies"),
 
-	QUANT("quant", "Quant", 22900, // $229.00 in cents
+	QUANT(SubscriptionTierConstants.QUANT, "Quant", 22900, // $229.00 in cents
 			List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
 					"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5",
 					"o1", "o1-mini", "llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",

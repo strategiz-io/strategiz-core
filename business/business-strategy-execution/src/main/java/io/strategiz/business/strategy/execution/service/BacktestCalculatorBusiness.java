@@ -90,8 +90,12 @@ public class BacktestCalculatorBusiness {
         performance.setBuyCount(buySignals.size());
         performance.setSellCount(sellSignals.size());
 
+        // Get latest price from market data for unrealized position calculation
+        double latestPrice = getLatestPrice(marketData);
+        String latestTimestamp = getLatestTimestamp(marketData);
+
         // Pair buy signals with subsequent sell signals to form trades
-        List<BacktestTrade> trades = pairSignalsToTrades(buySignals, sellSignals, priceMap);
+        List<BacktestTrade> trades = pairSignalsToTrades(buySignals, sellSignals, priceMap, latestPrice, latestTimestamp);
         performance.setTrades(trades);
         performance.setTotalTrades(trades.size());
 
@@ -197,8 +201,11 @@ public class BacktestCalculatorBusiness {
 
     /**
      * Pair buy signals with subsequent sell signals to form trades.
+     * Any remaining buy signals without a matching sell are treated as unrealized positions
+     * using the latest market price.
      */
-    private List<BacktestTrade> pairSignalsToTrades(List<SignalData> buySignals, List<SignalData> sellSignals, Map<String, Double> priceMap) {
+    private List<BacktestTrade> pairSignalsToTrades(List<SignalData> buySignals, List<SignalData> sellSignals,
+            Map<String, Double> priceMap, double latestPrice, String latestTimestamp) {
         List<BacktestTrade> trades = new ArrayList<>();
         int buyIndex = 0;
         int sellIndex = 0;
@@ -213,6 +220,7 @@ public class BacktestCalculatorBusiness {
             }
 
             if (sellIndex >= sellSignals.size()) {
+                // No more sell signals - remaining buys will be handled as unrealized
                 break;
             }
 
@@ -230,6 +238,7 @@ public class BacktestCalculatorBusiness {
                 trade.setSellPrice(sellPrice);
                 trade.setBuyReason(buySignal.getReason());
                 trade.setSellReason(sellSignal.getReason());
+                trade.setUnrealized(false);
 
                 double pnl = sellPrice - buyPrice;
                 double pnlPercent = (pnl / buyPrice) * 100;
@@ -244,7 +253,62 @@ public class BacktestCalculatorBusiness {
             sellIndex++;
         }
 
+        // Handle remaining buy signals as unrealized positions
+        if (latestPrice > 0) {
+            while (buyIndex < buySignals.size()) {
+                SignalData buySignal = buySignals.get(buyIndex);
+                double buyPrice = buySignal.getPrice() > 0 ? buySignal.getPrice() : getPriceFromMap(priceMap, buySignal.getTimestamp());
+
+                if (buyPrice > 0) {
+                    BacktestTrade unrealizedTrade = new BacktestTrade();
+                    unrealizedTrade.setBuyTimestamp(buySignal.getTimestamp());
+                    unrealizedTrade.setSellTimestamp(latestTimestamp);
+                    unrealizedTrade.setBuyPrice(buyPrice);
+                    unrealizedTrade.setSellPrice(latestPrice);
+                    unrealizedTrade.setBuyReason(buySignal.getReason());
+                    unrealizedTrade.setSellReason("Open Position (Unrealized)");
+                    unrealizedTrade.setUnrealized(true);
+
+                    double pnl = latestPrice - buyPrice;
+                    double pnlPercent = (pnl / buyPrice) * 100;
+                    unrealizedTrade.setPnl(pnl);
+                    unrealizedTrade.setPnlPercent(pnlPercent);
+                    unrealizedTrade.setWin(pnl > 0);
+
+                    trades.add(unrealizedTrade);
+                    logger.debug("Added unrealized trade: bought at {} on {}, current value {} ({}% gain)",
+                            buyPrice, buySignal.getTimestamp(), latestPrice, String.format("%.2f", pnlPercent));
+                }
+
+                buyIndex++;
+            }
+        }
+
         return trades;
+    }
+
+    /**
+     * Get the latest price from market data.
+     */
+    private double getLatestPrice(List<Map<String, Object>> marketData) {
+        if (marketData == null || marketData.isEmpty()) {
+            return 0;
+        }
+        Object closeObj = marketData.get(marketData.size() - 1).get("close");
+        if (closeObj != null) {
+            return ((Number) closeObj).doubleValue();
+        }
+        return 0;
+    }
+
+    /**
+     * Get the latest timestamp from market data.
+     */
+    private String getLatestTimestamp(List<Map<String, Object>> marketData) {
+        if (marketData == null || marketData.isEmpty()) {
+            return null;
+        }
+        return extractTimestamp(marketData.get(marketData.size() - 1));
     }
 
     /**

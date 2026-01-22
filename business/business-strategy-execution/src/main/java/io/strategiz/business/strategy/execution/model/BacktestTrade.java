@@ -12,6 +12,7 @@ public class BacktestTrade {
     private double pnl;
     private double pnlPercent;
     private boolean isWin;
+    private boolean unrealized;
     private String buyReason;
     private String sellReason;
 
@@ -73,6 +74,14 @@ public class BacktestTrade {
 
     public void setWin(boolean isWin) {
         this.isWin = isWin;
+    }
+
+    public boolean isUnrealized() {
+        return unrealized;
+    }
+
+    public void setUnrealized(boolean unrealized) {
+        this.unrealized = unrealized;
     }
 
     public String getBuyReason() {

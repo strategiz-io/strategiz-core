@@ -1,0 +1,27 @@
+{
+  "name": "strat-token",
+  "version": "1.0.0",
+  "description": "Strategiz Token (STRAT) - ERC-20 utility token on Polygon",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:polygon:testnet": "hardhat run scripts/deploy.ts --network polygonAmoy",
+    "deploy:polygon:mainnet": "hardhat run scripts/deploy.ts --network polygonMainnet",
+    "deploy:base:testnet": "hardhat run scripts/deploy.ts --network baseSepolia",
+    "deploy:base:mainnet": "hardhat run scripts/deploy.ts --network baseMainnet",
+    "verify:polygon:testnet": "hardhat verify --network polygonAmoy",
+    "verify:polygon:mainnet": "hardhat verify --network polygonMainnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.1",
+    "@openzeppelin/contracts-upgradeable": "^5.0.1",
+    "@openzeppelin/hardhat-upgrades": "^3.0.0",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.4",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "ethers": "^6.9.2"
+  }
+}

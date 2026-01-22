@@ -2,6 +2,7 @@ package io.strategiz.service.console.controller;
 
 import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.service.base.controller.BaseController;
+import io.strategiz.service.console.model.UpdateUserRequest;
 import io.strategiz.service.console.model.response.AdminUserResponse;
 import io.strategiz.service.console.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -136,4 +137,17 @@ public class AdminUserController extends BaseController {
 		return ResponseEntity.ok(user);
 	}
 
+	@PutMapping("/{userId}")
+	@Operation(summary = "Update user profile", description = "Updates profile fields for a specific user")
+	public ResponseEntity<AdminUserResponse> updateUser(@Parameter(description = "User ID") @PathVariable String userId,
+			@RequestBody UpdateUserRequest updateRequest, HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("updateUser", adminUserId, "targetUserId=" + userId);
+
+		AdminUserResponse user = adminUserService.updateUser(userId, updateRequest, adminUserId);
+		log.info("User {} profile updated by admin {}", userId, adminUserId);
+		return ResponseEntity.ok(user);
+	}
+
 }
+

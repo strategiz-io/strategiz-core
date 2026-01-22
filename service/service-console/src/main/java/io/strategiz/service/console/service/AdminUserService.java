@@ -1,5 +1,7 @@
 package io.strategiz.service.console.service;
 
+import io.strategiz.data.preferences.entity.AlertNotificationPreferences;
+import io.strategiz.data.preferences.repository.AlertNotificationPreferencesRepository;
 import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.data.session.repository.SessionRepository;
 import io.strategiz.data.user.entity.UserEntity;
@@ -8,6 +10,7 @@ import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.console.exception.ServiceConsoleErrorDetails;
+import io.strategiz.service.console.model.UpdateUserRequest;
 import io.strategiz.service.console.model.response.AdminUserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,10 +35,14 @@ public class AdminUserService extends BaseService {
 
 	private final SessionRepository sessionRepository;
 
+	private final AlertNotificationPreferencesRepository alertPreferencesRepository;
+
 	@Autowired
-	public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository) {
+	public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository,
+			AlertNotificationPreferencesRepository alertPreferencesRepository) {
 		this.userRepository = userRepository;
 		this.sessionRepository = sessionRepository;
+		this.alertPreferencesRepository = alertPreferencesRepository;
 	}
 
 	public List<AdminUserResponse> listUsers(int page, int pageSize) {
@@ -196,6 +203,52 @@ public class AdminUserService extends BaseService {
 		return convertToResponse(user);
 	}
 
+	public AdminUserResponse updateUser(String userId, UpdateUserRequest request, String adminUserId) {
+		log.info("Updating user: userId={}, by adminUserId={}", userId, adminUserId);
+
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
+
+		UserEntity user = userOpt.get();
+		UserProfileEntity profile = user.getProfile();
+
+		if (profile == null) {
+			profile = new UserProfileEntity();
+			user.setProfile(profile);
+		}
+
+		// Update fields if provided
+		if (request.getName() != null) {
+			profile.setName(request.getName());
+		}
+		if (request.getEmail() != null) {
+			profile.setEmail(request.getEmail());
+		}
+		if (request.getSubscriptionTier() != null) {
+			profile.setSubscriptionTier(request.getSubscriptionTier());
+		}
+		if (request.getDemoMode() != null) {
+			profile.setDemoMode(request.getDemoMode());
+		}
+
+		userRepository.save(user);
+
+		// Update phone number in alert preferences if provided
+		if (request.getPhoneNumber() != null) {
+			try {
+				alertPreferencesRepository.updatePhoneNumber(userId, request.getPhoneNumber());
+			}
+			catch (Exception e) {
+				log.warn("Could not update phone number for user {}: {}", userId, e.getMessage());
+			}
+		}
+
+		log.info("User {} updated by admin {}", userId, adminUserId);
+		return convertToResponse(user);
+	}
+
 	private AdminUserResponse convertToResponse(UserEntity user) {
 		AdminUserResponse response = new AdminUserResponse();
 		response.setId(user.getId());
@@ -233,6 +286,17 @@ public class AdminUserService extends BaseService {
 				.map(SessionEntity::getLastAccessedAt)
 				.max(Instant::compareTo)
 				.ifPresent(response::setLastLoginAt);
+		}
+
+		// Get phone number from alert notification preferences
+		try {
+			AlertNotificationPreferences alertPrefs = alertPreferencesRepository.getByUserId(user.getId());
+			if (alertPrefs != null && alertPrefs.getPhoneNumber() != null) {
+				response.setPhoneNumber(alertPrefs.getPhoneNumber());
+			}
+		}
+		catch (Exception e) {
+			log.debug("Could not fetch phone number for user {}: {}", user.getId(), e.getMessage());
 		}
 
 		return response;

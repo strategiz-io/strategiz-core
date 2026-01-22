@@ -18,12 +18,12 @@ public final class ProfileConstants {
     
     // Default Values
     public static final class Defaults {
-        public static final String SUBSCRIPTION_TIER = "free";
+        public static final String SUBSCRIPTION_TIER = "explorer";
         public static final boolean DEMO_MODE = true;
         public static final boolean EMAIL_VERIFIED = false;
         public static final boolean IS_ACTIVE = true;
         public static final boolean IS_PARTIAL_AUTH = true;
-        
+
         private Defaults() {}
     }
     
@@ -38,10 +38,10 @@ public final class ProfileConstants {
     
     // Subscription Tiers
     public static final class SubscriptionTier {
-        public static final String FREE = "free";
-        public static final String PREMIUM = "premium";
-        public static final String ENTERPRISE = "enterprise";
-        
+        public static final String EXPLORER = "explorer";
+        public static final String STRATEGIST = "strategist";
+        public static final String QUANT = "quant";
+
         private SubscriptionTier() {}
     }
     

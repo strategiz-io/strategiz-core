@@ -193,13 +193,17 @@ public class StrategyExecutionService extends BaseService {
      */
     private LocalDate calculateStartDateFromPeriod(LocalDate endDate, String period) {
         return switch (period.toLowerCase()) {
-            case "6mo" -> endDate.minusMonths(6);
+            case "6mo", "6m" -> endDate.minusMonths(6);
             case "1y" -> endDate.minusYears(1);
             case "2y" -> endDate.minusYears(2);
+            case "3y" -> endDate.minusYears(3);  // Added missing 3-year option
             case "5y" -> endDate.minusYears(5);
             case "7y" -> endDate.minusYears(7);
             case "max" -> LocalDate.of(2018, 1, 1);  // Earliest available data
-            default -> endDate.minusYears(2);        // Safe default
+            default -> {
+                logger.warn("Unknown period '{}', defaulting to 2 years", period);
+                yield endDate.minusYears(2);
+            }
         };
     }
 

@@ -116,7 +116,7 @@ public abstract class BaseController {
         if (!condition) {
             throwModuleException(errorDetails, args);
         }
-    }
+    }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     
     // Security patterns for input validation
     private static final Pattern EMAIL_PATTERN = Pattern.compile(

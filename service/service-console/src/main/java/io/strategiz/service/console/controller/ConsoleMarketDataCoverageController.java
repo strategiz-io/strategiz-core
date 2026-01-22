@@ -299,4 +299,108 @@ public class ConsoleMarketDataCoverageController extends BaseController {
 		return DateTimeFormatter.ISO_INSTANT.format(instant);
 	}
 
+	/**
+	 * Get date range summary for all symbols in a specific timeframe. Shows earliest
+	 * date, latest date, bar count, and days covered for each symbol.
+	 * @param request HTTP request containing adminUserId attribute
+	 * @param timeframe The timeframe to query (default: 1D)
+	 * @return List of symbol date range statistics
+	 */
+	@GetMapping("/date-ranges")
+	@Operation(summary = "Get symbol date ranges",
+			description = "Retrieves date range coverage for all symbols in a specific timeframe")
+	public ResponseEntity<Map<String, Object>> getSymbolDateRanges(HttpServletRequest request,
+			@RequestParam(defaultValue = "1D") String timeframe) {
+
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getSymbolDateRanges", adminUserId, "timeframe=" + timeframe);
+
+		try {
+			List<Map<String, Object>> dateRanges = coverageService.getSymbolDateRanges(timeframe);
+
+			// Calculate summary statistics
+			int totalSymbols = dateRanges.size();
+			long totalBars = dateRanges.stream()
+				.mapToLong(r -> ((Number) r.get("bars")).longValue())
+				.sum();
+
+			// Find min/max days covered
+			int minDays = dateRanges.stream()
+				.mapToInt(r -> ((Number) r.get("days_covered")).intValue())
+				.min()
+				.orElse(0);
+			int maxDays = dateRanges.stream()
+				.mapToInt(r -> ((Number) r.get("days_covered")).intValue())
+				.max()
+				.orElse(0);
+			double avgDays = dateRanges.stream()
+				.mapToInt(r -> ((Number) r.get("days_covered")).intValue())
+				.average()
+				.orElse(0);
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("timeframe", timeframe);
+			response.put("totalSymbols", totalSymbols);
+			response.put("totalBars", totalBars);
+			response.put("minDaysCovered", minDays);
+			response.put("maxDaysCovered", maxDays);
+			response.put("avgDaysCovered", Math.round(avgDays * 10.0) / 10.0);
+			response.put("symbols", dateRanges);
+			response.put("calculatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+
+			log.info("Date ranges for timeframe {}: {} symbols, {} total bars, {}-{} days coverage", timeframe,
+					totalSymbols, totalBars, minDays, maxDays);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to get symbol date ranges: {}", e.getMessage(), e);
+			throw handleException(e, "date-ranges-query-failed");
+		}
+	}
+
+	/**
+	 * Get overall summary statistics grouped by timeframe. Shows symbol count, date
+	 * range, total days span, and total bars for each timeframe.
+	 * @param request HTTP request containing adminUserId attribute
+	 * @return Summary statistics for all timeframes
+	 */
+	@GetMapping("/summary")
+	@Operation(summary = "Get timeframe summary",
+			description = "Retrieves overall summary statistics for all timeframes in the database")
+	public ResponseEntity<Map<String, Object>> getTimeframeSummary(HttpServletRequest request) {
+
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		logRequest("getTimeframeSummary", adminUserId);
+
+		try {
+			List<Map<String, Object>> timeframeSummary = coverageService.getTimeframeSummary();
+
+			// Calculate overall totals
+			long totalBars = timeframeSummary.stream()
+				.mapToLong(r -> ((Number) r.get("total_bars")).longValue())
+				.sum();
+			int totalSymbols = timeframeSummary.stream()
+				.mapToInt(r -> ((Number) r.get("symbols")).intValue())
+				.max()
+				.orElse(0);
+
+			Map<String, Object> response = new HashMap<>();
+			response.put("totalTimeframes", timeframeSummary.size());
+			response.put("totalSymbolsMax", totalSymbols);
+			response.put("totalBarsAllTimeframes", totalBars);
+			response.put("timeframes", timeframeSummary);
+			response.put("calculatedAt", DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
+
+			log.info("Timeframe summary: {} timeframes, {} max symbols, {} total bars", timeframeSummary.size(),
+					totalSymbols, totalBars);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Failed to get timeframe summary: {}", e.getMessage(), e);
+			throw handleException(e, "timeframe-summary-query-failed");
+		}
+	}
+
 }

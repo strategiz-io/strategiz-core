@@ -1068,7 +1068,9 @@ public class AIStrategyPrompts {
 	public static String buildOptimizationPrompt(String strategy, double totalReturn, double totalPnL, double winRate,
 			int totalTrades, int profitableTrades, double avgWin, double avgLoss, double profitFactor,
 			double maxDrawdown, double sharpeRatio) {
-		return String.format(BACKTEST_OPTIMIZATION_PROMPT, strategy, String.format("%.2f", totalReturn),
+		// Escape % characters in strategy to prevent String.format interpretation
+		String escapedStrategy = strategy != null ? strategy.replace("%", "%%") : "";
+		return String.format(BACKTEST_OPTIMIZATION_PROMPT, escapedStrategy, String.format("%.2f", totalReturn),
 				String.format("%.2f", totalPnL), String.format("%.2f", winRate), totalTrades, profitableTrades,
 				String.format("%.2f", avgWin), String.format("%.2f", avgLoss), String.format("%.2f", profitFactor),
 				String.format("%.2f", maxDrawdown), String.format("%.2f", sharpeRatio));

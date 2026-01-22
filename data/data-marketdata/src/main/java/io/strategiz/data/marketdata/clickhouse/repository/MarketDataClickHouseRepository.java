@@ -394,6 +394,46 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
+	 * Get date range summary for all symbols for a specific timeframe. Returns symbol,
+	 * earliest timestamp, latest timestamp, bar count, and days covered.
+	 */
+	public List<Map<String, Object>> getSymbolDateRanges(String timeframe) {
+		String sql = """
+				SELECT
+				    symbol,
+				    MIN(timestamp) AS earliest,
+				    MAX(timestamp) AS latest,
+				    COUNT(*) AS bars,
+				    dateDiff('day', MIN(timestamp), MAX(timestamp)) AS days_covered
+				FROM market_data
+				WHERE timeframe = ?
+				GROUP BY symbol
+				ORDER BY earliest ASC
+				""";
+		return jdbcTemplate.queryForList(sql, timeframe);
+	}
+
+	/**
+	 * Get overall summary statistics grouped by timeframe. Returns timeframe, symbol
+	 * count, earliest/latest data, total days span, and total bars.
+	 */
+	public List<Map<String, Object>> getTimeframeSummary() {
+		String sql = """
+				SELECT
+				    timeframe,
+				    COUNT(DISTINCT symbol) AS symbols,
+				    MIN(timestamp) AS earliest_data,
+				    MAX(timestamp) AS latest_data,
+				    dateDiff('day', MIN(timestamp), MAX(timestamp)) AS total_days_span,
+				    COUNT(*) AS total_bars
+				FROM market_data
+				GROUP BY timeframe
+				ORDER BY timeframe
+				""";
+		return jdbcTemplate.queryForList(sql);
+	}
+
+	/**
 	 * Row mapper for converting ResultSet to MarketDataEntity.
 	 */
 	private static class MarketDataRowMapper implements RowMapper<MarketDataEntity> {

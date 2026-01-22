@@ -3,6 +3,7 @@ package io.strategiz.business.marketdata;
 import com.google.cloud.Timestamp;
 import io.strategiz.business.marketdata.exception.MarketDataErrorDetails;
 import io.strategiz.data.marketdata.entity.MarketDataCoverageEntity;
+import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.marketdata.clickhouse.repository.MarketDataCoverageClickHouseRepository;
 import io.strategiz.data.marketdata.clickhouse.repository.SymbolDataStatusClickHouseRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -38,15 +39,18 @@ public class MarketDataCoverageService {
 
     private final MarketDataCoverageClickHouseRepository coverageRepository;
     private final SymbolDataStatusClickHouseRepository symbolStatusRepository;
+    private final MarketDataClickHouseRepository marketDataRepository;
     private final SymbolService symbolService;
 
     @Autowired
     public MarketDataCoverageService(
             MarketDataCoverageClickHouseRepository coverageRepository,
             SymbolDataStatusClickHouseRepository symbolStatusRepository,
+            MarketDataClickHouseRepository marketDataRepository,
             SymbolService symbolService) {
         this.coverageRepository = coverageRepository;
         this.symbolStatusRepository = symbolStatusRepository;
+        this.marketDataRepository = marketDataRepository;
         this.symbolService = symbolService;
     }
 
@@ -344,5 +348,50 @@ public class MarketDataCoverageService {
             deleted, retentionDays, duration);
 
         return deleted;
+    }
+
+    /**
+     * Get date range summary for all symbols for a specific timeframe.
+     * Returns symbol, earliest timestamp, latest timestamp, bar count, and days covered.
+     *
+     * @param timeframe The timeframe to query (e.g., "1D", "1h")
+     * @return List of maps containing symbol date range data
+     */
+    public List<Map<String, Object>> getSymbolDateRanges(String timeframe) {
+        if (timeframe == null || timeframe.trim().isEmpty()) {
+            throw new StrategizException(
+                MarketDataErrorDetails.INVALID_INPUT,
+                "business-marketdata",
+                "timeframe cannot be null or empty"
+            );
+        }
+
+        long startTime = System.currentTimeMillis();
+        log.info("Fetching symbol date ranges for timeframe: {}", timeframe);
+
+        List<Map<String, Object>> dateRanges = marketDataRepository.getSymbolDateRanges(timeframe);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("Retrieved date ranges for {} symbols in {}ms", dateRanges.size(), duration);
+
+        return dateRanges;
+    }
+
+    /**
+     * Get overall summary statistics grouped by timeframe.
+     * Returns timeframe, symbol count, earliest/latest data, total days span, and total bars.
+     *
+     * @return List of maps containing timeframe summary data
+     */
+    public List<Map<String, Object>> getTimeframeSummary() {
+        long startTime = System.currentTimeMillis();
+        log.info("Fetching timeframe summary");
+
+        List<Map<String, Object>> summary = marketDataRepository.getTimeframeSummary();
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("Retrieved summary for {} timeframes in {}ms", summary.size(), duration);
+
+        return summary;
     }
 }

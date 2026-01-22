@@ -57,12 +57,12 @@ public class AIStrategyPrompts {
 			    }
 			  },
 			  "pythonCode": "<complete-python-code-as-escaped-string>",
-			  "summaryCard": "<1-2 sentence plain-English summary of the strategy>",
-			  "riskLevel": "LOW" | "MEDIUM" | "HIGH" | "AGGRESSIVE",
-			  "detectedIndicators": ["<indicator1>", "<indicator2>"],
-			  "explanation": "<detailed explanation of the strategy logic>",
-			  "suggestions": ["<refinement-suggestion-1>", "<refinement-suggestion-2>"]
+			  "summaryCard": "<1 sentence summary>",
+			  "riskLevel": "LOW" | "MEDIUM" | "HIGH" | "AGGRESSIVE"
 			}
+
+			IMPORTANT: Keep response concise. Only include visualConfig, pythonCode, summaryCard, and riskLevel.
+			Do NOT include explanation, suggestions, or detectedIndicators - they are optional and waste tokens.
 
 			Available indicators for visualConfig:
 			- Price: price, open, high, low, close, volume

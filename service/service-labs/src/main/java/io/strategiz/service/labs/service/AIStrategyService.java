@@ -903,28 +903,53 @@ public class AIStrategyService extends BaseService {
 				avgRiseFromTrough, maxRise));
 
 		context.append("🎯 RECOMMENDED THRESHOLDS (use these EXACTLY):\n");
-		context.append(String.format("   - BUY THRESHOLD: -%.1f%% from 20-day high\n", buyThreshold));
-		context.append(String.format("   - SELL THRESHOLD: +%.1f%% from 20-day low (or from entry price)\n\n",
-				sellThreshold));
+		context.append(String.format("   - BUY THRESHOLD: -%.1f%% from 20-day high (dip buying)\n", buyThreshold));
+		context.append(String.format("   - SELL THRESHOLD: -%.1f%% from highest price since entry (trailing stop)\n\n",
+				sellThreshold * 0.5)); // Use smaller trailing stop
 
-		context.append("📝 REQUIRED STRATEGY STRUCTURE:\n");
+		context.append("📝 REQUIRED STRATEGY STRUCTURE (TRAILING STOP APPROACH):\n");
 		context.append("```python\n");
-		context.append("# Calculate recent high/low\n");
-		context.append("recent_high = data['high'].rolling(20).max()\n");
-		context.append("recent_low = data['low'].rolling(20).min()\n");
-		context.append("pct_from_high = (data['close'] - recent_high) / recent_high * 100\n");
-		context.append("pct_from_low = (data['close'] - recent_low) / recent_low * 100\n\n");
-		context.append(String.format("# BUY when price drops %.1f%% from recent high\n", buyThreshold));
-		context.append(String.format("if pct_from_high.iloc[-1] <= -%.1f:\n", buyThreshold));
-		context.append("    return 'BUY'\n\n");
-		context.append(String.format("# SELL when price rises %.1f%% from recent low\n", sellThreshold));
-		context.append(String.format("if pct_from_low.iloc[-1] >= %.1f:\n", sellThreshold));
-		context.append("    return 'SELL'\n");
+		context.append("import pandas as pd\n");
+		context.append("import numpy as np\n\n");
+		context.append(String.format("SYMBOL = '%s'\n", insights.getSymbol()));
+		context.append("TIMEFRAME = '1D'\n");
+		context.append(String.format("BUY_DIP_THRESHOLD = %.1f  # Buy when price drops this %% from 20-day high\n", buyThreshold));
+		context.append(String.format("TRAILING_STOP = %.1f  # Sell when price drops this %% from peak since entry\n\n", sellThreshold * 0.5));
+		context.append("# Track position state (must persist between calls)\n");
+		context.append("entry_price = None\n");
+		context.append("highest_since_entry = None\n\n");
+		context.append("def strategy(data):\n");
+		context.append("    global entry_price, highest_since_entry\n");
+		context.append("    if len(data) < 21:\n");
+		context.append("        return 'HOLD'\n\n");
+		context.append("    current_price = data['close'].iloc[-1]\n");
+		context.append("    recent_high = data['high'].iloc[-21:-1].max()  # 20-day high excluding today\n\n");
+		context.append("    # If we have a position, check trailing stop\n");
+		context.append("    if entry_price is not None:\n");
+		context.append("        highest_since_entry = max(highest_since_entry or current_price, current_price)\n");
+		context.append("        pct_from_peak = (current_price - highest_since_entry) / highest_since_entry * 100\n\n");
+		context.append("        # SELL if price drops from peak (trailing stop)\n");
+		context.append("        if pct_from_peak <= -TRAILING_STOP:\n");
+		context.append("            entry_price = None\n");
+		context.append("            highest_since_entry = None\n");
+		context.append("            return 'SELL'\n");
+		context.append("        return 'HOLD'  # Hold position\n\n");
+		context.append("    # No position - look for buy opportunity\n");
+		context.append("    pct_from_high = (current_price - recent_high) / recent_high * 100\n\n");
+		context.append("    # BUY when price dips from recent high\n");
+		context.append("    if pct_from_high <= -BUY_DIP_THRESHOLD:\n");
+		context.append("        entry_price = current_price\n");
+		context.append("        highest_since_entry = current_price\n");
+		context.append("        return 'BUY'\n\n");
+		context.append("    return 'HOLD'\n");
 		context.append("```\n\n");
 
-		context.append("⚠️ CRITICAL: You MUST use the thresholds above (").append(String.format("-%.1f%%", buyThreshold))
-				.append(" for buy, ").append(String.format("+%.1f%%", sellThreshold)).append(" for sell).\n");
-		context.append("These are calculated from ACTUAL historical data - do NOT use generic RSI/MACD!\n");
+		context.append("⚠️ CRITICAL INSTRUCTIONS:\n");
+		context.append("1. Use the EXACT thresholds above (").append(String.format("-%.1f%%", buyThreshold))
+				.append(" buy dip, ").append(String.format("-%.1f%%", sellThreshold * 0.5)).append(" trailing stop)\n");
+		context.append("2. Use TRAILING STOP logic - sell when price DROPS from peak, not when it rises from low!\n");
+		context.append("3. Track entry_price and highest_since_entry to implement trailing stop correctly\n");
+		context.append("4. Do NOT use RSI, MACD, or other indicators - simple price-based rules work best\n");
 		context.append("=".repeat(80)).append("\n");
 
 		return context.toString();
@@ -932,7 +957,7 @@ public class AIStrategyService extends BaseService {
 
 	/**
 	 * Generate a deterministic swing trading strategy from turning points data.
-	 * Bypasses AI entirely - pure math based on historical peaks/troughs.
+	 * Uses trailing stop approach - sell when price drops from peak, not when it rises from low.
 	 */
 	private String generateDeterministicSwingStrategy(SymbolInsights insights) {
 		if (insights == null || insights.getTurningPoints() == null || insights.getTurningPoints().isEmpty()) {
@@ -961,15 +986,12 @@ public class AIStrategyService extends BaseService {
 		if (peakCount > 0)
 			avgRiseFromTrough /= peakCount;
 
-		// Use 80% of avg swing as threshold (gives buffer for early entry)
-		double buyThreshold = avgDropToTrough * 0.8;
-		double sellThreshold = avgRiseFromTrough * 0.8;
+		// Use 80% of avg swing as buy threshold
+		double buyThreshold = Math.max(avgDropToTrough * 0.8, 5.0);
+		// Use 50% of avg rise as trailing stop (tighter stop to protect gains)
+		double trailingStop = Math.max(avgRiseFromTrough * 0.4, 5.0);
 
-		// Ensure reasonable minimums
-		buyThreshold = Math.max(buyThreshold, 5.0);
-		sellThreshold = Math.max(sellThreshold, 8.0);
-
-		log.info("Deterministic swing strategy: BUY on {}% drop, SELL on {}% rise", buyThreshold, sellThreshold);
+		log.info("Deterministic swing strategy: BUY on {}% dip, TRAILING STOP {}%", buyThreshold, trailingStop);
 
 		String symbol = insights.getSymbol();
 
@@ -979,51 +1001,60 @@ public class AIStrategyService extends BaseService {
 
 				# Deterministic Swing Trading Strategy for %s
 				# Generated from historical turning points analysis
-				# BUY when price drops %.1f%% from recent high
-				# SELL when price rises %.1f%% from recent low
+				# BUY when price drops %.1f%% from 20-day high
+				# SELL when price drops %.1f%% from highest point since entry (trailing stop)
 
 				SYMBOL = '%s'
 				TIMEFRAME = '1D'
-				STOP_LOSS = %.1f
-				TAKE_PROFIT = %.1f
-				POSITION_SIZE = 5
+				POSITION_SIZE = 100  # Full position for maximum impact
 
-				# Lookback period for detecting recent high/low
-				LOOKBACK = 20
+				# Thresholds derived from historical turning points
+				BUY_DIP_THRESHOLD = %.1f   # Buy when price drops this %% from 20-day high
+				TRAILING_STOP = %.1f       # Sell when price drops this %% from peak since entry
 
-				# Swing thresholds derived from historical turning points
-				BUY_THRESHOLD = -%.1f   # Buy when price is this %% below recent high
-				SELL_THRESHOLD = %.1f   # Sell when price is this %% above recent low
+				# Track position state
+				entry_price = None
+				highest_since_entry = None
 
 				def strategy(data):
-				    if len(data) < LOOKBACK + 1:
+				    global entry_price, highest_since_entry
+
+				    if len(data) < 21:
 				        return 'HOLD'
 
-				    # Get recent price action
-				    recent_data = data.tail(LOOKBACK + 1)
-
-				    # Calculate recent high and low (excluding current bar)
-				    recent_high = recent_data['high'].iloc[:-1].max()
-				    recent_low = recent_data['low'].iloc[:-1].min()
-
-				    # Current price
 				    current_price = data['close'].iloc[-1]
+				    recent_high = data['high'].iloc[-21:-1].max()  # 20-day high excluding today
 
-				    # Calculate percentage from recent high and low
+				    # If we have a position, check trailing stop
+				    if entry_price is not None:
+				        # Update highest price since entry
+				        if highest_since_entry is None:
+				            highest_since_entry = current_price
+				        else:
+				            highest_since_entry = max(highest_since_entry, current_price)
+
+				        # Calculate drop from peak
+				        pct_from_peak = ((current_price - highest_since_entry) / highest_since_entry) * 100
+
+				        # SELL if price drops from peak (trailing stop triggered)
+				        if pct_from_peak <= -TRAILING_STOP:
+				            entry_price = None
+				            highest_since_entry = None
+				            return 'SELL'
+
+				        return 'HOLD'  # Keep holding, trailing stop not hit
+
+				    # No position - look for buy opportunity
 				    pct_from_high = ((current_price - recent_high) / recent_high) * 100
-				    pct_from_low = ((current_price - recent_low) / recent_low) * 100
 
-				    # BUY SIGNAL: Price has dropped significantly from recent high (dip buying)
-				    if pct_from_high <= BUY_THRESHOLD:
+				    # BUY when price dips significantly from recent high
+				    if pct_from_high <= -BUY_DIP_THRESHOLD:
+				        entry_price = current_price
+				        highest_since_entry = current_price
 				        return 'BUY'
 
-				    # SELL SIGNAL: Price has risen significantly from recent low (taking profits)
-				    if pct_from_low >= SELL_THRESHOLD:
-				        return 'SELL'
-
 				    return 'HOLD'
-				""", symbol, buyThreshold, sellThreshold, symbol, buyThreshold * 0.5, sellThreshold * 1.5,
-				buyThreshold, sellThreshold);
+				""", symbol, buyThreshold, trailingStop, symbol, buyThreshold, trailingStop);
 	}
 
 	/**

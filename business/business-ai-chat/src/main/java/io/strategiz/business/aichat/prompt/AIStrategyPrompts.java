@@ -1233,16 +1233,52 @@ public class AIStrategyPrompts {
 			}
 			prompt.append("\n");
 
-			prompt.append("HOW TO USE THIS DATA:\n");
-			prompt.append("1. Look at what indicator conditions existed at each BUY point (troughs)\n");
-			prompt.append("2. Look at what indicator conditions existed at each SELL point (peaks)\n");
-			prompt.append("3. Design entry rules that would have triggered at/near the BUY dates\n");
-			prompt.append("4. Design exit rules that would have triggered at/near the SELL dates\n");
-			prompt.append("5. Your strategy should capture most of these swings\n\n");
+			// Calculate average % moves from turning points for the AI
+			double avgDropToTrough = 0, avgRiseFromTrough = 0;
+			int troughCount = 0, peakCount = 0;
+			for (var tp : insights.getTurningPoints()) {
+				if (tp.getPriceChangeFromPrevious() != 0) {
+					if (tp.getType().name().equals("TROUGH")) {
+						avgDropToTrough += Math.abs(tp.getPriceChangeFromPrevious());
+						troughCount++;
+					} else {
+						avgRiseFromTrough += tp.getPriceChangeFromPrevious();
+						peakCount++;
+					}
+				}
+			}
+			if (troughCount > 0) avgDropToTrough /= troughCount;
+			if (peakCount > 0) avgRiseFromTrough /= peakCount;
+
+			prompt.append("SWING TRADING PATTERN ANALYSIS:\n");
+			prompt.append(String.format("- Average %% DROP before BUY points (troughs): %.1f%%\n", avgDropToTrough));
+			prompt.append(String.format("- Average %% RISE before SELL points (peaks): %.1f%%\n", avgRiseFromTrough));
+			prompt.append("- Use these percentages to create your entry/exit rules!\n\n");
+
+			prompt.append("🎯 SIMPLE SWING STRATEGY APPROACH (RECOMMENDED):\n");
+			prompt.append("The turning points above show a clear pattern of swings. Create a strategy that:\n");
+			prompt.append(String.format("1. BUY when price drops ~%.0f%% from recent high (20-day lookback)\n", avgDropToTrough * 0.8));
+			prompt.append(String.format("2. SELL when price rises ~%.0f%% from entry OR from recent low\n", avgRiseFromTrough * 0.8));
+			prompt.append("3. Use simple price-based rules, NOT complex indicators\n");
+			prompt.append("4. Track recent high/low to detect swing opportunities\n\n");
+
+			prompt.append("EXAMPLE PYTHON LOGIC:\n");
+			prompt.append("```python\n");
+			prompt.append("# Track recent high/low for swing detection\n");
+			prompt.append("recent_high = data['high'].rolling(20).max()\n");
+			prompt.append("recent_low = data['low'].rolling(20).min()\n");
+			prompt.append("pct_from_high = (data['close'] - recent_high) / recent_high * 100\n");
+			prompt.append("pct_from_low = (data['close'] - recent_low) / recent_low * 100\n\n");
+			prompt.append(String.format("# BUY when price drops %.0f%% from recent high\n", avgDropToTrough * 0.8));
+			prompt.append(String.format("buy_signal = pct_from_high < -%.0f\n", avgDropToTrough * 0.8));
+			prompt.append(String.format("# SELL when price rises %.0f%% from recent low\n", avgRiseFromTrough * 0.8));
+			prompt.append(String.format("sell_signal = pct_from_low > %.0f\n", avgRiseFromTrough * 0.8));
+			prompt.append("```\n\n");
 
 			prompt.append("⚠️ THIS IS YOUR CHEAT SHEET - USE IT!\n");
-			prompt.append("You know EXACTLY when the optimal buy/sell points were.\n");
-			prompt.append("Design a strategy that would have caught these moves.\n\n");
+			prompt.append("The turning points show EXACTLY where the swings occurred.\n");
+			prompt.append("Create a simple swing strategy that captures these moves.\n");
+			prompt.append("DO NOT overcomplicate with indicators - simple price rules work best.\n\n");
 		}
 
 		// AI Instructions - CRITICAL: Primary goal is beating buy and hold
@@ -1264,20 +1300,19 @@ public class AIStrategyPrompts {
 
 		prompt.append("MANDATORY REQUIREMENTS:\n");
 		prompt.append("1. 🎯 BEAT BUY AND HOLD - This is non-negotiable\n");
-		prompt.append("2. Use ONLY the TOP 2-3 indicators proven effective from the historical data above\n");
-		prompt.append("3. Apply the EXACT OPTIMAL PARAMETERS discovered (not generic defaults)\n");
-		prompt.append("4. Set stop-loss/take-profit based on the volatility analysis above\n");
-		prompt.append("5. Choose strategy type (trend/mean-reversion) based on the Market Characteristics\n");
-		prompt.append("6. Aim for win rate AT LEAST matching the Historical Avg Win Rate shown above\n");
-		prompt.append(String.format("7. In summaryCard, explain how this BEATS buy and hold for %s\n\n",
+		prompt.append("2. Use SIMPLE SWING TRADING rules based on the turning points data above\n");
+		prompt.append("3. BUY on dips (price drops X% from recent high), SELL on rallies (price rises Y% from low)\n");
+		prompt.append("4. The turning points show you EXACTLY the swing magnitudes - use them!\n");
+		prompt.append("5. DO NOT use complex indicators (RSI, MACD, etc.) - simple price rules work better\n");
+		prompt.append(String.format("6. In summaryCard, explain how this BEATS buy and hold for %s\n\n",
 				insights.getSymbol()));
 
-		prompt.append("DATA-DRIVEN APPROACH:\n");
-		prompt.append("- The historical data shows EXACTLY which indicators work best\n");
-		prompt.append("- The optimal parameters are pre-calculated from 7 years of backtests\n");
-		prompt.append("- Don't guess - use the proven indicators and settings from the data\n");
-		prompt.append("- If the data says RSI works best, DON'T use MACD\n");
-		prompt.append("- If the data says mean-reversion works, DON'T create a trend strategy\n\n");
+		prompt.append("SWING TRADING APPROACH:\n");
+		prompt.append("- The turning points data shows the EXACT swings that occurred\n");
+		prompt.append("- Calculate avg % drop to troughs (buy zones) and avg % rise to peaks (sell zones)\n");
+		prompt.append("- Create rules: BUY when price is X% below recent high, SELL when price is Y% above recent low\n");
+		prompt.append("- Keep it SIMPLE - price-based swing trading captures these moves best\n");
+		prompt.append("- Avoid overcomplicating with indicators - they often miss the obvious swings\n\n");
 
 		prompt.append("TRADING BEST PRACTICES (Critical for Profitability):\n");
 		prompt.append("1. RISK MANAGEMENT:\n");

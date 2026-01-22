@@ -3,6 +3,10 @@ package io.strategiz.service.labs.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.data.featureflags.service.FeatureFlagService;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.framework.authorization.context.SecurityContextHolder;
+import io.strategiz.framework.authorization.resolver.AuthUserArgumentResolver;
+import io.strategiz.framework.exception.ErrorMessageService;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
 import io.strategiz.service.labs.service.AIStrategyService;
@@ -10,16 +14,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,35 +36,55 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Integration tests for AI Strategy Controller endpoints.
+ * Controller tests for AI Strategy Controller endpoints.
  * Tests all /v1/labs/ai/* endpoints for proper request handling,
- * validation, authentication, and response formatting.
+ * validation, and response formatting.
+ *
+ * Uses standalone MockMvc setup for fast, isolated controller testing.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@DisplayName("AI Strategy Controller Integration Tests")
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+@DisplayName("AI Strategy Controller Tests")
 class AIStrategyControllerIntegrationTest {
 
 	private static final String BASE_URL = "/v1/labs/ai";
 
-	@Autowired
 	private MockMvc mockMvc;
 
-	@Autowired
 	private ObjectMapper objectMapper;
 
-	@MockBean
+	@Mock
 	private AIStrategyService aiStrategyService;
 
-	@MockBean
+	@Mock
 	private SubscriptionService subscriptionService;
 
-	@MockBean
+	@Mock
 	private FeatureFlagService featureFlagService;
+
+	@Mock
+	private ErrorMessageService errorMessageService;
+
+	@InjectMocks
+	private AIStrategyController aiStrategyController;
+
+	private static final String TEST_USER_ID = "test-user-123";
 
 	@BeforeEach
 	void setUp() {
+		objectMapper = new ObjectMapper();
+		mockMvc = MockMvcBuilders
+			.standaloneSetup(aiStrategyController)
+			.setCustomArgumentResolvers(new AuthUserArgumentResolver())
+			.build();
+
+		// Set up authenticated user in security context
+		AuthenticatedUser testUser = AuthenticatedUser.builder()
+			.userId(TEST_USER_ID)
+			.acr("1")
+			.build();
+		SecurityContextHolder.getContext().setAuthenticatedUser(testUser);
+
 		// Default: Labs AI is enabled
 		when(featureFlagService.isLabsAIEnabled()).thenReturn(true);
 		when(featureFlagService.isHistoricalInsightsEnabled()).thenReturn(true);

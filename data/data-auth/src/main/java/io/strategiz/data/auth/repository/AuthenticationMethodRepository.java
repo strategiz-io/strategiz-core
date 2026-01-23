@@ -77,4 +77,11 @@ public interface AuthenticationMethodRepository {
      * Specifically for passkey authentication where we need to find user by credential ID
      */
     Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId);
+
+    /**
+     * Find all authentication methods of a given type across all users.
+     * Uses collection group query to search all authentication_methods subcollections.
+     * Used for phone number lookup in SMS OTP authentication.
+     */
+    List<AuthenticationMethodEntity> findByType(AuthenticationMethodType type);
 } 

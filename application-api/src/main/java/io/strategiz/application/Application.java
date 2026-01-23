@@ -7,6 +7,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.annotation.Import;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import io.strategiz.application.config.VaultOAuthInitializer;
 import io.strategiz.service.social.config.ServiceSocialConfig;
 
@@ -15,6 +16,7 @@ import io.strategiz.service.social.config.ServiceSocialConfig;
  */
 @SpringBootApplication
 @EnableCaching
+@EnableScheduling
 @Import({ServiceSocialConfig.class})
 @ComponentScan(basePackages = {
     "io.strategiz"

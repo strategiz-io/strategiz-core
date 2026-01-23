@@ -56,13 +56,10 @@ public class AIStrategyPrompts {
 			      "minConfidence": 70
 			    }
 			  },
-			  "pythonCode": "<complete-python-code-as-escaped-string>",
-			  "summaryCard": "<1 sentence summary>",
-			  "riskLevel": "LOW" | "MEDIUM" | "HIGH" | "AGGRESSIVE"
+			  "pythonCode": "<complete-python-code-as-escaped-string>"
 			}
 
-			IMPORTANT: Keep response concise. Only include visualConfig, pythonCode, summaryCard, and riskLevel.
-			Do NOT include explanation, suggestions, or detectedIndicators - they are optional and waste tokens.
+			CRITICAL: Response must contain ONLY visualConfig and pythonCode. Nothing else. No explanation, no summaryCard, no suggestions, no riskLevel, no detectedIndicators.
 
 			Available indicators for visualConfig:
 			- Price: price, open, high, low, close, volume

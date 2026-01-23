@@ -130,8 +130,20 @@ public class AIStrategyService extends BaseService {
 				List<LLMMessage> history = buildConversationHistory(systemPrompt,
 						request.getConversationHistory());
 
-				// Use model from request, or default to gemini-3-flash-preview
-				String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
+				// Use model from request, or default
+				// For Feeling Lucky mode, use Pro model for better instruction-following
+				String model;
+				if (request.getModel() != null) {
+					model = request.getModel();
+				}
+				else if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+					// Feeling Lucky requires a capable model that follows complex instructions
+					model = "gemini-2.5-pro";
+					log.info("Feeling Lucky mode: Using gemini-2.5-pro for better instruction-following");
+				}
+				else {
+					model = llmRouter.getDefaultModel();
+				}
 
 				log.info("Step 3/6: Generating strategy with AI model: {}", model);
 

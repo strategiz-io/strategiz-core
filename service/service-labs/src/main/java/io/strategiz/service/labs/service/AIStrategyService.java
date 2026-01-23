@@ -81,10 +81,15 @@ public class AIStrategyService extends BaseService {
 
 		// Check which autonomous mode we're using
 		AIStrategyRequest.AutonomousMode autonomousMode = request.getAutonomousMode();
-		log.info("DEBUG: Raw autonomousMode from request: {}", autonomousMode);
+		log.info("DEBUG: Raw autonomousMode from request: {} (class: {})",
+				autonomousMode, autonomousMode != null ? autonomousMode.getClass().getName() : "null");
 		log.info("DEBUG: useHistoricalInsights: {}", request.getUseHistoricalInsights());
+		log.info("DEBUG: Is AUTONOMOUS? {} (expected enum: {})",
+				autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS,
+				AIStrategyRequest.AutonomousMode.AUTONOMOUS);
 		if (autonomousMode == null) {
 			autonomousMode = AIStrategyRequest.AutonomousMode.GENERATIVE_AI; // Default
+			log.info("DEBUG: autonomousMode was null, defaulting to GENERATIVE_AI");
 		}
 		log.info("Autonomous Mode (after default): {}", autonomousMode);
 

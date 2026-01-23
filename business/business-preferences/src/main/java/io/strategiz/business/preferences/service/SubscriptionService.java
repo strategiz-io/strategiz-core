@@ -27,7 +27,7 @@ public class SubscriptionService {
 	private static final String ADMIN_ROLE = "ADMIN";
 
 	/**
-	 * Minimum tier level required for Historical Market Insights (Feeling Lucky).
+	 * Minimum tier level required for Historical Market Insights (Autonomous AI).
 	 * Level 1 = STRATEGIST tier and above (STRATEGIST, QUANT)
 	 * Tier levels: EXPLORER=0, STRATEGIST=1, QUANT=2
 	 */
@@ -93,7 +93,7 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user can use Historical Market Insights (Feeling Lucky mode).
+	 * Check if user can use Historical Market Insights (Autonomous AI mode).
 	 * Analyzes 7 years of historical data to generate optimized strategies.
 	 * Historical Market Insights requires tier level 1 or higher (EXPLORER+).
 	 * ADMIN users have access for testing purposes.

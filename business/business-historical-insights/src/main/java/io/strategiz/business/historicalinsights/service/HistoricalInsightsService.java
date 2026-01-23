@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Service for analyzing historical market data to generate insights for Historical Market Insights (Feeling Lucky mode).
+ * Service for analyzing historical market data to generate insights for Historical Market Insights (Autonomous AI mode).
  * Computes volatility profiles, ranks indicators by effectiveness, finds optimal parameters,
  * and detects market characteristics using 7 years of historical OHLCV data.
  *
@@ -717,7 +717,7 @@ public class HistoricalInsightsService {
 		return metrics;
 	}
 
-	// ========== TURNING POINTS DETECTION (Feeling Lucky Hindsight) ==========
+	// ========== TURNING POINTS DETECTION (Autonomous AI Hindsight) ==========
 
 	/**
 	 * Detect major price turning points (peaks and troughs) from historical data.

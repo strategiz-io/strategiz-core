@@ -6,7 +6,7 @@ import java.time.Instant;
 
 /**
  * Represents a major price turning point (peak or trough) in historical data.
- * Used by Feeling Lucky mode to give the AI perfect hindsight about optimal entry/exit points.
+ * Used by Autonomous AI mode to give the AI perfect hindsight about optimal entry/exit points.
  */
 public class PriceTurningPoint {
 

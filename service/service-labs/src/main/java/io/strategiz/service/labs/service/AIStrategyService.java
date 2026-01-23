@@ -58,25 +58,25 @@ public class AIStrategyService extends BaseService {
 		this.cacheService = cacheService;
 		this.executionService = executionService;
 		if (this.historicalInsightsService == null) {
-			log.warn("HistoricalInsightsService not available - Feeling Lucky mode will be disabled");
+			log.warn("HistoricalInsightsService not available - Autonomous AI mode will be disabled");
 		}
 	}
 
 	/**
 	 * Generate a new strategy from a natural language prompt.
-	 * For Feeling Lucky mode (useHistoricalInsights=true), validates that the strategy
+	 * For Autonomous AI mode (useHistoricalInsights=true), validates that the strategy
 	 * beats buy-and-hold by at least 15% before returning it to the user.
 	 */
 	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
 		String promptPreview = (request.getPrompt() != null && !request.getPrompt().isEmpty())
 				? request.getPrompt().substring(0, Math.min(50, request.getPrompt().length()))
-				: "[Feeling Lucky - Autonomous Mode]";
+				: "[Autonomous AI - Autonomous Mode]";
 		log.info("Generating strategy from prompt: {}", promptPreview);
 
 		log.info("Step 1/6: Analyzing prompt for user strategy request");
 
 		try {
-			// HISTORICAL INSIGHTS: Get historical market insights if enabled (Feeling Lucky mode)
+			// HISTORICAL INSIGHTS: Get historical market insights if enabled (Autonomous AI mode)
 			SymbolInsights insights = null;
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
 				log.info("Historical Market Insights enabled - analyzing 7 years of data");
@@ -93,10 +93,10 @@ public class AIStrategyService extends BaseService {
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null
 					&& insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
 				deterministicContext = buildDeterministicContext(insights);
-				log.info("Feeling Lucky mode - calculated deterministic thresholds as context for AI");
+				log.info("Autonomous AI mode - calculated deterministic thresholds as context for AI");
 			}
 
-			// REGULAR AI GENERATION: For non-Feeling Lucky or when deterministic fails
+			// REGULAR AI GENERATION: For non-Autonomous AI or when deterministic fails
 			boolean requiresValidation = false;
 			int maxAttempts = 1;
 			AIStrategyResponse bestResponse = null;
@@ -131,12 +131,12 @@ public class AIStrategyService extends BaseService {
 						request.getConversationHistory());
 
 				// Use model from request, or default
-				// For Feeling Lucky mode, only allow verified models that work well
+				// For Autonomous AI mode, only allow verified models that work well
 				String model;
 				if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-					// Feeling Lucky only allows these models (verified to work)
-					model = getFeelingLuckyModel(request.getModel());
-					log.info("Feeling Lucky mode: Using model {}", model);
+					// Autonomous AI only allows these models (verified to work)
+					model = getAutonomousAIModel(request.getModel());
+					log.info("Autonomous AI mode: Using model {}", model);
 				}
 				else if (request.getModel() != null) {
 					model = request.getModel();
@@ -147,7 +147,7 @@ public class AIStrategyService extends BaseService {
 
 				log.info("Step 3/6: Generating strategy with AI model: {}", model);
 
-				// For Feeling Lucky mode, if no prompt provided, use autonomous generation prompt
+				// For Autonomous AI mode, if no prompt provided, use autonomous generation prompt
 				String userPrompt = request.getPrompt();
 				if (Boolean.TRUE.equals(request.getUseHistoricalInsights())
 						&& (userPrompt == null || userPrompt.trim().isEmpty())) {
@@ -161,7 +161,7 @@ public class AIStrategyService extends BaseService {
 					else {
 						userPrompt = "Create an optimized trading strategy that beats buy and hold by at least 15% for the specified symbol(s) using the historical data insights.";
 					}
-					log.info("Feeling Lucky mode - using guided strategy generation with calculated thresholds");
+					log.info("Autonomous AI mode - using guided strategy generation with calculated thresholds");
 				}
 
 				// Call LLM via router (blocking)
@@ -783,10 +783,10 @@ public class AIStrategyService extends BaseService {
 		}
 	}
 
-	// Historical Market Insights Integration (Feeling Lucky)
+	// Historical Market Insights Integration (Autonomous AI)
 
 	/**
-	 * Get Historical Market Insights for a symbol (Feeling Lucky mode).
+	 * Get Historical Market Insights for a symbol (Autonomous AI mode).
 	 * Analyzes 7 years of historical data to optimize strategy parameters.
 	 * Checks cache first, computes if needed, handles errors gracefully.
 	 */
@@ -1096,11 +1096,11 @@ public class AIStrategyService extends BaseService {
 	// Helper methods
 
 	/**
-	 * Get the model to use for Feeling Lucky mode. Only allows verified models that work well
-	 * with the complex instruction-following required for Feeling Lucky.
+	 * Get the model to use for Autonomous AI mode. Only allows verified models that work well
+	 * with the complex instruction-following required for Autonomous AI.
 	 */
-	private String getFeelingLuckyModel(String requestedModel) {
-		// Models verified to work well with Feeling Lucky mode
+	private String getAutonomousAIModel(String requestedModel) {
+		// Models verified to work well with Autonomous AI mode
 		// These models can follow complex instructions about using calculated thresholds
 		java.util.Set<String> allowedModels = java.util.Set.of(
 				"gemini-2.5-pro", // Best for instruction-following

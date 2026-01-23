@@ -161,7 +161,7 @@ public class AIStrategyRequest {
 	}
 
 	/**
-	 * Options for Historical Market Insights analysis (Feeling Lucky mode).
+	 * Options for Historical Market Insights analysis (Autonomous AI mode).
 	 * Analyzes historical market data to generate optimized strategies.
 	 * Default: ~3 years of data for fast analysis. Set fastMode=false for full 7-year analysis.
 	 */

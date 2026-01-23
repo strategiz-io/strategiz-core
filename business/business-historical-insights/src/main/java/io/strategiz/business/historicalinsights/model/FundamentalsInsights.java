@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * Represents fundamental analysis insights for a symbol.
- * This is populated when the user enables "Include fundamental analysis" in Historical Market Insights (Feeling Lucky mode).
+ * This is populated when the user enables "Include fundamental analysis" in Historical Market Insights (Autonomous AI mode).
  */
 public class FundamentalsInsights {
 

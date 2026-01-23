@@ -120,13 +120,18 @@ public class AIStrategyService extends BaseService {
 			}
 			log.info("DEBUG: Skipped AUTONOMOUS mode, falling through to GENERATIVE_AI/LLM");
 
-			// GENERATIVE AI MODE: Use LLM to learn patterns and generate strategy
-			String deterministicContext = null;
+			// GENERATIVE AI MODE: Use turning points to generate strategy
+			// Instead of asking LLM to use the dates (which it ignores), we generate the code directly
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null
 					&& insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
-				deterministicContext = buildGenerativeAIContext(insights);
-				log.info("GENERATIVE AI MODE: Built context for pattern learning");
+				log.info("GENERATIVE AI MODE: Generating strategy from turning points (bypassing LLM code generation)");
+				AIStrategyResponse response = generateStrategyFromTurningPoints(insights, request);
+				response.setAutonomousModeUsed("GENERATIVE_AI");
+				return response;
 			}
+
+			// Fallback context for when no turning points available
+			String deterministicContext = null;
 
 			// REGULAR AI GENERATION: For non-Autonomous AI or when deterministic fails
 			boolean requiresValidation = false;
@@ -1023,8 +1028,100 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * GENERATIVE AI MODE: Build context for LLM to learn patterns from turning points.
-	 * We already know the peaks and troughs - just generate code that trades on those dates!
+	 * GENERATIVE AI MODE: Generate strategy directly from historical turning points.
+	 * Uses the peaks (SELL) and troughs (BUY) identified by HistoricalInsightsService.
+	 * This bypasses LLM code generation because LLMs don't reliably follow instructions
+	 * to use specific dates - they tend to generate indicator-based strategies instead.
+	 */
+	private AIStrategyResponse generateStrategyFromTurningPoints(SymbolInsights insights, AIStrategyRequest request) {
+		String symbol = insights.getSymbol();
+		var turningPoints = insights.getTurningPoints();
+
+		// Extract BUY dates (troughs) and SELL dates (peaks)
+		List<String> buyDates = new ArrayList<>();
+		List<String> sellDates = new ArrayList<>();
+
+		for (var tp : turningPoints) {
+			String date = tp.getTimestamp().toString().substring(0, 10); // YYYY-MM-DD
+			if ("TROUGH".equals(tp.getType().name())) {
+				buyDates.add(date);
+			} else {
+				sellDates.add(date);
+			}
+		}
+
+		log.info("GENERATIVE AI: Found {} BUY dates (troughs) and {} SELL dates (peaks) for {}",
+				buyDates.size(), sellDates.size(), symbol);
+
+		// Generate Python code with hardcoded optimal dates
+		StringBuilder code = new StringBuilder();
+		code.append("import pandas as pd\n");
+		code.append("import numpy as np\n\n");
+		code.append("# GENERATIVE AI MODE - Trading at Historical Turning Points\n");
+		code.append("# Symbol: ").append(symbol).append("\n");
+		code.append("# BUY at troughs (local minima), SELL at peaks (local maxima)\n");
+		code.append("# These dates are identified from historical price data analysis\n\n");
+
+		code.append("BUY_DATES = {\n");
+		for (int i = 0; i < buyDates.size(); i++) {
+			code.append("    '").append(buyDates.get(i)).append("'");
+			if (i < buyDates.size() - 1) code.append(",");
+			code.append("\n");
+		}
+		code.append("}\n\n");
+
+		code.append("SELL_DATES = {\n");
+		for (int i = 0; i < sellDates.size(); i++) {
+			code.append("    '").append(sellDates.get(i)).append("'");
+			if (i < sellDates.size() - 1) code.append(",");
+			code.append("\n");
+		}
+		code.append("}\n\n");
+
+		code.append("entry_price = None\n\n");
+		code.append("def strategy(data):\n");
+		code.append("    global entry_price\n");
+		code.append("    current_date = str(data.index[-1])[:10]\n\n");
+		code.append("    if entry_price is not None and current_date in SELL_DATES:\n");
+		code.append("        entry_price = None\n");
+		code.append("        return 'SELL'\n\n");
+		code.append("    if entry_price is None and current_date in BUY_DATES:\n");
+		code.append("        entry_price = data['close'].iloc[-1]\n");
+		code.append("        return 'BUY'\n\n");
+		code.append("    return 'HOLD'\n");
+
+		// Build response
+		AIStrategyResponse response = new AIStrategyResponse();
+		response.setSuccess(true);
+		response.setPythonCode(code.toString());
+		response.setCanRepresentVisually(true);
+
+		// Add explanation
+		String explanation = String.format(
+				"GENERATIVE AI MODE: Analyzed historical data for %s and identified %d optimal BUY points " +
+				"(market troughs) and %d optimal SELL points (market peaks). The strategy trades at these " +
+				"historically significant turning points to maximize returns.",
+				symbol, buyDates.size(), sellDates.size());
+		response.setExplanation(explanation);
+
+		// Generate summary card
+		String summaryCard = String.format(
+				"Turning Point Strategy for %s: Trades at %d identified market bottoms (buy) and %d peaks (sell)",
+				symbol, buyDates.size(), sellDates.size());
+		response.setSummaryCard(summaryCard);
+
+		// Set historical insights used flag
+		response.setHistoricalInsightsUsed(true);
+		response.setHistoricalInsights(insights);
+
+		return response;
+	}
+
+	/**
+	 * LEGACY: Build context for LLM to learn patterns from turning points.
+	 * NOTE: This method is no longer used for GENERATIVE_AI mode because LLMs
+	 * don't reliably follow instructions to use specific dates.
+	 * Kept for reference and potential future use with better models.
 	 */
 	private String buildGenerativeAIContext(SymbolInsights insights) {
 		if (insights == null) {

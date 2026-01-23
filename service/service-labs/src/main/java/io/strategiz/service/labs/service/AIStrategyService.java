@@ -81,10 +81,12 @@ public class AIStrategyService extends BaseService {
 
 		// Check which autonomous mode we're using
 		AIStrategyRequest.AutonomousMode autonomousMode = request.getAutonomousMode();
+		log.info("DEBUG: Raw autonomousMode from request: {}", autonomousMode);
+		log.info("DEBUG: useHistoricalInsights: {}", request.getUseHistoricalInsights());
 		if (autonomousMode == null) {
 			autonomousMode = AIStrategyRequest.AutonomousMode.GENERATIVE_AI; // Default
 		}
-		log.info("Autonomous Mode: {}", autonomousMode);
+		log.info("Autonomous Mode (after default): {}", autonomousMode);
 
 		log.info("Step 1/6: Analyzing prompt for user strategy request");
 
@@ -101,11 +103,15 @@ public class AIStrategyService extends BaseService {
 			}
 
 			// AUTONOMOUS MODE (Deterministic): Pure math, no LLM
+			log.info("DEBUG: Checking AUTONOMOUS mode - autonomousMode={}, isAUTONOMOUS={}, useHistoricalInsights={}, insightsNotNull={}",
+					autonomousMode, autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS,
+					request.getUseHistoricalInsights(), insights != null);
 			if (autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS
 					&& Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null) {
 				log.info("AUTONOMOUS MODE: Generating deterministic signals using mathematical optimization");
 				return generateDeterministicStrategy(insights, request);
 			}
+			log.info("DEBUG: Skipped AUTONOMOUS mode, falling through to GENERATIVE_AI/LLM");
 
 			// GENERATIVE AI MODE: Use LLM to learn patterns and generate strategy
 			String deterministicContext = null;

@@ -96,7 +96,7 @@ public class FeatureFlagService {
             "Enable Labs AI-powered strategy generation", true, "ai");
 
         createDefaultFlag(FLAG_HISTORICAL_INSIGHTS, "AI Historical Market Insights",
-            "Enable Historical Market Insights with 7 years of data analysis (Feeling Lucky)", true, "ai");
+            "Enable Historical Market Insights with 7 years of data analysis (Autonomous AI)", true, "ai");
 
         // AI - Provider level
         createDefaultFlag(FLAG_AI_PROVIDER_GEMINI, "Gemini Provider",
@@ -224,7 +224,7 @@ public class FeatureFlagService {
     }
 
     /**
-     * Check if Historical Market Insights is enabled (Feeling Lucky mode).
+     * Check if Historical Market Insights is enabled (Autonomous AI mode).
      * Analyzes 7 years of historical data to generate optimized strategies.
      */
     public boolean isHistoricalInsightsEnabled() {

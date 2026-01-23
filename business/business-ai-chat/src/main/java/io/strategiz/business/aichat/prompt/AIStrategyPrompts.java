@@ -1088,7 +1088,7 @@ public class AIStrategyPrompts {
 	}
 
 	/**
-	 * Builds an enhanced prompt for Historical Market Insights (Feeling Lucky mode).
+	 * Builds an enhanced prompt for Historical Market Insights (Autonomous AI mode).
 	 * This method generates a comprehensive analysis section based on 7 years of historical data.
 	 * Analyzes volatility, indicator effectiveness, optimal parameters, and market characteristics.
 	 *
@@ -1131,7 +1131,7 @@ public class AIStrategyPrompts {
 
 		// ===== FORCEFUL PROMPT - MINIMAL AND MANDATORY =====
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("🎯 FEELING LUCKY: DATA-DRIVEN STRATEGY GENERATION\n");
+		prompt.append("🎯 AUTONOMOUS AI: DATA-DRIVEN STRATEGY GENERATION\n");
 		prompt.append("=".repeat(80)).append("\n\n");
 
 		prompt.append(String.format("Symbol: %s\n", insights.getSymbol()));

@@ -52,7 +52,7 @@
             <artifactId>business-ai-chat</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Historical Market Insights (Feeling Lucky Mode) -->
+        <!-- Historical Market Insights (Autonomous AI Mode) -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-historical-insights</artifactId>

@@ -64,7 +64,7 @@ public class AIStrategyController extends BaseController {
 				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
 		}
 
-		// HISTORICAL MARKET INSIGHTS CHECKS (Feeling Lucky)
+		// HISTORICAL MARKET INSIGHTS CHECKS (Autonomous AI)
 		if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
 			// Check if Historical Market Insights feature flag is enabled
 			if (!featureFlagService.isHistoricalInsightsEnabled()) {

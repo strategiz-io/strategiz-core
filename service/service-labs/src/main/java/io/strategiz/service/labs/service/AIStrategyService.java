@@ -1126,49 +1126,16 @@ public class AIStrategyService extends BaseService {
 			JsonNode json = extractJsonFromResponse(text);
 
 			if (json != null) {
-				// Extract visual config
+				// Extract ONLY visual config and Python code - nothing else
 				if (json.has("visualConfig")) {
 					result.setVisualConfig(objectMapper.convertValue(json.get("visualConfig"), Map.class));
 				}
 
-				// Extract Python code
 				if (json.has("pythonCode")) {
 					result.setPythonCode(json.get("pythonCode").asText());
 				}
 
-				// Extract summary card
-				if (json.has("summaryCard")) {
-					result.setSummaryCard(json.get("summaryCard").asText());
-				}
-
-				// Extract risk level
-				if (json.has("riskLevel")) {
-					try {
-						result.setRiskLevel(AIStrategyResponse.RiskLevel.valueOf(json.get("riskLevel").asText()));
-					}
-					catch (IllegalArgumentException e) {
-						result.setRiskLevel(AIStrategyResponse.RiskLevel.MEDIUM);
-					}
-				}
-
-				// Extract detected indicators
-				if (json.has("detectedIndicators")) {
-					result.setDetectedIndicators(objectMapper.convertValue(json.get("detectedIndicators"),
-							objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)));
-				}
-
-				// Extract explanation
-				if (json.has("explanation")) {
-					result.setExplanation(json.get("explanation").asText());
-				}
-
-				// Extract suggestions
-				if (json.has("suggestions")) {
-					result.setSuggestions(objectMapper.convertValue(json.get("suggestions"),
-							objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)));
-				}
-
-				result.setSuccess(true);
+				result.setSuccess(result.getPythonCode() != null);
 
 				// Log visual rules quality for monitoring and prompt improvement
 				logVisualRulesQuality(result);

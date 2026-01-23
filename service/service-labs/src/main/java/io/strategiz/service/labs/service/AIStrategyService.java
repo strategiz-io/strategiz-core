@@ -1174,13 +1174,25 @@ public class AIStrategyService extends BaseService {
 				logVisualRulesQuality(result);
 			}
 			else {
-				// Couldn't parse JSON - try to extract code block
-				result.setPythonCode(extractCodeBlock(text));
-				result.setExplanation(text);
-				result.setSuccess(result.getPythonCode() != null);
-				if (!result.isSuccess()) {
-					result.setError("Could not parse AI response as JSON");
+				// Couldn't parse JSON - try to extract code block and visual config
+				String extractedCode = extractCodeBlock(text);
+				JsonNode partialJson = tryExtractPartialJson(text);
+
+				if (extractedCode != null) {
+					result.setPythonCode(extractedCode);
 				}
+
+				// Try to get visualConfig from partial JSON
+				if (partialJson != null && partialJson.has("visualConfig")) {
+					result.setVisualConfig(objectMapper.convertValue(partialJson.get("visualConfig"), Map.class));
+				}
+
+				// Success if we got at least the Python code
+				result.setSuccess(extractedCode != null);
+				if (!result.isSuccess()) {
+					result.setError("Could not parse AI response");
+				}
+				// DON'T set explanation to raw text - that's garbage
 			}
 		}
 		catch (Exception e) {
@@ -1238,6 +1250,30 @@ public class AIStrategyService extends BaseService {
 		if (matcher.find()) {
 			return matcher.group(1).trim();
 		}
+		return null;
+	}
+
+	/**
+	 * Try to extract partial JSON even if truncated.
+	 * Attempts to find and parse visualConfig object from incomplete JSON.
+	 */
+	private JsonNode tryExtractPartialJson(String text) {
+		if (text == null) {
+			return null;
+		}
+
+		// Try to find visualConfig object
+		Pattern visualConfigPattern = Pattern.compile("\"visualConfig\"\\s*:\\s*(\\{.*?\\})\\s*,\\s*\"pythonCode\"", Pattern.DOTALL);
+		Matcher matcher = visualConfigPattern.matcher(text);
+		if (matcher.find()) {
+			try {
+				String visualConfigJson = "{\"visualConfig\":" + matcher.group(1) + "}";
+				return objectMapper.readTree(visualConfigJson);
+			} catch (Exception e) {
+				log.debug("Failed to parse partial visualConfig", e);
+			}
+		}
+
 		return null;
 	}
 

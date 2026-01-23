@@ -42,7 +42,20 @@ public class AIStrategyRequest {
 	public enum AutonomousMode {
 
 		GENERATIVE_AI, // AI learns patterns and generates predictive strategy
-		AUTONOMOUS // Pure math - deterministic local min/max signal detection
+		AUTONOMOUS; // Pure math - deterministic local min/max signal detection
+
+		@com.fasterxml.jackson.annotation.JsonCreator
+		public static AutonomousMode fromString(String value) {
+			if (value == null) {
+				return GENERATIVE_AI;
+			}
+			try {
+				return AutonomousMode.valueOf(value.toUpperCase());
+			}
+			catch (IllegalArgumentException e) {
+				return GENERATIVE_AI;
+			}
+		}
 
 	}
 

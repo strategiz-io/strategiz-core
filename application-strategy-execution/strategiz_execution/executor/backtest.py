@@ -136,7 +136,12 @@ class BacktestCalculator:
         buy_signals: List[Dict],
         sell_signals: List[Dict]
     ) -> List[Dict]:
-        """Match BUY signals with SELL signals to create completed trades"""
+        """
+        Match BUY signals with SELL signals to create completed trades.
+
+        IMPORTANT: Calculates proper position sizing based on available capital.
+        This allows compounding - profits from one trade increase capital for the next.
+        """
 
         trades = []
 
@@ -147,6 +152,9 @@ class BacktestCalculator:
         buy_idx = 0
         sell_idx = 0
 
+        # Track available capital for proper position sizing
+        available_capital = self.initial_capital
+
         while buy_idx < len(buy_signals) and sell_idx < len(sell_signals):
             buy = buy_signals[buy_idx]
             sell = sell_signals[sell_idx]
@@ -156,11 +164,23 @@ class BacktestCalculator:
                 sell_idx += 1
                 continue
 
-            # Create trade
-            quantity = buy.get('quantity', 1)
             buy_price = buy['price']
             sell_price = sell['price']
-            pnl = (sell_price - buy_price) * quantity
+
+            # Calculate proper position size based on available capital
+            # Use 100% of available capital for maximum returns
+            if buy_price > 0:
+                quantity = int(available_capital / buy_price)
+            else:
+                quantity = buy.get('quantity', 1)
+
+            # Ensure at least 1 share
+            quantity = max(quantity, 1)
+
+            # Calculate P&L
+            invested_amount = quantity * buy_price
+            exit_amount = quantity * sell_price
+            pnl = exit_amount - invested_amount
             pnl_percent = ((sell_price - buy_price) / buy_price) * 100
 
             trades.append({
@@ -169,12 +189,19 @@ class BacktestCalculator:
                 'buy_price': buy_price,
                 'sell_price': sell_price,
                 'quantity': quantity,
+                'invested_amount': invested_amount,
+                'exit_amount': exit_amount,
                 'pnl': pnl,
                 'pnl_percent': pnl_percent,
                 'win': pnl > 0,
                 'buy_reason': buy.get('reason', ''),
-                'sell_reason': sell.get('reason', '')
+                'sell_reason': sell.get('reason', ''),
+                'capital_before': available_capital,
+                'capital_after': available_capital + pnl
             })
+
+            # Update available capital for next trade (compounding!)
+            available_capital += pnl
 
             buy_idx += 1
             sell_idx += 1

@@ -11,6 +11,8 @@ import io.strategiz.business.historicalinsights.service.HistoricalInsightsCacheS
 import io.strategiz.business.historicalinsights.service.HistoricalInsightsService;
 import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
+import io.strategiz.data.marketdata.entity.MarketDataEntity;
+import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
 import io.strategiz.service.labs.model.ExecuteStrategyResponse;
@@ -26,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import io.strategiz.service.base.BaseService;
 
 /**
@@ -46,17 +49,20 @@ public class AIStrategyService extends BaseService {
 	private final HistoricalInsightsService historicalInsightsService;
 	private final HistoricalInsightsCacheService cacheService;
 	private final StrategyExecutionService executionService;
+	private final MarketDataRepository marketDataRepository;
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
 			Optional<HistoricalInsightsService> historicalInsightsService,
 			HistoricalInsightsCacheService cacheService,
-			StrategyExecutionService executionService) {
+			StrategyExecutionService executionService,
+			MarketDataRepository marketDataRepository) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
 		this.historicalInsightsService = historicalInsightsService.orElse(null);
 		this.cacheService = cacheService;
 		this.executionService = executionService;
+		this.marketDataRepository = marketDataRepository;
 		if (this.historicalInsightsService == null) {
 			log.warn("HistoricalInsightsService not available - Autonomous AI mode will be disabled");
 		}
@@ -859,160 +865,180 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Build deterministic context from turning points to guide AI strategy generation.
-	 * Provides ACTUAL historical turning points so the AI can generate a strategy that
-	 * trades at optimal entry/exit levels derived from real market data.
+	 * Build deterministic context with FULL PRICE DATA for hindsight oracle mode.
+	 * The LLM receives ALL historical prices and can determine optimal buy/sell points
+	 * with perfect information (looking at the entire past as "future" knowledge).
 	 */
 	private String buildDeterministicContext(SymbolInsights insights) {
-		if (insights == null || insights.getTurningPoints() == null || insights.getTurningPoints().isEmpty()) {
+		if (insights == null) {
 			return null;
 		}
 
-		var turningPoints = insights.getTurningPoints();
+		String symbol = insights.getSymbol();
+		String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
 
-		// Analyze turning points to find optimal thresholds unique to this symbol
-		double minTroughDrop = Double.MAX_VALUE, maxTroughDrop = 0;
-		double minPeakRise = Double.MAX_VALUE, maxPeakRise = 0;
-		double avgTroughDrop = 0, avgPeakRise = 0;
-		int troughCount = 0, peakCount = 0;
+		// Fetch ACTUAL market data - this is what we've been missing!
+		List<MarketDataEntity> marketData = fetchMarketDataForOracle(symbol, timeframe);
 
-		// Also track actual price levels for recent turning points
-		List<Double> recentTroughPrices = new ArrayList<>();
-		List<Double> recentPeakPrices = new ArrayList<>();
-
-		for (var tp : turningPoints) {
-			double change = Math.abs(tp.getPriceChangeFromPrevious());
-			if (change > 0) {
-				if ("TROUGH".equals(tp.getType().name())) {
-					minTroughDrop = Math.min(minTroughDrop, change);
-					maxTroughDrop = Math.max(maxTroughDrop, change);
-					avgTroughDrop += change;
-					troughCount++;
-					recentTroughPrices.add(tp.getPrice());
-				}
-				else {
-					minPeakRise = Math.min(minPeakRise, change);
-					maxPeakRise = Math.max(maxPeakRise, change);
-					avgPeakRise += change;
-					peakCount++;
-					recentPeakPrices.add(tp.getPrice());
-				}
-			}
+		if (marketData == null || marketData.isEmpty()) {
+			log.warn("No market data available for {} - falling back to turning points only", symbol);
+			return buildFallbackContext(insights);
 		}
 
-		if (troughCount > 0)
-			avgTroughDrop /= troughCount;
-		if (peakCount > 0)
-			avgPeakRise /= peakCount;
-
-		// Calculate symbol-specific thresholds based on ACTUAL swing patterns
-		// Use the MINIMUM observed swing to catch more opportunities
-		double buyThreshold = minTroughDrop > 0 && minTroughDrop < Double.MAX_VALUE
-				? Math.max(minTroughDrop * 0.7, 2.0) // 70% of minimum observed drop
-				: 3.0;
-		double sellThreshold = minPeakRise > 0 && minPeakRise < Double.MAX_VALUE
-				? Math.max(minPeakRise * 0.7, 3.0) // 70% of minimum observed rise
-				: 5.0;
-
-		// Use optimalParameters if available (these are grid-searched for maximum profit)
-		Map<String, Object> optimalParams = insights.getOptimalParameters();
-		if (optimalParams != null && !optimalParams.isEmpty()) {
-			Object stopLoss = optimalParams.get("stop_loss_percent");
-			Object takeProfit = optimalParams.get("take_profit_percent");
-			if (stopLoss instanceof Number) {
-				buyThreshold = ((Number) stopLoss).doubleValue();
-			}
-			if (takeProfit instanceof Number) {
-				sellThreshold = ((Number) takeProfit).doubleValue();
-			}
-		}
-
-		log.info("Symbol {} swing analysis: troughs={} (min:{:.1f}% max:{:.1f}% avg:{:.1f}%), " + "peaks={} (min:{:.1f}% max:{:.1f}% avg:{:.1f}%)", insights.getSymbol(), troughCount, minTroughDrop,
-				maxTroughDrop, avgTroughDrop, peakCount, minPeakRise, maxPeakRise, avgPeakRise);
-		log.info("Calculated thresholds for {}: buyDip={:.1f}%, takeProfit={:.1f}%", insights.getSymbol(),
-				buyThreshold, sellThreshold);
+		log.info("HINDSIGHT ORACLE MODE: Loaded {} price bars for {} to pass to LLM", marketData.size(), symbol);
 
 		StringBuilder context = new StringBuilder();
 		context.append("\n\n");
 		context.append("=".repeat(80)).append("\n");
-		context.append("HISTORICAL MARKET ANALYSIS FOR ").append(insights.getSymbol()).append("\n");
+		context.append("HINDSIGHT ORACLE MODE - FULL PRICE DATA FOR ").append(symbol).append("\n");
 		context.append("=".repeat(80)).append("\n\n");
 
-		context.append("ANALYZED DATA: ").append(insights.getDaysAnalyzed()).append(" days (~")
-				.append(String.format("%.1f", insights.getDaysAnalyzed() / 365.0)).append(" years)\n\n");
+		context.append("You are a HINDSIGHT ORACLE. You have access to ALL historical price data below.\n");
+		context.append("Your task: Analyze this data and generate a strategy that produces the MAXIMUM POSSIBLE PROFIT.\n");
+		context.append("You can 'cheat' - you know exactly where every peak and trough is.\n\n");
 
-		context.append("MARKET CHARACTERISTICS:\n");
-		context.append(String.format("   Volatility: %s (%.1f%% average)\n", insights.getVolatilityRegime(),
+		context.append("INSTRUCTIONS:\n");
+		context.append("1. Look at ALL the price data below\n");
+		context.append("2. Identify the BEST buy points (local lows before rallies)\n");
+		context.append("3. Identify the BEST sell points (local highs before drops)\n");
+		context.append("4. Generate Python code that buys at those optimal points\n");
+		context.append("5. The strategy should maximize total return\n\n");
+
+		// Include market characteristics
+		context.append("MARKET PROFILE:\n");
+		context.append(String.format("   Symbol: %s\n", symbol));
+		context.append(String.format("   Timeframe: %s\n", timeframe));
+		context.append(String.format("   Data Points: %d bars\n", marketData.size()));
+		context.append(String.format("   Volatility: %s (%.1f%%)\n", insights.getVolatilityRegime(),
 				insights.getAvgVolatility()));
-		context.append(String.format("   Trend: %s (%.0f%% strength)\n", insights.getTrendDirection(),
-				insights.getTrendStrength() * 100));
+		context.append(String.format("   Trend: %s\n", insights.getTrendDirection()));
 		context.append(String.format("   Mean Reverting: %s\n\n", insights.isMeanReverting() ? "YES" : "NO"));
 
-		context.append("HISTORICAL TURNING POINTS (").append(turningPoints.size()).append(" total):\n");
-		context.append(String.format("   TROUGHS (buy points): %d occurrences\n", troughCount));
-		context.append(String.format("      - Drops ranged from %.1f%% to %.1f%% (avg: %.1f%%)\n",
-				minTroughDrop == Double.MAX_VALUE ? 0 : minTroughDrop, maxTroughDrop, avgTroughDrop));
-		context.append(String.format("   PEAKS (sell points): %d occurrences\n", peakCount));
-		context.append(String.format("      - Rises ranged from %.1f%% to %.1f%% (avg: %.1f%%)\n\n",
-				minPeakRise == Double.MAX_VALUE ? 0 : minPeakRise, maxPeakRise, avgPeakRise));
-
-		// Show actual turning point data
-		context.append("ACTUAL TURNING POINTS (most recent):\n");
-		int shown = 0;
-		for (int i = turningPoints.size() - 1; i >= 0 && shown < 15; i--) {
-			var tp = turningPoints.get(i);
-			context.append(String.format("   %s: %s @ $%.2f (%.1f%% change)\n", tp.getTimestamp().toString().substring(0, 10), tp.getType(), tp.getPrice(), tp.getPriceChangeFromPrevious()));
-			shown++;
+		// Include turning points summary
+		var turningPoints = insights.getTurningPoints();
+		if (turningPoints != null && !turningPoints.isEmpty()) {
+			context.append("KNOWN TURNING POINTS (peaks and troughs):\n");
+			for (var tp : turningPoints) {
+				context.append(String.format("   %s: %s @ $%.2f (%.1f%% move)\n",
+						tp.getTimestamp().toString().substring(0, 10),
+						tp.getType(),
+						tp.getPrice(),
+						tp.getPriceChangeFromPrevious()));
+			}
+			context.append("\n");
 		}
-		context.append("\n");
 
-		context.append("SYMBOL-SPECIFIC THRESHOLDS (calculated from this data):\n");
-		context.append(String.format("   BUY THRESHOLD: %.1f%% drop from recent high\n", buyThreshold));
-		context.append(String.format("   SELL THRESHOLD: %.1f%% gain from entry\n", sellThreshold));
-		context.append(String.format("   STOP LOSS: %.1f%%\n\n", Math.max(buyThreshold * 0.8, 2.0)));
+		// Include ACTUAL price data (sample if too large)
+		context.append("FULL PRICE DATA (date, open, high, low, close):\n");
+		context.append("```csv\n");
+		context.append("date,open,high,low,close\n");
 
-		context.append("REQUIRED STRATEGY - Generate Python code that:\n");
-		context.append("1. BUYS when price drops ").append(String.format("%.1f%%", buyThreshold))
-				.append(" from 10-day high (catching dips before troughs)\n");
-		context.append("2. SELLS when price rises ").append(String.format("%.1f%%", sellThreshold))
-				.append(" from entry (capturing gains before peaks)\n");
-		context.append("3. Uses STOP LOSS at ").append(String.format("%.1f%%", Math.max(buyThreshold * 0.8, 2.0)))
-				.append(" to limit downside\n");
-		context.append("4. NO technical indicators (RSI, MACD, etc.) - pure price action\n\n");
+		// If data is too large, sample it intelligently
+		int maxRows = 500; // Limit to avoid token limits
+		List<MarketDataEntity> dataToShow = marketData;
+		if (marketData.size() > maxRows) {
+			// Sample evenly across the dataset
+			dataToShow = new ArrayList<>();
+			double step = (double) marketData.size() / maxRows;
+			for (int i = 0; i < maxRows; i++) {
+				int idx = (int) (i * step);
+				if (idx < marketData.size()) {
+					dataToShow.add(marketData.get(idx));
+				}
+			}
+			context.append("# Sampled ").append(dataToShow.size()).append(" of ")
+					.append(marketData.size()).append(" total bars\n");
+		}
+
+		for (MarketDataEntity bar : dataToShow) {
+			context.append(String.format("%s,%.2f,%.2f,%.2f,%.2f\n",
+					bar.getTimestampAsLocalDateTime().toLocalDate(),
+					bar.getOpen(),
+					bar.getHigh(),
+					bar.getLow(),
+					bar.getClose()));
+		}
+		context.append("```\n\n");
+
+		// The hindsight oracle prompt
+		context.append("GENERATE STRATEGY:\n");
+		context.append("Create Python code that analyzes this price data and generates optimal signals.\n");
+		context.append("Since you can see ALL the data, identify the exact dates to BUY (near troughs)\n");
+		context.append("and SELL (near peaks) for maximum profit.\n\n");
 
 		context.append("```python\n");
 		context.append("import pandas as pd\n");
 		context.append("import numpy as np\n\n");
-		context.append(String.format("# Symbol-specific thresholds derived from %d days of %s data\n",
-				insights.getDaysAnalyzed(), insights.getSymbol()));
-		context.append(String.format("BUY_DIP = %.1f  # Buy when price drops this %% from 10-day high\n", buyThreshold));
-		context.append(String.format("TAKE_PROFIT = %.1f  # Sell when up this %% from entry\n", sellThreshold));
-		context.append(String.format("STOP_LOSS = %.1f  # Exit if down this %% from entry\n\n",
-				Math.max(buyThreshold * 0.8, 2.0)));
+		context.append("# HINDSIGHT ORACLE STRATEGY\n");
+		context.append("# This strategy uses knowledge of historical patterns to trade optimally\n\n");
 		context.append("entry_price = None\n\n");
 		context.append("def strategy(data):\n");
 		context.append("    global entry_price\n");
-		context.append("    if len(data) < 11:\n");
-		context.append("        return 'HOLD'\n\n");
-		context.append("    price = data['close'].iloc[-1]\n");
-		context.append("    high_10d = data['high'].iloc[-11:-1].max()\n\n");
-		context.append("    if entry_price is not None:\n");
-		context.append("        pnl = (price - entry_price) / entry_price * 100\n");
-		context.append("        if pnl >= TAKE_PROFIT:\n");
-		context.append("            entry_price = None\n");
-		context.append("            return 'SELL'\n");
-		context.append("        if pnl <= -STOP_LOSS:\n");
-		context.append("            entry_price = None\n");
-		context.append("            return 'SELL'\n");
-		context.append("        return 'HOLD'\n\n");
-		context.append("    dip = (price - high_10d) / high_10d * 100\n");
-		context.append("    if dip <= -BUY_DIP:\n");
-		context.append("        entry_price = price\n");
-		context.append("        return 'BUY'\n");
-		context.append("    return 'HOLD'\n");
+		context.append("    # Your hindsight-optimized logic here\n");
+		context.append("    # Analyze price patterns and return 'BUY', 'SELL', or 'HOLD'\n");
+		context.append("    pass\n");
 		context.append("```\n\n");
 
 		context.append("=".repeat(80)).append("\n");
+
+		return context.toString();
+	}
+
+	/**
+	 * Fetch market data for the oracle mode.
+	 */
+	private List<MarketDataEntity> fetchMarketDataForOracle(String symbol, String timeframe) {
+		try {
+			LocalDate endDate = LocalDate.now().minusDays(1);
+			LocalDate startDate = endDate.minusYears(2); // 2 years of data
+
+			String dbTimeframe = timeframe.toUpperCase();
+			if (dbTimeframe.equals("1D") || dbTimeframe.equals("D")) {
+				dbTimeframe = "1D";
+			}
+
+			List<MarketDataEntity> data = marketDataRepository.findBySymbolAndDateRange(
+					symbol, startDate, endDate, dbTimeframe, 1000);
+
+			log.info("Fetched {} bars of {} data for {} from {} to {}",
+					data != null ? data.size() : 0, dbTimeframe, symbol, startDate, endDate);
+
+			return data;
+		}
+		catch (Exception e) {
+			log.error("Failed to fetch market data for oracle mode: {}", e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Fallback context when market data is not available.
+	 */
+	private String buildFallbackContext(SymbolInsights insights) {
+		StringBuilder context = new StringBuilder();
+		context.append("\n\n");
+		context.append("=".repeat(80)).append("\n");
+		context.append("AUTONOMOUS AI MODE FOR ").append(insights.getSymbol()).append("\n");
+		context.append("=".repeat(80)).append("\n\n");
+
+		// Use optimal parameters if available
+		double buyThreshold = 3.0;
+		double sellThreshold = 9.0;
+
+		Map<String, Object> optimalParams = insights.getOptimalParameters();
+		if (optimalParams != null) {
+			if (optimalParams.get("stop_loss_percent") instanceof Number) {
+				buyThreshold = ((Number) optimalParams.get("stop_loss_percent")).doubleValue();
+			}
+			if (optimalParams.get("take_profit_percent") instanceof Number) {
+				sellThreshold = ((Number) optimalParams.get("take_profit_percent")).doubleValue();
+			}
+		}
+
+		context.append("Generate a swing trading strategy with these parameters:\n");
+		context.append(String.format("   BUY when price drops %.1f%% from 10-day high\n", buyThreshold));
+		context.append(String.format("   SELL when up %.1f%% from entry\n", sellThreshold));
+		context.append(String.format("   STOP LOSS at %.1f%%\n\n", Math.max(buyThreshold * 0.8, 2.0)));
 
 		return context.toString();
 	}

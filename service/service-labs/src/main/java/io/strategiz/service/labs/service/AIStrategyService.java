@@ -860,128 +860,158 @@ public class AIStrategyService extends BaseService {
 
 	/**
 	 * Build deterministic context from turning points to guide AI strategy generation.
-	 * Uses optimalParameters from grid search when available, falls back to calculated thresholds.
+	 * Provides ACTUAL historical turning points so the AI can generate a strategy that
+	 * trades at optimal entry/exit levels derived from real market data.
 	 */
 	private String buildDeterministicContext(SymbolInsights insights) {
 		if (insights == null || insights.getTurningPoints() == null || insights.getTurningPoints().isEmpty()) {
 			return null;
 		}
 
-		// PRIORITY 1: Use pre-computed optimal parameters from grid search (most reliable)
-		double buyThreshold = 5.0; // Default: 5% dip to buy
-		double sellThreshold = 8.0; // Default: 8% target profit
+		var turningPoints = insights.getTurningPoints();
 
+		// Analyze turning points to find optimal thresholds unique to this symbol
+		double minTroughDrop = Double.MAX_VALUE, maxTroughDrop = 0;
+		double minPeakRise = Double.MAX_VALUE, maxPeakRise = 0;
+		double avgTroughDrop = 0, avgPeakRise = 0;
+		int troughCount = 0, peakCount = 0;
+
+		// Also track actual price levels for recent turning points
+		List<Double> recentTroughPrices = new ArrayList<>();
+		List<Double> recentPeakPrices = new ArrayList<>();
+
+		for (var tp : turningPoints) {
+			double change = Math.abs(tp.getPriceChangeFromPrevious());
+			if (change > 0) {
+				if ("TROUGH".equals(tp.getType().name())) {
+					minTroughDrop = Math.min(minTroughDrop, change);
+					maxTroughDrop = Math.max(maxTroughDrop, change);
+					avgTroughDrop += change;
+					troughCount++;
+					recentTroughPrices.add(tp.getPrice());
+				}
+				else {
+					minPeakRise = Math.min(minPeakRise, change);
+					maxPeakRise = Math.max(maxPeakRise, change);
+					avgPeakRise += change;
+					peakCount++;
+					recentPeakPrices.add(tp.getPrice());
+				}
+			}
+		}
+
+		if (troughCount > 0)
+			avgTroughDrop /= troughCount;
+		if (peakCount > 0)
+			avgPeakRise /= peakCount;
+
+		// Calculate symbol-specific thresholds based on ACTUAL swing patterns
+		// Use the MINIMUM observed swing to catch more opportunities
+		double buyThreshold = minTroughDrop > 0 && minTroughDrop < Double.MAX_VALUE
+				? Math.max(minTroughDrop * 0.7, 2.0) // 70% of minimum observed drop
+				: 3.0;
+		double sellThreshold = minPeakRise > 0 && minPeakRise < Double.MAX_VALUE
+				? Math.max(minPeakRise * 0.7, 3.0) // 70% of minimum observed rise
+				: 5.0;
+
+		// Use optimalParameters if available (these are grid-searched for maximum profit)
 		Map<String, Object> optimalParams = insights.getOptimalParameters();
 		if (optimalParams != null && !optimalParams.isEmpty()) {
-			// Use grid-searched optimal parameters
 			Object stopLoss = optimalParams.get("stop_loss_percent");
 			Object takeProfit = optimalParams.get("take_profit_percent");
-
 			if (stopLoss instanceof Number) {
 				buyThreshold = ((Number) stopLoss).doubleValue();
-				log.info("Using optimal stop_loss_percent from grid search: {}%", buyThreshold);
 			}
 			if (takeProfit instanceof Number) {
 				sellThreshold = ((Number) takeProfit).doubleValue();
-				log.info("Using optimal take_profit_percent from grid search: {}%", sellThreshold);
 			}
 		}
-		else {
-			// PRIORITY 2: Calculate from turning points (fallback)
-			double avgDropToTrough = 0, avgRiseFromTrough = 0;
-			int troughCount = 0, peakCount = 0;
 
-			for (var tp : insights.getTurningPoints()) {
-				if (tp.getPriceChangeFromPrevious() != 0) {
-					if ("TROUGH".equals(tp.getType().name())) {
-						avgDropToTrough += Math.abs(tp.getPriceChangeFromPrevious());
-						troughCount++;
-					}
-					else {
-						avgRiseFromTrough += tp.getPriceChangeFromPrevious();
-						peakCount++;
-					}
-				}
-			}
-
-			if (troughCount > 0)
-				avgDropToTrough /= troughCount;
-			if (peakCount > 0)
-				avgRiseFromTrough /= peakCount;
-
-			// Use 50% of avg swing (more conservative for more signals)
-			buyThreshold = Math.max(avgDropToTrough * 0.5, 3.0);
-			sellThreshold = Math.max(avgRiseFromTrough * 0.5, 5.0);
-			log.info("Calculated thresholds from turning points: buy={}%, sell={}%", buyThreshold, sellThreshold);
-		}
-
-		// Ensure thresholds are reasonable (not too strict)
-		buyThreshold = Math.min(buyThreshold, 8.0); // Cap at 8% max dip
-		sellThreshold = Math.min(sellThreshold, 15.0); // Cap at 15% max target
-
-		// Calculate trailing stop as percentage of take profit target
-		double trailingStop = Math.max(buyThreshold * 0.8, 2.0); // At least 2% trailing stop
-
-		log.info("Final thresholds for {}: buyDip={}%, takeProfit={}%, trailingStop={}%",
-				insights.getSymbol(), buyThreshold, sellThreshold, trailingStop);
+		log.info("Symbol {} swing analysis: troughs={} (min:{:.1f}% max:{:.1f}% avg:{:.1f}%), " + "peaks={} (min:{:.1f}% max:{:.1f}% avg:{:.1f}%)", insights.getSymbol(), troughCount, minTroughDrop,
+				maxTroughDrop, avgTroughDrop, peakCount, minPeakRise, maxPeakRise, avgPeakRise);
+		log.info("Calculated thresholds for {}: buyDip={:.1f}%, takeProfit={:.1f}%", insights.getSymbol(),
+				buyThreshold, sellThreshold);
 
 		StringBuilder context = new StringBuilder();
 		context.append("\n\n");
 		context.append("=".repeat(80)).append("\n");
-		context.append("OPTIMAL TRADING THRESHOLDS (from grid search optimization)\n");
-		context.append("=".repeat(80)).append("\n");
-		context.append("Based on analysis of ").append(insights.getDaysAnalyzed())
-				.append(" days of historical data for ").append(insights.getSymbol()).append(":\n\n");
+		context.append("HISTORICAL MARKET ANALYSIS FOR ").append(insights.getSymbol()).append("\n");
+		context.append("=".repeat(80)).append("\n\n");
+
+		context.append("ANALYZED DATA: ").append(insights.getDaysAnalyzed()).append(" days (~")
+				.append(String.format("%.1f", insights.getDaysAnalyzed() / 365.0)).append(" years)\n\n");
 
 		context.append("MARKET CHARACTERISTICS:\n");
-		context.append(String.format("   - Volatility Regime: %s (avg volatility: %.1f%%)\n",
-				insights.getVolatilityRegime(), insights.getAvgVolatility()));
-		context.append(String.format("   - Trend: %s (strength: %.1f%%)\n",
-				insights.getTrendDirection(), insights.getTrendStrength() * 100));
-		context.append(String.format("   - Mean Reverting: %s\n\n", insights.isMeanReverting() ? "Yes" : "No"));
+		context.append(String.format("   Volatility: %s (%.1f%% average)\n", insights.getVolatilityRegime(),
+				insights.getAvgVolatility()));
+		context.append(String.format("   Trend: %s (%.0f%% strength)\n", insights.getTrendDirection(),
+				insights.getTrendStrength() * 100));
+		context.append(String.format("   Mean Reverting: %s\n\n", insights.isMeanReverting() ? "YES" : "NO"));
 
-		context.append("OPTIMIZED THRESHOLDS (use these EXACTLY):\n");
-		context.append(String.format("   - BUY when price drops %.1f%% from 10-day high\n", buyThreshold));
-		context.append(String.format("   - TAKE PROFIT at +%.1f%% gain from entry\n", sellThreshold));
-		context.append(String.format("   - STOP LOSS / TRAILING STOP at -%.1f%% from entry or peak\n\n", trailingStop));
+		context.append("HISTORICAL TURNING POINTS (").append(turningPoints.size()).append(" total):\n");
+		context.append(String.format("   TROUGHS (buy points): %d occurrences\n", troughCount));
+		context.append(String.format("      - Drops ranged from %.1f%% to %.1f%% (avg: %.1f%%)\n",
+				minTroughDrop == Double.MAX_VALUE ? 0 : minTroughDrop, maxTroughDrop, avgTroughDrop));
+		context.append(String.format("   PEAKS (sell points): %d occurrences\n", peakCount));
+		context.append(String.format("      - Rises ranged from %.1f%% to %.1f%% (avg: %.1f%%)\n\n",
+				minPeakRise == Double.MAX_VALUE ? 0 : minPeakRise, maxPeakRise, avgPeakRise));
 
-		context.append("REQUIRED STRATEGY STRUCTURE:\n");
+		// Show actual turning point data
+		context.append("ACTUAL TURNING POINTS (most recent):\n");
+		int shown = 0;
+		for (int i = turningPoints.size() - 1; i >= 0 && shown < 15; i--) {
+			var tp = turningPoints.get(i);
+			context.append(String.format("   %s: %s @ $%.2f (%.1f%% change)\n", tp.getTimestamp().toString().substring(0, 10), tp.getType(), tp.getPrice(), tp.getPriceChangeFromPrevious()));
+			shown++;
+		}
+		context.append("\n");
+
+		context.append("SYMBOL-SPECIFIC THRESHOLDS (calculated from this data):\n");
+		context.append(String.format("   BUY THRESHOLD: %.1f%% drop from recent high\n", buyThreshold));
+		context.append(String.format("   SELL THRESHOLD: %.1f%% gain from entry\n", sellThreshold));
+		context.append(String.format("   STOP LOSS: %.1f%%\n\n", Math.max(buyThreshold * 0.8, 2.0)));
+
+		context.append("REQUIRED STRATEGY - Generate Python code that:\n");
+		context.append("1. BUYS when price drops ").append(String.format("%.1f%%", buyThreshold))
+				.append(" from 10-day high (catching dips before troughs)\n");
+		context.append("2. SELLS when price rises ").append(String.format("%.1f%%", sellThreshold))
+				.append(" from entry (capturing gains before peaks)\n");
+		context.append("3. Uses STOP LOSS at ").append(String.format("%.1f%%", Math.max(buyThreshold * 0.8, 2.0)))
+				.append(" to limit downside\n");
+		context.append("4. NO technical indicators (RSI, MACD, etc.) - pure price action\n\n");
+
 		context.append("```python\n");
 		context.append("import pandas as pd\n");
 		context.append("import numpy as np\n\n");
-		context.append(String.format("SYMBOL = '%s'\n", insights.getSymbol()));
-		context.append("TIMEFRAME = '1D'\n");
-		context.append(String.format("BUY_DIP_PERCENT = %.1f  # Buy when price drops this %% from 10-day high\n", buyThreshold));
-		context.append(String.format("TAKE_PROFIT_PERCENT = %.1f  # Sell when up this %% from entry\n", sellThreshold));
-		context.append(String.format("STOP_LOSS_PERCENT = %.1f  # Sell when down this %% from entry\n\n", trailingStop));
+		context.append(String.format("# Symbol-specific thresholds derived from %d days of %s data\n",
+				insights.getDaysAnalyzed(), insights.getSymbol()));
+		context.append(String.format("BUY_DIP = %.1f  # Buy when price drops this %% from 10-day high\n", buyThreshold));
+		context.append(String.format("TAKE_PROFIT = %.1f  # Sell when up this %% from entry\n", sellThreshold));
+		context.append(String.format("STOP_LOSS = %.1f  # Exit if down this %% from entry\n\n",
+				Math.max(buyThreshold * 0.8, 2.0)));
 		context.append("entry_price = None\n\n");
 		context.append("def strategy(data):\n");
 		context.append("    global entry_price\n");
 		context.append("    if len(data) < 11:\n");
 		context.append("        return 'HOLD'\n\n");
-		context.append("    current_price = data['close'].iloc[-1]\n");
-		context.append("    recent_high = data['high'].iloc[-11:-1].max()  # 10-day high\n\n");
-		context.append("    # If we have a position, check exit conditions\n");
+		context.append("    price = data['close'].iloc[-1]\n");
+		context.append("    high_10d = data['high'].iloc[-11:-1].max()\n\n");
 		context.append("    if entry_price is not None:\n");
-		context.append("        pct_change = (current_price - entry_price) / entry_price * 100\n\n");
-		context.append("        # Take profit\n");
-		context.append("        if pct_change >= TAKE_PROFIT_PERCENT:\n");
+		context.append("        pnl = (price - entry_price) / entry_price * 100\n");
+		context.append("        if pnl >= TAKE_PROFIT:\n");
 		context.append("            entry_price = None\n");
 		context.append("            return 'SELL'\n");
-		context.append("        # Stop loss\n");
-		context.append("        if pct_change <= -STOP_LOSS_PERCENT:\n");
+		context.append("        if pnl <= -STOP_LOSS:\n");
 		context.append("            entry_price = None\n");
 		context.append("            return 'SELL'\n");
 		context.append("        return 'HOLD'\n\n");
-		context.append("    # No position - look for buy on dip\n");
-		context.append("    pct_from_high = (current_price - recent_high) / recent_high * 100\n");
-		context.append("    if pct_from_high <= -BUY_DIP_PERCENT:\n");
-		context.append("        entry_price = current_price\n");
-		context.append("        return 'BUY'\n\n");
+		context.append("    dip = (price - high_10d) / high_10d * 100\n");
+		context.append("    if dip <= -BUY_DIP:\n");
+		context.append("        entry_price = price\n");
+		context.append("        return 'BUY'\n");
 		context.append("    return 'HOLD'\n");
 		context.append("```\n\n");
 
-		context.append("CRITICAL: Use the EXACT thresholds above. Do NOT use RSI, MACD, or other indicators.\n");
 		context.append("=".repeat(80)).append("\n");
 
 		return context.toString();

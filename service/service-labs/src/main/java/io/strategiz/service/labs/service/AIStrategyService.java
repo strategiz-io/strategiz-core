@@ -76,16 +76,23 @@ public class AIStrategyService extends BaseService {
 	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
 		String promptPreview = (request.getPrompt() != null && !request.getPrompt().isEmpty())
 				? request.getPrompt().substring(0, Math.min(50, request.getPrompt().length()))
-				: "[Autonomous AI - Autonomous Mode]";
+				: "[Autonomous Mode]";
 		log.info("Generating strategy from prompt: {}", promptPreview);
+
+		// Check which autonomous mode we're using
+		AIStrategyRequest.AutonomousMode autonomousMode = request.getAutonomousMode();
+		if (autonomousMode == null) {
+			autonomousMode = AIStrategyRequest.AutonomousMode.GENERATIVE_AI; // Default
+		}
+		log.info("Autonomous Mode: {}", autonomousMode);
 
 		log.info("Step 1/6: Analyzing prompt for user strategy request");
 
 		try {
-			// HISTORICAL INSIGHTS: Get historical market insights if enabled (Autonomous AI mode)
+			// HISTORICAL INSIGHTS: Get historical market insights if enabled
 			SymbolInsights insights = null;
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-				log.info("Historical Market Insights enabled - analyzing 7 years of data");
+				log.info("Historical Market Insights enabled - analyzing market data");
 				insights = getHistoricalInsights(request);
 				if (insights != null) {
 					log.info("Historical insights obtained for {}: {} volatility, {} trend", insights.getSymbol(),
@@ -93,13 +100,19 @@ public class AIStrategyService extends BaseService {
 				}
 			}
 
-			// FEELING LUCKY: Calculate deterministic thresholds and pass to AI as context
-			// This gives AI guided parameters based on actual historical data
+			// AUTONOMOUS MODE (Deterministic): Pure math, no LLM
+			if (autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS
+					&& Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null) {
+				log.info("AUTONOMOUS MODE: Generating deterministic signals using mathematical optimization");
+				return generateDeterministicStrategy(insights, request);
+			}
+
+			// GENERATIVE AI MODE: Use LLM to learn patterns and generate strategy
 			String deterministicContext = null;
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null
 					&& insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
-				deterministicContext = buildDeterministicContext(insights);
-				log.info("Autonomous AI mode - calculated deterministic thresholds as context for AI");
+				deterministicContext = buildGenerativeAIContext(insights);
+				log.info("GENERATIVE AI MODE: Built context for pattern learning");
 			}
 
 			// REGULAR AI GENERATION: For non-Autonomous AI or when deterministic fails
@@ -865,10 +878,141 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Build deterministic context with EXACT BUY/SELL dates from turning points.
+	 * AUTONOMOUS MODE: Generate strategy using pure mathematical signal detection.
+	 * Finds local minima (BUY) and maxima (SELL) using sliding window algorithm.
+	 * No LLM involved - pure deterministic optimization.
+	 */
+	private AIStrategyResponse generateDeterministicStrategy(SymbolInsights insights, AIStrategyRequest request) {
+		String symbol = insights.getSymbol();
+		String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
+
+		// Fetch market data for signal detection
+		List<MarketDataEntity> marketData = fetchMarketDataForOracle(symbol, timeframe);
+		if (marketData == null || marketData.size() < 20) {
+			log.warn("Insufficient market data for deterministic strategy: {}", symbol);
+			return AIStrategyResponse.error("Insufficient market data for " + symbol);
+		}
+
+		log.info("AUTONOMOUS: Analyzing {} price bars for {} to find optimal signals", marketData.size(), symbol);
+
+		// Parse user prompt for window size preference (default 10 days)
+		int windowSize = 10;
+		String prompt = request.getPrompt();
+		if (prompt != null) {
+			if (prompt.toLowerCase().contains("5-day") || prompt.toLowerCase().contains("5 day")) {
+				windowSize = 5;
+			}
+			else if (prompt.toLowerCase().contains("20-day") || prompt.toLowerCase().contains("20 day")) {
+				windowSize = 20;
+			}
+			else if (prompt.toLowerCase().contains("aggressive") || prompt.toLowerCase().contains("more trades")) {
+				windowSize = 5;
+			}
+			else if (prompt.toLowerCase().contains("conservative") || prompt.toLowerCase().contains("fewer trades")) {
+				windowSize = 20;
+			}
+		}
+
+		// Find local minima and maxima
+		List<String> buyDates = new ArrayList<>();
+		List<String> sellDates = new ArrayList<>();
+		List<Double> prices = marketData.stream().map(md -> md.getClose().doubleValue()).collect(java.util.stream.Collectors.toList());
+
+		for (int i = windowSize; i < prices.size() - windowSize; i++) {
+			double current = prices.get(i);
+
+			// Check if local minimum (BUY signal)
+			boolean isLocalMin = true;
+			for (int j = i - windowSize; j <= i + windowSize; j++) {
+				if (j != i && prices.get(j) < current) {
+					isLocalMin = false;
+					break;
+				}
+			}
+			if (isLocalMin) {
+				String date = marketData.get(i).getTimestampAsLocalDateTime().toLocalDate().toString();
+				buyDates.add(date);
+			}
+
+			// Check if local maximum (SELL signal)
+			boolean isLocalMax = true;
+			for (int j = i - windowSize; j <= i + windowSize; j++) {
+				if (j != i && prices.get(j) > current) {
+					isLocalMax = false;
+					break;
+				}
+			}
+			if (isLocalMax) {
+				String date = marketData.get(i).getTimestampAsLocalDateTime().toLocalDate().toString();
+				sellDates.add(date);
+			}
+		}
+
+		log.info("AUTONOMOUS: Found {} BUY signals (local minima) and {} SELL signals (local maxima)",
+				buyDates.size(), sellDates.size());
+
+		// Generate Python code with hardcoded optimal dates
+		StringBuilder code = new StringBuilder();
+		code.append("import pandas as pd\n");
+		code.append("import numpy as np\n\n");
+		code.append("# AUTONOMOUS MODE - Mathematically Optimal Signals\n");
+		code.append("# Window size: ").append(windowSize).append(" days\n");
+		code.append("# BUY at local minima, SELL at local maxima\n\n");
+
+		code.append("BUY_DATES = {\n");
+		for (int i = 0; i < buyDates.size(); i++) {
+			code.append("    '").append(buyDates.get(i)).append("'");
+			if (i < buyDates.size() - 1) code.append(",");
+			code.append("\n");
+		}
+		code.append("}\n\n");
+
+		code.append("SELL_DATES = {\n");
+		for (int i = 0; i < sellDates.size(); i++) {
+			code.append("    '").append(sellDates.get(i)).append("'");
+			if (i < sellDates.size() - 1) code.append(",");
+			code.append("\n");
+		}
+		code.append("}\n\n");
+
+		code.append("entry_price = None\n\n");
+		code.append("def strategy(data):\n");
+		code.append("    global entry_price\n");
+		code.append("    current_date = str(data.index[-1])[:10]\n\n");
+		code.append("    if entry_price is not None and current_date in SELL_DATES:\n");
+		code.append("        entry_price = None\n");
+		code.append("        return 'SELL'\n\n");
+		code.append("    if entry_price is None and current_date in BUY_DATES:\n");
+		code.append("        entry_price = data['close'].iloc[-1]\n");
+		code.append("        return 'BUY'\n\n");
+		code.append("    return 'HOLD'\n");
+
+		// Build response
+		AIStrategyResponse response = new AIStrategyResponse();
+		response.setSuccess(true);
+		response.setPythonCode(code.toString());
+		response.setCanRepresentVisually(true);
+
+		// Add explanation
+		String explanation = String.format(
+				"AUTONOMOUS MODE: Analyzed %d days of %s data using %d-day window. " +
+						"Found %d optimal BUY points (local price minima) and %d optimal SELL points (local price maxima). " +
+						"This is mathematically optimized for maximum hindsight profit.",
+				marketData.size(), symbol, windowSize, buyDates.size(), sellDates.size());
+		response.setExplanation(explanation);
+
+		// Set historical insights used flag
+		response.setHistoricalInsightsUsed(true);
+		response.setHistoricalInsights(insights);
+
+		return response;
+	}
+
+	/**
+	 * GENERATIVE AI MODE: Build context for LLM to learn patterns from turning points.
 	 * We already know the peaks and troughs - just generate code that trades on those dates!
 	 */
-	private String buildDeterministicContext(SymbolInsights insights) {
+	private String buildGenerativeAIContext(SymbolInsights insights) {
 		if (insights == null) {
 			return null;
 		}

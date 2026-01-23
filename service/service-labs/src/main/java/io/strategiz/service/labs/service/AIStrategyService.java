@@ -1384,11 +1384,64 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Parse optimization response and add optimization summary.
+	 * Parse optimization response with full analysis fields.
+	 * Unlike parseGenerationResponse (which only extracts visualConfig/pythonCode),
+	 * this extracts explanation, suggestions, etc. for the Optimize feature.
 	 */
 	private AIStrategyResponse parseOptimizationResponse(LLMResponse llmResponse, AIStrategyRequest request) {
-		// Parse using existing method
-		AIStrategyResponse response = parseGenerationResponse(llmResponse);
+		AIStrategyResponse response = new AIStrategyResponse();
+
+		if (llmResponse == null || !llmResponse.isSuccess()) {
+			response.setSuccess(false);
+			String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+			response.setError(sanitizeErrorMessage(technicalError));
+			return response;
+		}
+
+		String text = llmResponse.getContent();
+		if (text == null || text.isEmpty()) {
+			response.setSuccess(false);
+			response.setError("Empty response from AI");
+			return response;
+		}
+
+		try {
+			JsonNode json = extractJsonFromResponse(text);
+			if (json != null) {
+				// Extract all fields for optimization
+				if (json.has("visualConfig")) {
+					response.setVisualConfig(objectMapper.convertValue(json.get("visualConfig"), Map.class));
+				}
+				if (json.has("pythonCode")) {
+					response.setPythonCode(json.get("pythonCode").asText());
+				}
+				if (json.has("explanation")) {
+					response.setExplanation(json.get("explanation").asText());
+				}
+				if (json.has("suggestions")) {
+					response.setSuggestions(objectMapper.convertValue(json.get("suggestions"),
+							objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)));
+				}
+				if (json.has("summaryCard")) {
+					response.setSummaryCard(json.get("summaryCard").asText());
+				}
+				if (json.has("riskLevel")) {
+					try {
+						response.setRiskLevel(AIStrategyResponse.RiskLevel.valueOf(json.get("riskLevel").asText()));
+					} catch (IllegalArgumentException e) {
+						response.setRiskLevel(AIStrategyResponse.RiskLevel.MEDIUM);
+					}
+				}
+				response.setSuccess(true);
+			} else {
+				response.setSuccess(false);
+				response.setError("Could not parse optimization response");
+			}
+		} catch (Exception e) {
+			log.error("Error parsing optimization response", e);
+			response.setSuccess(false);
+			response.setError("Failed to parse optimization response");
+		}
 
 		if (!response.isSuccess()) {
 			return response;

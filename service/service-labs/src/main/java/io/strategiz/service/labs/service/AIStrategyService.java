@@ -865,120 +865,108 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Build deterministic context with FULL PRICE DATA for hindsight oracle mode.
-	 * The LLM receives ALL historical prices and can determine optimal buy/sell points
-	 * with perfect information (looking at the entire past as "future" knowledge).
+	 * Build deterministic context with EXACT BUY/SELL dates from turning points.
+	 * We already know the peaks and troughs - just generate code that trades on those dates!
 	 */
 	private String buildDeterministicContext(SymbolInsights insights) {
 		if (insights == null) {
 			return null;
 		}
 
-		String symbol = insights.getSymbol();
-		String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
-
-		// Fetch ACTUAL market data - this is what we've been missing!
-		List<MarketDataEntity> marketData = fetchMarketDataForOracle(symbol, timeframe);
-
-		if (marketData == null || marketData.isEmpty()) {
-			log.warn("No market data available for {} - falling back to turning points only", symbol);
+		var turningPoints = insights.getTurningPoints();
+		if (turningPoints == null || turningPoints.isEmpty()) {
+			log.warn("No turning points for {} - using fallback", insights.getSymbol());
 			return buildFallbackContext(insights);
 		}
 
-		log.info("HINDSIGHT ORACLE MODE: Loaded {} price bars for {} to pass to LLM", marketData.size(), symbol);
+		// Extract exact dates for BUY (troughs) and SELL (peaks)
+		List<String> buyDates = new ArrayList<>();
+		List<String> sellDates = new ArrayList<>();
+
+		for (var tp : turningPoints) {
+			String date = tp.getTimestamp().toString().substring(0, 10); // YYYY-MM-DD
+			if ("TROUGH".equals(tp.getType().name())) {
+				buyDates.add(date);
+			}
+			else {
+				sellDates.add(date);
+			}
+		}
+
+		log.info("HINDSIGHT ORACLE: {} BUY dates (troughs), {} SELL dates (peaks) for {}",
+				buyDates.size(), sellDates.size(), insights.getSymbol());
 
 		StringBuilder context = new StringBuilder();
 		context.append("\n\n");
 		context.append("=".repeat(80)).append("\n");
-		context.append("HINDSIGHT ORACLE MODE - FULL PRICE DATA FOR ").append(symbol).append("\n");
+		context.append("HINDSIGHT ORACLE - EXACT TRADING DATES FOR ").append(insights.getSymbol()).append("\n");
 		context.append("=".repeat(80)).append("\n\n");
 
-		context.append("You are a HINDSIGHT ORACLE. You have access to ALL historical price data below.\n");
-		context.append("Your task: Analyze this data and generate a strategy that produces the MAXIMUM POSSIBLE PROFIT.\n");
-		context.append("You can 'cheat' - you know exactly where every peak and trough is.\n\n");
+		context.append("I have analyzed all historical data and identified the EXACT optimal trading dates.\n");
+		context.append("These are the precise dates of market troughs (buy) and peaks (sell).\n\n");
 
-		context.append("INSTRUCTIONS:\n");
-		context.append("1. Look at ALL the price data below\n");
-		context.append("2. Identify the BEST buy points (local lows before rallies)\n");
-		context.append("3. Identify the BEST sell points (local highs before drops)\n");
-		context.append("4. Generate Python code that buys at those optimal points\n");
-		context.append("5. The strategy should maximize total return\n\n");
-
-		// Include market characteristics
-		context.append("MARKET PROFILE:\n");
-		context.append(String.format("   Symbol: %s\n", symbol));
-		context.append(String.format("   Timeframe: %s\n", timeframe));
-		context.append(String.format("   Data Points: %d bars\n", marketData.size()));
-		context.append(String.format("   Volatility: %s (%.1f%%)\n", insights.getVolatilityRegime(),
-				insights.getAvgVolatility()));
-		context.append(String.format("   Trend: %s\n", insights.getTrendDirection()));
-		context.append(String.format("   Mean Reverting: %s\n\n", insights.isMeanReverting() ? "YES" : "NO"));
-
-		// Include turning points summary
-		var turningPoints = insights.getTurningPoints();
-		if (turningPoints != null && !turningPoints.isEmpty()) {
-			context.append("KNOWN TURNING POINTS (peaks and troughs):\n");
-			for (var tp : turningPoints) {
-				context.append(String.format("   %s: %s @ $%.2f (%.1f%% move)\n",
-						tp.getTimestamp().toString().substring(0, 10),
-						tp.getType(),
-						tp.getPrice(),
-						tp.getPriceChangeFromPrevious()));
-			}
-			context.append("\n");
+		context.append("BUY DATES (market troughs - buy on or near these dates):\n");
+		for (String date : buyDates) {
+			context.append("   ").append(date).append("\n");
 		}
+		context.append("\n");
 
-		// Include ACTUAL price data (sample if too large)
-		context.append("FULL PRICE DATA (date, open, high, low, close):\n");
-		context.append("```csv\n");
-		context.append("date,open,high,low,close\n");
-
-		// If data is too large, sample it intelligently
-		int maxRows = 500; // Limit to avoid token limits
-		List<MarketDataEntity> dataToShow = marketData;
-		if (marketData.size() > maxRows) {
-			// Sample evenly across the dataset
-			dataToShow = new ArrayList<>();
-			double step = (double) marketData.size() / maxRows;
-			for (int i = 0; i < maxRows; i++) {
-				int idx = (int) (i * step);
-				if (idx < marketData.size()) {
-					dataToShow.add(marketData.get(idx));
-				}
-			}
-			context.append("# Sampled ").append(dataToShow.size()).append(" of ")
-					.append(marketData.size()).append(" total bars\n");
+		context.append("SELL DATES (market peaks - sell on or near these dates):\n");
+		for (String date : sellDates) {
+			context.append("   ").append(date).append("\n");
 		}
+		context.append("\n");
 
-		for (MarketDataEntity bar : dataToShow) {
-			context.append(String.format("%s,%.2f,%.2f,%.2f,%.2f\n",
-					bar.getTimestampAsLocalDateTime().toLocalDate(),
-					bar.getOpen(),
-					bar.getHigh(),
-					bar.getLow(),
-					bar.getClose()));
-		}
-		context.append("```\n\n");
+		context.append("GENERATE THIS EXACT STRATEGY (copy this code structure):\n\n");
 
-		// The hindsight oracle prompt
-		context.append("GENERATE STRATEGY:\n");
-		context.append("Create Python code that analyzes this price data and generates optimal signals.\n");
-		context.append("Since you can see ALL the data, identify the exact dates to BUY (near troughs)\n");
-		context.append("and SELL (near peaks) for maximum profit.\n\n");
-
+		// Generate the actual Python code with hardcoded dates
 		context.append("```python\n");
 		context.append("import pandas as pd\n");
 		context.append("import numpy as np\n\n");
-		context.append("# HINDSIGHT ORACLE STRATEGY\n");
-		context.append("# This strategy uses knowledge of historical patterns to trade optimally\n\n");
+		context.append("# HINDSIGHT ORACLE STRATEGY - Trades at known optimal points\n");
+		context.append("# BUY at troughs, SELL at peaks\n\n");
+
+		// Hardcode the buy dates
+		context.append("BUY_DATES = {\n");
+		for (int i = 0; i < buyDates.size(); i++) {
+			context.append("    '").append(buyDates.get(i)).append("'");
+			if (i < buyDates.size() - 1)
+				context.append(",");
+			context.append("\n");
+		}
+		context.append("}\n\n");
+
+		// Hardcode the sell dates
+		context.append("SELL_DATES = {\n");
+		for (int i = 0; i < sellDates.size(); i++) {
+			context.append("    '").append(sellDates.get(i)).append("'");
+			if (i < sellDates.size() - 1)
+				context.append(",");
+			context.append("\n");
+		}
+		context.append("}\n\n");
+
 		context.append("entry_price = None\n\n");
 		context.append("def strategy(data):\n");
 		context.append("    global entry_price\n");
-		context.append("    # Your hindsight-optimized logic here\n");
-		context.append("    # Analyze price patterns and return 'BUY', 'SELL', or 'HOLD'\n");
-		context.append("    pass\n");
+		context.append("    \n");
+		context.append("    # Get current date from the data\n");
+		context.append("    current_date = str(data.index[-1])[:10]\n");
+		context.append("    \n");
+		context.append("    # Check if we should SELL (at a peak)\n");
+		context.append("    if entry_price is not None and current_date in SELL_DATES:\n");
+		context.append("        entry_price = None\n");
+		context.append("        return 'SELL'\n");
+		context.append("    \n");
+		context.append("    # Check if we should BUY (at a trough)\n");
+		context.append("    if entry_price is None and current_date in BUY_DATES:\n");
+		context.append("        entry_price = data['close'].iloc[-1]\n");
+		context.append("        return 'BUY'\n");
+		context.append("    \n");
+		context.append("    return 'HOLD'\n");
 		context.append("```\n\n");
 
+		context.append("IMPORTANT: Use the EXACT code above. The dates are the known optimal trading points.\n");
 		context.append("=".repeat(80)).append("\n");
 
 		return context.toString();

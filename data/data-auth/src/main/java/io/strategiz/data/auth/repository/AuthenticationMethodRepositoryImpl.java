@@ -206,4 +206,47 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
             throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", credentialId);
         }
     }
+
+    @Override
+    public List<AuthenticationMethodEntity> findByType(AuthenticationMethodType type) {
+        try {
+            log.debug("Searching for authentication methods of type: {}", type);
+
+            // Use collection group query to search across all users' security subcollections
+            Query query = firestore.collectionGroup("security")
+                    .whereEqualTo("authenticationMethod", type.name())
+                    .whereEqualTo("isActive", true)
+                    .limit(1000); // Reasonable limit for phone number lookup
+
+            ApiFuture<QuerySnapshot> querySnapshot = query.get();
+            QuerySnapshot snapshot = querySnapshot.get();
+
+            if (snapshot.isEmpty()) {
+                log.debug("No authentication methods found of type: {}", type);
+                return List.of();
+            }
+
+            return snapshot.getDocuments().stream()
+                    .map(doc -> {
+                        AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+                        entity.setId(doc.getId());
+                        // Extract userId from the document path: users/{userId}/security/{methodId}
+                        String path = doc.getReference().getPath();
+                        String[] pathParts = path.split("/");
+                        if (pathParts.length >= 2) {
+                            // Store userId in metadata for retrieval
+                            entity.putMetadata("userId", pathParts[1]);
+                        }
+                        return entity;
+                    })
+                    .collect(Collectors.toList());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Failed to find authentication methods by type: {}", type, e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AuthenticationMethodEntity", type.name());
+        } catch (ExecutionException e) {
+            log.error("Failed to find authentication methods by type: {}", type, e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", type.name());
+        }
+    }
 }

@@ -36,6 +36,16 @@ public class AIStrategyRequest {
 
 	}
 
+	/**
+	 * Mode for Autonomous strategy generation.
+	 */
+	public enum AutonomousMode {
+
+		GENERATIVE_AI, // AI learns patterns and generates predictive strategy
+		AUTONOMOUS // Pure math - deterministic local min/max signal detection
+
+	}
+
 	@NotBlank(message = "Prompt is required")
 	@JsonProperty("prompt")
 	private String prompt;
@@ -69,6 +79,9 @@ public class AIStrategyRequest {
 
 	@JsonProperty("optimizationMode")
 	private OptimizationMode optimizationMode = OptimizationMode.ENHANCE_EXISTING; // Mode for strategy optimization
+
+	@JsonProperty("autonomousMode")
+	private AutonomousMode autonomousMode = AutonomousMode.GENERATIVE_AI; // Mode: Generative AI or Autonomous (deterministic)
 
 	// Getters and Setters
 
@@ -158,6 +171,14 @@ public class AIStrategyRequest {
 
 	public void setOptimizationMode(OptimizationMode optimizationMode) {
 		this.optimizationMode = optimizationMode;
+	}
+
+	public AutonomousMode getAutonomousMode() {
+		return autonomousMode;
+	}
+
+	public void setAutonomousMode(AutonomousMode autonomousMode) {
+		this.autonomousMode = autonomousMode;
 	}
 
 	/**

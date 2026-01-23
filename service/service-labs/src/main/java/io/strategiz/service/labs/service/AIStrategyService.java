@@ -860,108 +860,128 @@ public class AIStrategyService extends BaseService {
 
 	/**
 	 * Build deterministic context from turning points to guide AI strategy generation.
-	 * Calculates optimal thresholds from historical data and formats as instructions for AI.
+	 * Uses optimalParameters from grid search when available, falls back to calculated thresholds.
 	 */
 	private String buildDeterministicContext(SymbolInsights insights) {
 		if (insights == null || insights.getTurningPoints() == null || insights.getTurningPoints().isEmpty()) {
 			return null;
 		}
 
-		// Calculate average swing magnitudes from turning points
-		double avgDropToTrough = 0, avgRiseFromTrough = 0;
-		int troughCount = 0, peakCount = 0;
-		double maxDrop = 0, maxRise = 0;
+		// PRIORITY 1: Use pre-computed optimal parameters from grid search (most reliable)
+		double buyThreshold = 5.0; // Default: 5% dip to buy
+		double sellThreshold = 8.0; // Default: 8% target profit
 
-		for (var tp : insights.getTurningPoints()) {
-			if (tp.getPriceChangeFromPrevious() != 0) {
-				if ("TROUGH".equals(tp.getType().name())) {
-					double drop = Math.abs(tp.getPriceChangeFromPrevious());
-					avgDropToTrough += drop;
-					maxDrop = Math.max(maxDrop, drop);
-					troughCount++;
-				}
-				else {
-					double rise = tp.getPriceChangeFromPrevious();
-					avgRiseFromTrough += rise;
-					maxRise = Math.max(maxRise, rise);
-					peakCount++;
-				}
+		Map<String, Object> optimalParams = insights.getOptimalParameters();
+		if (optimalParams != null && !optimalParams.isEmpty()) {
+			// Use grid-searched optimal parameters
+			Object stopLoss = optimalParams.get("stop_loss_percent");
+			Object takeProfit = optimalParams.get("take_profit_percent");
+
+			if (stopLoss instanceof Number) {
+				buyThreshold = ((Number) stopLoss).doubleValue();
+				log.info("Using optimal stop_loss_percent from grid search: {}%", buyThreshold);
+			}
+			if (takeProfit instanceof Number) {
+				sellThreshold = ((Number) takeProfit).doubleValue();
+				log.info("Using optimal take_profit_percent from grid search: {}%", sellThreshold);
 			}
 		}
+		else {
+			// PRIORITY 2: Calculate from turning points (fallback)
+			double avgDropToTrough = 0, avgRiseFromTrough = 0;
+			int troughCount = 0, peakCount = 0;
 
-		if (troughCount > 0)
-			avgDropToTrough /= troughCount;
-		if (peakCount > 0)
-			avgRiseFromTrough /= peakCount;
+			for (var tp : insights.getTurningPoints()) {
+				if (tp.getPriceChangeFromPrevious() != 0) {
+					if ("TROUGH".equals(tp.getType().name())) {
+						avgDropToTrough += Math.abs(tp.getPriceChangeFromPrevious());
+						troughCount++;
+					}
+					else {
+						avgRiseFromTrough += tp.getPriceChangeFromPrevious();
+						peakCount++;
+					}
+				}
+			}
 
-		// Use 80% of avg swing as threshold (gives buffer for early entry)
-		double buyThreshold = Math.max(avgDropToTrough * 0.8, 5.0);
-		double sellThreshold = Math.max(avgRiseFromTrough * 0.8, 8.0);
+			if (troughCount > 0)
+				avgDropToTrough /= troughCount;
+			if (peakCount > 0)
+				avgRiseFromTrough /= peakCount;
+
+			// Use 50% of avg swing (more conservative for more signals)
+			buyThreshold = Math.max(avgDropToTrough * 0.5, 3.0);
+			sellThreshold = Math.max(avgRiseFromTrough * 0.5, 5.0);
+			log.info("Calculated thresholds from turning points: buy={}%, sell={}%", buyThreshold, sellThreshold);
+		}
+
+		// Ensure thresholds are reasonable (not too strict)
+		buyThreshold = Math.min(buyThreshold, 8.0); // Cap at 8% max dip
+		sellThreshold = Math.min(sellThreshold, 15.0); // Cap at 15% max target
+
+		// Calculate trailing stop as percentage of take profit target
+		double trailingStop = Math.max(buyThreshold * 0.8, 2.0); // At least 2% trailing stop
+
+		log.info("Final thresholds for {}: buyDip={}%, takeProfit={}%, trailingStop={}%",
+				insights.getSymbol(), buyThreshold, sellThreshold, trailingStop);
 
 		StringBuilder context = new StringBuilder();
 		context.append("\n\n");
-		context.append("=" .repeat(80)).append("\n");
-		context.append("🎯 AI-CALCULATED OPTIMAL TRADING THRESHOLDS\n");
 		context.append("=".repeat(80)).append("\n");
-		context.append("Based on analysis of ").append(insights.getTurningPoints().size())
-				.append(" historical turning points, here are the OPTIMAL thresholds:\n\n");
+		context.append("OPTIMAL TRADING THRESHOLDS (from grid search optimization)\n");
+		context.append("=".repeat(80)).append("\n");
+		context.append("Based on analysis of ").append(insights.getDaysAnalyzed())
+				.append(" days of historical data for ").append(insights.getSymbol()).append(":\n\n");
 
-		context.append(String.format("📊 SWING ANALYSIS RESULTS:\n"));
-		context.append(String.format("   - Analyzed %d troughs (buy points) and %d peaks (sell points)\n",
-				troughCount, peakCount));
-		context.append(String.format("   - Average drop before troughs: %.1f%% (max: %.1f%%)\n",
-				avgDropToTrough, maxDrop));
-		context.append(String.format("   - Average rise before peaks: %.1f%% (max: %.1f%%)\n\n",
-				avgRiseFromTrough, maxRise));
+		context.append("MARKET CHARACTERISTICS:\n");
+		context.append(String.format("   - Volatility Regime: %s (avg volatility: %.1f%%)\n",
+				insights.getVolatilityRegime(), insights.getAvgVolatility()));
+		context.append(String.format("   - Trend: %s (strength: %.1f%%)\n",
+				insights.getTrendDirection(), insights.getTrendStrength() * 100));
+		context.append(String.format("   - Mean Reverting: %s\n\n", insights.isMeanReverting() ? "Yes" : "No"));
 
-		context.append("🎯 RECOMMENDED THRESHOLDS (use these EXACTLY):\n");
-		context.append(String.format("   - BUY THRESHOLD: -%.1f%% from 20-day high (dip buying)\n", buyThreshold));
-		context.append(String.format("   - SELL THRESHOLD: -%.1f%% from highest price since entry (trailing stop)\n\n",
-				sellThreshold * 0.5)); // Use smaller trailing stop
+		context.append("OPTIMIZED THRESHOLDS (use these EXACTLY):\n");
+		context.append(String.format("   - BUY when price drops %.1f%% from 10-day high\n", buyThreshold));
+		context.append(String.format("   - TAKE PROFIT at +%.1f%% gain from entry\n", sellThreshold));
+		context.append(String.format("   - STOP LOSS / TRAILING STOP at -%.1f%% from entry or peak\n\n", trailingStop));
 
-		context.append("📝 REQUIRED STRATEGY STRUCTURE (TRAILING STOP APPROACH):\n");
+		context.append("REQUIRED STRATEGY STRUCTURE:\n");
 		context.append("```python\n");
 		context.append("import pandas as pd\n");
 		context.append("import numpy as np\n\n");
 		context.append(String.format("SYMBOL = '%s'\n", insights.getSymbol()));
 		context.append("TIMEFRAME = '1D'\n");
-		context.append(String.format("BUY_DIP_THRESHOLD = %.1f  # Buy when price drops this %% from 20-day high\n", buyThreshold));
-		context.append(String.format("TRAILING_STOP = %.1f  # Sell when price drops this %% from peak since entry\n\n", sellThreshold * 0.5));
-		context.append("# Track position state (must persist between calls)\n");
-		context.append("entry_price = None\n");
-		context.append("highest_since_entry = None\n\n");
+		context.append(String.format("BUY_DIP_PERCENT = %.1f  # Buy when price drops this %% from 10-day high\n", buyThreshold));
+		context.append(String.format("TAKE_PROFIT_PERCENT = %.1f  # Sell when up this %% from entry\n", sellThreshold));
+		context.append(String.format("STOP_LOSS_PERCENT = %.1f  # Sell when down this %% from entry\n\n", trailingStop));
+		context.append("entry_price = None\n\n");
 		context.append("def strategy(data):\n");
-		context.append("    global entry_price, highest_since_entry\n");
-		context.append("    if len(data) < 21:\n");
+		context.append("    global entry_price\n");
+		context.append("    if len(data) < 11:\n");
 		context.append("        return 'HOLD'\n\n");
 		context.append("    current_price = data['close'].iloc[-1]\n");
-		context.append("    recent_high = data['high'].iloc[-21:-1].max()  # 20-day high excluding today\n\n");
-		context.append("    # If we have a position, check trailing stop\n");
+		context.append("    recent_high = data['high'].iloc[-11:-1].max()  # 10-day high\n\n");
+		context.append("    # If we have a position, check exit conditions\n");
 		context.append("    if entry_price is not None:\n");
-		context.append("        highest_since_entry = max(highest_since_entry or current_price, current_price)\n");
-		context.append("        pct_from_peak = (current_price - highest_since_entry) / highest_since_entry * 100\n\n");
-		context.append("        # SELL if price drops from peak (trailing stop)\n");
-		context.append("        if pct_from_peak <= -TRAILING_STOP:\n");
+		context.append("        pct_change = (current_price - entry_price) / entry_price * 100\n\n");
+		context.append("        # Take profit\n");
+		context.append("        if pct_change >= TAKE_PROFIT_PERCENT:\n");
 		context.append("            entry_price = None\n");
-		context.append("            highest_since_entry = None\n");
 		context.append("            return 'SELL'\n");
-		context.append("        return 'HOLD'  # Hold position\n\n");
-		context.append("    # No position - look for buy opportunity\n");
-		context.append("    pct_from_high = (current_price - recent_high) / recent_high * 100\n\n");
-		context.append("    # BUY when price dips from recent high\n");
-		context.append("    if pct_from_high <= -BUY_DIP_THRESHOLD:\n");
+		context.append("        # Stop loss\n");
+		context.append("        if pct_change <= -STOP_LOSS_PERCENT:\n");
+		context.append("            entry_price = None\n");
+		context.append("            return 'SELL'\n");
+		context.append("        return 'HOLD'\n\n");
+		context.append("    # No position - look for buy on dip\n");
+		context.append("    pct_from_high = (current_price - recent_high) / recent_high * 100\n");
+		context.append("    if pct_from_high <= -BUY_DIP_PERCENT:\n");
 		context.append("        entry_price = current_price\n");
-		context.append("        highest_since_entry = current_price\n");
 		context.append("        return 'BUY'\n\n");
 		context.append("    return 'HOLD'\n");
 		context.append("```\n\n");
 
-		context.append("⚠️ CRITICAL INSTRUCTIONS:\n");
-		context.append("1. Use the EXACT thresholds above (").append(String.format("-%.1f%%", buyThreshold))
-				.append(" buy dip, ").append(String.format("-%.1f%%", sellThreshold * 0.5)).append(" trailing stop)\n");
-		context.append("2. Use TRAILING STOP logic - sell when price DROPS from peak, not when it rises from low!\n");
-		context.append("3. Track entry_price and highest_since_entry to implement trailing stop correctly\n");
-		context.append("4. Do NOT use RSI, MACD, or other indicators - simple price-based rules work best\n");
+		context.append("CRITICAL: Use the EXACT thresholds above. Do NOT use RSI, MACD, or other indicators.\n");
 		context.append("=".repeat(80)).append("\n");
 
 		return context.toString();
@@ -1290,16 +1310,43 @@ public class AIStrategyService extends BaseService {
 			return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
 		}
 
+		// Log the full technical error for debugging
+		log.error("LLM technical error (sanitizing for user): {}", technicalError);
+
 		String lowerError = technicalError.toLowerCase();
+
+		// API key not configured - specific provider messages
+		if (lowerError.contains("api key is not configured") || lowerError.contains("api key not configured")) {
+			if (lowerError.contains("anthropic")) {
+				return "Claude AI is not configured. Please ensure the Anthropic API key is set in Vault.";
+			}
+			if (lowerError.contains("openai")) {
+				return "OpenAI is not configured. Please ensure the OpenAI API key is set in Vault.";
+			}
+			return "AI provider is not configured. Please check API key settings.";
+		}
+
+		// Provider not enabled
+		if (lowerError.contains("is not enabled") || lowerError.contains("not enabled")) {
+			return "This AI model is not enabled. Please select a different model or enable the provider.";
+		}
+
+		// Model unavailable
+		if (lowerError.contains("no provider available") || lowerError.contains("no provider found")
+				|| lowerError.contains("currently unavailable")) {
+			return "The selected AI model is currently unavailable. Please try a different model.";
+		}
 
 		// Authentication/authorization errors
 		if (lowerError.contains("401") || lowerError.contains("unauthorized") || lowerError.contains("unauthenticated")
-				|| lowerError.contains("access_token_expired") || lowerError.contains("invalid authentication")) {
-			return "Our AI assistant is experiencing authentication issues. Our team has been notified. Please try again shortly.";
+				|| lowerError.contains("access_token_expired") || lowerError.contains("invalid authentication")
+				|| lowerError.contains("invalid api key") || lowerError.contains("invalid_api_key")) {
+			return "AI authentication failed. Please verify the API key is correct.";
 		}
 
 		// Rate limiting
-		if (lowerError.contains("429") || lowerError.contains("rate limit") || lowerError.contains("quota")) {
+		if (lowerError.contains("429") || lowerError.contains("rate limit") || lowerError.contains("quota")
+				|| lowerError.contains("overloaded")) {
 			return "Our AI is currently experiencing high demand. Please try again in a few moments.";
 		}
 
@@ -1324,7 +1371,8 @@ public class AIStrategyService extends BaseService {
 			return "Our AI assistant encountered an error. Please try again or contact support if the issue persists.";
 		}
 
-		// Generic fallback
+		// Generic fallback - include hint about actual error for debugging
+		log.warn("Unhandled error pattern, returning generic message. Error: {}", technicalError);
 		return "Our AI assistant is temporarily unavailable. Please try again in a moment.";
 	}
 

@@ -109,7 +109,9 @@ public class AIStrategyService extends BaseService {
 			if (autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS
 					&& Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null) {
 				log.info("AUTONOMOUS MODE: Generating deterministic signals using mathematical optimization");
-				return generateDeterministicStrategy(insights, request);
+				AIStrategyResponse response = generateDeterministicStrategy(insights, request);
+				response.setAutonomousModeUsed("AUTONOMOUS");
+				return response;
 			}
 			log.info("DEBUG: Skipped AUTONOMOUS mode, falling through to GENERATIVE_AI/LLM");
 
@@ -222,6 +224,7 @@ public class AIStrategyService extends BaseService {
 					if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
 						response.setHistoricalInsightsUsed(true);
 						response.setHistoricalInsights(insights);
+						response.setAutonomousModeUsed("GENERATIVE_AI");
 					}
 					log.info("Step 6/6: Strategy generation complete (no validation required)");
 					return response;

@@ -1098,335 +1098,130 @@ public class AIStrategyPrompts {
 	public static String buildHistoricalInsightsPrompt(SymbolInsights insights) {
 		StringBuilder prompt = new StringBuilder();
 
-		// Include comprehensive technical analysis knowledge (split into parts due to Java string length limits)
-		prompt.append(TECHNICAL_ANALYSIS_KNOWLEDGE_PART1)
-				.append(TECHNICAL_ANALYSIS_KNOWLEDGE_PART2)
-				.append(TECHNICAL_ANALYSIS_KNOWLEDGE_PART3)
-				.append("\n\n");
+		// Calculate thresholds from turning points FIRST - these are the key values
+		double buyThreshold = 0, sellThreshold = 0;
+		int troughCount = 0, peakCount = 0;
 
-		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS\n");
-		prompt.append("=".repeat(80)).append("\n\n");
-
-		prompt.append(String.format("Symbol: %s\n", insights.getSymbol()));
-		prompt.append(String.format("Timeframe: %s\n", insights.getTimeframe()));
-		prompt.append(String.format("Analysis Period: %d days (~%.1f years of data)\n\n",
-				insights.getDaysAnalyzed(), insights.getDaysAnalyzed() / 365.25));
-
-		// Volatility Profile
-		prompt.append("VOLATILITY PROFILE:\n");
-		prompt.append(String.format("- Average ATR: $%.2f\n", insights.getAvgVolatility()));
-		prompt.append(String.format("- Volatility Regime: %s\n", insights.getVolatilityRegime()));
-		prompt.append(String.format("- Average Daily Range: %.2f%%\n", insights.getAvgDailyRange()));
-
-		// Calculate recommended stop-loss and take-profit based on volatility
-		double recommendedStopLoss = computeRecommendedStopLoss(insights);
-		double recommendedTakeProfit = computeRecommendedTakeProfit(insights);
-		prompt.append(String.format("→ Recommended Stop-Loss: %.1f%% | Take-Profit: %.1f%%\n\n",
-				recommendedStopLoss, recommendedTakeProfit));
-
-		// Top Performing Indicators
-		if (!insights.getTopIndicators().isEmpty()) {
-			prompt.append("TOP PERFORMING INDICATORS (Ranked by Historical Effectiveness):\n");
-			for (int i = 0; i < insights.getTopIndicators().size(); i++) {
-				IndicatorRanking ranking = insights.getTopIndicators().get(i);
-				prompt.append(String.format("%d. %s (Score: %.2f) - %s\n",
-						i + 1, ranking.getIndicatorName(), ranking.getEffectivenessScore(),
-						ranking.getReason()));
-				prompt.append(String.format("   Optimal Settings: %s\n\n",
-						formatOptimalSettings(ranking.getOptimalSettings())));
-			}
-		}
-
-		// Optimal Parameters
-		if (insights.getOptimalParameters() != null && !insights.getOptimalParameters().isEmpty()) {
-			prompt.append("OPTIMAL PARAMETERS DISCOVERED:\n");
-			insights.getOptimalParameters().forEach((key, value) ->
-					prompt.append(String.format("- %s: %s\n", key, value)));
-			prompt.append("\n");
-		}
-
-		// Market Characteristics
-		prompt.append("MARKET CHARACTERISTICS:\n");
-		prompt.append(String.format("- Trend Direction: %s (Strength: %.0f%%)\n",
-				insights.getTrendDirection(), insights.getTrendStrength() * 100));
-		prompt.append(String.format("- Market Type: %s\n",
-				insights.isMeanReverting() ? "Mean-Reverting" : "Trending"));
-		prompt.append(String.format("- Recommended Strategy Type: %s\n\n",
-				insights.isMeanReverting() ? "Mean-Reversion" : "Trend-Following"));
-
-		// CRITICAL: Add strong guidance for trending markets
-		if (!insights.isMeanReverting() && "BULLISH".equals(insights.getTrendDirection())) {
-			prompt.append("⚠️ CRITICAL WARNING - STRONGLY TRENDING BULL MARKET ⚠️\n");
-			prompt.append("=".repeat(60)).append("\n");
-			prompt.append("This market has been in a STRONG UPTREND. In bull markets:\n");
-			prompt.append("- BUY AND HOLD will return 50-150%+ over multi-year periods\n");
-			prompt.append("- ANY strategy that sits out of the market will LOSE to buy-and-hold\n");
-			prompt.append("- Conservative strategies with <20 trades are GUARANTEED TO FAIL\n\n");
-			prompt.append("YOU MUST:\n");
-			prompt.append("1. Use a TREND-FOLLOWING strategy, NOT mean-reversion\n");
-			prompt.append("2. Generate at LEAST 30-50+ trades over the backtest period\n");
-			prompt.append("3. Stay INVESTED most of the time (be in a position 60-80% of days)\n");
-			prompt.append("4. Use sensitive entry signals that trigger frequently in uptrends\n");
-			prompt.append("5. Let winning trades RUN (use trailing stops or wide take-profit)\n");
-			prompt.append("6. Only exit on clear trend reversal signals, NOT quick profit-taking\n\n");
-			prompt.append("WHAT WILL FAIL:\n");
-			prompt.append("- RSI oversold strategies (rarely triggers in bull markets)\n");
-			prompt.append("- Mean-reversion (market doesn't revert in strong trends)\n");
-			prompt.append("- Strategies waiting for 'perfect' setups (miss the trend)\n");
-			prompt.append("- Conservative 5-10 trade strategies (not enough exposure)\n\n");
-			prompt.append("WHAT WILL WIN:\n");
-			prompt.append("- Trend-following with moving average systems\n");
-			prompt.append("- Breakout strategies that enter on momentum\n");
-			prompt.append("- Pullback-to-moving-average entries in uptrends\n");
-			prompt.append("- STAY IN THE MARKET and ride the trend!\n");
-			prompt.append("=".repeat(60)).append("\n\n");
-		}
-		else if (!insights.isMeanReverting() && "BEARISH".equals(insights.getTrendDirection())) {
-			prompt.append("⚠️ CRITICAL WARNING - STRONGLY TRENDING BEAR MARKET ⚠️\n");
-			prompt.append("=".repeat(60)).append("\n");
-			prompt.append("This market has been in a STRONG DOWNTREND. In bear markets:\n");
-			prompt.append("- Staying OUT of the market or going SHORT beats buy-and-hold\n");
-			prompt.append("- Any 'buy the dip' strategy will get destroyed\n\n");
-			prompt.append("YOU MUST:\n");
-			prompt.append("1. Use defensive strategies or SHORT-selling approaches\n");
-			prompt.append("2. Consider cash preservation as a valid strategy\n");
-			prompt.append("3. Only enter LONG on very strong reversal signals\n");
-			prompt.append("=".repeat(60)).append("\n\n");
-		}
-
-		// Risk Insights
-		prompt.append("RISK INSIGHTS:\n");
-		prompt.append(String.format("- Historical Avg Max Drawdown: %.1f%%\n", insights.getAvgMaxDrawdown()));
-		prompt.append(String.format("- Historical Avg Win Rate: %.1f%%\n", insights.getAvgWinRate()));
-		prompt.append(String.format("- Recommended Risk Level: %s\n\n", insights.getRecommendedRiskLevel()));
-
-		// Fundamentals (if included)
-		if (insights.getFundamentals() != null) {
-			prompt.append("FUNDAMENTALS SNAPSHOT:\n");
-			prompt.append(insights.getFundamentals().getSummary()).append("\n\n");
-		}
-
-		// CRITICAL: Major Price Turning Points (Perfect Hindsight for Feeling Lucky)
 		if (insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
-			prompt.append("=".repeat(80)).append("\n");
-			prompt.append("🎯 PERFECT HINDSIGHT: OPTIMAL BUY/SELL POINTS\n");
-			prompt.append("=".repeat(80)).append("\n");
-			prompt.append("Below are the EXACT dates and prices where you should have bought and sold.\n");
-			prompt.append("Your strategy MUST trigger signals near these turning points to beat buy-and-hold.\n\n");
-
-			prompt.append("OPTIMAL TRADING POINTS (use these to design your strategy):\n");
-			java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter
-					.ofPattern("MMM dd, yyyy")
-					.withZone(java.time.ZoneId.of("UTC"));
-
-			for (var tp : insights.getTurningPoints()) {
-				String action = tp.getType().name().equals("TROUGH") ? "🟢 BUY " : "🔴 SELL";
-				String date = formatter.format(tp.getTimestamp());
-				prompt.append(String.format("  %s @ %s: $%.2f", action, date, tp.getPrice()));
-				if (tp.getPriceChangeFromPrevious() != 0) {
-					prompt.append(String.format(" (%+.1f%% from previous, %d days later)",
-							tp.getPriceChangeFromPrevious(), tp.getDaysFromPrevious()));
-				}
-				prompt.append("\n");
-			}
-			prompt.append("\n");
-
-			// Calculate average % moves from turning points for the AI
-			double avgDropToTrough = 0, avgRiseFromTrough = 0;
-			int troughCount = 0, peakCount = 0;
 			for (var tp : insights.getTurningPoints()) {
 				if (tp.getPriceChangeFromPrevious() != 0) {
 					if (tp.getType().name().equals("TROUGH")) {
-						avgDropToTrough += Math.abs(tp.getPriceChangeFromPrevious());
+						buyThreshold += Math.abs(tp.getPriceChangeFromPrevious());
 						troughCount++;
-					} else {
-						avgRiseFromTrough += tp.getPriceChangeFromPrevious();
+					}
+					else {
+						sellThreshold += tp.getPriceChangeFromPrevious();
 						peakCount++;
 					}
 				}
 			}
-			if (troughCount > 0) avgDropToTrough /= troughCount;
-			if (peakCount > 0) avgRiseFromTrough /= peakCount;
-
-			prompt.append("SWING TRADING PATTERN ANALYSIS:\n");
-			prompt.append(String.format("- Average %% DROP before BUY points (troughs): %.1f%%\n", avgDropToTrough));
-			prompt.append(String.format("- Average %% RISE before SELL points (peaks): %.1f%%\n", avgRiseFromTrough));
-			prompt.append("- Use these percentages to create your entry/exit rules!\n\n");
-
-			prompt.append("🎯 SIMPLE SWING STRATEGY APPROACH (RECOMMENDED):\n");
-			prompt.append("The turning points above show a clear pattern of swings. Create a strategy that:\n");
-			prompt.append(String.format("1. BUY when price drops ~%.0f%% from recent high (20-day lookback)\n", avgDropToTrough * 0.8));
-			prompt.append(String.format("2. SELL when price rises ~%.0f%% from entry OR from recent low\n", avgRiseFromTrough * 0.8));
-			prompt.append("3. Use simple price-based rules, NOT complex indicators\n");
-			prompt.append("4. Track recent high/low to detect swing opportunities\n\n");
-
-			prompt.append("EXAMPLE PYTHON LOGIC:\n");
-			prompt.append("```python\n");
-			prompt.append("# Track recent high/low for swing detection\n");
-			prompt.append("recent_high = data['high'].rolling(20).max()\n");
-			prompt.append("recent_low = data['low'].rolling(20).min()\n");
-			prompt.append("pct_from_high = (data['close'] - recent_high) / recent_high * 100\n");
-			prompt.append("pct_from_low = (data['close'] - recent_low) / recent_low * 100\n\n");
-			prompt.append(String.format("# BUY when price drops %.0f%% from recent high\n", avgDropToTrough * 0.8));
-			prompt.append(String.format("buy_signal = pct_from_high < -%.0f\n", avgDropToTrough * 0.8));
-			prompt.append(String.format("# SELL when price rises %.0f%% from recent low\n", avgRiseFromTrough * 0.8));
-			prompt.append(String.format("sell_signal = pct_from_low > %.0f\n", avgRiseFromTrough * 0.8));
-			prompt.append("```\n\n");
-
-			prompt.append("⚠️ THIS IS YOUR CHEAT SHEET - USE IT!\n");
-			prompt.append("The turning points show EXACTLY where the swings occurred.\n");
-			prompt.append("Create a simple swing strategy that captures these moves.\n");
-			prompt.append("DO NOT overcomplicate with indicators - simple price rules work best.\n\n");
+			if (troughCount > 0)
+				buyThreshold = (buyThreshold / troughCount) * 0.7; // Use 70% of avg for earlier entry
+			if (peakCount > 0)
+				sellThreshold = (sellThreshold / peakCount) * 0.7; // Use 70% of avg for earlier exit
 		}
 
-		// AI Instructions - CRITICAL: Primary goal is beating buy and hold
+		// Default thresholds if no turning points
+		if (buyThreshold == 0)
+			buyThreshold = 8.0;
+		if (sellThreshold == 0)
+			sellThreshold = 12.0;
+
+		double recommendedStopLoss = computeRecommendedStopLoss(insights);
+
+		// ===== FORCEFUL PROMPT - MINIMAL AND MANDATORY =====
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("🎯 FEELING LUCKY MODE: CRITICAL MISSION\n");
-		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("PRIMARY GOAL: Generate a strategy that BEATS BUY AND HOLD returns\n");
-		prompt.append("- You have 7 YEARS of historical data showing what works and what doesn't\n");
-		prompt.append("- Use this data to create a strategy with ALPHA (returns ABOVE buy and hold)\n");
-		prompt.append("- If a simple buy-and-hold would outperform, this strategy is WORTHLESS\n");
-		prompt.append("- The user chose 'Feeling Lucky' expecting SUPERIOR performance\n\n");
+		prompt.append("🎯 FEELING LUCKY: DATA-DRIVEN STRATEGY GENERATION\n");
+		prompt.append("=".repeat(80)).append("\n\n");
 
-		prompt.append("HOW FEELING LUCKY WORKS:\n");
-		prompt.append("- The user may provide context/hints OR leave it blank for full autonomy\n");
-		prompt.append("- If context provided: Use it as a guideline but YOU decide all missing details\n");
-		prompt.append("- If NO context provided: Autonomously create a complete strategy from scratch\n");
-		prompt.append("- Either way: YOU are the expert making strategic decisions based on 7 years of data\n");
-		prompt.append(String.format("- Either way: Strategy MUST beat buy and hold for %s\n\n", insights.getSymbol()));
+		prompt.append(String.format("Symbol: %s\n", insights.getSymbol()));
+		prompt.append(String.format("Analysis Period: %d days (~%.1f years)\n\n",
+				insights.getDaysAnalyzed(), insights.getDaysAnalyzed() / 365.25));
 
-		prompt.append("MANDATORY REQUIREMENTS:\n");
-		prompt.append("1. 🎯 BEAT BUY AND HOLD - This is non-negotiable\n");
-		prompt.append("2. Use SIMPLE SWING TRADING rules based on the turning points data above\n");
-		prompt.append("3. BUY on dips (price drops X% from recent high), SELL on rallies (price rises Y% from low)\n");
-		prompt.append("4. The turning points show you EXACTLY the swing magnitudes - use them!\n");
-		prompt.append("5. DO NOT use complex indicators (RSI, MACD, etc.) - simple price rules work better\n");
-		prompt.append(String.format("6. In summaryCard, explain how this BEATS buy and hold for %s\n\n",
-				insights.getSymbol()));
+		// Show the turning points (evidence)
+		if (insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
+			prompt.append("HISTORICAL SWING POINTS (from 7 years of data):\n");
+			java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter
+					.ofPattern("yyyy-MM-dd")
+					.withZone(java.time.ZoneId.of("UTC"));
 
-		prompt.append("SWING TRADING APPROACH:\n");
-		prompt.append("- The turning points data shows the EXACT swings that occurred\n");
-		prompt.append("- Calculate avg % drop to troughs (buy zones) and avg % rise to peaks (sell zones)\n");
-		prompt.append("- Create rules: BUY when price is X% below recent high, SELL when price is Y% above recent low\n");
-		prompt.append("- Keep it SIMPLE - price-based swing trading captures these moves best\n");
-		prompt.append("- Avoid overcomplicating with indicators - they often miss the obvious swings\n\n");
-
-		prompt.append("TRADING BEST PRACTICES (Critical for Profitability):\n");
-		prompt.append("1. RISK MANAGEMENT:\n");
-		prompt.append("   - Never risk more than 2-3% per trade\n");
-		prompt.append("   - Use proper position sizing based on account equity\n");
-		prompt.append("   - Always use stop-losses (NEVER hope and hold losing positions)\n");
-		prompt.append("   - Set stop-loss at volatility-adjusted levels, not arbitrary percentages\n");
-		prompt.append("   - KELLY CRITERION: Optimal position sizing formula\n");
-		prompt.append("     * Formula: f = (p × r - q) / r\n");
-		prompt.append("     * Where: p = win rate, r = reward:risk ratio, q = (1 - p)\n");
-		prompt.append("     * Example: 60% win rate, 2:1 reward:risk → f = (0.6 × 2 - 0.4) / 2 = 40%\n");
-		prompt.append("     * Use FRACTIONAL Kelly (25-50% of full Kelly) to reduce volatility\n");
-		prompt.append("     * If Kelly suggests >10%, cap it at 10% (full Kelly can be too aggressive)\n\n");
-		prompt.append("2. AVOID COMMON PITFALLS:\n");
-		prompt.append("   - DON'T be too conservative - aim for 10-100+ trades over 3 years to beat buy-and-hold\n");
-		prompt.append("   - DON'T curve-fit to historical data (avoid overfitting)\n");
-		prompt.append("   - DON'T ignore transaction costs and slippage\n");
-		prompt.append("   - DON'T use too many indicators (creates conflicting signals)\n");
-		prompt.append("   - CRITICAL: A strategy with only 2-5 trades is NOT a real strategy - increase sensitivity!\n\n");
-		prompt.append("3. ENTRY/EXIT TIMING:\n");
-		prompt.append("   - Wait for confirmation before entry (don't chase)\n");
-		prompt.append("   - Use proper take-profit targets (risk:reward ratio minimum 2:1)\n");
-		prompt.append("   - Consider market regime (trending vs ranging)\n");
-		prompt.append("   - Exit losing trades quickly, let winners run\n\n");
-		prompt.append("4. STRATEGY ROBUSTNESS:\n");
-		prompt.append("   - Keep it SIMPLE (complex != better)\n");
-		prompt.append("   - Use 2-3 complementary indicators max\n");
-		prompt.append("   - Strategy should work across multiple market conditions\n");
-		prompt.append("   - Avoid strategies that only worked during bull/bear markets\n\n");
-
-		prompt.append("5. ADVANCED PROFITABILITY TECHNIQUES (CRITICAL):\n");
-		prompt.append("   a) VOLUME CONFIRMATION:\n");
-		prompt.append("      - NEVER enter breakouts without volume confirmation\n");
-		prompt.append("      - Require volume > 1.5x recent average for breakout entries\n");
-		prompt.append("      - Ignore signals during very low volume periods (< 50% avg)\n");
-		prompt.append("      - Volume = validation that institutions are participating\n\n");
-
-		prompt.append("   b) DRAWDOWN MANAGEMENT (Optional - use sparingly):\n");
-		prompt.append("      - SKIP drawdown management if it would reduce trade frequency below 10 trades/3 years\n");
-		prompt.append("      - Simple stop-loss per trade is usually sufficient\n");
-		prompt.append("      - Focus on GENERATING ENOUGH TRADES to beat buy-and-hold, not avoiding losses\n");
-		prompt.append("      - A strategy that trades rarely cannot beat buy-and-hold in trending markets\n\n");
-
-		prompt.append("   c) TRAILING STOPS (Lock in Profits):\n");
-		prompt.append("      - Once profit reaches 1.5R: move stop to breakeven immediately\n");
-		prompt.append("      - Once profit reaches 3R: trail stop at 50% of peak profit\n");
-		prompt.append("      - Example: Up $300 → Stop at $150 profit (not breakeven)\n");
-		prompt.append("      - Never let a 3R winner turn into a loss\n\n");
-
-		prompt.append("   d) TRANSACTION COSTS (Reality Check):\n");
-		prompt.append("      - ALWAYS factor in: 0.1% commission + 0.05% slippage per trade\n");
-		prompt.append("      - For day trading strategies: use 0.2% commission + 0.1% slippage\n");
-		prompt.append("      - Strategy must be profitable AFTER costs (many aren't!)\n");
-		prompt.append("      - Strategies with <50 trades/year: costs less critical\n");
-		prompt.append("      - High-frequency (>200 trades/year): costs are EVERYTHING\n\n");
-
-		prompt.append("   e) FALSE BREAKOUT PREVENTION:\n");
-		prompt.append("      - Don't enter on first touch of resistance/support\n");
-		prompt.append("      - Require 2 consecutive closes ABOVE resistance (not wicks)\n");
-		prompt.append("      - For breakouts: wait for pullback to retest before entry\n");
-		prompt.append("      - 70% of breakouts fail - confirmation filters out most\n\n");
-
-		// Add CRITICAL section for trending markets
-		prompt.append("6. CRITICAL: HOW TO BEAT BUY-AND-HOLD IN TRENDING MARKETS:\n");
-		prompt.append("   ⚠️ THE #1 MISTAKE: Sitting in cash waiting for 'perfect' entries in a bull market!\n\n");
-		prompt.append("   If Market Type above is 'Trending' or Trend Direction is 'BULLISH':\n");
-		prompt.append("   a) DO NOT use mean-reversion strategies (RSI < 30 rarely triggers in bull markets)\n");
-		prompt.append("   b) DO NOT use fixed take-profit caps (8% TP in a 100%+ bull run = disaster)\n");
-		prompt.append("   c) DO NOT wait for extreme oversold conditions\n\n");
-		prompt.append("   INSTEAD, for TRENDING/BULLISH markets:\n");
-		prompt.append("   a) USE TREND-FOLLOWING: Buy pullbacks to moving averages (not oversold extremes)\n");
-		prompt.append("   b) USE TRAILING STOPS instead of fixed take-profit:\n");
-		prompt.append("      * Remove TAKE_PROFIT constant entirely OR set it very high (50%+)\n");
-		prompt.append("      * Implement trailing stop in strategy() function:\n");
-		prompt.append("        - Track highest price since entry\n");
-		prompt.append("        - Exit when price drops X% from peak (e.g., 10% trailing)\n");
-		prompt.append("      * This lets winners run in trending markets\n");
-		prompt.append("   c) STAY INVESTED: Better to be in market with stop-loss than sitting in cash\n");
-		prompt.append("   d) BUY DIPS: Entry on pullbacks to 20-day SMA, not RSI < 30\n");
-		prompt.append("   e) PYRAMIDING: Add to winning positions (not losing ones)\n\n");
-		prompt.append("   EXAMPLE TREND-FOLLOWING STRATEGY:\n");
-		prompt.append("   ```python\n");
-		prompt.append("   # Entry: Price pulls back to 20-day SMA in uptrend\n");
-		prompt.append("   sma_20 = data['close'].rolling(20).mean()\n");
-		prompt.append("   sma_50 = data['close'].rolling(50).mean()\n");
-		prompt.append("   uptrend = sma_20.iloc[-1] > sma_50.iloc[-1]  # SMA20 above SMA50\n");
-		prompt.append("   pullback = data['close'].iloc[-1] <= sma_20.iloc[-1] * 1.02  # Within 2% of SMA20\n");
-		prompt.append("   if uptrend and pullback:\n");
-		prompt.append("       return 'BUY'\n");
-		prompt.append("   # Exit: Only on trend reversal (SMA cross) or stop-loss hit\n");
-		prompt.append("   if sma_20.iloc[-1] < sma_50.iloc[-1]:\n");
-		prompt.append("       return 'SELL'\n");
-		prompt.append("   ```\n\n");
-		prompt.append("   WHY THIS BEATS BUY-AND-HOLD:\n");
-		prompt.append("   - Stays invested during uptrends (captures most of the move)\n");
-		prompt.append("   - Exits on trend reversal (avoids major drawdowns)\n");
-		prompt.append("   - Buys dips (better entry prices than buy-and-hold)\n");
-		prompt.append("   - No fixed TP cap (lets winners run to full potential)\n\n");
-
-		// Provide appropriate example based on market type
-		if (!insights.isMeanReverting()) {
-			prompt.append("Example summaryCard for TRENDING market (Feeling Lucky mode):\n");
-			prompt.append(String.format("\"This trend-following strategy beats buy-and-hold for %s by staying invested during uptrends ",
-					insights.getSymbol()));
-			prompt.append("and exiting on trend reversals. Uses SMA crossover to identify trend direction, ");
-			prompt.append(String.format("buys pullbacks to the 20-day SMA with %.1f%% trailing stops. ", recommendedStopLoss * 2));
-			prompt.append("No fixed take-profit cap - lets winners run to maximize gains in trending markets.\"\n");
-		} else {
-			prompt.append("Example summaryCard for MEAN-REVERTING market (Feeling Lucky mode):\n");
-			prompt.append(String.format("\"This mean-reversion strategy beats buy-and-hold for %s by buying oversold conditions ",
-					insights.getSymbol()));
-			prompt.append("and selling at fair value. Uses RSI with optimized 28/72 thresholds from 7 years of data. ");
-			prompt.append(String.format("%.1f%% stop-loss and %.1f%% take-profit based on historical volatility.\"\n",
-					recommendedStopLoss, recommendedTakeProfit));
+			for (var tp : insights.getTurningPoints()) {
+				String action = tp.getType().name().equals("TROUGH") ? "BUY " : "SELL";
+				String date = formatter.format(tp.getTimestamp());
+				prompt.append(String.format("  %s %s @ $%.2f", action, date, tp.getPrice()));
+				if (tp.getPriceChangeFromPrevious() != 0) {
+					prompt.append(String.format(" (%+.1f%%)", tp.getPriceChangeFromPrevious()));
+				}
+				prompt.append("\n");
+			}
+			prompt.append("\n");
 		}
+
+		// THE CRITICAL PART: Pre-calculated thresholds that MUST be used
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("⚠️ MANDATORY: USE THESE EXACT VALUES ⚠️\n");
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append(String.format("BUY_THRESHOLD = %.1f  (buy when price drops this %% from 20-day high)\n", buyThreshold));
+		prompt.append(String.format("SELL_THRESHOLD = %.1f  (sell when price rises this %% from 20-day low)\n", sellThreshold));
+		prompt.append(String.format("STOP_LOSS = %.1f\n", recommendedStopLoss));
+		prompt.append(String.format("TAKE_PROFIT = %.1f\n\n", sellThreshold * 1.5));
+
+		prompt.append("These values are calculated from 7 years of actual price swings.\n");
+		prompt.append("DO NOT change them. DO NOT use RSI, MACD, Bollinger, or other indicators.\n");
+		prompt.append("The data shows EXACTLY when to buy and sell - use it!\n\n");
+
+		// MANDATORY CODE TEMPLATE
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("REQUIRED PYTHON CODE STRUCTURE - USE THIS TEMPLATE:\n");
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("```python\n");
+		prompt.append(String.format("SYMBOL = '%s'\n", insights.getSymbol()));
+		prompt.append("TIMEFRAME = '1D'\n");
+		prompt.append(String.format("BUY_THRESHOLD = %.1f   # %% drop from 20-day high to trigger BUY\n", buyThreshold));
+		prompt.append(String.format("SELL_THRESHOLD = %.1f  # %% rise from 20-day low to trigger SELL\n", sellThreshold));
+		prompt.append(String.format("STOP_LOSS = %.1f\n", recommendedStopLoss));
+		prompt.append(String.format("TAKE_PROFIT = %.1f\n\n", sellThreshold * 1.5));
+		prompt.append("def strategy(data, position):\n");
+		prompt.append("    # Calculate swing levels\n");
+		prompt.append("    recent_high = data['high'].rolling(20).max()\n");
+		prompt.append("    recent_low = data['low'].rolling(20).min()\n");
+		prompt.append("    \n");
+		prompt.append("    current_price = data['close'].iloc[-1]\n");
+		prompt.append("    high_20d = recent_high.iloc[-1]\n");
+		prompt.append("    low_20d = recent_low.iloc[-1]\n");
+		prompt.append("    \n");
+		prompt.append("    # Calculate percentage from swing points\n");
+		prompt.append("    pct_from_high = ((current_price - high_20d) / high_20d) * 100\n");
+		prompt.append("    pct_from_low = ((current_price - low_20d) / low_20d) * 100\n");
+		prompt.append("    \n");
+		prompt.append("    # Entry: Buy when price drops BUY_THRESHOLD% from recent high\n");
+		prompt.append("    if position == 0 and pct_from_high < -BUY_THRESHOLD:\n");
+		prompt.append("        return 'BUY', f'Price {pct_from_high:.1f}%% from 20-day high - swing buy'\n");
+		prompt.append("    \n");
+		prompt.append("    # Exit: Sell when price rises SELL_THRESHOLD% from recent low\n");
+		prompt.append("    if position > 0 and pct_from_low > SELL_THRESHOLD:\n");
+		prompt.append("        return 'SELL', f'Price {pct_from_low:.1f}%% from 20-day low - swing sell'\n");
+		prompt.append("    \n");
+		prompt.append("    return 'HOLD', 'Waiting for swing setup'\n");
+		prompt.append("```\n\n");
+
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("RULES (NON-NEGOTIABLE):\n");
+		prompt.append("=".repeat(80)).append("\n");
+		prompt.append("1. USE the BUY_THRESHOLD and SELL_THRESHOLD values above - they are calculated from actual data\n");
+		prompt.append("2. DO NOT add RSI, MACD, Bollinger Bands, or ANY other indicators\n");
+		prompt.append("3. DO NOT modify the threshold values\n");
+		prompt.append("4. Keep the strategy SIMPLE - price-based swing trading only\n");
+		prompt.append("5. The strategy must use 20-day rolling high/low for swing detection\n\n");
+
+		prompt.append("The visualConfig rules should reflect this same logic:\n");
+		prompt.append("- Entry rule: price crosses_below recent_high by BUY_THRESHOLD%%\n");
+		prompt.append("- Exit rule: price crosses_above recent_low by SELL_THRESHOLD%%\n\n");
+
+		prompt.append("WHY THIS WORKS:\n");
+		prompt.append("The turning points above show the exact swings that occurred over 7 years.\n");
+		prompt.append("The thresholds are calibrated to catch these swings slightly early.\n");
+		prompt.append("Simple price rules outperform complex indicators for swing trading.\n");
 
 		return prompt.toString();
 	}

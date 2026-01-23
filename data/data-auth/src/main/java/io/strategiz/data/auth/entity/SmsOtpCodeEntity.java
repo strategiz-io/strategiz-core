@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Entity for SMS OTP sessions stored in Firestore.
+ * Entity for SMS OTP codes stored in Firestore.
  *
  * <p>Industry standard configuration:</p>
  * <ul>
@@ -28,17 +28,17 @@ import java.time.temporal.ChronoUnit;
  * <ol>
  *   <li>User requests OTP → code generated and stored with hash</li>
  *   <li>User submits code → verified against stored hash</li>
- *   <li>On success, session marked verified and deleted</li>
+ *   <li>On success, code marked verified and deleted</li>
  *   <li>On failure, attempts incremented</li>
- *   <li>Expired sessions cleaned up by scheduled job</li>
+ *   <li>Expired codes cleaned up by scheduled job</li>
  * </ol>
  *
  * Inherits audit fields from BaseEntity (createdBy, modifiedBy, createdDate, modifiedDate, isActive, version)
  */
 @Entity
-@Table(name = "sms_otp_sessions")
-@Collection("sms_otp_sessions")
-public class SmsOtpSessionEntity extends BaseEntity {
+@Table(name = "sms_otp_codes")
+@Collection("sms_otp_codes")
+public class SmsOtpCodeEntity extends BaseEntity {
 
 	/** Industry standard OTP expiry time in minutes */
 	public static final int DEFAULT_EXPIRY_MINUTES = 5;
@@ -105,14 +105,14 @@ public class SmsOtpSessionEntity extends BaseEntity {
 	private String userAgent;
 
 	// Constructors
-	public SmsOtpSessionEntity() {
+	public SmsOtpCodeEntity() {
 		super();
 		this.attempts = 0;
 		this.maxAttempts = DEFAULT_MAX_ATTEMPTS;
 		this.verified = false;
 	}
 
-	public SmsOtpSessionEntity(String phoneNumber, String countryCode, String codeHash, String purpose) {
+	public SmsOtpCodeEntity(String phoneNumber, String countryCode, String codeHash, String purpose) {
 		this();
 		this.phoneNumber = phoneNumber;
 		this.countryCode = countryCode;
@@ -121,7 +121,7 @@ public class SmsOtpSessionEntity extends BaseEntity {
 		this.expiresAt = Instant.now().plus(DEFAULT_EXPIRY_MINUTES, ChronoUnit.MINUTES);
 	}
 
-	public SmsOtpSessionEntity(String phoneNumber, String countryCode, String codeHash, String purpose,
+	public SmsOtpCodeEntity(String phoneNumber, String countryCode, String codeHash, String purpose,
 			int expiryMinutes) {
 		this();
 		this.phoneNumber = phoneNumber;

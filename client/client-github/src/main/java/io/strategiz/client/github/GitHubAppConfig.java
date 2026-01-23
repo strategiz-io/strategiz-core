@@ -16,6 +16,9 @@ public class GitHubAppConfig {
     @Value("${github.app.private-key:#{null}}")
     private String privateKey;
 
+    @Value("${github.app.installation-id:#{null}}")
+    private String installationId;
+
     @Value("${github.app.enabled:false}")
     private boolean enabled;
 
@@ -35,6 +38,14 @@ public class GitHubAppConfig {
         this.privateKey = privateKey;
     }
 
+    public String getInstallationId() {
+        return installationId;
+    }
+
+    public void setInstallationId(String installationId) {
+        this.installationId = installationId;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -44,7 +55,9 @@ public class GitHubAppConfig {
     }
 
     public boolean isConfigured() {
-        return enabled && appId != null && !appId.isEmpty() && privateKey != null && !privateKey.isEmpty();
+        return enabled && appId != null && !appId.isEmpty()
+                && installationId != null && !installationId.isEmpty()
+                && privateKey != null && !privateKey.isEmpty();
     }
 
 }

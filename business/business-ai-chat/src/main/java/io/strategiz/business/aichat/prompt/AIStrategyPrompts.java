@@ -35,7 +35,7 @@ public class AIStrategyPrompts {
 			          {
 			            "id": "<unique-id>",
 			            "indicator": "<indicator-name>",
-			            "comparator": "gt" | "lt" | "gte" | "lte" | "eq" | "crosses_above" | "crosses_below",
+			            "comparator": "gt" | "lt" | "gte" | "lte" | "eq" | "crossAbove" | "crossBelow",
 			            "value": <number>,
 			            "valueType": "number" | "indicator",
 			            "secondaryIndicator": "<optional-indicator-for-comparisons>"
@@ -71,8 +71,8 @@ public class AIStrategyPrompts {
 
 			Comparators:
 			- gt (>), lt (<), gte (>=), lte (<=), eq (=)
-			- crosses_above (for crossover strategies)
-			- crosses_below (for crossunder strategies)
+			- crossAbove (for crossover strategies)
+			- crossBelow (for crossunder strategies)
 
 			Symbol Field:
 			- The "symbol" field in visualConfig specifies which symbol/ticker to trade (e.g., "AAPL", "MSFT", "BTC")
@@ -1215,8 +1215,8 @@ public class AIStrategyPrompts {
 		prompt.append("5. The strategy must use 20-day rolling high/low for swing detection\n\n");
 
 		prompt.append("The visualConfig rules should reflect this same logic:\n");
-		prompt.append("- Entry rule: price crosses_below recent_high by BUY_THRESHOLD%%\n");
-		prompt.append("- Exit rule: price crosses_above recent_low by SELL_THRESHOLD%%\n\n");
+		prompt.append("- Entry rule: price crossBelow recent_high by BUY_THRESHOLD%%\n");
+		prompt.append("- Exit rule: price crossAbove recent_low by SELL_THRESHOLD%%\n\n");
 
 		prompt.append("WHY THIS WORKS:\n");
 		prompt.append("The turning points above show the exact swings that occurred over 7 years.\n");

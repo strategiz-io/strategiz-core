@@ -10,7 +10,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.strategiz.client.github.GitHubAppConfig;
 
 /**
  * Service for GitHub App authentication. Generates installation access tokens
@@ -33,14 +33,7 @@ public class GitHubAppAuthService {
 
 	private static final String GITHUB_API_URL = "https://api.github.com";
 
-	@Value("${github.app.id:}")
-	private String appId;
-
-	@Value("${github.app.installation-id:}")
-	private String installationId;
-
-	@Value("${github.app.private-key:}")
-	private String privateKeyPem;
+	private final GitHubAppConfig githubAppConfig;
 
 	private final RestTemplate restTemplate;
 
@@ -48,7 +41,8 @@ public class GitHubAppAuthService {
 
 	private Instant tokenExpiry;
 
-	public GitHubAppAuthService() {
+	public GitHubAppAuthService(GitHubAppConfig githubAppConfig) {
+		this.githubAppConfig = githubAppConfig;
 		this.restTemplate = new RestTemplate();
 	}
 
@@ -71,7 +65,8 @@ public class GitHubAppAuthService {
 			String jwt = generateJWT();
 
 			// Step 2: Get installation access token
-			String url = String.format("%s/app/installations/%s/access_tokens", GITHUB_API_URL, installationId);
+			String url = String.format("%s/app/installations/%s/access_tokens", GITHUB_API_URL,
+					githubAppConfig.getInstallationId());
 
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_JSON);
@@ -107,7 +102,7 @@ public class GitHubAppAuthService {
 	private String generateJWT() {
 		try {
 			// Parse private key
-			PrivateKey privateKey = parsePrivateKey(privateKeyPem);
+			PrivateKey privateKey = parsePrivateKey(githubAppConfig.getPrivateKey());
 
 			// Generate JWT (valid for 10 minutes)
 			Instant now = Instant.now();
@@ -116,7 +111,7 @@ public class GitHubAppAuthService {
 			return Jwts.builder()
 				.setIssuedAt(Date.from(now.minusSeconds(60))) // 60 seconds in the past
 				.setExpiration(Date.from(expiry))
-				.setIssuer(appId)
+				.setIssuer(githubAppConfig.getAppId())
 				.signWith(privateKey, SignatureAlgorithm.RS256)
 				.compact();
 
@@ -164,8 +159,7 @@ public class GitHubAppAuthService {
 	 * @return true if all required credentials are present
 	 */
 	public boolean isConfigured() {
-		return appId != null && !appId.isEmpty() && installationId != null && !installationId.isEmpty()
-				&& privateKeyPem != null && !privateKeyPem.isEmpty();
+		return githubAppConfig.isConfigured();
 	}
 
 }

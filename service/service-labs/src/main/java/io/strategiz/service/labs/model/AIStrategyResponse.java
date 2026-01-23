@@ -65,6 +65,9 @@ public class AIStrategyResponse {
 	@JsonProperty("optimizationSummary")
 	private OptimizationSummary optimizationSummary; // Summary of optimization changes and improvements
 
+	@JsonProperty("autonomousModeUsed")
+	private String autonomousModeUsed; // Which autonomous mode was used: "GENERATIVE_AI" or "AUTONOMOUS"
+
 	// Getters and Setters
 
 	public Map<String, Object> getVisualConfig() {
@@ -185,6 +188,14 @@ public class AIStrategyResponse {
 
 	public void setOptimizationSummary(OptimizationSummary optimizationSummary) {
 		this.optimizationSummary = optimizationSummary;
+	}
+
+	public String getAutonomousModeUsed() {
+		return autonomousModeUsed;
+	}
+
+	public void setAutonomousModeUsed(String autonomousModeUsed) {
+		this.autonomousModeUsed = autonomousModeUsed;
 	}
 
 	/**

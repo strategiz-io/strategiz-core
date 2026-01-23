@@ -20,8 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -37,9 +35,10 @@ import java.util.concurrent.TimeUnit;
  * Service for handling email-based user signup with OTP verification.
  *
  * Flow:
- * 1. User initiates signup with name, email, password
+ * 1. User initiates signup with name and email (passwordless)
  * 2. System sends OTP to verify email ownership
- * 3. User verifies OTP to complete account creation
+ * 3. User verifies OTP to create account
+ * 4. User sets up authentication method (Passkey, TOTP, or SMS) in Step 2
  *
  * Admin users can bypass OTP verification when adminBypassEnabled is true.
  */
@@ -50,8 +49,6 @@ public class EmailSignupService extends BaseService {
     protected String getModuleName() {
         return "service-auth";
     }
-
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     // Store pending signups until OTP verification
     private final Map<String, PendingSignup> pendingSignups = new ConcurrentHashMap<>();
@@ -98,7 +95,7 @@ public class EmailSignupService extends BaseService {
     /**
      * Initiate email signup by sending OTP verification code.
      *
-     * @param request Signup request with name, email, password
+     * @param request Signup request with name and email (passwordless)
      * @return Session ID to use for verification
      */
     public String initiateSignup(EmailSignupInitiateRequest request) {
@@ -132,12 +129,10 @@ public class EmailSignupService extends BaseService {
         String otpCode = generateOtpCode();
         Instant expiration = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expirationMinutes));
 
-        // Hash password and store pending signup
-        String hashedPassword = passwordEncoder.encode(request.password());
+        // Store pending signup (no password - passwordless flow)
         PendingSignup pending = new PendingSignup(
             request.name(),
             email,
-            hashedPassword,
             otpCode,
             expiration
         );
@@ -226,14 +221,13 @@ public class EmailSignupService extends BaseService {
                 // Create user
                 UserEntity created = userRepository.createUser(user);
 
-                // Create EMAIL_OTP authentication method with hashed password
+                // Create EMAIL_OTP authentication method (passwordless - user will add Passkey/TOTP/SMS in Step 2)
                 AuthenticationMethodEntity authMethod = new AuthenticationMethodEntity(
                     AuthenticationMethodType.EMAIL_OTP,
                     "Email: " + normalizedEmail
                 );
                 authMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS, normalizedEmail);
                 authMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED, true);
-                authMethod.putMetadata("passwordHash", pending.hashedPassword());
                 authMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.VERIFICATION_TIME, Instant.now().toString());
                 authMethod.setIsActive(true);
 
@@ -335,11 +329,11 @@ public class EmailSignupService extends BaseService {
 
     /**
      * Record for storing pending signup data.
+     * No password stored - this is a passwordless signup flow.
      */
     private record PendingSignup(
         String name,
         String email,
-        String hashedPassword,
         String otpCode,
         Instant expiration
     ) {}

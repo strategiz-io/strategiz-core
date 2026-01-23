@@ -6,6 +6,7 @@ import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.base.transaction.FirestoreTransactionTemplate;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.data.user.repository.UserRepository;
@@ -91,6 +92,9 @@ public class EmailSignupService extends BaseService {
     @Autowired
     private SignupResponseBuilder responseBuilder;
 
+    @Autowired
+    private FeatureFlagService featureFlagService;
+
     /**
      * Initiate email signup by sending OTP verification code.
      *
@@ -100,6 +104,13 @@ public class EmailSignupService extends BaseService {
     public String initiateSignup(EmailSignupInitiateRequest request) {
         String email = request.email().toLowerCase();
         log.info("Initiating email signup for: {}", email);
+
+        // Check if email OTP signup is enabled
+        if (!featureFlagService.isEmailOtpSignupEnabled()) {
+            log.warn("Email OTP signup is disabled - rejecting signup for: {}", email);
+            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
+                "Email OTP signup is currently disabled");
+        }
 
         // Verify reCAPTCHA token for fraud detection
         if (fraudDetectionService != null) {

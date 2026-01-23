@@ -5,6 +5,9 @@ import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
+import io.strategiz.framework.exception.StrategizException;
+import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.passkey.PasskeyChallengeType;
 import io.strategiz.service.base.BaseService;
 import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
@@ -48,17 +51,20 @@ public class PasskeyRegistrationService extends BaseService {
     private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
     private final UserRepository userRepository;
-    
+    private final FeatureFlagService featureFlagService;
+
     public PasskeyRegistrationService(
             PasskeyChallengeService challengeService,
             AuthenticationMethodRepository authMethodRepository,
             SessionAuthBusiness sessionAuthBusiness,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            FeatureFlagService featureFlagService) {
         this.challengeService = challengeService;
         this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
         this.userRepository = userRepository;
-        
+        this.featureFlagService = featureFlagService;
+
         // Ensure we're using real passkey registration, not mock data
         ensureRealApiData("PasskeyRegistrationService");
     }
@@ -124,9 +130,16 @@ public class PasskeyRegistrationService extends BaseService {
     public RegistrationChallenge beginRegistration(RegistrationRequest request) {
         String userId = request.userId();
         String username = request.username();
-        
+
         log.info("Beginning passkey registration for user: {}", userId);
-        
+
+        // Check if passkey signup is enabled
+        if (!featureFlagService.isPasskeySignupEnabled()) {
+            log.warn("Passkey signup is disabled - rejecting registration for user: {}", userId);
+            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
+                "Passkey signup is currently disabled");
+        }
+
         // Validate real API connection
         if (!validateRealApiConnection("PasskeyRegistrationService")) {
             throwModuleException(ServiceAuthErrorDetails.EXTERNAL_SERVICE_ERROR, "PasskeyRegistrationService", "validateRealApiConnection");

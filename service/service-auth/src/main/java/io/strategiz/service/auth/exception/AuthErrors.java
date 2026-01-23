@@ -81,6 +81,7 @@ public enum AuthErrors implements ErrorDetails {
 	EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "auth-email-already-exists"),
 	SIGNUP_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "auth-signup-failed"),
 	USER_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "auth-user-creation-failed"),
+	AUTH_METHOD_DISABLED(HttpStatus.FORBIDDEN, "auth-method-disabled"),
 
 	// Fraud detection errors
 	FRAUD_DETECTED(HttpStatus.FORBIDDEN, "auth-fraud-detected"),

@@ -6,6 +6,7 @@ import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
@@ -73,15 +74,18 @@ public class TotpRegistrationService extends BaseService {
     private final UserRepository userRepository;
     private final AuthenticationMethodRepository authMethodRepository;
     private final SessionAuthBusiness sessionAuthBusiness;
+    private final FeatureFlagService featureFlagService;
     private final SecretGenerator secretGenerator;
     private final CodeVerifier codeVerifier;
-    
-    public TotpRegistrationService(UserRepository userRepository, 
+
+    public TotpRegistrationService(UserRepository userRepository,
                                    AuthenticationMethodRepository authMethodRepository,
-                                   SessionAuthBusiness sessionAuthBusiness) {
+                                   SessionAuthBusiness sessionAuthBusiness,
+                                   FeatureFlagService featureFlagService) {
         this.userRepository = userRepository;
         this.authMethodRepository = authMethodRepository;
         this.sessionAuthBusiness = sessionAuthBusiness;
+        this.featureFlagService = featureFlagService;
         this.secretGenerator = new DefaultSecretGenerator();
         
         // Configure code verifier with timing window
@@ -126,6 +130,13 @@ public class TotpRegistrationService extends BaseService {
      */
     public TotpGenerationResult generateTotpSecretWithDetails(String username) {
         log.info("Starting TOTP secret generation for user: {}", username);
+
+        // Check if TOTP signup is enabled
+        if (!featureFlagService.isTotpSignupEnabled()) {
+            log.warn("TOTP signup is disabled - rejecting registration for user: {}", username);
+            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
+                "TOTP signup is currently disabled");
+        }
 
         // Try to find user by ID to get their email for a better TOTP label
         // If user document doesn't exist, we can still proceed with TOTP setup using userId as label

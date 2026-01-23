@@ -1162,11 +1162,18 @@ public class AIStrategyService extends BaseService {
 			Pattern symbolPattern = Pattern.compile("\\b([A-Z]{1,5})\\b");
 			Matcher matcher = symbolPattern.matcher(prompt);
 			if (matcher.find()) {
-				return matcher.group(1);
+				String found = matcher.group(1);
+				// Filter out common words that aren't tickers
+				if (!java.util.Set.of("THE", "AND", "FOR", "WITH", "USE", "BUY", "SELL", "HOLD", "AI", "ETF")
+						.contains(found)) {
+					return found;
+				}
 			}
 		}
 
-		return null;
+		// Default to SPY if no symbol specified (most liquid, representative of market)
+		log.info("No symbol specified in request, defaulting to SPY");
+		return "SPY";
 	}
 
 	// Helper methods

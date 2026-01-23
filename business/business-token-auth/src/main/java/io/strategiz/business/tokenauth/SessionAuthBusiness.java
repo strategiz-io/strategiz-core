@@ -65,6 +65,11 @@ public class SessionAuthBusiness {
     @Value("${app.cookie.refresh-token-max-age:604800}") // 7 days default (matches cookie)
     private int refreshTokenExpirySeconds;
 
+    // Idle timeout: Maximum time of inactivity before refresh is rejected
+    // Even with valid refresh token, user must re-authenticate if idle too long
+    @Value("${session.idle.timeout.seconds:1800}") // 30 minutes default
+    private int idleTimeoutSeconds;
+
     private final PasetoTokenIssuer tokenIssuer;
     private final PasetoTokenValidator tokenValidator;
     private final SessionRepository sessionRepository;
@@ -528,25 +533,38 @@ public class SessionAuthBusiness {
                 log.warn("Refresh token is expired or revoked");
                 return Optional.empty();
             }
-            
+
             String userId = refreshSession.getUserId();
-            
+
             // Find the associated access token to get auth context
             String associatedAccessTokenId = (String) refreshSession.getClaims().get("associated_access_token");
             if (associatedAccessTokenId == null) {
                 log.warn("No associated access token found for refresh token");
                 return Optional.empty();
             }
-            
+
             // Get the original access token session
             Optional<SessionEntity> originalAccessSessionOpt = sessionRepository.findById(associatedAccessTokenId);
-            
+
             if (originalAccessSessionOpt.isEmpty()) {
                 log.warn("Original access token session not found");
                 return Optional.empty();
             }
-            
+
             SessionEntity originalAccessSession = originalAccessSessionOpt.get();
+
+            // Check idle timeout based on access token's last activity (not refresh token)
+            // Access token lastAccessedAt is updated on every authenticated API call
+            Instant lastAccessed = originalAccessSession.getLastAccessedAt();
+            if (lastAccessed != null) {
+                Duration idleDuration = Duration.between(lastAccessed, Instant.now());
+                if (idleDuration.getSeconds() > idleTimeoutSeconds) {
+                    log.warn("Session idle timeout exceeded. Last accessed: {}, idle for: {} seconds, max allowed: {} seconds",
+                            lastAccessed, idleDuration.getSeconds(), idleTimeoutSeconds);
+                    return Optional.empty();
+                }
+                log.debug("Idle check passed. Last accessed: {}, idle for: {} seconds", lastAccessed, idleDuration.getSeconds());
+            }
             Map<String, Object> originalClaims = originalAccessSession.getClaims();
             
             // Extract authentication context from original token
@@ -579,9 +597,11 @@ public class SessionAuthBusiness {
             );
             
             SessionEntity newAccessSession = storeAccessTokenSession(newAccessToken, authRequest, acr);
-            
+
             // Update the refresh token to point to the new access token
+            // Also reset lastAccessedAt so idle timeout starts fresh
             refreshSession.getClaims().put("associated_access_token", newAccessSession.getSessionId());
+            refreshSession.updateLastAccessed();
             sessionRepository.save(refreshSession);
             
             log.info("Successfully refreshed access token for user {}", userId);

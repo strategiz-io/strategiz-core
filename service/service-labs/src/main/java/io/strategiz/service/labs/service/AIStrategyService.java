@@ -131,13 +131,12 @@ public class AIStrategyService extends BaseService {
 						request.getConversationHistory());
 
 				// Use model from request, or default
-				// For Feeling Lucky mode, ALWAYS use Gemini Pro (ignore user selection)
-				// This ensures consistent results with a model optimized for instruction-following
+				// For Feeling Lucky mode, only allow verified models that work well
 				String model;
 				if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-					// Feeling Lucky ALWAYS uses Gemini Pro - no exceptions
-					model = "gemini-2.5-pro";
-					log.info("Feeling Lucky mode: Forcing gemini-2.5-pro for optimal instruction-following");
+					// Feeling Lucky only allows these models (verified to work)
+					model = getFeelingLuckyModel(request.getModel());
+					log.info("Feeling Lucky mode: Using model {}", model);
 				}
 				else if (request.getModel() != null) {
 					model = request.getModel();
@@ -1095,6 +1094,31 @@ public class AIStrategyService extends BaseService {
 	}
 
 	// Helper methods
+
+	/**
+	 * Get the model to use for Feeling Lucky mode. Only allows verified models that work well
+	 * with the complex instruction-following required for Feeling Lucky.
+	 */
+	private String getFeelingLuckyModel(String requestedModel) {
+		// Models verified to work well with Feeling Lucky mode
+		// These models can follow complex instructions about using calculated thresholds
+		java.util.Set<String> allowedModels = java.util.Set.of(
+				"gemini-2.5-pro", // Best for instruction-following
+				"gemini-2.5-flash", // Fast, good quality
+				"gpt-4o", // Strong instruction-following
+				"gpt-4o-mini", // Good balance of speed/quality
+				"claude-opus-4-5", // Best Claude model (via direct API)
+				"claude-sonnet-4-5" // Good Claude model (via direct API)
+		);
+
+		// If requested model is in allowed list, use it
+		if (requestedModel != null && allowedModels.contains(requestedModel)) {
+			return requestedModel;
+		}
+
+		// Default to Gemini Pro for best results
+		return "gemini-2.5-pro";
+	}
 
 	private List<LLMMessage> buildConversationHistory(String systemPrompt,
 			List<AIStrategyRequest.ChatMessage> conversationHistory) {

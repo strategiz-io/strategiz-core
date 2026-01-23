@@ -2,6 +2,7 @@ package io.strategiz.service.auth.service.signup;
 
 import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
+import io.strategiz.data.base.constants.SubscriptionTierConstants;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
@@ -210,7 +211,7 @@ public class EmailSignupService extends BaseService {
                     normalizedEmail,
                     null, // No photo
                     true, // Email verified through OTP
-                    "trial",
+                    SubscriptionTierConstants.DEFAULT, // Explorer (free) tier
                     true // Demo mode
                 );
 

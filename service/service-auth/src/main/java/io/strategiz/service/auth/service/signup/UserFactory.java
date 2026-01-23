@@ -1,5 +1,6 @@
 package io.strategiz.service.auth.service.signup;
 
+import io.strategiz.data.base.constants.SubscriptionTierConstants;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.entity.UserProfileEntity;
 import io.strategiz.service.auth.model.signup.OAuthSignupRequest;
@@ -30,7 +31,7 @@ public class UserFactory {
             request.getEmail(),
             request.getPhotoURL(),
             true, // OAuth providers verify email
-            "trial", // Default to 30-day trial tier
+            SubscriptionTierConstants.DEFAULT, // Explorer (free) tier
             true // Default demo mode
         );
 

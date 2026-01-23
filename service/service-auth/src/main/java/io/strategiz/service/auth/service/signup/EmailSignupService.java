@@ -215,6 +215,12 @@ public class EmailSignupService extends BaseService {
                     true // Demo mode
                 );
 
+                // Set ADMIN role for admin emails
+                if (isAdminEmail(normalizedEmail)) {
+                    profile.setRole("ADMIN");
+                    log.info("Setting ADMIN role for admin email: {}", normalizedEmail);
+                }
+
                 UserEntity user = new UserEntity();
                 user.setUserId(userId);
                 user.setProfile(profile);

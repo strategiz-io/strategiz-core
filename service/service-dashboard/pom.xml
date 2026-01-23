@@ -70,7 +70,29 @@
             <artifactId>business-token-auth</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
+        <!-- Provider Business Modules - for portfolio refresh -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-coinbase</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-alpaca</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-schwab</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-provider-kraken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- No API dependencies - services should not depend on API modules -->
         
         <!-- Client Dependencies -->

@@ -73,6 +73,23 @@ public class GitHubAppVaultConfig {
                 }
             }
 
+            // Load installation ID (required for GitHub App authentication)
+            String installationId = System.getenv("GITHUB_APP_INSTALLATION_ID");
+            if (installationId != null && !installationId.isEmpty()) {
+                githubAppConfig.setInstallationId(installationId);
+                log.info("Loaded GitHub App installation ID from environment variable: {}", installationId);
+            } else {
+                // Fall back to Vault (for local development)
+                log.info("GitHub App installation ID not in environment, checking Vault...");
+                installationId = secretManager.readSecret("github-app.installation-id", null);
+                if (installationId != null && !installationId.isEmpty()) {
+                    githubAppConfig.setInstallationId(installationId);
+                    log.info("Loaded GitHub App installation ID from Vault: {}", installationId);
+                } else {
+                    log.warn("GitHub App installation ID not found in environment or Vault - Automation & Agents will be disabled");
+                }
+            }
+
             if (githubAppConfig.isConfigured()) {
                 log.info("GitHub App configuration loaded successfully - Automation & Agents enabled");
                 githubAppConfig.setEnabled(true);

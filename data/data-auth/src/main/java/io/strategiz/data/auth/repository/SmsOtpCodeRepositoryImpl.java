@@ -1,6 +1,6 @@
 package io.strategiz.data.auth.repository;
 
-import io.strategiz.data.auth.entity.SmsOtpSessionEntity;
+import io.strategiz.data.auth.entity.SmsOtpCodeEntity;
 import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.base.repository.BaseRepository;
@@ -15,27 +15,26 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Firebase implementation of SmsOtpSessionRepository.
- * Manages SMS OTP sessions in the sms_otp_sessions collection.
+ * Firebase implementation of SmsOtpCodeRepository.
+ * Manages SMS OTP codes in the sms_otp_codes collection.
  *
- * <p>This implementation provides production-ready SMS OTP session storage
+ * <p>This implementation provides production-ready SMS OTP code storage
  * with support for distributed deployments (unlike in-memory storage).</p>
  */
 @Repository
-public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEntity>
-		implements SmsOtpSessionRepository {
+public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
+		implements SmsOtpCodeRepository {
 
-	private static final Logger log = LoggerFactory.getLogger(SmsOtpSessionRepositoryImpl.class);
+	private static final Logger log = LoggerFactory.getLogger(SmsOtpCodeRepositoryImpl.class);
 
 	@Autowired
-	public SmsOtpSessionRepositoryImpl(Firestore firestore) {
-		super(firestore, SmsOtpSessionEntity.class);
+	public SmsOtpCodeRepositoryImpl(Firestore firestore) {
+		super(firestore, SmsOtpCodeEntity.class);
 	}
 
 	@Override
@@ -44,17 +43,17 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 	}
 
 	@Override
-	public SmsOtpSessionEntity save(SmsOtpSessionEntity entity, String systemUserId) {
+	public SmsOtpCodeEntity save(SmsOtpCodeEntity entity, String systemUserId) {
 		return super.save(entity, systemUserId);
 	}
 
 	@Override
-	public Optional<SmsOtpSessionEntity> findById(String id) {
+	public Optional<SmsOtpCodeEntity> findById(String id) {
 		return super.findById(id);
 	}
 
 	@Override
-	public Optional<SmsOtpSessionEntity> findActiveByPhoneNumber(String phoneNumber) {
+	public Optional<SmsOtpCodeEntity> findActiveByPhoneNumber(String phoneNumber) {
 		try {
 			Instant now = Instant.now();
 			Timestamp nowTimestamp = Timestamp.ofTimeSecondsAndNanos(now.getEpochSecond(), now.getNano());
@@ -73,12 +72,12 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 			}
 
 			QueryDocumentSnapshot doc = docs.get(0);
-			SmsOtpSessionEntity entity = doc.toObject(SmsOtpSessionEntity.class);
+			SmsOtpCodeEntity entity = doc.toObject(SmsOtpCodeEntity.class);
 			entity.setId(doc.getId());
 
 			// Double-check expiration (in case of clock skew)
 			if (entity.isExpired()) {
-				log.debug("Found expired session for phone: {}", entity.getMaskedPhoneNumber());
+				log.debug("Found expired code for phone: {}", entity.getMaskedPhoneNumber());
 				return Optional.empty();
 			}
 
@@ -88,16 +87,16 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpSessionEntity", phoneNumber);
+					"SmsOtpCodeEntity", phoneNumber);
 		}
 	}
 
 	@Override
-	public Optional<SmsOtpSessionEntity> findActiveByPhoneNumberAndPurpose(String phoneNumber, String purpose) {
+	public Optional<SmsOtpCodeEntity> findActiveByPhoneNumberAndPurpose(String phoneNumber, String purpose) {
 		try {
 			Instant now = Instant.now();
 			Timestamp nowTimestamp = Timestamp.ofTimeSecondsAndNanos(now.getEpochSecond(), now.getNano());
@@ -117,7 +116,7 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 			}
 
 			QueryDocumentSnapshot doc = docs.get(0);
-			SmsOtpSessionEntity entity = doc.toObject(SmsOtpSessionEntity.class);
+			SmsOtpCodeEntity entity = doc.toObject(SmsOtpCodeEntity.class);
 			entity.setId(doc.getId());
 
 			if (entity.isExpired()) {
@@ -130,18 +129,18 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpSessionEntity", phoneNumber);
+					"SmsOtpCodeEntity", phoneNumber);
 		}
 	}
 
 	@Override
-	public Optional<SmsOtpSessionEntity> findMostRecentByPhoneNumber(String phoneNumber) {
+	public Optional<SmsOtpCodeEntity> findMostRecentByPhoneNumber(String phoneNumber) {
 		try {
-			// Query without expiration filter to find most recent session for rate limiting
+			// Query without expiration filter to find most recent code for rate limiting
 			Query query = getCollection().whereEqualTo("phoneNumber", phoneNumber)
 				.whereEqualTo("isActive", true)
 				.orderBy("createdDate", Query.Direction.DESCENDING)
@@ -154,7 +153,7 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 			}
 
 			QueryDocumentSnapshot doc = docs.get(0);
-			SmsOtpSessionEntity entity = doc.toObject(SmsOtpSessionEntity.class);
+			SmsOtpCodeEntity entity = doc.toObject(SmsOtpCodeEntity.class);
 			entity.setId(doc.getId());
 
 			return Optional.of(entity);
@@ -163,16 +162,16 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpSessionEntity", phoneNumber);
+					"SmsOtpCodeEntity", phoneNumber);
 		}
 	}
 
 	@Override
-	public SmsOtpSessionEntity update(SmsOtpSessionEntity entity, String systemUserId) {
+	public SmsOtpCodeEntity update(SmsOtpCodeEntity entity, String systemUserId) {
 		return super.save(entity, systemUserId);
 	}
 
@@ -180,16 +179,16 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 	public void deleteById(String id) {
 		try {
 			getCollection().document(id).delete().get();
-			log.debug("Hard deleted SMS OTP session with ID: {}", id);
+			log.debug("Hard deleted SMS OTP code with ID: {}", id);
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e,
-					"SmsOtpSessionEntity", id);
+					"SmsOtpCodeEntity", id);
 		}
 	}
 
@@ -205,18 +204,18 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 			}
 
 			if (!docs.isEmpty()) {
-				log.debug("Deleted {} SMS OTP sessions for phone: {}", docs.size(), maskPhoneNumber(phoneNumber));
+				log.debug("Deleted {} SMS OTP codes for phone: {}", docs.size(), maskPhoneNumber(phoneNumber));
 			}
 
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e,
-					"SmsOtpSessionEntity", phoneNumber);
+					"SmsOtpCodeEntity", phoneNumber);
 		}
 	}
 
@@ -237,7 +236,7 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 			}
 
 			if (count > 0) {
-				log.info("Deleted {} expired SMS OTP sessions", count);
+				log.info("Deleted {} expired SMS OTP codes", count);
 			}
 
 			return count;
@@ -246,11 +245,11 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e,
-					"SmsOtpSessionEntity", "expired");
+					"SmsOtpCodeEntity", "expired");
 		}
 	}
 
@@ -270,24 +269,24 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
-					"SmsOtpSessionEntity");
+					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
 			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpSessionEntity", phoneNumber);
+					"SmsOtpCodeEntity", phoneNumber);
 		}
 	}
 
 	@Override
 	public boolean canSendOtp(String phoneNumber) {
-		Optional<SmsOtpSessionEntity> recentSession = findMostRecentByPhoneNumber(phoneNumber);
+		Optional<SmsOtpCodeEntity> recentCode = findMostRecentByPhoneNumber(phoneNumber);
 
-		if (recentSession.isEmpty()) {
+		if (recentCode.isEmpty()) {
 			return true;
 		}
 
-		SmsOtpSessionEntity session = recentSession.get();
-		Timestamp createdDate = session.getCreatedDate();
+		SmsOtpCodeEntity code = recentCode.get();
+		Timestamp createdDate = code.getCreatedDate();
 
 		if (createdDate == null) {
 			return true;
@@ -297,7 +296,7 @@ public class SmsOtpSessionRepositoryImpl extends BaseRepository<SmsOtpSessionEnt
 		Instant createdInstant = Instant.ofEpochSecond(createdDate.getSeconds(), createdDate.getNanos());
 		long secondsSinceCreated = ChronoUnit.SECONDS.between(createdInstant, Instant.now());
 
-		return secondsSinceCreated >= SmsOtpSessionEntity.RATE_LIMIT_SECONDS;
+		return secondsSinceCreated >= SmsOtpCodeEntity.RATE_LIMIT_SECONDS;
 	}
 
 	/**

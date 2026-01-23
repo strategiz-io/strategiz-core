@@ -5,9 +5,9 @@ import io.strategiz.client.firebasesms.FirebaseSmsClient;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
-import io.strategiz.data.auth.entity.SmsOtpSessionEntity;
+import io.strategiz.data.auth.entity.SmsOtpCodeEntity;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
-import io.strategiz.data.auth.repository.SmsOtpSessionRepository;
+import io.strategiz.data.auth.repository.SmsOtpCodeRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
@@ -46,7 +46,7 @@ public class SmsOtpAuthenticationService extends BaseService {
     }
 
     @Autowired
-    private SmsOtpSessionRepository smsOtpSessionRepository;
+    private SmsOtpCodeRepository smsOtpCodeRepository;
 
     @Autowired
     private SmsOtpConfig smsOtpConfig;
@@ -70,7 +70,7 @@ public class SmsOtpAuthenticationService extends BaseService {
         log.info("Sending registration OTP to phone: {} for user: {}", maskPhoneNumber(phoneNumber), userId);
 
         // Check rate limiting using Firestore
-        if (!smsOtpSessionRepository.canSendOtp(phoneNumber)) {
+        if (!smsOtpCodeRepository.canSendOtp(phoneNumber)) {
             throw new StrategizException(AuthErrors.OTP_RATE_LIMITED,
                     "Too many SMS requests. Please wait before requesting another OTP.");
         }
@@ -79,19 +79,19 @@ public class SmsOtpAuthenticationService extends BaseService {
         String otpCode = generateOtpCode();
 
         // Create session entity with hashed OTP code
-        SmsOtpSessionEntity session = new SmsOtpSessionEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
-                SmsOtpSessionEntity.Purpose.REGISTRATION, smsOtpConfig.getOtpExpiryMinutes());
+        SmsOtpCodeEntity session = new SmsOtpCodeEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
+                SmsOtpCodeEntity.Purpose.REGISTRATION, smsOtpConfig.getOtpExpiryMinutes());
         session.setUserId(userId);
 
         // Save to Firestore
-        session = smsOtpSessionRepository.save(session, SYSTEM_USER);
+        session = smsOtpCodeRepository.save(session, SYSTEM_USER);
 
         // Send SMS
         boolean sent = sendSms(phoneNumber, otpCode, countryCode);
 
         if (!sent) {
             // Cleanup failed session
-            smsOtpSessionRepository.deleteById(session.getId());
+            smsOtpCodeRepository.deleteById(session.getId());
             throw new StrategizException(AuthErrors.SMS_SEND_FAILED, "Failed to send SMS OTP");
         }
 
@@ -124,7 +124,7 @@ public class SmsOtpAuthenticationService extends BaseService {
      */
     private String findUserIdByPhoneNumber(String phoneNumber) {
         // First check if there's an existing session in Firestore for this phone
-        Optional<SmsOtpSessionEntity> existingSession = smsOtpSessionRepository.findActiveByPhoneNumber(phoneNumber);
+        Optional<SmsOtpCodeEntity> existingSession = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
         if (existingSession.isPresent() && existingSession.get().getUserId() != null) {
             String userId = existingSession.get().getUserId();
             // Verify the user actually has this phone registered
@@ -193,7 +193,7 @@ public class SmsOtpAuthenticationService extends BaseService {
         }
 
         // Check rate limiting using Firestore
-        if (!smsOtpSessionRepository.canSendOtp(phoneNumber)) {
+        if (!smsOtpCodeRepository.canSendOtp(phoneNumber)) {
             throw new StrategizException(AuthErrors.OTP_RATE_LIMITED,
                     "Too many SMS requests. Please wait before requesting another OTP.");
         }
@@ -202,19 +202,19 @@ public class SmsOtpAuthenticationService extends BaseService {
         String otpCode = generateOtpCode();
 
         // Create session entity with hashed OTP code
-        SmsOtpSessionEntity session = new SmsOtpSessionEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
-                SmsOtpSessionEntity.Purpose.AUTHENTICATION, smsOtpConfig.getOtpExpiryMinutes());
+        SmsOtpCodeEntity session = new SmsOtpCodeEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
+                SmsOtpCodeEntity.Purpose.AUTHENTICATION, smsOtpConfig.getOtpExpiryMinutes());
         session.setUserId(userId);
 
         // Save to Firestore
-        session = smsOtpSessionRepository.save(session, SYSTEM_USER);
+        session = smsOtpCodeRepository.save(session, SYSTEM_USER);
 
         // Send SMS
         boolean sent = sendSms(phoneNumber, otpCode, countryCode);
 
         if (!sent) {
             // Cleanup failed session
-            smsOtpSessionRepository.deleteById(session.getId());
+            smsOtpCodeRepository.deleteById(session.getId());
             throw new StrategizException(AuthErrors.SMS_SEND_FAILED, "Failed to send SMS OTP");
         }
 
@@ -229,13 +229,13 @@ public class SmsOtpAuthenticationService extends BaseService {
         log.debug("Verifying OTP for session: {} phone: {}", sessionId, maskPhoneNumber(phoneNumber));
 
         // Find OTP session from Firestore
-        Optional<SmsOtpSessionEntity> sessionOpt;
+        Optional<SmsOtpCodeEntity> sessionOpt;
         if (sessionId != null && !sessionId.isEmpty()) {
-            sessionOpt = smsOtpSessionRepository.findById(sessionId);
+            sessionOpt = smsOtpCodeRepository.findById(sessionId);
         }
         else {
             // Try to find by phone number if session ID not provided
-            sessionOpt = smsOtpSessionRepository.findActiveByPhoneNumber(phoneNumber);
+            sessionOpt = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
         }
 
         if (sessionOpt.isEmpty()) {
@@ -243,18 +243,18 @@ public class SmsOtpAuthenticationService extends BaseService {
             return false;
         }
 
-        SmsOtpSessionEntity session = sessionOpt.get();
+        SmsOtpCodeEntity session = sessionOpt.get();
 
         // Check if session is expired
         if (session.isExpired()) {
-            smsOtpSessionRepository.deleteById(session.getId());
+            smsOtpCodeRepository.deleteById(session.getId());
             log.warn("OTP session expired for phone: {}", maskPhoneNumber(phoneNumber));
             return false;
         }
 
         // Check attempt count
         if (session.hasExceededMaxAttempts()) {
-            smsOtpSessionRepository.deleteById(session.getId());
+            smsOtpCodeRepository.deleteById(session.getId());
             log.warn("Too many OTP verification attempts for phone: {}", maskPhoneNumber(phoneNumber));
             throw new StrategizException(AuthErrors.OTP_MAX_ATTEMPTS_EXCEEDED, "Too many verification attempts");
         }
@@ -266,14 +266,14 @@ public class SmsOtpAuthenticationService extends BaseService {
         String providedCodeHash = hashOtpCode(otpCode);
         if (!session.getCodeHash().equals(providedCodeHash)) {
             // Save updated attempt count
-            smsOtpSessionRepository.update(session, SYSTEM_USER);
+            smsOtpCodeRepository.update(session, SYSTEM_USER);
             log.warn("Invalid OTP code for phone: {}", maskPhoneNumber(phoneNumber));
             return false;
         }
 
         // Mark as verified and delete session (successful verification)
         session.markVerified();
-        smsOtpSessionRepository.deleteById(session.getId());
+        smsOtpCodeRepository.deleteById(session.getId());
 
         log.info("OTP verified successfully for phone: {}", maskPhoneNumber(phoneNumber));
         return true;
@@ -286,12 +286,12 @@ public class SmsOtpAuthenticationService extends BaseService {
         log.info("Authenticating user with SMS OTP for phone: {}", maskPhoneNumber(phoneNumber));
 
         // Find session first to get userId before verification deletes it
-        Optional<SmsOtpSessionEntity> sessionOpt;
+        Optional<SmsOtpCodeEntity> sessionOpt;
         if (sessionId != null && !sessionId.isEmpty()) {
-            sessionOpt = smsOtpSessionRepository.findById(sessionId);
+            sessionOpt = smsOtpCodeRepository.findById(sessionId);
         }
         else {
-            sessionOpt = smsOtpSessionRepository.findActiveByPhoneNumber(phoneNumber);
+            sessionOpt = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
         }
 
         if (sessionOpt.isEmpty()) {
@@ -425,7 +425,7 @@ public class SmsOtpAuthenticationService extends BaseService {
     @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
     public void cleanupExpiredSessions() {
         try {
-            int deleted = smsOtpSessionRepository.deleteExpired();
+            int deleted = smsOtpCodeRepository.deleteExpired();
             if (deleted > 0) {
                 log.info("Cleaned up {} expired SMS OTP sessions", deleted);
             }

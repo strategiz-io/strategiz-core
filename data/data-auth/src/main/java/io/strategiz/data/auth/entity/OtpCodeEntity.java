@@ -29,8 +29,8 @@ import java.time.Instant;
  * Inherits audit fields from BaseEntity (createdBy, modifiedBy, createdDate, modifiedDate, isActive, version)
  */
 @Entity
-@Table(name = "otp_codes")
-@Collection("otp_codes")
+@Table(name = "email_otp_codes")
+@Collection("email_otp_codes")
 public class OtpCodeEntity extends BaseEntity {
 
 	@Id

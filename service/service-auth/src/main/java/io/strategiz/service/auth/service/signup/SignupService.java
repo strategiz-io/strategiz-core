@@ -2,6 +2,7 @@ package io.strategiz.service.auth.service.signup;
 
 import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.data.base.transaction.FirestoreTransactionTemplate;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
@@ -40,6 +41,7 @@ public class SignupService extends BaseService {
     private final AuthenticationMethodRepository authenticationMethodRepository;
     private final FraudDetectionService fraudDetectionService;
     private final SubscriptionService subscriptionService;
+    private final FeatureFlagService featureFlagService;
 
     @Autowired
     public SignupService(
@@ -48,6 +50,7 @@ public class SignupService extends BaseService {
         SignupResponseBuilder responseBuilder,
         FirestoreTransactionTemplate transactionTemplate,
         AuthenticationMethodRepository authenticationMethodRepository,
+        FeatureFlagService featureFlagService,
         @Autowired(required = false) FraudDetectionService fraudDetectionService,
         @Autowired(required = false) SubscriptionService subscriptionService
     ) {
@@ -56,6 +59,7 @@ public class SignupService extends BaseService {
         this.responseBuilder = responseBuilder;
         this.transactionTemplate = transactionTemplate;
         this.authenticationMethodRepository = authenticationMethodRepository;
+        this.featureFlagService = featureFlagService;
         this.fraudDetectionService = fraudDetectionService;
         this.subscriptionService = subscriptionService;
     }
@@ -72,6 +76,13 @@ public class SignupService extends BaseService {
     public OAuthSignupResponse processSignup(OAuthSignupRequest request, String deviceId, String ipAddress) {
         String authMethod = request.getAuthMethod().toLowerCase();
         log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", request.getEmail(), authMethod);
+
+        // Check if OAuth signup is enabled
+        if (!featureFlagService.isOAuthSignupEnabled()) {
+            log.warn("OAuth signup is disabled - rejecting signup for email: {}", request.getEmail());
+            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
+                "OAuth signup is currently disabled");
+        }
 
         try {
             // Verify reCAPTCHA token for fraud detection (before any database operations)

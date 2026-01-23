@@ -5,6 +5,7 @@ import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.client.firebasesms.FirebaseSmsClient;
@@ -49,14 +50,24 @@ public class SmsOtpRegistrationService extends BaseService {
     
     @Autowired
     private SmsOtpAuthenticationService smsOtpAuthService;
-    
+
+    @Autowired
+    private FeatureFlagService featureFlagService;
+
     /**
      * Register a phone number for a user account
      * Sends verification OTP to confirm phone number ownership
      */
     public boolean registerPhoneNumber(String userId, String phoneNumber, String ipAddress, String countryCode) {
         log.info("Registering phone number for user: {} from IP: {}", userId, ipAddress);
-        
+
+        // Check if SMS OTP signup is enabled
+        if (!featureFlagService.isSmsOtpSignupEnabled()) {
+            log.warn("SMS OTP signup is disabled - rejecting registration for user: {}", userId);
+            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
+                "SMS OTP signup is currently disabled");
+        }
+
         // Check if phone number is already registered to any user
         Optional<AuthenticationMethodEntity> existing = findSmsOtpByPhoneNumber(userId, phoneNumber);
         

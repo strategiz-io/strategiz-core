@@ -39,6 +39,13 @@ public class FeatureFlagService {
     // Platform flags
     public static final String FLAG_PRE_LAUNCH_MODE = "pre_launch_mode_enabled";
 
+    // Auth flags
+    public static final String FLAG_AUTH_EMAIL_OTP_SIGNUP = "auth_email_otp_signup_enabled";
+    public static final String FLAG_AUTH_PASSKEY_SIGNUP = "auth_passkey_signup_enabled";
+    public static final String FLAG_AUTH_TOTP_SIGNUP = "auth_totp_signup_enabled";
+    public static final String FLAG_AUTH_SMS_OTP_SIGNUP = "auth_sms_otp_signup_enabled";
+    public static final String FLAG_AUTH_OAUTH_SIGNUP = "auth_oauth_signup_enabled";
+
     // AI - Holistic level (entire features)
     public static final String FLAG_AI_LEARN_ENABLED = "ai_learn_enabled";
     public static final String FLAG_AI_LABS_ENABLED = "ai_labs_enabled";
@@ -87,6 +94,22 @@ public class FeatureFlagService {
         // Platform flags
         createDefaultFlag(FLAG_PRE_LAUNCH_MODE, "Pre-Launch Mode",
             "Show pre-launch waitlist page instead of main landing page", false, "platform");
+
+        // Auth flags
+        createDefaultFlag(FLAG_AUTH_EMAIL_OTP_SIGNUP, "Email OTP Signup",
+            "Enable email OTP verification during sign up", true, "auth");
+
+        createDefaultFlag(FLAG_AUTH_PASSKEY_SIGNUP, "Passkey Signup",
+            "Enable passkey (WebAuthn) authentication during sign up", true, "auth");
+
+        createDefaultFlag(FLAG_AUTH_TOTP_SIGNUP, "TOTP Signup",
+            "Enable TOTP (Google Authenticator) authentication during sign up", true, "auth");
+
+        createDefaultFlag(FLAG_AUTH_SMS_OTP_SIGNUP, "SMS OTP Signup",
+            "Enable SMS OTP verification during sign up", false, "auth");
+
+        createDefaultFlag(FLAG_AUTH_OAUTH_SIGNUP, "OAuth Signup",
+            "Enable OAuth provider authentication during sign up (Google, Facebook, etc.)", true, "auth");
 
         // AI - Holistic level
         createDefaultFlag(FLAG_AI_LEARN_ENABLED, "AI Learn Chat",
@@ -237,6 +260,41 @@ public class FeatureFlagService {
      */
     public boolean isPreLaunchMode() {
         return isEnabled(FLAG_PRE_LAUNCH_MODE);
+    }
+
+    /**
+     * Check if Email OTP signup is enabled.
+     */
+    public boolean isEmailOtpSignupEnabled() {
+        return isEnabled(FLAG_AUTH_EMAIL_OTP_SIGNUP);
+    }
+
+    /**
+     * Check if Passkey signup is enabled.
+     */
+    public boolean isPasskeySignupEnabled() {
+        return isEnabled(FLAG_AUTH_PASSKEY_SIGNUP);
+    }
+
+    /**
+     * Check if TOTP signup is enabled.
+     */
+    public boolean isTotpSignupEnabled() {
+        return isEnabled(FLAG_AUTH_TOTP_SIGNUP);
+    }
+
+    /**
+     * Check if SMS OTP signup is enabled.
+     */
+    public boolean isSmsOtpSignupEnabled() {
+        return isEnabled(FLAG_AUTH_SMS_OTP_SIGNUP);
+    }
+
+    /**
+     * Check if OAuth signup is enabled.
+     */
+    public boolean isOAuthSignupEnabled() {
+        return isEnabled(FLAG_AUTH_OAUTH_SIGNUP);
     }
 
     /**

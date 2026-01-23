@@ -131,15 +131,16 @@ public class AIStrategyService extends BaseService {
 						request.getConversationHistory());
 
 				// Use model from request, or default
-				// For Feeling Lucky mode, use Pro model for better instruction-following
+				// For Feeling Lucky mode, ALWAYS use Gemini Pro (ignore user selection)
+				// This ensures consistent results with a model optimized for instruction-following
 				String model;
-				if (request.getModel() != null) {
-					model = request.getModel();
-				}
-				else if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-					// Feeling Lucky requires a capable model that follows complex instructions
+				if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
+					// Feeling Lucky ALWAYS uses Gemini Pro - no exceptions
 					model = "gemini-2.5-pro";
-					log.info("Feeling Lucky mode: Using gemini-2.5-pro for better instruction-following");
+					log.info("Feeling Lucky mode: Forcing gemini-2.5-pro for optimal instruction-following");
+				}
+				else if (request.getModel() != null) {
+					model = request.getModel();
 				}
 				else {
 					model = llmRouter.getDefaultModel();

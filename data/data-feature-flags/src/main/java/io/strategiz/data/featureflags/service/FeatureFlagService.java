@@ -106,7 +106,7 @@ public class FeatureFlagService {
             "Enable TOTP (Google Authenticator) authentication during sign up", true, "auth");
 
         createDefaultFlag(FLAG_AUTH_SMS_OTP_SIGNUP, "SMS OTP Signup",
-            "Enable SMS OTP verification during sign up", false, "auth");
+            "Enable SMS OTP verification during sign up", true, "auth");
 
         createDefaultFlag(FLAG_AUTH_OAUTH_SIGNUP, "OAuth Signup",
             "Enable OAuth provider authentication during sign up (Google, Facebook, etc.)", true, "auth");

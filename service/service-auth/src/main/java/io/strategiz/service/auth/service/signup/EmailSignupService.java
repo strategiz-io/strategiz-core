@@ -316,6 +316,96 @@ public class EmailSignupService extends BaseService {
     }
 
     /**
+     * Build futuristic HTML email template for verification code.
+     */
+    private String buildVerificationEmailHtml(String otpCode) {
+        // Split OTP into individual digits for stylized display
+        StringBuilder otpDigits = new StringBuilder();
+        for (char digit : otpCode.toCharArray()) {
+            otpDigits.append("<span style=\"display: inline-block; width: 52px; height: 64px; ")
+                .append("background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); ")
+                .append("border: 1px solid #334155; border-radius: 12px; margin: 0 4px; ")
+                .append("line-height: 64px; font-size: 28px; font-weight: 700; color: #00ff88; ")
+                .append("font-family: 'SF Mono', 'Fira Code', monospace; ")
+                .append("box-shadow: 0 4px 16px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);\">")
+                .append(digit)
+                .append("</span>");
+        }
+
+        return "<!DOCTYPE html>" +
+            "<html lang=\"en\">" +
+            "<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>" +
+            "<body style=\"margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\">" +
+            "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background-color: #0a0a0f;\">" +
+            "<tr><td align=\"center\" style=\"padding: 40px 20px;\">" +
+            "<table role=\"presentation\" width=\"100%\" style=\"max-width: 520px; background: linear-gradient(180deg, #12121a 0%, #0d0d14 100%); border-radius: 24px; border: 1px solid #1e293b; overflow: hidden;\">" +
+
+            // Header with logo
+            "<tr><td style=\"padding: 40px 40px 24px 40px; text-align: center;\">" +
+            "<div style=\"display: inline-block; margin-bottom: 8px;\">" +
+            "<span style=\"font-size: 32px; font-weight: 800; color: #00ff88; letter-spacing: -1px;\">STRATEGIZ</span>" +
+            "</div>" +
+            "<div style=\"width: 60px; height: 3px; background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%); margin: 0 auto; border-radius: 2px;\"></div>" +
+            "</td></tr>" +
+
+            // Main content
+            "<tr><td style=\"padding: 0 40px;\">" +
+            "<h1 style=\"color: #f8fafc; font-size: 24px; font-weight: 600; margin: 0 0 8px 0; text-align: center;\">Verify Your Email</h1>" +
+            "<p style=\"color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;\">Enter this code to complete your registration and start building intelligent trading strategies.</p>" +
+            "</td></tr>" +
+
+            // OTP Code display
+            "<tr><td style=\"padding: 0 40px;\">" +
+            "<div style=\"background: linear-gradient(180deg, #0f172a 0%, #020617 100%); border: 1px solid #1e293b; border-radius: 16px; padding: 32px 20px; text-align: center; margin-bottom: 32px;\">" +
+            "<p style=\"color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 16px 0;\">Your Verification Code</p>" +
+            "<div style=\"display: inline-block;\">" + otpDigits + "</div>" +
+            "</div>" +
+            "</td></tr>" +
+
+            // Timer/expiration notice
+            "<tr><td style=\"padding: 0 40px;\">" +
+            "<div style=\"text-align: center; margin-bottom: 32px;\">" +
+            "<span style=\"display: inline-block; background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 20px; padding: 8px 16px; color: #00ff88; font-size: 13px;\">" +
+            "⏱ Expires in " + expirationMinutes + " minutes" +
+            "</span>" +
+            "</div>" +
+            "</td></tr>" +
+
+            // Divider
+            "<tr><td style=\"padding: 0 40px;\">" +
+            "<div style=\"height: 1px; background: linear-gradient(90deg, transparent 0%, #1e293b 50%, transparent 100%); margin-bottom: 24px;\"></div>" +
+            "</td></tr>" +
+
+            // Security notice
+            "<tr><td style=\"padding: 0 40px 40px 40px;\">" +
+            "<p style=\"color: #64748b; font-size: 13px; line-height: 1.6; margin: 0; text-align: center;\">" +
+            "Didn't request this code? You can safely ignore this email.<br>" +
+            "Someone may have entered your email by mistake." +
+            "</p>" +
+            "</td></tr>" +
+
+            // Footer
+            "<tr><td style=\"background: #080810; padding: 24px 40px; border-top: 1px solid #1e293b;\">" +
+            "<table role=\"presentation\" width=\"100%\"><tr>" +
+            "<td style=\"text-align: center;\">" +
+            "<p style=\"color: #475569; font-size: 12px; margin: 0 0 8px 0;\">© 2026 Strategiz. All rights reserved.</p>" +
+            "<p style=\"margin: 0;\">" +
+            "<a href=\"https://strategiz.io\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Website</a>" +
+            "<span style=\"color: #334155;\">•</span>" +
+            "<a href=\"https://strategiz.io/privacy\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Privacy</a>" +
+            "<span style=\"color: #334155;\">•</span>" +
+            "<a href=\"https://strategiz.io/terms\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Terms</a>" +
+            "</p>" +
+            "</td>" +
+            "</tr></table>" +
+            "</td></tr>" +
+
+            "</table>" +
+            "</td></tr></table>" +
+            "</body></html>";
+    }
+
+    /**
      * Send OTP email via SendGrid.
      */
     private boolean sendOtpEmail(String email, String otpCode) {
@@ -332,16 +422,7 @@ public class EmailSignupService extends BaseService {
                 "This code expires in " + expirationMinutes + " minutes.\n\n" +
                 "If you didn't request this, please ignore this email.";
 
-            String htmlContent = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
-                "<h2 style=\"color: #00ff88;\">Welcome to Strategiz!</h2>" +
-                "<p>Your verification code is:</p>" +
-                "<div style=\"background-color: #1a1a2e; padding: 20px; text-align: center; margin: 20px 0;\">" +
-                "<span style=\"font-size: 32px; font-weight: bold; color: #00ff88; letter-spacing: 8px;\">" + otpCode + "</span>" +
-                "</div>" +
-                "<p>Enter this code to complete your registration.</p>" +
-                "<p>This code expires in " + expirationMinutes + " minutes.</p>" +
-                "<p style=\"color: #888; font-size: 12px;\">If you didn't request this, please ignore this email.</p>" +
-                "</div>";
+            String htmlContent = buildVerificationEmailHtml(otpCode);
 
             EmailMessage message = EmailMessage.builder()
                 .toEmail(email)

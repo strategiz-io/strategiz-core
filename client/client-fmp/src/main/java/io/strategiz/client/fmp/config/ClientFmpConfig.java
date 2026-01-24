@@ -5,6 +5,7 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import io.strategiz.client.fmp.client.FmpFundamentalsClient;
+import io.strategiz.client.fmp.client.FmpNewsClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -76,6 +77,24 @@ public class ClientFmpConfig {
 	public FmpFundamentalsClient fmpFundamentalsClient(FmpConfig config, RestTemplate fmpRestTemplate,
 			Bucket fmpRateLimiter, ObjectMapper objectMapper) {
 		return new FmpFundamentalsClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
+	}
+
+	/**
+	 * FMP News Client bean.
+	 * <p>
+	 * Provides access to FMP news endpoints including stock news, general market news, forex news,
+	 * crypto news, and press releases.
+	 * </p>
+	 * @param config FMP configuration
+	 * @param fmpRestTemplate configured RestTemplate
+	 * @param fmpRateLimiter rate limiter bucket
+	 * @param objectMapper Jackson ObjectMapper
+	 * @return FmpNewsClient instance
+	 */
+	@Bean
+	public FmpNewsClient fmpNewsClient(FmpConfig config, RestTemplate fmpRestTemplate, Bucket fmpRateLimiter,
+			ObjectMapper objectMapper) {
+		return new FmpNewsClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
 	}
 
 }

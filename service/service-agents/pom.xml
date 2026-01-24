@@ -58,7 +58,14 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Finnhub Client for News and Earnings -->
+        <!-- FMP Client for News and Fundamentals -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-fmp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Finnhub Client for Earnings and Filings -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>client-finnhub</artifactId>

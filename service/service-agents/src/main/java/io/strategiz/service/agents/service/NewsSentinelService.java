@@ -19,8 +19,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for News Sentinel agent - real-time news and sentiment analysis
- * Enhanced with Finnhub API for real market news, SEC filings, and earnings data
+ * Service for News Sentinel agent - real-time news and sentiment analysis.
+ * Uses FMP API for stock news, market news, and press releases.
+ * Uses Finnhub API for SEC filings and earnings calendar data.
  */
 @Service
 public class NewsSentinelService extends BaseService {
@@ -76,7 +77,7 @@ public class NewsSentinelService extends BaseService {
         context.setUserId(userId);
         context.setFeature("news-sentinel");
 
-        // Build news context with real Finnhub data
+        // Build news context with real FMP data
         String newsContext = buildNewsContext(request);
         context.setSystemPrompt(NewsSentinelPrompts.buildSystemPrompt(newsContext));
 

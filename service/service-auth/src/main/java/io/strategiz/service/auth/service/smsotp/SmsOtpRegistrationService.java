@@ -415,20 +415,87 @@ public class SmsOtpRegistrationService extends BaseService {
     
     /**
      * Complete SMS authentication after Firebase verification
+     * Finds the user by phone number and creates a session
      */
     private Map<String, Object> completeSmsAuthentication(String phoneNumber) {
         log.info("Completing SMS authentication for phone: {}", maskPhoneNumber(phoneNumber));
-        
-        // Find user by phone number - search across all users
-        // This is a simplified implementation - in production you might want a more efficient search
-        String userId = null;
-        
-        // Since we can't directly search by phone number, we need to find the user
-        // In a real implementation, you might have a phone-to-user mapping
-        // For now, we'll throw an error suggesting to pass userId
-        
-        throw new StrategizException(AuthErrors.USER_NOT_FOUND, 
-            "Phone-only authentication not yet implemented. Please use registration flow.");
+
+        // Find user by phone number using collection group query
+        String userId = findUserIdByPhoneNumber(phoneNumber);
+
+        if (userId == null) {
+            log.warn("No user found with phone number: {}", maskPhoneNumber(phoneNumber));
+            throw new StrategizException(AuthErrors.USER_NOT_FOUND,
+                "Phone number not registered. Please sign up first.");
+        }
+
+        // Find the SMS OTP method and mark as used
+        Optional<AuthenticationMethodEntity> methodOpt = findSmsOtpByPhoneNumber(userId, phoneNumber);
+        if (methodOpt.isPresent()) {
+            AuthenticationMethodEntity method = methodOpt.get();
+            method.markAsUsed();
+            authMethodRepository.saveForUser(userId, method);
+        }
+
+        // Generate session tokens
+        SessionAuthBusiness.TokenPair tokens = sessionAuthBusiness.createAuthenticationTokenPair(
+            userId,
+            List.of("SMS_OTP"),
+            "sms",
+            null, // deviceId
+            null  // ipAddress
+        );
+
+        Map<String, Object> tokenResult = new HashMap<>();
+        tokenResult.put("accessToken", tokens.accessToken());
+        tokenResult.put("refreshToken", tokens.refreshToken());
+        tokenResult.put("userId", userId);
+
+        log.info("SMS authentication completed for user: {}", userId);
+        return tokenResult;
+    }
+
+    /**
+     * Find user ID by phone number from authentication methods.
+     * Searches all SMS_OTP authentication methods using collection group query.
+     */
+    private String findUserIdByPhoneNumber(String phoneNumber) {
+        // Search all SMS_OTP authentication methods
+        List<AuthenticationMethodEntity> allSmsMethods = authMethodRepository.findByType(AuthenticationMethodType.SMS_OTP);
+
+        for (AuthenticationMethodEntity method : allSmsMethods) {
+            String methodPhone = method.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER);
+
+            // Normalize phone numbers for comparison
+            String normalizedMethodPhone = normalizePhoneNumber(methodPhone);
+            String normalizedSearchPhone = normalizePhoneNumber(phoneNumber);
+
+            if (normalizedSearchPhone.equals(normalizedMethodPhone)) {
+                Boolean isVerified = (Boolean) method.getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
+                if (Boolean.TRUE.equals(isVerified)) {
+                    // userId is stored in metadata by the repository during collection group query
+                    return method.getMetadataAsString("userId");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize phone number for comparison (removes non-digits, handles country code)
+     */
+    private String normalizePhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) {
+            return "";
+        }
+        // Remove all non-digit characters
+        String digits = phoneNumber.replaceAll("\\D", "");
+        // Remove leading 1 if it's a US number with 11 digits
+        if (digits.length() == 11 && digits.startsWith("1")) {
+            digits = digits.substring(1);
+        }
+        return digits;
     }
     
     private String maskPhoneNumber(String phoneNumber) {

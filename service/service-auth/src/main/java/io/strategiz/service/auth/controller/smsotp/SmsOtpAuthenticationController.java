@@ -208,42 +208,48 @@ public class SmsOtpAuthenticationController extends BaseController {
     
     /**
      * Verify authentication OTP without session ID (for backwards compatibility)
-     * 
+     *
      * POST /v1/auth/sms-otp/authentications/verify
-     * 
+     *
      * @param request Verification request with phone and OTP code
+     * @param httpResponse HTTP response to set cookies
      * @return Response with authentication tokens
      */
     @PostMapping("/authentications/verify")
     public ResponseEntity<Map<String, Object>> verifyAuthenticationOtpWithoutSession(
-            @RequestBody @Valid AuthenticationVerifyRequest request) {
-        
+            @RequestBody @Valid AuthenticationVerifyRequest request,
+            HttpServletResponse httpResponse) {
+
         logRequest("verifyAuthenticationOtpWithoutSession", request.phoneNumber);
-        
+
         // Authenticate with OTP (sessionId will be looked up by phone number)
         Map<String, Object> authResult = smsOtpAuthenticationService.authenticateWithOtp(
             request.phoneNumber,
             request.otpCode,
             null // No sessionId provided, will lookup by phone
         );
-        
+
         if (authResult == null) {
             log.warn("SMS OTP authentication failed for phone: {}", maskPhoneNumber(request.phoneNumber));
             throw new StrategizException(AuthErrors.OTP_EXPIRED, "Invalid or expired OTP code");
         }
-        
+
         // Create success response with authentication tokens
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("phoneNumber", maskPhoneNumber(request.phoneNumber));
         response.put("message", "Authentication successful");
-        
-        // Add authentication tokens from the business layer
+
+        // Add authentication tokens from the business layer and set cookies
         if (authResult.containsKey("accessToken")) {
-            response.put("accessToken", authResult.get("accessToken"));
+            String accessToken = (String) authResult.get("accessToken");
+            response.put("accessToken", accessToken);
+            cookieUtil.setAccessTokenCookie(httpResponse, accessToken);
         }
         if (authResult.containsKey("refreshToken")) {
-            response.put("refreshToken", authResult.get("refreshToken"));
+            String refreshToken = (String) authResult.get("refreshToken");
+            response.put("refreshToken", refreshToken);
+            cookieUtil.setRefreshTokenCookie(httpResponse, refreshToken);
         }
         if (authResult.containsKey("identityToken")) {
             response.put("identityToken", authResult.get("identityToken"));
@@ -251,7 +257,8 @@ public class SmsOtpAuthenticationController extends BaseController {
         if (authResult.containsKey("userId")) {
             response.put("userId", authResult.get("userId"));
         }
-        
+
+        log.info("Authentication cookies set for phone: {}", maskPhoneNumber(request.phoneNumber));
         logRequestSuccess("verifyAuthenticationOtpWithoutSession", request.phoneNumber, response);
         return createCleanResponse(response);
     }

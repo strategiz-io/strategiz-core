@@ -3,7 +3,9 @@ package io.strategiz.service.auth.controller.smsotp;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.smsotp.SmsOtpRegistrationService;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
@@ -26,9 +28,12 @@ import java.util.Map;
 public class SmsOtpRegistrationController extends BaseController {
     
     private static final Logger log = LoggerFactory.getLogger(SmsOtpRegistrationController.class);
-    
+
     @Autowired
     private SmsOtpRegistrationService smsOtpRegistrationService;
+
+    @Autowired
+    private CookieUtil cookieUtil;
     
     @Override
     protected String getModuleName() {
@@ -243,10 +248,11 @@ public class SmsOtpRegistrationController extends BaseController {
      */
     @PostMapping("/firebase/verify")
     public ResponseEntity<Map<String, Object>> verifyFirebaseToken(
-            @RequestBody @Valid FirebaseTokenRequest request) {
-        
+            @RequestBody @Valid FirebaseTokenRequest request,
+            HttpServletResponse httpResponse) {
+
         logRequest("verifyFirebaseToken", request.phoneNumber);
-        
+
         // Verify Firebase token and complete registration/authentication
         Map<String, Object> authResult = smsOtpRegistrationService.verifyFirebaseTokenAndComplete(
             request.firebaseIdToken,
@@ -254,21 +260,25 @@ public class SmsOtpRegistrationController extends BaseController {
             request.phoneNumber,
             request.isRegistration
         );
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("verified", true);
         response.put("phoneNumber", maskPhoneNumber(request.phoneNumber));
-        response.put("message", request.isRegistration ? 
-            "Phone number verified and registered successfully" : 
+        response.put("message", request.isRegistration ?
+            "Phone number verified and registered successfully" :
             "Phone authentication successful");
-        
-        // Include tokens if authentication was successful
+
+        // Set authentication cookies and include tokens in response
         if (authResult.containsKey("accessToken")) {
-            response.put("accessToken", authResult.get("accessToken"));
+            String accessToken = (String) authResult.get("accessToken");
+            response.put("accessToken", accessToken);
+            cookieUtil.setAccessTokenCookie(httpResponse, accessToken);
         }
         if (authResult.containsKey("refreshToken")) {
-            response.put("refreshToken", authResult.get("refreshToken"));
+            String refreshToken = (String) authResult.get("refreshToken");
+            response.put("refreshToken", refreshToken);
+            cookieUtil.setRefreshTokenCookie(httpResponse, refreshToken);
         }
         if (authResult.containsKey("identityToken")) {
             response.put("identityToken", authResult.get("identityToken"));
@@ -276,7 +286,8 @@ public class SmsOtpRegistrationController extends BaseController {
         if (authResult.containsKey("userId")) {
             response.put("userId", authResult.get("userId"));
         }
-        
+
+        log.info("Authentication cookies set for phone: {}", maskPhoneNumber(request.phoneNumber));
         logRequestSuccess("verifyFirebaseToken", request.phoneNumber, response);
         return createCleanResponse(response);
     }

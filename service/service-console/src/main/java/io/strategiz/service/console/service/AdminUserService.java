@@ -1,5 +1,6 @@
 package io.strategiz.service.console.service;
 
+import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
 import io.strategiz.data.preferences.entity.AlertNotificationPreferences;
 import io.strategiz.data.preferences.repository.AlertNotificationPreferencesRepository;
 import io.strategiz.data.session.entity.SessionEntity;
@@ -37,12 +38,16 @@ public class AdminUserService extends BaseService {
 
 	private final AlertNotificationPreferencesRepository alertPreferencesRepository;
 
+	private final PasskeyCredentialRepository passkeyCredentialRepository;
+
 	@Autowired
 	public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository,
-			AlertNotificationPreferencesRepository alertPreferencesRepository) {
+			AlertNotificationPreferencesRepository alertPreferencesRepository,
+			PasskeyCredentialRepository passkeyCredentialRepository) {
 		this.userRepository = userRepository;
 		this.sessionRepository = sessionRepository;
 		this.alertPreferencesRepository = alertPreferencesRepository;
+		this.passkeyCredentialRepository = passkeyCredentialRepository;
 	}
 
 	public List<AdminUserResponse> listUsers(int page, int pageSize) {
@@ -151,7 +156,13 @@ public class AdminUserService extends BaseService {
 		log.info("Session {} has been terminated", sessionId);
 	}
 
-	public void deleteUser(String userId, String adminUserId) {
+	/**
+	 * Delete a user and return their passkey credential IDs for GPM signaling.
+	 * @param userId User ID to delete
+	 * @param adminUserId Admin performing the deletion
+	 * @return List of passkey credential IDs that were deleted (for WebAuthn Signal API)
+	 */
+	public List<String> deleteUser(String userId, String adminUserId) {
 		log.info("Hard deleting user: userId={}, by adminUserId={}", userId, adminUserId);
 
 		// Prevent admin from deleting themselves
@@ -163,11 +174,23 @@ public class AdminUserService extends BaseService {
 		// Delete all sessions for this user
 		sessionRepository.deleteByUserId(userId);
 
+		// Get passkey credential IDs before deletion (for GPM signaling)
+		List<String> deletedCredentialIds = passkeyCredentialRepository.findByUserId(userId)
+			.stream()
+			.map(cred -> cred.getCredentialId())
+			.toList();
+
+		// Delete all passkey credentials for this user
+		passkeyCredentialRepository.deleteByUserId(userId);
+
 		// Hard delete the user and all subcollections
 		// Note: hardDeleteUser checks if document exists directly in Firestore (regardless of isActive)
 		userRepository.hardDeleteUser(userId, adminUserId);
 
-		log.warn("User {} has been permanently deleted (hard delete) by admin {}", userId, adminUserId);
+		log.warn("User {} has been permanently deleted (hard delete) by admin {}. Deleted {} passkey credentials.",
+				userId, adminUserId, deletedCredentialIds.size());
+
+		return deletedCredentialIds;
 	}
 
 	public AdminUserResponse updateUserRole(String userId, String newRole, String adminUserId) {

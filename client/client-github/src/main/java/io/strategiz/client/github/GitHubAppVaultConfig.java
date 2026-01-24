@@ -90,9 +90,9 @@ public class GitHubAppVaultConfig {
                 }
             }
 
-            if (githubAppConfig.isConfigured()) {
-                log.info("GitHub App configuration loaded successfully - Automation & Agents enabled");
+            if (githubAppConfig.hasAllCredentials()) {
                 githubAppConfig.setEnabled(true);
+                log.info("GitHub App configuration loaded successfully - Automation & Agents enabled");
             } else {
                 log.warn("GitHub App is not fully configured - Automation & Agents will be disabled");
             }

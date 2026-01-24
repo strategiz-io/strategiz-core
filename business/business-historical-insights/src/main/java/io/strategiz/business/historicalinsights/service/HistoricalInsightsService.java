@@ -1,6 +1,7 @@
 package io.strategiz.business.historicalinsights.service;
 
 import io.strategiz.business.fundamentals.service.FundamentalsQueryService;
+import io.strategiz.business.historicalinsights.analysis.*;
 import io.strategiz.business.historicalinsights.exception.InsufficientDataException;
 import io.strategiz.business.historicalinsights.model.*;
 import io.strategiz.data.fundamentals.entity.FundamentalsEntity;
@@ -45,10 +46,27 @@ public class HistoricalInsightsService {
 
 	private final FundamentalsQueryService fundamentalsService;
 
+	// Advanced analyzers
+	private final HurstExponentCalculator hurstCalculator;
+
+	private final DrawdownAnalyzer drawdownAnalyzer;
+
+	private final OptimalThresholdCalculator thresholdCalculator;
+
+	private final MarketRegimeClassifier regimeClassifier;
+
+	private final SwingCycleAnalyzer swingCycleAnalyzer;
+
 	public HistoricalInsightsService(MarketDataClickHouseRepository marketDataRepo,
 			FundamentalsQueryService fundamentalsService) {
 		this.marketDataRepo = marketDataRepo;
 		this.fundamentalsService = fundamentalsService;
+		// Initialize analyzers
+		this.hurstCalculator = new HurstExponentCalculator();
+		this.drawdownAnalyzer = new DrawdownAnalyzer();
+		this.thresholdCalculator = new OptimalThresholdCalculator();
+		this.regimeClassifier = new MarketRegimeClassifier();
+		this.swingCycleAnalyzer = new SwingCycleAnalyzer();
 	}
 
 	/**
@@ -128,8 +146,14 @@ public class HistoricalInsightsService {
 		// 5. Detect major price turning points (peaks and troughs) - THE KEY DATA
 		// AI uses these to identify optimal buy (troughs) and sell (peaks) points
 		List<PriceTurningPoint> turningPoints = detectMajorTurningPoints(data);
+
+		// 5a. ENHANCED: Calculate indicator values at each turning point
+		enrichTurningPointsWithIndicators(turningPoints, data);
 		insights.setTurningPoints(turningPoints);
 		log.info("Detected {} major turning points for {}", turningPoints.size(), symbol);
+
+		// 5b. ENHANCED: Run advanced analysis on turning points and price data
+		performAdvancedAnalysis(insights, turningPoints, data);
 
 		// 6. Skip indicator backtests in fast mode - AI deduces from turning points directly
 		if (fastMode) {
@@ -888,6 +912,374 @@ public class HistoricalInsightsService {
 		}
 
 		return downsampled;
+	}
+
+	// ========== ENHANCED ANALYSIS METHODS (Phase 1) ==========
+
+	/**
+	 * Enrich turning points with indicator values at each point.
+	 * This allows us to analyze what indicators signaled each peak/trough.
+	 */
+	private void enrichTurningPointsWithIndicators(List<PriceTurningPoint> turningPoints,
+			List<MarketDataEntity> data) {
+		if (turningPoints == null || turningPoints.isEmpty() || data == null || data.size() < 30) {
+			return;
+		}
+
+		// Pre-calculate indicators for the entire dataset
+		double[] rsi = calculateRSI(data, 14);
+		double[] macdHistogram = calculateMACDHistogram(data);
+		double[] stochasticK = calculateStochasticK(data, 14);
+		double[][] bollingerBands = calculateBollingerBands(data, 20, 2.0);
+		double[] volumeAvg = calculateVolumeMA(data, 20);
+
+		// Map timestamps to indices for fast lookup
+		Map<Long, Integer> timestampToIndex = new HashMap<>();
+		for (int i = 0; i < data.size(); i++) {
+			timestampToIndex.put(data.get(i).getTimestamp(), i);
+		}
+
+		for (PriceTurningPoint tp : turningPoints) {
+			long tpTimestamp = tp.getTimestamp().toEpochMilli();
+
+			// Find closest index to this turning point
+			int index = findClosestIndex(tpTimestamp, data, timestampToIndex);
+			if (index < 0 || index >= data.size()) {
+				continue;
+			}
+
+			// Set RSI at this point
+			if (index < rsi.length) {
+				tp.setRsiAtPoint(rsi[index]);
+			}
+
+			// Set MACD histogram
+			if (index < macdHistogram.length) {
+				tp.setMacdHistogramAtPoint(macdHistogram[index]);
+			}
+
+			// Set Stochastic K
+			if (index < stochasticK.length) {
+				tp.setStochasticKAtPoint(stochasticK[index]);
+			}
+
+			// Set Bollinger Band distances
+			if (index < bollingerBands[0].length) {
+				double price = tp.getPrice();
+				double bbUpper = bollingerBands[0][index];
+				double bbLower = bollingerBands[1][index];
+				double bbMiddle = bollingerBands[2][index];
+
+				if (bbMiddle > 0) {
+					tp.setPctFromBollingerUpper(((price - bbUpper) / bbMiddle) * 100);
+					tp.setPctFromBollingerLower(((price - bbLower) / bbMiddle) * 100);
+				}
+			}
+
+			// Set volume ratio
+			if (index < volumeAvg.length && volumeAvg[index] > 0) {
+				double currentVolume = data.get(index).getVolume().doubleValue();
+				double ratio = currentVolume / volumeAvg[index];
+				tp.setVolumeRatio(ratio);
+				tp.setVolumeConfirmed(ratio > 1.5);
+			}
+
+			// Calculate reversal percentages (how price moved after this point)
+			if (index + 5 < data.size()) {
+				double price5Later = data.get(index + 5).getClose().doubleValue();
+				tp.setReversal5DayPercent(((price5Later - tp.getPrice()) / tp.getPrice()) * 100);
+			}
+			if (index + 10 < data.size()) {
+				double price10Later = data.get(index + 10).getClose().doubleValue();
+				tp.setReversal10DayPercent(((price10Later - tp.getPrice()) / tp.getPrice()) * 100);
+			}
+		}
+	}
+
+	/**
+	 * Perform advanced analysis using the specialized analyzers.
+	 */
+	private void performAdvancedAnalysis(SymbolInsights insights, List<PriceTurningPoint> turningPoints,
+			List<MarketDataEntity> data) {
+		// 1. Calculate Hurst Exponent
+		HurstResult hurstResult = hurstCalculator.calculate(data);
+		insights.setHurstExponent(hurstResult.getHurstExponent());
+		insights.setHurstInterpretation(hurstResult.getInterpretation());
+		// Update mean-reverting based on proper Hurst calculation
+		insights.setMeanReverting(hurstResult.isMeanReverting());
+		log.debug("Hurst exponent: {} ({})", hurstResult.getHurstExponent(), hurstResult.getInterpretation());
+
+		// 2. Analyze Drawdowns
+		DrawdownProfile drawdownProfile = drawdownAnalyzer.analyze(data);
+		insights.setMaxHistoricalDrawdown(drawdownProfile.getMaxDrawdownPercent());
+		insights.setAvgDrawdown(drawdownProfile.getAvgDrawdownPercent());
+		insights.setAvgDrawdownDuration(drawdownProfile.getAvgDrawdownDuration());
+		insights.setAvgRecoveryDays(drawdownProfile.getAvgRecoveryDays());
+
+		// 3. Calculate Optimal Thresholds from turning points
+		OptimalThresholds thresholds = thresholdCalculator.calculate(turningPoints);
+		insights.setOptimalRsiOversold(thresholds.getRsiOversold());
+		insights.setOptimalRsiOverbought(thresholds.getRsiOverbought());
+		insights.setOptimalPctDropForEntry(thresholds.getPctDropForEntry());
+		insights.setOptimalPctGainForExit(thresholds.getPctGainForExit());
+		log.debug("Optimal thresholds: RSI {}/{}, Drop/Gain {}%/{}%", thresholds.getRsiOversold(),
+				thresholds.getRsiOverbought(), thresholds.getPctDropForEntry(), thresholds.getPctGainForExit());
+
+		// 4. Classify Market Regime
+		RegimeClassification regime = regimeClassifier.classify(data);
+		insights.setCurrentRegime(regime.getRegime().getDisplayName());
+		insights.setBestStrategyForRegime(regime.getRecommendedStrategyDescription());
+		log.debug("Market regime: {} - {}", regime.getRegime().getDisplayName(),
+				regime.getRecommendedStrategyDescription());
+
+		// 5. Analyze Swing Cycles
+		SwingCycleAnalyzer.SwingCycleResult swingResult = swingCycleAnalyzer.analyze(turningPoints, data);
+		insights.setAvgSwingMagnitude(swingResult.getAvgSwingMagnitude());
+		insights.setMedianSwingMagnitude(swingResult.getMedianSwingMagnitude());
+		insights.setAvgSwingDuration(swingResult.getAvgSwingDuration());
+		insights.setOptimalHoldingPeriodDays(swingResult.getOptimalHoldingPeriodDays());
+		insights.setOptimalHoldingWinRate(swingResult.getOptimalHoldingWinRate());
+
+		// 6. Calculate Position Sizing Recommendations
+		double kellyCriterion = swingCycleAnalyzer.calculateKellyCriterion(turningPoints);
+		insights.setKellyCriterion(kellyCriterion);
+
+		double atrPercent = regime.getAtrPercent();
+		double volatilityAdjustedSize = swingCycleAnalyzer.calculateVolatilityAdjustedSize(atrPercent, 2.0);
+		insights.setVolatilityAdjustedSize(volatilityAdjustedSize);
+
+		// 7. Calculate Support/Resistance Levels from turning points
+		calculateSupportResistanceLevels(insights, turningPoints);
+	}
+
+	/**
+	 * Calculate major support and resistance levels from turning points.
+	 */
+	private void calculateSupportResistanceLevels(SymbolInsights insights, List<PriceTurningPoint> turningPoints) {
+		if (turningPoints == null || turningPoints.size() < 4) {
+			return;
+		}
+
+		// Collect trough prices as support levels and peak prices as resistance levels
+		List<Double> troughPrices = new ArrayList<>();
+		List<Double> peakPrices = new ArrayList<>();
+
+		for (PriceTurningPoint tp : turningPoints) {
+			if (tp.getType() == PriceTurningPoint.PointType.TROUGH) {
+				troughPrices.add(tp.getPrice());
+			}
+			else {
+				peakPrices.add(tp.getPrice());
+			}
+		}
+
+		// Sort and find clusters (price levels that were hit multiple times)
+		List<Double> supports = findPriceClusters(troughPrices, 0.02); // 2% tolerance
+		List<Double> resistances = findPriceClusters(peakPrices, 0.02);
+
+		insights.setMajorSupportLevels(supports.subList(0, Math.min(3, supports.size())));
+		insights.setMajorResistanceLevels(resistances.subList(0, Math.min(3, resistances.size())));
+	}
+
+	/**
+	 * Find price clusters - levels that were hit multiple times.
+	 */
+	private List<Double> findPriceClusters(List<Double> prices, double tolerance) {
+		if (prices.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		Collections.sort(prices);
+		List<Double> clusters = new ArrayList<>();
+		List<List<Double>> clusterGroups = new ArrayList<>();
+
+		double clusterStart = prices.get(0);
+		List<Double> currentCluster = new ArrayList<>();
+		currentCluster.add(prices.get(0));
+
+		for (int i = 1; i < prices.size(); i++) {
+			double price = prices.get(i);
+			if ((price - clusterStart) / clusterStart <= tolerance) {
+				currentCluster.add(price);
+			}
+			else {
+				if (currentCluster.size() >= 2) {
+					clusterGroups.add(currentCluster);
+				}
+				currentCluster = new ArrayList<>();
+				currentCluster.add(price);
+				clusterStart = price;
+			}
+		}
+		if (currentCluster.size() >= 2) {
+			clusterGroups.add(currentCluster);
+		}
+
+		// Sort clusters by size (most hits = strongest level)
+		clusterGroups.sort((a, b) -> Integer.compare(b.size(), a.size()));
+
+		// Return average price of each cluster
+		for (List<Double> cluster : clusterGroups) {
+			double avg = cluster.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+			clusters.add(avg);
+		}
+
+		return clusters;
+	}
+
+	/**
+	 * Find the closest data index to a given timestamp.
+	 */
+	private int findClosestIndex(long timestamp, List<MarketDataEntity> data, Map<Long, Integer> timestampMap) {
+		// Try exact match first
+		Integer exactIndex = timestampMap.get(timestamp);
+		if (exactIndex != null) {
+			return exactIndex;
+		}
+
+		// Binary search for closest
+		int low = 0;
+		int high = data.size() - 1;
+
+		while (low < high) {
+			int mid = (low + high) / 2;
+			long midTime = data.get(mid).getTimestamp();
+
+			if (midTime < timestamp) {
+				low = mid + 1;
+			}
+			else {
+				high = mid;
+			}
+		}
+
+		return low;
+	}
+
+	// ========== ADDITIONAL INDICATOR CALCULATIONS ==========
+
+	/**
+	 * Calculate MACD histogram (MACD line - Signal line).
+	 */
+	private double[] calculateMACDHistogram(List<MarketDataEntity> data) {
+		double[] result = new double[data.size()];
+
+		if (data.size() < 35) {
+			return result;
+		}
+
+		double[] ema12 = calculateEMA(data, 12);
+		double[] ema26 = calculateEMA(data, 26);
+
+		// MACD line
+		double[] macdLine = new double[data.size()];
+		for (int i = 0; i < data.size(); i++) {
+			macdLine[i] = ema12[i] - ema26[i];
+		}
+
+		// Signal line (9-period EMA of MACD line)
+		double multiplier = 2.0 / 10.0;
+		double[] signalLine = new double[data.size()];
+		signalLine[25] = macdLine[25]; // First signal = first MACD
+
+		for (int i = 26; i < data.size(); i++) {
+			signalLine[i] = (macdLine[i] - signalLine[i - 1]) * multiplier + signalLine[i - 1];
+		}
+
+		// Histogram = MACD - Signal
+		for (int i = 26; i < data.size(); i++) {
+			result[i] = macdLine[i] - signalLine[i];
+		}
+
+		return result;
+	}
+
+	/**
+	 * Calculate Stochastic %K.
+	 */
+	private double[] calculateStochasticK(List<MarketDataEntity> data, int period) {
+		double[] result = new double[data.size()];
+
+		for (int i = period - 1; i < data.size(); i++) {
+			double highestHigh = Double.MIN_VALUE;
+			double lowestLow = Double.MAX_VALUE;
+
+			for (int j = i - period + 1; j <= i; j++) {
+				double high = data.get(j).getHigh().doubleValue();
+				double low = data.get(j).getLow().doubleValue();
+				highestHigh = Math.max(highestHigh, high);
+				lowestLow = Math.min(lowestLow, low);
+			}
+
+			double close = data.get(i).getClose().doubleValue();
+			double range = highestHigh - lowestLow;
+
+			if (range > 0) {
+				result[i] = ((close - lowestLow) / range) * 100;
+			}
+			else {
+				result[i] = 50; // Default to neutral if no range
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Calculate Bollinger Bands. Returns [upper, lower, middle].
+	 */
+	private double[][] calculateBollingerBands(List<MarketDataEntity> data, int period, double stdDevMult) {
+		double[][] result = new double[3][data.size()];
+
+		if (data.size() < period) {
+			return result;
+		}
+
+		double[] sma = calculateSMA(data, period);
+
+		for (int i = period - 1; i < data.size(); i++) {
+			// Calculate standard deviation
+			double sum = 0;
+			double mean = sma[i];
+
+			for (int j = i - period + 1; j <= i; j++) {
+				double diff = data.get(j).getClose().doubleValue() - mean;
+				sum += diff * diff;
+			}
+
+			double stdDev = Math.sqrt(sum / period);
+
+			result[0][i] = mean + (stdDevMult * stdDev); // Upper
+			result[1][i] = mean - (stdDevMult * stdDev); // Lower
+			result[2][i] = mean; // Middle
+		}
+
+		return result;
+	}
+
+	/**
+	 * Calculate volume moving average.
+	 */
+	private double[] calculateVolumeMA(List<MarketDataEntity> data, int period) {
+		double[] result = new double[data.size()];
+
+		if (data.size() < period) {
+			return result;
+		}
+
+		double rollingSum = 0;
+		for (int i = 0; i < period; i++) {
+			rollingSum += data.get(i).getVolume().doubleValue();
+		}
+		result[period - 1] = rollingSum / period;
+
+		for (int i = period; i < data.size(); i++) {
+			rollingSum = rollingSum - data.get(i - period).getVolume().doubleValue()
+					+ data.get(i).getVolume().doubleValue();
+			result[i] = rollingSum / period;
+		}
+
+		return result;
 	}
 
 }

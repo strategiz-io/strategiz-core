@@ -6,6 +6,8 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
 import io.strategiz.client.fmp.client.FmpFundamentalsClient;
 import io.strategiz.client.fmp.client.FmpNewsClient;
+import io.strategiz.client.fmp.client.FmpQuoteClient;
+import io.strategiz.client.fmp.client.FmpTechnicalClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -95,6 +97,41 @@ public class ClientFmpConfig {
 	public FmpNewsClient fmpNewsClient(FmpConfig config, RestTemplate fmpRestTemplate, Bucket fmpRateLimiter,
 			ObjectMapper objectMapper) {
 		return new FmpNewsClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
+	}
+
+	/**
+	 * FMP Quote Client bean.
+	 * <p>
+	 * Provides access to FMP quote endpoints for real-time prices, including index ETFs (SPY, QQQ,
+	 * IWM, DIA) and sector ETFs.
+	 * </p>
+	 * @param config FMP configuration
+	 * @param fmpRestTemplate configured RestTemplate
+	 * @param fmpRateLimiter rate limiter bucket
+	 * @param objectMapper Jackson ObjectMapper
+	 * @return FmpQuoteClient instance
+	 */
+	@Bean
+	public FmpQuoteClient fmpQuoteClient(FmpConfig config, RestTemplate fmpRestTemplate, Bucket fmpRateLimiter,
+			ObjectMapper objectMapper) {
+		return new FmpQuoteClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
+	}
+
+	/**
+	 * FMP Technical Client bean.
+	 * <p>
+	 * Provides access to FMP technical indicator endpoints including RSI, SMA, EMA, and MACD.
+	 * </p>
+	 * @param config FMP configuration
+	 * @param fmpRestTemplate configured RestTemplate
+	 * @param fmpRateLimiter rate limiter bucket
+	 * @param objectMapper Jackson ObjectMapper
+	 * @return FmpTechnicalClient instance
+	 */
+	@Bean
+	public FmpTechnicalClient fmpTechnicalClient(FmpConfig config, RestTemplate fmpRestTemplate, Bucket fmpRateLimiter,
+			ObjectMapper objectMapper) {
+		return new FmpTechnicalClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
 	}
 
 }

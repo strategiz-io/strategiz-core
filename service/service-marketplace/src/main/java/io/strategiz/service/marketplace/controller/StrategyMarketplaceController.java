@@ -63,6 +63,7 @@ public class StrategyMarketplaceController extends BaseController {
      */
     @GetMapping
     @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://strategiz.io"}, allowedHeaders = "*")
+    @RequireAuth(required = false)  // Allow public access to marketplace listing
     public ResponseEntity<Object> listPublicStrategies(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String sortBy,

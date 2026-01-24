@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bucket;
 import io.strategiz.client.fmp.config.FmpConfig;
 import io.strategiz.client.fmp.dto.FmpFundamentals;
+import io.strategiz.client.fmp.dto.FmpQuote;
 import io.strategiz.client.fmp.error.FmpErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
 import org.slf4j.Logger;

@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Repository for caching AI portfolio insights.
- * Path: users/{userId}/portfolio/insights/cached
+ * Path: users/{userId}/cache/portfolioInsights
  *
  * Cache Strategy:
  * - Return cached insights immediately if valid (< 24 hours old, not invalidated)
@@ -34,9 +34,14 @@ public class PortfolioInsightsCacheRepository {
     private static final int CACHE_TTL_HOURS = 24;
 
     /**
-     * Document ID for the cached insights
+     * Subcollection name for user caches
      */
-    private static final String CACHE_DOCUMENT_ID = "cached";
+    private static final String CACHE_COLLECTION = "cache";
+
+    /**
+     * Document ID for the cached portfolio insights
+     */
+    private static final String CACHE_DOCUMENT_ID = "portfolioInsights";
 
     private final Firestore firestore;
 
@@ -53,9 +58,7 @@ public class PortfolioInsightsCacheRepository {
         try {
             DocumentSnapshot doc = firestore.collection("users")
                     .document(userId)
-                    .collection("portfolio")
-                    .document("insights")
-                    .collection("data")
+                    .collection(CACHE_COLLECTION)
                     .document(CACHE_DOCUMENT_ID)
                     .get()
                     .get();
@@ -108,9 +111,7 @@ public class PortfolioInsightsCacheRepository {
 
             firestore.collection("users")
                     .document(userId)
-                    .collection("portfolio")
-                    .document("insights")
-                    .collection("data")
+                    .collection(CACHE_COLLECTION)
                     .document(CACHE_DOCUMENT_ID)
                     .set(cache)
                     .get();
@@ -135,9 +136,7 @@ public class PortfolioInsightsCacheRepository {
         try {
             DocumentSnapshot doc = firestore.collection("users")
                     .document(userId)
-                    .collection("portfolio")
-                    .document("insights")
-                    .collection("data")
+                    .collection(CACHE_COLLECTION)
                     .document(CACHE_DOCUMENT_ID)
                     .get()
                     .get();
@@ -146,9 +145,7 @@ public class PortfolioInsightsCacheRepository {
                 // Mark as invalid instead of deleting (preserves history)
                 firestore.collection("users")
                         .document(userId)
-                        .collection("portfolio")
-                        .document("insights")
-                        .collection("data")
+                        .collection(CACHE_COLLECTION)
                         .document(CACHE_DOCUMENT_ID)
                         .update("isValid", false)
                         .get();
@@ -173,9 +170,7 @@ public class PortfolioInsightsCacheRepository {
         try {
             firestore.collection("users")
                     .document(userId)
-                    .collection("portfolio")
-                    .document("insights")
-                    .collection("data")
+                    .collection(CACHE_COLLECTION)
                     .document(CACHE_DOCUMENT_ID)
                     .delete()
                     .get();

@@ -2,6 +2,7 @@ package io.strategiz.service.console.service;
 
 import io.strategiz.data.auth.repository.passkey.credential.PasskeyCredentialRepository;
 import io.strategiz.data.preferences.entity.AlertNotificationPreferences;
+import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.data.preferences.repository.AlertNotificationPreferencesRepository;
 import io.strategiz.data.session.entity.SessionEntity;
 import io.strategiz.data.session.repository.SessionRepository;
@@ -281,7 +282,9 @@ public class AdminUserService extends BaseService {
 			response.setEmail(profile.getEmail());
 			response.setName(profile.getName());
 			response.setRole(profile.getRole());
-			response.setSubscriptionTier(profile.getSubscriptionTier());
+			// Normalize subscription tier (handles legacy "trial" -> "explorer" conversion)
+			String normalizedTier = SubscriptionTier.fromId(profile.getSubscriptionTier()).getId();
+			response.setSubscriptionTier(normalizedTier);
 			response.setIsEmailVerified(profile.getIsEmailVerified());
 			response.setDemoMode(profile.getDemoMode());
 		}

@@ -32,7 +32,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Service for aggregating infrastructure costs from GCP and TimescaleDB.
+ * Service for aggregating infrastructure costs from GCP and ClickHouse.
  * Combines data from multiple sources and persists to Firestore for historical tracking.
  *
  * Enable with: gcp.billing.enabled=true and gcp.billing.demo-mode=false
@@ -76,7 +76,7 @@ public class CostAggregationService {
         this.dailyCostRepository = dailyCostRepository;
         this.firestoreUsageRepository = firestoreUsageRepository;
 
-        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, firestoreTimescale={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
+        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, clickhouse={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
                 gcpBillingClient != null, gcpMonitoringClient != null,
                 firestoreClickHouseBillingService != null, sendgridBillingClient != null,
                 dailyCostRepository != null, firestoreUsageRepository != null);
@@ -98,8 +98,8 @@ public class CostAggregationService {
                     ? gcpBillingClient.getCostSummary(startOfMonth, today)
                     : GcpCostSummary.empty(startOfMonth, today);
 
-            // Get TimescaleDB costs (optional)
-            ClickHouseCostSummary timescaleSummary = firestoreClickHouseBillingService != null
+            // Get ClickHouse costs (optional)
+            ClickHouseCostSummary clickhouseSummary = firestoreClickHouseBillingService != null
                     ? firestoreClickHouseBillingService.getCostSummary(startOfMonth, today)
                     : ClickHouseCostSummary.empty(startOfMonth, today);
 
@@ -110,13 +110,13 @@ public class CostAggregationService {
 
             // Calculate totals
             BigDecimal gcpCost = gcpSummary.totalCost();
-            BigDecimal timescaleCost = timescaleSummary.totalCost();
+            BigDecimal clickhouseCost = clickhouseSummary.totalCost();
             BigDecimal sendgridCost = sendgridSummary.totalCost();
 
             // Calculate subscription costs (prorated for current month)
             BigDecimal subscriptionCosts = calculateSubscriptionCosts(today);
 
-            BigDecimal totalCost = gcpCost.add(timescaleCost).add(sendgridCost).add(subscriptionCosts);
+            BigDecimal totalCost = gcpCost.add(clickhouseCost).add(sendgridCost).add(subscriptionCosts);
 
             // Calculate days so far
             int daysSoFar = today.getDayOfMonth();
@@ -128,7 +128,7 @@ public class CostAggregationService {
 
             // Combine service breakdown
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
-            costByService.put("TimescaleDB", timescaleCost);
+            costByService.put("ClickHouse", clickhouseCost);
             costByService.put("SendGrid", sendgridCost);
 
             // Add subscription costs if enabled
@@ -143,7 +143,7 @@ public class CostAggregationService {
                     month,
                     totalCost.setScale(2, RoundingMode.HALF_UP),
                     gcpCost.setScale(2, RoundingMode.HALF_UP),
-                    timescaleCost.setScale(2, RoundingMode.HALF_UP),
+                    clickhouseCost.setScale(2, RoundingMode.HALF_UP),
                     sendgridCost.setScale(2, RoundingMode.HALF_UP),
                     subscriptionCosts.setScale(2, RoundingMode.HALF_UP),
                     "USD",
@@ -175,14 +175,14 @@ public class CostAggregationService {
                 return Collections.emptyList();
             }
 
-            // Get TimescaleDB estimated daily cost (optional)
-            BigDecimal dailyTimescaleCost = BigDecimal.ZERO;
+            // Get ClickHouse estimated daily cost (optional)
+            BigDecimal dailyClickHouseCost = BigDecimal.ZERO;
             if (firestoreClickHouseBillingService != null && days > 0) {
-                ClickHouseCostSummary timescale = firestoreClickHouseBillingService.getCostSummary(
+                ClickHouseCostSummary clickhouse = firestoreClickHouseBillingService.getCostSummary(
                         LocalDate.now().minusDays(days),
                         LocalDate.now()
                 );
-                dailyTimescaleCost = timescale.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP);
+                dailyClickHouseCost = clickhouse.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP);
             }
 
             // Get SendGrid estimated daily cost (optional)
@@ -200,7 +200,7 @@ public class CostAggregationService {
 
             for (GcpDailyCost gcpDaily : gcpDailyCosts) {
                 Map<String, BigDecimal> breakdown = new HashMap<>(gcpDaily.costByService());
-                breakdown.put("TimescaleDB", dailyTimescaleCost);
+                breakdown.put("ClickHouse", dailyClickHouseCost);
                 breakdown.put("SendGrid", dailySendGridCost);
 
                 // Add daily subscription cost
@@ -210,7 +210,7 @@ public class CostAggregationService {
                 }
 
                 BigDecimal totalCost = gcpDaily.totalCost()
-                        .add(dailyTimescaleCost)
+                        .add(dailyClickHouseCost)
                         .add(dailySendGridCost)
                         .add(dailySubscriptionCost);
 
@@ -242,13 +242,13 @@ public class CostAggregationService {
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
 
-            // Add TimescaleDB costs if available
+            // Add ClickHouse costs if available
             if (firestoreClickHouseBillingService != null) {
-                ClickHouseCostSummary timescaleSummary = firestoreClickHouseBillingService.getCostSummary(
+                ClickHouseCostSummary clickhouseSummary = firestoreClickHouseBillingService.getCostSummary(
                         LocalDate.now().withDayOfMonth(1),
                         LocalDate.now()
                 );
-                costByService.put("TimescaleDB", timescaleSummary.totalCost());
+                costByService.put("ClickHouse", clickhouseSummary.totalCost());
             }
 
             // Add SendGrid costs if available
@@ -357,8 +357,8 @@ public class CostAggregationService {
                     ? gcpBillingClient.getCostSummary(yesterday, yesterday)
                     : GcpCostSummary.empty(yesterday, yesterday);
 
-            // Get TimescaleDB costs (optional)
-            ClickHouseCostSummary timescaleSummary = firestoreClickHouseBillingService != null
+            // Get ClickHouse costs (optional)
+            ClickHouseCostSummary clickhouseSummary = firestoreClickHouseBillingService != null
                     ? firestoreClickHouseBillingService.getCostSummary(yesterday, yesterday)
                     : ClickHouseCostSummary.empty(yesterday, yesterday);
 
@@ -378,16 +378,16 @@ public class CostAggregationService {
             // Create and save daily cost entity
             DailyCostEntity entity = new DailyCostEntity(date);
             entity.setGcpCost(gcpSummary.totalCost());
-            entity.setTimescaleCost(timescaleSummary.totalCost());
+            entity.setClickhouseCost(clickhouseSummary.totalCost());
             entity.setTotalCost(gcpSummary.totalCost()
-                    .add(timescaleSummary.totalCost())
+                    .add(clickhouseSummary.totalCost())
                     .add(sendgridSummary.totalCost())
                     .add(subscriptionCost));
             entity.setCurrency("USD");
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
             if (firestoreClickHouseBillingService != null) {
-                costByService.put("TimescaleDB", timescaleSummary.totalCost());
+                costByService.put("ClickHouse", clickhouseSummary.totalCost());
             }
             if (sendgridBillingClient != null) {
                 costByService.put("SendGrid", sendgridSummary.totalCost());
@@ -437,7 +437,7 @@ public class CostAggregationService {
 
             GcpCostSummary lastMonthGcp = gcpBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
 
-            ClickHouseCostSummary lastMonthTs = firestoreClickHouseBillingService != null
+            ClickHouseCostSummary lastMonthCh = firestoreClickHouseBillingService != null
                     ? firestoreClickHouseBillingService.getCostSummary(lastMonthStart, lastMonthSameDay)
                     : ClickHouseCostSummary.empty(lastMonthStart, lastMonthSameDay);
 
@@ -449,7 +449,7 @@ public class CostAggregationService {
             BigDecimal lastMonthSubscription = calculateSubscriptionCosts(lastMonthSameDay);
 
             BigDecimal lastMonthTotal = lastMonthGcp.totalCost()
-                    .add(lastMonthTs.totalCost())
+                    .add(lastMonthCh.totalCost())
                     .add(lastMonthSg.totalCost())
                     .add(lastMonthSubscription);
 

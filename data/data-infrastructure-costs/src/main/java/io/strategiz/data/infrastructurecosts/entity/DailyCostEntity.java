@@ -30,9 +30,9 @@ public class DailyCostEntity extends BaseEntity {
     @JsonProperty("gcpCost")
     private BigDecimal gcpCost;
 
-    @PropertyName("timescaleCost")
-    @JsonProperty("timescaleCost")
-    private BigDecimal timescaleCost;
+    @PropertyName("clickhouseCost")
+    @JsonProperty("clickhouseCost")
+    private BigDecimal clickhouseCost;
 
     @PropertyName("currency")
     @JsonProperty("currency")
@@ -99,12 +99,12 @@ public class DailyCostEntity extends BaseEntity {
         this.gcpCost = gcpCost;
     }
 
-    public BigDecimal getTimescaleCost() {
-        return timescaleCost;
+    public BigDecimal getClickhouseCost() {
+        return clickhouseCost;
     }
 
-    public void setTimescaleCost(BigDecimal timescaleCost) {
-        this.timescaleCost = timescaleCost;
+    public void setClickhouseCost(BigDecimal clickhouseCost) {
+        this.clickhouseCost = clickhouseCost;
     }
 
     public String getCurrency() {

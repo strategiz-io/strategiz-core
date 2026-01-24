@@ -1,5 +1,8 @@
 package io.strategiz.service.auth.service.emailotp;
 
+import io.strategiz.client.sendgrid.EmailProvider;
+import io.strategiz.client.sendgrid.model.EmailDeliveryResult;
+import io.strategiz.client.sendgrid.model.EmailMessage;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
@@ -9,8 +12,6 @@ import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -46,12 +47,12 @@ public class EmailOtpRegistrationService extends BaseService {
     @Value("${email.otp.code.length:6}")
     private int codeLength;
     
-    @Value("${spring.mail.username:no-reply@strategiz.io}")
+    @Value("${email.from:no-reply@strategiz.io}")
     private String fromEmail;
-    
+
     @Autowired(required = false)
-    private JavaMailSender mailSender;
-    
+    private EmailProvider emailProvider;
+
     @Autowired
     private AuthenticationMethodRepository authMethodRepository;
     
@@ -350,36 +351,51 @@ public class EmailOtpRegistrationService extends BaseService {
      */
     private boolean sendOtpEmail(String email, String otpCode, String purpose) {
         try {
-            if (mailSender == null) {
-                log.warn("Mail sender not configured. Would have sent registration OTP {} to {}", otpCode, email);
-                return true; // Return true for development without email server
+            if (emailProvider == null || !emailProvider.isAvailable()) {
+                log.error("Email provider not configured or unavailable. Cannot send OTP to {}", email);
+                return false;
             }
-            
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(email);
-            
+
             String subject = "Complete Your Registration";
-            String content = "Welcome to Strategiz!\n\n" +
+            String textContent = "Welcome to Strategiz!\n\n" +
                            "Your email verification code is: " + otpCode + "\n\n" +
                            "Use this code to complete your account registration.\n" +
                            "This code will expire in " + expirationMinutes + " minutes.\n\n" +
                            "If you didn't request this code, please ignore this email.";
-            
-            message.setSubject(subject);
-            message.setText(content);
-            
-            try {
-                mailSender.send(message);
-                log.info("Sent registration OTP email to {}", email);
+
+            String htmlContent = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+                           "<h2 style=\"color: #00ff88;\">Welcome to Strategiz!</h2>" +
+                           "<p>Your email verification code is:</p>" +
+                           "<div style=\"background-color: #1a1a2e; padding: 20px; text-align: center; margin: 20px 0;\">" +
+                           "<span style=\"font-size: 32px; font-weight: bold; color: #00ff88; letter-spacing: 8px;\">" + otpCode + "</span>" +
+                           "</div>" +
+                           "<p>Use this code to complete your account registration.</p>" +
+                           "<p>This code will expire in " + expirationMinutes + " minutes.</p>" +
+                           "<p style=\"color: #888; font-size: 12px;\">If you didn't request this code, please ignore this email.</p>" +
+                           "</div>";
+
+            EmailMessage message = EmailMessage.builder()
+                    .toEmail(email)
+                    .fromEmail(fromEmail)
+                    .fromName("Strategiz")
+                    .subject(subject)
+                    .bodyText(textContent)
+                    .bodyHtml(htmlContent)
+                    .build();
+
+            EmailDeliveryResult result = emailProvider.sendEmail(message);
+
+            if (result.isSuccess()) {
+                log.info("Sent registration OTP email to {} via {}", email, result.getProviderName());
                 return true;
-            } catch (Exception e) {
-                log.error("Failed to send registration OTP email: {}", e.getMessage(), e);
+            } else {
+                log.error("Failed to send registration OTP email to {}: {} - {}",
+                        email, result.getErrorCode(), result.getErrorMessage());
                 return false;
             }
-            
+
         } catch (Exception e) {
-            log.error("Error preparing registration OTP email: {}", e.getMessage(), e);
+            log.error("Error sending registration OTP email: {}", e.getMessage(), e);
             return false;
         }
     }

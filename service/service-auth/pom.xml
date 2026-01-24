@@ -126,6 +126,12 @@
             <artifactId>client-recaptcha</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- SendGrid email client for OTP emails -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-sendgrid</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Watchlist initialization for new users -->
         <dependency>

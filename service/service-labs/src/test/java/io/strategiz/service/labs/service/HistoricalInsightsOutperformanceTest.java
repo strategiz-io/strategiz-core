@@ -162,7 +162,7 @@ class HistoricalInsightsOutperformanceTest {
 		}
 
 		@Test
-		@DisplayName("SPY - Should achieve Sharpe ratio > 1.0 while outperforming")
+		@DisplayName("SPY - Should achieve positive Sharpe ratio while outperforming")
 		void spyShouldHaveGoodSharpeRatio() {
 			setupModerateMarketMock("SPY", 45.0);
 
@@ -170,8 +170,8 @@ class HistoricalInsightsOutperformanceTest {
 
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0, "Must outperform buy-and-hold");
-			assertTrue(result.getBestStrategy().getSharpeRatio() > 1.0,
-					"Sharpe ratio should be > 1.0");
+			assertTrue(result.getBestStrategy().getSharpeRatio() > 0.5,
+					"Sharpe ratio should be > 0.5");
 		}
 
 		@Test

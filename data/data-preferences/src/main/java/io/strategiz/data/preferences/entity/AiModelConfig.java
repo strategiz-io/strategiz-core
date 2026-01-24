@@ -51,6 +51,7 @@ public class AiModelConfig extends BaseEntity {
 	public static final String PROVIDER_META = "meta";
 	public static final String PROVIDER_MISTRAL = "mistral";
 	public static final String PROVIDER_COHERE = "cohere";
+	public static final String PROVIDER_XAI = "xai";
 
 	@DocumentId
 	@PropertyName("modelId")
@@ -208,13 +209,27 @@ public class AiModelConfig extends BaseEntity {
 		models.add(createModel("gpt-4o-mini", "GPT-4o Mini", PROVIDER_OPENAI, 4,
 				TierConfig.TIER_EXPLORER, "fast", "Fast and affordable"));
 
-		// Claude models (via Vertex AI - Claude 3.x)
-		models.add(createModel("claude-3-haiku", "Claude 3 Haiku", PROVIDER_ANTHROPIC, 6,
-				TierConfig.TIER_EXPLORER, "fast", "Fastest Claude model"));
-		models.add(createModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", PROVIDER_ANTHROPIC, 23,
-				TierConfig.TIER_STRATEGIST, "balanced", "Best balanced model"));
-		models.add(createModel("claude-3-opus", "Claude 3 Opus", PROVIDER_ANTHROPIC, 115,
-				TierConfig.TIER_QUANT, "powerful", "Most capable Claude model"));
+		// Claude 3 models (Strategist tier - budget-friendly)
+		models.add(createModel("claude-3-haiku", "Claude 3 Haiku", PROVIDER_ANTHROPIC, 3,
+				TierConfig.TIER_STRATEGIST, "fast", "Budget-friendly, fast"));
+		models.add(createModel("claude-3-sonnet", "Claude 3 Sonnet", PROVIDER_ANTHROPIC, 18,
+				TierConfig.TIER_STRATEGIST, "balanced", "Budget-friendly, balanced"));
+		models.add(createModel("claude-3-opus", "Claude 3 Opus", PROVIDER_ANTHROPIC, 90,
+				TierConfig.TIER_QUANT, "powerful", "Previous flagship model"));
+
+		// Claude 3.5 models (Strategist tier - excellent value)
+		models.add(createModel("claude-3-5-haiku", "Claude 3.5 Haiku", PROVIDER_ANTHROPIC, 3,
+				TierConfig.TIER_STRATEGIST, "fast", "Fast & very affordable"));
+		models.add(createModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", PROVIDER_ANTHROPIC, 18,
+				TierConfig.TIER_STRATEGIST, "balanced", "Excellent balanced model"));
+
+		// Claude 4.5 models (Quant tier - latest & most capable)
+		models.add(createModel("claude-haiku-4-5", "Claude Haiku 4.5", PROVIDER_ANTHROPIC, 3,
+				TierConfig.TIER_QUANT, "fast", "Fast & affordable"));
+		models.add(createModel("claude-sonnet-4-5", "Claude Sonnet 4.5", PROVIDER_ANTHROPIC, 18,
+				TierConfig.TIER_QUANT, "balanced", "Best balanced model"));
+		models.add(createModel("claude-opus-4-5", "Claude Opus 4.5", PROVIDER_ANTHROPIC, 90,
+				TierConfig.TIER_QUANT, "powerful", "Most capable for complex tasks"));
 
 		// Llama models (Meta)
 		models.add(createModel("llama-3.1-8b-instruct-maas", "Llama 3.1 8B", PROVIDER_META, 1,
@@ -237,6 +252,16 @@ public class AiModelConfig extends BaseEntity {
 				TierConfig.TIER_STRATEGIST, "fast", "Fast Cohere model"));
 		models.add(createModel("command-r-plus", "Command R+", PROVIDER_COHERE, 10,
 				TierConfig.TIER_QUANT, "balanced", "Most capable Cohere"));
+
+		// xAI Grok models
+		models.add(createModel("grok-3-mini", "Grok 3 Mini", PROVIDER_XAI, 2,
+				TierConfig.TIER_STRATEGIST, "fast", "Fast & economical"));
+		models.add(createModel("grok-3", "Grok 3", PROVIDER_XAI, 10,
+				TierConfig.TIER_STRATEGIST, "balanced", "General purpose model"));
+		models.add(createModel("grok-4", "Grok 4", PROVIDER_XAI, 30,
+				TierConfig.TIER_QUANT, "powerful", "Advanced reasoning & coding"));
+		models.add(createModel("grok-4.1-fast", "Grok 4.1 Fast", PROVIDER_XAI, 30,
+				TierConfig.TIER_QUANT, "powerful", "Best for tool-calling, 2M context"));
 
 		return models;
 	}

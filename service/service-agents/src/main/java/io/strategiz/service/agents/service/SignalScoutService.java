@@ -19,8 +19,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for Signal Scout agent - market signal analysis
- * Enhanced with Finnhub API for real market news and sentiment
+ * Service for Signal Scout agent - market signal analysis. Enhanced with Financial Modeling Prep
+ * (FMP) API for real-time market data including quotes, technical indicators (RSI, MACD, SMA),
+ * sector performance, and market news.
  */
 @Service
 public class SignalScoutService extends BaseService {

@@ -24,6 +24,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Data Preferences (for ServiceAccount entities) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-preferences</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Data Accessibility (for repository interfaces) -->
         <dependency>
             <groupId>io.strategiz</groupId>

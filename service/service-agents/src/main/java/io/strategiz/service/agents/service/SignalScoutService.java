@@ -94,7 +94,40 @@ public class SignalScoutService extends BaseService {
         log.debug("Fetching market signals insights, limit: {}", limit);
         List<MarketSignalDto> signals = new ArrayList<>();
 
-        // Get sector ETF performance for momentum signals
+        // Get index quotes for market overview
+        if (fmpQuoteClient != null && fmpQuoteClient.isConfigured()) {
+            try {
+                List<FmpQuote> indexQuotes = fmpQuoteClient.getIndexQuotes();
+                if (!indexQuotes.isEmpty()) {
+                    // Sort by performance to find the leader
+                    indexQuotes.sort((a, b) -> {
+                        if (b.getChangePercent() == null) return -1;
+                        if (a.getChangePercent() == null) return 1;
+                        return b.getChangePercent().compareTo(a.getChangePercent());
+                    });
+
+                    // Top index - market leader
+                    FmpQuote topIndex = indexQuotes.get(0);
+                    if (topIndex.getChangePercent() != null) {
+                        String direction = topIndex.getChangePercent().compareTo(BigDecimal.ZERO) >= 0 ? "bullish" : "bearish";
+                        String sign = topIndex.getChangePercent().compareTo(BigDecimal.ZERO) >= 0 ? "+" : "";
+                        signals.add(new MarketSignalDto(
+                                "momentum",
+                                direction,
+                                getIndexName(topIndex.getSymbol()),
+                                String.format("%s %s%.2f%% ($%.2f)",
+                                        topIndex.getSymbol(), sign, topIndex.getChangePercent(), topIndex.getPrice()),
+                                "High",
+                                topIndex.getChangePercent()
+                        ));
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch index quotes for signals: {}", e.getMessage());
+            }
+        }
+
+        // Get sector ETF performance for rotation signals
         if (fmpQuoteClient != null && fmpQuoteClient.isConfigured()) {
             try {
                 List<FmpQuote> sectorQuotes = fmpQuoteClient.getSectorETFQuotes();
@@ -106,30 +139,32 @@ public class SignalScoutService extends BaseService {
                         return b.getChangePercent().compareTo(a.getChangePercent());
                     });
 
-                    // Top performer (momentum)
+                    // Top sector - always show
                     FmpQuote topSector = sectorQuotes.get(0);
-                    if (topSector.getChangePercent() != null && topSector.getChangePercent().compareTo(BigDecimal.ZERO) > 0) {
+                    if (topSector.getChangePercent() != null) {
+                        String direction = topSector.getChangePercent().compareTo(BigDecimal.ZERO) >= 0 ? "bullish" : "bearish";
+                        String sign = topSector.getChangePercent().compareTo(BigDecimal.ZERO) >= 0 ? "+" : "";
                         signals.add(new MarketSignalDto(
                                 "momentum",
-                                "bullish",
-                                getSectorName(topSector.getSymbol()) + " Sector",
-                                String.format("%s leading with %+.2f%% today",
-                                        topSector.getSymbol(), topSector.getChangePercent()),
-                                "High",
+                                direction,
+                                getSectorName(topSector.getSymbol()),
+                                String.format("Leading sector %s%.2f%%", sign, topSector.getChangePercent()),
+                                "Medium",
                                 topSector.getChangePercent()
                         ));
                     }
 
-                    // Bottom performer (potential oversold)
+                    // Bottom sector - always show for rotation insight
                     FmpQuote bottomSector = sectorQuotes.get(sectorQuotes.size() - 1);
-                    if (bottomSector.getChangePercent() != null && bottomSector.getChangePercent().compareTo(new BigDecimal("-1")) < 0) {
+                    if (bottomSector.getChangePercent() != null && !bottomSector.getSymbol().equals(topSector.getSymbol())) {
+                        String direction = bottomSector.getChangePercent().compareTo(BigDecimal.ZERO) >= 0 ? "bullish" : "bearish";
+                        String sign = bottomSector.getChangePercent().compareTo(BigDecimal.ZERO) >= 0 ? "+" : "";
                         signals.add(new MarketSignalDto(
                                 "oversold",
-                                "bearish",
-                                getSectorName(bottomSector.getSymbol()) + " Sector",
-                                String.format("%s lagging with %.2f%% - potential oversold",
-                                        bottomSector.getSymbol(), bottomSector.getChangePercent()),
-                                "Medium",
+                                direction,
+                                getSectorName(bottomSector.getSymbol()),
+                                String.format("Lagging sector %s%.2f%%", sign, bottomSector.getChangePercent()),
+                                "Low",
                                 bottomSector.getChangePercent()
                         ));
                     }
@@ -139,42 +174,49 @@ public class SignalScoutService extends BaseService {
             }
         }
 
-        // Get RSI signals for indices
+        // Get RSI signals for major index - always show SPY RSI
         if (fmpTechnicalClient != null && fmpTechnicalClient.isConfigured()) {
-            for (String symbol : INDEX_SYMBOLS) {
-                try {
-                    FmpTechnicalIndicator rsi = fmpTechnicalClient.getRSI(symbol);
-                    if (rsi != null && rsi.getRsi() != null) {
-                        double rsiValue = rsi.getRsi().doubleValue();
-                        if (rsiValue >= 70) {
-                            signals.add(new MarketSignalDto(
-                                    "overbought",
-                                    "bearish",
-                                    symbol,
-                                    String.format("RSI at %.1f - overbought territory", rsiValue),
-                                    "Medium",
-                                    rsi.getRsi()
-                            ));
-                        } else if (rsiValue <= 30) {
-                            signals.add(new MarketSignalDto(
-                                    "oversold",
-                                    "bullish",
-                                    symbol,
-                                    String.format("RSI at %.1f - oversold, potential bounce", rsiValue),
-                                    "High",
-                                    rsi.getRsi()
-                            ));
-                        }
-                    }
-                } catch (Exception e) {
-                    log.debug("Failed to get RSI for {}: {}", symbol, e.getMessage());
-                }
+            try {
+                FmpTechnicalIndicator rsi = fmpTechnicalClient.getRSI("SPY");
+                if (rsi != null && rsi.getRsi() != null) {
+                    double rsiValue = rsi.getRsi().doubleValue();
+                    String type, direction, detail, confidence;
 
-                if (signals.size() >= limit) break;
+                    if (rsiValue >= 70) {
+                        type = "overbought";
+                        direction = "bearish";
+                        detail = String.format("S&P 500 RSI at %.1f - overbought", rsiValue);
+                        confidence = "High";
+                    } else if (rsiValue <= 30) {
+                        type = "oversold";
+                        direction = "bullish";
+                        detail = String.format("S&P 500 RSI at %.1f - oversold bounce likely", rsiValue);
+                        confidence = "High";
+                    } else if (rsiValue >= 60) {
+                        type = "momentum";
+                        direction = "bullish";
+                        detail = String.format("S&P 500 RSI at %.1f - strong momentum", rsiValue);
+                        confidence = "Medium";
+                    } else if (rsiValue <= 40) {
+                        type = "momentum";
+                        direction = "bearish";
+                        detail = String.format("S&P 500 RSI at %.1f - weakening momentum", rsiValue);
+                        confidence = "Medium";
+                    } else {
+                        type = "momentum";
+                        direction = "neutral";
+                        detail = String.format("S&P 500 RSI at %.1f - neutral range", rsiValue);
+                        confidence = "Low";
+                    }
+
+                    signals.add(new MarketSignalDto(type, direction, "SPY", detail, confidence, rsi.getRsi()));
+                }
+            } catch (Exception e) {
+                log.debug("Failed to get RSI for SPY: {}", e.getMessage());
             }
         }
 
-        // Add VIX sentiment if available
+        // Add VIX sentiment - always include for volatility context
         if (fmpQuoteClient != null && fmpQuoteClient.isConfigured()) {
             try {
                 FmpQuote vix = fmpQuoteClient.getVixQuote();
@@ -182,19 +224,23 @@ public class SignalScoutService extends BaseService {
                     double vixValue = vix.getPrice().doubleValue();
                     String sentiment, direction, confidence;
                     if (vixValue < 15) {
-                        sentiment = "Low volatility - complacency in market";
-                        direction = "neutral";
+                        sentiment = "Low volatility - complacency";
+                        direction = "bullish";
                         confidence = "Medium";
                     } else if (vixValue < 20) {
-                        sentiment = "Normal volatility levels";
+                        sentiment = "Normal volatility";
                         direction = "neutral";
                         confidence = "Low";
-                    } else if (vixValue < 30) {
-                        sentiment = "Elevated volatility - caution advised";
+                    } else if (vixValue < 25) {
+                        sentiment = "Elevated volatility";
                         direction = "bearish";
                         confidence = "Medium";
+                    } else if (vixValue < 30) {
+                        sentiment = "High volatility - caution";
+                        direction = "bearish";
+                        confidence = "High";
                     } else {
-                        sentiment = "High fear - potential capitulation";
+                        sentiment = "Extreme fear - capitulation";
                         direction = "bearish";
                         confidence = "High";
                     }
@@ -213,6 +259,16 @@ public class SignalScoutService extends BaseService {
         }
 
         return signals.stream().limit(limit).collect(Collectors.toList());
+    }
+
+    private String getIndexName(String symbol) {
+        return switch (symbol) {
+            case "SPY" -> "S&P 500";
+            case "QQQ" -> "NASDAQ 100";
+            case "IWM" -> "Russell 2000";
+            case "DIA" -> "Dow Jones";
+            default -> symbol;
+        };
     }
 
     private String getSectorName(String symbol) {

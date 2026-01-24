@@ -30,6 +30,11 @@ public class StrategyTestResult implements Comparable<StrategyTestResult> {
 
 	private int totalTrades;
 
+	// Consecutive loss analysis
+	private int maxConsecutiveLosses;
+
+	private double worstLosingStreakPercent;
+
 	// The generated Python code for this strategy
 	private String pythonCode;
 
@@ -159,6 +164,22 @@ public class StrategyTestResult implements Comparable<StrategyTestResult> {
 
 	public void setTotalTrades(int totalTrades) {
 		this.totalTrades = totalTrades;
+	}
+
+	public int getMaxConsecutiveLosses() {
+		return maxConsecutiveLosses;
+	}
+
+	public void setMaxConsecutiveLosses(int maxConsecutiveLosses) {
+		this.maxConsecutiveLosses = maxConsecutiveLosses;
+	}
+
+	public double getWorstLosingStreakPercent() {
+		return worstLosingStreakPercent;
+	}
+
+	public void setWorstLosingStreakPercent(double worstLosingStreakPercent) {
+		this.worstLosingStreakPercent = worstLosingStreakPercent;
 	}
 
 	public String getPythonCode() {

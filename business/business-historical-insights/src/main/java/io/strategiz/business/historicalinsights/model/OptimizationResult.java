@@ -45,6 +45,9 @@ public class OptimizationResult {
 	// Performance improvement over buy-and-hold
 	private double outperformance;
 
+	// Deployment guidance and recommendations
+	private DeploymentInsights deploymentInsights;
+
 	public OptimizationResult() {
 		this.topStrategies = new ArrayList<>();
 	}
@@ -218,6 +221,14 @@ public class OptimizationResult {
 
 	public void setOutperformance(double outperformance) {
 		this.outperformance = outperformance;
+	}
+
+	public DeploymentInsights getDeploymentInsights() {
+		return deploymentInsights;
+	}
+
+	public void setDeploymentInsights(DeploymentInsights deploymentInsights) {
+		this.deploymentInsights = deploymentInsights;
 	}
 
 }

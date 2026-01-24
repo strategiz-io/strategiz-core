@@ -3,6 +3,7 @@ package io.strategiz.service.labs.service;
 import io.strategiz.business.historicalinsights.model.OptimizationResult;
 import io.strategiz.business.historicalinsights.model.StrategyTestResult;
 import io.strategiz.business.historicalinsights.model.StrategyType;
+import io.strategiz.business.historicalinsights.service.DeploymentInsightsCalculator;
 import io.strategiz.business.historicalinsights.template.StrategyCodeTemplates;
 import io.strategiz.service.labs.model.ExecuteStrategyResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,11 +34,14 @@ class StrategyOptimizationEngineTest {
 	@Mock
 	private StrategyExecutionService executionService;
 
+	@Mock
+	private DeploymentInsightsCalculator deploymentInsightsCalculator;
+
 	private StrategyOptimizationEngine optimizationEngine;
 
 	@BeforeEach
 	void setUp() {
-		optimizationEngine = new StrategyOptimizationEngine(executionService);
+		optimizationEngine = new StrategyOptimizationEngine(executionService, deploymentInsightsCalculator);
 	}
 
 	@Nested

@@ -146,7 +146,11 @@ public class LLMRouter {
 		models.add(new ModelInfo("command-r", "Command R", "cohere", "Balanced Cohere model"));
 		models.add(new ModelInfo("command-r-plus", "Command R+", "cohere", "Best Cohere model"));
 
-		// Note: Additional direct API models (GPT-4o, o1, Grok) can be added when API keys are configured
+		// xAI Grok models (via direct API)
+		models.add(new ModelInfo("grok-3-mini", "Grok 3 Mini", "xai", "Fast & economical"));
+		models.add(new ModelInfo("grok-3", "Grok 3", "xai", "General purpose model"));
+		models.add(new ModelInfo("grok-4", "Grok 4", "xai", "Advanced reasoning & coding"));
+		models.add(new ModelInfo("grok-4.1-fast", "Grok 4.1 Fast", "xai", "Best for tool-calling, 2M context"));
 
 		// Mark models as available based on registered providers AND feature flags
 		for (ModelInfo model : models) {

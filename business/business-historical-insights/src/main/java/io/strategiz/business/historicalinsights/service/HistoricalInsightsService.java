@@ -57,6 +57,8 @@ public class HistoricalInsightsService {
 
 	private final SwingCycleAnalyzer swingCycleAnalyzer;
 
+	private final MultiTimeframeAnalyzer mtfAnalyzer;
+
 	public HistoricalInsightsService(MarketDataClickHouseRepository marketDataRepo,
 			FundamentalsQueryService fundamentalsService) {
 		this.marketDataRepo = marketDataRepo;
@@ -67,6 +69,7 @@ public class HistoricalInsightsService {
 		this.thresholdCalculator = new OptimalThresholdCalculator();
 		this.regimeClassifier = new MarketRegimeClassifier();
 		this.swingCycleAnalyzer = new SwingCycleAnalyzer();
+		this.mtfAnalyzer = new MultiTimeframeAnalyzer();
 	}
 
 	/**
@@ -1048,8 +1051,56 @@ public class HistoricalInsightsService {
 		double volatilityAdjustedSize = swingCycleAnalyzer.calculateVolatilityAdjustedSize(atrPercent, 2.0);
 		insights.setVolatilityAdjustedSize(volatilityAdjustedSize);
 
-		// 7. Calculate Support/Resistance Levels from turning points
+		// 7. Multi-Timeframe Analysis
+		performMultiTimeframeAnalysis(insights, data);
+
+		// 8. Calculate Support/Resistance Levels from turning points
 		calculateSupportResistanceLevels(insights, turningPoints);
+	}
+
+	/**
+	 * Perform multi-timeframe analysis to detect trend alignment.
+	 */
+	private void performMultiTimeframeAnalysis(SymbolInsights insights, List<MarketDataEntity> data) {
+		if (data == null || data.size() < 100) {
+			log.debug("Insufficient data for multi-timeframe analysis");
+			return;
+		}
+
+		try {
+			// Extract price arrays
+			double[] prices = new double[data.size()];
+			double[] highs = new double[data.size()];
+			double[] lows = new double[data.size()];
+			double[] volumes = new double[data.size()];
+
+			for (int i = 0; i < data.size(); i++) {
+				MarketDataEntity d = data.get(i);
+				prices[i] = d.getClose().doubleValue();
+				highs[i] = d.getHigh().doubleValue();
+				lows[i] = d.getLow().doubleValue();
+				volumes[i] = d.getVolume() != null ? d.getVolume().doubleValue() : 0;
+			}
+
+			// Run multi-timeframe analysis
+			String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
+			MultiTimeframeAnalyzer.MultiTimeframeResult mtfResult = mtfAnalyzer.analyze(
+					timeframe, prices, highs, lows, volumes);
+
+			// Set results on insights
+			insights.setMtfOverallTrend(mtfResult.getOverallTrend());
+			insights.setMtfAlignment(mtfResult.getAlignment().name());
+			insights.setMtfAlignmentScore(mtfResult.getAlignmentScore());
+			insights.setMtfTrendTimeframe(mtfResult.getTrendTimeframe());
+			insights.setMtfEntryTimeframe(mtfResult.getOptimalEntryTimeframe());
+			insights.setMtfRecommendations(mtfResult.getTradingRecommendations());
+
+			log.debug("Multi-timeframe analysis: {} ({:.0f}% aligned)",
+					mtfResult.getAlignment(), mtfResult.getAlignmentScore());
+		}
+		catch (Exception e) {
+			log.warn("Multi-timeframe analysis failed: {}", e.getMessage());
+		}
 	}
 
 	/**

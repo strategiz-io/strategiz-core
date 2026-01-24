@@ -110,6 +110,25 @@ public class SymbolInsights {
 
 	private double volatilityAdjustedSize; // Position size adjusted for current volatility
 
+	// Multi-timeframe analysis
+	@JsonProperty("mtfOverallTrend")
+	private String mtfOverallTrend; // Overall trend from multi-timeframe analysis
+
+	@JsonProperty("mtfAlignment")
+	private String mtfAlignment; // FULLY_ALIGNED_BULLISH, MIXED, etc.
+
+	@JsonProperty("mtfAlignmentScore")
+	private double mtfAlignmentScore; // 0-100, higher = more aligned
+
+	@JsonProperty("mtfTrendTimeframe")
+	private String mtfTrendTimeframe; // Timeframe used for trend determination
+
+	@JsonProperty("mtfEntryTimeframe")
+	private String mtfEntryTimeframe; // Optimal timeframe for entry timing
+
+	@JsonProperty("mtfRecommendations")
+	private List<String> mtfRecommendations; // Trading recommendations from MTF analysis
+
 	public SymbolInsights() {
 		this.topIndicators = new ArrayList<>();
 		this.optimalParameters = new HashMap<>();
@@ -418,6 +437,54 @@ public class SymbolInsights {
 		this.volatilityAdjustedSize = volatilityAdjustedSize;
 	}
 
+	public String getMtfOverallTrend() {
+		return mtfOverallTrend;
+	}
+
+	public void setMtfOverallTrend(String mtfOverallTrend) {
+		this.mtfOverallTrend = mtfOverallTrend;
+	}
+
+	public String getMtfAlignment() {
+		return mtfAlignment;
+	}
+
+	public void setMtfAlignment(String mtfAlignment) {
+		this.mtfAlignment = mtfAlignment;
+	}
+
+	public double getMtfAlignmentScore() {
+		return mtfAlignmentScore;
+	}
+
+	public void setMtfAlignmentScore(double mtfAlignmentScore) {
+		this.mtfAlignmentScore = mtfAlignmentScore;
+	}
+
+	public String getMtfTrendTimeframe() {
+		return mtfTrendTimeframe;
+	}
+
+	public void setMtfTrendTimeframe(String mtfTrendTimeframe) {
+		this.mtfTrendTimeframe = mtfTrendTimeframe;
+	}
+
+	public String getMtfEntryTimeframe() {
+		return mtfEntryTimeframe;
+	}
+
+	public void setMtfEntryTimeframe(String mtfEntryTimeframe) {
+		this.mtfEntryTimeframe = mtfEntryTimeframe;
+	}
+
+	public List<String> getMtfRecommendations() {
+		return mtfRecommendations;
+	}
+
+	public void setMtfRecommendations(List<String> mtfRecommendations) {
+		this.mtfRecommendations = mtfRecommendations;
+	}
+
 	/**
 	 * Formats the insights into a human-readable summary suitable for AI prompt enhancement.
 	 * This method is called by the AIStrategyService to inject historical context into the
@@ -453,6 +520,41 @@ public class SymbolInsights {
 			sb.append(String.format("→ RECOMMENDED STRATEGY: %s\n", bestStrategyForRegime));
 		}
 		sb.append("\n");
+
+		// === MULTI-TIMEFRAME ANALYSIS ===
+		if (mtfOverallTrend != null && mtfAlignment != null) {
+			sb.append("## MULTI-TIMEFRAME ANALYSIS\n");
+			sb.append(String.format("- Overall Trend: %s\n", mtfOverallTrend));
+			sb.append(String.format("- Timeframe Alignment: %s (%.0f%% aligned)\n", mtfAlignment, mtfAlignmentScore));
+			if (mtfTrendTimeframe != null) {
+				sb.append(String.format("- Trend Timeframe: %s (use for direction)\n", mtfTrendTimeframe));
+			}
+			if (mtfEntryTimeframe != null) {
+				sb.append(String.format("- Entry Timeframe: %s (use for timing)\n", mtfEntryTimeframe));
+			}
+
+			// MTF Implications
+			if (mtfAlignmentScore >= 80) {
+				sb.append("→ IMPLICATION: High alignment - strong conviction in trend direction\n");
+				sb.append("→ IMPLICATION: Can use larger position sizes\n");
+			}
+			else if (mtfAlignmentScore >= 50) {
+				sb.append("→ IMPLICATION: Moderate alignment - use standard position sizes\n");
+				sb.append("→ IMPLICATION: Wait for lower timeframe to align before entry\n");
+			}
+			else {
+				sb.append("→ IMPLICATION: Low alignment - reduce position size\n");
+				sb.append("→ IMPLICATION: Consider mean-reversion instead of trend-following\n");
+			}
+
+			if (mtfRecommendations != null && !mtfRecommendations.isEmpty()) {
+				sb.append("### MTF Recommendations:\n");
+				for (String rec : mtfRecommendations.subList(0, Math.min(3, mtfRecommendations.size()))) {
+					sb.append(String.format("  → %s\n", rec));
+				}
+			}
+			sb.append("\n");
+		}
 
 		// === OPTIMAL THRESHOLDS (Derived from Historical Analysis) ===
 		if (turningPoints != null && turningPoints.size() > 5) {

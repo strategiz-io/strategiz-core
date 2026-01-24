@@ -271,6 +271,207 @@ class StrategyOptimizationIntegrationTest {
 	}
 
 	@Nested
+	@DisplayName("Deployment Insights Integration")
+	class DeploymentInsightsIntegrationTests {
+
+		@Test
+		@DisplayName("Should include deployment insights in optimization result")
+		void shouldIncludeDeploymentInsights() {
+			setupTrendingMarketMock("AAPL", TRENDING_UP_BUY_HOLD);
+
+			// Mock the deployment insights calculator
+			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
+					.thenAnswer(invocation -> {
+						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
+								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+						insights.setRecommendedPortfolioAllocation(8.5);
+						insights.setKellyPercentage(25.0);
+						insights.setConservativeKelly(12.5);
+						insights.setDrawdownRiskLevel(
+								io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.MEDIUM);
+						insights.setRecommendedDeploymentMode(
+								io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT);
+						insights.setEstimatedTradesPerYear(45);
+						return insights;
+					});
+
+			OptimizationResult result = optimizationEngine.optimize("AAPL", "1D", "3y", "test-user");
+
+			assertNotNull(result);
+			assertNotNull(result.getBestStrategy());
+
+			// Verify deployment insights calculator was called
+			verify(deploymentInsightsCalculator).calculate(any(StrategyTestResult.class), eq(1095));
+
+			// Verify insights are populated
+			assertNotNull(result.getDeploymentInsights(), "Deployment insights should be populated");
+			assertEquals(8.5, result.getDeploymentInsights().getRecommendedPortfolioAllocation(), 0.1);
+
+			System.out.println("Deployment Insights included in result:");
+			System.out.printf("  Allocation: %.1f%%%n", result.getDeploymentInsights().getRecommendedPortfolioAllocation());
+			System.out.printf("  Mode: %s%n", result.getDeploymentInsights().getRecommendedDeploymentMode());
+		}
+
+		@Test
+		@DisplayName("Should calculate insights based on best strategy metrics")
+		void shouldCalculateInsightsFromBestStrategy() {
+			setupTrendingMarketMock("MSFT", 60.0);
+
+			// Capture the strategy result passed to calculator
+			final StrategyTestResult[] capturedResult = new StrategyTestResult[1];
+			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
+					.thenAnswer(invocation -> {
+						capturedResult[0] = invocation.getArgument(0);
+						return new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+					});
+
+			OptimizationResult result = optimizationEngine.optimize("MSFT", "1D", "3y", "test-user");
+
+			assertNotNull(result);
+			assertNotNull(result.getBestStrategy());
+			assertNotNull(capturedResult[0], "Should pass strategy result to calculator");
+
+			// Verify the best strategy was passed
+			assertEquals(result.getBestStrategy().getStrategyType(), capturedResult[0].getStrategyType());
+			assertEquals(result.getBestStrategy().getTotalReturn(), capturedResult[0].getTotalReturn(), 0.01);
+		}
+
+		@Test
+		@DisplayName("Should handle deployment insights for high frequency strategy")
+		void shouldHandleHighFrequencyStrategy() {
+			// Mock high frequency trading scenario
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("SPY"), anyString(), anyString(), anyString(), any()))
+					.thenAnswer(invocation -> {
+						ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+						ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+						perf.setTotalReturn(35.0);
+						perf.setWinRate(52.0);
+						perf.setMaxDrawdown(18.0);
+						perf.setSharpeRatio(1.2);
+						perf.setProfitFactor(1.4);
+						perf.setTotalTrades(1500); // High frequency
+						response.setPerformance(perf);
+						return response;
+					});
+
+			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
+					.thenAnswer(invocation -> {
+						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
+								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+						insights.setRecommendedDeploymentMode(
+								io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.BOT);
+						insights.setEstimatedTradesPerYear(500);
+						insights.setTradingFrequencyClassification("High Frequency");
+						return insights;
+					});
+
+			OptimizationResult result = optimizationEngine.optimize("SPY", "1D", "3y", "test-user");
+
+			assertNotNull(result);
+			assertNotNull(result.getDeploymentInsights());
+			assertEquals(io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.BOT,
+					result.getDeploymentInsights().getRecommendedDeploymentMode());
+			assertEquals("High Frequency", result.getDeploymentInsights().getTradingFrequencyClassification());
+		}
+
+		@Test
+		@DisplayName("Should handle deployment insights for low frequency strategy")
+		void shouldHandleLowFrequencyStrategy() {
+			// Mock low frequency trading scenario (position trading)
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("BRK.A"), anyString(), anyString(), anyString(), any()))
+					.thenAnswer(invocation -> {
+						ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+						ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+						perf.setTotalReturn(45.0);
+						perf.setWinRate(65.0);
+						perf.setMaxDrawdown(10.0);
+						perf.setSharpeRatio(1.8);
+						perf.setProfitFactor(2.5);
+						perf.setTotalTrades(30); // Low frequency
+						response.setPerformance(perf);
+						return response;
+					});
+
+			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
+					.thenAnswer(invocation -> {
+						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
+								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+						insights.setRecommendedDeploymentMode(
+								io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT);
+						insights.setEstimatedTradesPerYear(10);
+						insights.setTradingFrequencyClassification("Position Trading");
+						return insights;
+					});
+
+			OptimizationResult result = optimizationEngine.optimize("BRK.A", "1D", "3y", "test-user");
+
+			assertNotNull(result);
+			assertNotNull(result.getDeploymentInsights());
+			assertEquals(io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT,
+					result.getDeploymentInsights().getRecommendedDeploymentMode());
+			assertEquals("Position Trading", result.getDeploymentInsights().getTradingFrequencyClassification());
+		}
+
+		@Test
+		@DisplayName("Should include position sizing recommendations")
+		void shouldIncludePositionSizingRecommendations() {
+			setupTrendingMarketMock("NVDA", 120.0);
+
+			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
+					.thenAnswer(invocation -> {
+						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
+								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+						insights.setRecommendedPortfolioAllocation(12.5);
+						insights.setKellyPercentage(35.0);
+						insights.setConservativeKelly(17.5);
+						insights.setAllocationRationale("Moderate allocation suitable for validated strategies.");
+						return insights;
+					});
+
+			OptimizationResult result = optimizationEngine.optimize("NVDA", "1D", "3y", "test-user");
+
+			assertNotNull(result);
+			assertNotNull(result.getDeploymentInsights());
+			assertTrue(result.getDeploymentInsights().getRecommendedPortfolioAllocation() > 0);
+			assertTrue(result.getDeploymentInsights().getKellyPercentage() > 0);
+			assertNotNull(result.getDeploymentInsights().getAllocationRationale());
+
+			System.out.println("Position Sizing for NVDA:");
+			System.out.printf("  Recommended: %.1f%%%n", result.getDeploymentInsights().getRecommendedPortfolioAllocation());
+			System.out.printf("  Kelly: %.1f%%%n", result.getDeploymentInsights().getKellyPercentage());
+			System.out.printf("  Rationale: %s%n", result.getDeploymentInsights().getAllocationRationale());
+		}
+
+		@Test
+		@DisplayName("Should include risk analysis in deployment insights")
+		void shouldIncludeRiskAnalysis() {
+			setupVolatileMarketMock("TSLA", VOLATILE_BUY_HOLD);
+
+			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
+					.thenAnswer(invocation -> {
+						StrategyTestResult strategy = invocation.getArgument(0);
+						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
+								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+						insights.setMaxDrawdown(strategy.getMaxDrawdown());
+						insights.setDrawdownRiskLevel(
+								io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.HIGH);
+						insights.setRecoveryRequired(35.0);
+						insights.setDrawdownExplanation("High drawdown requires significant recovery.");
+						return insights;
+					});
+
+			OptimizationResult result = optimizationEngine.optimize("TSLA", "1D", "3y", "test-user");
+
+			assertNotNull(result);
+			assertNotNull(result.getDeploymentInsights());
+			assertEquals(io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.HIGH,
+					result.getDeploymentInsights().getDrawdownRiskLevel());
+			assertTrue(result.getDeploymentInsights().getRecoveryRequired() > 0);
+			assertNotNull(result.getDeploymentInsights().getDrawdownExplanation());
+		}
+	}
+
+	@Nested
 	@DisplayName("Strategy Quality Metrics")
 	class StrategyQualityTests {
 

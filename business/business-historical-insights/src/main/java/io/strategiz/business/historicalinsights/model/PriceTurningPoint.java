@@ -30,6 +30,35 @@ public class PriceTurningPoint {
 	@JsonProperty("daysFromPrevious")
 	private int daysFromPrevious; // Days since previous turning point
 
+	// Indicator states at this turning point (what would have signaled it)
+	@JsonProperty("rsiAtPoint")
+	private double rsiAtPoint;
+
+	@JsonProperty("macdHistogramAtPoint")
+	private double macdHistogramAtPoint;
+
+	@JsonProperty("stochasticKAtPoint")
+	private double stochasticKAtPoint;
+
+	@JsonProperty("pctFromBollingerLower")
+	private double pctFromBollingerLower; // % distance from lower BB
+
+	@JsonProperty("pctFromBollingerUpper")
+	private double pctFromBollingerUpper; // % distance from upper BB
+
+	@JsonProperty("volumeRatio")
+	private double volumeRatio; // Volume vs 20-day average
+
+	@JsonProperty("volumeConfirmed")
+	private boolean volumeConfirmed; // True if volume > 1.5x average
+
+	// Reversal analysis - how the price moved after this turning point
+	@JsonProperty("reversal5DayPercent")
+	private double reversal5DayPercent;
+
+	@JsonProperty("reversal10DayPercent")
+	private double reversal10DayPercent;
+
 	public PriceTurningPoint() {
 	}
 
@@ -81,10 +110,84 @@ public class PriceTurningPoint {
 		this.daysFromPrevious = daysFromPrevious;
 	}
 
+	// Getters and Setters for indicator states
+
+	public double getRsiAtPoint() {
+		return rsiAtPoint;
+	}
+
+	public void setRsiAtPoint(double rsiAtPoint) {
+		this.rsiAtPoint = rsiAtPoint;
+	}
+
+	public double getMacdHistogramAtPoint() {
+		return macdHistogramAtPoint;
+	}
+
+	public void setMacdHistogramAtPoint(double macdHistogramAtPoint) {
+		this.macdHistogramAtPoint = macdHistogramAtPoint;
+	}
+
+	public double getStochasticKAtPoint() {
+		return stochasticKAtPoint;
+	}
+
+	public void setStochasticKAtPoint(double stochasticKAtPoint) {
+		this.stochasticKAtPoint = stochasticKAtPoint;
+	}
+
+	public double getPctFromBollingerLower() {
+		return pctFromBollingerLower;
+	}
+
+	public void setPctFromBollingerLower(double pctFromBollingerLower) {
+		this.pctFromBollingerLower = pctFromBollingerLower;
+	}
+
+	public double getPctFromBollingerUpper() {
+		return pctFromBollingerUpper;
+	}
+
+	public void setPctFromBollingerUpper(double pctFromBollingerUpper) {
+		this.pctFromBollingerUpper = pctFromBollingerUpper;
+	}
+
+	public double getVolumeRatio() {
+		return volumeRatio;
+	}
+
+	public void setVolumeRatio(double volumeRatio) {
+		this.volumeRatio = volumeRatio;
+	}
+
+	public boolean isVolumeConfirmed() {
+		return volumeConfirmed;
+	}
+
+	public void setVolumeConfirmed(boolean volumeConfirmed) {
+		this.volumeConfirmed = volumeConfirmed;
+	}
+
+	public double getReversal5DayPercent() {
+		return reversal5DayPercent;
+	}
+
+	public void setReversal5DayPercent(double reversal5DayPercent) {
+		this.reversal5DayPercent = reversal5DayPercent;
+	}
+
+	public double getReversal10DayPercent() {
+		return reversal10DayPercent;
+	}
+
+	public void setReversal10DayPercent(double reversal10DayPercent) {
+		this.reversal10DayPercent = reversal10DayPercent;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("%s @ %s: $%.2f (%.1f%% from previous, %d days)",
-				type, timestamp, price, priceChangeFromPrevious, daysFromPrevious);
+		return String.format("%s @ %s: $%.2f (%.1f%% from previous, %d days, RSI=%.1f)",
+				type, timestamp, price, priceChangeFromPrevious, daysFromPrevious, rsiAtPoint);
 	}
 
 }

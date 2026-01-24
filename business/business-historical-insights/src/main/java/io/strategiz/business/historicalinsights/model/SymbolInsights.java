@@ -57,10 +57,65 @@ public class SymbolInsights {
 	@JsonProperty("turningPoints")
 	private List<PriceTurningPoint> turningPoints;
 
+	// === ADVANCED STATISTICS (Phase 1 Enhancement) ===
+
+	// Swing cycle statistics
+	private double avgSwingMagnitude; // Average % move between turning points
+
+	private double medianSwingMagnitude;
+
+	private int avgSwingDuration; // Average days between turning points
+
+	private int optimalHoldingPeriodDays;
+
+	private double optimalHoldingWinRate;
+
+	// Hurst exponent (proper calculation via R/S analysis)
+	private double hurstExponent; // <0.5 = mean-reverting, =0.5 = random, >0.5 = trending
+
+	private String hurstInterpretation;
+
+	// Optimal thresholds derived from turning points analysis
+	private double optimalRsiOversold; // RSI value that captures 80% of historical troughs
+
+	private double optimalRsiOverbought; // RSI value that captures 80% of historical peaks
+
+	private double optimalPctDropForEntry; // % drop from high that captures 80% of troughs
+
+	private double optimalPctGainForExit; // % gain that captures 80% of peaks
+
+	// Drawdown analysis
+	private double maxHistoricalDrawdown;
+
+	private double avgDrawdown;
+
+	private int avgDrawdownDuration;
+
+	private int avgRecoveryDays;
+
+	// Support/resistance levels (from clustering analysis of turning points)
+	@JsonProperty("majorSupportLevels")
+	private List<Double> majorSupportLevels;
+
+	@JsonProperty("majorResistanceLevels")
+	private List<Double> majorResistanceLevels;
+
+	// Market regime classification
+	private String currentRegime; // STRONG_UPTREND, UPTREND, RANGING_VOLATILE, RANGING_CALM, DOWNTREND, STRONG_DOWNTREND
+
+	private String bestStrategyForRegime; // Recommended strategy type for current regime
+
+	// Position sizing recommendations (based on historical volatility and win/loss)
+	private double kellyCriterion; // Optimal position size based on historical win/loss ratio
+
+	private double volatilityAdjustedSize; // Position size adjusted for current volatility
+
 	public SymbolInsights() {
 		this.topIndicators = new ArrayList<>();
 		this.optimalParameters = new HashMap<>();
 		this.turningPoints = new ArrayList<>();
+		this.majorSupportLevels = new ArrayList<>();
+		this.majorResistanceLevels = new ArrayList<>();
 	}
 
 	// Getters and setters
@@ -193,6 +248,176 @@ public class SymbolInsights {
 		this.turningPoints = turningPoints;
 	}
 
+	// === ADVANCED STATISTICS GETTERS/SETTERS ===
+
+	public double getAvgSwingMagnitude() {
+		return avgSwingMagnitude;
+	}
+
+	public void setAvgSwingMagnitude(double avgSwingMagnitude) {
+		this.avgSwingMagnitude = avgSwingMagnitude;
+	}
+
+	public double getMedianSwingMagnitude() {
+		return medianSwingMagnitude;
+	}
+
+	public void setMedianSwingMagnitude(double medianSwingMagnitude) {
+		this.medianSwingMagnitude = medianSwingMagnitude;
+	}
+
+	public int getAvgSwingDuration() {
+		return avgSwingDuration;
+	}
+
+	public void setAvgSwingDuration(int avgSwingDuration) {
+		this.avgSwingDuration = avgSwingDuration;
+	}
+
+	public int getOptimalHoldingPeriodDays() {
+		return optimalHoldingPeriodDays;
+	}
+
+	public void setOptimalHoldingPeriodDays(int optimalHoldingPeriodDays) {
+		this.optimalHoldingPeriodDays = optimalHoldingPeriodDays;
+	}
+
+	public double getOptimalHoldingWinRate() {
+		return optimalHoldingWinRate;
+	}
+
+	public void setOptimalHoldingWinRate(double optimalHoldingWinRate) {
+		this.optimalHoldingWinRate = optimalHoldingWinRate;
+	}
+
+	public double getHurstExponent() {
+		return hurstExponent;
+	}
+
+	public void setHurstExponent(double hurstExponent) {
+		this.hurstExponent = hurstExponent;
+	}
+
+	public String getHurstInterpretation() {
+		return hurstInterpretation;
+	}
+
+	public void setHurstInterpretation(String hurstInterpretation) {
+		this.hurstInterpretation = hurstInterpretation;
+	}
+
+	public double getOptimalRsiOversold() {
+		return optimalRsiOversold;
+	}
+
+	public void setOptimalRsiOversold(double optimalRsiOversold) {
+		this.optimalRsiOversold = optimalRsiOversold;
+	}
+
+	public double getOptimalRsiOverbought() {
+		return optimalRsiOverbought;
+	}
+
+	public void setOptimalRsiOverbought(double optimalRsiOverbought) {
+		this.optimalRsiOverbought = optimalRsiOverbought;
+	}
+
+	public double getOptimalPctDropForEntry() {
+		return optimalPctDropForEntry;
+	}
+
+	public void setOptimalPctDropForEntry(double optimalPctDropForEntry) {
+		this.optimalPctDropForEntry = optimalPctDropForEntry;
+	}
+
+	public double getOptimalPctGainForExit() {
+		return optimalPctGainForExit;
+	}
+
+	public void setOptimalPctGainForExit(double optimalPctGainForExit) {
+		this.optimalPctGainForExit = optimalPctGainForExit;
+	}
+
+	public double getMaxHistoricalDrawdown() {
+		return maxHistoricalDrawdown;
+	}
+
+	public void setMaxHistoricalDrawdown(double maxHistoricalDrawdown) {
+		this.maxHistoricalDrawdown = maxHistoricalDrawdown;
+	}
+
+	public double getAvgDrawdown() {
+		return avgDrawdown;
+	}
+
+	public void setAvgDrawdown(double avgDrawdown) {
+		this.avgDrawdown = avgDrawdown;
+	}
+
+	public int getAvgDrawdownDuration() {
+		return avgDrawdownDuration;
+	}
+
+	public void setAvgDrawdownDuration(int avgDrawdownDuration) {
+		this.avgDrawdownDuration = avgDrawdownDuration;
+	}
+
+	public int getAvgRecoveryDays() {
+		return avgRecoveryDays;
+	}
+
+	public void setAvgRecoveryDays(int avgRecoveryDays) {
+		this.avgRecoveryDays = avgRecoveryDays;
+	}
+
+	public List<Double> getMajorSupportLevels() {
+		return majorSupportLevels;
+	}
+
+	public void setMajorSupportLevels(List<Double> majorSupportLevels) {
+		this.majorSupportLevels = majorSupportLevels;
+	}
+
+	public List<Double> getMajorResistanceLevels() {
+		return majorResistanceLevels;
+	}
+
+	public void setMajorResistanceLevels(List<Double> majorResistanceLevels) {
+		this.majorResistanceLevels = majorResistanceLevels;
+	}
+
+	public String getCurrentRegime() {
+		return currentRegime;
+	}
+
+	public void setCurrentRegime(String currentRegime) {
+		this.currentRegime = currentRegime;
+	}
+
+	public String getBestStrategyForRegime() {
+		return bestStrategyForRegime;
+	}
+
+	public void setBestStrategyForRegime(String bestStrategyForRegime) {
+		this.bestStrategyForRegime = bestStrategyForRegime;
+	}
+
+	public double getKellyCriterion() {
+		return kellyCriterion;
+	}
+
+	public void setKellyCriterion(double kellyCriterion) {
+		this.kellyCriterion = kellyCriterion;
+	}
+
+	public double getVolatilityAdjustedSize() {
+		return volatilityAdjustedSize;
+	}
+
+	public void setVolatilityAdjustedSize(double volatilityAdjustedSize) {
+		this.volatilityAdjustedSize = volatilityAdjustedSize;
+	}
+
 	/**
 	 * Formats the insights into a human-readable summary suitable for AI prompt enhancement.
 	 * This method is called by the AIStrategyService to inject historical context into the
@@ -205,28 +430,141 @@ public class SymbolInsights {
 		sb.append(String.format("Symbol: %s | Timeframe: %s | Period: %d days (%.1f years)\n\n", symbol, timeframe,
 				daysAnalyzed, daysAnalyzed / 365.25));
 
-		// Volatility
-		sb.append("VOLATILITY PROFILE:\n");
+		// === MARKET REGIME (Most Important) ===
+		sb.append("## MARKET REGIME: ").append(currentRegime != null ? currentRegime : "UNKNOWN");
+		if (hurstExponent > 0) {
+			sb.append(String.format(" (Hurst: %.2f)", hurstExponent));
+		}
+		sb.append("\n");
+
+		// Regime implications
+		if (isMeanReverting) {
+			sb.append("→ IMPLICATION: Market shows mean-reverting behavior\n");
+			sb.append("→ IMPLICATION: Oscillator strategies (RSI, Stochastic) likely profitable\n");
+			sb.append("→ IMPLICATION: Avoid trend-following strategies - will whipsaw\n");
+		}
+		else {
+			sb.append("→ IMPLICATION: Market shows trending behavior\n");
+			sb.append("→ IMPLICATION: Momentum strategies (MACD, MA crossovers) recommended\n");
+			sb.append("→ IMPLICATION: Mean-reversion strategies may underperform\n");
+		}
+
+		if (bestStrategyForRegime != null) {
+			sb.append(String.format("→ RECOMMENDED STRATEGY: %s\n", bestStrategyForRegime));
+		}
+		sb.append("\n");
+
+		// === OPTIMAL THRESHOLDS (Derived from Historical Analysis) ===
+		if (turningPoints != null && turningPoints.size() > 5) {
+			int troughCount = (int) turningPoints.stream()
+				.filter(tp -> tp.getType() == PriceTurningPoint.PointType.TROUGH)
+				.count();
+			int peakCount = turningPoints.size() - troughCount;
+
+			sb.append(String.format("## OPTIMAL ENTRY THRESHOLDS (from %d historical troughs):\n", troughCount));
+			if (optimalRsiOversold > 0) {
+				sb.append(String.format("- RSI below %.1f captures 80%% of optimal buy points\n", optimalRsiOversold));
+			}
+			if (optimalPctDropForEntry > 0) {
+				sb.append(String.format("- Price drop of %.1f%% from high captures 80%% of entries\n",
+						optimalPctDropForEntry));
+			}
+			sb.append(String.format("→ RECOMMENDATION: Enter when RSI < %.1f\n\n", optimalRsiOversold));
+
+			sb.append(String.format("## OPTIMAL EXIT THRESHOLDS (from %d historical peaks):\n", peakCount));
+			if (optimalRsiOverbought > 0) {
+				sb.append(
+						String.format("- RSI above %.1f captures 80%% of optimal sell points\n", optimalRsiOverbought));
+			}
+			if (optimalPctGainForExit > 0) {
+				sb.append(String.format("- Price gain of %.1f%% captures 80%% of exits\n", optimalPctGainForExit));
+			}
+			sb.append(String.format("→ RECOMMENDATION: Exit when RSI > %.1f OR use trailing stop\n\n",
+					optimalRsiOverbought));
+		}
+
+		// === SWING CYCLE STATISTICS ===
+		if (avgSwingMagnitude > 0) {
+			sb.append("## SWING CYCLE ANALYSIS:\n");
+			sb.append(String.format("- Average swing magnitude: %.1f%%\n", avgSwingMagnitude));
+			sb.append(String.format("- Median swing magnitude: %.1f%%\n", medianSwingMagnitude));
+			sb.append(String.format("- Average swing duration: %d days\n", avgSwingDuration));
+			sb.append(String.format("- Optimal holding period: %d days (%.0f%% win rate)\n", optimalHoldingPeriodDays,
+					optimalHoldingWinRate * 100));
+			sb.append("→ IMPLICATION: Plan trades around these typical swing characteristics\n\n");
+		}
+
+		// === DRAWDOWN ANALYSIS ===
+		if (maxHistoricalDrawdown > 0) {
+			sb.append("## DRAWDOWN ANALYSIS:\n");
+			sb.append(String.format("- Maximum historical drawdown: %.1f%%\n", maxHistoricalDrawdown));
+			sb.append(String.format("- Average drawdown: %.1f%%\n", avgDrawdown));
+			sb.append(String.format("- Average drawdown duration: %d days\n", avgDrawdownDuration));
+			sb.append(String.format("- Average recovery time: %d days\n", avgRecoveryDays));
+			sb.append(String.format("→ RECOMMENDATION: Set stop loss no tighter than %.1f%% (avg drawdown)\n\n",
+					avgDrawdown));
+		}
+
+		// === POSITION SIZING ===
+		if (kellyCriterion > 0) {
+			sb.append("## POSITION SIZING RECOMMENDATIONS:\n");
+			sb.append(String.format("- Quarter-Kelly position size: %.1f%% of portfolio\n", kellyCriterion * 100));
+			sb.append(String.format("- Volatility-adjusted size: %.1f%% of portfolio\n", volatilityAdjustedSize * 100));
+			sb.append("→ RECOMMENDATION: Use the smaller of these two values\n\n");
+		}
+
+		// === SUPPORT/RESISTANCE LEVELS ===
+		if (majorSupportLevels != null && !majorSupportLevels.isEmpty()) {
+			sb.append("## KEY PRICE LEVELS:\n");
+			sb.append("Support levels: ");
+			for (int i = 0; i < Math.min(3, majorSupportLevels.size()); i++) {
+				sb.append(String.format("$%.2f", majorSupportLevels.get(i)));
+				if (i < Math.min(3, majorSupportLevels.size()) - 1) {
+					sb.append(", ");
+				}
+			}
+			sb.append("\n");
+		}
+		if (majorResistanceLevels != null && !majorResistanceLevels.isEmpty()) {
+			sb.append("Resistance levels: ");
+			for (int i = 0; i < Math.min(3, majorResistanceLevels.size()); i++) {
+				sb.append(String.format("$%.2f", majorResistanceLevels.get(i)));
+				if (i < Math.min(3, majorResistanceLevels.size()) - 1) {
+					sb.append(", ");
+				}
+			}
+			sb.append("\n\n");
+		}
+
+		// === VOLATILITY PROFILE ===
+		sb.append("## VOLATILITY PROFILE:\n");
 		sb.append(String.format("- Regime: %s\n", volatilityRegime));
 		sb.append(String.format("- Avg ATR: $%.2f\n", avgVolatility));
 		sb.append(String.format("- Avg Daily Range: %.2f%%\n\n", avgDailyRange));
 
-		// Top indicators
-		sb.append("TOP PERFORMING INDICATORS:\n");
-		for (int i = 0; i < Math.min(5, topIndicators.size()); i++) {
-			IndicatorRanking ranking = topIndicators.get(i);
-			sb.append(String.format("%d. %s (Score: %.2f) - %s\n", i + 1, ranking.getIndicatorName(),
-					ranking.getEffectivenessScore(), ranking.getReason()));
+		// === TOP INDICATORS (if available) ===
+		if (topIndicators != null && !topIndicators.isEmpty()) {
+			sb.append("## TOP PERFORMING INDICATORS:\n");
+			for (int i = 0; i < Math.min(5, topIndicators.size()); i++) {
+				IndicatorRanking ranking = topIndicators.get(i);
+				sb.append(String.format("%d. %s (Score: %.2f) - %s\n", i + 1, ranking.getIndicatorName(),
+						ranking.getEffectivenessScore(), ranking.getReason()));
+			}
+			sb.append("\n");
+		}
+
+		// === MARKET CHARACTERISTICS ===
+		sb.append("## MARKET CHARACTERISTICS:\n");
+		sb.append(String.format("- Trend: %s (Strength: %.0f%%)\n", trendDirection, trendStrength * 100));
+		sb.append(String.format("- Type: %s (Hurst: %.2f)\n", isMeanReverting ? "Mean-Reverting" : "Trending",
+				hurstExponent));
+		if (hurstInterpretation != null) {
+			sb.append(String.format("- Hurst Interpretation: %s\n", hurstInterpretation));
 		}
 		sb.append("\n");
 
-		// Market characteristics
-		sb.append("MARKET CHARACTERISTICS:\n");
-		sb.append(String.format("- Trend: %s (Strength: %.0f%%)\n", trendDirection, trendStrength * 100));
-		sb.append(String.format("- Type: %s\n\n", isMeanReverting ? "Mean-Reverting" : "Trending"));
-
-		// Risk insights
-		sb.append("RISK INSIGHTS:\n");
+		// === RISK INSIGHTS ===
+		sb.append("## RISK INSIGHTS:\n");
 		sb.append(String.format("- Avg Win Rate: %.1f%%\n", avgWinRate));
 		sb.append(String.format("- Avg Max Drawdown: %.1f%%\n", avgMaxDrawdown));
 		sb.append(String.format("- Recommended Risk Level: %s\n", recommendedRiskLevel));

@@ -1087,6 +1087,129 @@ public class AIStrategyPrompts {
 		return String.format(INDICATOR_PREVIEW_PROMPT, partialPrompt);
 	}
 
+	// ========== TRADING KNOWLEDGE HEURISTICS ==========
+
+	/**
+	 * Trading knowledge heuristics to guide AI strategy generation.
+	 * These represent accumulated trading wisdom and best practices.
+	 */
+	public static final String TRADING_KNOWLEDGE_HEURISTICS = """
+			## TRADING KNOWLEDGE HEURISTICS
+
+			### Position Sizing Rules
+			1. **Kelly Criterion**: Optimal size = (Win% × AvgWin - Loss% × AvgLoss) / AvgWin
+			   - Use Quarter Kelly (25% of full Kelly) for safety
+			   - Never risk more than 2% of portfolio on a single trade
+			2. **Volatility Adjustment**: Higher ATR → Smaller position
+			   - Position Size = Risk Per Trade / (ATR × Multiplier)
+			3. **Correlation Management**: Reduce size when holding correlated positions
+
+			### Entry Timing Optimization
+			1. **Wait for Confirmation**: Don't enter on first signal - wait for follow-through
+			2. **Multi-Timeframe Alignment**: Higher timeframe trend should support entry
+			3. **Volume Confirmation**: Ideal entries have above-average volume (>1.5x)
+			4. **Avoid Extended Markets**: Don't buy when RSI > 70 or price far above moving averages
+
+			### Exit Strategies
+			1. **Trailing Stops**: Use 2-3 ATR trailing stop for trend trades
+			2. **Partial Profits**: Take 50% at 1R, let rest run with trailing stop
+			3. **Time-Based Exits**: Exit if no profit after 2× expected holding period
+			4. **Technical Exits**: Exit on trend break, not arbitrary targets
+
+			### Risk Management Principles
+			1. **Stop Loss Sizing**: Based on ATR, not arbitrary percentage
+			   - Swing trades: 2-3 ATR below entry
+			   - Day trades: 1-1.5 ATR below entry
+			2. **Risk/Reward Minimum**: Only take trades with R:R >= 2:1
+			3. **Max Correlation Exposure**: No more than 3 correlated positions
+			4. **Drawdown Limits**: Stop trading if drawdown exceeds 15%
+
+			### Market Regime Adaptation
+			| Regime | Strategy | Indicators |
+			|--------|----------|------------|
+			| Strong Uptrend | Trend-following, buy dips | MACD, EMA crossovers |
+			| Ranging Volatile | Mean-reversion | RSI, Bollinger Bands |
+			| Ranging Calm | Breakout anticipation | Squeeze, low ATR |
+			| Downtrend | Stay out or short rallies | Inverse of uptrend |
+
+			### Signal Quality Filters
+			1. **Trend Filter**: Only long above 50 SMA, only short below
+			2. **Volatility Filter**: Skip trades when ATR < 50% of average
+			3. **Time Filter**: Avoid first/last 30 min of session
+			4. **News Filter**: No entries around major announcements
+			""";
+
+	/**
+	 * Chain-of-thought reasoning framework for strategy generation.
+	 */
+	public static final String CHAIN_OF_THOUGHT_FRAMEWORK = """
+			## STRATEGY REASONING FRAMEWORK
+
+			Before generating code, work through these steps systematically:
+
+			### Step 1: MARKET REGIME ASSESSMENT
+			- What is the Hurst exponent telling us? (H < 0.5 = mean-reverting, H > 0.5 = trending)
+			- What is the current trend direction and strength?
+			- Is volatility expanding or contracting?
+			- CONCLUSION: [TRENDING/MEAN_REVERTING/TRANSITIONAL]
+
+			### Step 2: INDICATOR SELECTION
+			Based on regime, which indicators are appropriate?
+			- MEAN_REVERTING → RSI, Stochastic, Bollinger Bands (oscillators)
+			- TRENDING → MACD, EMA Crossovers, ADX (momentum)
+			- HIGH_VOLATILITY → Wider stops, ATR-based exits
+			- LOW_VOLATILITY → Breakout strategies, tighter stops
+
+			### Step 3: OPTIMAL THRESHOLDS
+			Use the historical analysis to set thresholds:
+			- What RSI level captured 80% of historical troughs? Use this for oversold.
+			- What % drop from high captured 80% of entry points? Use this.
+			- What % gain captured 80% of exit points? Use this for profit target.
+
+			### Step 4: ENTRY CRITERIA
+			Define precise entry conditions:
+			- Primary signal: [e.g., RSI < 32]
+			- Confirmation: [e.g., Price near lower Bollinger Band]
+			- Filter: [e.g., Above 50-day SMA for trend alignment]
+			- Volume: [e.g., Volume > 1.2x 20-day average]
+
+			### Step 5: EXIT CRITERIA
+			Define all exit scenarios:
+			- Profit target: [e.g., RSI > 68 OR 2 ATR trailing stop]
+			- Stop loss: [e.g., 2.5 ATR below entry]
+			- Time stop: [e.g., Exit if not profitable after 15 days]
+
+			### Step 6: POSITION SIZING
+			Calculate appropriate size:
+			- Volatility-adjusted: 2% risk / (ATR × 2.5) = position size
+			- Kelly-adjusted: Use quarter-Kelly based on historical win/loss
+
+			### Step 7: EDGE VALIDATION
+			Before finalizing, verify:
+			- Does this strategy make sense for the detected regime?
+			- Are thresholds based on historical data, not arbitrary?
+			- Is the risk/reward ratio at least 2:1?
+			- Would this have captured the major historical swings?
+			""";
+
+	/**
+	 * Role and objective statement for strategy generation.
+	 */
+	public static final String STRATEGY_GENERATION_OBJECTIVE = """
+			You are a Quantitative Strategy Architect. Your mission:
+			- Outperform buy-and-hold by at least 15%
+			- Maintain Sharpe Ratio >= 1.0
+			- Limit max drawdown to 2× average profit per trade
+			- Produce 20+ trades for statistical significance
+
+			You are evaluated on TOTAL RETURN, not win rate alone.
+			A 40% win rate with 3:1 reward/risk beats a 70% win rate with 1:1 reward/risk.
+
+			CRITICAL: Use the historical data provided to derive OPTIMAL thresholds.
+			Do NOT use arbitrary standard values (RSI 30/70, BB 2 std dev).
+			Instead, use thresholds that would have captured 80% of historical opportunities.
+			""";
+
 	/**
 	 * Builds an enhanced prompt for Historical Market Insights (Autonomous AI mode).
 	 * This method generates a comprehensive analysis section based on 7 years of historical data.

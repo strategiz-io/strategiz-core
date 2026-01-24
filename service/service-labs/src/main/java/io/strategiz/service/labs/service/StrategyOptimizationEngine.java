@@ -1,8 +1,10 @@
 package io.strategiz.service.labs.service;
 
+import io.strategiz.business.historicalinsights.model.DeploymentInsights;
 import io.strategiz.business.historicalinsights.model.OptimizationResult;
 import io.strategiz.business.historicalinsights.model.StrategyTestResult;
 import io.strategiz.business.historicalinsights.model.StrategyType;
+import io.strategiz.business.historicalinsights.service.DeploymentInsightsCalculator;
 import io.strategiz.business.historicalinsights.template.StrategyCodeTemplates;
 import io.strategiz.service.labs.model.ExecuteStrategyResponse;
 import org.slf4j.Logger;
@@ -35,8 +37,12 @@ public class StrategyOptimizationEngine {
 
 	private final StrategyExecutionService executionService;
 
-	public StrategyOptimizationEngine(StrategyExecutionService executionService) {
+	private final DeploymentInsightsCalculator deploymentInsightsCalculator;
+
+	public StrategyOptimizationEngine(StrategyExecutionService executionService,
+			DeploymentInsightsCalculator deploymentInsightsCalculator) {
 		this.executionService = executionService;
+		this.deploymentInsightsCalculator = deploymentInsightsCalculator;
 	}
 
 	/**
@@ -95,6 +101,11 @@ public class StrategyOptimizationEngine {
 			// Set top 5 strategies
 			List<StrategyTestResult> top5 = successfulResults.stream().limit(5).collect(Collectors.toList());
 			optimizationResult.setTopStrategies(top5);
+
+			// Calculate deployment insights for the best strategy
+			int daysAnalyzed = calculateDaysFromPeriod(effectivePeriod);
+			DeploymentInsights insights = deploymentInsightsCalculator.calculate(best, daysAnalyzed);
+			optimizationResult.setDeploymentInsights(insights);
 		}
 
 		// Determine market regime from results

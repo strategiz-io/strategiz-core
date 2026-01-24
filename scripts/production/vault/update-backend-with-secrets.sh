@@ -84,11 +84,11 @@ spring.mail.properties.mail.smtp.auth=${strategiz_email_smtp_username:?false:tru
 spring.mail.properties.mail.smtp.starttls.enable=true
 
 # CORS Configuration
-strategiz.cors.allowed-origins=https://strategiz-io.web.app,https://strategiz-io.firebaseapp.com,https://strategiz.io
+strategiz.cors.allowed-origins=https://strategiz-io.web.app,https://strategiz-io.firebaseapp.com,https://strategiz.io,https://auth.strategiz.io,https://console.strategiz.io,https://strategiz-auth.web.app,https://strategiz-console.web.app
 
 # Frontend URL configuration
 application.frontend-url=https://strategiz.io
-oauth.frontend-url=https://strategiz.io
+oauth.frontend-url=https://auth.strategiz.io
 
 # Logging
 logging.level.root=INFO

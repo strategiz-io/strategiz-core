@@ -10,7 +10,6 @@ import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import io.strategiz.client.sendgrid.model.EmailDeliveryResult;
 import io.strategiz.client.sendgrid.model.EmailMessage;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -34,16 +33,26 @@ public class SendGridClient implements EmailProvider {
 
 	private final SendGridConfig config;
 
-	private SendGrid sendGrid;
+	private volatile SendGrid sendGrid;
 
-	private boolean initialized = false;
+	private volatile boolean initialized = false;
+
+	private volatile boolean initAttempted = false;
 
 	public SendGridClient(SendGridConfig config) {
 		this.config = config;
 	}
 
-	@PostConstruct
-	public void init() {
+	/**
+	 * Lazily initialize the SendGrid client on first use.
+	 * This ensures Vault configuration is loaded before we try to use the API key.
+	 */
+	private synchronized void ensureInitialized() {
+		if (initAttempted) {
+			return;
+		}
+		initAttempted = true;
+
 		if (config.isConfigured()) {
 			try {
 				sendGrid = new SendGrid(config.getApiKey());
@@ -56,7 +65,10 @@ public class SendGridClient implements EmailProvider {
 			}
 		}
 		else {
-			logger.warn("SendGrid client not configured - email notifications will be disabled");
+			logger.warn("SendGrid client not configured - email notifications will be disabled. "
+					+ "API key present: {}, From email present: {}",
+					config.getApiKey() != null && !config.getApiKey().isEmpty(),
+					config.getFromEmail() != null && !config.getFromEmail().isEmpty());
 		}
 	}
 
@@ -114,6 +126,7 @@ public class SendGridClient implements EmailProvider {
 
 	@Override
 	public boolean isAvailable() {
+		ensureInitialized();
 		return config.isEnabled() && (initialized || config.isMockEnabled());
 	}
 

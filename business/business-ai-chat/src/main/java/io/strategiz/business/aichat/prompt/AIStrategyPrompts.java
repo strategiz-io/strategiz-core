@@ -4099,4 +4099,284 @@ public class AIStrategyPrompts {
 				sharpeRatio, maxDrawdown, profitFactor, totalTrades, insightsSection);
 	}
 
+	// =========================================================================
+	// FEW-SHOT EXAMPLES FOR DIFFERENT ASSET TYPES
+	// =========================================================================
+
+	/**
+	 * Few-shot examples for equity/stock strategies.
+	 * Shows successful strategies with reasoning for stocks.
+	 */
+	public static final String FEW_SHOT_EXAMPLES_EQUITY = """
+			## SUCCESSFUL STRATEGY EXAMPLES (Learn from these)
+
+			### Example 1: AAPL Mean Reversion Strategy (Outperformed by 32%)
+			**Market Regime**: Mean-reverting (Hurst: 0.41)
+			**Optimal Thresholds Derived**:
+			- RSI at 80% of historical troughs: 28
+			- Average swing magnitude: 8.7%
+			- Average swing duration: 14 days
+
+			**Strategy Logic**:
+			```python
+			# Entry: Buy when oversold AND near support
+			if rsi < 28 and price < bb_lower * 1.02:
+			    return 'BUY'
+
+			# Exit: Sell on momentum exhaustion OR trailing stop
+			if position and (rsi > 72 or price < entry_price * (1 - 0.06)):
+			    return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Used historically-derived RSI threshold (28) not arbitrary (30)
+			- Combined RSI with Bollinger Band confirmation
+			- 6% stop loss based on 0.7× average swing magnitude
+			- Captured 78% of historical swing opportunities
+
+			### Example 2: MSFT Trend Following Strategy (Outperformed by 28%)
+			**Market Regime**: Trending (Hurst: 0.58)
+			**Optimal Thresholds Derived**:
+			- Trend confirmed when price > 50-day EMA by 2%+
+			- Historical breakouts averaged 12% gains
+
+			**Strategy Logic**:
+			```python
+			# Entry: Buy on trend confirmation with momentum
+			if price > ema_50 * 1.02 and macd_hist > 0 and adx > 25:
+			    return 'BUY'
+
+			# Exit: Trailing stop at 2.5 ATR OR trend reversal
+			trailing_stop = peak_price - (atr * 2.5)
+			if position and (price < trailing_stop or price < ema_50):
+			    return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Used ADX filter to avoid ranging markets
+			- 2.5 ATR trailing stop captured gains while allowing room
+			- EMA as trend filter prevented counter-trend trades
+			""";
+
+	/**
+	 * Few-shot examples for ETF strategies.
+	 * Shows successful strategies with reasoning for ETFs.
+	 */
+	public static final String FEW_SHOT_EXAMPLES_ETF = """
+			## SUCCESSFUL ETF STRATEGY EXAMPLES
+
+			### Example 1: SPY Volatility-Adjusted Strategy (Outperformed by 18%)
+			**Market Regime**: Mixed (ranging with occasional trends)
+			**Key Insight**: SPY mean-reverts in normal conditions, trends in crisis
+
+			**Strategy Logic**:
+			```python
+			# Regime detection
+			is_high_volatility = atr / price > 0.02  # ATR > 2% of price
+
+			if not is_high_volatility:
+			    # Mean reversion in calm markets
+			    if rsi < 35 and close < bb_lower:
+			        return 'BUY'
+			    if rsi > 65 and close > bb_upper:
+			        return 'SELL'
+			else:
+			    # Trend following in volatile markets
+			    if close > ema_20 and macd_hist > 0:
+			        return 'BUY'
+			    if close < ema_20:
+			        return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Adaptive strategy based on volatility regime
+			- Mean reversion in calm, trend following in crisis
+			- Volatility-adjusted position sizing
+
+			### Example 2: QQQ Momentum Strategy (Outperformed by 24%)
+			**Market Regime**: Trending (tech momentum)
+
+			**Strategy Logic**:
+			```python
+			# Only trade with momentum confirmation
+			momentum_score = (close - close_20d_ago) / close_20d_ago * 100
+
+			if momentum_score > 3 and rsi > 50 and rsi < 75:
+			    return 'BUY'
+
+			if position:
+			    if momentum_score < -2 or rsi > 80:
+			        return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Momentum filter prevented buying weakness
+			- RSI ceiling (80) captured overbought exits
+			- 20-day lookback matched typical QQQ swing duration
+			""";
+
+	/**
+	 * Few-shot examples for cryptocurrency strategies.
+	 * Shows successful strategies with reasoning for crypto.
+	 */
+	public static final String FEW_SHOT_EXAMPLES_CRYPTO = """
+			## SUCCESSFUL CRYPTO STRATEGY EXAMPLES
+
+			### Example 1: BTC Swing Strategy (Outperformed by 45%)
+			**Market Regime**: High volatility trending
+			**Key Insight**: BTC has larger swings, needs wider stops
+
+			**Optimal Thresholds**:
+			- Average swing: 18.5%
+			- Average duration: 21 days
+			- Stop loss: 12% (0.65× average swing)
+
+			**Strategy Logic**:
+			```python
+			# Wide thresholds for crypto volatility
+			BUY_DIP = 15.0   # Buy on 15% drops
+			TAKE_PROFIT = 22.0
+			STOP_LOSS = 12.0
+
+			pct_from_high = (rolling_high_20 - close) / rolling_high_20 * 100
+
+			if pct_from_high >= BUY_DIP and volume > avg_volume * 1.5:
+			    return 'BUY'
+
+			if position:
+			    gain = (close - entry_price) / entry_price * 100
+			    if gain >= TAKE_PROFIT or gain <= -STOP_LOSS:
+			        return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Wider thresholds matched BTC's volatility profile
+			- Volume confirmation filtered false signals
+			- Stop loss sized to avoid noise while protecting capital
+
+			### Example 2: ETH MACD Momentum (Outperformed by 38%)
+			**Market Regime**: Trending with high momentum
+
+			**Strategy Logic**:
+			```python
+			# MACD with crypto-adjusted parameters
+			FAST = 8   # Faster for crypto
+			SLOW = 21
+			SIGNAL = 5
+
+			if macd > signal and macd_hist > macd_hist_prev * 1.2:
+			    # Accelerating momentum
+			    return 'BUY'
+
+			if position:
+			    if macd < signal or macd_hist < 0:
+			        return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Faster MACD parameters for crypto's quick moves
+			- Acceleration filter (1.2×) caught strong momentum
+			- Quick exit on momentum loss
+			""";
+
+	/**
+	 * Few-shot examples for volatile stocks.
+	 * Shows successful strategies for high-volatility equities.
+	 */
+	public static final String FEW_SHOT_EXAMPLES_VOLATILE = """
+			## SUCCESSFUL VOLATILE STOCK STRATEGY EXAMPLES
+
+			### Example 1: TSLA Swing Strategy (Outperformed by 35%)
+			**Market Regime**: Highly volatile, episodic trends
+			**Key Insight**: TSLA needs very wide stops and aggressive profit taking
+
+			**Strategy Logic**:
+			```python
+			# TSLA-specific parameters (derived from historical swings)
+			BUY_DIP = 12.0   # TSLA drops are steep
+			PROFIT_TARGET = 18.0
+			STOP_LOSS = 10.0
+			ATR_TRAILING = 3.5  # Wide for TSLA volatility
+
+			# Entry on deep pullback with volume surge
+			if pct_from_high >= BUY_DIP and rsi < 35 and volume > avg_volume * 2:
+			    return 'BUY'
+
+			# Exit with ATR trailing stop
+			if position:
+			    trailing_stop = peak_since_entry - (atr * ATR_TRAILING)
+			    if close < trailing_stop or gain >= PROFIT_TARGET:
+			        return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Parameters calibrated to TSLA's extreme volatility
+			- Volume surge confirmation for meaningful moves
+			- Wide trailing stop (3.5 ATR) avoided whipsaws
+
+			### Example 2: AMD Breakout Strategy (Outperformed by 29%)
+			**Market Regime**: Trending with consolidation periods
+
+			**Strategy Logic**:
+			```python
+			# Breakout from consolidation
+			consolidation_range = (high_20 - low_20) / low_20 * 100
+
+			if consolidation_range < 8:  # Tight range
+			    if close > high_20 and volume > avg_volume * 1.5:
+			        return 'BUY'  # Breakout
+
+			if position:
+			    if close < ema_10 or gain >= 15:
+			        return 'SELL'
+			```
+
+			**Why It Worked**:
+			- Identified consolidation (< 8% range)
+			- Breakout with volume confirmation
+			- Quick exit on momentum loss (10 EMA)
+			""";
+
+	/**
+	 * Get the appropriate few-shot examples based on asset type.
+	 *
+	 * @param symbol The trading symbol
+	 * @return Appropriate few-shot examples string
+	 */
+	public static String getFewShotExamples(String symbol) {
+		if (symbol == null) {
+			return FEW_SHOT_EXAMPLES_EQUITY;
+		}
+
+		String upper = symbol.toUpperCase();
+
+		// Cryptocurrency detection
+		if (upper.equals("BTC") || upper.equals("ETH") || upper.equals("SOL") ||
+			upper.equals("DOGE") || upper.equals("ADA") || upper.equals("XRP") ||
+			upper.equals("AVAX") || upper.equals("MATIC") || upper.equals("DOT") ||
+			upper.contains("USD") || upper.contains("USDT") || upper.contains("BUSD")) {
+			return FEW_SHOT_EXAMPLES_CRYPTO;
+		}
+
+		// ETF detection
+		if (upper.equals("SPY") || upper.equals("QQQ") || upper.equals("IWM") ||
+			upper.equals("DIA") || upper.equals("VTI") || upper.equals("VOO") ||
+			upper.equals("XLK") || upper.equals("XLF") || upper.equals("XLE") ||
+			upper.equals("GLD") || upper.equals("SLV") || upper.equals("TLT") ||
+			upper.equals("ARKK") || upper.equals("ARKW")) {
+			return FEW_SHOT_EXAMPLES_ETF;
+		}
+
+		// Volatile stock detection
+		if (upper.equals("TSLA") || upper.equals("AMD") || upper.equals("NVDA") ||
+			upper.equals("SHOP") || upper.equals("SQ") || upper.equals("COIN") ||
+			upper.equals("RIVN") || upper.equals("LCID") || upper.equals("MSTR") ||
+			upper.equals("GME") || upper.equals("AMC") || upper.equals("PLTR")) {
+			return FEW_SHOT_EXAMPLES_VOLATILE;
+		}
+
+		// Default to equity examples
+		return FEW_SHOT_EXAMPLES_EQUITY;
+	}
+
 }

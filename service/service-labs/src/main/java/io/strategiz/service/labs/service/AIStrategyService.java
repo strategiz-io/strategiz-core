@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.business.aichat.LLMRouter;
 import io.strategiz.business.aichat.prompt.AIStrategyPrompts;
 import io.strategiz.business.historicalinsights.exception.InsufficientDataException;
+import io.strategiz.business.historicalinsights.model.OptimizationResult;
+import io.strategiz.business.historicalinsights.model.StrategyTestResult;
 import io.strategiz.business.historicalinsights.model.SymbolInsights;
 import io.strategiz.business.historicalinsights.service.HistoricalInsightsCacheService;
 import io.strategiz.business.historicalinsights.service.HistoricalInsightsService;
@@ -46,17 +48,20 @@ public class AIStrategyService extends BaseService {
 	private final HistoricalInsightsService historicalInsightsService;
 	private final HistoricalInsightsCacheService cacheService;
 	private final StrategyExecutionService executionService;
+	private final StrategyOptimizationEngine optimizationEngine;
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
 			Optional<HistoricalInsightsService> historicalInsightsService,
 			HistoricalInsightsCacheService cacheService,
-			StrategyExecutionService executionService) {
+			StrategyExecutionService executionService,
+			StrategyOptimizationEngine optimizationEngine) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
 		this.historicalInsightsService = historicalInsightsService.orElse(null);
 		this.cacheService = cacheService;
 		this.executionService = executionService;
+		this.optimizationEngine = optimizationEngine;
 		if (this.historicalInsightsService == null) {
 			log.warn("HistoricalInsightsService not available - Autonomous AI mode will be disabled");
 		}
@@ -891,9 +896,12 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * AUTONOMOUS MODE: Generate strategy using pattern analysis of historical turning points.
-	 * Analyzes turning points to derive optimal BUY/SELL thresholds (not hardcoded dates).
-	 * Generates indicator-based code that works for both backtesting AND live trading.
+	 * AUTONOMOUS MODE: Generate strategy using the Strategy Optimization Engine.
+	 * Tests ~200 strategy combinations with various parameters, ranks by TOTAL RETURN
+	 * (not win rate), and returns the best performer.
+	 *
+	 * This replaces the old single-strategy generation that only tested 4 indicators
+	 * with fixed parameters and ranked by win rate.
 	 */
 	private AIStrategyResponse generateDeterministicStrategy(SymbolInsights insights, AIStrategyRequest request) {
 		String symbol = insights.getSymbol();
@@ -904,18 +912,118 @@ public class AIStrategyService extends BaseService {
 			timeframe = request.getContext().getTimeframe();
 		}
 
-		log.info("AUTONOMOUS: Analyzing turning points for {} to derive optimal thresholds", symbol);
+		log.info("AUTONOMOUS MODE: Starting Strategy Optimization Engine for {} on {}", symbol, timeframe);
 
-		// Calculate thresholds from turning points
-		double buyThreshold = 8.0;  // Default: buy when price drops 8% from recent high
-		double sellThreshold = 12.0; // Default: sell when price rises 12% from recent low
-		double stopLoss = 5.0;       // Default stop loss
-		int lookbackPeriod = 20;     // Default lookback for high/low calculation
+		// Run optimization engine - tests ~200 strategy combinations
+		// Uses 3 years of data by default for comprehensive backtesting
+		OptimizationResult optimizationResult = optimizationEngine.optimize(
+				symbol, timeframe, "3y", "autonomous-" + System.currentTimeMillis());
+
+		// Build response from optimization result
+		AIStrategyResponse response = new AIStrategyResponse();
+
+		if (optimizationResult.getBestStrategy() != null) {
+			StrategyTestResult bestStrategy = optimizationResult.getBestStrategy();
+
+			response.setSuccess(true);
+			response.setPythonCode(bestStrategy.getPythonCode());
+			response.setCanRepresentVisually(true);
+
+			// Build detailed explanation
+			String explanation = buildOptimizationExplanation(optimizationResult, insights);
+			response.setExplanation(explanation);
+
+			// Build optimization summary with metrics
+			AIStrategyResponse.OptimizationSummary summary = new AIStrategyResponse.OptimizationSummary();
+			summary.setMode("AUTONOMOUS_OPTIMIZATION");
+			summary.setImprovementRationale(optimizationResult.toSummary());
+			Map<String, Double> optimizedMetrics = new HashMap<>();
+			optimizedMetrics.put("totalReturn", bestStrategy.getTotalReturn());
+			optimizedMetrics.put("winRate", bestStrategy.getWinRate() * 100);
+			optimizedMetrics.put("sharpeRatio", bestStrategy.getSharpeRatio());
+			optimizedMetrics.put("maxDrawdown", bestStrategy.getMaxDrawdown());
+			optimizedMetrics.put("profitFactor", bestStrategy.getProfitFactor());
+			optimizedMetrics.put("totalTrades", (double) bestStrategy.getTotalTrades());
+			summary.setOptimizedMetrics(optimizedMetrics);
+			Map<String, Double> baselineMetrics = new HashMap<>();
+			baselineMetrics.put("buyAndHoldReturn", optimizationResult.getBuyAndHoldReturn());
+			summary.setBaselineMetrics(baselineMetrics);
+			response.setOptimizationSummary(summary);
+
+			log.info("AUTONOMOUS: Optimization complete. Best strategy: {} with {:.2f}% return (vs {:.2f}% buy-and-hold)",
+					bestStrategy.getStrategyType().getDisplayName(),
+					bestStrategy.getTotalReturn(),
+					optimizationResult.getBuyAndHoldReturn());
+		} else {
+			// Fallback if no strategy found
+			log.warn("AUTONOMOUS: No profitable strategy found through optimization, falling back to swing strategy");
+			response = generateFallbackSwingStrategy(insights, timeframe);
+		}
+
+		// Set historical insights used flag
+		response.setHistoricalInsightsUsed(true);
+		response.setHistoricalInsights(insights);
+
+		return response;
+	}
+
+	/**
+	 * Builds a detailed explanation from the optimization results.
+	 */
+	private String buildOptimizationExplanation(OptimizationResult result, SymbolInsights insights) {
+		StrategyTestResult best = result.getBestStrategy();
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(String.format("**AUTONOMOUS MODE - Strategy Optimization Engine**\n\n"));
+		sb.append(String.format("Tested **%d strategy combinations** across %d days (~%.1f years) of %s historical data.\n\n",
+				result.getTotalCombinationsTested(),
+				result.getDaysAnalyzed(),
+				result.getDaysAnalyzed() / 365.25,
+				result.getSymbol()));
+
+		sb.append(String.format("**Best Strategy: %s**\n", best.getStrategyType().getDisplayName()));
+		sb.append(String.format("- Parameters: %s\n", best.getParametersDisplay()));
+		sb.append(String.format("- Total Return: **%.2f%%**\n", best.getTotalReturn()));
+		sb.append(String.format("- Buy & Hold Return: %.2f%%\n", result.getBuyAndHoldReturn()));
+		sb.append(String.format("- **Outperformance: %.2f%%**\n", result.getOutperformance()));
+		sb.append(String.format("- Win Rate: %.1f%%\n", best.getWinRate() * 100));
+		sb.append(String.format("- Sharpe Ratio: %.2f\n", best.getSharpeRatio()));
+		sb.append(String.format("- Max Drawdown: %.1f%%\n", best.getMaxDrawdown()));
+		sb.append(String.format("- Total Trades: %d\n\n", best.getTotalTrades()));
+
+		sb.append(String.format("Market Regime: **%s**\n\n", result.getMarketRegime()));
+
+		sb.append("The strategy was selected by testing all parameter combinations and ranking by total return, ");
+		sb.append("not win rate alone. This approach finds strategies that actually make money, ");
+		sb.append("even if individual trade win rates are moderate.");
+
+		if (result.getTopStrategies().size() > 1) {
+			sb.append("\n\n**Alternative Strategies:**\n");
+			for (int i = 1; i < Math.min(3, result.getTopStrategies().size()); i++) {
+				StrategyTestResult alt = result.getTopStrategies().get(i);
+				sb.append(String.format("%d. %s (%.2f%% return)\n", i + 1,
+						alt.getStrategyType().getDisplayName(), alt.getTotalReturn()));
+			}
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Fallback swing trading strategy if optimization fails to find a profitable strategy.
+	 */
+	private AIStrategyResponse generateFallbackSwingStrategy(SymbolInsights insights, String timeframe) {
+		String symbol = insights.getSymbol();
+
+		// Use historical turning points to derive basic thresholds
+		double buyThreshold = 8.0;
+		double sellThreshold = 12.0;
+		int lookbackPeriod = 20;
 
 		var turningPoints = insights.getTurningPoints();
 		if (turningPoints != null && !turningPoints.isEmpty()) {
-			double totalDropToTrough = 0;
-			double totalRiseFromTrough = 0;
+			double totalDrop = 0;
+			double totalRise = 0;
 			int troughCount = 0;
 			int peakCount = 0;
 
@@ -923,126 +1031,88 @@ public class AIStrategyService extends BaseService {
 				double change = tp.getPriceChangeFromPrevious();
 				if (change != 0) {
 					if (tp.getType().name().equals("TROUGH")) {
-						// Troughs show how much price dropped before rebounding
-						totalDropToTrough += Math.abs(change);
+						totalDrop += Math.abs(change);
 						troughCount++;
 					} else {
-						// Peaks show how much price rose before falling
-						totalRiseFromTrough += change;
+						totalRise += change;
 						peakCount++;
 					}
 				}
 			}
 
-			// Calculate average thresholds with safety margins
 			if (troughCount > 0) {
-				// Use 70% of average drop for earlier entry (don't wait for full bottom)
-				buyThreshold = Math.max((totalDropToTrough / troughCount) * 0.7, 3.0);
-				buyThreshold = Math.min(buyThreshold, 15.0); // Cap at 15%
+				buyThreshold = Math.max((totalDrop / troughCount) * 0.7, 3.0);
+				buyThreshold = Math.min(buyThreshold, 15.0);
 			}
 			if (peakCount > 0) {
-				// Use 70% of average rise for earlier exit (don't wait for full top)
-				sellThreshold = Math.max((totalRiseFromTrough / peakCount) * 0.7, 5.0);
-				sellThreshold = Math.min(sellThreshold, 25.0); // Cap at 25%
+				sellThreshold = Math.max((totalRise / peakCount) * 0.7, 5.0);
+				sellThreshold = Math.min(sellThreshold, 25.0);
 			}
-
-			log.info("AUTONOMOUS: Calculated thresholds from {} turning points - BUY at {}% drop, SELL at {}% rise",
-					turningPoints.size(), String.format("%.1f", buyThreshold), String.format("%.1f", sellThreshold));
 		}
 
-		// Adjust lookback period based on volatility
-		String volatility = insights.getVolatilityRegime();
-		if ("HIGH".equals(volatility) || "EXTREME".equals(volatility)) {
-			lookbackPeriod = 10; // Shorter lookback for volatile markets
-			stopLoss = Math.max(buyThreshold * 0.8, 5.0); // Wider stop for volatility
-		} else if ("LOW".equals(volatility)) {
-			lookbackPeriod = 30; // Longer lookback for stable markets
-			stopLoss = Math.max(buyThreshold * 0.5, 2.0); // Tighter stop
-		}
+		// Generate simple swing trading code
+		String code = String.format("""
+				# Fallback Swing Trading Strategy
+				# Generated when optimization finds no profitable strategies
 
-		// Generate Python code with calculated thresholds (NOT hardcoded dates)
-		StringBuilder code = new StringBuilder();
-		code.append("import pandas as pd\n");
-		code.append("import numpy as np\n\n");
-		code.append("# ═══════════════════════════════════════════════════════════════\n");
-		code.append("# AUTONOMOUS MODE - Data-Driven Swing Trading Strategy\n");
-		code.append("# Generated from analysis of historical turning points\n");
-		code.append("# Thresholds are optimized for this specific symbol\n");
-		code.append("# ═══════════════════════════════════════════════════════════════\n\n");
-		code.append(String.format("SYMBOL = '%s'\n", symbol));
-		code.append(String.format("TIMEFRAME = '%s'\n\n", timeframe));
-		code.append("# Thresholds derived from historical swing analysis\n");
-		code.append(String.format("BUY_THRESHOLD = %.1f    # Buy when price drops this %% from %d-day high\n", buyThreshold, lookbackPeriod));
-		code.append(String.format("SELL_THRESHOLD = %.1f   # Sell when price rises this %% from %d-day low\n", sellThreshold, lookbackPeriod));
-		code.append(String.format("STOP_LOSS = %.1f        # Stop loss percentage\n", stopLoss));
-		code.append(String.format("TAKE_PROFIT = %.1f      # Take profit percentage\n", sellThreshold * 1.2));
-		code.append(String.format("LOOKBACK_PERIOD = %d    # Days to look back for high/low\n\n", lookbackPeriod));
-		code.append("# Position tracking\n");
-		code.append("entry_price = None\n");
-		code.append("highest_since_entry = None\n\n");
-		code.append("def strategy(data):\n");
-		code.append("    global entry_price, highest_since_entry\n\n");
-		code.append("    if len(data) < LOOKBACK_PERIOD + 1:\n");
-		code.append("        return 'HOLD'\n\n");
-		code.append("    current_price = data['close'].iloc[-1]\n");
-		code.append("    recent_high = data['high'].iloc[-(LOOKBACK_PERIOD+1):-1].max()\n");
-		code.append("    recent_low = data['low'].iloc[-(LOOKBACK_PERIOD+1):-1].min()\n\n");
-		code.append("    # Calculate percentage from swing points\n");
-		code.append("    pct_from_high = ((current_price - recent_high) / recent_high) * 100\n");
-		code.append("    pct_from_low = ((current_price - recent_low) / recent_low) * 100\n\n");
-		code.append("    # If we have a position, check exit conditions\n");
-		code.append("    if entry_price is not None:\n");
-		code.append("        # Update highest price since entry (for trailing stop)\n");
-		code.append("        if highest_since_entry is None:\n");
-		code.append("            highest_since_entry = current_price\n");
-		code.append("        else:\n");
-		code.append("            highest_since_entry = max(highest_since_entry, current_price)\n\n");
-		code.append("        pnl_pct = ((current_price - entry_price) / entry_price) * 100\n");
-		code.append("        pct_from_peak = ((current_price - highest_since_entry) / highest_since_entry) * 100\n\n");
-		code.append("        # Stop loss check\n");
-		code.append("        if pnl_pct <= -STOP_LOSS:\n");
-		code.append("            entry_price = None\n");
-		code.append("            highest_since_entry = None\n");
-		code.append("            return 'SELL'\n\n");
-		code.append("        # Take profit OR trailing stop (price dropped from peak)\n");
-		code.append("        if pnl_pct >= TAKE_PROFIT or (pnl_pct > 0 and pct_from_peak <= -STOP_LOSS * 0.5):\n");
-		code.append("            entry_price = None\n");
-		code.append("            highest_since_entry = None\n");
-		code.append("            return 'SELL'\n\n");
-		code.append("        # Sell when price rises significantly from recent low (swing high)\n");
-		code.append("        if pct_from_low >= SELL_THRESHOLD:\n");
-		code.append("            entry_price = None\n");
-		code.append("            highest_since_entry = None\n");
-		code.append("            return 'SELL'\n\n");
-		code.append("        return 'HOLD'\n\n");
-		code.append("    # No position - look for entry\n");
-		code.append("    # Buy when price drops significantly from recent high (swing low)\n");
-		code.append("    if pct_from_high <= -BUY_THRESHOLD:\n");
-		code.append("        entry_price = current_price\n");
-		code.append("        highest_since_entry = current_price\n");
-		code.append("        return 'BUY'\n\n");
-		code.append("    return 'HOLD'\n");
+				import pandas as pd
+				import numpy as np
 
-		// Build response
+				SYMBOL = '%s'
+				TIMEFRAME = '%s'
+				BUY_THRESHOLD = %.1f
+				SELL_THRESHOLD = %.1f
+				LOOKBACK_PERIOD = %d
+				ATR_MULTIPLIER = 2.0
+
+				def calculate_atr(data, period):
+				    high = data['high']
+				    low = data['low']
+				    close = data['close'].shift(1)
+				    tr = pd.concat([high - low, (high - close).abs(), (low - close).abs()], axis=1).max(axis=1)
+				    return tr.rolling(window=period, min_periods=1).mean()
+
+				data['rolling_high'] = data['high'].rolling(window=LOOKBACK_PERIOD).max()
+				data['rolling_low'] = data['low'].rolling(window=LOOKBACK_PERIOD).min()
+				data['atr'] = calculate_atr(data, 14)
+				data['pct_from_high'] = (data['rolling_high'] - data['close']) / data['rolling_high'] * 100
+
+				position = None
+				entry_price = 0
+				stop_loss = 0
+
+				for i in range(LOOKBACK_PERIOD + 1, len(data)):
+				    row = data.iloc[i]
+				    price = row['close']
+				    timestamp = row['timestamp']
+				    atr = row['atr']
+				    pct_from_high = row['pct_from_high']
+
+				    if position is None:
+				        if pct_from_high >= BUY_THRESHOLD:
+				            position = 'long'
+				            entry_price = price
+				            stop_loss = price - (atr * ATR_MULTIPLIER)
+				            signal('BUY', timestamp, price, f'{pct_from_high:.1f}%% from high', 'arrow_up')
+				    else:
+				        pct_gain = (price - entry_price) / entry_price * 100
+				        if pct_gain >= SELL_THRESHOLD:
+				            signal('SELL', timestamp, price, f'Target {pct_gain:.1f}%% gain', 'arrow_down')
+				            position = None
+				        elif price <= stop_loss:
+				            signal('SELL', timestamp, price, 'Stop Loss', 'arrow_down')
+				            position = None
+				""", symbol, timeframe, buyThreshold, sellThreshold, lookbackPeriod);
+
 		AIStrategyResponse response = new AIStrategyResponse();
 		response.setSuccess(true);
-		response.setPythonCode(code.toString());
+		response.setPythonCode(code);
 		response.setCanRepresentVisually(true);
-
-		// Add explanation
-		String explanation = String.format(
-				"AUTONOMOUS MODE: Analyzed %d days of %s historical data with %d identified turning points. " +
-				"Derived optimal thresholds: BUY when price drops %.1f%% from %d-day high, " +
-				"SELL when price rises %.1f%% from %d-day low. " +
-				"This strategy uses indicator-based rules that work for both backtesting and live trading.",
-				insights.getDaysAnalyzed(), symbol,
-				turningPoints != null ? turningPoints.size() : 0,
-				buyThreshold, lookbackPeriod, sellThreshold, lookbackPeriod);
-		response.setExplanation(explanation);
-
-		// Set historical insights used flag
-		response.setHistoricalInsightsUsed(true);
-		response.setHistoricalInsights(insights);
+		response.setExplanation(String.format(
+				"AUTONOMOUS MODE (Fallback): No profitable optimized strategy found. " +
+				"Generated a basic swing trading strategy with thresholds derived from %d turning points. " +
+				"BUY when price drops %.1f%% from %d-day high, SELL at %.1f%% gain.",
+				turningPoints != null ? turningPoints.size() : 0, buyThreshold, lookbackPeriod, sellThreshold));
 
 		return response;
 	}

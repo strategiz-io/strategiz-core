@@ -1,5 +1,6 @@
 package io.strategiz.service.auth.service.signup;
 
+import io.strategiz.data.base.exception.DataRepositoryErrorDetails;
 import io.strategiz.data.base.exception.DataRepositoryException;
 import io.strategiz.data.user.entity.EmailReservationEntity;
 import io.strategiz.data.user.entity.EmailReservationStatus;
@@ -91,7 +92,8 @@ public class EmailReservationService extends BaseService {
 
         } catch (DataRepositoryException e) {
             // Convert data layer exception to auth exception
-            if (e.getMessage() != null && e.getMessage().contains("duplicate")) {
+            // Check if it's a duplicate entity error (email already reserved)
+            if (DataRepositoryErrorDetails.DUPLICATE_ENTITY.name().equals(e.getErrorCode())) {
                 log.warn("Email reservation failed - already reserved: {}", normalizedEmail);
                 throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "Email address is already in use");
             }

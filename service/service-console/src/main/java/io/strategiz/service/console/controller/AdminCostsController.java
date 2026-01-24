@@ -80,7 +80,7 @@ public class AdminCostsController extends BaseController {
 	 */
 	@GetMapping("/summary")
 	@Operation(summary = "Get current month cost summary",
-			description = "Returns aggregated costs from GCP and TimescaleDB for the current month")
+			description = "Returns aggregated costs from GCP and ClickHouse for the current month")
 	public ResponseEntity<CostSummary> getCostSummary(HttpServletRequest request) {
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		log.info("Admin {} requesting cost summary", adminUserId);
@@ -109,7 +109,7 @@ public class AdminCostsController extends BaseController {
 	 */
 	@GetMapping("/by-service")
 	@Operation(summary = "Get costs by service",
-			description = "Returns current month costs grouped by service (Cloud Run, Firestore, TimescaleDB, etc.)")
+			description = "Returns current month costs grouped by service (Cloud Run, Firestore, ClickHouse, etc.)")
 	public ResponseEntity<Map<String, BigDecimal>> getCostsByService(HttpServletRequest request) {
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		log.info("Admin {} requesting costs by service", adminUserId);
@@ -152,7 +152,7 @@ public class AdminCostsController extends BaseController {
 	 */
 	@PostMapping("/refresh")
 	@Operation(summary = "Force refresh cost data",
-			description = "Triggers immediate aggregation of cost data from GCP and TimescaleDB")
+			description = "Triggers immediate aggregation of cost data from GCP and ClickHouse")
 	public ResponseEntity<CostSummary> refreshCosts(HttpServletRequest request) {
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		log.info("Admin {} forcing cost data refresh", adminUserId);

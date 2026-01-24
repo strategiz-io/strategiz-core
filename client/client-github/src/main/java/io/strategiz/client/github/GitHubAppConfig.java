@@ -54,10 +54,20 @@ public class GitHubAppConfig {
         this.enabled = enabled;
     }
 
-    public boolean isConfigured() {
-        return enabled && appId != null && !appId.isEmpty()
+    /**
+     * Check if all required credentials are present (used by VaultConfig during loading).
+     */
+    public boolean hasAllCredentials() {
+        return appId != null && !appId.isEmpty()
                 && installationId != null && !installationId.isEmpty()
                 && privateKey != null && !privateKey.isEmpty();
+    }
+
+    /**
+     * Check if GitHub App is fully configured and enabled.
+     */
+    public boolean isConfigured() {
+        return enabled && hasAllCredentials();
     }
 
 }

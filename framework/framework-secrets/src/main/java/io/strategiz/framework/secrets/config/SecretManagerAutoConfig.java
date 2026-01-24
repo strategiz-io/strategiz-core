@@ -47,13 +47,13 @@ public class SecretManagerAutoConfig {
    * @param secretCache Cache for storing secrets
    * @return SecretManager implementation using Vault
    */
-  @Bean
+  @Bean("vaultSecretService")
   @Primary
   @ConditionalOnProperty(
       name = "strategiz.vault.enabled",
       havingValue = "true",
       matchIfMissing = true)
-  public SecretManager vaultSecretManager(VaultClient vaultClient, SecretCache secretCache) {
+  public SecretManager vaultSecretService(VaultClient vaultClient, SecretCache secretCache) {
     log.info("Creating Vault SecretManager bean with HTTP API");
     return new VaultSecretService(vaultClient, secretCache, vaultProperties);
   }

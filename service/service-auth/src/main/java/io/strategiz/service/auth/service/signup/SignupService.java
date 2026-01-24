@@ -42,6 +42,7 @@ public class SignupService extends BaseService {
     private final FraudDetectionService fraudDetectionService;
     private final SubscriptionService subscriptionService;
     private final FeatureFlagService featureFlagService;
+    private final EmailReservationService emailReservationService;
 
     @Autowired
     public SignupService(
@@ -51,6 +52,7 @@ public class SignupService extends BaseService {
         FirestoreTransactionTemplate transactionTemplate,
         AuthenticationMethodRepository authenticationMethodRepository,
         FeatureFlagService featureFlagService,
+        EmailReservationService emailReservationService,
         @Autowired(required = false) FraudDetectionService fraudDetectionService,
         @Autowired(required = false) SubscriptionService subscriptionService
     ) {
@@ -60,6 +62,7 @@ public class SignupService extends BaseService {
         this.transactionTemplate = transactionTemplate;
         this.authenticationMethodRepository = authenticationMethodRepository;
         this.featureFlagService = featureFlagService;
+        this.emailReservationService = emailReservationService;
         this.fraudDetectionService = fraudDetectionService;
         this.subscriptionService = subscriptionService;
     }
@@ -75,34 +78,43 @@ public class SignupService extends BaseService {
      */
     public OAuthSignupResponse processSignup(OAuthSignupRequest request, String deviceId, String ipAddress) {
         String authMethod = request.getAuthMethod().toLowerCase();
-        log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", request.getEmail(), authMethod);
+        String email = request.getEmail().toLowerCase();
+        log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", email, authMethod);
 
         // Check if OAuth signup is enabled
         if (!featureFlagService.isOAuthSignupEnabled()) {
-            log.warn("OAuth signup is disabled - rejecting signup for email: {}", request.getEmail());
+            log.warn("OAuth signup is disabled - rejecting signup for email: {}", email);
             throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
                 "OAuth signup is currently disabled");
         }
 
+        // Reserve email first - this guarantees uniqueness at database level
+        // Generate session ID for the reservation (OAuth callbacks don't have sessions)
+        String sessionId = "oauth_" + authMethod + "_" + System.currentTimeMillis();
+        String signupType = "oauth_" + authMethod;
+        String reservedUserId = emailReservationService.reserveEmail(email, signupType, sessionId);
+        log.info("=====> SIGNUP SERVICE: Email reserved for OAuth signup - email: {}, userId: {}", email, reservedUserId);
+
         try {
-            // Verify reCAPTCHA token for fraud detection (before any database operations)
+            // Verify reCAPTCHA token for fraud detection (after reservation to avoid orphaned reservations)
             if (fraudDetectionService != null) {
-                fraudDetectionService.verifySignup(request.getRecaptchaToken(), request.getEmail());
-                log.info("=====> SIGNUP SERVICE: reCAPTCHA verification passed for email: {}", request.getEmail());
+                fraudDetectionService.verifySignup(request.getRecaptchaToken(), email);
+                log.info("=====> SIGNUP SERVICE: reCAPTCHA verification passed for email: {}", email);
             }
 
             // Create the user entity with profile information using the factory
+            // Override userId with reserved one for consistency
             UserEntity user = userFactory.createUser(request);
-            String createdBy = request.getEmail();
+            user.setUserId(reservedUserId);
+            String createdBy = email;
 
             // Execute user creation within a Firestore transaction
-            // This ensures atomic check-and-create to prevent duplicate users
+            // This ensures atomic confirmation + user creation
             // CRITICAL: Security subcollection is created INSIDE transaction for atomicity
             UserEntity createdUser = transactionTemplate.execute(transaction -> {
-                // Check if user already exists (within transaction for consistency)
-                if (userRepository.getUserByEmail(request.getEmail()).isPresent()) {
-                    throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "User with email already exists");
-                }
+                // Confirm email reservation within transaction
+                // This ensures atomicity with user creation
+                emailReservationService.confirmReservation(email);
 
                 // Create user - this will use the transaction from ThreadLocal
                 UserEntity created = userRepository.createUser(user);
@@ -145,10 +157,16 @@ public class SignupService extends BaseService {
             );
 
         } catch (StrategizException e) {
-            log.warn("OAuth signup failed for {}: {}", request.getEmail(), e.getMessage());
+            log.warn("OAuth signup failed for {}: {}", email, e.getMessage());
+            // Release reservation on failure (only for non-email-exists errors)
+            if (e.getErrorDetails() != AuthErrors.EMAIL_ALREADY_EXISTS) {
+                emailReservationService.releaseReservation(email);
+            }
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during OAuth signup for {}: {}", request.getEmail(), e.getMessage(), e);
+            log.error("Unexpected error during OAuth signup for {}: {}", email, e.getMessage(), e);
+            // Release reservation on failure
+            emailReservationService.releaseReservation(email);
             throw new StrategizException(AuthErrors.SIGNUP_FAILED, "OAuth signup failed due to internal error");
         }
     }

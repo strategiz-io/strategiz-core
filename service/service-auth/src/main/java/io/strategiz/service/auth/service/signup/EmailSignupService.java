@@ -93,6 +93,9 @@ public class EmailSignupService extends BaseService {
     @Autowired
     private FeatureFlagService featureFlagService;
 
+    @Autowired
+    private EmailReservationService emailReservationService;
+
     /**
      * Initiate email signup by sending OTP verification code.
      *
@@ -115,11 +118,6 @@ public class EmailSignupService extends BaseService {
             fraudDetectionService.verifySignup(request.recaptchaToken(), email);
         }
 
-        // Check if email already exists
-        if (userRepository.getUserByEmail(email).isPresent()) {
-            throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "Email address is already registered");
-        }
-
         // Check for admin bypass
         if (adminBypassEnabled && isAdminEmail(email)) {
             log.info("Admin email detected - bypass enabled for: {}", email);
@@ -130,12 +128,18 @@ public class EmailSignupService extends BaseService {
         String otpCode = generateOtpCode();
         Instant expiration = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expirationMinutes));
 
-        // Store pending signup (no password - passwordless flow)
+        // Reserve email and get pre-generated userId
+        // This throws EMAIL_ALREADY_EXISTS if email is taken or reserved
+        String userId = emailReservationService.reserveEmail(email, "email_otp", sessionId);
+        log.info("Email reserved for signup - email: {}, userId: {}, sessionId: {}", email, userId, sessionId);
+
+        // Store pending signup with pre-generated userId (no password - passwordless flow)
         PendingSignup pending = new PendingSignup(
             request.name(),
             email,
             otpCode,
-            expiration
+            expiration,
+            userId
         );
         pendingSignups.put(sessionId, pending);
 
@@ -144,6 +148,8 @@ public class EmailSignupService extends BaseService {
             boolean sent = sendOtpEmail(email, otpCode);
             if (!sent) {
                 pendingSignups.remove(sessionId);
+                // Release the email reservation since signup failed
+                emailReservationService.releaseReservation(email);
                 throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, "Failed to send verification email");
             }
         } else {
@@ -199,13 +205,12 @@ public class EmailSignupService extends BaseService {
         // Create user account
         try {
             UserEntity createdUser = transactionTemplate.execute(transaction -> {
-                // Double-check email uniqueness within transaction
-                if (userRepository.getUserByEmail(normalizedEmail).isPresent()) {
-                    throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "Email address is already registered");
-                }
+                // Confirm the email reservation within transaction
+                // This ensures atomicity with user creation
+                emailReservationService.confirmReservation(normalizedEmail);
 
-                // Create user entity
-                String userId = UUID.randomUUID().toString();
+                // Use pre-generated userId from reservation
+                String userId = pending.userId();
                 UserProfileEntity profile = new UserProfileEntity(
                     pending.name(),
                     normalizedEmail,
@@ -268,9 +273,15 @@ public class EmailSignupService extends BaseService {
             );
 
         } catch (StrategizException e) {
+            // Release reservation on failure (only for non-email-exists errors)
+            if (e.getErrorDetails() != AuthErrors.EMAIL_ALREADY_EXISTS) {
+                emailReservationService.releaseReservation(normalizedEmail);
+            }
             throw e;
         } catch (Exception e) {
             log.error("Error completing email signup: {}", e.getMessage(), e);
+            // Release reservation on failure
+            emailReservationService.releaseReservation(normalizedEmail);
             throw new StrategizException(AuthErrors.SIGNUP_FAILED, "Failed to complete signup");
         }
     }
@@ -337,11 +348,13 @@ public class EmailSignupService extends BaseService {
     /**
      * Record for storing pending signup data.
      * No password stored - this is a passwordless signup flow.
+     * userId is pre-generated during reservation for consistency.
      */
     private record PendingSignup(
         String name,
         String email,
         String otpCode,
-        Instant expiration
+        Instant expiration,
+        String userId
     ) {}
 }

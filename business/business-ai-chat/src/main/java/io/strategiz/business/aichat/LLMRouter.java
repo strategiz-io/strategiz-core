@@ -116,11 +116,20 @@ public class LLMRouter {
 		// NOTE: Only gpt-4o-mini is available in us-east1 via Vertex AI
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
 
-		// Claude 4.5 models (via direct Anthropic API)
+		// Claude 4.5 models (latest, via direct Anthropic API)
 		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));
 		models.add(new ModelInfo("claude-sonnet-4-5", "Claude Sonnet 4.5", "anthropic", "Best balanced model"));
 		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
 				"Most capable for complex tasks"));
+
+		// Claude 3.5 models (previous generation, great for lower tiers)
+		models.add(new ModelInfo("claude-3-5-haiku", "Claude 3.5 Haiku", "anthropic", "Fast & very affordable"));
+		models.add(new ModelInfo("claude-3-5-sonnet", "Claude 3.5 Sonnet", "anthropic", "Excellent balanced model"));
+
+		// Claude 3 models (older generation, budget-friendly)
+		models.add(new ModelInfo("claude-3-haiku", "Claude 3 Haiku", "anthropic", "Budget-friendly, fast"));
+		models.add(new ModelInfo("claude-3-sonnet", "Claude 3 Sonnet", "anthropic", "Budget-friendly, balanced"));
+		models.add(new ModelInfo("claude-3-opus", "Claude 3 Opus", "anthropic", "Previous flagship model"));
 
 		// Llama models (Meta)
 		models.add(new ModelInfo("llama-3.1-8b-instruct-maas", "Llama 3.1 8B", "meta", "Fast & efficient"));

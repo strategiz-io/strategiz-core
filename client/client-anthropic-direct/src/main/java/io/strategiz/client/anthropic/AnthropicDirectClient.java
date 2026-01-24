@@ -36,13 +36,26 @@ public class AnthropicDirectClient implements LLMProvider {
 
 	private static final String API_VERSION = "2023-06-01";
 
-	// Claude 4.5 models (latest available via direct API)
-	private static final List<String> SUPPORTED_MODELS = List.of("claude-opus-4-5-20251101",
-			"claude-sonnet-4-5-20250514", "claude-haiku-4-5-20250514");
+	// Claude models (all available via direct API)
+	// Claude 4.5 (latest)
+	// Claude 3.5 (previous generation)
+	// Claude 3 (older generation)
+	private static final List<String> SUPPORTED_MODELS = List.of(
+			// Claude 4.5
+			"claude-opus-4-5-20251101", "claude-sonnet-4-5-20250514", "claude-haiku-4-5-20250514",
+			// Claude 3.5
+			"claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022",
+			// Claude 3
+			"claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307");
 
 	// User-friendly model IDs
-	private static final List<String> USER_MODEL_IDS = List.of("claude-opus-4-5", "claude-sonnet-4-5",
-			"claude-haiku-4-5");
+	private static final List<String> USER_MODEL_IDS = List.of(
+			// Claude 4.5
+			"claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5",
+			// Claude 3.5
+			"claude-3-5-sonnet", "claude-3-5-haiku",
+			// Claude 3
+			"claude-3-opus", "claude-3-sonnet", "claude-3-haiku");
 
 	private final AnthropicDirectConfig config;
 
@@ -150,9 +163,17 @@ public class AnthropicDirectClient implements LLMProvider {
 
 		// Map user-friendly names to API model IDs with date suffixes
 		return switch (model.toLowerCase()) {
+			// Claude 4.5 models
 			case "claude-opus-4-5" -> "claude-opus-4-5-20251101";
 			case "claude-sonnet-4-5" -> "claude-sonnet-4-5-20250514";
 			case "claude-haiku-4-5" -> "claude-haiku-4-5-20250514";
+			// Claude 3.5 models
+			case "claude-3-5-sonnet" -> "claude-3-5-sonnet-20241022";
+			case "claude-3-5-haiku" -> "claude-3-5-haiku-20241022";
+			// Claude 3 models
+			case "claude-3-opus" -> "claude-3-opus-20240229";
+			case "claude-3-sonnet" -> "claude-3-sonnet-20240229";
+			case "claude-3-haiku" -> "claude-3-haiku-20240307";
 			// Already has date suffix
 			default -> model.contains("-202") ? model : config.getDefaultModel();
 		};

@@ -171,11 +171,13 @@ public class FmpFundamentalsClient {
 	}
 
 	/**
-	 * Get real-time quote for multiple symbols.
-	 * Fetches each symbol individually due to FMP subscription limitations.
+	 * Get real-time quote for multiple symbols. Fetches each symbol individually due to FMP
+	 * subscription limitations.
 	 * @param symbols List of stock symbols (e.g., ["AAPL", "MSFT", "GOOG"])
 	 * @return List of FmpQuote objects with current prices
+	 * @deprecated Use {@link FmpQuoteClient#getBatchQuotes(List)} instead for quote functionality.
 	 */
+	@Deprecated
 	public List<FmpQuote> getQuotes(List<String> symbols) {
 		if (symbols == null || symbols.isEmpty()) {
 			return new ArrayList<>();
@@ -276,47 +278,6 @@ public class FmpFundamentalsClient {
 		}
 		catch (Exception e) {
 			return null;
-		}
-	}
-
-	/**
-	 * Simple DTO for FMP quote data.
-	 */
-	public static class FmpQuote {
-		private String symbol;
-		private String name;
-		private java.math.BigDecimal price;
-		private java.math.BigDecimal change;
-		private java.math.BigDecimal changePercent;
-		private java.math.BigDecimal previousClose;
-		private java.math.BigDecimal open;
-		private java.math.BigDecimal dayHigh;
-		private java.math.BigDecimal dayLow;
-		private Long volume;
-
-		public String getSymbol() { return symbol; }
-		public void setSymbol(String symbol) { this.symbol = symbol; }
-		public String getName() { return name; }
-		public void setName(String name) { this.name = name; }
-		public java.math.BigDecimal getPrice() { return price; }
-		public void setPrice(java.math.BigDecimal price) { this.price = price; }
-		public java.math.BigDecimal getChange() { return change; }
-		public void setChange(java.math.BigDecimal change) { this.change = change; }
-		public java.math.BigDecimal getChangePercent() { return changePercent; }
-		public void setChangePercent(java.math.BigDecimal changePercent) { this.changePercent = changePercent; }
-		public java.math.BigDecimal getPreviousClose() { return previousClose; }
-		public void setPreviousClose(java.math.BigDecimal previousClose) { this.previousClose = previousClose; }
-		public java.math.BigDecimal getOpen() { return open; }
-		public void setOpen(java.math.BigDecimal open) { this.open = open; }
-		public java.math.BigDecimal getDayHigh() { return dayHigh; }
-		public void setDayHigh(java.math.BigDecimal dayHigh) { this.dayHigh = dayHigh; }
-		public java.math.BigDecimal getDayLow() { return dayLow; }
-		public void setDayLow(java.math.BigDecimal dayLow) { this.dayLow = dayLow; }
-		public Long getVolume() { return volume; }
-		public void setVolume(Long volume) { this.volume = volume; }
-
-		public boolean isPositive() {
-			return change != null && change.compareTo(java.math.BigDecimal.ZERO) >= 0;
 		}
 	}
 

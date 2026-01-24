@@ -11,8 +11,6 @@ import io.strategiz.business.historicalinsights.service.HistoricalInsightsCacheS
 import io.strategiz.business.historicalinsights.service.HistoricalInsightsService;
 import io.strategiz.client.base.llm.model.LLMMessage;
 import io.strategiz.client.base.llm.model.LLMResponse;
-import io.strategiz.data.marketdata.entity.MarketDataEntity;
-import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import io.strategiz.service.labs.model.AIStrategyRequest;
 import io.strategiz.service.labs.model.AIStrategyResponse;
 import io.strategiz.service.labs.model.ExecuteStrategyResponse;
@@ -28,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import io.strategiz.service.base.BaseService;
 
 /**
@@ -49,20 +46,17 @@ public class AIStrategyService extends BaseService {
 	private final HistoricalInsightsService historicalInsightsService;
 	private final HistoricalInsightsCacheService cacheService;
 	private final StrategyExecutionService executionService;
-	private final MarketDataRepository marketDataRepository;
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
 			Optional<HistoricalInsightsService> historicalInsightsService,
 			HistoricalInsightsCacheService cacheService,
-			StrategyExecutionService executionService,
-			MarketDataRepository marketDataRepository) {
+			StrategyExecutionService executionService) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
 		this.historicalInsightsService = historicalInsightsService.orElse(null);
 		this.cacheService = cacheService;
 		this.executionService = executionService;
-		this.marketDataRepository = marketDataRepository;
 		if (this.historicalInsightsService == null) {
 			log.warn("HistoricalInsightsService not available - Autonomous AI mode will be disabled");
 		}
@@ -897,112 +891,135 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * AUTONOMOUS MODE: Generate strategy using pure mathematical signal detection.
-	 * Finds local minima (BUY) and maxima (SELL) using sliding window algorithm.
-	 * No LLM involved - pure deterministic optimization.
+	 * AUTONOMOUS MODE: Generate strategy using pattern analysis of historical turning points.
+	 * Analyzes turning points to derive optimal BUY/SELL thresholds (not hardcoded dates).
+	 * Generates indicator-based code that works for both backtesting AND live trading.
 	 */
 	private AIStrategyResponse generateDeterministicStrategy(SymbolInsights insights, AIStrategyRequest request) {
 		String symbol = insights.getSymbol();
 		String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
 
-		// Fetch market data for signal detection
-		List<MarketDataEntity> marketData = fetchMarketDataForOracle(symbol, timeframe);
-		if (marketData == null || marketData.size() < 20) {
-			log.warn("Insufficient market data for deterministic strategy: {}", symbol);
-			return AIStrategyResponse.error("Insufficient market data for " + symbol);
+		// Get context timeframe if available (overrides insights)
+		if (request.getContext() != null && request.getContext().getTimeframe() != null) {
+			timeframe = request.getContext().getTimeframe();
 		}
 
-		log.info("AUTONOMOUS: Analyzing {} price bars for {} to find optimal signals", marketData.size(), symbol);
+		log.info("AUTONOMOUS: Analyzing turning points for {} to derive optimal thresholds", symbol);
 
-		// Parse user prompt for window size preference (default 10 days)
-		int windowSize = 10;
-		String prompt = request.getPrompt();
-		if (prompt != null) {
-			if (prompt.toLowerCase().contains("5-day") || prompt.toLowerCase().contains("5 day")) {
-				windowSize = 5;
-			}
-			else if (prompt.toLowerCase().contains("20-day") || prompt.toLowerCase().contains("20 day")) {
-				windowSize = 20;
-			}
-			else if (prompt.toLowerCase().contains("aggressive") || prompt.toLowerCase().contains("more trades")) {
-				windowSize = 5;
-			}
-			else if (prompt.toLowerCase().contains("conservative") || prompt.toLowerCase().contains("fewer trades")) {
-				windowSize = 20;
-			}
-		}
+		// Calculate thresholds from turning points
+		double buyThreshold = 8.0;  // Default: buy when price drops 8% from recent high
+		double sellThreshold = 12.0; // Default: sell when price rises 12% from recent low
+		double stopLoss = 5.0;       // Default stop loss
+		int lookbackPeriod = 20;     // Default lookback for high/low calculation
 
-		// Find local minima and maxima
-		List<String> buyDates = new ArrayList<>();
-		List<String> sellDates = new ArrayList<>();
-		List<Double> prices = marketData.stream().map(md -> md.getClose().doubleValue()).collect(java.util.stream.Collectors.toList());
+		var turningPoints = insights.getTurningPoints();
+		if (turningPoints != null && !turningPoints.isEmpty()) {
+			double totalDropToTrough = 0;
+			double totalRiseFromTrough = 0;
+			int troughCount = 0;
+			int peakCount = 0;
 
-		for (int i = windowSize; i < prices.size() - windowSize; i++) {
-			double current = prices.get(i);
-
-			// Check if local minimum (BUY signal)
-			boolean isLocalMin = true;
-			for (int j = i - windowSize; j <= i + windowSize; j++) {
-				if (j != i && prices.get(j) < current) {
-					isLocalMin = false;
-					break;
+			for (var tp : turningPoints) {
+				double change = tp.getPriceChangeFromPrevious();
+				if (change != 0) {
+					if (tp.getType().name().equals("TROUGH")) {
+						// Troughs show how much price dropped before rebounding
+						totalDropToTrough += Math.abs(change);
+						troughCount++;
+					} else {
+						// Peaks show how much price rose before falling
+						totalRiseFromTrough += change;
+						peakCount++;
+					}
 				}
 			}
-			if (isLocalMin) {
-				String date = marketData.get(i).getTimestampAsLocalDateTime().toLocalDate().toString();
-				buyDates.add(date);
+
+			// Calculate average thresholds with safety margins
+			if (troughCount > 0) {
+				// Use 70% of average drop for earlier entry (don't wait for full bottom)
+				buyThreshold = Math.max((totalDropToTrough / troughCount) * 0.7, 3.0);
+				buyThreshold = Math.min(buyThreshold, 15.0); // Cap at 15%
+			}
+			if (peakCount > 0) {
+				// Use 70% of average rise for earlier exit (don't wait for full top)
+				sellThreshold = Math.max((totalRiseFromTrough / peakCount) * 0.7, 5.0);
+				sellThreshold = Math.min(sellThreshold, 25.0); // Cap at 25%
 			}
 
-			// Check if local maximum (SELL signal)
-			boolean isLocalMax = true;
-			for (int j = i - windowSize; j <= i + windowSize; j++) {
-				if (j != i && prices.get(j) > current) {
-					isLocalMax = false;
-					break;
-				}
-			}
-			if (isLocalMax) {
-				String date = marketData.get(i).getTimestampAsLocalDateTime().toLocalDate().toString();
-				sellDates.add(date);
-			}
+			log.info("AUTONOMOUS: Calculated thresholds from {} turning points - BUY at {}% drop, SELL at {}% rise",
+					turningPoints.size(), String.format("%.1f", buyThreshold), String.format("%.1f", sellThreshold));
 		}
 
-		log.info("AUTONOMOUS: Found {} BUY signals (local minima) and {} SELL signals (local maxima)",
-				buyDates.size(), sellDates.size());
+		// Adjust lookback period based on volatility
+		String volatility = insights.getVolatilityRegime();
+		if ("HIGH".equals(volatility) || "EXTREME".equals(volatility)) {
+			lookbackPeriod = 10; // Shorter lookback for volatile markets
+			stopLoss = Math.max(buyThreshold * 0.8, 5.0); // Wider stop for volatility
+		} else if ("LOW".equals(volatility)) {
+			lookbackPeriod = 30; // Longer lookback for stable markets
+			stopLoss = Math.max(buyThreshold * 0.5, 2.0); // Tighter stop
+		}
 
-		// Generate Python code with hardcoded optimal dates
+		// Generate Python code with calculated thresholds (NOT hardcoded dates)
 		StringBuilder code = new StringBuilder();
 		code.append("import pandas as pd\n");
 		code.append("import numpy as np\n\n");
-		code.append("# AUTONOMOUS MODE - Mathematically Optimal Signals\n");
-		code.append("# Window size: ").append(windowSize).append(" days\n");
-		code.append("# BUY at local minima, SELL at local maxima\n\n");
-
-		code.append("BUY_DATES = {\n");
-		for (int i = 0; i < buyDates.size(); i++) {
-			code.append("    '").append(buyDates.get(i)).append("'");
-			if (i < buyDates.size() - 1) code.append(",");
-			code.append("\n");
-		}
-		code.append("}\n\n");
-
-		code.append("SELL_DATES = {\n");
-		for (int i = 0; i < sellDates.size(); i++) {
-			code.append("    '").append(sellDates.get(i)).append("'");
-			if (i < sellDates.size() - 1) code.append(",");
-			code.append("\n");
-		}
-		code.append("}\n\n");
-
-		code.append("entry_price = None\n\n");
+		code.append("# ═══════════════════════════════════════════════════════════════\n");
+		code.append("# AUTONOMOUS MODE - Data-Driven Swing Trading Strategy\n");
+		code.append("# Generated from analysis of historical turning points\n");
+		code.append("# Thresholds are optimized for this specific symbol\n");
+		code.append("# ═══════════════════════════════════════════════════════════════\n\n");
+		code.append(String.format("SYMBOL = '%s'\n", symbol));
+		code.append(String.format("TIMEFRAME = '%s'\n\n", timeframe));
+		code.append("# Thresholds derived from historical swing analysis\n");
+		code.append(String.format("BUY_THRESHOLD = %.1f    # Buy when price drops this %% from %d-day high\n", buyThreshold, lookbackPeriod));
+		code.append(String.format("SELL_THRESHOLD = %.1f   # Sell when price rises this %% from %d-day low\n", sellThreshold, lookbackPeriod));
+		code.append(String.format("STOP_LOSS = %.1f        # Stop loss percentage\n", stopLoss));
+		code.append(String.format("TAKE_PROFIT = %.1f      # Take profit percentage\n", sellThreshold * 1.2));
+		code.append(String.format("LOOKBACK_PERIOD = %d    # Days to look back for high/low\n\n", lookbackPeriod));
+		code.append("# Position tracking\n");
+		code.append("entry_price = None\n");
+		code.append("highest_since_entry = None\n\n");
 		code.append("def strategy(data):\n");
-		code.append("    global entry_price\n");
-		code.append("    current_date = str(data.index[-1])[:10]\n\n");
-		code.append("    if entry_price is not None and current_date in SELL_DATES:\n");
-		code.append("        entry_price = None\n");
-		code.append("        return 'SELL'\n\n");
-		code.append("    if entry_price is None and current_date in BUY_DATES:\n");
-		code.append("        entry_price = data['close'].iloc[-1]\n");
+		code.append("    global entry_price, highest_since_entry\n\n");
+		code.append("    if len(data) < LOOKBACK_PERIOD + 1:\n");
+		code.append("        return 'HOLD'\n\n");
+		code.append("    current_price = data['close'].iloc[-1]\n");
+		code.append("    recent_high = data['high'].iloc[-(LOOKBACK_PERIOD+1):-1].max()\n");
+		code.append("    recent_low = data['low'].iloc[-(LOOKBACK_PERIOD+1):-1].min()\n\n");
+		code.append("    # Calculate percentage from swing points\n");
+		code.append("    pct_from_high = ((current_price - recent_high) / recent_high) * 100\n");
+		code.append("    pct_from_low = ((current_price - recent_low) / recent_low) * 100\n\n");
+		code.append("    # If we have a position, check exit conditions\n");
+		code.append("    if entry_price is not None:\n");
+		code.append("        # Update highest price since entry (for trailing stop)\n");
+		code.append("        if highest_since_entry is None:\n");
+		code.append("            highest_since_entry = current_price\n");
+		code.append("        else:\n");
+		code.append("            highest_since_entry = max(highest_since_entry, current_price)\n\n");
+		code.append("        pnl_pct = ((current_price - entry_price) / entry_price) * 100\n");
+		code.append("        pct_from_peak = ((current_price - highest_since_entry) / highest_since_entry) * 100\n\n");
+		code.append("        # Stop loss check\n");
+		code.append("        if pnl_pct <= -STOP_LOSS:\n");
+		code.append("            entry_price = None\n");
+		code.append("            highest_since_entry = None\n");
+		code.append("            return 'SELL'\n\n");
+		code.append("        # Take profit OR trailing stop (price dropped from peak)\n");
+		code.append("        if pnl_pct >= TAKE_PROFIT or (pnl_pct > 0 and pct_from_peak <= -STOP_LOSS * 0.5):\n");
+		code.append("            entry_price = None\n");
+		code.append("            highest_since_entry = None\n");
+		code.append("            return 'SELL'\n\n");
+		code.append("        # Sell when price rises significantly from recent low (swing high)\n");
+		code.append("        if pct_from_low >= SELL_THRESHOLD:\n");
+		code.append("            entry_price = None\n");
+		code.append("            highest_since_entry = None\n");
+		code.append("            return 'SELL'\n\n");
+		code.append("        return 'HOLD'\n\n");
+		code.append("    # No position - look for entry\n");
+		code.append("    # Buy when price drops significantly from recent high (swing low)\n");
+		code.append("    if pct_from_high <= -BUY_THRESHOLD:\n");
+		code.append("        entry_price = current_price\n");
+		code.append("        highest_since_entry = current_price\n");
 		code.append("        return 'BUY'\n\n");
 		code.append("    return 'HOLD'\n");
 
@@ -1014,10 +1031,13 @@ public class AIStrategyService extends BaseService {
 
 		// Add explanation
 		String explanation = String.format(
-				"AUTONOMOUS MODE: Analyzed %d days of %s data using %d-day window. " +
-						"Found %d optimal BUY points (local price minima) and %d optimal SELL points (local price maxima). " +
-						"This is mathematically optimized for maximum hindsight profit.",
-				marketData.size(), symbol, windowSize, buyDates.size(), sellDates.size());
+				"AUTONOMOUS MODE: Analyzed %d days of %s historical data with %d identified turning points. " +
+				"Derived optimal thresholds: BUY when price drops %.1f%% from %d-day high, " +
+				"SELL when price rises %.1f%% from %d-day low. " +
+				"This strategy uses indicator-based rules that work for both backtesting and live trading.",
+				insights.getDaysAnalyzed(), symbol,
+				turningPoints != null ? turningPoints.size() : 0,
+				buyThreshold, lookbackPeriod, sellThreshold, lookbackPeriod);
 		response.setExplanation(explanation);
 
 		// Set historical insights used flag
@@ -1028,65 +1048,130 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * GENERATIVE AI MODE: Generate strategy directly from historical turning points.
-	 * Uses the peaks (SELL) and troughs (BUY) identified by HistoricalInsightsService.
-	 * This bypasses LLM code generation because LLMs don't reliably follow instructions
-	 * to use specific dates - they tend to generate indicator-based strategies instead.
+	 * GENERATIVE AI MODE: Generate strategy from historical turning points analysis.
+	 * Analyzes the patterns at turning points to derive indicator-based entry/exit rules.
+	 * Generates code that works for both backtesting AND live trading (no hardcoded dates).
 	 */
 	private AIStrategyResponse generateStrategyFromTurningPoints(SymbolInsights insights, AIStrategyRequest request) {
 		String symbol = insights.getSymbol();
+		String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
+
+		// Get context timeframe if available
+		if (request.getContext() != null && request.getContext().getTimeframe() != null) {
+			timeframe = request.getContext().getTimeframe();
+		}
+
 		var turningPoints = insights.getTurningPoints();
+		log.info("GENERATIVE AI: Analyzing {} turning points to derive strategy for {}",
+				turningPoints != null ? turningPoints.size() : 0, symbol);
 
-		// Extract BUY dates (troughs) and SELL dates (peaks)
-		List<String> buyDates = new ArrayList<>();
-		List<String> sellDates = new ArrayList<>();
+		// Analyze turning points to derive thresholds and patterns
+		double avgDropBeforeBuy = 10.0;  // Default
+		double avgRiseBeforeSell = 15.0; // Default
+		int avgDaysBetweenTrades = 30;   // Default
 
-		for (var tp : turningPoints) {
-			String date = tp.getTimestamp().toString().substring(0, 10); // YYYY-MM-DD
-			if ("TROUGH".equals(tp.getType().name())) {
-				buyDates.add(date);
-			} else {
-				sellDates.add(date);
+		if (turningPoints != null && turningPoints.size() >= 2) {
+			double totalDrop = 0;
+			double totalRise = 0;
+			int totalDays = 0;
+			int troughCount = 0;
+			int peakCount = 0;
+
+			for (var tp : turningPoints) {
+				double change = tp.getPriceChangeFromPrevious();
+				int days = tp.getDaysFromPrevious();
+
+				if (change != 0) {
+					if (tp.getType().name().equals("TROUGH")) {
+						totalDrop += Math.abs(change);
+						troughCount++;
+					} else {
+						totalRise += change;
+						peakCount++;
+					}
+				}
+				if (days > 0) {
+					totalDays += days;
+				}
+			}
+
+			if (troughCount > 0) {
+				// Use 80% of average drop - enter slightly before full bottom
+				avgDropBeforeBuy = Math.max((totalDrop / troughCount) * 0.8, 5.0);
+				avgDropBeforeBuy = Math.min(avgDropBeforeBuy, 20.0);
+			}
+			if (peakCount > 0) {
+				// Use 80% of average rise - exit slightly before full top
+				avgRiseBeforeSell = Math.max((totalRise / peakCount) * 0.8, 8.0);
+				avgRiseBeforeSell = Math.min(avgRiseBeforeSell, 30.0);
+			}
+			if (turningPoints.size() > 1) {
+				avgDaysBetweenTrades = Math.max(totalDays / (turningPoints.size() - 1), 10);
 			}
 		}
 
-		log.info("GENERATIVE AI: Found {} BUY dates (troughs) and {} SELL dates (peaks) for {}",
-				buyDates.size(), sellDates.size(), symbol);
+		// Determine lookback period based on average swing duration
+		int lookbackPeriod = Math.min(Math.max(avgDaysBetweenTrades / 2, 10), 50);
+		double stopLoss = Math.max(avgDropBeforeBuy * 0.6, 3.0);
 
-		// Generate Python code with hardcoded optimal dates
+		log.info("GENERATIVE AI: Derived thresholds - BUY at {}% drop, SELL at {}% rise, lookback {} days",
+				String.format("%.1f", avgDropBeforeBuy), String.format("%.1f", avgRiseBeforeSell), lookbackPeriod);
+
+		// Generate Python code with derived indicator-based rules
 		StringBuilder code = new StringBuilder();
 		code.append("import pandas as pd\n");
 		code.append("import numpy as np\n\n");
-		code.append("# GENERATIVE AI MODE - Trading at Historical Turning Points\n");
-		code.append("# Symbol: ").append(symbol).append("\n");
-		code.append("# BUY at troughs (local minima), SELL at peaks (local maxima)\n");
-		code.append("# These dates are identified from historical price data analysis\n\n");
-
-		code.append("BUY_DATES = {\n");
-		for (int i = 0; i < buyDates.size(); i++) {
-			code.append("    '").append(buyDates.get(i)).append("'");
-			if (i < buyDates.size() - 1) code.append(",");
-			code.append("\n");
-		}
-		code.append("}\n\n");
-
-		code.append("SELL_DATES = {\n");
-		for (int i = 0; i < sellDates.size(); i++) {
-			code.append("    '").append(sellDates.get(i)).append("'");
-			if (i < sellDates.size() - 1) code.append(",");
-			code.append("\n");
-		}
-		code.append("}\n\n");
-
-		code.append("entry_price = None\n\n");
+		code.append("# ═══════════════════════════════════════════════════════════════\n");
+		code.append("# GENERATIVE AI MODE - Pattern-Based Swing Trading Strategy\n");
+		code.append("# Thresholds derived from analysis of historical turning points\n");
+		code.append("# Works for both backtesting AND live trading\n");
+		code.append("# ═══════════════════════════════════════════════════════════════\n\n");
+		code.append(String.format("SYMBOL = '%s'\n", symbol));
+		code.append(String.format("TIMEFRAME = '%s'\n\n", timeframe));
+		code.append("# Parameters derived from historical swing analysis\n");
+		code.append(String.format("BUY_DIP_THRESHOLD = %.1f   # Buy when price drops this %% from recent high\n", avgDropBeforeBuy));
+		code.append(String.format("SELL_RISE_THRESHOLD = %.1f # Sell when price rises this %% from entry\n", avgRiseBeforeSell));
+		code.append(String.format("STOP_LOSS = %.1f           # Maximum acceptable loss\n", stopLoss));
+		code.append(String.format("LOOKBACK_DAYS = %d         # Period for calculating swing levels\n\n", lookbackPeriod));
+		code.append("# Position state\n");
+		code.append("entry_price = None\n");
+		code.append("peak_price = None\n\n");
 		code.append("def strategy(data):\n");
-		code.append("    global entry_price\n");
-		code.append("    current_date = str(data.index[-1])[:10]\n\n");
-		code.append("    if entry_price is not None and current_date in SELL_DATES:\n");
-		code.append("        entry_price = None\n");
-		code.append("        return 'SELL'\n\n");
-		code.append("    if entry_price is None and current_date in BUY_DATES:\n");
-		code.append("        entry_price = data['close'].iloc[-1]\n");
+		code.append("    global entry_price, peak_price\n\n");
+		code.append("    if len(data) < LOOKBACK_DAYS + 1:\n");
+		code.append("        return 'HOLD'\n\n");
+		code.append("    current = data['close'].iloc[-1]\n");
+		code.append("    high_n = data['high'].iloc[-(LOOKBACK_DAYS+1):-1].max()\n");
+		code.append("    low_n = data['low'].iloc[-(LOOKBACK_DAYS+1):-1].min()\n\n");
+		code.append("    # Price position relative to recent range\n");
+		code.append("    pct_below_high = ((current - high_n) / high_n) * 100\n\n");
+		code.append("    # Exit logic (if holding)\n");
+		code.append("    if entry_price is not None:\n");
+		code.append("        # Track peak since entry\n");
+		code.append("        peak_price = max(peak_price or current, current)\n");
+		code.append("        gain = ((current - entry_price) / entry_price) * 100\n");
+		code.append("        drop_from_peak = ((current - peak_price) / peak_price) * 100 if peak_price else 0\n\n");
+		code.append("        # Stop loss\n");
+		code.append("        if gain <= -STOP_LOSS:\n");
+		code.append("            entry_price = None\n");
+		code.append("            peak_price = None\n");
+		code.append("            return 'SELL'\n\n");
+		code.append("        # Take profit when target reached\n");
+		code.append("        if gain >= SELL_RISE_THRESHOLD:\n");
+		code.append("            entry_price = None\n");
+		code.append("            peak_price = None\n");
+		code.append("            return 'SELL'\n\n");
+		code.append("        # Trailing stop: sell if dropped significantly from peak with profit\n");
+		code.append("        if gain > STOP_LOSS and drop_from_peak <= -(STOP_LOSS * 0.7):\n");
+		code.append("            entry_price = None\n");
+		code.append("            peak_price = None\n");
+		code.append("            return 'SELL'\n\n");
+		code.append("        return 'HOLD'\n\n");
+		code.append("    # Entry logic (no position)\n");
+		code.append("    # Buy when price has dropped significantly from recent high\n");
+		code.append("    if pct_below_high <= -BUY_DIP_THRESHOLD:\n");
+		code.append("        entry_price = current\n");
+		code.append("        peak_price = current\n");
 		code.append("        return 'BUY'\n\n");
 		code.append("    return 'HOLD'\n");
 
@@ -1097,17 +1182,20 @@ public class AIStrategyService extends BaseService {
 		response.setCanRepresentVisually(true);
 
 		// Add explanation
+		int turningPointCount = turningPoints != null ? turningPoints.size() : 0;
 		String explanation = String.format(
-				"GENERATIVE AI MODE: Analyzed historical data for %s and identified %d optimal BUY points " +
-				"(market troughs) and %d optimal SELL points (market peaks). The strategy trades at these " +
-				"historically significant turning points to maximize returns.",
-				symbol, buyDates.size(), sellDates.size());
+				"GENERATIVE AI MODE: Analyzed %d historical turning points for %s over %d days. " +
+				"Pattern analysis shows optimal entry when price drops %.1f%% from %d-day high, " +
+				"and optimal exit when price rises %.1f%% from entry or trailing stop triggers. " +
+				"This strategy applies the learned patterns to both historical and future data.",
+				turningPointCount, symbol, insights.getDaysAnalyzed(),
+				avgDropBeforeBuy, lookbackPeriod, avgRiseBeforeSell);
 		response.setExplanation(explanation);
 
 		// Generate summary card
 		String summaryCard = String.format(
-				"Turning Point Strategy for %s: Trades at %d identified market bottoms (buy) and %d peaks (sell)",
-				symbol, buyDates.size(), sellDates.size());
+				"Pattern-Based Swing Strategy for %s: Buy on %.1f%% dips, sell on %.1f%% gains (derived from %d turning points)",
+				symbol, avgDropBeforeBuy, avgRiseBeforeSell, turningPointCount);
 		response.setSummaryCard(summaryCard);
 
 		// Set historical insights used flag
@@ -1115,277 +1203,6 @@ public class AIStrategyService extends BaseService {
 		response.setHistoricalInsights(insights);
 
 		return response;
-	}
-
-	/**
-	 * LEGACY: Build context for LLM to learn patterns from turning points.
-	 * NOTE: This method is no longer used for GENERATIVE_AI mode because LLMs
-	 * don't reliably follow instructions to use specific dates.
-	 * Kept for reference and potential future use with better models.
-	 */
-	private String buildGenerativeAIContext(SymbolInsights insights) {
-		if (insights == null) {
-			return null;
-		}
-
-		var turningPoints = insights.getTurningPoints();
-		if (turningPoints == null || turningPoints.isEmpty()) {
-			log.warn("No turning points for {} - using fallback", insights.getSymbol());
-			return buildFallbackContext(insights);
-		}
-
-		// Extract exact dates for BUY (troughs) and SELL (peaks)
-		List<String> buyDates = new ArrayList<>();
-		List<String> sellDates = new ArrayList<>();
-
-		for (var tp : turningPoints) {
-			String date = tp.getTimestamp().toString().substring(0, 10); // YYYY-MM-DD
-			if ("TROUGH".equals(tp.getType().name())) {
-				buyDates.add(date);
-			}
-			else {
-				sellDates.add(date);
-			}
-		}
-
-		log.info("HINDSIGHT ORACLE: {} BUY dates (troughs), {} SELL dates (peaks) for {}",
-				buyDates.size(), sellDates.size(), insights.getSymbol());
-
-		StringBuilder context = new StringBuilder();
-		context.append("\n\n");
-		context.append("=".repeat(80)).append("\n");
-		context.append("HINDSIGHT ORACLE - EXACT TRADING DATES FOR ").append(insights.getSymbol()).append("\n");
-		context.append("=".repeat(80)).append("\n\n");
-
-		context.append("I have analyzed all historical data and identified the EXACT optimal trading dates.\n");
-		context.append("These are the precise dates of market troughs (buy) and peaks (sell).\n\n");
-
-		context.append("BUY DATES (market troughs - buy on or near these dates):\n");
-		for (String date : buyDates) {
-			context.append("   ").append(date).append("\n");
-		}
-		context.append("\n");
-
-		context.append("SELL DATES (market peaks - sell on or near these dates):\n");
-		for (String date : sellDates) {
-			context.append("   ").append(date).append("\n");
-		}
-		context.append("\n");
-
-		context.append("GENERATE THIS EXACT STRATEGY (copy this code structure):\n\n");
-
-		// Generate the actual Python code with hardcoded dates
-		context.append("```python\n");
-		context.append("import pandas as pd\n");
-		context.append("import numpy as np\n\n");
-		context.append("# HINDSIGHT ORACLE STRATEGY - Trades at known optimal points\n");
-		context.append("# BUY at troughs, SELL at peaks\n\n");
-
-		// Hardcode the buy dates
-		context.append("BUY_DATES = {\n");
-		for (int i = 0; i < buyDates.size(); i++) {
-			context.append("    '").append(buyDates.get(i)).append("'");
-			if (i < buyDates.size() - 1)
-				context.append(",");
-			context.append("\n");
-		}
-		context.append("}\n\n");
-
-		// Hardcode the sell dates
-		context.append("SELL_DATES = {\n");
-		for (int i = 0; i < sellDates.size(); i++) {
-			context.append("    '").append(sellDates.get(i)).append("'");
-			if (i < sellDates.size() - 1)
-				context.append(",");
-			context.append("\n");
-		}
-		context.append("}\n\n");
-
-		context.append("entry_price = None\n\n");
-		context.append("def strategy(data):\n");
-		context.append("    global entry_price\n");
-		context.append("    \n");
-		context.append("    # Get current date from the data\n");
-		context.append("    current_date = str(data.index[-1])[:10]\n");
-		context.append("    \n");
-		context.append("    # Check if we should SELL (at a peak)\n");
-		context.append("    if entry_price is not None and current_date in SELL_DATES:\n");
-		context.append("        entry_price = None\n");
-		context.append("        return 'SELL'\n");
-		context.append("    \n");
-		context.append("    # Check if we should BUY (at a trough)\n");
-		context.append("    if entry_price is None and current_date in BUY_DATES:\n");
-		context.append("        entry_price = data['close'].iloc[-1]\n");
-		context.append("        return 'BUY'\n");
-		context.append("    \n");
-		context.append("    return 'HOLD'\n");
-		context.append("```\n\n");
-
-		context.append("IMPORTANT: Use the EXACT code above. The dates are the known optimal trading points.\n");
-		context.append("=".repeat(80)).append("\n");
-
-		return context.toString();
-	}
-
-	/**
-	 * Fetch market data for the oracle mode.
-	 */
-	private List<MarketDataEntity> fetchMarketDataForOracle(String symbol, String timeframe) {
-		try {
-			LocalDate endDate = LocalDate.now().minusDays(1);
-			LocalDate startDate = endDate.minusYears(2); // 2 years of data
-
-			String dbTimeframe = timeframe.toUpperCase();
-			if (dbTimeframe.equals("1D") || dbTimeframe.equals("D")) {
-				dbTimeframe = "1D";
-			}
-
-			List<MarketDataEntity> data = marketDataRepository.findBySymbolAndDateRange(
-					symbol, startDate, endDate, dbTimeframe, 1000);
-
-			log.info("Fetched {} bars of {} data for {} from {} to {}",
-					data != null ? data.size() : 0, dbTimeframe, symbol, startDate, endDate);
-
-			return data;
-		}
-		catch (Exception e) {
-			log.error("Failed to fetch market data for oracle mode: {}", e.getMessage());
-			return null;
-		}
-	}
-
-	/**
-	 * Fallback context when market data is not available.
-	 */
-	private String buildFallbackContext(SymbolInsights insights) {
-		StringBuilder context = new StringBuilder();
-		context.append("\n\n");
-		context.append("=".repeat(80)).append("\n");
-		context.append("AUTONOMOUS AI MODE FOR ").append(insights.getSymbol()).append("\n");
-		context.append("=".repeat(80)).append("\n\n");
-
-		// Use optimal parameters if available
-		double buyThreshold = 3.0;
-		double sellThreshold = 9.0;
-
-		Map<String, Object> optimalParams = insights.getOptimalParameters();
-		if (optimalParams != null) {
-			if (optimalParams.get("stop_loss_percent") instanceof Number) {
-				buyThreshold = ((Number) optimalParams.get("stop_loss_percent")).doubleValue();
-			}
-			if (optimalParams.get("take_profit_percent") instanceof Number) {
-				sellThreshold = ((Number) optimalParams.get("take_profit_percent")).doubleValue();
-			}
-		}
-
-		context.append("Generate a swing trading strategy with these parameters:\n");
-		context.append(String.format("   BUY when price drops %.1f%% from 10-day high\n", buyThreshold));
-		context.append(String.format("   SELL when up %.1f%% from entry\n", sellThreshold));
-		context.append(String.format("   STOP LOSS at %.1f%%\n\n", Math.max(buyThreshold * 0.8, 2.0)));
-
-		return context.toString();
-	}
-
-	/**
-	 * Generate a deterministic swing trading strategy from turning points data.
-	 * Uses trailing stop approach - sell when price drops from peak, not when it rises from low.
-	 */
-	private String generateDeterministicSwingStrategy(SymbolInsights insights) {
-		if (insights == null || insights.getTurningPoints() == null || insights.getTurningPoints().isEmpty()) {
-			return null;
-		}
-
-		// Calculate average swing magnitudes from turning points
-		double avgDropToTrough = 0, avgRiseFromTrough = 0;
-		int troughCount = 0, peakCount = 0;
-
-		for (var tp : insights.getTurningPoints()) {
-			if (tp.getPriceChangeFromPrevious() != 0) {
-				if ("TROUGH".equals(tp.getType().name())) {
-					avgDropToTrough += Math.abs(tp.getPriceChangeFromPrevious());
-					troughCount++;
-				}
-				else {
-					avgRiseFromTrough += tp.getPriceChangeFromPrevious();
-					peakCount++;
-				}
-			}
-		}
-
-		if (troughCount > 0)
-			avgDropToTrough /= troughCount;
-		if (peakCount > 0)
-			avgRiseFromTrough /= peakCount;
-
-		// Use 80% of avg swing as buy threshold
-		double buyThreshold = Math.max(avgDropToTrough * 0.8, 5.0);
-		// Use 50% of avg rise as trailing stop (tighter stop to protect gains)
-		double trailingStop = Math.max(avgRiseFromTrough * 0.4, 5.0);
-
-		log.info("Deterministic swing strategy: BUY on {}% dip, TRAILING STOP {}%", buyThreshold, trailingStop);
-
-		String symbol = insights.getSymbol();
-
-		return String.format("""
-				import pandas as pd
-				import numpy as np
-
-				# Deterministic Swing Trading Strategy for %s
-				# Generated from historical turning points analysis
-				# BUY when price drops %.1f%% from 20-day high
-				# SELL when price drops %.1f%% from highest point since entry (trailing stop)
-
-				SYMBOL = '%s'
-				TIMEFRAME = '1D'
-				POSITION_SIZE = 100  # Full position for maximum impact
-
-				# Thresholds derived from historical turning points
-				BUY_DIP_THRESHOLD = %.1f   # Buy when price drops this %% from 20-day high
-				TRAILING_STOP = %.1f       # Sell when price drops this %% from peak since entry
-
-				# Track position state
-				entry_price = None
-				highest_since_entry = None
-
-				def strategy(data):
-				    global entry_price, highest_since_entry
-
-				    if len(data) < 21:
-				        return 'HOLD'
-
-				    current_price = data['close'].iloc[-1]
-				    recent_high = data['high'].iloc[-21:-1].max()  # 20-day high excluding today
-
-				    # If we have a position, check trailing stop
-				    if entry_price is not None:
-				        # Update highest price since entry
-				        if highest_since_entry is None:
-				            highest_since_entry = current_price
-				        else:
-				            highest_since_entry = max(highest_since_entry, current_price)
-
-				        # Calculate drop from peak
-				        pct_from_peak = ((current_price - highest_since_entry) / highest_since_entry) * 100
-
-				        # SELL if price drops from peak (trailing stop triggered)
-				        if pct_from_peak <= -TRAILING_STOP:
-				            entry_price = None
-				            highest_since_entry = None
-				            return 'SELL'
-
-				        return 'HOLD'  # Keep holding, trailing stop not hit
-
-				    # No position - look for buy opportunity
-				    pct_from_high = ((current_price - recent_high) / recent_high) * 100
-
-				    # BUY when price dips significantly from recent high
-				    if pct_from_high <= -BUY_DIP_THRESHOLD:
-				        entry_price = current_price
-				        highest_since_entry = current_price
-				        return 'BUY'
-
-				    return 'HOLD'
-				""", symbol, buyThreshold, trailingStop, symbol, buyThreshold, trailingStop);
 	}
 
 	/**

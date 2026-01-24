@@ -27,7 +27,7 @@ public class GitHubAppVaultConfig {
 
     @Autowired
     public GitHubAppVaultConfig(
-            @Qualifier("vaultSecretService") SecretManager secretManager,
+            @Qualifier("vaultSecretManager") SecretManager secretManager,
             GitHubAppConfig githubAppConfig
     ) {
         this.secretManager = secretManager;

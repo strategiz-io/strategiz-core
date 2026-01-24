@@ -3,6 +3,8 @@ package io.strategiz.service.auth.controller.smsotp;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.smsotp.SmsOtpRegistrationService;
+import io.strategiz.service.auth.util.CookieUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,6 +33,12 @@ class SmsOtpRegistrationControllerTest {
 
 	@Mock
 	private SmsOtpRegistrationService smsOtpRegistrationService;
+
+	@Mock
+	private CookieUtil cookieUtil;
+
+	@Mock
+	private HttpServletResponse httpServletResponse;
 
 	@InjectMocks
 	private SmsOtpRegistrationController controller;
@@ -317,6 +325,7 @@ class SmsOtpRegistrationControllerTest {
 
 			Map<String, Object> authResult = new HashMap<>();
 			authResult.put("accessToken", "new-access-token");
+			authResult.put("refreshToken", "new-refresh-token");
 			authResult.put("userId", TEST_USER_ID);
 
 			when(smsOtpRegistrationService.verifyFirebaseTokenAndComplete("firebase-id-token", TEST_USER_ID, TEST_PHONE,
@@ -324,7 +333,7 @@ class SmsOtpRegistrationControllerTest {
 				.thenReturn(authResult);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request);
+			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request, httpServletResponse);
 
 			// Then
 			assertNotNull(response);
@@ -334,6 +343,10 @@ class SmsOtpRegistrationControllerTest {
 			assertEquals(true, response.getBody().get("verified"));
 			assertEquals("new-access-token", response.getBody().get("accessToken"));
 			assertTrue(response.getBody().get("message").toString().contains("registered"));
+
+			// Verify cookies are set
+			verify(cookieUtil).setAccessTokenCookie(httpServletResponse, "new-access-token");
+			verify(cookieUtil).setRefreshTokenCookie(httpServletResponse, "new-refresh-token");
 		}
 
 		@Test
@@ -345,19 +358,24 @@ class SmsOtpRegistrationControllerTest {
 
 			Map<String, Object> authResult = new HashMap<>();
 			authResult.put("accessToken", "new-access-token");
+			authResult.put("refreshToken", "new-refresh-token");
 
 			when(smsOtpRegistrationService.verifyFirebaseTokenAndComplete("firebase-id-token", TEST_USER_ID, TEST_PHONE,
 					false))
 				.thenReturn(authResult);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request);
+			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request, httpServletResponse);
 
 			// Then
 			assertNotNull(response);
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertNotNull(response.getBody());
 			assertTrue(response.getBody().get("message").toString().contains("successful"));
+
+			// Verify cookies are set
+			verify(cookieUtil).setAccessTokenCookie(httpServletResponse, "new-access-token");
+			verify(cookieUtil).setRefreshTokenCookie(httpServletResponse, "new-refresh-token");
 		}
 
 	}

@@ -294,7 +294,7 @@ class SmsOtpAuthenticationControllerTest {
 				.thenReturn(authResult);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.verifyAuthenticationOtpWithoutSession(validRequest);
+			ResponseEntity<Map<String, Object>> response = controller.verifyAuthenticationOtpWithoutSession(validRequest, httpServletResponse);
 
 			// Then
 			assertNotNull(response);
@@ -304,8 +304,9 @@ class SmsOtpAuthenticationControllerTest {
 			assertEquals("new-access-token", response.getBody().get("accessToken"));
 			assertEquals(TEST_USER_ID, response.getBody().get("userId"));
 
-			// Note: cookies are not set in this endpoint
-			verifyNoInteractions(cookieUtil);
+			// Verify cookies are now set
+			verify(cookieUtil).setAccessTokenCookie(httpServletResponse, "new-access-token");
+			verify(cookieUtil).setRefreshTokenCookie(httpServletResponse, "new-refresh-token");
 		}
 
 		@Test
@@ -317,7 +318,7 @@ class SmsOtpAuthenticationControllerTest {
 
 			// When & Then
 			StrategizException exception = assertThrows(StrategizException.class,
-					() -> controller.verifyAuthenticationOtpWithoutSession(validRequest));
+					() -> controller.verifyAuthenticationOtpWithoutSession(validRequest, httpServletResponse));
 
 			assertEquals(AuthErrors.OTP_EXPIRED.name(), exception.getErrorCode());
 		}

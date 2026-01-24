@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.framework.authorization.error.AuthorizationErrorDetails;
 import io.strategiz.framework.exception.StrategizException;
-import io.strategiz.framework.secrets.service.VaultSecretService;
+import io.strategiz.framework.secrets.controller.SecretManager;
 import jakarta.annotation.PostConstruct;
 import org.paseto4j.commons.PasetoException;
 import org.paseto4j.commons.SecretKey;
@@ -80,7 +80,7 @@ public class PasetoTokenProvider {
 	private String activeProfile;
 
 	@Autowired(required = false)
-	private VaultSecretService vaultSecretService;
+	private SecretManager secretManager;
 
 	private SecretKey identityKey; // For identity tokens (signup/profile creation)
 
@@ -100,15 +100,15 @@ public class PasetoTokenProvider {
 		String env = activeProfile != null && activeProfile.contains("prod") ? "prod" : "dev";
 		log.info("Determined environment: {}", env);
 
-		log.info("VaultSecretService injected: {}", vaultSecretService != null);
-		log.info("VaultSecretService class: {}", vaultSecretService != null ? vaultSecretService.getClass().getName() : "NULL");
+		log.info("SecretManager injected: {}", secretManager != null);
+		log.info("SecretManager class: {}", secretManager != null ? secretManager.getClass().getName() : "NULL");
 
-		if (vaultSecretService != null) {
+		if (secretManager != null) {
 			try {
 				// Load identity key from Vault
 				String identityKeyPath = "tokens." + env + ".identity-key";
 				log.info("Attempting to load identity key from Vault path: {}", identityKeyPath);
-				String identityKeyStr = vaultSecretService.readSecret(identityKeyPath);
+				String identityKeyStr = secretManager.readSecret(identityKeyPath);
 				log.info("Identity key result: {}", identityKeyStr != null ? "loaded (" + identityKeyStr.length() + " chars)" : "NULL");
 				if (identityKeyStr != null && !identityKeyStr.isEmpty()) {
 					identityKey = new SecretKey(Base64.getDecoder().decode(identityKeyStr), Version.V4);
@@ -121,7 +121,7 @@ public class PasetoTokenProvider {
 				// Load session key from Vault
 				String sessionKeyPath = "tokens." + env + ".session-key";
 				log.info("Attempting to load session key from Vault path: {}", sessionKeyPath);
-				String sessionKeyStr = vaultSecretService.readSecret(sessionKeyPath);
+				String sessionKeyStr = secretManager.readSecret(sessionKeyPath);
 				log.info("Session key result: {}", sessionKeyStr != null ? "loaded (" + sessionKeyStr.length() + " chars)" : "NULL");
 				if (sessionKeyStr != null && !sessionKeyStr.isEmpty()) {
 					sessionKey = new SecretKey(Base64.getDecoder().decode(sessionKeyStr), Version.V4);
@@ -137,8 +137,8 @@ public class PasetoTokenProvider {
 			}
 		}
 		else {
-			log.error("CRITICAL: VaultSecretService is NULL - cannot load keys from Vault");
-			log.error("Check that VaultSecretService bean is being created and component scanning includes io.strategiz.framework.secrets");
+			log.error("CRITICAL: SecretManager is NULL - cannot load keys from Vault");
+			log.error("Check that SecretManager bean is being created and component scanning includes io.strategiz.framework.secrets");
 		}
 
 		// Require keys to be configured in Vault - no temporary keys

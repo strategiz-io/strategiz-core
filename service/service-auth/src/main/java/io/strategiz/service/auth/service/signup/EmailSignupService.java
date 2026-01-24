@@ -1,6 +1,9 @@
 package io.strategiz.service.auth.service.signup;
 
 import io.strategiz.business.preferences.service.SubscriptionService;
+import io.strategiz.client.sendgrid.EmailProvider;
+import io.strategiz.client.sendgrid.model.EmailDeliveryResult;
+import io.strategiz.client.sendgrid.model.EmailMessage;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.base.constants.SubscriptionTierConstants;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
@@ -19,8 +22,6 @@ import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -60,7 +61,7 @@ public class EmailSignupService extends BaseService {
     @Value("${email.otp.code.length:6}")
     private int codeLength;
 
-    @Value("${spring.mail.username:no-reply@strategiz.io}")
+    @Value("${email.from:no-reply@strategiz.io}")
     private String fromEmail;
 
     @Value("${email.otp.admin.bypass.enabled:true}")
@@ -70,7 +71,7 @@ public class EmailSignupService extends BaseService {
     private String adminEmails;
 
     @Autowired(required = false)
-    private JavaMailSender mailSender;
+    private EmailProvider emailProvider;
 
     @Autowired
     private UserRepository userRepository;
@@ -315,32 +316,54 @@ public class EmailSignupService extends BaseService {
     }
 
     /**
-     * Send OTP email.
+     * Send OTP email via SendGrid.
      */
     private boolean sendOtpEmail(String email, String otpCode) {
         try {
-            if (mailSender == null) {
-                log.warn("Mail sender not configured. OTP for {}: {}", email, otpCode);
-                return true; // Allow in development
+            if (emailProvider == null || !emailProvider.isAvailable()) {
+                log.error("Email provider not configured or unavailable. Cannot send OTP to {}", email);
+                return false;
             }
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(email);
-            message.setSubject("Verify Your Email - Strategiz");
-            message.setText(
-                "Welcome to Strategiz!\n\n" +
+            String subject = "Verify Your Email - Strategiz";
+            String textContent = "Welcome to Strategiz!\n\n" +
                 "Your verification code is: " + otpCode + "\n\n" +
                 "Enter this code to complete your registration.\n" +
                 "This code expires in " + expirationMinutes + " minutes.\n\n" +
-                "If you didn't request this, please ignore this email."
-            );
+                "If you didn't request this, please ignore this email.";
 
-            mailSender.send(message);
-            log.info("Sent verification email to: {}", email);
-            return true;
+            String htmlContent = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">" +
+                "<h2 style=\"color: #00ff88;\">Welcome to Strategiz!</h2>" +
+                "<p>Your verification code is:</p>" +
+                "<div style=\"background-color: #1a1a2e; padding: 20px; text-align: center; margin: 20px 0;\">" +
+                "<span style=\"font-size: 32px; font-weight: bold; color: #00ff88; letter-spacing: 8px;\">" + otpCode + "</span>" +
+                "</div>" +
+                "<p>Enter this code to complete your registration.</p>" +
+                "<p>This code expires in " + expirationMinutes + " minutes.</p>" +
+                "<p style=\"color: #888; font-size: 12px;\">If you didn't request this, please ignore this email.</p>" +
+                "</div>";
+
+            EmailMessage message = EmailMessage.builder()
+                .toEmail(email)
+                .fromEmail(fromEmail)
+                .fromName("Strategiz")
+                .subject(subject)
+                .bodyText(textContent)
+                .bodyHtml(htmlContent)
+                .build();
+
+            EmailDeliveryResult result = emailProvider.sendEmail(message);
+
+            if (result.isSuccess()) {
+                log.info("Sent verification email to {} via {}", email, result.getProviderName());
+                return true;
+            } else {
+                log.error("Failed to send verification email to {}: {} - {}",
+                    email, result.getErrorCode(), result.getErrorMessage());
+                return false;
+            }
         } catch (Exception e) {
-            log.error("Failed to send verification email: {}", e.getMessage(), e);
+            log.error("Error sending verification email: {}", e.getMessage(), e);
             return false;
         }
     }

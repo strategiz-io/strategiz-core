@@ -7,6 +7,8 @@ import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
+import io.strategiz.service.agents.dto.MarketSignalDto;
+import io.strategiz.service.agents.dto.NewsItemDto;
 import io.strategiz.service.agents.service.EarningsEdgeService;
 import io.strategiz.service.agents.service.NewsSentinelService;
 import io.strategiz.service.agents.service.PortfolioInsightsService;
@@ -27,6 +29,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
  * REST controller for AI Agents (Signal Scout, Strategy Optimizer, Earnings Edge, News Sentinel)
@@ -116,6 +120,18 @@ public class AIAgentsController {
         request.setAgentId("signalScout");
 
         return signalScoutService.chatStream(request, userId);
+    }
+
+    @GetMapping("/signal-scout/insights")
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "Get market signals", description = "Get current market signals for the insights panel")
+    public ResponseEntity<List<MarketSignalDto>> getMarketSignals(
+            @RequestParam(defaultValue = "5") int limit,
+            @AuthUser AuthenticatedUser user) {
+
+        logger.info("Fetching market signals for user: {}", user.getUserId());
+        List<MarketSignalDto> signals = signalScoutService.getMarketSignalsInsights(limit);
+        return ResponseEntity.ok(signals);
     }
 
     // ==================== Strategy Optimizer ====================
@@ -281,6 +297,18 @@ public class AIAgentsController {
         request.setAgentId("newsSentinel");
 
         return newsSentinelService.chatStream(request, userId);
+    }
+
+    @GetMapping("/news-sentinel/insights")
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "Get news items", description = "Get current market news for the insights panel")
+    public ResponseEntity<List<NewsItemDto>> getNewsInsights(
+            @RequestParam(defaultValue = "5") int limit,
+            @AuthUser AuthenticatedUser user) {
+
+        logger.info("Fetching news insights for user: {}", user.getUserId());
+        List<NewsItemDto> news = newsSentinelService.getNewsInsights(limit);
+        return ResponseEntity.ok(news);
     }
 
     // ==================== Portfolio Insights ====================

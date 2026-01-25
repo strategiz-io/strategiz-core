@@ -40,6 +40,18 @@ public class UserProfileEntity {
     @JsonProperty("role")
     private String role = "USER"; // USER, ADMIN
 
+    @JsonProperty("bio")
+    private String bio;
+
+    @JsonProperty("location")
+    private String location;
+
+    @JsonProperty("occupation")
+    private String occupation;
+
+    @JsonProperty("education")
+    private String education;
+
     // Constructors
     public UserProfileEntity() {
     }
@@ -118,6 +130,38 @@ public class UserProfileEntity {
         this.role = role;
     }
 
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getOccupation() {
+        return occupation;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
+    public String getEducation() {
+        return education;
+    }
+
+    public void setEducation(String education) {
+        this.education = education;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -129,12 +173,16 @@ public class UserProfileEntity {
                Objects.equals(isEmailVerified, that.isEmailVerified) &&
                Objects.equals(subscriptionTier, that.subscriptionTier) &&
                Objects.equals(demoMode, that.demoMode) &&
-               Objects.equals(role, that.role);
+               Objects.equals(role, that.role) &&
+               Objects.equals(bio, that.bio) &&
+               Objects.equals(location, that.location) &&
+               Objects.equals(occupation, that.occupation) &&
+               Objects.equals(education, that.education);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, demoMode, role);
+        return Objects.hash(name, email, photoURL, isEmailVerified, subscriptionTier, demoMode, role, bio, location, occupation, education);
     }
 
     @Override
@@ -147,6 +195,10 @@ public class UserProfileEntity {
                ", subscriptionTier='" + subscriptionTier + '\'' +
                ", demoMode=" + demoMode +
                ", role='" + role + '\'' +
+               ", bio='" + bio + '\'' +
+               ", location='" + location + '\'' +
+               ", occupation='" + occupation + '\'' +
+               ", education='" + education + '\'' +
                '}';
     }
 }

@@ -59,7 +59,11 @@ public class ProfileService extends BaseService {
         profile.setSubscriptionTier(request.getSubscriptionTier() != null ? request.getSubscriptionTier() : ProfileConstants.Defaults.SUBSCRIPTION_TIER);
         profile.setDemoMode(request.getDemoMode() != null ? request.getDemoMode() : ProfileConstants.Defaults.DEMO_MODE);
         profile.setIsEmailVerified(ProfileConstants.Defaults.EMAIL_VERIFIED);
-        
+        profile.setBio(request.getBio());
+        profile.setLocation(request.getLocation());
+        profile.setOccupation(request.getOccupation());
+        profile.setEducation(request.getEducation());
+
         user.setProfile(profile);
         
         // Save the user (which will cascade to profile)
@@ -155,7 +159,19 @@ public class ProfileService extends BaseService {
         if (request.getDemoMode() != null) {
             profile.setDemoMode(request.getDemoMode());
         }
-        
+        if (request.getBio() != null) {
+            profile.setBio(request.getBio());
+        }
+        if (request.getLocation() != null) {
+            profile.setLocation(request.getLocation());
+        }
+        if (request.getOccupation() != null) {
+            profile.setOccupation(request.getOccupation());
+        }
+        if (request.getEducation() != null) {
+            profile.setEducation(request.getEducation());
+        }
+
         // Save the user
         UserEntity savedUser = userRepository.save(user);
         

@@ -135,4 +135,48 @@ public class TestCaseRepositoryImpl extends BaseRepository<TestCaseEntity> imple
             throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TestCaseEntity", "appId=" + appId + ", moduleId=" + moduleId);
         }
     }
+
+    @Override
+    public List<TestCaseEntity> findByAppId(String appId) {
+        try {
+            log.debug("Finding all test cases by app ID: {}", appId);
+
+            Query query = getCollection()
+                    .whereEqualTo("appId", appId)
+                    .whereEqualTo("isActive", true);
+
+            return query.get().get().getDocuments().stream()
+                    .map(doc -> {
+                        TestCaseEntity entity = doc.toObject(TestCaseEntity.class);
+                        entity.setId(doc.getId());
+                        return entity;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Failed to find all test cases for app: {}", appId, e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TestCaseEntity", "appId=" + appId);
+        }
+    }
+
+    @Override
+    public List<TestCaseEntity> findBySuiteId(String suiteId) {
+        try {
+            log.debug("Finding all test cases by suite ID: {}", suiteId);
+
+            Query query = getCollection()
+                    .whereEqualTo("suiteId", suiteId)
+                    .whereEqualTo("isActive", true);
+
+            return query.get().get().getDocuments().stream()
+                    .map(doc -> {
+                        TestCaseEntity entity = doc.toObject(TestCaseEntity.class);
+                        entity.setId(doc.getId());
+                        return entity;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Failed to find all test cases for suite: {}", suiteId, e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TestCaseEntity", "suiteId=" + suiteId);
+        }
+    }
 }

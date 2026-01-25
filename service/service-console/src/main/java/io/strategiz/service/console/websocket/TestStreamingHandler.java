@@ -1,5 +1,10 @@
 package io.strategiz.service.console.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.strategiz.service.console.websocket.message.TestCompletionMessage;
+import io.strategiz.service.console.websocket.message.TestProgressMessage;
+import io.strategiz.service.console.websocket.message.TestResultMessage;
+import io.strategiz.service.console.websocket.message.TestStreamMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -22,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TestStreamingHandler extends TextWebSocketHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(TestStreamingHandler.class);
+
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	// Map of runId -> set of WebSocket sessions
 	private final Map<String, Set<WebSocketSession>> runIdToSessions = new ConcurrentHashMap<>();
@@ -148,6 +155,94 @@ public class TestStreamingHandler extends TextWebSocketHandler {
 	public int getActiveSessionCount(String runId) {
 		Set<WebSocketSession> sessions = runIdToSessions.get(runId);
 		return sessions != null ? sessions.size() : 0;
+	}
+
+	// ===============================
+	// Structured Message Broadcasting
+	// ===============================
+
+	/**
+	 * Broadcast a test result message
+	 * @param message Test result message
+	 */
+	public void broadcastTestResult(TestResultMessage message) {
+		broadcastMessage(message.getRunId(), message);
+	}
+
+	/**
+	 * Broadcast a progress update message
+	 * @param message Progress message
+	 */
+	public void broadcastProgress(TestProgressMessage message) {
+		broadcastMessage(message.getRunId(), message);
+	}
+
+	/**
+	 * Broadcast a completion message and close connections
+	 * @param message Completion message
+	 */
+	public void broadcastTestCompletion(TestCompletionMessage message) {
+		String runId = message.getRunId();
+		Set<WebSocketSession> sessions = runIdToSessions.get(runId);
+		if (sessions == null || sessions.isEmpty()) {
+			return;
+		}
+
+		try {
+			String json = objectMapper.writeValueAsString(message);
+			TextMessage textMessage = new TextMessage(json);
+
+			sessions.forEach(session -> {
+				try {
+					if (session.isOpen()) {
+						session.sendMessage(textMessage);
+						session.close(CloseStatus.NORMAL);
+					}
+				}
+				catch (IOException e) {
+					log.error("Failed to send completion message to session: {}", session.getId(), e);
+				}
+			});
+
+			// Clean up sessions for this runId
+			runIdToSessions.remove(runId);
+			log.info("Broadcasted completion for runId: {}, closed {} sessions", runId, sessions.size());
+		}
+		catch (Exception e) {
+			log.error("Failed to serialize completion message for runId: {}", runId, e);
+		}
+	}
+
+	/**
+	 * Broadcast a structured message to all connected clients for a test run
+	 * @param runId Run ID
+	 * @param message Message to broadcast
+	 */
+	private void broadcastMessage(String runId, TestStreamMessage message) {
+		Set<WebSocketSession> sessions = runIdToSessions.get(runId);
+		if (sessions == null || sessions.isEmpty()) {
+			log.debug("No active sessions for runId: {}, skipping broadcast", runId);
+			return;
+		}
+
+		try {
+			String json = objectMapper.writeValueAsString(message);
+			TextMessage textMessage = new TextMessage(json);
+
+			sessions.forEach(session -> {
+				try {
+					if (session.isOpen()) {
+						session.sendMessage(textMessage);
+					}
+				}
+				catch (IOException e) {
+					log.error("Failed to send message to session: {} for runId: {}", session.getId(), runId, e);
+				}
+			});
+		}
+		catch (Exception e) {
+			log.error("Failed to serialize message for runId: {}", runId, e);
+		}
 	}
 
 }

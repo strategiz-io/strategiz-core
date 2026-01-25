@@ -117,15 +117,15 @@ public class AIStrategyService extends BaseService {
 				response.setAutonomousModeUsed("AUTONOMOUS");
 				return response;
 			}
-			log.info("DEBUG: Skipped AUTONOMOUS mode, falling through to GENERATIVE_AI/LLM");
+			log.info("DEBUG: Skipped AUTONOMOUS mode, falling through to AUTONOMOUS/LLM");
 
-			// GENERATIVE AI MODE: Use turning points to generate strategy
+			// AUTONOMOUS MODE: Use turning points to generate strategy
 			// Instead of asking LLM to use the dates (which it ignores), we generate the code directly
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null
 					&& insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
-				log.info("GENERATIVE AI MODE: Generating strategy from turning points (bypassing LLM code generation)");
+				log.info("AUTONOMOUS MODE: Generating strategy from turning points (bypassing LLM code generation)");
 				AIStrategyResponse response = generateStrategyFromTurningPoints(insights, request);
-				response.setAutonomousModeUsed("GENERATIVE_AI");
+				response.setAutonomousModeUsed("AUTONOMOUS");
 				return response;
 			}
 
@@ -1118,7 +1118,7 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * GENERATIVE AI MODE: Generate strategy from historical turning points analysis.
+	 * AUTONOMOUS MODE: Generate strategy from historical turning points analysis.
 	 * Uses optimal RSI/indicator thresholds derived from historical analysis.
 	 * Adapts strategy type based on market regime (mean-reversion vs trend-following).
 	 * Generates code that works for both backtesting AND live trading (no hardcoded dates).
@@ -1162,7 +1162,7 @@ public class AIStrategyService extends BaseService {
 		code.append("import pandas as pd\n");
 		code.append("import numpy as np\n\n");
 		code.append("# ═══════════════════════════════════════════════════════════════\n");
-		code.append("# GENERATIVE AI MODE - Multi-Indicator Strategy\n");
+		code.append("# AUTONOMOUS MODE - Multi-Indicator Strategy\n");
 		code.append("# Parameters derived from historical turning point analysis\n");
 		code.append(String.format("# Market Regime: %s (Hurst: %.2f)\n", regime, hurstExponent));
 		code.append(String.format("# Strategy Type: %s\n",
@@ -1338,7 +1338,7 @@ public class AIStrategyService extends BaseService {
 		int turningPointCount = turningPoints != null ? turningPoints.size() : 0;
 		String strategyType = useMeanReversion ? "Mean Reversion" : (useTrendFollowing ? "Trend Following" : "Hybrid");
 		String explanation = String.format(
-				"GENERATIVE AI MODE: Analyzed %d historical turning points for %s. " +
+				"AUTONOMOUS MODE: Analyzed %d historical turning points for %s. " +
 				"Market Regime: %s (Hurst: %.2f). Strategy Type: %s. " +
 				"Optimal entry threshold: RSI < %.0f (captured 80%% of historical troughs). " +
 				"Optimal exit threshold: RSI > %.0f (captured 80%% of historical peaks). " +

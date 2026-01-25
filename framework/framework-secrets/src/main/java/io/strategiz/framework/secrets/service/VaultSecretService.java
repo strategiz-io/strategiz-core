@@ -46,7 +46,8 @@ public class VaultSecretService implements SecretManager {
   public String readSecret(String key) {
     log.info("=== VaultSecretService.readSecret START ===");
     log.info("Input key: {}", key);
-    log.info("VaultClient class: {}", vaultClient != null ? vaultClient.getClass().getName() : "NULL");
+    log.info("VaultClient class: {}",
+        vaultClient != null ? vaultClient.getClass().getName() : "NULL");
     log.info("Properties secretsPath: {}", properties.getSecretsPath());
 
     // Check cache first
@@ -68,7 +69,8 @@ public class VaultSecretService implements SecretManager {
 
       log.info("Calling vaultClient.read()...");
       Map<String, Object> data = vaultClient.read(vaultPath);
-      log.info("vaultClient.read() returned: {}", data != null ? "data with " + data.size() + " keys" : "NULL");
+      log.info("vaultClient.read() returned: {}",
+          data != null ? "data with " + data.size() + " keys" : "NULL");
 
       if (data == null || data.isEmpty()) {
         throw new StrategizException(SecretsErrors.SECRET_NOT_FOUND, "Secret not found: " + key);

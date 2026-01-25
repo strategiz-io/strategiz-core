@@ -3,6 +3,8 @@ package io.strategiz.service.console.config;
 import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
+import io.strategiz.framework.authorization.context.AuthenticatedUser;
+import io.strategiz.framework.authorization.validator.PasetoTokenValidator;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,17 +34,23 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
 	private static final String ACCESS_TOKEN_COOKIE = "strategiz-access-token";
 
+	private static final String SERVICE_ACCOUNT_PREFIX = "sa:";
+
 	private final SessionAuthBusiness sessionAuthBusiness;
 
 	private final UserRepository userRepository;
+
+	private final PasetoTokenValidator pasetoTokenValidator;
 
 	@Value("${console.auth.enabled:true}")
 	private boolean authEnabled;
 
 	@Autowired
-	public AdminAuthInterceptor(SessionAuthBusiness sessionAuthBusiness, UserRepository userRepository) {
+	public AdminAuthInterceptor(SessionAuthBusiness sessionAuthBusiness, UserRepository userRepository,
+			PasetoTokenValidator pasetoTokenValidator) {
 		this.sessionAuthBusiness = sessionAuthBusiness;
 		this.userRepository = userRepository;
+		this.pasetoTokenValidator = pasetoTokenValidator;
 	}
 
 	@Override
@@ -64,18 +72,75 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 
 		logger.debug("Admin auth check for path: {}", requestPath);
 
-		// Extract session token from cookie
-		String sessionToken = extractSessionToken(request);
-		if (sessionToken == null) {
+		// Extract token from cookie or header
+		String token = extractSessionToken(request);
+		if (token == null) {
 			logger.warn("No session token found for admin request: {}", requestPath);
 			response.sendError(HttpStatus.UNAUTHORIZED.value(), "Authentication required");
 			return false;
 		}
 
+		// Check if this is a service account token (PASETO token)
+		if (isServiceAccountToken(token)) {
+			return handleServiceAccountAuth(request, response, token, requestPath);
+		}
+
+		// Regular user session validation
+		return handleUserSessionAuth(request, response, token, requestPath);
+	}
+
+	/**
+	 * Check if the token is a service account PASETO token.
+	 */
+	private boolean isServiceAccountToken(String token) {
+		// PASETO v4.local tokens start with "v4.local."
+		return token != null && token.startsWith("v4.local.");
+	}
+
+	/**
+	 * Handle authentication for service account tokens.
+	 */
+	private boolean handleServiceAccountAuth(HttpServletRequest request, HttpServletResponse response, String token,
+			String requestPath) throws Exception {
+		try {
+			Optional<AuthenticatedUser> userOpt = pasetoTokenValidator.validateAndExtract(token);
+			if (userOpt.isEmpty()) {
+				logger.warn("Invalid service account token for admin request: {}", requestPath);
+				response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid service account token");
+				return false;
+			}
+
+			AuthenticatedUser user = userOpt.get();
+			String userId = user.getUserId();
+
+			// Check if this is a service account (userId starts with "sa:")
+			if (!userId.startsWith(SERVICE_ACCOUNT_PREFIX)) {
+				logger.warn("Token is not a service account token: userId={}", userId);
+				response.sendError(HttpStatus.FORBIDDEN.value(), "Service account required");
+				return false;
+			}
+
+			// Service accounts are granted admin access for console operations
+			request.setAttribute("adminUserId", userId);
+			logger.info("Service account access granted: serviceAccountId={}, path={}", userId, requestPath);
+			return true;
+		}
+		catch (Exception e) {
+			logger.warn("Service account token validation error: {} - {}", requestPath, e.getMessage());
+			response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid service account token");
+			return false;
+		}
+	}
+
+	/**
+	 * Handle authentication for regular user sessions.
+	 */
+	private boolean handleUserSessionAuth(HttpServletRequest request, HttpServletResponse response, String token,
+			String requestPath) throws Exception {
 		// Validate session and get user ID
 		Optional<String> userIdOpt;
 		try {
-			userIdOpt = sessionAuthBusiness.validateSession(sessionToken);
+			userIdOpt = sessionAuthBusiness.validateSession(token);
 		}
 		catch (Exception e) {
 			logger.warn("Session validation error for admin request: {} - {}", requestPath, e.getMessage());

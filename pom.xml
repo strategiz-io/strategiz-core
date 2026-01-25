@@ -142,8 +142,7 @@
         <module>service/service-console</module>
         <module>service/service-console-quality</module>
         <module>service/service-console-accessibility</module>
-        <!-- Temporarily disabled due to compilation errors - needs fixing -->
-        <!-- <module>service/service-device</module> -->
+        <module>service/service-device</module>
 
         <!-- API Modules (Build Seventh) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->

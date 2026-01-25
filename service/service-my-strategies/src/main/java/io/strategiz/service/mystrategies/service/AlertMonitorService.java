@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import io.strategiz.service.base.BaseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Scheduled service that monitors active alerts and detects trading signals.
@@ -54,6 +56,8 @@ import io.strategiz.service.base.BaseService;
 @Component
 @ConditionalOnProperty(name = "alert.monitor.enabled", havingValue = "true", matchIfMissing = true)
 public class AlertMonitorService extends BaseService {
+
+    private static final Logger log = LoggerFactory.getLogger(AlertMonitorService.class);
 
     @Override
     protected String getModuleName() {

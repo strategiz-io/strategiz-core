@@ -82,4 +82,20 @@ public interface TestCaseRepository {
      * @return List of all test cases in the module
      */
     List<TestCaseEntity> findByAppIdAndModuleId(String appId, String moduleId);
+
+    /**
+     * Find all test cases for an app (across all modules and suites)
+     *
+     * @param appId Parent app ID
+     * @return List of all test cases in the app
+     */
+    List<TestCaseEntity> findByAppId(String appId);
+
+    /**
+     * Find all test cases for a suite
+     *
+     * @param suiteId Suite ID
+     * @return List of all test cases in the suite
+     */
+    List<TestCaseEntity> findBySuiteId(String suiteId);
 }

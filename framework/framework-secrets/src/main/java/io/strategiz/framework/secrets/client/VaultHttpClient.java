@@ -182,17 +182,20 @@ public class VaultHttpClient implements VaultClient {
 
     // Get token from environment or Spring Cloud Vault configuration
     String token = environment.getProperty("VAULT_TOKEN");
-    log.info("VAULT_TOKEN from environment.getProperty: {}", token != null ? "present (" + token.length() + " chars)" : "NULL");
+    log.info("VAULT_TOKEN from environment.getProperty: {}",
+        token != null ? "present (" + token.length() + " chars)" : "NULL");
 
     if (token == null) {
       token = environment.getProperty("spring.cloud.vault.token", "root-token");
-      log.info("Fallback to spring.cloud.vault.token: {}", token != null ? "present (" + token.length() + " chars)" : "using default");
+      log.info("Fallback to spring.cloud.vault.token: {}",
+          token != null ? "present (" + token.length() + " chars)" : "using default");
     }
     // Trim any whitespace/newlines that might come from Secret Manager
     if (token != null) {
       String originalLength = String.valueOf(token.length());
       token = token.trim().replaceAll("[\\r\\n]", "");
-      log.info("Token after trim - original length: {}, new length: {}", originalLength, token.length());
+      log.info("Token after trim - original len: {}, new len: {}",
+          originalLength, token.length());
     }
     headers.set("X-Vault-Token", token);
     log.info("X-Vault-Token header set: {}", token != null && !token.isEmpty());

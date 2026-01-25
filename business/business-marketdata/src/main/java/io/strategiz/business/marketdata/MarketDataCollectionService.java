@@ -4,6 +4,7 @@ import io.strategiz.client.alpaca.client.AlpacaAssetsClient;
 import io.strategiz.client.alpaca.client.AlpacaHistoricalClient;
 import io.strategiz.client.alpaca.model.AlpacaAsset;
 import io.strategiz.client.alpaca.model.AlpacaBar;
+import io.strategiz.data.marketdata.clickhouse.repository.MarketDataClickHouseRepository;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import org.slf4j.Logger;
@@ -50,6 +51,7 @@ public class MarketDataCollectionService {
     private final AlpacaHistoricalClient historicalClient;
     private final AlpacaAssetsClient assetsClient;
     private final MarketDataRepository marketDataRepository;
+    private final MarketDataClickHouseRepository clickHouseRepository;
     private final SymbolService symbolService;
 
     // Configuration
@@ -69,6 +71,7 @@ public class MarketDataCollectionService {
             AlpacaHistoricalClient historicalClient,
             AlpacaAssetsClient assetsClient,
             MarketDataRepository marketDataRepository,
+            @Autowired(required = false) MarketDataClickHouseRepository clickHouseRepository,
             SymbolService symbolService,
             @Value("${marketdata.batch.thread-pool-size:2}") int threadPoolSize,
             @Value("${marketdata.batch.batch-size:500}") int batchSize,
@@ -78,6 +81,7 @@ public class MarketDataCollectionService {
         this.historicalClient = historicalClient;
         this.assetsClient = assetsClient;
         this.marketDataRepository = marketDataRepository;
+        this.clickHouseRepository = clickHouseRepository;
         this.symbolService = symbolService;
         this.threadPoolSize = threadPoolSize;
         this.batchSize = batchSize;
@@ -261,6 +265,137 @@ public class MarketDataCollectionService {
         }
 
         log.info("=== Async backfill completed for all timeframes ===");
+    }
+
+    /**
+     * Smart gap-filling backfill that only fetches missing historical data.
+     * For each symbol, checks existing data range and only fetches:
+     * 1. Data before the earliest existing timestamp (historical gaps)
+     *
+     * This is more efficient than full backfill as it doesn't re-fetch existing data.
+     *
+     * @param targetStartDate How far back we want data (e.g., 7 years ago)
+     * @param timeframe Bar interval
+     * @return Collection result with statistics
+     */
+    public CollectionResult backfillGaps(LocalDateTime targetStartDate, String timeframe) {
+        if (clickHouseRepository == null) {
+            log.error("ClickHouse repository not available - cannot perform gap backfill");
+            return new CollectionResult(0, 0, 1);
+        }
+
+        List<String> symbols = getSymbolsToCollect();
+        log.info("Starting gap-fill backfill for {} symbols, target start: {}, timeframe: {}",
+                symbols.size(), targetStartDate, timeframe);
+
+        // Set job status to RUNNING
+        currentJobStatus.setRunning(timeframe, symbols.size());
+
+        try {
+            // First, fetch asset metadata for all symbols
+            Map<String, AlpacaAsset> assetMetadata = fetchAssetMetadata(symbols);
+
+            // Atomic counters for thread-safe statistics
+            AtomicInteger symbolsProcessed = new AtomicInteger(0);
+            AtomicInteger dataPointsStored = new AtomicInteger(0);
+            AtomicInteger errorCount = new AtomicInteger(0);
+            AtomicInteger symbolsSkipped = new AtomicInteger(0);
+
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+
+            // Create tasks for each symbol
+            List<CompletableFuture<SymbolResult>> futures = symbols.stream()
+                    .map(symbol -> CompletableFuture.supplyAsync(() -> {
+                        try {
+                            // Check for cancellation
+                            if (currentJobStatus.isCancelRequested()) {
+                                return new SymbolResult(symbol, 0, false);
+                            }
+
+                            // Update progress
+                            currentJobStatus.updateProgress(symbolsProcessed.get(), symbol);
+
+                            // Check existing data range for this symbol
+                            Optional<Map<String, Instant>> existingRange =
+                                    clickHouseRepository.getDateRangeForSymbolAndTimeframe(symbol, timeframe);
+
+                            LocalDateTime fetchStart;
+                            LocalDateTime fetchEnd;
+
+                            if (existingRange.isPresent()) {
+                                Instant earliestExisting = existingRange.get().get("earliest");
+                                LocalDateTime earliestDate = LocalDateTime.ofInstant(earliestExisting, ZoneOffset.UTC);
+
+                                // If we already have data back to target date, skip
+                                if (!earliestDate.isAfter(targetStartDate.plusDays(1))) {
+                                    log.debug("Symbol {} already has data back to {}, skipping", symbol, earliestDate);
+                                    symbolsSkipped.incrementAndGet();
+                                    return new SymbolResult(symbol, 0, true);
+                                }
+
+                                // Fetch from target start to earliest existing (fill historical gap)
+                                fetchStart = targetStartDate;
+                                fetchEnd = earliestDate.minusDays(1);
+                                log.info("Filling gap for {}: {} to {} (existing starts at {})",
+                                        symbol, fetchStart, fetchEnd, earliestDate);
+                            } else {
+                                // No existing data - fetch full range
+                                fetchStart = targetStartDate;
+                                fetchEnd = now;
+                                log.info("No existing data for {} - fetching full range: {} to {}",
+                                        symbol, fetchStart, fetchEnd);
+                            }
+
+                            // Only fetch if there's actually a gap to fill
+                            if (fetchEnd.isBefore(fetchStart)) {
+                                log.debug("No gap to fill for {} (end {} before start {})", symbol, fetchEnd, fetchStart);
+                                symbolsSkipped.incrementAndGet();
+                                return new SymbolResult(symbol, 0, true);
+                            }
+
+                            // Fetch and store the gap data
+                            SymbolResult result = processSymbol(symbol, fetchStart, fetchEnd, timeframe,
+                                    assetMetadata.get(symbol));
+
+                            if (result.success) {
+                                symbolsProcessed.incrementAndGet();
+                                dataPointsStored.addAndGet(result.barsStored);
+                            }
+
+                            return result;
+                        } catch (Exception e) {
+                            log.error("Error processing gap-fill for {}: {}", symbol, e.getMessage(), e);
+                            errorCount.incrementAndGet();
+                            return new SymbolResult(symbol, 0, false);
+                        }
+                    }, executorService))
+                    .collect(Collectors.toList());
+
+            // Wait for all tasks to complete
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                    futures.toArray(new CompletableFuture[0])
+            );
+
+            try {
+                allFutures.get(backfillTimeoutMinutes, TimeUnit.MINUTES);
+
+                currentJobStatus.setCompleted();
+                log.info("Gap-fill backfill completed: {} symbols processed, {} skipped (already complete), {} bars stored, {} errors",
+                        symbolsProcessed.get(), symbolsSkipped.get(), dataPointsStored.get(), errorCount.get());
+
+                return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get());
+
+            } catch (TimeoutException e) {
+                log.error("Gap-fill backfill timed out after {} minutes", backfillTimeoutMinutes);
+                currentJobStatus.setFailed("Backfill timed out");
+                return new CollectionResult(symbolsProcessed.get(), dataPointsStored.get(), errorCount.get() + 1);
+            }
+
+        } catch (Exception e) {
+            log.error("Gap-fill backfill failed: {}", e.getMessage(), e);
+            currentJobStatus.setFailed("Failed: " + e.getMessage());
+            return new CollectionResult(0, 0, 1);
+        }
     }
 
     /**

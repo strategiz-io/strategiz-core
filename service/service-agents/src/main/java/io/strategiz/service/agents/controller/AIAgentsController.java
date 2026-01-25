@@ -23,6 +23,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST controller for AI Agents (Signal Scout, Strategy Optimizer, Earnings Edge, News Sentinel)
@@ -42,26 +44,27 @@ public class AIAgentsController {
 
     private static final Logger logger = LoggerFactory.getLogger(AIAgentsController.class);
 
-    private final SignalScoutService signalScoutService;
+    private final Optional<SignalScoutService> signalScoutService;
     private final StrategyOptimizerService strategyOptimizerService;
     private final EarningsEdgeService earningsEdgeService;
-    private final NewsSentinelService newsSentinelService;
+    private final Optional<NewsSentinelService> newsSentinelService;
     private final PortfolioInsightsService portfolioInsightsService;
     private final SubscriptionService subscriptionService;
     private final FeatureFlagService featureFlagService;
 
+    @Autowired
     public AIAgentsController(
-            SignalScoutService signalScoutService,
+            @Autowired(required = false) SignalScoutService signalScoutService,
             StrategyOptimizerService strategyOptimizerService,
             EarningsEdgeService earningsEdgeService,
-            NewsSentinelService newsSentinelService,
+            @Autowired(required = false) NewsSentinelService newsSentinelService,
             PortfolioInsightsService portfolioInsightsService,
             SubscriptionService subscriptionService,
             FeatureFlagService featureFlagService) {
-        this.signalScoutService = signalScoutService;
+        this.signalScoutService = Optional.ofNullable(signalScoutService);
         this.strategyOptimizerService = strategyOptimizerService;
         this.earningsEdgeService = earningsEdgeService;
-        this.newsSentinelService = newsSentinelService;
+        this.newsSentinelService = Optional.ofNullable(newsSentinelService);
         this.portfolioInsightsService = portfolioInsightsService;
         this.subscriptionService = subscriptionService;
         this.featureFlagService = featureFlagService;
@@ -90,7 +93,12 @@ public class AIAgentsController {
                 .body(AgentChatResponse.error("signalScout", "Daily message limit exceeded.")));
         }
 
-        return signalScoutService.chat(request, userId)
+        if (signalScoutService.isEmpty()) {
+            return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(AgentChatResponse.error("signalScout", "Signal Scout service is not available. FMP API not configured.")));
+        }
+
+        return signalScoutService.get().chat(request, userId)
             .doOnSuccess(response -> recordUsage(userId, response))
             .map(ResponseEntity::ok)
             .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -119,7 +127,11 @@ public class AIAgentsController {
         request.setModel(model);
         request.setAgentId("signalScout");
 
-        return signalScoutService.chatStream(request, userId);
+        if (signalScoutService.isEmpty()) {
+            return Flux.just(AgentChatResponse.error("signalScout", "Signal Scout service is not available. FMP API not configured."));
+        }
+
+        return signalScoutService.get().chatStream(request, userId);
     }
 
     @GetMapping("/signal-scout/insights")
@@ -130,7 +142,10 @@ public class AIAgentsController {
             @AuthUser AuthenticatedUser user) {
 
         logger.info("Fetching market signals for user: {}", user.getUserId());
-        List<MarketSignalDto> signals = signalScoutService.getMarketSignalsInsights(limit);
+        if (signalScoutService.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
+        }
+        List<MarketSignalDto> signals = signalScoutService.get().getMarketSignalsInsights(limit);
         return ResponseEntity.ok(signals);
     }
 
@@ -267,7 +282,12 @@ public class AIAgentsController {
                 .body(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded.")));
         }
 
-        return newsSentinelService.chat(request, userId)
+        if (newsSentinelService.isEmpty()) {
+            return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(AgentChatResponse.error("newsSentinel", "News Sentinel service is not available. FMP API not configured.")));
+        }
+
+        return newsSentinelService.get().chat(request, userId)
             .doOnSuccess(response -> recordUsage(userId, response))
             .map(ResponseEntity::ok)
             .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -289,6 +309,10 @@ public class AIAgentsController {
             return Flux.just(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded."));
         }
 
+        if (newsSentinelService.isEmpty()) {
+            return Flux.just(AgentChatResponse.error("newsSentinel", "News Sentinel service is not available. FMP API not configured."));
+        }
+
         subscriptionService.recordMessageUsage(userId);
 
         AgentChatRequest request = new AgentChatRequest();
@@ -296,7 +320,7 @@ public class AIAgentsController {
         request.setModel(model);
         request.setAgentId("newsSentinel");
 
-        return newsSentinelService.chatStream(request, userId);
+        return newsSentinelService.get().chatStream(request, userId);
     }
 
     @GetMapping("/news-sentinel/insights")
@@ -307,7 +331,10 @@ public class AIAgentsController {
             @AuthUser AuthenticatedUser user) {
 
         logger.info("Fetching news insights for user: {}", user.getUserId());
-        List<NewsItemDto> news = newsSentinelService.getNewsInsights(limit);
+        if (newsSentinelService.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
+        }
+        List<NewsItemDto> news = newsSentinelService.get().getNewsInsights(limit);
         return ResponseEntity.ok(news);
     }
 

@@ -18,10 +18,22 @@ public class UpdateProfileRequest {
     private String email;
     
     private String photoURL;
-    
+
     private String subscriptionTier;
-    
+
     private Boolean demoMode;
+
+    @Size(max = 500, message = "Bio must be less than 500 characters")
+    private String bio;
+
+    @Size(max = 100, message = "Location must be less than 100 characters")
+    private String location;
+
+    @Size(max = 100, message = "Occupation must be less than 100 characters")
+    private String occupation;
+
+    @Size(max = 100, message = "Education must be less than 100 characters")
+    private String education;
 
     // Default constructor
     public UpdateProfileRequest() {
@@ -76,5 +88,37 @@ public class UpdateProfileRequest {
 
     public void setDemoMode(Boolean demoMode) {
         this.demoMode = demoMode;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getOccupation() {
+        return occupation;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
+    public String getEducation() {
+        return education;
+    }
+
+    public void setEducation(String education) {
+        this.education = education;
     }
 }

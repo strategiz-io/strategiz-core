@@ -145,4 +145,26 @@ public class TestSuiteRepositoryImpl extends BaseRepository<TestSuiteEntity> imp
             throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TestSuiteEntity", "appId=" + appId + ", moduleId=" + moduleId + ", suiteId=" + suiteId);
         }
     }
+
+    @Override
+    public List<TestSuiteEntity> findByModuleId(String moduleId) {
+        try {
+            log.debug("Finding all test suites by module ID: {}", moduleId);
+
+            Query query = getCollection()
+                    .whereEqualTo("moduleId", moduleId)
+                    .whereEqualTo("isActive", true);
+
+            return query.get().get().getDocuments().stream()
+                    .map(doc -> {
+                        TestSuiteEntity entity = doc.toObject(TestSuiteEntity.class);
+                        entity.setId(doc.getId());
+                        return entity;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Failed to find all test suites for module: {}", moduleId, e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TestSuiteEntity", "moduleId=" + moduleId);
+        }
+    }
 }

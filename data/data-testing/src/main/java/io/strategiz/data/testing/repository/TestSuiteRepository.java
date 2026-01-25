@@ -88,4 +88,12 @@ public interface TestSuiteRepository {
      * @return Suite entity if found
      */
     Optional<TestSuiteEntity> findByAppIdModuleIdAndSuiteId(String appId, String moduleId, String suiteId);
+
+    /**
+     * Find all suites for a specific module (without requiring appId)
+     *
+     * @param moduleId Module ID
+     * @return List of suites for the module
+     */
+    List<TestSuiteEntity> findByModuleId(String moduleId);
 }

@@ -14,7 +14,9 @@ import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
 import io.strategiz.service.agents.dto.MarketSignalDto;
 import io.strategiz.service.agents.prompts.SignalScoutPrompts;
+import io.strategiz.service.agents.context.MarketSignalsContextProvider;
 import io.strategiz.service.base.BaseService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
  * sector performance, and market news.
  */
 @Service
+@ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class SignalScoutService extends BaseService {
 
     private static final String AGENT_ID = "signalScout";

@@ -9,6 +9,7 @@ import io.strategiz.client.fmp.dto.FmpNewsArticle;
 import io.strategiz.client.fmp.dto.FmpPressRelease;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +30,7 @@ import java.util.List;
  * </p>
  */
 @Component
+@ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class NewsContextProvider {
 
 	private static final Logger log = LoggerFactory.getLogger(NewsContextProvider.class);

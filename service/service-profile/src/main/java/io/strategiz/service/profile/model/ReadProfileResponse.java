@@ -16,6 +16,10 @@ public class ReadProfileResponse {
     private boolean isActive;
     private long createdAt;
     private long modifiedAt;
+    private String bio;
+    private String location;
+    private String occupation;
+    private String education;
 
     // Default constructor
     public ReadProfileResponse() {
@@ -118,6 +122,38 @@ public class ReadProfileResponse {
         this.modifiedAt = modifiedAt;
     }
 
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getOccupation() {
+        return occupation;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
+    public String getEducation() {
+        return education;
+    }
+
+    public void setEducation(String education) {
+        this.education = education;
+    }
+
     @Override
     public String toString() {
         return "ReadProfileResponse{" +
@@ -131,6 +167,10 @@ public class ReadProfileResponse {
                 ", isActive=" + isActive +
                 ", createdAt=" + createdAt +
                 ", modifiedAt=" + modifiedAt +
+                ", bio='" + bio + '\'' +
+                ", location='" + location + '\'' +
+                ", occupation='" + occupation + '\'' +
+                ", education='" + education + '\'' +
                 '}';
     }
 
@@ -152,7 +192,7 @@ public class ReadProfileResponse {
                 ? user.getModifiedDate().toDate().getTime()
                 : System.currentTimeMillis();
 
-        return new ReadProfileResponse(
+        ReadProfileResponse response = new ReadProfileResponse(
                 user.getId(),
                 profile.getName(),
                 profile.getEmail(),
@@ -164,5 +204,10 @@ public class ReadProfileResponse {
                 createdAt,
                 modifiedAt
         );
+        response.setBio(profile.getBio());
+        response.setLocation(profile.getLocation());
+        response.setOccupation(profile.getOccupation());
+        response.setEducation(profile.getEducation());
+        return response;
     }
 }

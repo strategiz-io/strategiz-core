@@ -15,6 +15,10 @@ import io.strategiz.data.testing.repository.TestModuleRepository;
 import io.strategiz.data.testing.repository.TestRunRepository;
 import io.strategiz.data.testing.repository.TestResultRepository;
 import io.strategiz.service.console.service.tests.model.TestRunRequest;
+import io.strategiz.service.console.websocket.TestStreamingHandler;
+import io.strategiz.service.console.websocket.message.TestCompletionMessage;
+import io.strategiz.service.console.websocket.message.TestProgressMessage;
+import io.strategiz.service.console.websocket.message.TestResultMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,15 +74,18 @@ public class TestExecutionService {
 
 	private final TestResultRepository testResultRepository;
 
+	private final TestStreamingHandler streamingHandler;
+
 	@Autowired
 	public TestExecutionService(TestAppRepository testAppRepository, TestModuleRepository testModuleRepository,
 			TestCaseRepository testCaseRepository, TestRunRepository testRunRepository,
-			TestResultRepository testResultRepository) {
+			TestResultRepository testResultRepository, TestStreamingHandler streamingHandler) {
 		this.testAppRepository = testAppRepository;
 		this.testModuleRepository = testModuleRepository;
 		this.testCaseRepository = testCaseRepository;
 		this.testRunRepository = testRunRepository;
 		this.testResultRepository = testResultRepository;
+		this.streamingHandler = streamingHandler;
 	}
 
 	/**
@@ -327,6 +334,119 @@ public class TestExecutionService {
 	}
 
 	// ===============================
+	// Re-run Failed Tests
+	// ===============================
+
+	/**
+	 * Re-run all failed tests from a previous run
+	 */
+	public CompletableFuture<TestRunEntity> rerunFailedTests(String previousRunId, String userId) {
+		return CompletableFuture.supplyAsync(() -> {
+			log.info("Re-running failed tests from run: {} for user: {}", previousRunId, userId);
+
+			// Get the previous test run
+			TestRunEntity previousRun = testRunRepository.findById(previousRunId).orElse(null);
+			if (previousRun == null) {
+				log.warn("Previous test run not found: {}", previousRunId);
+				return null;
+			}
+
+			// Get failed test results from the previous run
+			List<TestResultEntity> previousResults = testResultRepository.findByRunId(previousRunId);
+			List<String> failedTestIds = previousResults.stream()
+				.filter(r -> r.getStatus() == TestResultStatus.FAILED || r.getStatus() == TestResultStatus.ERROR)
+				.map(TestResultEntity::getTestName)
+				.toList();
+
+			if (failedTestIds.isEmpty()) {
+				log.info("No failed tests to re-run from run: {}", previousRunId);
+				return previousRun; // Return the original run if no failures
+			}
+
+			log.info("Re-running {} failed tests from run: {}", failedTestIds.size(), previousRunId);
+
+			// Create a new test run for the re-run
+			TestRunEntity newRun = createTestRun(previousRun.getAppId(), previousRun.getModuleId(),
+					previousRun.getSuiteId(), null, TestExecutionLevel.TEST, userId);
+			newRun.setStatus(TestRunStatus.RUNNING);
+			newRun.setTotalTests(failedTestIds.size());
+			testRunRepository.save(newRun, "system");
+
+			try {
+				// Execute each failed test
+				for (String testId : failedTestIds) {
+					TestCaseEntity testCase = testCaseRepository.findById(testId).orElse(null);
+					if (testCase != null) {
+						executeIndividualTestInRun(newRun, testCase);
+					}
+				}
+				return completeTestRun(newRun);
+			}
+			catch (Exception e) {
+				log.error("Error re-running failed tests", e);
+				return failTestRun(newRun, e.getMessage());
+			}
+		});
+	}
+
+	/**
+	 * Re-run specific tests by their IDs
+	 */
+	public CompletableFuture<TestRunEntity> rerunSpecificTests(List<String> testIds, String userId) {
+		return CompletableFuture.supplyAsync(() -> {
+			log.info("Re-running {} specific tests for user: {}", testIds.size(), userId);
+
+			if (testIds.isEmpty()) {
+				log.warn("No test IDs provided for re-run");
+				return null;
+			}
+
+			// Get the first test to determine app/module
+			TestCaseEntity firstTest = testCaseRepository.findById(testIds.get(0)).orElse(null);
+			String appId = firstTest != null ? firstTest.getAppId() : "backend-api";
+			String moduleId = firstTest != null ? firstTest.getModuleId() : null;
+
+			// Create a new test run
+			TestRunEntity testRun = createTestRun(appId, moduleId, null, null, TestExecutionLevel.TEST, userId);
+			testRun.setStatus(TestRunStatus.RUNNING);
+			testRun.setTotalTests(testIds.size());
+			testRunRepository.save(testRun, "system");
+
+			try {
+				// Execute each test
+				for (String testId : testIds) {
+					TestCaseEntity testCase = testCaseRepository.findById(testId).orElse(null);
+					if (testCase != null) {
+						executeIndividualTestInRun(testRun, testCase);
+					}
+				}
+				return completeTestRun(testRun);
+			}
+			catch (Exception e) {
+				log.error("Error re-running specific tests", e);
+				return failTestRun(testRun, e.getMessage());
+			}
+		});
+	}
+
+	/**
+	 * Execute an individual test as part of a larger run (for re-runs)
+	 */
+	private void executeIndividualTestInRun(TestRunEntity testRun, TestCaseEntity testCase) {
+		try {
+			if ("frontend-e2e".equals(testCase.getAppId())) {
+				executePlaywrightSingleTest(testRun, testCase, new TestRunRequest());
+			}
+			else if ("backend-api".equals(testCase.getAppId())) {
+				executeMavenSingleTest(testRun, testCase, new TestRunRequest());
+			}
+		}
+		catch (Exception e) {
+			log.error("Error executing test: {}", testCase.getId(), e);
+		}
+	}
+
+	// ===============================
 	// Private Helper Methods
 	// ===============================
 
@@ -351,6 +471,9 @@ public class TestExecutionService {
 		testRun.setEndTime(Instant.now());
 		testRun.setErrorMessage(error);
 		testRunRepository.save(testRun, "system");
+
+		// Broadcast failure completion
+		broadcastCompletion(testRun, "failed");
 		return testRun;
 	}
 
@@ -359,17 +482,24 @@ public class TestExecutionService {
 		testRun.setDurationMs(testRun.getEndTime().toEpochMilli() - testRun.getStartTime().toEpochMilli());
 
 		// Determine final status based on results
+		String status;
 		if (testRun.getFailedTests() > 0 || testRun.getErrorTests() > 0) {
 			testRun.setStatus(TestRunStatus.FAILED);
+			status = "failed";
 		}
 		else if (testRun.getPassedTests() > 0) {
 			testRun.setStatus(TestRunStatus.PASSED);
+			status = "passed";
 		}
 		else {
 			testRun.setStatus(TestRunStatus.PASSED);
+			status = "passed";
 		}
 
 		testRunRepository.save(testRun, "system");
+
+		// Broadcast completion
+		broadcastCompletion(testRun, status);
 		return testRun;
 	}
 
@@ -627,6 +757,37 @@ public class TestExecutionService {
 	}
 
 	private void parsePlaywrightOutput(TestRunEntity testRun, String line) {
+		// Broadcast raw log line
+		streamingHandler.broadcastLogLine(testRun.getId(), line);
+
+		// Parse individual test results (Playwright list reporter format)
+		// Format: "  ✓  1 [chromium] › auth/signin.spec.ts:12:5 › should sign in (1.2s)"
+		// Format: "  ✘  2 [chromium] › auth/signin.spec.ts:24:5 › should fail login"
+		if (line.contains("✓") || line.contains("✘") || line.contains("passed") || line.contains("failed")) {
+			Pattern testLinePattern = Pattern.compile("([✓✘-])\\s+\\d+\\s+\\[\\w+\\]\\s+›\\s+(.+?)\\s+›\\s+(.+?)(?:\\s+\\((\\d+\\.?\\d*)s\\))?$");
+			Matcher testMatcher = testLinePattern.matcher(line.trim());
+
+			if (testMatcher.find()) {
+				String statusIcon = testMatcher.group(1);
+				String testFile = testMatcher.group(2);
+				String testName = testMatcher.group(3);
+				String durationStr = testMatcher.group(4);
+
+				String status = "✓".equals(statusIcon) ? "passed" : "failed";
+				Long durationMs = durationStr != null ? (long) (Double.parseDouble(durationStr) * 1000) : null;
+
+				// Broadcast individual test result
+				TestResultMessage resultMsg = new TestResultMessage(testRun.getId(), testFile + ":" + testName, testName,
+						status);
+				resultMsg.withSuiteName(testFile);
+				if (durationMs != null) {
+					resultMsg.withDuration(durationMs);
+				}
+				streamingHandler.broadcastTestResult(resultMsg);
+			}
+		}
+
+		// Parse final summary
 		if (line.contains("passed")) {
 			Matcher matcher = PLAYWRIGHT_RESULT_PATTERN.matcher(line);
 			if (matcher.find()) {
@@ -637,11 +798,55 @@ public class TestExecutionService {
 				if (matcher.group(3) != null) {
 					testRun.setSkippedTests(Integer.parseInt(matcher.group(3)));
 				}
+
+				// Update total and broadcast progress
+				int total = testRun.getPassedTests() + testRun.getFailedTests() + testRun.getSkippedTests();
+				testRun.setTotalTests(total);
+				broadcastProgress(testRun);
 			}
 		}
 	}
 
 	private void parseMavenOutput(TestRunEntity testRun, String line) {
+		// Broadcast raw log line
+		streamingHandler.broadcastLogLine(testRun.getId(), line);
+
+		// Parse individual test results from Surefire output
+		// Format: "Running io.strategiz.service.auth.controller.AuthControllerTest"
+		// Format: "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.123 s - in
+		// io.strategiz...Test"
+		Pattern runningPattern = Pattern.compile("Running\\s+([\\w.]+)");
+		Matcher runningMatcher = runningPattern.matcher(line);
+		if (runningMatcher.find()) {
+			String className = runningMatcher.group(1);
+			// Broadcast test start
+			TestResultMessage startMsg = new TestResultMessage(testRun.getId(), className, className, "running");
+			streamingHandler.broadcastTestResult(startMsg);
+		}
+
+		// Parse individual test method results
+		// Format: "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.056 s --
+		// in ...ClassName"
+		Pattern suiteResultPattern = Pattern
+			.compile("Tests run: (\\d+), Failures: (\\d+), Errors: (\\d+), Skipped: (\\d+).*?in ([\\w.]+)");
+		Matcher suiteResultMatcher = suiteResultPattern.matcher(line);
+		if (suiteResultMatcher.find()) {
+			int suiteTotal = Integer.parseInt(suiteResultMatcher.group(1));
+			int suiteFailures = Integer.parseInt(suiteResultMatcher.group(2));
+			int suiteErrors = Integer.parseInt(suiteResultMatcher.group(3));
+			int suiteSkipped = Integer.parseInt(suiteResultMatcher.group(4));
+			String className = suiteResultMatcher.group(5);
+
+			int suitePassed = suiteTotal - suiteFailures - suiteErrors - suiteSkipped;
+			String status = (suiteFailures > 0 || suiteErrors > 0) ? "failed" : "passed";
+
+			// Broadcast suite result
+			TestResultMessage resultMsg = new TestResultMessage(testRun.getId(), className, className, status);
+			resultMsg.withSuiteName(className);
+			streamingHandler.broadcastTestResult(resultMsg);
+		}
+
+		// Update totals from summary line
 		if (line.contains("Tests run:")) {
 			Matcher matcher = MAVEN_RESULT_PATTERN.matcher(line);
 			if (matcher.find()) {
@@ -655,11 +860,36 @@ public class TestExecutionService {
 				testRun.setFailedTests(testRun.getFailedTests() + failures);
 				testRun.setErrorTests(testRun.getErrorTests() + errors);
 				testRun.setSkippedTests(testRun.getSkippedTests() + skipped);
+
+				// Broadcast progress
+				broadcastProgress(testRun);
 			}
 		}
 	}
 
 	private void parsePytestOutput(TestRunEntity testRun, String line) {
+		// Broadcast raw log line
+		streamingHandler.broadcastLogLine(testRun.getId(), line);
+
+		// Parse individual test results from pytest verbose output
+		// Format: "tests/test_module.py::test_function PASSED [25%]"
+		// Format: "tests/test_module.py::TestClass::test_method FAILED [50%]"
+		Pattern testResultPattern = Pattern.compile("(tests/[\\w/]+\\.py::[\\w:]+)\\s+(PASSED|FAILED|SKIPPED|ERROR)");
+		Matcher testMatcher = testResultPattern.matcher(line);
+		if (testMatcher.find()) {
+			String testId = testMatcher.group(1);
+			String status = testMatcher.group(2).toLowerCase();
+
+			// Extract test name from full path
+			String testName = testId.substring(testId.lastIndexOf("::") + 2);
+
+			// Broadcast individual test result
+			TestResultMessage resultMsg = new TestResultMessage(testRun.getId(), testId, testName, status);
+			resultMsg.withSuiteName(testId.substring(0, testId.indexOf("::")));
+			streamingHandler.broadcastTestResult(resultMsg);
+		}
+
+		// Parse final summary
 		if (line.contains("passed") || line.contains("failed") || line.contains("error")) {
 			Matcher matcher = PYTEST_RESULT_PATTERN.matcher(line);
 			if (matcher.find()) {
@@ -670,6 +900,11 @@ public class TestExecutionService {
 				if (matcher.group(3) != null) {
 					testRun.setErrorTests(Integer.parseInt(matcher.group(3)));
 				}
+
+				// Update total and broadcast progress
+				int total = testRun.getPassedTests() + testRun.getFailedTests() + testRun.getErrorTests();
+				testRun.setTotalTests(total);
+				broadcastProgress(testRun);
 			}
 		}
 	}
@@ -697,6 +932,50 @@ public class TestExecutionService {
 			return "service-marketdata";
 		}
 		return null;
+	}
+
+	// ===============================
+	// WebSocket Broadcasting Helpers
+	// ===============================
+
+	/**
+	 * Broadcast progress update to connected WebSocket clients
+	 */
+	private void broadcastProgress(TestRunEntity testRun) {
+		int total = testRun.getTotalTests();
+		int completed = testRun.getPassedTests() + testRun.getFailedTests() + testRun.getSkippedTests()
+				+ testRun.getErrorTests();
+		long elapsedMs = Instant.now().toEpochMilli() - testRun.getStartTime().toEpochMilli();
+
+		// Estimate remaining time based on current rate
+		Long estimatedRemainingMs = null;
+		if (completed > 0 && total > completed) {
+			long avgTimePerTest = elapsedMs / completed;
+			estimatedRemainingMs = avgTimePerTest * (total - completed);
+		}
+
+		TestProgressMessage progressMsg = new TestProgressMessage(testRun.getId())
+			.withCounts(total, completed, testRun.getPassedTests(), testRun.getFailedTests(),
+					testRun.getSkippedTests())
+			.withTiming(elapsedMs, estimatedRemainingMs);
+
+		streamingHandler.broadcastProgress(progressMsg);
+	}
+
+	/**
+	 * Broadcast completion message to connected WebSocket clients
+	 */
+	private void broadcastCompletion(TestRunEntity testRun, String status) {
+		TestCompletionMessage completionMsg = new TestCompletionMessage(testRun.getId(), status)
+			.withSummary(testRun.getTotalTests(), testRun.getPassedTests(), testRun.getFailedTests(),
+					testRun.getSkippedTests(), testRun.getErrorTests())
+			.withDuration(testRun.getDurationMs());
+
+		if (testRun.getErrorMessage() != null) {
+			completionMsg.withError(testRun.getErrorMessage());
+		}
+
+		streamingHandler.broadcastTestCompletion(completionMsg);
 	}
 
 }

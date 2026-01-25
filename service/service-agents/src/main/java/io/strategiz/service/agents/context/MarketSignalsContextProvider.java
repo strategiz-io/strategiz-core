@@ -9,6 +9,7 @@ import io.strategiz.client.fmp.dto.FmpQuote;
 import io.strategiz.client.fmp.dto.FmpTechnicalIndicator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.util.List;
  * performance, technical indicators, and news from Financial Modeling Prep API.
  */
 @Component
+@ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class MarketSignalsContextProvider {
 
 	private static final Logger log = LoggerFactory.getLogger(MarketSignalsContextProvider.class);

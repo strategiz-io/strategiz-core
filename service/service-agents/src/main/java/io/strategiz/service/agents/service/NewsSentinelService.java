@@ -11,8 +11,10 @@ import io.strategiz.service.agents.dto.AgentChatMessage;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
 import io.strategiz.service.agents.dto.NewsItemDto;
+import io.strategiz.service.agents.context.NewsContextProvider;
 import io.strategiz.service.agents.prompts.NewsSentinelPrompts;
 import io.strategiz.service.base.BaseService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
  * Uses Finnhub API for SEC filings and earnings calendar data.
  */
 @Service
+@ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class NewsSentinelService extends BaseService {
 
     private static final String AGENT_ID = "newsSentinel";

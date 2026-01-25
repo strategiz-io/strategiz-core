@@ -3,6 +3,7 @@ package io.strategiz.client.gcpbilling;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.strategiz.client.gcpbilling.model.AiProviderCost;
+import io.strategiz.framework.secrets.service.VaultSecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -24,6 +25,9 @@ import java.util.Map;
  * API Documentation: https://docs.anthropic.com/en/api/admin-api
  * Required: Admin API key (sk-ant-admin-...)
  *
+ * Credentials loaded from Vault: secret/strategiz/ai/anthropic
+ * Required secrets: admin-api-key
+ *
  * Enable with: ai.billing.enabled=true
  */
 @Component
@@ -38,12 +42,29 @@ public class AnthropicBillingClient {
     private final ObjectMapper objectMapper;
     private final String adminApiKey;
 
-    public AnthropicBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
+    public AnthropicBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper,
+            VaultSecretService vaultSecretService) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
-        // Admin API key should be stored in Vault at secret/strategiz/ai/anthropic/admin-api-key
-        this.adminApiKey = System.getenv("ANTHROPIC_ADMIN_API_KEY");
-        log.info("AnthropicBillingClient initialized");
+
+        // Load admin API key from Vault: secret/strategiz/ai/anthropic (admin-api-key field)
+        String vaultKey = null;
+        try {
+            vaultKey = vaultSecretService.readSecret("ai/anthropic.admin-api-key");
+            if (vaultKey == null || vaultKey.isEmpty()) {
+                log.warn("Admin API key not found in Vault at ai/anthropic.admin-api-key, "
+                        + "falling back to environment variable");
+                vaultKey = System.getenv("ANTHROPIC_ADMIN_API_KEY");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load Anthropic admin key from Vault: {}, falling back to environment variable",
+                    e.getMessage());
+            vaultKey = System.getenv("ANTHROPIC_ADMIN_API_KEY");
+        }
+        this.adminApiKey = vaultKey;
+
+        boolean configured = adminApiKey != null && !adminApiKey.isEmpty();
+        log.info("AnthropicBillingClient initialized - Configured: {}", configured);
     }
 
     /**

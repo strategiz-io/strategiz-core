@@ -3,8 +3,10 @@ package io.strategiz.business.infrastructurecosts.service;
 import io.strategiz.business.infrastructurecosts.model.CostSummary;
 import io.strategiz.business.infrastructurecosts.model.DailyCost;
 import io.strategiz.business.infrastructurecosts.model.FirestoreUsage;
+import io.strategiz.client.gcpbilling.ClickHouseBillingClient;
 import io.strategiz.client.gcpbilling.GcpBillingClient;
 import io.strategiz.client.gcpbilling.GcpMonitoringClient;
+import io.strategiz.client.gcpbilling.model.ClickHouseCloudCost;
 import io.strategiz.client.gcpbilling.model.GcpCostSummary;
 import io.strategiz.client.gcpbilling.model.GcpDailyCost;
 import io.strategiz.client.gcpbilling.model.GcpServiceUsage;
@@ -48,6 +50,7 @@ public class CostAggregationService {
 
     private final GcpBillingClient gcpBillingClient;
     private final GcpMonitoringClient gcpMonitoringClient;
+    private final ClickHouseBillingClient clickHouseBillingClient;
     private final FirestoreClickHouseBillingService firestoreClickHouseBillingService;
     private final SendGridBillingClient sendgridBillingClient;
     private final DailyCostRepository dailyCostRepository;
@@ -65,20 +68,22 @@ public class CostAggregationService {
     public CostAggregationService(
             @Autowired(required = false) GcpBillingClient gcpBillingClient,
             @Autowired(required = false) GcpMonitoringClient gcpMonitoringClient,
+            @Autowired(required = false) ClickHouseBillingClient clickHouseBillingClient,
             @Autowired(required = false) FirestoreClickHouseBillingService firestoreClickHouseBillingService,
             @Autowired(required = false) SendGridBillingClient sendgridBillingClient,
             @Autowired(required = false) DailyCostRepository dailyCostRepository,
             @Autowired(required = false) FirestoreUsageRepository firestoreUsageRepository) {
         this.gcpBillingClient = gcpBillingClient;
         this.gcpMonitoringClient = gcpMonitoringClient;
+        this.clickHouseBillingClient = clickHouseBillingClient;
         this.firestoreClickHouseBillingService = firestoreClickHouseBillingService;
         this.sendgridBillingClient = sendgridBillingClient;
         this.dailyCostRepository = dailyCostRepository;
         this.firestoreUsageRepository = firestoreUsageRepository;
 
-        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, clickhouse={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
+        log.info("CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, clickhouseCloud={}, clickhouseFirestore={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
                 gcpBillingClient != null, gcpMonitoringClient != null,
-                firestoreClickHouseBillingService != null, sendgridBillingClient != null,
+                clickHouseBillingClient != null, firestoreClickHouseBillingService != null, sendgridBillingClient != null,
                 dailyCostRepository != null, firestoreUsageRepository != null);
     }
 
@@ -98,10 +103,8 @@ public class CostAggregationService {
                     ? gcpBillingClient.getCostSummary(startOfMonth, today)
                     : GcpCostSummary.empty(startOfMonth, today);
 
-            // Get ClickHouse costs (optional)
-            ClickHouseCostSummary clickhouseSummary = firestoreClickHouseBillingService != null
-                    ? firestoreClickHouseBillingService.getCostSummary(startOfMonth, today)
-                    : ClickHouseCostSummary.empty(startOfMonth, today);
+            // Get ClickHouse costs - prefer Cloud API, fall back to Firestore
+            ClickHouseCostSummary clickhouseSummary = getClickHouseCosts(startOfMonth, today);
 
             // Get SendGrid costs (optional)
             SendGridCostSummary sendgridSummary = sendgridBillingClient != null
@@ -175,14 +178,16 @@ public class CostAggregationService {
                 return Collections.emptyList();
             }
 
-            // Get ClickHouse estimated daily cost (optional)
+            // Get ClickHouse estimated daily cost (prefer Cloud API, fall back to Firestore)
             BigDecimal dailyClickHouseCost = BigDecimal.ZERO;
-            if (firestoreClickHouseBillingService != null && days > 0) {
-                ClickHouseCostSummary clickhouse = firestoreClickHouseBillingService.getCostSummary(
+            if (days > 0) {
+                ClickHouseCostSummary clickhouse = getClickHouseCosts(
                         LocalDate.now().minusDays(days),
                         LocalDate.now()
                 );
-                dailyClickHouseCost = clickhouse.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP);
+                if (clickhouse.totalCost().compareTo(BigDecimal.ZERO) > 0) {
+                    dailyClickHouseCost = clickhouse.totalCost().divide(BigDecimal.valueOf(days), 4, RoundingMode.HALF_UP);
+                }
             }
 
             // Get SendGrid estimated daily cost (optional)
@@ -242,12 +247,12 @@ public class CostAggregationService {
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
 
-            // Add ClickHouse costs if available
-            if (firestoreClickHouseBillingService != null) {
-                ClickHouseCostSummary clickhouseSummary = firestoreClickHouseBillingService.getCostSummary(
-                        LocalDate.now().withDayOfMonth(1),
-                        LocalDate.now()
-                );
+            // Add ClickHouse costs (prefer Cloud API, fall back to Firestore)
+            ClickHouseCostSummary clickhouseSummary = getClickHouseCosts(
+                    LocalDate.now().withDayOfMonth(1),
+                    LocalDate.now()
+            );
+            if (clickhouseSummary.totalCost().compareTo(BigDecimal.ZERO) > 0) {
                 costByService.put("ClickHouse", clickhouseSummary.totalCost());
             }
 
@@ -357,10 +362,8 @@ public class CostAggregationService {
                     ? gcpBillingClient.getCostSummary(yesterday, yesterday)
                     : GcpCostSummary.empty(yesterday, yesterday);
 
-            // Get ClickHouse costs (optional)
-            ClickHouseCostSummary clickhouseSummary = firestoreClickHouseBillingService != null
-                    ? firestoreClickHouseBillingService.getCostSummary(yesterday, yesterday)
-                    : ClickHouseCostSummary.empty(yesterday, yesterday);
+            // Get ClickHouse costs (prefer Cloud API, fall back to Firestore)
+            ClickHouseCostSummary clickhouseSummary = getClickHouseCosts(yesterday, yesterday);
 
             // Get SendGrid costs (optional)
             SendGridCostSummary sendgridSummary = sendgridBillingClient != null
@@ -386,7 +389,7 @@ public class CostAggregationService {
             entity.setCurrency("USD");
 
             Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
-            if (firestoreClickHouseBillingService != null) {
+            if (clickhouseSummary.totalCost().compareTo(BigDecimal.ZERO) > 0) {
                 costByService.put("ClickHouse", clickhouseSummary.totalCost());
             }
             if (sendgridBillingClient != null) {
@@ -417,6 +420,38 @@ public class CostAggregationService {
         }
     }
 
+    /**
+     * Get ClickHouse costs - prefers Cloud API, falls back to Firestore data
+     */
+    private ClickHouseCostSummary getClickHouseCosts(LocalDate startDate, LocalDate endDate) {
+        // Prefer ClickHouse Cloud API for real-time data
+        if (clickHouseBillingClient != null && clickHouseBillingClient.isConfigured()) {
+            try {
+                ClickHouseCloudCost cloudCost = clickHouseBillingClient.getCostSummary(startDate, endDate);
+                // Convert ClickHouseCloudCost to ClickHouseCostSummary
+                return new ClickHouseCostSummary(
+                        startDate,
+                        endDate,
+                        cloudCost.totalCostUsd(),
+                        "USD",
+                        cloudCost.computeCostChc(),
+                        cloudCost.storageCostChc(),
+                        BigDecimal.ZERO, // storageUsageGb not available from API
+                        BigDecimal.ZERO  // computeHours not available from API
+                );
+            } catch (Exception e) {
+                log.warn("Failed to get ClickHouse costs from Cloud API, falling back to Firestore: {}", e.getMessage());
+            }
+        }
+
+        // Fall back to Firestore data
+        if (firestoreClickHouseBillingService != null) {
+            return firestoreClickHouseBillingService.getCostSummary(startDate, endDate);
+        }
+
+        return ClickHouseCostSummary.empty(startDate, endDate);
+    }
+
     private String getVsLastMonth(BigDecimal currentTotal, String currentMonth) {
         // Skip comparison if GCP billing client is not available
         if (gcpBillingClient == null) {
@@ -437,9 +472,8 @@ public class CostAggregationService {
 
             GcpCostSummary lastMonthGcp = gcpBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay);
 
-            ClickHouseCostSummary lastMonthCh = firestoreClickHouseBillingService != null
-                    ? firestoreClickHouseBillingService.getCostSummary(lastMonthStart, lastMonthSameDay)
-                    : ClickHouseCostSummary.empty(lastMonthStart, lastMonthSameDay);
+            // Get ClickHouse costs (prefer Cloud API, fall back to Firestore)
+            ClickHouseCostSummary lastMonthCh = getClickHouseCosts(lastMonthStart, lastMonthSameDay);
 
             SendGridCostSummary lastMonthSg = sendgridBillingClient != null
                     ? sendgridBillingClient.getCostSummary(lastMonthStart, lastMonthSameDay)

@@ -2,8 +2,8 @@ package io.strategiz.client.gcpbilling;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.strategiz.client.gcpbilling.config.GcpBillingConfig.GcpBillingProperties;
 import io.strategiz.client.gcpbilling.model.AiProviderCost;
+import io.strategiz.framework.secrets.service.VaultSecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -25,6 +24,9 @@ import java.util.Map;
  *
  * API Documentation: https://platform.openai.com/docs/api-reference/usage
  * Required: OpenAI API key with organization access
+ *
+ * Credentials loaded from Vault: secret/strategiz/ai/openai
+ * Required secrets: api-key
  *
  * Enable with: ai.billing.enabled=true
  */
@@ -39,12 +41,29 @@ public class OpenAiBillingClient {
     private final ObjectMapper objectMapper;
     private final String apiKey;
 
-    public OpenAiBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper, GcpBillingProperties properties) {
+    public OpenAiBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper,
+            VaultSecretService vaultSecretService) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
-        // OpenAI API key should be stored in Vault at secret/strategiz/ai/openai/api-key
-        this.apiKey = System.getenv("OPENAI_API_KEY");
-        log.info("OpenAiBillingClient initialized");
+
+        // Load API key from Vault: secret/strategiz/ai/openai (api-key field)
+        String vaultKey = null;
+        try {
+            vaultKey = vaultSecretService.readSecret("ai/openai.api-key");
+            if (vaultKey == null || vaultKey.isEmpty()) {
+                log.warn("API key not found in Vault at ai/openai.api-key, "
+                        + "falling back to environment variable");
+                vaultKey = System.getenv("OPENAI_API_KEY");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load OpenAI API key from Vault: {}, falling back to environment variable",
+                    e.getMessage());
+            vaultKey = System.getenv("OPENAI_API_KEY");
+        }
+        this.apiKey = vaultKey;
+
+        boolean configured = apiKey != null && !apiKey.isEmpty();
+        log.info("OpenAiBillingClient initialized - Configured: {}", configured);
     }
 
     /**

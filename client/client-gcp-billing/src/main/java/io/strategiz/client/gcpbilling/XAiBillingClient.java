@@ -2,8 +2,8 @@ package io.strategiz.client.gcpbilling;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.strategiz.client.gcpbilling.config.GcpBillingConfig.GcpBillingProperties;
 import io.strategiz.client.gcpbilling.model.AiProviderCost;
+import io.strategiz.framework.secrets.service.VaultSecretService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,6 +23,9 @@ import java.util.Map;
  *
  * API Documentation: https://docs.x.ai
  * Required: xAI API key
+ *
+ * Credentials loaded from Vault: secret/strategiz/ai/xai
+ * Required secrets: api-key
  *
  * Enable with: ai.billing.enabled=true
  *
@@ -46,12 +49,29 @@ public class XAiBillingClient {
     private final ObjectMapper objectMapper;
     private final String apiKey;
 
-    public XAiBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper, GcpBillingProperties properties) {
+    public XAiBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper,
+            VaultSecretService vaultSecretService) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
-        // xAI API key should be stored in Vault at secret/strategiz/ai/xai/api-key
-        this.apiKey = System.getenv("XAI_API_KEY");
-        log.info("XAiBillingClient initialized");
+
+        // Load API key from Vault: secret/strategiz/ai/xai (api-key field)
+        String vaultKey = null;
+        try {
+            vaultKey = vaultSecretService.readSecret("ai/xai.api-key");
+            if (vaultKey == null || vaultKey.isEmpty()) {
+                log.warn("API key not found in Vault at ai/xai.api-key, "
+                        + "falling back to environment variable");
+                vaultKey = System.getenv("XAI_API_KEY");
+            }
+        } catch (Exception e) {
+            log.warn("Could not load xAI API key from Vault: {}, falling back to environment variable",
+                    e.getMessage());
+            vaultKey = System.getenv("XAI_API_KEY");
+        }
+        this.apiKey = vaultKey;
+
+        boolean configured = apiKey != null && !apiKey.isEmpty();
+        log.info("XAiBillingClient initialized - Configured: {}", configured);
     }
 
     /**

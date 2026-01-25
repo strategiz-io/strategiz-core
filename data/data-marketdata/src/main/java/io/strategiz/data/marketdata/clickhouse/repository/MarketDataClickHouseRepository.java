@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -117,6 +118,47 @@ public class MarketDataClickHouseRepository {
 				""";
 		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, symbol, timeframe);
 		return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+	}
+
+	/**
+	 * Find the earliest market data for a symbol with specific timeframe.
+	 */
+	public Optional<MarketDataEntity> findEarliestBySymbolAndTimeframe(String symbol, String timeframe) {
+		String sql = """
+				SELECT * FROM market_data
+				WHERE symbol = ? AND timeframe = ?
+				ORDER BY timestamp ASC
+				LIMIT 1
+				""";
+		List<MarketDataEntity> results = jdbcTemplate.query(sql, rowMapper, symbol, timeframe);
+		return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+	}
+
+	/**
+	 * Get the date range (earliest and latest) for a symbol and timeframe.
+	 * Returns map with 'earliest' and 'latest' Instant values, or empty if no data.
+	 */
+	public Optional<Map<String, Instant>> getDateRangeForSymbolAndTimeframe(String symbol, String timeframe) {
+		String sql = """
+				SELECT
+				    MIN(timestamp) AS earliest,
+				    MAX(timestamp) AS latest
+				FROM market_data
+				WHERE symbol = ? AND timeframe = ?
+				""";
+		return jdbcTemplate.query(sql, (rs) -> {
+			if (rs.next()) {
+				Timestamp earliest = rs.getTimestamp("earliest");
+				Timestamp latest = rs.getTimestamp("latest");
+				if (earliest != null && latest != null) {
+					Map<String, Instant> range = new HashMap<>();
+					range.put("earliest", earliest.toInstant());
+					range.put("latest", latest.toInstant());
+					return Optional.of(range);
+				}
+			}
+			return Optional.empty();
+		}, symbol, timeframe);
 	}
 
 	/**

@@ -169,11 +169,12 @@ public class MarketDataBackfillJob {
 				}
 
 				try {
-					log.info("--- Backfilling timeframe: {} ---", tf);
+					log.info("--- Gap-filling timeframe: {} (target: {} years back) ---", tf, backfillYears);
 					long tfStartTime = System.currentTimeMillis();
 
+					// Use gap-filling backfill to only fetch missing data
 					MarketDataCollectionService.CollectionResult result = collectionService
-						.backfillIntradayData(startDate, endDate, tf);
+						.backfillGaps(startDate, tf);
 
 					long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
 

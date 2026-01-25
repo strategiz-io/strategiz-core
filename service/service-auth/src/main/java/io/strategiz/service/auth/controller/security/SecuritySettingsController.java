@@ -1,5 +1,6 @@
 package io.strategiz.service.auth.controller.security;
 
+import io.strategiz.business.tokenauth.MfaEnforcementBusiness;
 import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
@@ -47,8 +48,12 @@ public class SecuritySettingsController extends BaseController {
 
     private final AuthenticationMethodRepository authMethodRepository;
 
-    public SecuritySettingsController(AuthenticationMethodRepository authMethodRepository) {
+    private final MfaEnforcementBusiness mfaEnforcementBusiness;
+
+    public SecuritySettingsController(AuthenticationMethodRepository authMethodRepository,
+            MfaEnforcementBusiness mfaEnforcementBusiness) {
         this.authMethodRepository = authMethodRepository;
+        this.mfaEnforcementBusiness = mfaEnforcementBusiness;
     }
 
     /**
@@ -207,6 +212,32 @@ public class SecuritySettingsController extends BaseController {
 
         securitySettings.put("oauth", oauth);
 
+        // MFA Enforcement settings
+        MfaEnforcementBusiness.MfaEnforcementSettings mfaSettings = mfaEnforcementBusiness
+            .getEnforcementSettings(userId);
+        Map<String, Object> mfaEnforcement = new HashMap<>();
+        mfaEnforcement.put("enforced", mfaSettings.enforced());
+        mfaEnforcement.put("minimumAcrLevel", mfaSettings.minimumAcrLevel());
+        mfaEnforcement.put("currentAcrLevel", mfaSettings.currentAcrLevel());
+        mfaEnforcement.put("canEnable", mfaSettings.canEnable());
+        mfaEnforcement.put("configuredMethods",
+                mfaSettings.configuredMethods().stream().map(m -> m.type()).toList());
+        mfaEnforcement.put("strengthLabel", mfaSettings.strengthLabel());
+        mfaEnforcement.put("upgradeHint", mfaSettings.upgradeHint());
+
+        // Include detailed method info for UI
+        List<Map<String, Object>> methodDetails = mfaSettings.configuredMethods().stream().map(m -> {
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("id", m.id());
+            detail.put("type", m.type());
+            detail.put("name", m.name());
+            detail.put("strengthLabel", m.strengthLabel());
+            return detail;
+        }).toList();
+        mfaEnforcement.put("methodDetails", methodDetails);
+
+        securitySettings.put("mfaEnforcement", mfaEnforcement);
+
         // Summary stats
         Map<String, Object> summary = new HashMap<>();
         summary.put("totalPasskeys", passkeys.size());
@@ -214,9 +245,101 @@ public class SecuritySettingsController extends BaseController {
         summary.put("hasSmsOtpEnabled", smsOtp.get("enabled"));
         summary.put("hasGoogleConnected", google.get("connected"));
         summary.put("hasFacebookConnected", facebook.get("connected"));
+        summary.put("mfaEnforced", mfaSettings.enforced());
         securitySettings.put("summary", summary);
 
         logRequestSuccess("getSecuritySettings", userId, securitySettings);
         return createCleanResponse(securitySettings);
+    }
+
+    /**
+     * Update MFA enforcement settings
+     *
+     * PUT /auth/security/mfa-enforcement?userId={userId}
+     *
+     * Request body: { "enforced": true }
+     *
+     * @param userId the user ID
+     * @param request the enforcement settings update
+     * @return updated MFA enforcement settings
+     */
+    @PutMapping("/mfa-enforcement")
+    public ResponseEntity<Map<String, Object>> updateMfaEnforcement(@RequestParam String userId,
+            @RequestBody Map<String, Object> request) {
+        logRequest("updateMfaEnforcement", userId);
+        log.info("SecuritySettingsController: Updating MFA enforcement for userId: {}", userId);
+
+        Boolean enforced = (Boolean) request.get("enforced");
+        if (enforced == null) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", "Missing required field: enforced");
+            return ResponseEntity.badRequest().body(error);
+        }
+
+        MfaEnforcementBusiness.UpdateResult result = mfaEnforcementBusiness.updateMfaEnforcement(userId, enforced);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", result.success());
+
+        if (result.success()) {
+            MfaEnforcementBusiness.MfaEnforcementSettings settings = result.settings();
+            Map<String, Object> mfaEnforcement = new HashMap<>();
+            mfaEnforcement.put("enforced", settings.enforced());
+            mfaEnforcement.put("minimumAcrLevel", settings.minimumAcrLevel());
+            mfaEnforcement.put("currentAcrLevel", settings.currentAcrLevel());
+            mfaEnforcement.put("canEnable", settings.canEnable());
+            mfaEnforcement.put("configuredMethods",
+                    settings.configuredMethods().stream().map(m -> m.type()).toList());
+            mfaEnforcement.put("strengthLabel", settings.strengthLabel());
+            mfaEnforcement.put("upgradeHint", settings.upgradeHint());
+            response.put("mfaEnforcement", mfaEnforcement);
+
+            log.info("MFA enforcement updated for userId: {} to: {}", userId, enforced);
+        }
+        else {
+            response.put("error", result.error());
+            log.warn("Failed to update MFA enforcement for userId: {}: {}", userId, result.error());
+        }
+
+        logRequestSuccess("updateMfaEnforcement", userId, response);
+        return createCleanResponse(response);
+    }
+
+    /**
+     * Check if step-up authentication is required
+     *
+     * GET /auth/security/step-up-check?userId={userId}&currentAcr={acr}
+     *
+     * Returns whether step-up auth is needed and available MFA methods
+     */
+    @GetMapping("/step-up-check")
+    public ResponseEntity<Map<String, Object>> checkStepUpRequired(@RequestParam String userId,
+            @RequestParam(defaultValue = "1") String currentAcr) {
+        logRequest("checkStepUpRequired", userId);
+        log.info("SecuritySettingsController: Checking step-up requirement for userId: {} with ACR: {}", userId,
+                currentAcr);
+
+        MfaEnforcementBusiness.StepUpCheckResult result = mfaEnforcementBusiness.checkStepUpRequired(userId,
+                currentAcr);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("required", result.required());
+        response.put("minimumAcrLevel", result.minimumAcrLevel());
+
+        if (result.required()) {
+            List<Map<String, Object>> methods = result.availableMethods().stream().map(m -> {
+                Map<String, Object> method = new HashMap<>();
+                method.put("id", m.id());
+                method.put("type", m.type());
+                method.put("name", m.name());
+                method.put("strengthLabel", m.strengthLabel());
+                return method;
+            }).toList();
+            response.put("availableMethods", methods);
+        }
+
+        logRequestSuccess("checkStepUpRequired", userId, response);
+        return createCleanResponse(response);
     }
 }

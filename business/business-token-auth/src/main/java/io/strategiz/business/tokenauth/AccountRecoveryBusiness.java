@@ -7,6 +7,8 @@ import io.strategiz.data.auth.entity.RecoveryRequestEntity;
 import io.strategiz.data.auth.entity.RecoveryStatus;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.auth.repository.RecoveryRequestRepository;
+import io.strategiz.data.preferences.entity.SecurityPreferences;
+import io.strategiz.data.preferences.repository.SecurityPreferencesRepository;
 import io.strategiz.data.user.entity.UserEntity;
 import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.token.issuer.PasetoTokenIssuer;
@@ -68,6 +70,9 @@ public class AccountRecoveryBusiness {
 
     @Autowired
     private AuthenticationMethodRepository authMethodRepository;
+
+    @Autowired
+    private SecurityPreferencesRepository securityPreferencesRepository;
 
     @Autowired
     private PasetoTokenIssuer tokenIssuer;
@@ -494,9 +499,16 @@ public class AccountRecoveryBusiness {
 
     private boolean hasMfaEnabled(String userId) {
         List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserId(userId);
-        return methods.stream()
+        boolean hasActiveMfaMethods = methods.stream()
                 .filter(m -> Boolean.TRUE.equals(m.getIsActive()))
                 .anyMatch(m -> isMfaMethod(m.getAuthenticationMethod()));
+
+        // Also check if user explicitly requires MFA (single toggle applies to recovery too)
+        boolean userEnforcesMfa = securityPreferencesRepository.findByUserId(userId)
+                .map(SecurityPreferences::getMfaEnforced)
+                .orElse(false);
+
+        return hasActiveMfaMethods || userEnforcesMfa;
     }
 
     private boolean isMfaMethod(AuthenticationMethodType type) {

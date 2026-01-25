@@ -383,6 +383,16 @@ public class AdminTestRunnerController extends BaseController {
 		}
 	}
 
+	/**
+	 * Comprehensive GENERATIVE AI test that verifies:
+	 * 1. Strategy generation succeeds
+	 * 2. Correct mode (GENERATIVE_AI) is used
+	 * 3. Python code contains expected indicators (RSI, MACD, Bollinger Bands)
+	 * 4. Strategy uses optimal thresholds from historical insights
+	 * 5. Risk management parameters are present (stop-loss, take-profit)
+	 * 6. Strategy beats buy-and-hold
+	 */
+
 	private void runGenerativeAITestForSymbol(TestRun testRun, String accessToken, String symbol) {
 		long start = System.currentTimeMillis();
 		try {
@@ -404,26 +414,72 @@ public class AdminTestRunnerController extends BaseController {
 
 			if (genResponse == null || !Boolean.TRUE.equals(genResponse.get("success"))) {
 				String error = genResponse != null ? (String) genResponse.get("error") : "No response";
-				testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, false,
+				testRun.addResult(new TestResult("generative-ai", symbol + " - Generation", false,
 						"Strategy generation failed: " + error, System.currentTimeMillis() - start));
 				return;
 			}
 
 			String modeUsed = (String) genResponse.get("autonomousModeUsed");
 			if (!"GENERATIVE_AI".equals(modeUsed)) {
-				testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, false,
-						"Wrong mode used: " + modeUsed, System.currentTimeMillis() - start));
+				testRun.addResult(new TestResult("generative-ai", symbol + " - Mode Check", false,
+						"Wrong mode used: " + modeUsed + " (expected GENERATIVE_AI)", System.currentTimeMillis() - start));
 				return;
 			}
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Mode Check", true,
+					"Correct mode: GENERATIVE_AI", System.currentTimeMillis() - start));
 
 			String pythonCode = (String) genResponse.get("pythonCode");
 			if (pythonCode == null || pythonCode.isEmpty()) {
-				testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, false, "No Python code generated",
-						System.currentTimeMillis() - start));
+				testRun.addResult(new TestResult("generative-ai", symbol + " - Code Generation", false,
+						"No Python code generated", System.currentTimeMillis() - start));
 				return;
 			}
 
+			// Comprehensive code quality checks
+			int codeLength = pythonCode.length();
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Code Generation", true,
+					"Generated " + codeLength + " chars of Python code", System.currentTimeMillis() - start));
+
+			// Check for RSI indicator
+			boolean hasRSI = pythonCode.contains("RSI") || pythonCode.contains("rsi");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - RSI Indicator", hasRSI,
+					hasRSI ? "RSI indicator found in strategy" : "RSI indicator missing", 0));
+
+			// Check for MACD indicator
+			boolean hasMACD = pythonCode.contains("MACD") || pythonCode.contains("macd");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - MACD Indicator", hasMACD,
+					hasMACD ? "MACD indicator found in strategy" : "MACD indicator missing", 0));
+
+			// Check for Bollinger Bands
+			boolean hasBB = pythonCode.contains("Bollinger") || pythonCode.contains("bollinger") || pythonCode.contains("BB");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Bollinger Bands", hasBB,
+					hasBB ? "Bollinger Bands found in strategy" : "Bollinger Bands missing", 0));
+
+			// Check for stop-loss
+			boolean hasStopLoss = pythonCode.contains("stop_loss") || pythonCode.contains("stoploss") ||
+					pythonCode.contains("stop loss") || pythonCode.contains("STOP_LOSS");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Stop Loss", hasStopLoss,
+					hasStopLoss ? "Stop-loss risk management found" : "Stop-loss missing", 0));
+
+			// Check for take-profit
+			boolean hasTakeProfit = pythonCode.contains("take_profit") || pythonCode.contains("takeprofit") ||
+					pythonCode.contains("take profit") || pythonCode.contains("TAKE_PROFIT");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Take Profit", hasTakeProfit,
+					hasTakeProfit ? "Take-profit found" : "Take-profit missing", 0));
+
+			// Check for trailing stop
+			boolean hasTrailingStop = pythonCode.contains("trailing") || pythonCode.contains("TRAILING");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Trailing Stop", hasTrailingStop,
+					hasTrailingStop ? "Trailing stop found" : "Trailing stop missing", 0));
+
+			// Check for optimal thresholds (should use specific numbers from historical analysis)
+			boolean hasOptimalThresholds = pythonCode.matches(".*rsi.*[<>]=?\\s*\\d+.*") ||
+					pythonCode.matches(".*RSI.*[<>]=?\\s*\\d+.*");
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Optimal Thresholds", hasOptimalThresholds,
+					hasOptimalThresholds ? "RSI thresholds configured" : "No specific RSI thresholds found", 0));
+
 			// Step 2: Execute the strategy and get performance
+			long execStart = System.currentTimeMillis();
 			Map<String, Object> execBody = Map.of("code", pythonCode, "language", "python", "symbol", symbol, "timeframe",
 					"1D", "period", "3y");
 
@@ -434,39 +490,58 @@ public class AdminTestRunnerController extends BaseController {
 				.postForObject(apiBaseUrl + "/v1/strategies/execute-code", execRequest, Map.class);
 
 			if (execResponse == null) {
-				testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, false,
-						"Strategy execution failed: No response", System.currentTimeMillis() - start));
+				testRun.addResult(new TestResult("generative-ai", symbol + " - Execution", false,
+						"Strategy execution failed: No response", System.currentTimeMillis() - execStart));
 				return;
 			}
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> performance = (Map<String, Object>) execResponse.get("performance");
 			if (performance == null) {
-				testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, false,
-						"No performance metrics in response", System.currentTimeMillis() - start));
+				testRun.addResult(new TestResult("generative-ai", symbol + " - Performance", false,
+						"No performance metrics in response", System.currentTimeMillis() - execStart));
 				return;
 			}
 
 			double strategyReturn = getDoubleValue(performance, "totalReturn");
 			double buyHoldReturn = getDoubleValue(performance, "buyAndHoldReturn");
 			double outperformance = getDoubleValue(performance, "outperformance");
+			double winRate = getDoubleValue(performance, "winRate");
+			double maxDrawdown = getDoubleValue(performance, "maxDrawdown");
+			int totalTrades = (int) getDoubleValue(performance, "totalTrades");
 
-			long duration = System.currentTimeMillis() - start;
+			long execDuration = System.currentTimeMillis() - execStart;
 
-			// Verify strategy beats buy-and-hold
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Execution", true,
+					String.format("Executed in %dms, %d trades", execDuration, totalTrades), execDuration));
+
+			// Performance metrics tests
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Win Rate", winRate >= 40,
+					String.format("Win rate: %.1f%% (target: >= 40%%)", winRate), 0));
+
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Max Drawdown", maxDrawdown <= 30,
+					String.format("Max drawdown: %.1f%% (target: <= 30%%)", maxDrawdown), 0));
+
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Trade Count", totalTrades >= 10,
+					String.format("Total trades: %d (target: >= 10 for statistical significance)", totalTrades), 0));
+
+			// The key test: beats buy-and-hold
 			boolean beatsBuyAndHold = outperformance >= 0;
+			long totalDuration = System.currentTimeMillis() - start;
 
-			String message = String.format("Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%", strategyReturn,
-					buyHoldReturn, outperformance);
+			String perfMessage = String.format("Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%",
+					strategyReturn, buyHoldReturn, outperformance);
 
-			testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, beatsBuyAndHold, message, duration));
+			testRun.addResult(new TestResult("generative-ai", symbol + " - BEATS BUY & HOLD", beatsBuyAndHold,
+					perfMessage, totalDuration));
 
-			log.info("GENERATIVE_AI {} test: {} - {}", symbol, beatsBuyAndHold ? "PASSED" : "FAILED", message);
+			log.info("GENERATIVE_AI {} comprehensive test: {} - {}", symbol, beatsBuyAndHold ? "PASSED" : "FAILED", perfMessage);
 
 		}
 		catch (Exception e) {
-			testRun.addResult(new TestResult("generative-ai", "GENERATIVE_AI " + symbol, false, "Error: " + e.getMessage(),
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Error", false, "Exception: " + e.getMessage(),
 					System.currentTimeMillis() - start));
+			log.error("GENERATIVE_AI {} test error", symbol, e);
 		}
 	}
 

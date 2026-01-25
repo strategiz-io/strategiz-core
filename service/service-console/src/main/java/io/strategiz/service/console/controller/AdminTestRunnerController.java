@@ -121,8 +121,12 @@ public class AdminTestRunnerController extends BaseController {
 						"Test AUTONOMOUS mode optimization - must beat buy-and-hold"),
 				Map.of("id", "auth", "name", "Authentication", "description",
 						"Test authentication endpoints and token validation"),
+				Map.of("id", "mfa-enforcement", "name", "MFA Enforcement", "description",
+						"Test MFA enforcement toggle, step-up checks, and security settings"),
 				Map.of("id", "labs", "name", "Labs API", "description", "Test Labs AI endpoints"),
-				Map.of("id", "health", "name", "Health Check", "description", "Basic health and connectivity tests"));
+				Map.of("id", "health", "name", "Health Check", "description", "Basic health and connectivity tests"),
+				Map.of("id", "profile", "name", "Profile API", "description",
+						"Test profile CRUD operations including bio, location, occupation, and education fields"));
 		return ResponseEntity.ok(suites);
 	}
 
@@ -170,6 +174,14 @@ public class AdminTestRunnerController extends BaseController {
 
 			if ("all".equals(suite) || "labs".equals(suite)) {
 				runLabsTests(testRun, accessToken);
+			}
+
+			if ("all".equals(suite) || "mfa-enforcement".equals(suite)) {
+				runMfaEnforcementTests(testRun, accessToken);
+			}
+
+			if ("all".equals(suite) || "profile".equals(suite)) {
+				runProfileTests(testRun, accessToken);
 			}
 
 			// Calculate summary
@@ -366,6 +378,273 @@ public class AdminTestRunnerController extends BaseController {
 		}
 		catch (Exception e) {
 			testRun.addResult(new TestResult("labs", "Parse Backtest Query", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	// =====================================================
+	// MFA Enforcement Tests
+	// =====================================================
+
+	private void runMfaEnforcementTests(TestRun testRun, String accessToken) {
+		// Test 1: Get security settings and verify mfaEnforcement is returned
+		runMfaSecuritySettingsTest(testRun, accessToken);
+
+		// Test 2: Step-up check endpoint
+		runMfaStepUpCheckTest(testRun, accessToken);
+
+		// Test 3: Enable/disable MFA enforcement (validation test)
+		runMfaEnforcementToggleTest(testRun, accessToken);
+	}
+
+	private void runMfaSecuritySettingsTest(TestRun testRun, String accessToken) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			HttpEntity<Void> request = new HttpEntity<>(headers);
+
+			// Get security settings - should include mfaEnforcement
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/auth/security", org.springframework.http.HttpMethod.GET, request, Map.class)
+				.getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response == null) {
+				testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", false,
+						"No response from security endpoint", duration));
+				return;
+			}
+
+			// Verify mfaEnforcement object exists
+			@SuppressWarnings("unchecked")
+			Map<String, Object> mfaEnforcement = (Map<String, Object>) response.get("mfaEnforcement");
+
+			if (mfaEnforcement == null) {
+				testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", false,
+						"mfaEnforcement not found in response", duration));
+				return;
+			}
+
+			// Verify required fields exist
+			boolean hasEnforced = mfaEnforcement.containsKey("enforced");
+			boolean hasMinimumAcr = mfaEnforcement.containsKey("minimumAcrLevel");
+			boolean hasCanEnable = mfaEnforcement.containsKey("canEnable");
+			boolean hasStrengthLabel = mfaEnforcement.containsKey("strengthLabel");
+
+			if (!hasEnforced || !hasMinimumAcr || !hasCanEnable || !hasStrengthLabel) {
+				testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", false,
+						String.format("Missing fields: enforced=%b, minimumAcrLevel=%b, canEnable=%b, strengthLabel=%b",
+								hasEnforced, hasMinimumAcr, hasCanEnable, hasStrengthLabel),
+						duration));
+				return;
+			}
+
+			boolean enforced = Boolean.TRUE.equals(mfaEnforcement.get("enforced"));
+			boolean canEnable = Boolean.TRUE.equals(mfaEnforcement.get("canEnable"));
+			String strengthLabel = (String) mfaEnforcement.get("strengthLabel");
+			int minimumAcr = mfaEnforcement.get("minimumAcrLevel") instanceof Number
+					? ((Number) mfaEnforcement.get("minimumAcrLevel")).intValue()
+					: 2;
+
+			testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", true,
+					String.format("enforced=%b, canEnable=%b, strength=%s, minAcr=%d", enforced, canEnable, strengthLabel,
+							minimumAcr),
+					duration));
+
+			// Additional test: verify ACR level is valid
+			boolean validAcr = minimumAcr >= 1 && minimumAcr <= 3;
+			testRun.addResult(new TestResult("mfa-enforcement", "ACR Level Validation", validAcr,
+					validAcr ? "Valid ACR level: " + minimumAcr : "Invalid ACR level: " + minimumAcr, 0));
+
+			// Additional test: verify strength label is valid
+			boolean validStrength = "None".equals(strengthLabel) || "Basic".equals(strengthLabel)
+					|| "Strong".equals(strengthLabel) || "Maximum".equals(strengthLabel);
+			testRun.addResult(new TestResult("mfa-enforcement", "Strength Label Validation", validStrength,
+					validStrength ? "Valid strength: " + strengthLabel : "Invalid strength: " + strengthLabel, 0));
+
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runMfaStepUpCheckTest(TestRun testRun, String accessToken) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			HttpEntity<Void> request = new HttpEntity<>(headers);
+
+			// Test step-up check with ACR 1 (single-factor)
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/auth/security/step-up-check?currentAcr=1",
+					org.springframework.http.HttpMethod.GET, request, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response == null) {
+				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 1)", false,
+						"No response from step-up endpoint", duration));
+				return;
+			}
+
+			// Verify response structure
+			boolean hasRequired = response.containsKey("required");
+			if (!hasRequired) {
+				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 1)", false,
+						"Missing 'required' field in response", duration));
+				return;
+			}
+
+			boolean required = Boolean.TRUE.equals(response.get("required"));
+
+			if (required) {
+				// If step-up is required, verify available methods
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> methods = (List<Map<String, Object>>) response.get("availableMethods");
+				int methodCount = methods != null ? methods.size() : 0;
+				int minimumAcr = response.get("minimumAcrLevel") instanceof Number
+						? ((Number) response.get("minimumAcrLevel")).intValue()
+						: 2;
+
+				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 1)", true,
+						String.format("Step-up required: minAcr=%d, availableMethods=%d", minimumAcr, methodCount), duration));
+			}
+			else {
+				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 1)", true,
+						"Step-up not required (MFA not enforced or no methods configured)", duration));
+			}
+
+			// Test with ACR 2 (should typically not require step-up unless ACR 3 is enforced)
+			start = System.currentTimeMillis();
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response2 = restTemplate.exchange(apiBaseUrl + "/v1/auth/security/step-up-check?currentAcr=2",
+					org.springframework.http.HttpMethod.GET, request, Map.class).getBody();
+
+			duration = System.currentTimeMillis() - start;
+
+			if (response2 != null) {
+				boolean required2 = Boolean.TRUE.equals(response2.get("required"));
+				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 2)", true,
+						required2 ? "Step-up required (ACR 3 enforced)" : "Step-up not required at ACR 2", duration));
+			}
+
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runMfaEnforcementToggleTest(TestRun testRun, String accessToken) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			// First get current settings to see if we can enable
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> securityResponse = restTemplate
+				.exchange(apiBaseUrl + "/v1/auth/security", org.springframework.http.HttpMethod.GET, getRequest, Map.class)
+				.getBody();
+
+			if (securityResponse == null) {
+				testRun.addResult(new TestResult("mfa-enforcement", "MFA Enforcement Toggle", false,
+						"Could not get security settings", System.currentTimeMillis() - start));
+				return;
+			}
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> mfaEnforcement = (Map<String, Object>) securityResponse.get("mfaEnforcement");
+			boolean canEnable = mfaEnforcement != null && Boolean.TRUE.equals(mfaEnforcement.get("canEnable"));
+			boolean currentlyEnforced = mfaEnforcement != null && Boolean.TRUE.equals(mfaEnforcement.get("enforced"));
+
+			if (!canEnable) {
+				// Cannot enable MFA (no methods configured) - test that it fails gracefully
+				Map<String, Object> enableBody = Map.of("enforced", true);
+				HttpEntity<Map<String, Object>> enableRequest = new HttpEntity<>(enableBody, headers);
+
+				try {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> enableResponse = restTemplate.exchange(
+							apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
+							enableRequest, Map.class).getBody();
+
+					long duration = System.currentTimeMillis() - start;
+
+					// Should fail because no MFA methods
+					boolean success = enableResponse != null && Boolean.TRUE.equals(enableResponse.get("success"));
+					if (!success) {
+						String error = enableResponse != null ? (String) enableResponse.get("error") : "Unknown";
+						testRun.addResult(new TestResult("mfa-enforcement", "Enable Without Methods", true,
+								"Correctly rejected: " + error, duration));
+					}
+					else {
+						testRun.addResult(new TestResult("mfa-enforcement", "Enable Without Methods", false,
+								"Should have rejected enabling MFA without methods", duration));
+					}
+				}
+				catch (Exception e) {
+					// Expected to fail
+					testRun.addResult(new TestResult("mfa-enforcement", "Enable Without Methods", true,
+							"Correctly rejected enabling MFA without methods", System.currentTimeMillis() - start));
+				}
+			}
+			else {
+				// Can enable MFA - test the toggle
+				// Step 1: Toggle to opposite state
+				boolean newState = !currentlyEnforced;
+				Map<String, Object> toggleBody = Map.of("enforced", newState);
+				HttpEntity<Map<String, Object>> toggleRequest = new HttpEntity<>(toggleBody, headers);
+
+				@SuppressWarnings("unchecked")
+				Map<String, Object> toggleResponse = restTemplate.exchange(
+						apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
+						toggleRequest, Map.class).getBody();
+
+				long duration = System.currentTimeMillis() - start;
+
+				boolean toggleSuccess = toggleResponse != null && Boolean.TRUE.equals(toggleResponse.get("success"));
+
+				testRun.addResult(new TestResult("mfa-enforcement", "Toggle Enforcement", toggleSuccess,
+						toggleSuccess ? String.format("Successfully %s MFA enforcement", newState ? "enabled" : "disabled")
+								: "Failed to toggle MFA enforcement",
+						duration));
+
+				if (toggleSuccess) {
+					// Step 2: Restore original state
+					start = System.currentTimeMillis();
+					Map<String, Object> restoreBody = Map.of("enforced", currentlyEnforced);
+					HttpEntity<Map<String, Object>> restoreRequest = new HttpEntity<>(restoreBody, headers);
+
+					@SuppressWarnings("unchecked")
+					Map<String, Object> restoreResponse = restTemplate.exchange(
+							apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
+							restoreRequest, Map.class).getBody();
+
+					duration = System.currentTimeMillis() - start;
+
+					boolean restoreSuccess = restoreResponse != null && Boolean.TRUE.equals(restoreResponse.get("success"));
+					testRun.addResult(new TestResult("mfa-enforcement", "Restore Original State", restoreSuccess,
+							restoreSuccess ? "Successfully restored original enforcement state" : "Failed to restore state",
+							duration));
+				}
+			}
+
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("mfa-enforcement", "MFA Enforcement Toggle", false, "Error: " + e.getMessage(),
 					System.currentTimeMillis() - start));
 		}
 	}
@@ -658,6 +937,306 @@ public class AdminTestRunnerController extends BaseController {
 		}
 		catch (NumberFormatException e) {
 			return 0.0;
+		}
+	}
+
+	// =====================================================
+	// Profile API Tests
+	// =====================================================
+
+	private void runProfileTests(TestRun testRun, String accessToken) {
+		String testId = UUID.randomUUID().toString().substring(0, 8);
+
+		// Test 1: Get current user profile
+		runProfileGetTest(testRun, accessToken);
+
+		// Test 2: Update bio field
+		runProfileUpdateBioTest(testRun, accessToken, testId);
+
+		// Test 3: Update location field
+		runProfileUpdateLocationTest(testRun, accessToken, testId);
+
+		// Test 4: Update occupation field
+		runProfileUpdateOccupationTest(testRun, accessToken, testId);
+
+		// Test 5: Update education field
+		runProfileUpdateEducationTest(testRun, accessToken, testId);
+
+		// Test 6: Update multiple fields at once
+		runProfileUpdateMultipleFieldsTest(testRun, accessToken, testId);
+
+		// Test 7: Verify fields persist after update
+		runProfilePersistenceTest(testRun, accessToken, testId);
+	}
+
+	private void runProfileGetTest(TestRun testRun, String accessToken) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			HttpEntity<Void> request = new HttpEntity<>(headers);
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, request, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response != null && response.containsKey("userId") && response.containsKey("email")) {
+				testRun.addResult(new TestResult("profile", "Get Profile", true,
+						String.format("Profile retrieved: %s (%s)", response.get("name"), response.get("email")),
+						duration));
+			}
+			else {
+				testRun.addResult(new TestResult("profile", "Get Profile", false,
+						"Profile missing required fields (userId, email)", duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Get Profile", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runProfileUpdateBioTest(TestRun testRun, String accessToken, String testId) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			String testBio = "Integration test bio - " + testId;
+			Map<String, Object> body = Map.of("bio", testBio);
+
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+			restTemplate.put(apiBaseUrl + "/v1/users/profiles/me", request);
+
+			// Verify the update
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response != null && testBio.equals(response.get("bio"))) {
+				testRun.addResult(
+						new TestResult("profile", "Update Bio", true, "Bio updated and persisted: " + testBio, duration));
+			}
+			else {
+				String actualBio = response != null ? String.valueOf(response.get("bio")) : "null";
+				testRun.addResult(new TestResult("profile", "Update Bio", false,
+						"Bio not persisted. Expected: " + testBio + ", Got: " + actualBio, duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Update Bio", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runProfileUpdateLocationTest(TestRun testRun, String accessToken, String testId) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			String testLocation = "Test City, TC - " + testId;
+			Map<String, Object> body = Map.of("location", testLocation);
+
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+			restTemplate.put(apiBaseUrl + "/v1/users/profiles/me", request);
+
+			// Verify the update
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response != null && testLocation.equals(response.get("location"))) {
+				testRun.addResult(new TestResult("profile", "Update Location", true,
+						"Location updated and persisted: " + testLocation, duration));
+			}
+			else {
+				String actual = response != null ? String.valueOf(response.get("location")) : "null";
+				testRun.addResult(new TestResult("profile", "Update Location", false,
+						"Location not persisted. Expected: " + testLocation + ", Got: " + actual, duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Update Location", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runProfileUpdateOccupationTest(TestRun testRun, String accessToken, String testId) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			String testOccupation = "Test Engineer - " + testId;
+			Map<String, Object> body = Map.of("occupation", testOccupation);
+
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+			restTemplate.put(apiBaseUrl + "/v1/users/profiles/me", request);
+
+			// Verify the update
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response != null && testOccupation.equals(response.get("occupation"))) {
+				testRun.addResult(new TestResult("profile", "Update Occupation", true,
+						"Occupation updated and persisted: " + testOccupation, duration));
+			}
+			else {
+				String actual = response != null ? String.valueOf(response.get("occupation")) : "null";
+				testRun.addResult(new TestResult("profile", "Update Occupation", false,
+						"Occupation not persisted. Expected: " + testOccupation + ", Got: " + actual, duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Update Occupation", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runProfileUpdateEducationTest(TestRun testRun, String accessToken, String testId) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			String testEducation = "Test University - " + testId;
+			Map<String, Object> body = Map.of("education", testEducation);
+
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+			restTemplate.put(apiBaseUrl + "/v1/users/profiles/me", request);
+
+			// Verify the update
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response != null && testEducation.equals(response.get("education"))) {
+				testRun.addResult(new TestResult("profile", "Update Education", true,
+						"Education updated and persisted: " + testEducation, duration));
+			}
+			else {
+				String actual = response != null ? String.valueOf(response.get("education")) : "null";
+				testRun.addResult(new TestResult("profile", "Update Education", false,
+						"Education not persisted. Expected: " + testEducation + ", Got: " + actual, duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Update Education", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runProfileUpdateMultipleFieldsTest(TestRun testRun, String accessToken, String testId) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			String testBio = "Multi-field bio - " + testId;
+			String testLocation = "Multi-field Location - " + testId;
+			String testOccupation = "Multi-field Occupation - " + testId;
+			String testEducation = "Multi-field Education - " + testId;
+
+			Map<String, Object> body = Map.of("bio", testBio, "location", testLocation, "occupation", testOccupation,
+					"education", testEducation);
+
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+			restTemplate.put(apiBaseUrl + "/v1/users/profiles/me", request);
+
+			// Verify all fields updated
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			if (response != null && testBio.equals(response.get("bio")) && testLocation.equals(response.get("location"))
+					&& testOccupation.equals(response.get("occupation"))
+					&& testEducation.equals(response.get("education"))) {
+				testRun.addResult(new TestResult("profile", "Update Multiple Fields", true,
+						"All 4 fields (bio, location, occupation, education) updated and persisted", duration));
+			}
+			else {
+				testRun.addResult(new TestResult("profile", "Update Multiple Fields", false,
+						"One or more fields not persisted correctly", duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Update Multiple Fields", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
+		}
+	}
+
+	private void runProfilePersistenceTest(TestRun testRun, String accessToken, String testId) {
+		long start = System.currentTimeMillis();
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			// Set known values
+			String testBio = "Persistence test bio - " + testId;
+			Map<String, Object> updateBody = Map.of("bio", testBio);
+			HttpEntity<Map<String, Object>> updateRequest = new HttpEntity<>(updateBody, headers);
+			restTemplate.put(apiBaseUrl + "/v1/users/profiles/me", updateRequest);
+
+			// First read
+			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response1 = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			// Second read (to verify persistence)
+			@SuppressWarnings("unchecked")
+			Map<String, Object> response2 = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
+					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+
+			long duration = System.currentTimeMillis() - start;
+
+			String bio1 = response1 != null ? (String) response1.get("bio") : null;
+			String bio2 = response2 != null ? (String) response2.get("bio") : null;
+
+			if (testBio.equals(bio1) && testBio.equals(bio2)) {
+				testRun.addResult(new TestResult("profile", "Field Persistence", true,
+						"Bio persisted correctly across multiple reads", duration));
+			}
+			else {
+				testRun.addResult(new TestResult("profile", "Field Persistence", false,
+						String.format("Bio not consistent. Read1: %s, Read2: %s", bio1, bio2), duration));
+			}
+		}
+		catch (Exception e) {
+			testRun.addResult(new TestResult("profile", "Field Persistence", false, "Error: " + e.getMessage(),
+					System.currentTimeMillis() - start));
 		}
 	}
 

@@ -75,7 +75,7 @@ public class MfaEnforcementIntegrationTest {
 			// Remove any created auth methods
 			List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserId(testUserId);
 			for (AuthenticationMethodEntity method : methods) {
-				authMethodRepository.delete(testUserId, method.getId());
+				authMethodRepository.deleteForUser(testUserId, method.getId());
 			}
 		}
 		catch (Exception e) {
@@ -86,11 +86,10 @@ public class MfaEnforcementIntegrationTest {
 	private AuthenticationMethodEntity createTestMethod(AuthenticationMethodType type) {
 		AuthenticationMethodEntity method = new AuthenticationMethodEntity();
 		method.setId("method-" + UUID.randomUUID().toString());
-		method.setUserId(testUserId);
 		method.setAuthenticationMethod(type);
 		method.setIsActive(true);
 		method.setName(type.getDisplayName());
-		return authMethodRepository.save(testUserId, method, testUserId);
+		return authMethodRepository.saveForUser(testUserId, method);
 	}
 
 	@Nested
@@ -328,7 +327,7 @@ public class MfaEnforcementIntegrationTest {
 			assertTrue(securityPreferencesRepository.isMfaEnforced(testUserId));
 
 			// When - Simulate method removal by calling onMfaMethodRemoved
-			authMethodRepository.delete(testUserId, totpMethod.getId());
+			authMethodRepository.deleteForUser(testUserId, totpMethod.getId());
 			mfaEnforcementBusiness.onMfaMethodRemoved(testUserId);
 
 			// Then - Enforcement should be auto-disabled
@@ -344,7 +343,7 @@ public class MfaEnforcementIntegrationTest {
 			mfaEnforcementBusiness.updateMfaEnforcement(testUserId, true);
 
 			// When - Remove TOTP (passkey remains)
-			authMethodRepository.delete(testUserId, totpMethod.getId());
+			authMethodRepository.deleteForUser(testUserId, totpMethod.getId());
 			mfaEnforcementBusiness.onMfaMethodRemoved(testUserId);
 
 			// Then - Enforcement should remain active

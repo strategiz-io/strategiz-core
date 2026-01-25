@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
  * Configuration for live strategies business logic.
  * Sets up circuit breaker, retry policies, and other resilience patterns.
  */
-@Configuration
+@Configuration("liveStrategiesBusinessConfig")
 public class LiveStrategiesConfig {
 
 	/**

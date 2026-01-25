@@ -405,7 +405,7 @@ if (Boolean.TRUE.equals(request.getHistoricalInsights())) {
    - LLM response time with enhanced prompts
 
 3. **Quality**:
-   - Strategy win rates (Alpha vs Regular)
+   - Strategy win rates (Historical Insights vs Regular)
    - User satisfaction ratings
    - Support tickets related to Historical Insights
 

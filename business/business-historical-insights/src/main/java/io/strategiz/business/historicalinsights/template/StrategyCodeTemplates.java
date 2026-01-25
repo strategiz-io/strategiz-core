@@ -33,6 +33,8 @@ public final class StrategyCodeTemplates {
 			case STOCHASTIC -> generateStochastic(params);
 			case SWING_TRADING -> generateSwingTrading(params);
 			case COMBINED_ADX -> generateCombinedADX(params);
+			case MOMENTUM_TRAILING -> generateMomentumTrailing(params);
+			case BREAKOUT_MOMENTUM -> generateBreakoutMomentum(params);
 		};
 	}
 
@@ -830,6 +832,181 @@ public final class StrategyCodeTemplates {
 				            position = None
 				""", adxThreshold, rsiPeriod, rsiOversold, rsiOverbought, atrMult, adxThreshold, rsiPeriod, rsiOversold,
 				rsiOverbought, atrMult);
+	}
+
+	/**
+	 * Momentum Strategy with Trailing Stop - designed to outperform buy-and-hold.
+	 * Key feature: NO fixed profit target - lets winners run with trailing stop.
+	 * Uses EMA for trend confirmation and trails stop from highest high.
+	 *
+	 * Parameters:
+	 * - ema_period: EMA period for trend filter (20, 50, 100)
+	 * - trail_percent: Trailing stop percentage from high (5, 8, 10, 12)
+	 * - atr_multiplier: Initial stop loss ATR multiplier
+	 */
+	private static String generateMomentumTrailing(Map<String, Object> params) {
+		int emaPeriod = getInt(params, "ema_period", 50);
+		double trailPercent = getDouble(params, "trail_percent", 8.0);
+		double atrMult = getDouble(params, "atr_multiplier", 2.5);
+
+		return String.format("""
+				# Momentum Strategy with Trailing Stop
+				# Designed to OUTPERFORM buy-and-hold by riding trends
+				# Parameters: ema=%d, trail=%.1f%%, atr_mult=%.1f
+
+				import pandas as pd
+				import numpy as np
+
+				# Strategy parameters
+				EMA_PERIOD = %d
+				TRAIL_PERCENT = %.1f  # Trail stop this %% below highest high
+				ATR_PERIOD = 14
+				ATR_MULTIPLIER = %.1f
+
+				def calculate_ema(series, period):
+				    return series.ewm(span=period, adjust=False).mean()
+
+				def calculate_atr(data, period):
+				    high = data['high']
+				    low = data['low']
+				    close = data['close'].shift(1)
+				    tr = pd.concat([high - low, (high - close).abs(), (low - close).abs()], axis=1).max(axis=1)
+				    return tr.rolling(window=period, min_periods=1).mean()
+
+				# Calculate indicators
+				data['ema'] = calculate_ema(data['close'], EMA_PERIOD)
+				data['atr'] = calculate_atr(data, ATR_PERIOD)
+
+				# Plot EMA
+				plot(data['ema'], f'EMA {EMA_PERIOD}', color='blue', linewidth=1.5, overlay=True)
+
+				# Trading logic - KEY: trailing stop, no profit target
+				position = None
+				entry_price = 0
+				highest_since_entry = 0
+				trailing_stop = 0
+
+				for i in range(EMA_PERIOD + 1, len(data)):
+				    row = data.iloc[i]
+				    prev_row = data.iloc[i - 1]
+				    price = row['close']
+				    high = row['high']
+				    timestamp = row['timestamp']
+				    ema = row['ema']
+				    prev_ema = prev_row['ema']
+				    atr = row['atr']
+
+				    if position is None:
+				        # Entry: Price crosses above EMA (uptrend confirmed)
+				        if prev_row['close'] <= prev_ema and price > ema:
+				            position = 'long'
+				            entry_price = price
+				            highest_since_entry = high
+				            trailing_stop = price - (atr * ATR_MULTIPLIER)
+				            signal('BUY', timestamp, price, f'Price > EMA{EMA_PERIOD} (trend start)', 'arrow_up')
+				    else:
+				        # Update highest high and trailing stop
+				        if high > highest_since_entry:
+				            highest_since_entry = high
+				            # Trail stop at X%% below highest high
+				            trailing_stop = max(trailing_stop, highest_since_entry * (1 - TRAIL_PERCENT / 100))
+
+				        # Exit ONLY on trailing stop - let winners RUN
+				        if price <= trailing_stop:
+				            pct_gain = (price - entry_price) / entry_price * 100
+				            signal('SELL', timestamp, price, f'Trailing stop (gain: {pct_gain:.1f}%%)', 'arrow_down')
+				            position = None
+				        # Also exit if price drops significantly below EMA
+				        elif price < ema * 0.95:
+				            pct_gain = (price - entry_price) / entry_price * 100
+				            signal('SELL', timestamp, price, f'Below EMA (gain: {pct_gain:.1f}%%)', 'arrow_down')
+				            position = None
+				""", emaPeriod, trailPercent, atrMult, emaPeriod, trailPercent, atrMult);
+	}
+
+	/**
+	 * Breakout Momentum Strategy - buys breakouts above resistance.
+	 * Uses trailing stop from the breakout high - no fixed profit target.
+	 *
+	 * Parameters:
+	 * - lookback: Period for finding resistance (20, 50, 100)
+	 * - breakout_buffer: Percentage above resistance to confirm breakout (0.5, 1.0, 1.5)
+	 * - trail_percent: Trailing stop percentage (6, 8, 10, 12)
+	 */
+	private static String generateBreakoutMomentum(Map<String, Object> params) {
+		int lookback = getInt(params, "lookback", 50);
+		double breakoutBuffer = getDouble(params, "breakout_buffer", 1.0);
+		double trailPercent = getDouble(params, "trail_percent", 8.0);
+		double atrMult = getDouble(params, "atr_multiplier", 2.5);
+
+		return String.format("""
+				# Breakout Momentum Strategy
+				# Buys breakouts above recent highs, trails stop - no profit target
+				# Parameters: lookback=%d, buffer=%.1f%%, trail=%.1f%%
+
+				import pandas as pd
+				import numpy as np
+
+				# Strategy parameters
+				LOOKBACK = %d
+				BREAKOUT_BUFFER = %.1f  # Percent above resistance to confirm
+				TRAIL_PERCENT = %.1f
+				ATR_PERIOD = 14
+				ATR_MULTIPLIER = %.1f
+
+				def calculate_atr(data, period):
+				    high = data['high']
+				    low = data['low']
+				    close = data['close'].shift(1)
+				    tr = pd.concat([high - low, (high - close).abs(), (low - close).abs()], axis=1).max(axis=1)
+				    return tr.rolling(window=period, min_periods=1).mean()
+
+				# Calculate resistance (rolling max) and ATR
+				data['resistance'] = data['high'].rolling(window=LOOKBACK).max().shift(1)
+				data['atr'] = calculate_atr(data, ATR_PERIOD)
+
+				# Plot resistance
+				plot(data['resistance'], 'Resistance', color='red', linewidth=1, overlay=True)
+
+				# Trading logic
+				position = None
+				entry_price = 0
+				highest_since_entry = 0
+				trailing_stop = 0
+
+				for i in range(LOOKBACK + 1, len(data)):
+				    row = data.iloc[i]
+				    price = row['close']
+				    high = row['high']
+				    timestamp = row['timestamp']
+				    resistance = row['resistance']
+				    atr = row['atr']
+
+				    if pd.isna(resistance):
+				        continue
+
+				    breakout_level = resistance * (1 + BREAKOUT_BUFFER / 100)
+
+				    if position is None:
+				        # Entry: Price breaks above resistance + buffer
+				        if price > breakout_level:
+				            position = 'long'
+				            entry_price = price
+				            highest_since_entry = high
+				            trailing_stop = price - (atr * ATR_MULTIPLIER)
+				            signal('BUY', timestamp, price, f'Breakout above {resistance:.2f}', 'arrow_up')
+				    else:
+				        # Update highest high and trailing stop
+				        if high > highest_since_entry:
+				            highest_since_entry = high
+				            trailing_stop = max(trailing_stop, highest_since_entry * (1 - TRAIL_PERCENT / 100))
+
+				        # Exit ONLY on trailing stop
+				        if price <= trailing_stop:
+				            pct_gain = (price - entry_price) / entry_price * 100
+				            signal('SELL', timestamp, price, f'Trailing stop (gain: {pct_gain:.1f}%%)', 'arrow_down')
+				            position = None
+				""", lookback, breakoutBuffer, trailPercent, lookback, breakoutBuffer, trailPercent, atrMult);
 	}
 
 	// Helper methods

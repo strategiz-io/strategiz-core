@@ -21,7 +21,11 @@ public enum StrategyType {
 
 	SWING_TRADING("Swing Trading", "Buy X% drop from recent high, sell Y% rise from recent low"),
 
-	COMBINED_ADX("Combined with ADX Filter", "Top indicator strategy filtered by ADX trend strength");
+	COMBINED_ADX("Combined with ADX Filter", "Top indicator strategy filtered by ADX trend strength"),
+
+	MOMENTUM_TRAILING("Momentum with Trailing Stop", "Ride trends with trailing stops - no fixed profit target"),
+
+	BREAKOUT_MOMENTUM("Breakout Momentum", "Buy breakouts above resistance, trail stop from highest high");
 
 	private final String displayName;
 

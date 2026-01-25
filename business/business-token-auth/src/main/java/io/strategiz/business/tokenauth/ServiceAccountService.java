@@ -232,9 +232,11 @@ public class ServiceAccountService {
 		// Using a special prefix to distinguish service account tokens
 		String tokenSubject = "sa:" + account.getId();
 
-		String[] scopeArray = effectiveScopes.toArray(new String[0]);
-		String accessToken = tokenProvider.createToken(tokenSubject, validity, PasetoTokenProvider.TokenType.ACCESS,
-				scopeArray);
+		// Use createAuthenticationToken with ACR "2" for service accounts
+		// This ensures the token is accepted by endpoints with @RequireAuth(minAcr = "1")
+		// Service account credentials are considered strong authentication (ACR 2)
+		List<String> authMethods = List.of("client_credentials");
+		String accessToken = tokenProvider.createAuthenticationToken(tokenSubject, authMethods, "2", validity, false);
 
 		// Record usage
 		serviceAccountRepository.recordUsage(account.getId(), clientIp);

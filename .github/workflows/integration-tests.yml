@@ -1,0 +1,342 @@
+name: Production Integration Tests
+
+on:
+  # Manual trigger with options
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - ai-strategy
+          - autonomous-mode
+          - generative-ai
+          - auth
+          - labs
+      symbols:
+        description: 'Symbols to test (comma-separated, e.g., AAPL,MSFT,SPY)'
+        required: false
+        default: 'AAPL,MSFT,SPY,QQQ,TSLA'
+
+  # Run on schedule (daily at 6 AM UTC)
+  schedule:
+    - cron: '0 6 * * *'
+
+env:
+  PRODUCTION_API_URL: https://api.strategiz.io
+
+jobs:
+  get-token:
+    name: Authenticate
+    runs-on: ubuntu-latest
+    outputs:
+      access_token: ${{ steps.get-token.outputs.token }}
+
+    steps:
+      - name: Get Service Account Token
+        id: get-token
+        run: |
+          RESPONSE=$(curl -s -X POST "${{ env.PRODUCTION_API_URL }}/v1/auth/service-account/token" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "client_id": "${{ secrets.STRATEGIZ_CLIENT_ID }}",
+              "client_secret": "${{ secrets.STRATEGIZ_CLIENT_SECRET }}",
+              "grant_type": "client_credentials"
+            }')
+
+          TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+
+          if [ "$TOKEN" == "null" ] || [ -z "$TOKEN" ]; then
+            echo "Failed to get access token"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+          echo "✅ Successfully authenticated with service account"
+
+  # ============================================================
+  # GENERATIVE AI MODE TESTS
+  # ============================================================
+  test-generative-ai:
+    name: GENERATIVE_AI Mode - ${{ matrix.symbol }}
+    runs-on: ubuntu-latest
+    needs: get-token
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'ai-strategy' || github.event.inputs.test_suite == 'generative-ai' || github.event_name == 'schedule' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [AAPL, MSFT, SPY, QQQ, TSLA]
+
+    steps:
+      - name: Test GENERATIVE_AI for ${{ matrix.symbol }}
+        id: test
+        run: |
+          SYMBOL="${{ matrix.symbol }}"
+          echo "🧪 Testing GENERATIVE_AI mode for $SYMBOL"
+
+          # Step 1: Generate strategy
+          echo "📝 Generating strategy..."
+          GEN_RESPONSE=$(curl -s --max-time 300 -X POST "${{ env.PRODUCTION_API_URL }}/v1/labs/ai/generate-strategy" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ needs.get-token.outputs.access_token }}" \
+            -d '{
+              "prompt": "Generate a trading strategy for '"$SYMBOL"'",
+              "autonomousMode": "GENERATIVE_AI",
+              "useHistoricalInsights": true,
+              "context": {
+                "symbols": ["'"$SYMBOL"'"],
+                "timeframe": "1D"
+              },
+              "historicalInsightsOptions": {
+                "lookbackDays": 750,
+                "fastMode": true
+              }
+            }')
+
+          SUCCESS=$(echo "$GEN_RESPONSE" | jq -r '.success')
+          MODE_USED=$(echo "$GEN_RESPONSE" | jq -r '.autonomousModeUsed')
+          PYTHON_CODE=$(echo "$GEN_RESPONSE" | jq -r '.pythonCode')
+
+          if [ "$SUCCESS" != "true" ]; then
+            echo "❌ Strategy generation failed!"
+            echo "$GEN_RESPONSE" | jq '.'
+            exit 1
+          fi
+
+          if [ "$MODE_USED" != "GENERATIVE_AI" ]; then
+            echo "❌ Wrong mode used: $MODE_USED (expected GENERATIVE_AI)"
+            exit 1
+          fi
+
+          CODE_LENGTH=${#PYTHON_CODE}
+          echo "✅ Strategy generated ($CODE_LENGTH chars)"
+
+          # Step 2: Execute the strategy
+          echo "🚀 Executing strategy..."
+          EXEC_RESPONSE=$(curl -s --max-time 120 -X POST "${{ env.PRODUCTION_API_URL }}/v1/strategies/execute-code" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ needs.get-token.outputs.access_token }}" \
+            -d '{
+              "code": '"$(echo "$PYTHON_CODE" | jq -Rs '.')"',
+              "language": "python",
+              "symbol": "'"$SYMBOL"'",
+              "timeframe": "1D",
+              "period": "3y"
+            }')
+
+          # Extract performance metrics
+          STRATEGY_RETURN=$(echo "$EXEC_RESPONSE" | jq -r '.performance.totalReturn // 0')
+          BUY_HOLD_RETURN=$(echo "$EXEC_RESPONSE" | jq -r '.performance.buyAndHoldReturn // 0')
+          OUTPERFORMANCE=$(echo "$EXEC_RESPONSE" | jq -r '.performance.outperformance // 0')
+          TOTAL_TRADES=$(echo "$EXEC_RESPONSE" | jq -r '.performance.totalTrades // 0')
+
+          echo "📊 Results:"
+          echo "   Strategy Return: $STRATEGY_RETURN%"
+          echo "   Buy & Hold Return: $BUY_HOLD_RETURN%"
+          echo "   Outperformance: $OUTPERFORMANCE%"
+          echo "   Total Trades: $TOTAL_TRADES"
+
+          # Check if strategy beats buy-and-hold
+          BEATS_BH=$(echo "$OUTPERFORMANCE >= 0" | bc -l)
+
+          if [ "$BEATS_BH" == "1" ]; then
+            echo "✅ PASS: $SYMBOL GENERATIVE_AI beats buy-and-hold by ${OUTPERFORMANCE}%"
+            echo "result=pass" >> $GITHUB_OUTPUT
+          else
+            echo "❌ FAIL: $SYMBOL GENERATIVE_AI underperformed by ${OUTPERFORMANCE}%"
+            echo "result=fail" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Save metrics for summary
+          echo "strategy_return=$STRATEGY_RETURN" >> $GITHUB_OUTPUT
+          echo "buy_hold_return=$BUY_HOLD_RETURN" >> $GITHUB_OUTPUT
+          echo "outperformance=$OUTPERFORMANCE" >> $GITHUB_OUTPUT
+          echo "total_trades=$TOTAL_TRADES" >> $GITHUB_OUTPUT
+
+      - name: Add to Summary
+        if: always()
+        run: |
+          echo "| GENERATIVE_AI | ${{ matrix.symbol }} | ${{ steps.test.outputs.result == 'pass' && '✅' || '❌' }} | ${{ steps.test.outputs.strategy_return }}% | ${{ steps.test.outputs.buy_hold_return }}% | ${{ steps.test.outputs.outperformance }}% |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # AUTONOMOUS MODE TESTS
+  # ============================================================
+  test-autonomous:
+    name: AUTONOMOUS Mode - ${{ matrix.symbol }}
+    runs-on: ubuntu-latest
+    needs: get-token
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'ai-strategy' || github.event.inputs.test_suite == 'autonomous-mode' || github.event_name == 'schedule' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [AAPL, MSFT, SPY, QQQ, TSLA]
+
+    steps:
+      - name: Test AUTONOMOUS for ${{ matrix.symbol }}
+        id: test
+        run: |
+          SYMBOL="${{ matrix.symbol }}"
+          echo "🧪 Testing AUTONOMOUS mode for $SYMBOL"
+
+          # Step 1: Generate optimized strategy
+          echo "🔧 Running AUTONOMOUS optimization..."
+          GEN_RESPONSE=$(curl -s --max-time 300 -X POST "${{ env.PRODUCTION_API_URL }}/v1/labs/ai/generate-strategy" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ needs.get-token.outputs.access_token }}" \
+            -d '{
+              "prompt": "",
+              "autonomousMode": "AUTONOMOUS",
+              "useHistoricalInsights": true,
+              "context": {
+                "symbols": ["'"$SYMBOL"'"],
+                "timeframe": "1D"
+              },
+              "historicalInsightsOptions": {
+                "lookbackDays": 750,
+                "fastMode": true
+              }
+            }')
+
+          SUCCESS=$(echo "$GEN_RESPONSE" | jq -r '.success')
+          MODE_USED=$(echo "$GEN_RESPONSE" | jq -r '.autonomousModeUsed')
+          PYTHON_CODE=$(echo "$GEN_RESPONSE" | jq -r '.pythonCode')
+
+          if [ "$SUCCESS" != "true" ]; then
+            echo "❌ Strategy optimization failed!"
+            echo "$GEN_RESPONSE" | jq '.'
+            exit 1
+          fi
+
+          if [ "$MODE_USED" != "AUTONOMOUS" ]; then
+            echo "❌ Wrong mode used: $MODE_USED (expected AUTONOMOUS)"
+            exit 1
+          fi
+
+          CODE_LENGTH=${#PYTHON_CODE}
+          echo "✅ Optimized strategy generated ($CODE_LENGTH chars)"
+
+          # Step 2: Execute the strategy
+          echo "🚀 Executing strategy..."
+          EXEC_RESPONSE=$(curl -s --max-time 120 -X POST "${{ env.PRODUCTION_API_URL }}/v1/strategies/execute-code" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ needs.get-token.outputs.access_token }}" \
+            -d '{
+              "code": '"$(echo "$PYTHON_CODE" | jq -Rs '.')"',
+              "language": "python",
+              "symbol": "'"$SYMBOL"'",
+              "timeframe": "1D",
+              "period": "3y"
+            }')
+
+          # Extract performance metrics
+          STRATEGY_RETURN=$(echo "$EXEC_RESPONSE" | jq -r '.performance.totalReturn // 0')
+          BUY_HOLD_RETURN=$(echo "$EXEC_RESPONSE" | jq -r '.performance.buyAndHoldReturn // 0')
+          OUTPERFORMANCE=$(echo "$EXEC_RESPONSE" | jq -r '.performance.outperformance // 0')
+          TOTAL_TRADES=$(echo "$EXEC_RESPONSE" | jq -r '.performance.totalTrades // 0')
+
+          echo "📊 Results:"
+          echo "   Strategy Return: $STRATEGY_RETURN%"
+          echo "   Buy & Hold Return: $BUY_HOLD_RETURN%"
+          echo "   Outperformance: $OUTPERFORMANCE%"
+          echo "   Total Trades: $TOTAL_TRADES"
+
+          # Check if strategy beats buy-and-hold
+          BEATS_BH=$(echo "$OUTPERFORMANCE >= 0" | bc -l)
+
+          if [ "$BEATS_BH" == "1" ]; then
+            echo "✅ PASS: $SYMBOL AUTONOMOUS beats buy-and-hold by ${OUTPERFORMANCE}%"
+            echo "result=pass" >> $GITHUB_OUTPUT
+          else
+            echo "❌ FAIL: $SYMBOL AUTONOMOUS underperformed by ${OUTPERFORMANCE}%"
+            echo "result=fail" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Save metrics for summary
+          echo "strategy_return=$STRATEGY_RETURN" >> $GITHUB_OUTPUT
+          echo "buy_hold_return=$BUY_HOLD_RETURN" >> $GITHUB_OUTPUT
+          echo "outperformance=$OUTPERFORMANCE" >> $GITHUB_OUTPUT
+          echo "total_trades=$TOTAL_TRADES" >> $GITHUB_OUTPUT
+
+      - name: Add to Summary
+        if: always()
+        run: |
+          echo "| AUTONOMOUS | ${{ matrix.symbol }} | ${{ steps.test.outputs.result == 'pass' && '✅' || '❌' }} | ${{ steps.test.outputs.strategy_return }}% | ${{ steps.test.outputs.buy_hold_return }}% | ${{ steps.test.outputs.outperformance }}% |" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================
+  # AUTH ENDPOINT TESTS
+  # ============================================================
+  test-auth-endpoints:
+    name: Auth Endpoint Tests
+    runs-on: ubuntu-latest
+    needs: get-token
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'auth' || github.event_name == 'schedule' }}
+
+    steps:
+      - name: Test Token Validity
+        run: |
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ env.PRODUCTION_API_URL }}/v1/labs/ai/preview-indicators" \
+            -H "Authorization: Bearer ${{ needs.get-token.outputs.access_token }}" \
+            -H "Content-Type: application/json" \
+            -d '{"prompt": "test"}')
+
+          if [ "$RESPONSE" == "401" ] || [ "$RESPONSE" == "403" ]; then
+            echo "❌ Token validation failed with status: $RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Token is valid (status: $RESPONSE)"
+
+  # ============================================================
+  # SUMMARY REPORT
+  # ============================================================
+  report-results:
+    name: Final Summary
+    runs-on: ubuntu-latest
+    needs: [get-token, test-generative-ai, test-autonomous, test-auth-endpoints]
+    if: always()
+
+    steps:
+      - name: Generate Summary Header
+        run: |
+          echo "# 🧪 AI Strategy Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "**API:** ${{ env.PRODUCTION_API_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Results by Mode and Symbol" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Mode | Symbol | Status | Strategy Return | Buy & Hold | Outperformance |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|--------|-----------------|------------|----------------|" >> $GITHUB_STEP_SUMMARY
+
+      - name: Final Status
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Overall Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Authentication | ${{ needs.get-token.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GENERATIVE_AI Mode | ${{ needs.test-generative-ai.result == 'success' && '✅ All Passed' || (needs.test-generative-ai.result == 'skipped' && '⏭️ Skipped' || '❌ Some Failed') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AUTONOMOUS Mode | ${{ needs.test-autonomous.result == 'success' && '✅ All Passed' || (needs.test-autonomous.result == 'skipped' && '⏭️ Skipped' || '❌ Some Failed') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Auth Endpoints | ${{ needs.test-auth-endpoints.result == 'success' && '✅ Passed' || (needs.test-auth-endpoints.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check if all AI strategy tests passed
+          if [ "${{ needs.test-generative-ai.result }}" == "success" ] && [ "${{ needs.test-autonomous.result }}" == "success" ]; then
+            echo "## ✅ All AI Strategy Tests Passed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Both GENERATIVE_AI and AUTONOMOUS modes beat buy-and-hold for all tested symbols." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Some AI Strategy Tests Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Review the individual test results above to identify which symbols/modes need improvement." >> $GITHUB_STEP_SUMMARY
+          fi

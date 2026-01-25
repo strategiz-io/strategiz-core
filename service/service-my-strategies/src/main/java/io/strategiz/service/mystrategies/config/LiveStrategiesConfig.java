@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * Configuration for Live Strategies service.
  * Enables scheduling for alert monitoring.
  */
-@Configuration
+@Configuration("myStrategiesSchedulingConfig")
 @EnableScheduling
 public class LiveStrategiesConfig {
     // Spring will scan and register @Scheduled methods

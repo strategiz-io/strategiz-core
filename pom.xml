@@ -142,7 +142,8 @@
         <module>service/service-console</module>
         <module>service/service-console-quality</module>
         <module>service/service-console-accessibility</module>
-        <module>service/service-device</module>
+        <!-- Device Service - temporarily disabled pending full compilation fix -->
+        <!-- <module>service/service-device</module> -->
 
         <!-- API Modules (Build Seventh) -->
         <!-- Removed api-auth module as it was consolidated into service-auth -->

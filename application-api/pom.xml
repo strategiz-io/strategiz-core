@@ -79,11 +79,14 @@
             <artifactId>data-watchlist</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Device Service - temporarily disabled pending full compilation fix -->
+        <!--
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-device</artifactId>
             <version>${project.version}</version>
         </dependency>
+        -->
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>service-marketplace</artifactId>

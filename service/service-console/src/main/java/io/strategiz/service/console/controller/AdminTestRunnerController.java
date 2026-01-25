@@ -654,8 +654,8 @@ public class AdminTestRunnerController extends BaseController {
 	// =====================================================
 
 	private void runGenerativeAITests(TestRun testRun, String accessToken) {
-		// Test multiple symbols
-		List<String> symbols = List.of("AAPL", "MSFT", "SPY", "QQQ", "TSLA");
+		// Test symbols that have market data in ClickHouse
+		List<String> symbols = List.of("AAPL", "MSFT", "GOOGL", "BTC", "ETH");
 
 		for (String symbol : symbols) {
 			runGenerativeAITestForSymbol(testRun, accessToken, symbol);
@@ -829,8 +829,8 @@ public class AdminTestRunnerController extends BaseController {
 	// =====================================================
 
 	private void runAutonomousModeTestsWithVerification(TestRun testRun, String accessToken) {
-		// Test multiple symbols
-		List<String> symbols = List.of("AAPL", "MSFT", "SPY", "QQQ", "TSLA");
+		// Test symbols that have market data in ClickHouse
+		List<String> symbols = List.of("AAPL", "MSFT", "GOOGL", "BTC", "ETH");
 
 		for (String symbol : symbols) {
 			runAutonomousTestForSymbol(testRun, accessToken, symbol);
@@ -845,7 +845,7 @@ public class AdminTestRunnerController extends BaseController {
 			headers.setContentType(MediaType.APPLICATION_JSON);
 
 			// Step 1: Generate optimized strategy using AUTONOMOUS mode
-			Map<String, Object> genBody = Map.of("prompt", "", "autonomousMode", "AUTONOMOUS", "useHistoricalInsights",
+			Map<String, Object> genBody = Map.of("prompt", "Optimize trading strategy for " + symbol, "autonomousMode", "AUTONOMOUS", "useHistoricalInsights",
 					true, "context", Map.of("symbols", List.of(symbol), "timeframe", "1D"), "historicalInsightsOptions",
 					Map.of("lookbackDays", 750, "fastMode", true));
 

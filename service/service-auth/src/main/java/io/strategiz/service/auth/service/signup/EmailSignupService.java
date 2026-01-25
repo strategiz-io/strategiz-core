@@ -356,9 +356,16 @@ public class EmailSignupService extends BaseService {
 
             // OTP Code display
             "<tr><td style=\"padding: 0 40px;\">" +
-            "<div style=\"background: linear-gradient(180deg, #0f172a 0%, #020617 100%); border: 1px solid #1e293b; border-radius: 16px; padding: 32px 20px; text-align: center; margin-bottom: 32px;\">" +
+            "<div style=\"background: linear-gradient(180deg, #0f172a 0%, #020617 100%); border: 1px solid #1e293b; border-radius: 16px; padding: 32px 20px; text-align: center; margin-bottom: 16px;\">" +
             "<p style=\"color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 16px 0;\">Your Verification Code</p>" +
             "<div style=\"display: inline-block;\">" + otpDigits + "</div>" +
+            // Copyable code line
+            "<div style=\"margin-top: 20px; padding-top: 16px; border-top: 1px solid #1e293b;\">" +
+            "<p style=\"color: #64748b; font-size: 11px; margin: 0 0 8px 0;\">Tap to select & copy</p>" +
+            "<div style=\"display: inline-block; background: #0f172a; border: 1px dashed #334155; border-radius: 8px; padding: 10px 24px; cursor: pointer;\">" +
+            "<span style=\"font-family: 'SF Mono', 'Fira Code', Consolas, monospace; font-size: 20px; font-weight: 600; color: #00ff88; letter-spacing: 4px; user-select: all;\">" + otpCode + "</span>" +
+            "</div>" +
+            "</div>" +
             "</div>" +
             "</td></tr>" +
 

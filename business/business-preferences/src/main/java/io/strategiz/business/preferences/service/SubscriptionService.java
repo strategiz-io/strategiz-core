@@ -96,11 +96,17 @@ public class SubscriptionService {
 	 * Check if user can use Historical Market Insights (Autonomous AI mode).
 	 * Analyzes 7 years of historical data to generate optimized strategies.
 	 * Historical Market Insights requires tier level 1 or higher (EXPLORER+).
-	 * ADMIN users have access for testing purposes.
+	 * ADMIN users and service accounts have access for testing purposes.
 	 * @param userId The user ID
 	 * @return true if user can use Historical Market Insights
 	 */
 	public boolean canUseHistoricalInsights(String userId) {
+		// Service accounts (for integration testing) have full access
+		if (isServiceAccount(userId)) {
+			logger.debug("Service account {} granted access to Historical Market Insights", userId);
+			return true;
+		}
+
 		// Admins can use Historical Market Insights for testing
 		if (isAdmin(userId)) {
 			logger.debug("Admin user {} granted access to Historical Market Insights", userId);
@@ -120,11 +126,17 @@ public class SubscriptionService {
 
 	/**
 	 * Check if user has credits available.
-	 * ADMIN users bypass all limits for testing purposes.
+	 * ADMIN users and service accounts bypass all limits for testing purposes.
 	 * @param userId The user ID
-	 * @return true if user has remaining credits or is admin
+	 * @return true if user has remaining credits or is admin/service account
 	 */
 	public boolean hasCreditsAvailable(String userId) {
+		// Service accounts bypass all subscription limits for integration testing
+		if (isServiceAccount(userId)) {
+			logger.debug("Service account {} bypassing subscription limits", userId);
+			return true;
+		}
+
 		// Admins bypass all subscription limits for testing
 		if (isAdmin(userId)) {
 			logger.debug("Admin user {} bypassing subscription limits", userId);
@@ -390,6 +402,16 @@ public class SubscriptionService {
 		UserEntity user = userOpt.get();
 		String role = user.getProfile() != null ? user.getProfile().getRole() : null;
 		return ADMIN_ROLE.equals(role);
+	}
+
+	/**
+	 * Check if the userId represents a service account.
+	 * Service accounts are used for programmatic API access (e.g., integration testing).
+	 * @param userId The user ID
+	 * @return true if userId starts with "sa:" prefix
+	 */
+	private boolean isServiceAccount(String userId) {
+		return userId != null && userId.startsWith("sa:");
 	}
 
 }

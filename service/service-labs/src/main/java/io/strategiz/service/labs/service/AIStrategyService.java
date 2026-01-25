@@ -1119,7 +1119,8 @@ public class AIStrategyService extends BaseService {
 
 	/**
 	 * GENERATIVE AI MODE: Generate strategy from historical turning points analysis.
-	 * Analyzes the patterns at turning points to derive indicator-based entry/exit rules.
+	 * Uses optimal RSI/indicator thresholds derived from historical analysis.
+	 * Adapts strategy type based on market regime (mean-reversion vs trend-following).
 	 * Generates code that works for both backtesting AND live trading (no hardcoded dates).
 	 */
 	private AIStrategyResponse generateStrategyFromTurningPoints(SymbolInsights insights, AIStrategyRequest request) {
@@ -1132,117 +1133,199 @@ public class AIStrategyService extends BaseService {
 		}
 
 		var turningPoints = insights.getTurningPoints();
-		log.info("GENERATIVE AI: Analyzing {} turning points to derive strategy for {}",
-				turningPoints != null ? turningPoints.size() : 0, symbol);
+		log.info("GENERATIVE AI: Using enhanced historical analysis for {} ({} turning points)",
+				symbol, turningPoints != null ? turningPoints.size() : 0);
 
-		// Analyze turning points to derive thresholds and patterns
-		double avgDropBeforeBuy = 10.0;  // Default
-		double avgRiseBeforeSell = 15.0; // Default
-		int avgDaysBetweenTrades = 30;   // Default
+		// Extract optimal thresholds from historical analysis
+		double optimalRsiBuy = insights.getOptimalRsiOversold() > 0 ? insights.getOptimalRsiOversold() : 30.0;
+		double optimalRsiSell = insights.getOptimalRsiOverbought() > 0 ? insights.getOptimalRsiOverbought() : 70.0;
+		double hurstExponent = insights.getHurstExponent();
+		String regime = insights.getCurrentRegime() != null ? insights.getCurrentRegime() : "UNKNOWN";
+		double avgSwingMagnitude = insights.getAvgSwingMagnitude() > 0 ? insights.getAvgSwingMagnitude() : 10.0;
+		int avgSwingDuration = insights.getAvgSwingDuration() > 0 ? insights.getAvgSwingDuration() : 20;
 
-		if (turningPoints != null && turningPoints.size() >= 2) {
-			double totalDrop = 0;
-			double totalRise = 0;
-			int totalDays = 0;
-			int troughCount = 0;
-			int peakCount = 0;
+		// Determine strategy type based on Hurst exponent and regime
+		boolean useMeanReversion = hurstExponent > 0 && hurstExponent < 0.45;
+		boolean useTrendFollowing = hurstExponent > 0.55;
+		boolean isBearish = regime.contains("DOWNTREND") || regime.contains("BEARISH");
+		boolean isBullish = regime.contains("UPTREND") || regime.contains("BULLISH");
 
-			for (var tp : turningPoints) {
-				double change = tp.getPriceChangeFromPrevious();
-				int days = tp.getDaysFromPrevious();
+		// Calculate risk parameters based on historical volatility
+		double stopLossPercent = Math.min(Math.max(avgSwingMagnitude * 0.4, 3.0), 10.0);
+		double takeProfitPercent = Math.min(Math.max(avgSwingMagnitude * 0.8, 8.0), 25.0);
 
-				if (change != 0) {
-					if (tp.getType().name().equals("TROUGH")) {
-						totalDrop += Math.abs(change);
-						troughCount++;
-					} else {
-						totalRise += change;
-						peakCount++;
-					}
-				}
-				if (days > 0) {
-					totalDays += days;
-				}
-			}
+		log.info("GENERATIVE AI: Regime={}, Hurst={:.2f}, RSI thresholds: buy<{:.0f}, sell>{:.0f}",
+				regime, hurstExponent, optimalRsiBuy, optimalRsiSell);
 
-			if (troughCount > 0) {
-				// Use 80% of average drop - enter slightly before full bottom
-				avgDropBeforeBuy = Math.max((totalDrop / troughCount) * 0.8, 5.0);
-				avgDropBeforeBuy = Math.min(avgDropBeforeBuy, 20.0);
-			}
-			if (peakCount > 0) {
-				// Use 80% of average rise - exit slightly before full top
-				avgRiseBeforeSell = Math.max((totalRise / peakCount) * 0.8, 8.0);
-				avgRiseBeforeSell = Math.min(avgRiseBeforeSell, 30.0);
-			}
-			if (turningPoints.size() > 1) {
-				avgDaysBetweenTrades = Math.max(totalDays / (turningPoints.size() - 1), 10);
-			}
-		}
-
-		// Determine lookback period based on average swing duration
-		int lookbackPeriod = Math.min(Math.max(avgDaysBetweenTrades / 2, 10), 50);
-		double stopLoss = Math.max(avgDropBeforeBuy * 0.6, 3.0);
-
-		log.info("GENERATIVE AI: Derived thresholds - BUY at {}% drop, SELL at {}% rise, lookback {} days",
-				String.format("%.1f", avgDropBeforeBuy), String.format("%.1f", avgRiseBeforeSell), lookbackPeriod);
-
-		// Generate Python code with derived indicator-based rules
+		// Generate Python code with indicator-based rules
 		StringBuilder code = new StringBuilder();
 		code.append("import pandas as pd\n");
 		code.append("import numpy as np\n\n");
 		code.append("# ═══════════════════════════════════════════════════════════════\n");
-		code.append("# GENERATIVE AI MODE - Pattern-Based Swing Trading Strategy\n");
-		code.append("# Thresholds derived from analysis of historical turning points\n");
-		code.append("# Works for both backtesting AND live trading\n");
+		code.append("# GENERATIVE AI MODE - Multi-Indicator Strategy\n");
+		code.append("# Parameters derived from historical turning point analysis\n");
+		code.append(String.format("# Market Regime: %s (Hurst: %.2f)\n", regime, hurstExponent));
+		code.append(String.format("# Strategy Type: %s\n",
+				useMeanReversion ? "MEAN REVERSION" : (useTrendFollowing ? "TREND FOLLOWING" : "HYBRID")));
 		code.append("# ═══════════════════════════════════════════════════════════════\n\n");
 		code.append(String.format("SYMBOL = '%s'\n", symbol));
 		code.append(String.format("TIMEFRAME = '%s'\n\n", timeframe));
-		code.append("# Parameters derived from historical swing analysis\n");
-		code.append(String.format("BUY_DIP_THRESHOLD = %.1f   # Buy when price drops this %% from recent high\n", avgDropBeforeBuy));
-		code.append(String.format("SELL_RISE_THRESHOLD = %.1f # Sell when price rises this %% from entry\n", avgRiseBeforeSell));
-		code.append(String.format("STOP_LOSS = %.1f           # Maximum acceptable loss\n", stopLoss));
-		code.append(String.format("LOOKBACK_DAYS = %d         # Period for calculating swing levels\n\n", lookbackPeriod));
+
+		// Indicator parameters from historical analysis
+		code.append("# ═══════════════════════════════════════════════════════════════\n");
+		code.append("# OPTIMAL THRESHOLDS (derived from historical turning points)\n");
+		code.append("# ═══════════════════════════════════════════════════════════════\n");
+		code.append(String.format("RSI_OVERSOLD = %.1f      # RSI below this captured 80%% of optimal buy points\n", optimalRsiBuy));
+		code.append(String.format("RSI_OVERBOUGHT = %.1f    # RSI above this captured 80%% of optimal sell points\n", optimalRsiSell));
+		code.append(String.format("STOP_LOSS_PCT = %.1f     # Based on historical volatility\n", stopLossPercent));
+		code.append(String.format("TAKE_PROFIT_PCT = %.1f   # Based on average swing magnitude\n", takeProfitPercent));
+		code.append("BB_PERIOD = 20           # Bollinger Band period\n");
+		code.append("BB_STD = 2.0             # Bollinger Band standard deviation\n");
+		code.append("RSI_PERIOD = 14          # RSI calculation period\n");
+		code.append("MACD_FAST = 12           # MACD fast period\n");
+		code.append("MACD_SLOW = 26           # MACD slow period\n");
+		code.append("MACD_SIGNAL = 9          # MACD signal period\n\n");
+
+		// Position state
 		code.append("# Position state\n");
 		code.append("entry_price = None\n");
 		code.append("peak_price = None\n\n");
+
+		// Helper function for RSI
+		code.append("def calculate_rsi(prices, period=14):\n");
+		code.append("    \"\"\"Calculate RSI indicator.\"\"\"\n");
+		code.append("    delta = prices.diff()\n");
+		code.append("    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()\n");
+		code.append("    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()\n");
+		code.append("    rs = gain / loss\n");
+		code.append("    return 100 - (100 / (1 + rs))\n\n");
+
+		// Helper function for Bollinger Bands
+		code.append("def calculate_bollinger(prices, period=20, std_dev=2.0):\n");
+		code.append("    \"\"\"Calculate Bollinger Bands.\"\"\"\n");
+		code.append("    sma = prices.rolling(window=period).mean()\n");
+		code.append("    std = prices.rolling(window=period).std()\n");
+		code.append("    upper = sma + (std * std_dev)\n");
+		code.append("    lower = sma - (std * std_dev)\n");
+		code.append("    return sma, upper, lower\n\n");
+
+		// Helper function for MACD
+		code.append("def calculate_macd(prices, fast=12, slow=26, signal=9):\n");
+		code.append("    \"\"\"Calculate MACD indicator.\"\"\"\n");
+		code.append("    ema_fast = prices.ewm(span=fast, adjust=False).mean()\n");
+		code.append("    ema_slow = prices.ewm(span=slow, adjust=False).mean()\n");
+		code.append("    macd_line = ema_fast - ema_slow\n");
+		code.append("    signal_line = macd_line.ewm(span=signal, adjust=False).mean()\n");
+		code.append("    histogram = macd_line - signal_line\n");
+		code.append("    return macd_line, signal_line, histogram\n\n");
+
+		// Main strategy function
 		code.append("def strategy(data):\n");
+		code.append("    \"\"\"Multi-indicator strategy using optimal thresholds from historical analysis.\"\"\"\n");
 		code.append("    global entry_price, peak_price\n\n");
-		code.append("    if len(data) < LOOKBACK_DAYS + 1:\n");
+		code.append("    min_periods = max(RSI_PERIOD, BB_PERIOD, MACD_SLOW) + 5\n");
+		code.append("    if len(data) < min_periods:\n");
 		code.append("        return 'HOLD'\n\n");
-		code.append("    current = data['close'].iloc[-1]\n");
-		code.append("    high_n = data['high'].iloc[-(LOOKBACK_DAYS+1):-1].max()\n");
-		code.append("    low_n = data['low'].iloc[-(LOOKBACK_DAYS+1):-1].min()\n\n");
-		code.append("    # Price position relative to recent range\n");
-		code.append("    pct_below_high = ((current - high_n) / high_n) * 100\n\n");
-		code.append("    # Exit logic (if holding)\n");
+
+		// Calculate indicators
+		code.append("    # Calculate indicators\n");
+		code.append("    close = data['close']\n");
+		code.append("    current = close.iloc[-1]\n\n");
+		code.append("    rsi = calculate_rsi(close, RSI_PERIOD)\n");
+		code.append("    current_rsi = rsi.iloc[-1]\n\n");
+		code.append("    bb_mid, bb_upper, bb_lower = calculate_bollinger(close, BB_PERIOD, BB_STD)\n");
+		code.append("    current_bb_lower = bb_lower.iloc[-1]\n");
+		code.append("    current_bb_upper = bb_upper.iloc[-1]\n");
+		code.append("    bb_position = (current - current_bb_lower) / (current_bb_upper - current_bb_lower) if (current_bb_upper - current_bb_lower) > 0 else 0.5\n\n");
+		code.append("    macd_line, signal_line, histogram = calculate_macd(close, MACD_FAST, MACD_SLOW, MACD_SIGNAL)\n");
+		code.append("    current_hist = histogram.iloc[-1]\n");
+		code.append("    prev_hist = histogram.iloc[-2] if len(histogram) > 1 else 0\n");
+		code.append("    macd_bullish = current_hist > prev_hist  # Momentum improving\n\n");
+
+		// Exit logic
+		code.append("    # ═══════════════════════════════════════════════════════════════\n");
+		code.append("    # EXIT LOGIC (when holding position)\n");
+		code.append("    # ═══════════════════════════════════════════════════════════════\n");
 		code.append("    if entry_price is not None:\n");
-		code.append("        # Track peak since entry\n");
 		code.append("        peak_price = max(peak_price or current, current)\n");
 		code.append("        gain = ((current - entry_price) / entry_price) * 100\n");
 		code.append("        drop_from_peak = ((current - peak_price) / peak_price) * 100 if peak_price else 0\n\n");
-		code.append("        # Stop loss\n");
-		code.append("        if gain <= -STOP_LOSS:\n");
+
+		// Stop loss
+		code.append("        # Stop loss - exit if loss exceeds threshold\n");
+		code.append("        if gain <= -STOP_LOSS_PCT:\n");
 		code.append("            entry_price = None\n");
 		code.append("            peak_price = None\n");
 		code.append("            return 'SELL'\n\n");
-		code.append("        # Take profit when target reached\n");
-		code.append("        if gain >= SELL_RISE_THRESHOLD:\n");
+
+		// Take profit with RSI confirmation
+		code.append("        # Take profit - exit when target reached AND RSI overbought\n");
+		code.append("        if gain >= TAKE_PROFIT_PCT and current_rsi > RSI_OVERBOUGHT:\n");
 		code.append("            entry_price = None\n");
 		code.append("            peak_price = None\n");
 		code.append("            return 'SELL'\n\n");
-		code.append("        # Trailing stop: sell if dropped significantly from peak with profit\n");
-		code.append("        if gain > STOP_LOSS and drop_from_peak <= -(STOP_LOSS * 0.7):\n");
+
+		// Trailing stop
+		code.append("        # Trailing stop - protect profits\n");
+		code.append("        trailing_stop = min(STOP_LOSS_PCT, gain * 0.5) if gain > STOP_LOSS_PCT else STOP_LOSS_PCT * 0.7\n");
+		code.append("        if gain > STOP_LOSS_PCT and drop_from_peak <= -trailing_stop:\n");
+		code.append("            entry_price = None\n");
+		code.append("            peak_price = None\n");
+		code.append("            return 'SELL'\n\n");
+
+		// Exit on overbought RSI
+		code.append("        # Exit on extreme overbought (regardless of gain)\n");
+		code.append("        if current_rsi > (RSI_OVERBOUGHT + 10) and bb_position > 0.95:\n");
 		code.append("            entry_price = None\n");
 		code.append("            peak_price = None\n");
 		code.append("            return 'SELL'\n\n");
 		code.append("        return 'HOLD'\n\n");
-		code.append("    # Entry logic (no position)\n");
-		code.append("    # Buy when price has dropped significantly from recent high\n");
-		code.append("    if pct_below_high <= -BUY_DIP_THRESHOLD:\n");
-		code.append("        entry_price = current\n");
-		code.append("        peak_price = current\n");
-		code.append("        return 'BUY'\n\n");
+
+		// Entry logic
+		code.append("    # ═══════════════════════════════════════════════════════════════\n");
+		code.append("    # ENTRY LOGIC (no position)\n");
+		code.append("    # ═══════════════════════════════════════════════════════════════\n");
+
+		if (useMeanReversion) {
+			// Mean reversion strategy - buy oversold, sell overbought
+			code.append("    # MEAN REVERSION STRATEGY (Hurst < 0.45)\n");
+			code.append("    # Buy when RSI oversold AND price near lower Bollinger Band\n");
+			code.append("    rsi_oversold = current_rsi < RSI_OVERSOLD\n");
+			code.append("    near_bb_lower = bb_position < 0.15\n");
+			code.append("    momentum_turning = macd_bullish  # MACD histogram improving\n\n");
+			code.append("    if rsi_oversold and near_bb_lower and momentum_turning:\n");
+			code.append("        entry_price = current\n");
+			code.append("        peak_price = current\n");
+			code.append("        return 'BUY'\n\n");
+		}
+		else if (useTrendFollowing) {
+			// Trend following strategy
+			code.append("    # TREND FOLLOWING STRATEGY (Hurst > 0.55)\n");
+			code.append("    # Buy when RSI shows strength AND MACD bullish crossover\n");
+			code.append("    rsi_not_overbought = current_rsi < RSI_OVERBOUGHT\n");
+			code.append("    rsi_strength = current_rsi > 40  # Not oversold, showing momentum\n");
+			code.append("    macd_crossover = histogram.iloc[-1] > 0 and histogram.iloc[-2] <= 0\n");
+			code.append("    above_bb_mid = current > bb_mid.iloc[-1]\n\n");
+			code.append("    if rsi_not_overbought and rsi_strength and (macd_bullish or macd_crossover):\n");
+			code.append("        entry_price = current\n");
+			code.append("        peak_price = current\n");
+			code.append("        return 'BUY'\n\n");
+		}
+		else {
+			// Hybrid strategy - use both signals
+			code.append("    # HYBRID STRATEGY (Mixed market regime)\n");
+			code.append("    # Combine mean reversion and trend signals\n\n");
+			code.append("    # Signal 1: Deep oversold with momentum turning (mean reversion)\n");
+			code.append("    deep_oversold = current_rsi < RSI_OVERSOLD and bb_position < 0.1\n");
+			code.append("    momentum_turning = macd_bullish\n\n");
+			code.append("    # Signal 2: Trend continuation with pullback (trend following)\n");
+			code.append("    pullback_buy = current_rsi < (RSI_OVERSOLD + 10) and bb_position < 0.3 and macd_bullish\n\n");
+			code.append("    if (deep_oversold and momentum_turning) or pullback_buy:\n");
+			code.append("        entry_price = current\n");
+			code.append("        peak_price = current\n");
+			code.append("        return 'BUY'\n\n");
+		}
+
 		code.append("    return 'HOLD'\n");
 
 		// Build response
@@ -1251,21 +1334,23 @@ public class AIStrategyService extends BaseService {
 		response.setPythonCode(code.toString());
 		response.setCanRepresentVisually(true);
 
-		// Add explanation
+		// Add detailed explanation
 		int turningPointCount = turningPoints != null ? turningPoints.size() : 0;
+		String strategyType = useMeanReversion ? "Mean Reversion" : (useTrendFollowing ? "Trend Following" : "Hybrid");
 		String explanation = String.format(
-				"GENERATIVE AI MODE: Analyzed %d historical turning points for %s over %d days. " +
-				"Pattern analysis shows optimal entry when price drops %.1f%% from %d-day high, " +
-				"and optimal exit when price rises %.1f%% from entry or trailing stop triggers. " +
-				"This strategy applies the learned patterns to both historical and future data.",
-				turningPointCount, symbol, insights.getDaysAnalyzed(),
-				avgDropBeforeBuy, lookbackPeriod, avgRiseBeforeSell);
+				"GENERATIVE AI MODE: Analyzed %d historical turning points for %s. " +
+				"Market Regime: %s (Hurst: %.2f). Strategy Type: %s. " +
+				"Optimal entry threshold: RSI < %.0f (captured 80%% of historical troughs). " +
+				"Optimal exit threshold: RSI > %.0f (captured 80%% of historical peaks). " +
+				"Risk parameters: Stop-loss %.1f%%, Take-profit %.1f%% (based on %.1f%% avg swing).",
+				turningPointCount, symbol, regime, hurstExponent, strategyType,
+				optimalRsiBuy, optimalRsiSell, stopLossPercent, takeProfitPercent, avgSwingMagnitude);
 		response.setExplanation(explanation);
 
 		// Generate summary card
 		String summaryCard = String.format(
-				"Pattern-Based Swing Strategy for %s: Buy on %.1f%% dips, sell on %.1f%% gains (derived from %d turning points)",
-				symbol, avgDropBeforeBuy, avgRiseBeforeSell, turningPointCount);
+				"%s %s Strategy: RSI<%,.0f buy, RSI>%.0f sell, %.1f%% stop, %.1f%% target",
+				symbol, strategyType, optimalRsiBuy, optimalRsiSell, stopLossPercent, takeProfitPercent);
 		response.setSummaryCard(summaryCard);
 
 		// Set historical insights used flag

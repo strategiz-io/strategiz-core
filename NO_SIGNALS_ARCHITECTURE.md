@@ -58,7 +58,7 @@
 │          NoSignalAnalysisBusiness (Business Layer)              │
 │                                                                 │
 │  Step 1: Get Market Context                                     │
-│  ├─ Query HistoricalInsightsService (Alpha Mode)               │
+│  ├─ Query HistoricalInsightsService (Historical Insights)               │
 │  ├─ Volatility regime, trend direction                         │
 │  └─ Returns: MarketContext                                      │
 │                                                                 │
@@ -158,7 +158,7 @@
               │business-     │  │business-     │  │data-         │
               │ai-chat       │  │historical-   │  │marketdata    │
               │              │  │insights      │  │              │
-              │-OpenAIService│  │-Alpha Mode   │  │-Repository   │
+              │-OpenAIService│  │-Historical Insights   │  │-Repository   │
               └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
@@ -195,7 +195,7 @@
            │   Parallel Data Collection       │
            │                                  │
            │  ┌────────────────────────────┐ │
-           │  │ Alpha Mode Insights        │ │
+           │  │ Historical Insights Insights        │ │
            │  │ - Volatility regime        │ │
            │  │ - Trend direction          │ │
            │  │ - Market condition         │ │
@@ -521,7 +521,7 @@ User         Frontend        Controller      Service         Business        Ope
          ┌─────────────┼─────────────┐
          │ SUCCESS                   │ FAILURE
          ↓                           ↓
-   Use Alpha Mode insights      Use fallback context
+   Use Historical Insights insights      Use fallback context
    - Volatility regime          - "Moderate" volatility
    - Trend direction            - "Mixed" trend
    - Market condition           - "Normal conditions"
@@ -580,7 +580,7 @@ Total Response Time Target: < 6 seconds (95th percentile)
 │ 2. Python Strategy Execution         500ms  │
 │    └─ gRPC call + Python runtime             │
 │                                              │
-│ 3. Alpha Mode Insights (cached)       10ms  │
+│ 3. Historical Insights Insights (cached)       10ms  │
 │    └─ Read from cache                        │
 │                                              │
 │ 4. Code Analysis (regex)               5ms  │
@@ -608,7 +608,7 @@ Total Response Time Target: < 6 seconds (95th percentile)
 └──────────────────────────────────────────────┘
 
 Optimization Strategies:
-- Cache Alpha Mode insights (7 days TTL)
+- Cache Historical Insights insights (7 days TTL)
 - Async AI call with timeout (5s)
 - Connection pooling for OpenAI
 - CDN for frontend assets

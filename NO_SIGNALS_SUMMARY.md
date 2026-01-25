@@ -21,7 +21,7 @@
 
 **Fix Required:**
 1. Re-enable `business-historical-insights` module in parent POM
-2. OR: Comment out Alpha Mode code in AIStrategyService.java temporarily
+2. OR: Comment out Historical Insights code in AIStrategyService.java temporarily
 3. Redeploy
 
 ---
@@ -42,13 +42,13 @@ I've created a comprehensive design document: **`NO_SIGNALS_DETECTION_DESIGN.md`
 - **NoSignalAnalysisBusiness** - Core business logic
   - Detects no-signal scenarios
   - Analyzes strategy code for issues
-  - Gets market context via Alpha Mode
+  - Gets market context via Historical Insights
   - Generates AI-powered suggestions
 
 - **Model Classes:**
   - `NoSignalAnalysisResult` - Main response
   - `Suggestion` - Individual fix suggestion
-  - `MarketContext` - Alpha Mode insights
+  - `MarketContext` - Historical Insights insights
   - `StrategyDiagnostic` - Code analysis results
 
 - **Integration:**
@@ -59,7 +59,7 @@ I've created a comprehensive design document: **`NO_SIGNALS_DETECTION_DESIGN.md`
 #### 3. **Frontend Implementation**
 - **NoSignalsWarning Component** - Rich UI displaying:
   - Friendly "no signals" message
-  - Market context (Alpha Mode insights)
+  - Market context (Historical Insights insights)
   - AI-powered suggestions with priority
   - Strategy diagnostic information
   - Expandable accordions for organization
@@ -115,7 +115,7 @@ if (buyCount == 0 && sellCount == 0) {
 
 User just clicks "Backtest" - analysis happens behind the scenes.
 
-### 3. **Alpha Mode Integration** ✅
+### 3. **Historical Insights Integration** ✅
 Uses your existing `HistoricalInsightsService` for market context:
 
 - Volatility regime (Low, Moderate, High, Extreme)
@@ -134,7 +134,7 @@ AI analysis doesn't block the response:
 ### 5. **Cost-Efficient** ✅
 - ~$0.005 per analysis (half a cent)
 - Estimated monthly cost: < $50 for 1000 users
-- Cached Alpha Mode insights (no repeated queries)
+- Cached Historical Insights insights (no repeated queries)
 
 ---
 
@@ -345,7 +345,7 @@ apps/web/src/features/labs/
 ❌ **Backend Blocked:** Need to fix historical-insights compilation error
 📋 **Implementation Plan:** 12-day roadmap with daily tasks
 💰 **Cost Effective:** < $50/month for AI-powered suggestions
-🎯 **Aligned with Requirements:** Business module, backtest button, Alpha Mode
+🎯 **Aligned with Requirements:** Business module, backtest button, Historical Insights
 
 **Ready to implement as soon as backend deployment is unblocked.**
 

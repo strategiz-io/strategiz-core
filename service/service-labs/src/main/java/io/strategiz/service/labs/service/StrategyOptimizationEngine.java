@@ -245,6 +245,35 @@ public class StrategyOptimizationEngine {
 			}
 		}
 
+		// MOMENTUM TRAILING: 3 x 4 x 3 = 36 combinations
+		// KEY: These strategies are designed to OUTPERFORM buy-and-hold
+		// No fixed profit targets - let winners run with trailing stops
+		int[] emaPeriods = { 20, 50, 100 };
+		double[] trailPercents = { 5.0, 8.0, 10.0, 12.0 };
+		double[] atrMultipliers = { 2.0, 2.5, 3.0 };
+		for (int ema : emaPeriods) {
+			for (double trail : trailPercents) {
+				for (double atr : atrMultipliers) {
+					combinations.add(new StrategyTestResult(StrategyType.MOMENTUM_TRAILING,
+							Map.of("ema_period", ema, "trail_percent", trail, "atr_multiplier", atr)));
+				}
+			}
+		}
+
+		// BREAKOUT MOMENTUM: 3 x 3 x 4 = 36 combinations
+		int[] breakoutLookbacks = { 20, 50, 100 };
+		double[] breakoutBuffers = { 0.5, 1.0, 1.5 };
+		double[] breakoutTrails = { 6.0, 8.0, 10.0, 12.0 };
+		for (int lookback : breakoutLookbacks) {
+			for (double buffer : breakoutBuffers) {
+				for (double trail : breakoutTrails) {
+					combinations.add(new StrategyTestResult(StrategyType.BREAKOUT_MOMENTUM,
+							Map.of("lookback", lookback, "breakout_buffer", buffer, "trail_percent", trail,
+									"atr_multiplier", 2.5)));
+				}
+			}
+		}
+
 		log.info("Generated {} total strategy combinations", combinations.size());
 		return combinations;
 	}
@@ -371,14 +400,16 @@ public class StrategyOptimizationEngine {
 		// Determine regime based on which strategies work best
 		long trendFollowingCount = topTypeCount.getOrDefault(StrategyType.MACD_TREND_FOLLOWING, 0L)
 				+ topTypeCount.getOrDefault(StrategyType.MA_CROSSOVER_EMA, 0L)
-				+ topTypeCount.getOrDefault(StrategyType.MA_CROSSOVER_SMA, 0L);
+				+ topTypeCount.getOrDefault(StrategyType.MA_CROSSOVER_SMA, 0L)
+				+ topTypeCount.getOrDefault(StrategyType.MOMENTUM_TRAILING, 0L);
 
 		long meanReversionCount = topTypeCount.getOrDefault(StrategyType.RSI_MEAN_REVERSION, 0L)
 				+ topTypeCount.getOrDefault(StrategyType.BOLLINGER_MEAN_REVERSION, 0L)
 				+ topTypeCount.getOrDefault(StrategyType.STOCHASTIC, 0L);
 
 		long breakoutCount = topTypeCount.getOrDefault(StrategyType.BOLLINGER_BREAKOUT, 0L)
-				+ topTypeCount.getOrDefault(StrategyType.SWING_TRADING, 0L);
+				+ topTypeCount.getOrDefault(StrategyType.SWING_TRADING, 0L)
+				+ topTypeCount.getOrDefault(StrategyType.BREAKOUT_MOMENTUM, 0L);
 
 		if (trendFollowingCount > meanReversionCount && trendFollowingCount > breakoutCount) {
 			return "TRENDING";

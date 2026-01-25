@@ -2,9 +2,11 @@ package io.strategiz.batch.marketdata;
 
 import io.strategiz.business.marketdata.JobExecutionHistoryBusiness;
 import io.strategiz.business.marketdata.MarketDataCollectionService;
+import io.strategiz.business.marketdata.SymbolService;
 import io.strategiz.data.marketdata.constants.Timeframe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -44,6 +46,7 @@ public class MarketDataBackfillJob {
 
 	private final MarketDataCollectionService collectionService;
 	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+	private final SymbolService symbolService;
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -56,11 +59,14 @@ public class MarketDataBackfillJob {
 	@Value("${marketdata.batch.backfill-timeframes:1Day,1Hour,1Week,1Month}")
 	private String backfillTimeframes;
 
+	@Autowired
 	public MarketDataBackfillJob(
 			MarketDataCollectionService collectionService,
-			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
+			SymbolService symbolService) {
 		this.collectionService = collectionService;
 		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
+		this.symbolService = symbolService;
 		log.info("MarketDataBackfillJob initialized (enabled: {}, profile: scheduler)", backfillEnabled);
 	}
 
@@ -76,6 +82,15 @@ public class MarketDataBackfillJob {
 			new Thread(() -> {
 				try {
 					Thread.sleep(10000); // Wait 10s for app to fully initialize
+
+					// Check if symbols exist before backfill
+					List<String> symbols = symbolService.getProviderSymbolsForCollection("ALPACA");
+					if (symbols == null || symbols.isEmpty()) {
+						log.error("No symbols found for ALPACA data source. Please seed symbols first via /v1/admin/symbols/seed endpoint");
+						return;
+					}
+					log.info("Found {} symbols ready for backfill", symbols.size());
+
 					execute();
 				} catch (Exception e) {
 					log.error("Failed to run startup backfill: {}", e.getMessage(), e);

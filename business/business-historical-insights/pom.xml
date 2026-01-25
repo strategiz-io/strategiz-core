@@ -12,7 +12,7 @@
 
     <artifactId>business-historical-insights</artifactId>
 
-    <description>Historical market data analysis for Alpha Mode strategy generation</description>
+    <description>Historical market data analysis for AI strategy generation (Generative AI and Autonomous Mode)</description>
 
     <dependencies>
         <!-- Data layer dependencies -->

@@ -23,7 +23,7 @@ AI-powered diagnostic system that:
 1. Detects when backtest produces no signals
 2. Analyzes strategy code and market data
 3. Provides actionable suggestions
-4. Uses Alpha Mode historical insights for context
+4. Uses Historical Insights historical insights for context
 
 ---
 
@@ -62,7 +62,7 @@ AI-powered diagnostic system that:
 │  🆕 NoSignalAnalysisBusiness│   │ Return results to frontend│
 │  - Analyze strategy code   │   │ Display charts & metrics  │
 │  - Analyze market data     │   └───────────────────────────┘
-│  - Get Alpha Mode insights │
+│  - Get Historical Insights insights │
 │  - Generate suggestions    │
 └────────────┬───────────────┘
              │
@@ -79,7 +79,7 @@ AI-powered diagnostic system that:
 │  Frontend: NoSignalsWarning Component                       │
 │  - Display friendly message                                 │
 │  - Show AI suggestions                                      │
-│  - Show market context (Alpha Mode)                         │
+│  - Show market context (Historical Insights)                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -101,7 +101,7 @@ business/
 
 **Dependencies:**
 - `business-ai-chat` (for OpenAI integration and prompts)
-- `business-historical-insights` (for Alpha Mode data)
+- `business-historical-insights` (for Historical Insights data)
 - `business-strategy-execution` (for execution models)
 - `data-marketdata` (for market data analysis)
 
@@ -142,7 +142,7 @@ import java.util.ArrayList;
  * 2. Analyze strategy code for common issues
  * 3. Analyze market conditions during test period
  * 4. Generate AI-powered suggestions
- * 5. Integrate Alpha Mode insights for context
+ * 5. Integrate Historical Insights insights for context
  */
 @Service
 public class NoSignalAnalysisBusiness {
@@ -188,7 +188,7 @@ public class NoSignalAnalysisBusiness {
         result.setPeriod(period);
 
         try {
-            // 1. Get market context (Alpha Mode insights)
+            // 1. Get market context (Historical Insights insights)
             MarketContext marketContext = getMarketContext(symbol, period);
             result.setMarketContext(marketContext);
 
@@ -217,13 +217,13 @@ public class NoSignalAnalysisBusiness {
     }
 
     /**
-     * Get market context using Alpha Mode historical insights.
+     * Get market context using Historical Insights historical insights.
      */
     private MarketContext getMarketContext(String symbol, String period) {
-        log.debug("Fetching Alpha Mode insights for {}", symbol);
+        log.debug("Fetching Historical Insights insights for {}", symbol);
 
         try {
-            // Use Alpha Mode to analyze market conditions
+            // Use Historical Insights to analyze market conditions
             SymbolInsights insights = historicalInsightsService
                 .analyzeSymbolForStrategyGeneration(symbol);
 
@@ -237,7 +237,7 @@ public class NoSignalAnalysisBusiness {
             return context;
 
         } catch (Exception e) {
-            log.warn("Failed to fetch Alpha Mode insights, using fallback", e);
+            log.warn("Failed to fetch Historical Insights insights, using fallback", e);
             return MarketContext.createDefault();
         }
     }
@@ -631,7 +631,7 @@ export const NoSignalsWarning: React.FC<NoSignalsWarningProps> = ({
         This usually means the entry conditions were never met.
       </Alert>
 
-      {/* Market Context (Alpha Mode Insights) */}
+      {/* Market Context (Historical Insights Insights) */}
       {analysis.marketContext && (
         <Accordion
           expanded={expanded === 'context'}
@@ -1076,7 +1076,7 @@ class NoSignalDetectionIntegrationTest {
 
 **Day 3-4: Implement NoSignalAnalysisBusiness**
 - [ ] Implement `analyzeNoSignals()` method
-- [ ] Implement `getMarketContext()` (Alpha Mode integration)
+- [ ] Implement `getMarketContext()` (Historical Insights integration)
 - [ ] Implement `analyzeStrategyCode()` (code parsing)
 - [ ] Write unit tests
 
@@ -1128,7 +1128,7 @@ class NoSignalDetectionIntegrationTest {
 ## Performance Considerations
 
 **Backend:**
-- Alpha Mode insights: Cached (< 10ms)
+- Historical Insights insights: Cached (< 10ms)
 - Code analysis: Regex parsing (< 5ms)
 - AI call: Async, timeout 5s
 - Total overhead: < 50ms for non-AI path
@@ -1184,7 +1184,7 @@ class NoSignalDetectionIntegrationTest {
 
 **Required:**
 - `business-ai-chat` (OpenAI integration)
-- `business-historical-insights` (Alpha Mode)
+- `business-historical-insights` (Historical Insights)
 - `business-strategy-execution` (execution models)
 - `data-marketdata` (market data queries)
 

@@ -1,7 +1,7 @@
-# Alpha Mode Implementation Status
+# Historical Insights Implementation Status
 
 ## Overview
-Alpha Mode is a premium AI strategy generation feature that analyzes 7 years of S&P 500 historical market data to generate more profitable, data-driven trading strategies.
+Historical Insights is a premium AI strategy generation feature that analyzes 7 years of S&P 500 historical market data to generate more profitable, data-driven trading strategies.
 
 **Current Status**: Week 2 & 3 Complete - Backend Ready for Testing
 **Last Updated**: 2026-01-11
@@ -23,21 +23,21 @@ Alpha Mode is a premium AI strategy generation feature that analyzes 7 years of 
 
 ### Week 2: API Integration ✅
 - [x] Updated DTOs:
-  - `AIStrategyRequest` with `alphaMode` and `alphaOptions`
-  - `AIStrategyResponse` with `alphaModeUsed` and `historicalInsights`
-- [x] Created feature flag `FLAG_ALPHA_MODE` in `FeatureFlagService`
-- [x] Added `canUseAlphaMode()` to `SubscriptionService` (TRADER/STRATEGIST tiers)
-- [x] Enhanced `AIStrategyController` with Alpha Mode validation
+  - `AIStrategyRequest` with `useHistoricalInsights` and `historicalInsightsOptions`
+  - `AIStrategyResponse` with `useHistoricalInsightsUsed` and `historicalInsights`
+- [x] Created feature flag `FLAG_HISTORICAL_INSIGHTS` in `FeatureFlagService`
+- [x] Added `canUseHistoricalInsights()` to `SubscriptionService` (TRADER/STRATEGIST tiers)
+- [x] Enhanced `AIStrategyController` with Historical Insights validation
 - [x] Enhanced `AIStrategyService` to:
   - Fetch and cache historical insights
   - Extract symbol from prompt/context
   - Enhance LLM prompts with insights
   - Include insights in response
-- [x] Created `buildAlphaModePrompt()` in `AIStrategyPrompts`
+- [x] Created `buildHistoricalInsightsPrompt()` in `AIStrategyPrompts`
 
 ### Week 3: Testing & Validation ✅
-- [x] Created comprehensive integration test (`AlphaModeIntegrationTest.java`)
-- [x] Created prompt verification tool (`AlphaModePromptVerification.java`)
+- [x] Created comprehensive integration test (`HistoricalInsightsIntegrationTest.java`)
+- [x] Created prompt verification tool (`HistoricalInsightsPromptVerification.java`)
 - [x] All modules compile successfully:
   - `business-historical-insights`
   - `business-ai-chat`
@@ -51,17 +51,17 @@ Alpha Mode is a premium AI strategy generation feature that analyzes 7 years of 
 
 ### Data Flow
 ```
-1. User Request (alphaMode: true, symbol: "AAPL")
-2. FeatureFlagService.isAlphaModeEnabled() → Check feature flag
-3. SubscriptionService.canUseAlphaMode(userId) → Check TRADER/STRATEGIST tier
-4. AIStrategyService.getAlphaModeInsights():
+1. User Request (useHistoricalInsights: true, symbol: "AAPL")
+2. FeatureFlagService.isHistoricalInsightsEnabled() → Check feature flag
+3. SubscriptionService.canUseHistoricalInsights(userId) → Check TRADER/STRATEGIST tier
+4. AIStrategyService.getHistoricalInsightsInsights():
    a. Extract symbol from prompt/context
    b. Check HistoricalInsightsCacheService (24-hour cache)
    c. If not cached: HistoricalInsightsService.analyzeSymbolForStrategyGeneration()
       - Query 2,600 bars (~7 years) from ClickHouse
       - Compute volatility, rank indicators, find optimal parameters
    d. Cache insights for future requests
-5. AIStrategyPrompts.buildAlphaModePrompt(insights) → Enhanced prompt
+5. AIStrategyPrompts.buildHistoricalInsightsPrompt(insights) → Enhanced prompt
 6. LLMRouter.generateContent() → AI generates strategy
 7. AIStrategyResponse (includes historicalInsights)
 ```
@@ -84,17 +84,17 @@ Alpha Mode is a premium AI strategy generation feature that analyzes 7 years of 
 - Provides market characteristics and risk recommendations
 
 **AI Strategy Service** (`service-labs/src/main/java/io/strategiz/service/labs/service/AIStrategyService.java:60`)
-- Orchestrates Alpha Mode flow
+- Orchestrates Historical Insights flow
 - Fetches insights, enhances prompts, includes insights in response
 
 ---
 
-## Example Alpha Mode Prompts
+## Example Historical Insights Prompts
 
 ### Test Case 1: AAPL (Medium Volatility, Bullish)
 ```
 ================================================================================
-ALPHA MODE: HISTORICAL MARKET ANALYSIS
+HISTORICAL INSIGHTS: HISTORICAL MARKET ANALYSIS
 ================================================================================
 
 Symbol: AAPL
@@ -144,7 +144,7 @@ ALPHA MODE INSTRUCTIONS:
 5. In summaryCard, explain WHY this strategy works for AAPL using historical win rates
 6. Reference specific performance metrics in your explanation
 
-Example summaryCard for Alpha Mode:
+Example summaryCard for Historical Insights:
 "Based on 7 years of AAPL data, RSI with 28/72 thresholds achieved a 68% win rate.
 This medium volatility symbol responds well to mean-reversion with 3.0% stops and 9.0% targets."
 ```
@@ -205,31 +205,31 @@ Historical Win Rate: 54.0%
 ## Test Coverage
 
 ### Integration Tests Created
-**File**: `service-labs/src/test/java/io/strategiz/service/labs/AlphaModeIntegrationTest.java`
+**File**: `service-labs/src/test/java/io/strategiz/service/labs/HistoricalInsightsIntegrationTest.java`
 
 **Test Cases**:
-1. ✅ `testAlphaMode_WithAAPL_GeneratesEnhancedStrategy`
+1. ✅ `testHistoricalInsights_WithAAPL_GeneratesEnhancedStrategy`
    - Verifies AAPL insights are fetched and included in response
    - Validates caching works correctly
 
-2. ✅ `testAlphaMode_WithTSLA_HighVolatility`
+2. ✅ `testHistoricalInsights_WithTSLA_HighVolatility`
    - Tests high volatility symbol handling
    - Verifies aggressive risk level recommendations
 
-3. ✅ `testAlphaMode_WithSPY_MeanReverting`
+3. ✅ `testHistoricalInsights_WithSPY_MeanReverting`
    - Tests mean-reverting symbol characteristics
    - Validates low volatility parameters
 
-4. ✅ `testAlphaMode_UsesCache_OnSecondRequest`
+4. ✅ `testHistoricalInsights_UsesCache_OnSecondRequest`
    - Verifies caching prevents redundant analysis
    - Ensures performance optimization works
 
-5. ✅ `testAlphaMode_WithFundamentals_IncludesFundamentalData`
+5. ✅ `testHistoricalInsights_WithFundamentals_IncludesFundamentalData`
    - Tests fundamentals toggle functionality
    - Validates fundamental data integration
 
-6. ✅ `testAlphaMode_Disabled_NoInsights`
-   - Ensures regular mode works without Alpha Mode
+6. ✅ `testHistoricalInsights_Disabled_NoInsights`
+   - Ensures regular mode works without Historical Insights
    - Validates backward compatibility
 
 7. ✅ `testPromptEnhancement_IncludesHistoricalData`
@@ -237,7 +237,7 @@ Historical Win Rate: 54.0%
    - Ensures all key sections are present
 
 ### Manual Verification Tool
-**File**: `service-labs/src/test/java/io/strategiz/service/labs/AlphaModePromptVerification.java`
+**File**: `service-labs/src/test/java/io/strategiz/service/labs/HistoricalInsightsPromptVerification.java`
 
 **Features**:
 - Generates sample prompts for AAPL, TSLA, SPY, BTC
@@ -249,7 +249,7 @@ Historical Win Rate: 54.0%
 ```bash
 cd service/service-labs
 mvn test-compile exec:java \
-  -Dexec.mainClass="io.strategiz.service.labs.AlphaModePromptVerification" \
+  -Dexec.mainClass="io.strategiz.service.labs.HistoricalInsightsPromptVerification" \
   -Dexec.classpathScope=test
 ```
 
@@ -257,13 +257,13 @@ mvn test-compile exec:java \
 
 ## API Examples
 
-### Request Example (Alpha Mode Enabled)
+### Request Example (Historical Insights Enabled)
 ```json
 POST /v1/labs/ai/generate-strategy
 {
   "prompt": "Generate an RSI strategy for AAPL",
-  "alphaMode": true,
-  "alphaOptions": {
+  "useHistoricalInsights": true,
+  "historicalInsightsOptions": {
     "lookbackDays": 2600,
     "useFundamentals": true,
     "forceRefresh": false
@@ -288,7 +288,7 @@ POST /v1/labs/ai/generate-strategy
   "pythonCode": "...",
   "summaryCard": "Based on 7 years of AAPL data, RSI with 28/72 thresholds achieved a 68% win rate. This medium volatility symbol responds well to mean-reversion with 3.0% stops and 9.0% targets.",
   "riskLevel": "MEDIUM",
-  "alphaModeUsed": true,
+  "useHistoricalInsightsUsed": true,
   "historicalInsights": {
     "symbol": "AAPL",
     "timeframe": "1D",
@@ -323,15 +323,15 @@ POST /v1/labs/ai/generate-strategy
 ## Access Control
 
 ### Feature Flag
-- **Flag**: `ai_alpha_mode_enabled`
+- **Flag**: `ai_historical_insights_enabled`
 - **Location**: `data-feature-flags/src/main/java/io/strategiz/data/featureflags/service/FeatureFlagService.java:45`
 - **Default**: `true` (enabled)
-- **Method**: `isAlphaModeEnabled()`
+- **Method**: `isHistoricalInsightsEnabled()`
 
 ### Subscription Tiers
 - **Required Tiers**: TRADER or STRATEGIST
 - **Location**: `business-preferences/src/main/java/io/strategiz/business/preferences/service/SubscriptionService.java:93`
-- **Method**: `canUseAlphaMode(userId)`
+- **Method**: `canUseHistoricalInsights(userId)`
 - **Admin Override**: Admins have access for testing
 
 ### Controller Validation
@@ -339,17 +339,17 @@ POST /v1/labs/ai/generate-strategy
 
 ```java
 // ALPHA MODE CHECKS
-if (Boolean.TRUE.equals(request.getAlphaMode())) {
+if (Boolean.TRUE.equals(request.getHistoricalInsights())) {
     // Check feature flag
-    if (!featureFlagService.isAlphaModeEnabled()) {
+    if (!featureFlagService.isHistoricalInsightsEnabled()) {
         return ResponseEntity.status(503)
-            .body(AIStrategyResponse.error("Alpha Mode is currently unavailable."));
+            .body(AIStrategyResponse.error("Historical Insights is currently unavailable."));
     }
 
     // Check subscription tier
-    if (!subscriptionService.canUseAlphaMode(userId)) {
+    if (!subscriptionService.canUseHistoricalInsights(userId)) {
         return ResponseEntity.status(403)
-            .body(AIStrategyResponse.error("Alpha Mode requires TRADER or STRATEGIST tier."));
+            .body(AIStrategyResponse.error("Historical Insights requires TRADER or STRATEGIST tier."));
     }
 }
 ```
@@ -360,13 +360,13 @@ if (Boolean.TRUE.equals(request.getAlphaMode())) {
 
 ### Remaining Tasks
 1. **Frontend UI Components**:
-   - Add Alpha Mode toggle switch in AIStrategyGenerator component
+   - Add Historical Insights toggle switch in AIStrategyGenerator component
    - Add fundamentals checkbox (optional)
    - Display "Processing time: 5-10 seconds" indicator
    - Show historical insights card after generation
 
 2. **API Integration**:
-   - Update API client to send `alphaMode` and `alphaOptions`
+   - Update API client to send `useHistoricalInsights` and `historicalInsightsOptions`
    - Handle `historicalInsights` in response
    - Display insights metrics (volatility, trend, win rate)
 
@@ -386,7 +386,7 @@ if (Boolean.TRUE.equals(request.getAlphaMode())) {
 
 - **Query Time**: < 5 seconds (from ClickHouse)
 - **Cache Hit Rate**: > 70% after 1 week
-- **Total Alpha Mode Time**: < 10 seconds (analysis + LLM generation)
+- **Total Historical Insights Time**: < 10 seconds (analysis + LLM generation)
 - **Cache Size**: ~2KB per symbol, max 1000 entries (~2MB)
 
 ---
@@ -395,8 +395,8 @@ if (Boolean.TRUE.equals(request.getAlphaMode())) {
 
 ### Key Metrics to Track
 1. **Usage**:
-   - % of eligible users trying Alpha Mode
-   - Alpha Mode vs Regular Mode usage ratio
+   - % of eligible users trying Historical Insights
+   - Historical Insights vs Regular Mode usage ratio
    - Most analyzed symbols
 
 2. **Performance**:
@@ -407,7 +407,7 @@ if (Boolean.TRUE.equals(request.getAlphaMode())) {
 3. **Quality**:
    - Strategy win rates (Alpha vs Regular)
    - User satisfaction ratings
-   - Support tickets related to Alpha Mode
+   - Support tickets related to Historical Insights
 
 ---
 

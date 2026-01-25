@@ -17,9 +17,9 @@ on:
           - auth
           - labs
       symbols:
-        description: 'Symbols to test (comma-separated, e.g., AAPL,MSFT,SPY)'
+        description: 'Symbols to test (comma-separated, e.g., AAPL,MSFT,GOOGL)'
         required: false
-        default: 'AAPL,MSFT,SPY,QQQ,TSLA'
+        default: 'AAPL,MSFT,GOOGL,BTC,ETH'
 
   # Run on schedule (daily at 6 AM UTC)
   schedule:
@@ -70,7 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        symbol: [AAPL, MSFT, SPY, QQQ, TSLA]
+        symbol: [AAPL, MSFT, GOOGL, BTC, ETH]
 
     steps:
       - name: Test GENERATIVE_AI for ${{ matrix.symbol }}
@@ -176,7 +176,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        symbol: [AAPL, MSFT, SPY, QQQ, TSLA]
+        symbol: [AAPL, MSFT, GOOGL, BTC, ETH]
 
     steps:
       - name: Test AUTONOMOUS for ${{ matrix.symbol }}
@@ -191,7 +191,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ needs.get-token.outputs.access_token }}" \
             -d '{
-              "prompt": "",
+              "prompt": "Optimize trading strategy for '"$SYMBOL"'",
               "autonomousMode": "AUTONOMOUS",
               "useHistoricalInsights": true,
               "context": {

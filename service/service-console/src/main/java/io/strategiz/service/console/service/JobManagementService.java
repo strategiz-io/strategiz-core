@@ -4,6 +4,7 @@ import io.strategiz.batch.fundamentals.FundamentalsBackfillJob;
 import io.strategiz.batch.fundamentals.FundamentalsIncrementalJob;
 import io.strategiz.batch.livestrategies.DispatchJob;
 import io.strategiz.batch.marketdata.MarketDataBackfillJob;
+import io.strategiz.batch.marketdata.MarketDataDailySyncJob;
 import io.strategiz.batch.marketdata.MarketDataIncrementalJob;
 import io.strategiz.business.fundamentals.model.CollectionResult;
 import io.strategiz.data.marketdata.firestore.entity.JobDefinitionFirestoreEntity;
@@ -40,6 +41,8 @@ public class JobManagementService extends BaseService {
 	// Job beans (optional - may not be present if scheduler profile not active)
 	private final Optional<MarketDataBackfillJob> marketDataBackfillJob;
 
+	private final Optional<MarketDataDailySyncJob> marketDataDailySyncJob;
+
 	private final Optional<MarketDataIncrementalJob> marketDataIncrementalJob;
 
 	private final Optional<FundamentalsBackfillJob> fundamentalsBackfillJob;
@@ -55,11 +58,13 @@ public class JobManagementService extends BaseService {
 	private final JobDefinitionFirestoreRepository jobDefinitionRepository;
 
 	public JobManagementService(Optional<MarketDataBackfillJob> marketDataBackfillJob,
+			Optional<MarketDataDailySyncJob> marketDataDailySyncJob,
 			Optional<MarketDataIncrementalJob> marketDataIncrementalJob,
 			Optional<FundamentalsBackfillJob> fundamentalsBackfillJob,
 			Optional<FundamentalsIncrementalJob> fundamentalsIncrementalJob, Optional<DispatchJob> dispatchJob,
 			JobLogStreamService jobLogStreamService, JobDefinitionFirestoreRepository jobDefinitionRepository) {
 		this.marketDataBackfillJob = marketDataBackfillJob;
+		this.marketDataDailySyncJob = marketDataDailySyncJob;
 		this.marketDataIncrementalJob = marketDataIncrementalJob;
 		this.fundamentalsBackfillJob = fundamentalsBackfillJob;
 		this.fundamentalsIncrementalJob = fundamentalsIncrementalJob;
@@ -68,8 +73,8 @@ public class JobManagementService extends BaseService {
 		this.jobDefinitionRepository = jobDefinitionRepository;
 
 		log.info(
-				"JobManagementService initialized: marketDataBackfill={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}, dispatchJob={}",
-				marketDataBackfillJob.isPresent(), marketDataIncrementalJob.isPresent(),
+				"JobManagementService initialized: marketDataBackfill={}, marketDataDailySync={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}, dispatchJob={}",
+				marketDataBackfillJob.isPresent(), marketDataDailySyncJob.isPresent(), marketDataIncrementalJob.isPresent(),
 				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent(), dispatchJob.isPresent());
 	}
 
@@ -207,6 +212,9 @@ public class JobManagementService extends BaseService {
 				case "MARKETDATA_BACKFILL":
 					executeMarketDataBackfillJob();
 					break;
+				case "MARKETDATA_DAILY_SYNC":
+					executeMarketDataDailySyncJob();
+					break;
 				case "MARKETDATA_INCREMENTAL":
 					executeMarketDataIncrementalJob();
 					break;
@@ -270,6 +278,30 @@ public class JobManagementService extends BaseService {
 		}
 
 		log.info("Backfill completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
+				result.dataPointsStored, result.errorCount);
+	}
+
+	private void executeMarketDataDailySyncJob() {
+		if (marketDataDailySyncJob.isEmpty()) {
+			log.warn("MarketDataDailySyncJob bean not available. Start with scheduler profile or restart application.");
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_NOT_AVAILABLE, "service-console",
+					"Daily sync job not available. Ensure scheduler profile is active or job bean is instantiated.");
+		}
+
+		if (marketDataDailySyncJob.get().isRunning()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_ALREADY_RUNNING, "service-console",
+					"marketDataDailySync");
+		}
+
+		log.info("Executing MarketDataDailySyncJob.triggerManualExecution()");
+		MarketDataDailySyncJob.DailySyncResult result = marketDataDailySyncJob.get().triggerManualExecution();
+
+		if (!result.success) {
+			throw new StrategizException(ServiceConsoleErrorDetails.JOB_EXECUTION_FAILED, "service-console",
+					"Daily sync failed: " + result.message);
+		}
+
+		log.info("Daily sync completed: {} symbols, {} data points, {} errors", result.symbolsProcessed,
 				result.dataPointsStored, result.errorCount);
 	}
 
@@ -377,6 +409,8 @@ public class JobManagementService extends BaseService {
 		switch (jobId) {
 			case "MARKETDATA_BACKFILL":
 				return marketDataBackfillJob.isPresent();
+			case "MARKETDATA_DAILY_SYNC":
+				return marketDataDailySyncJob.isPresent();
 			case "MARKETDATA_INCREMENTAL":
 				return marketDataIncrementalJob.isPresent();
 			case "FUNDAMENTALS_BACKFILL":

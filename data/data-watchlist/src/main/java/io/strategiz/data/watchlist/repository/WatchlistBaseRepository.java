@@ -53,6 +53,18 @@ public class WatchlistBaseRepository extends BaseRepository<WatchlistItemEntity>
         try {
             validateInputs(entity, userId);
 
+            // DEBUG: Log the userId being used to detect incorrect paths
+            log.info("WATCHLIST_SAVE_DEBUG: userId={}, entityId={}, symbol={}", userId, entity.getId(), entity.getSymbol());
+
+            // Validate userId looks like a user ID, not a watchlist item ID
+            // User IDs should be longer UUIDs, watchlist items are also UUIDs
+            // This is a safety check to prevent writing to wrong paths
+            if (userId != null && entity.getId() != null && userId.equals(entity.getId())) {
+                log.error("WATCHLIST_SAVE_BUG: userId equals entity.getId()! This would create wrong path. userId={}", userId);
+                throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
+                    "WatchlistItemEntity", "userId cannot equal entity.getId() - potential bug detected");
+            }
+
             boolean isCreate = (entity.getId() == null || entity.getId().isEmpty());
 
             if (isCreate) {

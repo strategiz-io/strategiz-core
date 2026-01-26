@@ -137,6 +137,9 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 	 */
 	private boolean handleUserSessionAuth(HttpServletRequest request, HttpServletResponse response, String token,
 			String requestPath) throws Exception {
+		logger.info("Admin auth: validating user session for path: {}", requestPath);
+		logger.info("Admin auth: token prefix: {}...", token != null ? token.substring(0, Math.min(20, token.length())) : "null");
+
 		// Validate session and get user ID
 		Optional<String> userIdOpt;
 		try {
@@ -154,6 +157,7 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 		}
 
 		String userId = userIdOpt.get();
+		logger.info("Admin auth: session validated for userId={}", userId);
 
 		// Check if user has admin role
 		Optional<UserEntity> userOpt = userRepository.findById(userId);
@@ -164,7 +168,9 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 		}
 
 		UserEntity user = userOpt.get();
-		String role = user.getProfile() != null ? user.getProfile().getRole() : null;
+		boolean hasProfile = user.getProfile() != null;
+		String role = hasProfile ? user.getProfile().getRole() : null;
+		logger.info("Admin auth: userId={}, hasProfile={}, role={}", userId, hasProfile, role);
 
 		if (!ADMIN_ROLE.equals(role)) {
 			logger.warn("Non-admin user attempted admin access: userId={}, role={}, path={}", userId, role,

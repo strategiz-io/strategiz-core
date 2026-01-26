@@ -64,6 +64,27 @@ public class MarketDataDailySyncJob {
 	}
 
 	/**
+	 * Run on startup if enabled - for catch-up scenarios.
+	 * Waits 30 seconds for app to fully initialize before running.
+	 */
+	@jakarta.annotation.PostConstruct
+	public void runOnStartupIfEnabled() {
+		if (dailySyncEnabled) {
+			log.info("Daily sync enabled - triggering catch-up execution on startup with {} hour lookback", lookbackHours);
+			new Thread(() -> {
+				try {
+					Thread.sleep(30000); // Wait 30s for app to fully initialize
+					execute();
+				} catch (Exception e) {
+					log.error("Failed to run startup daily sync: {}", e.getMessage(), e);
+				}
+			}, "daily-sync-startup").start();
+		} else {
+			log.info("Daily sync disabled - skipping startup execution");
+		}
+	}
+
+	/**
 	 * Scheduled execution - runs at 5 PM ET (22:00 UTC) Monday-Friday.
 	 * Uses @Scheduled annotation for reliable execution.
 	 */

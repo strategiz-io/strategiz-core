@@ -91,7 +91,7 @@ public class MfaEnforcementBusiness {
 		List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserId(userId);
 
 		List<AuthenticationMethodEntity> activeMfaMethods = methods.stream()
-			.filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+			.filter(this::isMethodActive)
 			.filter(m -> isMfaMethod(m.getAuthenticationMethod()))
 			.collect(Collectors.toList());
 
@@ -120,7 +120,7 @@ public class MfaEnforcementBusiness {
 		List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserId(userId);
 
 		return methods.stream()
-			.filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+			.filter(this::isMethodActive)
 			.filter(m -> isMfaMethod(m.getAuthenticationMethod()))
 			.map(this::toMfaMethodInfo)
 			.collect(Collectors.toList());
@@ -190,7 +190,7 @@ public class MfaEnforcementBusiness {
 		// Count remaining MFA methods after removal
 		List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserId(userId);
 		long remainingMfaMethods = methods.stream()
-			.filter(m -> Boolean.TRUE.equals(m.getIsActive()))
+			.filter(this::isMethodActive)
 			.filter(m -> isMfaMethod(m.getAuthenticationMethod()))
 			.filter(m -> m.getAuthenticationMethod() != methodType)
 			.count();
@@ -218,6 +218,21 @@ public class MfaEnforcementBusiness {
 	}
 
 	// Helper methods
+
+	/**
+	 * Check if an authentication method is considered active.
+	 * Passkeys are always considered active because they are verified during
+	 * WebAuthn registration (the authenticator performs user verification).
+	 * Other methods require explicit isActive=true flag.
+	 */
+	private boolean isMethodActive(AuthenticationMethodEntity method) {
+		// Passkeys are verified during registration - treat as always active
+		if (method.getAuthenticationMethod() == AuthenticationMethodType.PASSKEY) {
+			return true;
+		}
+		// Other methods require explicit isActive flag
+		return Boolean.TRUE.equals(method.getIsActive());
+	}
 
 	private boolean isMfaMethod(AuthenticationMethodType type) {
 		return type == AuthenticationMethodType.TOTP || type == AuthenticationMethodType.PASSKEY

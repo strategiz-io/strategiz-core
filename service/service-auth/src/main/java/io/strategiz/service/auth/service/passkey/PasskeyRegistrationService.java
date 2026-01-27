@@ -245,9 +245,11 @@ public class PasskeyRegistrationService extends BaseService {
 
             log.info("Registering passkey from {} (AAGUID: {}, synced: {})",
                 authInfo.name(), attestation.aaguid(), attestation.backupState());
-            
+
+            // Mark passkey as active and used - passkeys are verified during registration
+            authMethod.setIsActive(true);
             authMethod.markAsUsed();
-            
+
             authMethodRepository.saveForUser(userId, authMethod);
             
             // Get user's demo mode from profile

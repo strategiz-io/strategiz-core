@@ -1,0 +1,15 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/strategiz-execution:${_TAG}'
+      - '-f'
+      - 'application-strategy-execution/Dockerfile'
+      - '.'
+
+images:
+  - 'gcr.io/$PROJECT_ID/strategiz-execution:${_TAG}'
+
+substitutions:
+  _TAG: 'latest'

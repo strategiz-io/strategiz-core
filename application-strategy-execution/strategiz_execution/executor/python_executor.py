@@ -45,6 +45,7 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
         # Pre-allocate numpy arrays for OHLCV data
         n = len(market_data)
         df = pd.DataFrame({
+            'timestamp': timestamps,  # Add timestamp column for strategy code access
             'open': np.array([bar['open'] for bar in market_data], dtype=np.float64),
             'high': np.array([bar['high'] for bar in market_data], dtype=np.float64),
             'low': np.array([bar['low'] for bar in market_data], dtype=np.float64),
@@ -78,20 +79,24 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
             # Get compiled code
             compiled_code = compile_result.code if hasattr(compile_result, 'code') else compile_result
 
-        # Execute strategy code (defines the strategy function)
+        # Execute strategy code
+        # Supports two patterns:
+        # 1. Old pattern: Code defines a strategy(data) function
+        # 2. New pattern: Code runs directly and calls signal()/plot() functions
         exec(compiled_code, safe_env)
 
-        # Call strategy function
+        # Get signals and indicators populated during execution
+        signals = safe_env.get('signals', [])
+        indicators = safe_env.get('indicators', {})
+
+        # If a strategy function was defined, call it (supports old pattern)
         if 'strategy' in safe_env and callable(safe_env['strategy']):
             strategy_func = safe_env['strategy']
 
-            # First, try calling with full DataFrame (allows strategy to populate signals list)
+            # Call strategy with full DataFrame
             result = strategy_func(df)
 
-            # Check if strategy populated the signals list directly
-            signals = safe_env.get('signals', [])
-
-            # If no signals were populated and result is a simple string,
+            # If no signals were populated yet and result is a simple string,
             # run backtest mode: iterate through each bar and collect signals
             if not signals and isinstance(result, str) and result.upper() in ('BUY', 'SELL', 'HOLD'):
                 signals = _run_backtest_loop(strategy_func, df)
@@ -103,16 +108,18 @@ def _execute_strategy_in_process(queue, code, market_data, code_cache):
             queue.put({
                 'success': True,
                 'signals': signals,
-                'indicators': safe_env.get('indicators', {}),
+                'indicators': indicators,
                 'result': result if not isinstance(result, (pd.Series, pd.DataFrame)) else str(type(result)),
                 'logs': []
             })
         else:
+            # New pattern: Code already ran and populated signals via signal() calls
+            # This is a success if we have any signals or the code ran without errors
             queue.put({
-                'success': False,
-                'error': 'No strategy function found',
-                'signals': [],
-                'indicators': {},
+                'success': True,
+                'signals': signals,
+                'indicators': indicators,
+                'result': 'executed',
                 'logs': []
             })
 
@@ -310,9 +317,32 @@ def _create_safe_globals_for_process(df: pd.DataFrame) -> dict:
     })
 
     # Storage for signals and indicators
+    signals_list = []
+    indicators_dict = {}
+
+    def signal_func(signal_type, timestamp, price, reason='', icon=''):
+        """Record a trading signal (BUY/SELL)"""
+        signals_list.append({
+            'timestamp': str(timestamp),
+            'type': str(signal_type).upper(),
+            'price': float(price),
+            'quantity': 1,
+            'reason': str(reason)
+        })
+
+    def plot_func(series, name, color='blue', linewidth=1, overlay=True):
+        """Record indicator values for plotting"""
+        if hasattr(series, 'tolist'):
+            indicators_dict[name] = series.tolist()
+        elif isinstance(series, list):
+            indicators_dict[name] = series
+
     safe_env.update({
-        'signals': [],
-        'indicators': {},
+        'signals': signals_list,
+        'indicators': indicators_dict,
+        'signal': signal_func,
+        'plot': plot_func,
+        'data': df,  # Add the DataFrame as 'data' for strategy code access
     })
 
     return safe_env

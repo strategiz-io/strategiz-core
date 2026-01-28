@@ -84,4 +84,11 @@ public interface AuthenticationMethodRepository {
      * Used for phone number lookup in SMS OTP authentication.
      */
     List<AuthenticationMethodEntity> findByType(AuthenticationMethodType type);
+
+    /**
+     * Find SMS OTP authentication method by phone number across all users.
+     * Uses collection group query with direct phone number filter for fast lookup.
+     * Returns the first verified SMS_OTP method matching the phone number.
+     */
+    Optional<AuthenticationMethodEntity> findByPhoneNumber(String phoneNumber);
 } 

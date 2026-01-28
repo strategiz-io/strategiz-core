@@ -249,4 +249,52 @@ public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<
             throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", type.name());
         }
     }
+
+    @Override
+    public Optional<AuthenticationMethodEntity> findByPhoneNumber(String phoneNumber) {
+        try {
+            log.debug("Searching for SMS OTP method with phone number: {}",
+                    phoneNumber != null && phoneNumber.length() > 4
+                        ? phoneNumber.substring(0, 3) + "****"
+                        : "****");
+
+            // Use collection group query with direct filter on metadata.phoneNumber
+            // This is much faster than fetching all SMS_OTP methods and filtering in memory
+            Query query = firestore.collectionGroup("security")
+                    .whereEqualTo("authenticationMethod", AuthenticationMethodType.SMS_OTP.name())
+                    .whereEqualTo("metadata.phoneNumber", phoneNumber)
+                    .whereEqualTo("metadata.isVerified", true)
+                    .whereEqualTo("isActive", true)
+                    .limit(1);
+
+            ApiFuture<QuerySnapshot> querySnapshot = query.get();
+            QuerySnapshot snapshot = querySnapshot.get();
+
+            if (snapshot.isEmpty()) {
+                log.debug("No verified SMS OTP method found for phone number");
+                return Optional.empty();
+            }
+
+            com.google.cloud.firestore.DocumentSnapshot doc = snapshot.getDocuments().get(0);
+            AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+            entity.setId(doc.getId());
+
+            // Extract userId from the document path: users/{userId}/security/{methodId}
+            String path = doc.getReference().getPath();
+            String[] pathParts = path.split("/");
+            if (pathParts.length >= 2) {
+                entity.putMetadata("userId", pathParts[1]);
+                log.debug("Found SMS OTP method for user: {}", pathParts[1]);
+            }
+
+            return Optional.of(entity);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Failed to find SMS OTP method by phone number", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AuthenticationMethodEntity", "phoneNumber");
+        } catch (ExecutionException e) {
+            log.error("Failed to find SMS OTP method by phone number", e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", "phoneNumber");
+        }
+    }
 }

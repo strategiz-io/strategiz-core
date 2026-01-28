@@ -120,14 +120,14 @@ public class SmsOtpAuthenticationService extends BaseService {
 
     /**
      * Find user ID by phone number from authentication methods.
-     * Searches the authentication_methods collection for verified SMS_OTP methods.
+     * Uses optimized direct query on phone number for fast lookup.
      */
     private String findUserIdByPhoneNumber(String phoneNumber) {
-        // First check if there's an existing session in Firestore for this phone
+        // First check if there's an existing session in Firestore for this phone (fast cache check)
         Optional<SmsOtpCodeEntity> existingSession = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
         if (existingSession.isPresent() && existingSession.get().getUserId() != null) {
             String userId = existingSession.get().getUserId();
-            // Verify the user actually has this phone registered
+            // Quick verify the user actually has this phone registered
             List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId,
                     AuthenticationMethodType.SMS_OTP);
             for (AuthenticationMethodEntity method : methods) {
@@ -143,19 +143,14 @@ public class SmsOtpAuthenticationService extends BaseService {
             }
         }
 
-        // Search all SMS_OTP authentication methods for this phone number
-        // This uses the repository's search capability with collection group query
-        List<AuthenticationMethodEntity> allSmsMethods = authMethodRepository
-            .findByType(AuthenticationMethodType.SMS_OTP);
-        for (AuthenticationMethodEntity method : allSmsMethods) {
-            String methodPhone = method.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER);
-            if (phoneNumber.equals(methodPhone)) {
-                Boolean isVerified = (Boolean) method
-                    .getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
-                if (Boolean.TRUE.equals(isVerified)) {
-                    // userId is stored in metadata by the repository during collection group query
-                    return method.getMetadataAsString("userId");
-                }
+        // Use optimized direct query by phone number (much faster than fetching all SMS_OTP methods)
+        Optional<AuthenticationMethodEntity> methodOpt = authMethodRepository.findByPhoneNumber(phoneNumber);
+        if (methodOpt.isPresent()) {
+            // userId is stored in metadata by the repository during collection group query
+            String userId = methodOpt.get().getMetadataAsString("userId");
+            if (userId != null) {
+                log.debug("Found user {} for phone number via direct query", userId);
+                return userId;
             }
         }
 

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bucket;
 import io.strategiz.client.fmp.config.FmpConfig;
+import io.strategiz.client.fmp.dto.FmpEarningsEvent;
 import io.strategiz.client.fmp.dto.FmpFundamentals;
 import io.strategiz.client.fmp.dto.FmpQuote;
 import io.strategiz.client.fmp.error.FmpErrorDetails;
@@ -16,7 +17,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -168,6 +172,76 @@ public class FmpFundamentalsClient {
 
 		log.info("Batch complete: {} successful, {} errors", successCount, errorCount);
 		return results;
+	}
+
+	/**
+	 * Get earnings calendar for a date range from FMP.
+	 * @param fromDate Start date
+	 * @param toDate End date
+	 * @return List of earnings events
+	 */
+	public List<FmpEarningsEvent> getEarningsCalendar(LocalDate fromDate, LocalDate toDate) {
+		if (!config.isConfigured()) {
+			log.warn("FMP API key not configured");
+			return Collections.emptyList();
+		}
+
+		log.debug("Fetching earnings calendar from {} to {}", fromDate, toDate);
+
+		try {
+			if (!rateLimiter.tryConsume(1)) {
+				boolean acquired = rateLimiter.asBlocking().tryConsume(1, Duration.ofSeconds(10));
+				if (!acquired) {
+					log.warn("Rate limit exceeded for FMP earnings calendar");
+					return Collections.emptyList();
+				}
+			}
+
+			String url = String.format("%s/earning_calendar?from=%s&to=%s&apikey=%s", config.getBaseUrl(),
+					fromDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+					toDate.format(DateTimeFormatter.ISO_LOCAL_DATE), config.getApiKey());
+
+			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
+			if (response.getBody() == null || !response.getStatusCode().is2xxSuccessful()) {
+				log.warn("No earnings calendar data returned");
+				return Collections.emptyList();
+			}
+
+			List<FmpEarningsEvent> events = objectMapper.readValue(response.getBody(),
+					new TypeReference<List<FmpEarningsEvent>>() {
+					});
+
+			log.info("Fetched {} earnings events from {} to {}", events != null ? events.size() : 0, fromDate, toDate);
+			return events != null ? events : Collections.emptyList();
+		}
+		catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+			log.error("Interrupted while fetching earnings calendar", ex);
+			return Collections.emptyList();
+		}
+		catch (Exception ex) {
+			log.error("Failed to fetch earnings calendar: {}", ex.getMessage());
+			return Collections.emptyList();
+		}
+	}
+
+	/**
+	 * Get upcoming earnings for the next N days.
+	 * @param days Number of days to look ahead
+	 * @return List of upcoming earnings events
+	 */
+	public List<FmpEarningsEvent> getUpcomingEarnings(int days) {
+		LocalDate today = LocalDate.now();
+		return getEarningsCalendar(today, today.plusDays(days));
+	}
+
+	/**
+	 * Check if the client is properly configured.
+	 * @return true if configured
+	 */
+	public boolean isConfigured() {
+		return config.isConfigured();
 	}
 
 	/**

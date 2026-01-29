@@ -7,6 +7,7 @@ import io.strategiz.framework.authorization.annotation.RequireAuth;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
+import io.strategiz.service.agents.dto.EarningsInsightDto;
 import io.strategiz.service.agents.dto.MarketSignalDto;
 import io.strategiz.service.agents.dto.NewsItemDto;
 import io.strategiz.service.agents.service.EarningsEdgeService;
@@ -257,6 +258,18 @@ public class AIAgentsController {
         request.setAgentId("earningsEdge");
 
         return earningsEdgeService.chatStream(request, userId);
+    }
+
+    @GetMapping("/earnings-edge/insights")
+    @RequireAuth(minAcr = "1")
+    @Operation(summary = "Get upcoming earnings", description = "Get upcoming earnings calendar for the insights panel")
+    public ResponseEntity<List<EarningsInsightDto>> getEarningsInsights(
+            @RequestParam(defaultValue = "10") int limit,
+            @AuthUser AuthenticatedUser user) {
+
+        logger.info("Fetching earnings insights for user: {}", user.getUserId());
+        List<EarningsInsightDto> earnings = earningsEdgeService.getEarningsInsights(limit);
+        return ResponseEntity.ok(earnings);
     }
 
     // ==================== News Sentinel ====================

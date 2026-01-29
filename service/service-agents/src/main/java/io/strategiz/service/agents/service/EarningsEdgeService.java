@@ -4,10 +4,13 @@ import io.strategiz.business.aichat.AIChatBusiness;
 import io.strategiz.business.aichat.model.ChatContext;
 import io.strategiz.business.aichat.model.ChatMessage;
 import io.strategiz.business.aichat.model.ChatResponse;
+import io.strategiz.client.fmp.client.FmpFundamentalsClient;
+import io.strategiz.client.fmp.dto.FmpEarningsEvent;
 import io.strategiz.service.agents.context.EarningsContextProvider;
 import io.strategiz.service.agents.dto.AgentChatMessage;
 import io.strategiz.service.agents.dto.AgentChatRequest;
 import io.strategiz.service.agents.dto.AgentChatResponse;
+import io.strategiz.service.agents.dto.EarningsInsightDto;
 import io.strategiz.service.agents.prompts.EarningsEdgePrompts;
 import io.strategiz.service.base.BaseService;
 import org.springframework.stereotype.Service;
@@ -15,12 +18,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for Earnings Edge agent - earnings analysis and trading
- * Enhanced with Finnhub API for real earnings calendar and historical data
+ * Service for Earnings Edge agent - earnings analysis and trading.
+ * Uses FMP API for real earnings calendar data.
  */
 @Service
 public class EarningsEdgeService extends BaseService {
@@ -30,10 +34,13 @@ public class EarningsEdgeService extends BaseService {
 
     private final AIChatBusiness aiChatBusiness;
     private final EarningsContextProvider earningsContextProvider;
+    private final FmpFundamentalsClient fmpFundamentalsClient;
 
-    public EarningsEdgeService(AIChatBusiness aiChatBusiness, EarningsContextProvider earningsContextProvider) {
+    public EarningsEdgeService(AIChatBusiness aiChatBusiness, EarningsContextProvider earningsContextProvider,
+            FmpFundamentalsClient fmpFundamentalsClient) {
         this.aiChatBusiness = aiChatBusiness;
         this.earningsContextProvider = earningsContextProvider;
+        this.fmpFundamentalsClient = fmpFundamentalsClient;
     }
 
     @Override
@@ -69,6 +76,50 @@ public class EarningsEdgeService extends BaseService {
             log.error("Error processing Earnings Edge streaming chat request", e);
             return Flux.just(AgentChatResponse.error(AGENT_ID, "Failed to process streaming chat: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Get upcoming earnings for the insights panel.
+     * @param limit Maximum number of earnings to return
+     * @return List of upcoming earnings events
+     */
+    public List<EarningsInsightDto> getEarningsInsights(int limit) {
+        log.debug("Fetching earnings insights, limit: {}", limit);
+        List<EarningsInsightDto> results = new ArrayList<>();
+
+        if (fmpFundamentalsClient == null || !fmpFundamentalsClient.isConfigured()) {
+            log.warn("FMP client not configured for earnings");
+            return results;
+        }
+
+        try {
+            // Get upcoming earnings for next 7 days
+            List<FmpEarningsEvent> events = fmpFundamentalsClient.getUpcomingEarnings(7);
+
+            for (FmpEarningsEvent event : events) {
+                if (results.size() >= limit) {
+                    break;
+                }
+                // Skip events without a symbol
+                if (event.getSymbol() == null || event.getSymbol().isBlank()) {
+                    continue;
+                }
+
+                EarningsInsightDto dto = new EarningsInsightDto();
+                dto.setSymbol(event.getSymbol());
+                dto.setDate(event.getDate());
+                dto.setTiming(event.getTimingDescription());
+                dto.setEpsEstimate(event.getEpsEstimated());
+                dto.setEpsActual(event.getEpsActual());
+                dto.setRevenueEstimate(event.getRevenueEstimated());
+                dto.setRevenueActual(event.getRevenueActual());
+                results.add(dto);
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch earnings insights: {}", e.getMessage());
+        }
+
+        return results;
     }
 
     private ChatContext buildContext(AgentChatRequest request, String userId) {

@@ -80,54 +80,75 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 			return false;
 		}
 
-		// Check if this is a service account token (PASETO token)
-		if (isServiceAccountToken(token)) {
-			return handleServiceAccountAuth(request, response, token, requestPath);
+		// If this is a PASETO token (v4.local.), try to validate it directly
+		// This handles both service accounts and regular user access tokens
+		if (isPasetoToken(token)) {
+			return handlePasetoAuth(request, response, token, requestPath);
 		}
 
-		// Regular user session validation
+		// Fall back to session-based validation for other token formats
 		return handleUserSessionAuth(request, response, token, requestPath);
 	}
 
 	/**
-	 * Check if the token is a service account PASETO token.
+	 * Check if the token is a PASETO token.
 	 */
-	private boolean isServiceAccountToken(String token) {
+	private boolean isPasetoToken(String token) {
 		// PASETO v4.local tokens start with "v4.local."
 		return token != null && token.startsWith("v4.local.");
 	}
 
 	/**
-	 * Handle authentication for service account tokens.
+	 * Handle authentication for PASETO tokens (both service accounts and user access tokens).
 	 */
-	private boolean handleServiceAccountAuth(HttpServletRequest request, HttpServletResponse response, String token,
+	private boolean handlePasetoAuth(HttpServletRequest request, HttpServletResponse response, String token,
 			String requestPath) throws Exception {
 		try {
 			Optional<AuthenticatedUser> userOpt = pasetoTokenValidator.validateAndExtract(token);
 			if (userOpt.isEmpty()) {
-				logger.warn("Invalid service account token for admin request: {}", requestPath);
-				response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid service account token");
+				logger.warn("Invalid PASETO token for admin request: {}", requestPath);
+				response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid token");
 				return false;
 			}
 
 			AuthenticatedUser user = userOpt.get();
 			String userId = user.getUserId();
 
-			// Check if this is a service account (userId starts with "sa:")
-			if (!userId.startsWith(SERVICE_ACCOUNT_PREFIX)) {
-				logger.warn("Token is not a service account token: userId={}", userId);
-				response.sendError(HttpStatus.FORBIDDEN.value(), "Service account required");
+			// Service accounts (userId starts with "sa:") get automatic admin access
+			if (userId.startsWith(SERVICE_ACCOUNT_PREFIX)) {
+				request.setAttribute("adminUserId", userId);
+				logger.info("Service account access granted: serviceAccountId={}, path={}", userId, requestPath);
+				return true;
+			}
+
+			// Regular user - check admin role in database
+			logger.info("Admin auth: PASETO token validated for userId={}, checking admin role", userId);
+			Optional<UserEntity> userEntityOpt = userRepository.findById(userId);
+			if (userEntityOpt.isEmpty()) {
+				logger.warn("User not found for admin request: userId={}", userId);
+				response.sendError(HttpStatus.UNAUTHORIZED.value(), "User not found");
 				return false;
 			}
 
-			// Service accounts are granted admin access for console operations
+			UserEntity userEntity = userEntityOpt.get();
+			boolean hasProfile = userEntity.getProfile() != null;
+			String role = hasProfile ? userEntity.getProfile().getRole() : null;
+			logger.info("Admin auth: userId={}, hasProfile={}, role={}", userId, hasProfile, role);
+
+			if (!ADMIN_ROLE.equals(role)) {
+				logger.warn("Non-admin user attempted admin access: userId={}, role={}, path={}", userId, role,
+						requestPath);
+				response.sendError(HttpStatus.FORBIDDEN.value(), "Admin access required");
+				return false;
+			}
+
 			request.setAttribute("adminUserId", userId);
-			logger.info("Service account access granted: serviceAccountId={}, path={}", userId, requestPath);
+			logger.info("Admin access granted via PASETO: userId={}, path={}", userId, requestPath);
 			return true;
 		}
 		catch (Exception e) {
-			logger.warn("Service account token validation error: {} - {}", requestPath, e.getMessage());
-			response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid service account token");
+			logger.warn("PASETO token validation error: {} - {}", requestPath, e.getMessage());
+			response.sendError(HttpStatus.UNAUTHORIZED.value(), "Invalid token");
 			return false;
 		}
 	}

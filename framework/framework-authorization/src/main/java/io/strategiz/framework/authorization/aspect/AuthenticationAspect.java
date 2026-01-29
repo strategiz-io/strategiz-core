@@ -8,6 +8,7 @@ import io.strategiz.framework.exception.StrategizException;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -98,8 +99,16 @@ public class AuthenticationAspect {
    */
   @Before("@within(requireAuth)")
   public void checkAuthenticationOnClass(JoinPoint joinPoint, RequireAuth requireAuth) {
-    // Note: Method-level @RequireAuth should override class-level annotation
-    // The checkAuthentication method will handle the `required` attribute
+    // If the method has its own @RequireAuth, skip the class-level check
+    // Method-level annotation takes precedence over class-level
+    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+    if (signature.getMethod().isAnnotationPresent(RequireAuth.class)) {
+      log.debug(
+          "Method {}.{} has its own @RequireAuth, skipping class-level check",
+          joinPoint.getSignature().getDeclaringTypeName(),
+          joinPoint.getSignature().getName());
+      return;
+    }
     checkAuthentication(joinPoint, requireAuth);
   }
 

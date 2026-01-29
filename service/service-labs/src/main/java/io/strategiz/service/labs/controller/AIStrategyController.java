@@ -268,12 +268,23 @@ public class AIStrategyController extends BaseController {
 				.body(AIStrategyResponse.error("AI Strategy Optimizer is temporarily unavailable. Please try again later."));
 		}
 
-		// HISTORICAL MARKET INSIGHTS CHECKS
-		// TEMPORARILY DISABLED - business-historical-insights module not included in build
+		// HISTORICAL MARKET INSIGHTS CHECKS (Autonomous AI)
 		if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
-			logger.warn("Historical Market Insights is currently disabled (module not included in build)");
-			return ResponseEntity.status(503)
-				.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+			// Check if Historical Market Insights feature flag is enabled
+			if (!featureFlagService.isHistoricalInsightsEnabled()) {
+				logger.warn("Historical Market Insights is currently disabled");
+				return ResponseEntity.status(503)
+					.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+			}
+
+			// Check if user's subscription tier level allows Historical Insights (requires tier level 1+)
+			if (!subscriptionService.canUseHistoricalInsights(userId)) {
+				logger.warn("User {} attempted to use Historical Market Insights without sufficient subscription tier", userId);
+				return ResponseEntity.status(403)
+					.body(AIStrategyResponse.error("Historical Market Insights requires a paid subscription. Upgrade to unlock."));
+			}
+
+			logger.info("Historical Market Insights enabled for user {}", userId);
 		}
 
 		// Check daily AI chat limit

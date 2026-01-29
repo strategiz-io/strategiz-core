@@ -134,6 +134,28 @@ public class SubscriptionController extends BaseController {
 	}
 
 	/**
+	 * Check if user has credits available for AI features.
+	 * @param user The authenticated user
+	 * @return Whether the user can use AI features, remaining credits, and warning level
+	 */
+	@GetMapping("/can-use")
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<Map<String, Object>> canUse(@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		boolean allowed = subscriptionService.hasCreditsAvailable(userId);
+		int remainingCredits = subscriptionService.getRemainingMessages(userId);
+		String warningLevel = remainingCredits <= 0 ? "critical"
+				: remainingCredits <= 5 ? "warning"
+				: "none";
+
+		return ResponseEntity.ok(Map.of(
+				"allowed", allowed,
+				"remainingCredits", remainingCredits,
+				"warningLevel", warningLevel
+		));
+	}
+
+	/**
 	 * Check if user can send a message.
 	 * @param user The authenticated user
 	 * @return Whether the user can send a message

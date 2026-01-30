@@ -182,10 +182,15 @@ public class FeatureFlagService {
 
     private void createDefaultFlag(String flagId, String name, String description,
                                     boolean defaultEnabled, String category) {
-        if (repository.findById(flagId).isEmpty()) {
-            FeatureFlagEntity flag = new FeatureFlagEntity(flagId, name, description, defaultEnabled, category);
-            repository.save(flag);
-            log.info("Created default feature flag: {} = {}", flagId, defaultEnabled);
+        try {
+            if (repository.findById(flagId).isEmpty()) {
+                FeatureFlagEntity flag = new FeatureFlagEntity(flagId, name, description, defaultEnabled, category);
+                repository.save(flag);
+                log.info("Created default feature flag: {} = {}", flagId, defaultEnabled);
+            }
+        }
+        catch (Exception e) {
+            log.warn("Failed to create default feature flag: {} - {}", flagId, e.getMessage());
         }
     }
 

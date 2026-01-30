@@ -127,7 +127,7 @@ public class EarningsEdgeService extends BaseService {
         context.setUserId(userId);
         context.setFeature("earnings-edge");
 
-        // Build earnings context with real Finnhub data
+        // Build earnings context with real FMP data
         String earningsContext = buildEarningsContext(request);
         context.setSystemPrompt(EarningsEdgePrompts.buildSystemPrompt(earningsContext));
 

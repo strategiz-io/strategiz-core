@@ -1,5 +1,7 @@
 package io.strategiz.business.preferences.service;
 
+import io.strategiz.business.cryptotoken.CryptoTokenBusiness;
+import io.strategiz.data.cryptotoken.entity.CryptoWallet;
 import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.data.preferences.repository.SubscriptionRepository;
@@ -37,9 +39,13 @@ public class SubscriptionService {
 
 	private final UserRepository userRepository;
 
-	public SubscriptionService(SubscriptionRepository repository, UserRepository userRepository) {
+	private final CryptoTokenBusiness cryptoTokenBusiness;
+
+	public SubscriptionService(SubscriptionRepository repository, UserRepository userRepository,
+			CryptoTokenBusiness cryptoTokenBusiness) {
 		this.repository = repository;
 		this.userRepository = userRepository;
+		this.cryptoTokenBusiness = cryptoTokenBusiness;
 	}
 
 	/**
@@ -125,10 +131,11 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user has credits available.
+	 * Check if user has STRAT available for AI usage.
+	 * Checks BOTH wallet balance > 0 AND monthly tier cap not exceeded.
 	 * ADMIN users and service accounts bypass all limits for testing purposes.
 	 * @param userId The user ID
-	 * @return true if user has remaining credits or is admin/service account
+	 * @return true if user has remaining STRAT or is admin/service account
 	 */
 	public boolean hasCreditsAvailable(String userId) {
 		// Service accounts bypass all subscription limits for integration testing
@@ -155,17 +162,24 @@ public class SubscriptionService {
 			return false;
 		}
 
-		return sub.getRemainingCredits() > 0;
+		// Check monthly tier cap
+		if (sub.getRemainingStrat() <= 0) {
+			return false;
+		}
+
+		// Check wallet balance
+		CryptoWallet wallet = cryptoTokenBusiness.getWallet(userId);
+		return wallet.getBalance() > 0;
 	}
 
 	/**
-	 * Get remaining credits for the current billing period.
+	 * Get remaining STRAT for the current billing period tier cap.
 	 * @param userId The user ID
-	 * @return Remaining credits
+	 * @return Remaining STRAT
 	 */
 	public int getRemainingCredits(String userId) {
 		PlatformSubscription sub = getSubscription(userId);
-		return sub.getRemainingCredits();
+		return sub.getRemainingStrat();
 	}
 
 	/**
@@ -353,7 +367,7 @@ public class SubscriptionService {
 		return Arrays.stream(SubscriptionTier.values())
 				.filter(tier -> !tier.isTrial())
 				.map(tier -> new TierInfo(tier.getId(), tier.getDisplayName(), tier.getPriceInCents(),
-						tier.getDescription(), tier.getAllowedModels(), tier.getMonthlyCredits(),
+						tier.getDescription(), tier.getAllowedModels(), tier.getMonthlyStrat(),
 						tier.getLevel()))
 				.collect(Collectors.toList());
 	}
@@ -368,7 +382,7 @@ public class SubscriptionService {
 		SubscriptionTier tier = sub.getTierEnum();
 
 		return new SubscriptionSummary(sub.getTier(), tier.getDisplayName(), sub.getStatus(),
-				sub.getMonthlyCreditsAllowed(), sub.getMonthlyCreditsUsed(), sub.getRemainingCredits(),
+				sub.getMonthlyStratAllowed(), sub.getMonthlyStratUsed(), sub.getRemainingStrat(),
 				sub.getUsagePercentage(), sub.getUsageWarningLevel(), tier.getAllowedModels(),
 				sub.isTrial() ? getTrialDaysRemaining(userId) : -1, sub.getCancelAtPeriodEnd());
 	}

@@ -10,16 +10,16 @@ import java.time.Instant;
 
 /**
  * Platform subscription stored at users/{userId}/subscription/current.
- * Tracks the user's subscription to Strategiz platform (tier, payment info, credit-based usage).
+ * Tracks the user's subscription to Strategiz platform (tier, payment info, STRAT-based usage).
  *
  * <p>This entity represents the user's subscription to the PLATFORM (Strategiz),
  * NOT to another user/owner. For owner subscriptions, see data-social/OwnerSubscription.</p>
  *
  * <p>Tiers:</p>
  * <ul>
- *   <li>EXPLORER: Free freemium tier (entry point for all new users)</li>
- *   <li>STRATEGIST: $199/month (3 alerts, 3 strategies, STRAT included)</li>
- *   <li>QUANT: $229/month (unlimited, more STRAT included)</li>
+ *   <li>EXPLORER: Free freemium tier (5,000 STRAT/month)</li>
+ *   <li>STRATEGIST: $89/month (25,000 STRAT/month)</li>
+ *   <li>QUANT: $129/month (40,000 STRAT/month)</li>
  * </ul>
  *
  * @see SubscriptionTier
@@ -63,14 +63,14 @@ public class PlatformSubscription extends BaseEntity {
 	@JsonProperty("cancelAtPeriodEnd")
 	private Boolean cancelAtPeriodEnd = false;
 
-	// Credit-based usage tracking
-	@PropertyName("monthlyCreditsAllowed")
-	@JsonProperty("monthlyCreditsAllowed")
-	private Integer monthlyCreditsAllowed = 0;
+	// STRAT-based usage tracking
+	@PropertyName("monthlyStratAllowed")
+	@JsonProperty("monthlyStratAllowed")
+	private Integer monthlyStratAllowed = 0;
 
-	@PropertyName("monthlyCreditsUsed")
-	@JsonProperty("monthlyCreditsUsed")
-	private Integer monthlyCreditsUsed = 0;
+	@PropertyName("monthlyStratUsed")
+	@JsonProperty("monthlyStratUsed")
+	private Integer monthlyStratUsed = 0;
 
 	@PropertyName("creditResetDate")
 	@JsonProperty("creditResetDate")
@@ -105,14 +105,14 @@ public class PlatformSubscription extends BaseEntity {
 		super();
 		this.tier = SubscriptionTier.EXPLORER.getId();
 		this.status = "active";
-		this.monthlyCreditsAllowed = SubscriptionTier.EXPLORER.getMonthlyCredits();
+		this.monthlyStratAllowed = SubscriptionTier.EXPLORER.getMonthlyStrat();
 	}
 
 	public PlatformSubscription(SubscriptionTier tier) {
 		super();
 		this.tier = tier.getId();
 		this.status = "active";
-		this.monthlyCreditsAllowed = tier.getMonthlyCredits();
+		this.monthlyStratAllowed = tier.getMonthlyStrat();
 	}
 
 	// Convenience methods
@@ -157,41 +157,65 @@ public class PlatformSubscription extends BaseEntity {
 	}
 
 	/**
-	 * Get remaining credits for the current billing period.
+	 * Get remaining STRAT for the current billing period.
 	 */
+	public int getRemainingStrat() {
+		return Math.max(0, monthlyStratAllowed - monthlyStratUsed);
+	}
+
+	/**
+	 * @deprecated Use {@link #getRemainingStrat()} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public int getRemainingCredits() {
-		return Math.max(0, monthlyCreditsAllowed - monthlyCreditsUsed);
+		return getRemainingStrat();
 	}
 
 	/**
 	 * Get usage percentage (0-100).
 	 */
 	public int getUsagePercentage() {
-		if (monthlyCreditsAllowed == null || monthlyCreditsAllowed == 0) {
+		if (monthlyStratAllowed == null || monthlyStratAllowed == 0) {
 			return 0;
 		}
-		return (int) ((monthlyCreditsUsed * 100.0) / monthlyCreditsAllowed);
+		return (int) ((monthlyStratUsed * 100.0) / monthlyStratAllowed);
 	}
 
 	/**
-	 * Check if user can consume the specified number of credits.
+	 * Check if user can consume the specified amount of STRAT.
 	 */
+	public boolean canConsumeStrat(int strat) {
+		return isActive() && getRemainingStrat() >= strat;
+	}
+
+	/**
+	 * @deprecated Use {@link #canConsumeStrat(int)} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public boolean canConsumeCredits(int credits) {
-		return isActive() && getRemainingCredits() >= credits;
+		return canConsumeStrat(credits);
 	}
 
 	/**
-	 * Consume credits and update warning level.
-	 * @param credits Number of credits to consume
-	 * @return true if credits were consumed, false if insufficient credits
+	 * Consume STRAT and update warning level.
+	 * @param strat Amount of STRAT to consume
+	 * @return true if STRAT was consumed, false if insufficient
 	 */
-	public boolean consumeCredits(int credits) {
-		if (!canConsumeCredits(credits)) {
+	public boolean consumeStrat(int strat) {
+		if (!canConsumeStrat(strat)) {
 			return false;
 		}
-		this.monthlyCreditsUsed += credits;
+		this.monthlyStratUsed += strat;
 		updateWarningLevel();
 		return true;
+	}
+
+	/**
+	 * @deprecated Use {@link #consumeStrat(int)} instead.
+	 */
+	@Deprecated(forRemoval = true)
+	public boolean consumeCredits(int credits) {
+		return consumeStrat(credits);
 	}
 
 	/**
@@ -214,21 +238,29 @@ public class PlatformSubscription extends BaseEntity {
 	}
 
 	/**
-	 * Reset credits for a new billing period.
+	 * Reset STRAT usage for a new billing period.
 	 */
-	public void resetCredits() {
-		this.monthlyCreditsUsed = 0;
+	public void resetStratUsage() {
+		this.monthlyStratUsed = 0;
 		this.usageWarningLevel = "none";
 		this.creditResetDate = Instant.now();
 	}
 
 	/**
-	 * Initialize credits when upgrading tier.
+	 * @deprecated Use {@link #resetStratUsage()} instead.
+	 */
+	@Deprecated(forRemoval = true)
+	public void resetCredits() {
+		resetStratUsage();
+	}
+
+	/**
+	 * Initialize STRAT allocation when upgrading tier.
 	 */
 	public void initializeForTier(SubscriptionTier newTier) {
 		this.tier = newTier.getId();
-		this.monthlyCreditsAllowed = newTier.getMonthlyCredits();
-		this.monthlyCreditsUsed = 0;
+		this.monthlyStratAllowed = newTier.getMonthlyStrat();
+		this.monthlyStratUsed = 0;
 		this.usageWarningLevel = "none";
 		this.status = "active";
 		this.creditResetDate = Instant.now();
@@ -299,20 +331,52 @@ public class PlatformSubscription extends BaseEntity {
 		this.cancelAtPeriodEnd = cancelAtPeriodEnd;
 	}
 
+	public Integer getMonthlyStratAllowed() {
+		return monthlyStratAllowed;
+	}
+
+	public void setMonthlyStratAllowed(Integer monthlyStratAllowed) {
+		this.monthlyStratAllowed = monthlyStratAllowed;
+	}
+
+	public Integer getMonthlyStratUsed() {
+		return monthlyStratUsed;
+	}
+
+	public void setMonthlyStratUsed(Integer monthlyStratUsed) {
+		this.monthlyStratUsed = monthlyStratUsed;
+	}
+
+	/**
+	 * @deprecated Use {@link #getMonthlyStratAllowed()} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public Integer getMonthlyCreditsAllowed() {
-		return monthlyCreditsAllowed;
+		return monthlyStratAllowed;
 	}
 
+	/**
+	 * @deprecated Use {@link #setMonthlyStratAllowed(Integer)} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public void setMonthlyCreditsAllowed(Integer monthlyCreditsAllowed) {
-		this.monthlyCreditsAllowed = monthlyCreditsAllowed;
+		this.monthlyStratAllowed = monthlyCreditsAllowed;
 	}
 
+	/**
+	 * @deprecated Use {@link #getMonthlyStratUsed()} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public Integer getMonthlyCreditsUsed() {
-		return monthlyCreditsUsed;
+		return monthlyStratUsed;
 	}
 
+	/**
+	 * @deprecated Use {@link #setMonthlyStratUsed(Integer)} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public void setMonthlyCreditsUsed(Integer monthlyCreditsUsed) {
-		this.monthlyCreditsUsed = monthlyCreditsUsed;
+		this.monthlyStratUsed = monthlyCreditsUsed;
 	}
 
 	public Instant getCreditResetDate() {

@@ -221,9 +221,9 @@ public class AiModelConfig extends BaseEntity {
 		// ============================================================
 
 		// Google
-		models.add(createModel("gemini-2.5-pro", "Gemini 2.5 Pro", PROVIDER_GOOGLE, 13,
+		models.add(createModel("gemini-2.5-pro", "Gemini 2.5 Pro", PROVIDER_GOOGLE, 15,
 				TierConfig.TIER_STRATEGIST, "balanced", "Most capable Google model"));
-		models.add(createModel("gemini-1.5-pro", "Gemini 1.5 Pro", PROVIDER_GOOGLE, 13,
+		models.add(createModel("gemini-1.5-pro", "Gemini 1.5 Pro", PROVIDER_GOOGLE, 15,
 				TierConfig.TIER_STRATEGIST, "balanced", "Balanced performance"));
 
 		// OpenAI
@@ -235,11 +235,11 @@ public class AiModelConfig extends BaseEntity {
 		// Anthropic
 		models.add(createModel("claude-3-haiku", "Claude 3 Haiku", PROVIDER_ANTHROPIC, 3,
 				TierConfig.TIER_STRATEGIST, "fast", "Budget-friendly, fast"));
-		models.add(createModel("claude-3-sonnet", "Claude 3 Sonnet", PROVIDER_ANTHROPIC, 18,
+		models.add(createModel("claude-3-sonnet", "Claude 3 Sonnet", PROVIDER_ANTHROPIC, 25,
 				TierConfig.TIER_STRATEGIST, "balanced", "Budget-friendly, balanced"));
-		models.add(createModel("claude-3-5-haiku", "Claude 3.5 Haiku", PROVIDER_ANTHROPIC, 3,
+		models.add(createModel("claude-3-5-haiku", "Claude 3.5 Haiku", PROVIDER_ANTHROPIC, 8,
 				TierConfig.TIER_STRATEGIST, "fast", "Fast & very affordable"));
-		models.add(createModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", PROVIDER_ANTHROPIC, 18,
+		models.add(createModel("claude-3-5-sonnet", "Claude 3.5 Sonnet", PROVIDER_ANTHROPIC, 25,
 				TierConfig.TIER_STRATEGIST, "balanced", "Excellent balanced model"));
 
 		// Meta
@@ -249,7 +249,7 @@ public class AiModelConfig extends BaseEntity {
 		// Mistral
 		models.add(createModel("mistral-small", "Mistral Small", PROVIDER_MISTRAL, 2,
 				TierConfig.TIER_STRATEGIST, "fast", "Efficient Mistral model"));
-		models.add(createModel("mistral-large-2", "Mistral Large 2", PROVIDER_MISTRAL, 8,
+		models.add(createModel("mistral-large-2", "Mistral Large 2", PROVIDER_MISTRAL, 12,
 				TierConfig.TIER_STRATEGIST, "balanced", "Capable Mistral model"));
 
 		// Cohere
@@ -257,7 +257,7 @@ public class AiModelConfig extends BaseEntity {
 				TierConfig.TIER_STRATEGIST, "fast", "Fast Cohere model"));
 
 		// xAI Grok
-		models.add(createModel("grok-3", "Grok 3", PROVIDER_XAI, 10,
+		models.add(createModel("grok-3", "Grok 3", PROVIDER_XAI, 25,
 				TierConfig.TIER_STRATEGIST, "balanced", "General purpose model"));
 
 		// ============================================================
@@ -266,7 +266,7 @@ public class AiModelConfig extends BaseEntity {
 		// ============================================================
 
 		// OpenAI
-		models.add(createModel("gpt-4-turbo", "GPT-4 Turbo", PROVIDER_OPENAI, 30,
+		models.add(createModel("gpt-4-turbo", "GPT-4 Turbo", PROVIDER_OPENAI, 60,
 				TierConfig.TIER_QUANT, "balanced", "Fast GPT-4 variant"));
 		models.add(createModel("o1-mini", "o1 Mini", PROVIDER_OPENAI, 30,
 				TierConfig.TIER_QUANT, "powerful", "Reasoning model, affordable"));
@@ -274,11 +274,11 @@ public class AiModelConfig extends BaseEntity {
 				TierConfig.TIER_QUANT, "powerful", "Advanced reasoning model"));
 
 		// Anthropic
-		models.add(createModel("claude-3-opus", "Claude 3 Opus", PROVIDER_ANTHROPIC, 90,
+		models.add(createModel("claude-3-opus", "Claude 3 Opus", PROVIDER_ANTHROPIC, 125,
 				TierConfig.TIER_QUANT, "powerful", "Previous flagship model"));
-		models.add(createModel("claude-haiku-4-5", "Claude Haiku 4.5", PROVIDER_ANTHROPIC, 3,
+		models.add(createModel("claude-haiku-4-5", "Claude Haiku 4.5", PROVIDER_ANTHROPIC, 8,
 				TierConfig.TIER_QUANT, "fast", "Latest fast model"));
-		models.add(createModel("claude-sonnet-4-5", "Claude Sonnet 4.5", PROVIDER_ANTHROPIC, 18,
+		models.add(createModel("claude-sonnet-4-5", "Claude Sonnet 4.5", PROVIDER_ANTHROPIC, 25,
 				TierConfig.TIER_QUANT, "balanced", "Best balanced model"));
 		models.add(createModel("claude-opus-4-5", "Claude Opus 4.5", PROVIDER_ANTHROPIC, 90,
 				TierConfig.TIER_QUANT, "powerful", "Most capable for complex tasks"));
@@ -288,7 +288,7 @@ public class AiModelConfig extends BaseEntity {
 				TierConfig.TIER_QUANT, "powerful", "Largest Llama model"));
 
 		// Cohere
-		models.add(createModel("command-r-plus", "Command R+", PROVIDER_COHERE, 10,
+		models.add(createModel("command-r-plus", "Command R+", PROVIDER_COHERE, 18,
 				TierConfig.TIER_QUANT, "balanced", "Most capable Cohere"));
 
 		// xAI Grok

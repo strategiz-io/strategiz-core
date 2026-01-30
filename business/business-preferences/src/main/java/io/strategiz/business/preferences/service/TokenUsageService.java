@@ -1,6 +1,8 @@
 package io.strategiz.business.preferences.service;
 
+import io.strategiz.business.cryptotoken.CryptoTokenBusiness;
 import io.strategiz.business.preferences.exception.PreferencesErrorDetails;
+import io.strategiz.data.cryptotoken.entity.CryptoTransaction;
 import io.strategiz.data.preferences.entity.PlatformSubscription;
 import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.data.preferences.entity.TokenUsageRecord;
@@ -15,13 +17,14 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Service for tracking token/credit usage across AI operations.
- * Handles credit consumption, usage warnings, and limit enforcement.
+ * Service for tracking token/STRAT usage across AI operations.
+ * Handles STRAT consumption from wallet, usage warnings, and tier cap enforcement.
  *
- * <p>Credit System:</p>
+ * <p>STRAT System:</p>
  * <ul>
- *   <li>1 credit = $0.001 in AI costs</li>
- *   <li>Models have different weights (Gemini Flash = 1x, Claude Opus = 115x)</li>
+ *   <li>AI usage debits STRAT from user's CryptoWallet</li>
+ *   <li>Models have different weights (Gemini Flash = 1x, Claude 3 Opus = 125x)</li>
+ *   <li>Monthly tier cap tracked on PlatformSubscription (monthlyStratUsed)</li>
  *   <li>Usage warnings at 80%, critical at 95%, blocked at 100%</li>
  * </ul>
  */
@@ -41,9 +44,13 @@ public class TokenUsageService {
 
 	private final SubscriptionRepository subscriptionRepository;
 
-	public TokenUsageService(TokenUsageRepository tokenUsageRepository, SubscriptionRepository subscriptionRepository) {
+	private final CryptoTokenBusiness cryptoTokenBusiness;
+
+	public TokenUsageService(TokenUsageRepository tokenUsageRepository, SubscriptionRepository subscriptionRepository,
+			CryptoTokenBusiness cryptoTokenBusiness) {
 		this.tokenUsageRepository = tokenUsageRepository;
 		this.subscriptionRepository = subscriptionRepository;
+		this.cryptoTokenBusiness = cryptoTokenBusiness;
 	}
 
 	/**
@@ -79,24 +86,35 @@ public class TokenUsageService {
 		// Get current subscription
 		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 
-		// Calculate credits for this usage
-		int creditsConsumed = SubscriptionTier.calculateCredits(modelId, promptTokens, completionTokens);
+		// Calculate STRAT for this usage
+		int stratConsumed = SubscriptionTier.calculateCredits(modelId, promptTokens, completionTokens);
 
 		// Create usage record
 		TokenUsageRecord record = TokenUsageRecord.create(userId, modelId, promptTokens, completionTokens, requestType,
 				sessionId, subscription.getCreditResetDate());
 
-		// Update subscription credits
-		subscription.setMonthlyCreditsUsed(subscription.getMonthlyCreditsUsed() + creditsConsumed);
+		// Update subscription monthly STRAT usage (tier cap tracking)
+		subscription.setMonthlyStratUsed(subscription.getMonthlyStratUsed() + stratConsumed);
 		subscription.updateWarningLevel();
 		subscriptionRepository.save(userId, subscription);
+
+		// Debit STRAT from user's crypto wallet
+		String referenceType = "strategy".equals(requestType) ? CryptoTransaction.REF_STRATEGY_GENERATION
+				: CryptoTransaction.REF_AI_CHAT;
+		try {
+			cryptoTokenBusiness.debitAiUsage(userId, stratConsumed, referenceType, sessionId, modelId);
+		}
+		catch (Exception e) {
+			logger.warn("Failed to debit STRAT from wallet for user {} ({}). Tier cap still tracked.", userId,
+					e.getMessage());
+		}
 
 		// Save usage record for audit trail
 		tokenUsageRepository.save(userId, record);
 
-		logger.info("User {} consumed {} credits ({} model, {} tokens). Remaining: {}/{}",
-				userId, creditsConsumed, modelId, promptTokens + completionTokens,
-				subscription.getRemainingCredits(), subscription.getMonthlyCreditsAllowed());
+		logger.info("User {} consumed {} STRAT ({} model, {} tokens). Remaining: {}/{}",
+				userId, stratConsumed, modelId, promptTokens + completionTokens,
+				subscription.getRemainingStrat(), subscription.getMonthlyStratAllowed());
 
 		return record;
 	}
@@ -114,13 +132,21 @@ public class TokenUsageService {
 	}
 
 	/**
-	 * Get remaining credits for a user.
+	 * Get remaining STRAT for a user's tier cap.
 	 * @param userId The user ID
-	 * @return Remaining credits
+	 * @return Remaining STRAT in tier cap
 	 */
-	public int getRemainingCredits(String userId) {
+	public int getRemainingStrat(String userId) {
 		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
-		return subscription.getRemainingCredits();
+		return subscription.getRemainingStrat();
+	}
+
+	/**
+	 * @deprecated Use {@link #getRemainingStrat(String)} instead.
+	 */
+	@Deprecated(forRemoval = true)
+	public int getRemainingCredits(String userId) {
+		return getRemainingStrat(userId);
 	}
 
 	/**
@@ -141,19 +167,19 @@ public class TokenUsageService {
 	public UsageStatus checkUsageStatus(String userId) {
 		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		int percentage = subscription.getUsagePercentage();
-		int remaining = subscription.getRemainingCredits();
+		int remaining = subscription.getRemainingStrat();
 
 		if (percentage >= BLOCKED_THRESHOLD) {
 			return new UsageStatus("blocked", percentage, remaining,
-					"You've used all your credits for this billing period. Please upgrade to continue.");
+					"You've used all your STRAT for this billing period. Please upgrade to continue.");
 		}
 		else if (percentage >= CRITICAL_THRESHOLD) {
 			return new UsageStatus("critical", percentage, remaining,
-					"Warning: You've used " + percentage + "% of your monthly credits. Consider upgrading soon.");
+					"Warning: You've used " + percentage + "% of your monthly STRAT. Consider upgrading soon.");
 		}
 		else if (percentage >= WARNING_THRESHOLD) {
 			return new UsageStatus("warning", percentage, remaining,
-					"You've used " + percentage + "% of your monthly credits.");
+					"You've used " + percentage + "% of your monthly STRAT.");
 		}
 		else {
 			return new UsageStatus("none", percentage, remaining, null);
@@ -179,14 +205,14 @@ public class TokenUsageService {
 		// Check if blocked
 		if (subscription.isBlocked()) {
 			throw new StrategizException(PreferencesErrorDetails.CREDITS_EXHAUSTED, MODULE_NAME,
-					"You've used all your credits for this billing period. Please upgrade to continue.");
+					"You've used all your STRAT for this billing period. Please upgrade to continue.");
 		}
 
-		// Check if enough credits available
-		if (subscription.getRemainingCredits() < creditsNeeded) {
+		// Check if enough STRAT available in tier cap
+		if (subscription.getRemainingStrat() < creditsNeeded) {
 			throw new StrategizException(PreferencesErrorDetails.INSUFFICIENT_CREDITS, MODULE_NAME,
-					"Insufficient credits. You have " + subscription.getRemainingCredits()
-							+ " credits but need " + creditsNeeded + ".");
+					"Insufficient STRAT. You have " + subscription.getRemainingStrat()
+							+ " STRAT remaining but need " + creditsNeeded + ".");
 		}
 	}
 
@@ -212,8 +238,8 @@ public class TokenUsageService {
 		int estimatedCompletion = estimatedTokens - estimatedPrompt;
 		int creditsNeeded = calculateCredits(modelId, estimatedPrompt, estimatedCompletion);
 
-		// Check if enough credits
-		return subscription.getRemainingCredits() >= creditsNeeded;
+		// Check if enough STRAT in tier cap
+		return subscription.getRemainingStrat() >= creditsNeeded;
 	}
 
 	/**
@@ -229,39 +255,55 @@ public class TokenUsageService {
 		Map<String, Integer> creditsByModel = tokenUsageRepository.getCreditsByModel(userId, periodStart);
 		Map<String, Integer> creditsByType = tokenUsageRepository.getCreditsByRequestType(userId, periodStart);
 
-		return new UsageAnalytics(userId, subscription.getMonthlyCreditsAllowed(), subscription.getMonthlyCreditsUsed(),
-				subscription.getRemainingCredits(), subscription.getUsagePercentage(),
+		return new UsageAnalytics(userId, subscription.getMonthlyStratAllowed(), subscription.getMonthlyStratUsed(),
+				subscription.getRemainingStrat(), subscription.getUsagePercentage(),
 				subscription.getUsageWarningLevel(), creditsByModel, creditsByType);
 	}
 
 	/**
-	 * Reset credits for a new billing period.
+	 * Reset STRAT usage for a new billing period.
 	 * Called by webhook handler when subscription renews.
 	 * @param userId The user ID
 	 * @return Updated subscription
 	 */
-	public PlatformSubscription resetCredits(String userId) {
-		logger.info("Resetting credits for user {} - new billing period", userId);
+	public PlatformSubscription resetStratUsage(String userId) {
+		logger.info("Resetting STRAT usage for user {} - new billing period", userId);
 
 		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
-		subscription.resetCredits();
+		subscription.resetStratUsage();
 
 		return subscriptionRepository.save(userId, subscription);
 	}
 
 	/**
-	 * Initialize credits for a new subscriber or tier change.
+	 * @deprecated Use {@link #resetStratUsage(String)} instead.
+	 */
+	@Deprecated(forRemoval = true)
+	public PlatformSubscription resetCredits(String userId) {
+		return resetStratUsage(userId);
+	}
+
+	/**
+	 * Initialize STRAT allocation for a new subscriber or tier change.
 	 * @param userId The user ID
 	 * @param tier The subscription tier
 	 * @return Updated subscription
 	 */
-	public PlatformSubscription initializeCredits(String userId, SubscriptionTier tier) {
-		logger.info("Initializing credits for user {} to tier {}", userId, tier.getId());
+	public PlatformSubscription initializeStrat(String userId, SubscriptionTier tier) {
+		logger.info("Initializing STRAT for user {} to tier {}", userId, tier.getId());
 
 		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
 		subscription.initializeForTier(tier);
 
 		return subscriptionRepository.save(userId, subscription);
+	}
+
+	/**
+	 * @deprecated Use {@link #initializeStrat(String, SubscriptionTier)} instead.
+	 */
+	@Deprecated(forRemoval = true)
+	public PlatformSubscription initializeCredits(String userId, SubscriptionTier tier) {
+		return initializeStrat(userId, tier);
 	}
 
 	/**

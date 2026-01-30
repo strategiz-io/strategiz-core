@@ -33,10 +33,10 @@
         <module>business-ai-chat</module>
         <module>business-strategy-analysis</module>
         <module>business-marketdata</module>
+        <module>business-crypto-token</module>
         <module>business-preferences</module>
         <module>business-infrastructure-costs</module>
         <module>business-fundamentals</module>
         <module>business-live-strategies</module>
-        <module>business-crypto-token</module>
     </modules>
 </project>

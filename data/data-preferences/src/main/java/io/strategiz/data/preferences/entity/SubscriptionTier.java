@@ -9,15 +9,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Subscription tiers for Strategiz platform with credit-based pricing.
+ * Subscription tiers for Strategiz platform with STRAT token-based pricing.
  *
- * <p>Credit System: 1 credit = $0.001 in AI costs (1/10th of a cent)</p>
+ * <p>STRAT System: Monthly STRAT allocation is credited to wallet on subscription.
+ * AI usage debits STRAT from wallet, with a monthly cap per tier.</p>
  *
  * <p>Tier Levels (ordinal positions):</p>
  * <ul>
- *   <li>Level 0: EXPLORER (free freemium tier)</li>
- *   <li>Level 1: STRATEGIST (mid tier - $199/month)</li>
- *   <li>Level 2: QUANT (premium tier - $229/month)</li>
+ *   <li>Level 0: EXPLORER (free freemium tier - 5,000 STRAT/mo)</li>
+ *   <li>Level 1: STRATEGIST (mid tier - $89/month - 25,000 STRAT/mo)</li>
+ *   <li>Level 2: QUANT (premium tier - $129/month - 40,000 STRAT/mo)</li>
  * </ul>
  *
  * <p>Use {@link #getLevel()} and {@link #meetsMinimumLevel(int)} to check tier access
@@ -26,48 +27,61 @@ import java.util.Map;
 public enum SubscriptionTier {
 
 	EXPLORER(SubscriptionTierConstants.EXPLORER, "Explorer", 0, // FREE freemium tier
-			List.of("gemini-2.5-flash", "gemini-1.5-flash", "gpt-4o-mini", "claude-haiku-4-5",
-					"llama-3.1-8b-instruct-maas", "mistral-nemo"),
-			40000, // 40K credits
+			List.of("gemini-2.5-flash", "gemini-1.5-flash",
+					"llama-3.1-8b-instruct-maas", "mistral-nemo", "grok-3-mini"),
+			5000, // 5K STRAT
 			"Free tier for exploring the platform"),
 
-	STRATEGIST(SubscriptionTierConstants.STRATEGIST, "Strategist", 19900, // $199.00 in cents
+	STRATEGIST(SubscriptionTierConstants.STRATEGIST, "Strategist", 8900, // $89.00 in cents
 			List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
-					"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5",
+					"gpt-4o-mini", "gpt-4o",
+					"claude-3-haiku", "claude-3-5-haiku", "claude-3-sonnet", "claude-3-5-sonnet",
 					"llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
-					"mistral-nemo", "mistral-small", "mistral-large-2", "command-r"),
-			55000, // 55K credits
+					"mistral-nemo", "mistral-small", "mistral-large-2",
+					"command-r", "grok-3-mini", "grok-3"),
+			25000, // 25K STRAT
 			"For active traders building strategies"),
 
-	QUANT(SubscriptionTierConstants.QUANT, "Quant", 22900, // $229.00 in cents
+	QUANT(SubscriptionTierConstants.QUANT, "Quant", 12900, // $129.00 in cents
 			List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
-					"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5",
-					"o1", "o1-mini", "llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
-					"llama-3.1-405b-instruct-maas", "mistral-nemo", "mistral-small", "mistral-large-2",
-					"command-r", "command-r-plus"),
-			65000, // 65K credits
+					"gpt-4o-mini", "gpt-4o", "gpt-4-turbo",
+					"claude-3-haiku", "claude-3-5-haiku", "claude-3-sonnet", "claude-3-5-sonnet",
+					"claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5", "claude-3-opus",
+					"o1", "o1-mini",
+					"llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
+					"llama-3.1-405b-instruct-maas",
+					"mistral-nemo", "mistral-small", "mistral-large-2",
+					"command-r", "command-r-plus",
+					"grok-3-mini", "grok-3", "grok-4", "grok-4.1-fast"),
+			40000, // 40K STRAT
 			"For power users and serious traders");
 
 	/**
 	 * Model weights relative to Gemini Flash (1x baseline).
 	 * Weight = blended cost per 1M tokens / $0.29 (Flash cost)
-	 * Higher weight = more credits consumed per token.
+	 * Higher weight = more STRAT consumed per token.
 	 */
 	private static final Map<String, Integer> MODEL_WEIGHTS = Map.ofEntries(
 			// Gemini models
 			Map.entry("gemini-2.5-flash", 1),
 			Map.entry("gemini-1.5-flash", 1),
-			Map.entry("gemini-2.5-pro", 13),
-			Map.entry("gemini-1.5-pro", 13),
+			Map.entry("gemini-2.5-pro", 15),
+			Map.entry("gemini-1.5-pro", 15),
 			// OpenAI models
 			Map.entry("gpt-4o-mini", 4),
-			Map.entry("gpt-4o", 33),
-			Map.entry("o1", 50),
-			Map.entry("o1-mini", 15),
+			Map.entry("gpt-4o", 25),
+			Map.entry("gpt-4-turbo", 60),
+			Map.entry("o1", 150),
+			Map.entry("o1-mini", 30),
 			// Claude models
-			Map.entry("claude-haiku-4-5", 6),
-			Map.entry("claude-sonnet-4-5", 23),
-			Map.entry("claude-opus-4-5", 115),
+			Map.entry("claude-3-haiku", 3),
+			Map.entry("claude-3-5-haiku", 8),
+			Map.entry("claude-haiku-4-5", 8),
+			Map.entry("claude-3-sonnet", 25),
+			Map.entry("claude-3-5-sonnet", 25),
+			Map.entry("claude-sonnet-4-5", 25),
+			Map.entry("claude-3-opus", 125),
+			Map.entry("claude-opus-4-5", 90),
 			// Llama models
 			Map.entry("llama-3.1-8b-instruct-maas", 1),
 			Map.entry("llama-3.1-70b-instruct-maas", 3),
@@ -75,10 +89,15 @@ public enum SubscriptionTier {
 			// Mistral models
 			Map.entry("mistral-nemo", 1),
 			Map.entry("mistral-small", 2),
-			Map.entry("mistral-large-2", 8),
+			Map.entry("mistral-large-2", 12),
 			// Cohere models
 			Map.entry("command-r", 2),
-			Map.entry("command-r-plus", 10)
+			Map.entry("command-r-plus", 18),
+			// xAI models
+			Map.entry("grok-3-mini", 1),
+			Map.entry("grok-3", 25),
+			Map.entry("grok-4", 30),
+			Map.entry("grok-4.1-fast", 30)
 	);
 
 	private final String id;
@@ -89,17 +108,17 @@ public enum SubscriptionTier {
 
 	private final List<String> allowedModels;
 
-	private final int monthlyCredits;
+	private final int monthlyStrat;
 
 	private final String description;
 
 	SubscriptionTier(String id, String displayName, int priceInCents, List<String> allowedModels,
-			int monthlyCredits, String description) {
+			int monthlyStrat, String description) {
 		this.id = id;
 		this.displayName = displayName;
 		this.priceInCents = priceInCents;
 		this.allowedModels = allowedModels;
-		this.monthlyCredits = monthlyCredits;
+		this.monthlyStrat = monthlyStrat;
 		this.description = description;
 	}
 
@@ -123,8 +142,16 @@ public enum SubscriptionTier {
 		return allowedModels;
 	}
 
+	public int getMonthlyStrat() {
+		return monthlyStrat;
+	}
+
+	/**
+	 * @deprecated Use {@link #getMonthlyStrat()} instead.
+	 */
+	@Deprecated(forRemoval = true)
 	public int getMonthlyCredits() {
-		return monthlyCredits;
+		return monthlyStrat;
 	}
 
 	public String getDescription() {
@@ -173,8 +200,8 @@ public enum SubscriptionTier {
 
 	/**
 	 * Get the weight multiplier for a model.
-	 * Weight determines how many credits are consumed per token.
-	 * Gemini Flash = 1x (baseline), Claude Opus = 115x.
+	 * Weight determines how many STRAT are consumed per token.
+	 * Gemini Flash = 1x (baseline), Claude 3 Opus = 125x.
 	 *
 	 * @param modelId The model ID
 	 * @return The weight multiplier (defaults to 1 if unknown)
@@ -232,12 +259,12 @@ public enum SubscriptionTier {
 	// Legacy compatibility methods (deprecated - will be removed in future version)
 
 	/**
-	 * @deprecated Use {@link #getMonthlyCredits()} instead. Daily message limits are replaced by monthly credits.
+	 * @deprecated Use {@link #getMonthlyStrat()} instead. Daily message limits are replaced by monthly STRAT.
 	 */
 	@Deprecated(forRemoval = true)
 	public int getDailyMessageLimit() {
-		// Approximate conversion: monthly credits / 30 days
-		return monthlyCredits / 30;
+		// Approximate conversion: monthly STRAT / 30 days
+		return monthlyStrat / 30;
 	}
 
 	/**

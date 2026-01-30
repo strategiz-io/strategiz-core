@@ -20,10 +20,10 @@ import java.util.UUID;
  * Business logic for STRAT crypto token operations.
  *
  * <p>Platform fee is configurable via PlatformConfig entity (admin console).
- * STRAT tokens are the universal currency for tips and owner subscriptions.</p>
+ * STRAT tokens are the universal currency for AI usage, tips, and owner subscriptions.</p>
  *
- * <p>NOTE: STRAT tokens CANNOT be converted to AI credits.
- * AI credits come from platform subscription tier only.</p>
+ * <p>Monthly STRAT allocations are credited to user wallets on subscription
+ * creation and renewal. AI usage debits STRAT from the wallet.</p>
  */
 @Component
 public class CryptoTokenBusiness {
@@ -297,6 +297,72 @@ public class CryptoTokenBusiness {
 		transactionRepository.save(ownerTx, userId);
 
 		logger.info("Subscription payment: {} paid {} tokens to {} (fee: {})", userId, amount, ownerId, platformFee);
+
+		return tx;
+	}
+
+	/**
+	 * Credit monthly STRAT allocation to user's wallet.
+	 * Called when a subscription is created or renewed (invoice.paid).
+	 *
+	 * @param userId User to credit
+	 * @param stratAmount Amount of STRAT to credit (not micro-units)
+	 * @return Transaction record
+	 */
+	public CryptoTransaction creditMonthlyAllocation(String userId, long stratAmount) {
+		long microUnits = stratAmount * CryptoWallet.MICRO_UNITS;
+
+		CryptoWallet wallet = walletRepository.credit(userId, microUnits, userId);
+
+		CryptoTransaction tx = new CryptoTransaction();
+		tx.setId(UUID.randomUUID().toString());
+		tx.setUserId(userId);
+		tx.setType(CryptoTransaction.TYPE_ALLOCATION);
+		tx.setAmount(microUnits);
+		tx.setBalanceAfter(wallet.getBalance());
+		tx.setReferenceType(CryptoTransaction.REF_SUBSCRIPTION_ALLOCATION);
+		tx.setDescription("Monthly STRAT allocation");
+		tx.setStatus(CryptoTransaction.STATUS_COMPLETED);
+		tx.setCreatedAt(Timestamp.now());
+		tx.setCompletedAt(Timestamp.now());
+
+		transactionRepository.save(tx, userId);
+		logger.info("Credited {} STRAT monthly allocation to user {}", stratAmount, userId);
+
+		return tx;
+	}
+
+	/**
+	 * Debit STRAT from user's wallet for AI usage.
+	 *
+	 * @param userId User to debit
+	 * @param stratAmount Amount of STRAT to debit (not micro-units)
+	 * @param referenceType Reference type (e.g., REF_AI_CHAT, REF_STRATEGY_GENERATION)
+	 * @param referenceId Optional reference ID (e.g., session ID)
+	 * @param modelId The AI model used
+	 * @return Transaction record
+	 */
+	public CryptoTransaction debitAiUsage(String userId, long stratAmount, String referenceType, String referenceId,
+			String modelId) {
+		long microUnits = stratAmount * CryptoWallet.MICRO_UNITS;
+
+		CryptoWallet wallet = walletRepository.debit(userId, microUnits, userId);
+
+		CryptoTransaction tx = new CryptoTransaction();
+		tx.setId(UUID.randomUUID().toString());
+		tx.setUserId(userId);
+		tx.setType(CryptoTransaction.TYPE_AI_USAGE);
+		tx.setAmount(-microUnits);
+		tx.setBalanceAfter(wallet.getBalance());
+		tx.setReferenceType(referenceType);
+		tx.setReferenceId(referenceId);
+		tx.setDescription("AI usage: " + modelId);
+		tx.setStatus(CryptoTransaction.STATUS_COMPLETED);
+		tx.setCreatedAt(Timestamp.now());
+		tx.setCompletedAt(Timestamp.now());
+
+		transactionRepository.save(tx, userId);
+		logger.info("Debited {} STRAT from user {} for AI usage (model: {})", stratAmount, userId, modelId);
 
 		return tx;
 	}

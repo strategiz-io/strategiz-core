@@ -43,6 +43,7 @@
         <module>business/business-ai-chat</module>
         <module>business/business-marketdata</module>
         <module>business/business-fundamentals</module>
+        <module>business/business-crypto-token</module>
         <module>business/business-preferences</module>
         <module>business/business-infrastructure-costs</module>
         <module>business/business-live-strategies</module>
@@ -68,6 +69,7 @@
         <module>data/data-testing</module>
         <module>data/data-accessibility</module>
         <module>data/data-waitlist</module>
+        <module>data/data-crypto-token</module>
 
         <!-- Auth Modules -->
         <!-- <module>auth</module> -->

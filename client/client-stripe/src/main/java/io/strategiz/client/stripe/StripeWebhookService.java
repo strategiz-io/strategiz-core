@@ -329,6 +329,110 @@ public class StripeWebhookService {
 	}
 
 	/**
+	 * Parse a checkout.session.completed event for platform subscription purchases.
+	 * Platform subscriptions have metadata type=platform_subscription and a tier field.
+	 * @param event The Stripe event
+	 * @return Parsed platform checkout data, or empty if not a platform subscription
+	 */
+	public Optional<PlatformSubscriptionCheckoutData> parsePlatformCheckoutCompleted(Event event) {
+		if (!"checkout.session.completed".equals(event.getType())) {
+			return Optional.empty();
+		}
+
+		EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
+		if (deserializer.getObject().isEmpty()) {
+			return Optional.empty();
+		}
+
+		StripeObject stripeObject = deserializer.getObject().get();
+		if (!(stripeObject instanceof Session session)) {
+			return Optional.empty();
+		}
+
+		Map<String, String> metadata = session.getMetadata();
+		if (metadata == null) {
+			return Optional.empty();
+		}
+
+		// Platform subscriptions have a "tier" metadata key (and no "type" or type=platform_subscription)
+		String tier = metadata.get("tier");
+		String userId = metadata.get("userId");
+		if (tier == null || userId == null) {
+			return Optional.empty();
+		}
+
+		// Exclude owner subscriptions and STRAT packs
+		String type = metadata.get("type");
+		if ("owner_subscription".equals(type) || "strat_pack_purchase".equals(type)) {
+			return Optional.empty();
+		}
+
+		return Optional.of(new PlatformSubscriptionCheckoutData(session.getId(), userId, tier,
+				session.getSubscription(), session.getCustomer(), session.getAmountTotal()));
+	}
+
+	/**
+	 * Parse an invoice.paid event for platform subscription renewals.
+	 * @param event The Stripe event
+	 * @return Parsed platform invoice data, or empty if not a platform subscription
+	 */
+	public Optional<PlatformSubscriptionInvoiceData> parsePlatformInvoiceEvent(Event event) {
+		if (!"invoice.paid".equals(event.getType())) {
+			return Optional.empty();
+		}
+
+		EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
+		if (deserializer.getObject().isEmpty()) {
+			return Optional.empty();
+		}
+
+		StripeObject stripeObject = deserializer.getObject().get();
+		if (!(stripeObject instanceof Invoice invoice)) {
+			return Optional.empty();
+		}
+
+		String subscriptionId = invoice.getSubscription();
+		if (subscriptionId == null) {
+			return Optional.empty();
+		}
+
+		Map<String, String> metadata = invoice.getSubscriptionDetails() != null
+				? invoice.getSubscriptionDetails().getMetadata() : null;
+
+		if (metadata == null) {
+			return Optional.empty();
+		}
+
+		// Exclude owner subscriptions
+		if ("owner_subscription".equals(metadata.get("type"))) {
+			return Optional.empty();
+		}
+
+		String tier = metadata.get("tier");
+		String userId = metadata.get("userId");
+		if (tier == null || userId == null) {
+			return Optional.empty();
+		}
+
+		return Optional.of(new PlatformSubscriptionInvoiceData(invoice.getId(), subscriptionId, userId, tier,
+				invoice.getAmountPaid()));
+	}
+
+	/**
+	 * Data from a checkout.session.completed for platform subscription.
+	 */
+	public record PlatformSubscriptionCheckoutData(String sessionId, String userId, String tier,
+			String subscriptionId, String customerId, Long amountTotal) {
+	}
+
+	/**
+	 * Data from an invoice.paid for platform subscription renewal.
+	 */
+	public record PlatformSubscriptionInvoiceData(String invoiceId, String subscriptionId, String userId,
+			String tier, Long amountPaid) {
+	}
+
+	/**
 	 * Data from a checkout.session.completed event for STRAT pack purchases.
 	 */
 	public record StratPackCheckoutData(String sessionId, String userId, String packId, long stratAmount,

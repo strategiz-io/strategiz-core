@@ -17,10 +17,9 @@ import com.google.cloud.Timestamp;
  *   <li>EARN: Receive tokens from rewards/engagement</li>
  *   <li>SPEND: Use tokens for owner subscriptions or tips</li>
  *   <li>TRANSFER: Send tokens to another user</li>
+ *   <li>ALLOCATION: Monthly STRAT allocation from subscription tier</li>
+ *   <li>AI_USAGE: STRAT debited for AI model usage</li>
  * </ul>
- *
- * <p>NOTE: STRAT tokens CANNOT be converted to AI credits.
- * AI credits come from platform subscription tier only.</p>
  *
  * @see io.strategiz.data.cryptotoken.entity.CryptoWallet
  */
@@ -75,6 +74,10 @@ public class CryptoTransaction extends BaseEntity {
 
 	public static final String TYPE_TRANSFER = "TRANSFER";
 
+	public static final String TYPE_ALLOCATION = "ALLOCATION";
+
+	public static final String TYPE_AI_USAGE = "AI_USAGE";
+
 	/**
 	 * @deprecated STRAT tokens cannot be converted to AI credits.
 	 * AI credits come from platform subscription tier only.
@@ -84,11 +87,16 @@ public class CryptoTransaction extends BaseEntity {
 
 	public static final String REF_SUBSCRIPTION = "subscription";
 
+	public static final String REF_SUBSCRIPTION_ALLOCATION = "subscription_allocation";
+
 	public static final String REF_TIP = "tip";
 
+	public static final String REF_AI_CHAT = "ai_chat";
+
+	public static final String REF_STRATEGY_GENERATION = "strategy_generation";
+
 	/**
-	 * @deprecated STRAT tokens cannot be used for AI credits.
-	 * AI credits come from platform subscription tier only.
+	 * @deprecated Use {@link #REF_AI_CHAT} or {@link #REF_STRATEGY_GENERATION} instead.
 	 */
 	@Deprecated(forRemoval = true)
 	public static final String REF_AI_CREDITS = "ai_credits";
@@ -230,12 +238,12 @@ public class CryptoTransaction extends BaseEntity {
 	}
 
 	public boolean isCredit() {
-		return TYPE_PURCHASE.equals(type) || TYPE_EARN.equals(type)
+		return TYPE_PURCHASE.equals(type) || TYPE_EARN.equals(type) || TYPE_ALLOCATION.equals(type)
 				|| (TYPE_TRANSFER.equals(type) && amount != null && amount > 0);
 	}
 
 	public boolean isDebit() {
-		return TYPE_SPEND.equals(type) || TYPE_CONVERT.equals(type)
+		return TYPE_SPEND.equals(type) || TYPE_AI_USAGE.equals(type) || TYPE_CONVERT.equals(type)
 				|| (TYPE_TRANSFER.equals(type) && amount != null && amount < 0);
 	}
 

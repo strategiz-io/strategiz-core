@@ -1,56 +1,47 @@
 package io.strategiz.business.cryptotoken;
 
 import io.strategiz.framework.exception.ErrorDetails;
+import org.springframework.http.HttpStatus;
 
 /**
  * Error codes for crypto token business operations.
  */
 public enum CryptoTokenErrors implements ErrorDetails {
 
-	WALLET_NOT_FOUND("CRYPTO-001", "Crypto wallet not found", 404),
-	INSUFFICIENT_BALANCE("CRYPTO-002", "Insufficient token balance", 400),
-	WALLET_SUSPENDED("CRYPTO-003", "Wallet is suspended", 403),
-	TRANSACTION_NOT_FOUND("CRYPTO-004", "Transaction not found", 404),
-	TRANSACTION_FAILED("CRYPTO-005", "Transaction failed", 500),
-	INVALID_AMOUNT("CRYPTO-006", "Invalid amount specified", 400),
-	TRANSFER_TO_SELF("CRYPTO-007", "Cannot transfer tokens to yourself", 400),
-	RECIPIENT_NOT_FOUND("CRYPTO-008", "Recipient user not found", 404),
-	PURCHASE_FAILED("CRYPTO-009", "Token purchase failed", 500),
-	CONVERSION_FAILED("CRYPTO-010", "Token conversion failed", 500),
-	RATE_NOT_FOUND("CRYPTO-011", "Conversion rate not found", 404),
-	MINIMUM_PURCHASE("CRYPTO-012", "Minimum purchase amount is $5", 400),
-	DAILY_LIMIT_EXCEEDED("CRYPTO-013", "Daily transaction limit exceeded", 400),
-	CONVERSION_NOT_ALLOWED("CRYPTO-014",
-			"STRAT tokens cannot be converted to AI credits. AI credits come from platform subscription tier only.",
-			400),
-	PACK_NOT_FOUND("CRYPTO-015", "STRAT pack not found", 404),
-	PACK_DISABLED("CRYPTO-016", "This STRAT pack is currently unavailable", 400);
+	WALLET_NOT_FOUND(HttpStatus.NOT_FOUND, "wallet-not-found"),
+	INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "insufficient-balance"),
+	WALLET_SUSPENDED(HttpStatus.FORBIDDEN, "wallet-suspended"),
+	TRANSACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "transaction-not-found"),
+	TRANSACTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "transaction-failed"),
+	INVALID_AMOUNT(HttpStatus.BAD_REQUEST, "invalid-amount"),
+	TRANSFER_TO_SELF(HttpStatus.BAD_REQUEST, "transfer-to-self"),
+	RECIPIENT_NOT_FOUND(HttpStatus.NOT_FOUND, "recipient-not-found"),
+	PURCHASE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "purchase-failed"),
+	CONVERSION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "conversion-failed"),
+	RATE_NOT_FOUND(HttpStatus.NOT_FOUND, "rate-not-found"),
+	MINIMUM_PURCHASE(HttpStatus.BAD_REQUEST, "minimum-purchase"),
+	DAILY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "daily-limit-exceeded"),
+	CONVERSION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "conversion-not-allowed"),
+	PACK_NOT_FOUND(HttpStatus.NOT_FOUND, "pack-not-found"),
+	PACK_DISABLED(HttpStatus.BAD_REQUEST, "pack-disabled");
 
-	private final String code;
+	private final HttpStatus httpStatus;
 
-	private final String message;
+	private final String propertyKey;
 
-	private final int httpStatus;
-
-	CryptoTokenErrors(String code, String message, int httpStatus) {
-		this.code = code;
-		this.message = message;
+	CryptoTokenErrors(HttpStatus httpStatus, String propertyKey) {
 		this.httpStatus = httpStatus;
+		this.propertyKey = propertyKey;
 	}
 
 	@Override
-	public String getCode() {
-		return code;
-	}
-
-	@Override
-	public String getMessage() {
-		return message;
-	}
-
-	@Override
-	public int getHttpStatus() {
+	public HttpStatus getHttpStatus() {
 		return httpStatus;
+	}
+
+	@Override
+	public String getPropertyKey() {
+		return propertyKey;
 	}
 
 }

@@ -1,12 +1,17 @@
 package io.strategiz.service.profile.controller;
 
+import io.strategiz.business.cryptotoken.CryptoTokenBusiness;
+import io.strategiz.business.preferences.service.TokenUsageService;
 import io.strategiz.client.stripe.StripeWebhookService;
 import io.strategiz.client.stripe.StripeWebhookService.ConnectAccountEventData;
 import io.strategiz.client.stripe.StripeWebhookService.OwnerSubscriptionCheckoutData;
 import io.strategiz.client.stripe.StripeWebhookService.OwnerSubscriptionEventData;
 import io.strategiz.client.stripe.StripeWebhookService.OwnerSubscriptionInvoiceData;
+import io.strategiz.client.stripe.StripeWebhookService.PlatformSubscriptionCheckoutData;
+import io.strategiz.client.stripe.StripeWebhookService.PlatformSubscriptionInvoiceData;
 import io.strategiz.client.stripe.StripeWebhookService.StratPackCheckoutData;
 import io.strategiz.client.stripe.event.StratPackPurchaseEvent;
+import io.strategiz.data.preferences.entity.SubscriptionTier;
 import io.strategiz.service.profile.service.OwnerSubscriptionService;
 import io.strategiz.service.profile.service.UserSubscriptionService;
 import org.springframework.context.ApplicationEventPublisher;
@@ -47,13 +52,20 @@ public class StripeWebhookController {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private final CryptoTokenBusiness cryptoTokenBusiness;
+
+	private final TokenUsageService tokenUsageService;
+
 	public StripeWebhookController(StripeWebhookService stripeWebhookService,
 			UserSubscriptionService userSubscriptionService, OwnerSubscriptionService ownerSubscriptionService,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher, CryptoTokenBusiness cryptoTokenBusiness,
+			TokenUsageService tokenUsageService) {
 		this.stripeWebhookService = stripeWebhookService;
 		this.userSubscriptionService = userSubscriptionService;
 		this.ownerSubscriptionService = ownerSubscriptionService;
 		this.eventPublisher = eventPublisher;
+		this.cryptoTokenBusiness = cryptoTokenBusiness;
+		this.tokenUsageService = tokenUsageService;
 	}
 
 	/**
@@ -113,6 +125,14 @@ public class StripeWebhookController {
 			return;
 		}
 
+		// Check if this is a platform subscription checkout (Strategist/Quant)
+		Optional<PlatformSubscriptionCheckoutData> platformOpt = stripeWebhookService
+				.parsePlatformCheckoutCompleted(event);
+		if (platformOpt.isPresent()) {
+			handlePlatformSubscriptionCheckout(platformOpt.get());
+			return;
+		}
+
 		// Then check if this is an owner subscription checkout
 		Optional<OwnerSubscriptionCheckoutData> dataOpt = stripeWebhookService.parseCheckoutCompleted(event);
 
@@ -162,6 +182,31 @@ public class StripeWebhookController {
 		}
 		catch (Exception e) {
 			logger.error("Failed to publish STRAT pack purchase event for session {}: {}", data.sessionId(),
+					e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Handle platform subscription checkout (Strategist/Quant tier).
+	 * Credits initial monthly STRAT allocation to user's wallet.
+	 */
+	private void handlePlatformSubscriptionCheckout(PlatformSubscriptionCheckoutData data) {
+		logger.info("Processing platform subscription checkout: userId={}, tier={}", data.userId(), data.tier());
+
+		try {
+			SubscriptionTier tier = SubscriptionTier.fromId(data.tier());
+
+			// Initialize STRAT allocation on subscription
+			tokenUsageService.initializeStrat(data.userId(), tier);
+
+			// Credit initial monthly STRAT allocation to wallet
+			cryptoTokenBusiness.creditMonthlyAllocation(data.userId(), tier.getMonthlyStrat());
+
+			logger.info("Credited {} STRAT to user {} for new {} subscription", tier.getMonthlyStrat(), data.userId(),
+					tier.getDisplayName());
+		}
+		catch (Exception e) {
+			logger.error("Failed to process platform subscription checkout for user {}: {}", data.userId(),
 					e.getMessage(), e);
 		}
 	}
@@ -247,12 +292,23 @@ public class StripeWebhookController {
 
 	/**
 	 * Handle invoice.paid event. This confirms a subscription payment was successful.
+	 * For platform subscriptions, this grants monthly STRAT allocation.
 	 */
 	private void handleInvoicePaid(Event event) {
+		// Check for platform subscription renewal first
+		Optional<PlatformSubscriptionInvoiceData> platformOpt = stripeWebhookService
+				.parsePlatformInvoiceEvent(event);
+		if (platformOpt.isPresent()) {
+			handlePlatformInvoicePaid(platformOpt.get());
+		}
+
+		// Then check for owner subscription invoice
 		Optional<OwnerSubscriptionInvoiceData> dataOpt = stripeWebhookService.parseInvoiceEvent(event);
 
 		if (dataOpt.isEmpty()) {
-			logger.debug("Invoice is not for an owner subscription, skipping");
+			if (platformOpt.isEmpty()) {
+				logger.debug("Invoice is not for an owner or platform subscription, skipping");
+			}
 			return;
 		}
 
@@ -260,9 +316,30 @@ public class StripeWebhookController {
 		logger.info("Processing invoice paid: subscriber={}, owner={}, amount={}", data.subscriberId(), data.ownerId(),
 				data.amountPaid());
 
-		// Invoice paid is mostly informational - the subscription is already active
-		// We could use this to track revenue, send notifications, etc.
 		logger.info("Invoice {} paid for subscription {}", data.invoiceId(), data.subscriptionId());
+	}
+
+	/**
+	 * Handle platform subscription invoice.paid - grant monthly STRAT allocation.
+	 */
+	private void handlePlatformInvoicePaid(PlatformSubscriptionInvoiceData data) {
+		logger.info("Processing platform subscription invoice paid: userId={}, tier={}", data.userId(), data.tier());
+
+		try {
+			SubscriptionTier tier = SubscriptionTier.fromId(data.tier());
+
+			// Reset monthly usage counter
+			tokenUsageService.resetStratUsage(data.userId());
+
+			// Credit monthly STRAT allocation to wallet
+			cryptoTokenBusiness.creditMonthlyAllocation(data.userId(), tier.getMonthlyStrat());
+
+			logger.info("Renewed {} STRAT for user {} ({} tier)", tier.getMonthlyStrat(), data.userId(),
+					tier.getDisplayName());
+		}
+		catch (Exception e) {
+			logger.error("Failed to process platform invoice for user {}: {}", data.userId(), e.getMessage(), e);
+		}
 	}
 
 	/**

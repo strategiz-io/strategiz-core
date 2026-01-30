@@ -44,6 +44,7 @@ import org.springframework.context.annotation.ComponentScan;
     "io.strategiz.data.session",
     "io.strategiz.data.user",
     "io.strategiz.data.watchlist",
+    "io.strategiz.data.featureflags",
     "io.strategiz.data.framework",
     "io.strategiz.data.base",
 
@@ -66,6 +67,7 @@ import org.springframework.context.annotation.ComponentScan;
     "io.strategiz.client.coingecko",
 
     "io.strategiz.client.recaptcha",
+    "io.strategiz.client.sendgrid",
 
     // Service Framework Base (CorsFilter, SecurityConfig, BaseController)
     "io.strategiz.service.base"

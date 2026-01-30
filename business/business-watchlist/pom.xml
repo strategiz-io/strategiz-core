@@ -35,7 +35,7 @@
         <!-- Clients -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-yahoofinance</artifactId>
+            <artifactId>client-fmp</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

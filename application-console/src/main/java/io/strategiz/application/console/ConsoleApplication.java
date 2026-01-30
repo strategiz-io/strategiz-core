@@ -71,7 +71,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.client.firebase",
 	"io.strategiz.client.vault",
 	"io.strategiz.client.alpaca",
-	"io.strategiz.client.yahoofinance",
+
 	"io.strategiz.client.gcpbilling",
 	"io.strategiz.client.github",
 	"io.strategiz.client.execution",

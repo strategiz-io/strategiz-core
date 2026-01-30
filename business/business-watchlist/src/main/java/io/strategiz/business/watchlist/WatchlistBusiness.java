@@ -2,9 +2,11 @@ package io.strategiz.business.watchlist;
 
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.data.watchlist.entity.WatchlistItemEntity;
-import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
+import io.strategiz.client.fmp.client.FmpQuoteClient;
+import io.strategiz.client.fmp.dto.FmpQuote;
 import io.strategiz.client.coingecko.CoinGeckoClient;
 import io.strategiz.client.coingecko.model.CryptoCurrency;
+import io.strategiz.service.dashboard.exception.ServiceDashboardErrorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +17,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Service for watchlist operations following SOLID principles.
@@ -26,7 +27,7 @@ public class WatchlistBusiness {
 
     private static final Logger log = LoggerFactory.getLogger(WatchlistBusiness.class);
 
-    private final YahooFinanceClient yahooFinanceClient;
+    private final FmpQuoteClient fmpQuoteClient;
     private final CoinGeckoClient coinGeckoClient;
 
     // Default watchlist symbols for new users
@@ -75,9 +76,9 @@ public class WatchlistBusiness {
     }
 
     @Autowired
-    public WatchlistBusiness(YahooFinanceClient yahooFinanceClient,
+    public WatchlistBusiness(@Autowired(required = false) FmpQuoteClient fmpQuoteClient,
                            CoinGeckoClient coinGeckoClient) {
-        this.yahooFinanceClient = yahooFinanceClient;
+        this.fmpQuoteClient = fmpQuoteClient;
         this.coinGeckoClient = coinGeckoClient;
     }
 
@@ -126,11 +127,11 @@ public class WatchlistBusiness {
             }
         }
 
-        // For stocks/ETFs, use Yahoo Finance
+        // For stocks/ETFs, use FMP
         if ("STOCK".equalsIgnoreCase(type) || "ETF".equalsIgnoreCase(type)) {
             try {
-                enrichFromYahooFinance(entity);
-                log.info("Successfully enriched {} from Yahoo Finance", symbol);
+                enrichFromFmp(entity);
+                log.info("Successfully enriched {} from FMP", symbol);
 
                 // Validate that we actually got the required data
                 if (entity.getCurrentPrice() == null) {
@@ -143,7 +144,7 @@ public class WatchlistBusiness {
 
                 return entity;
             } catch (Exception e) {
-                log.error("Yahoo Finance enrichment failed for {}: {}", symbol, e.getMessage());
+                log.error("FMP enrichment failed for {}: {}", symbol, e.getMessage());
                 throw new StrategizException(
                     ServiceDashboardErrorDetails.DASHBOARD_ERROR,
                     "service-dashboard",
@@ -161,89 +162,40 @@ public class WatchlistBusiness {
     }
 
     /**
-     * Enrich entity from Yahoo Finance API (supports both stocks and crypto)
+     * Enrich entity from FMP API (supports stocks and ETFs)
      */
-    private void enrichFromYahooFinance(WatchlistItemEntity entity) {
+    private void enrichFromFmp(WatchlistItemEntity entity) {
         String symbol = entity.getSymbol();
-        String type = entity.getType() != null ? entity.getType().toUpperCase() : "STOCK";
 
-        // Format symbol for Yahoo Finance
-        String yahooSymbol = symbol;
-        if ("CRYPTO".equalsIgnoreCase(type)) {
-            // Crypto needs -USD suffix for Yahoo Finance
-            yahooSymbol = symbol + "-USD";
-        }
-
-        // Fetch quote from Yahoo Finance
-        Map<String, Object> response = yahooFinanceClient.fetchQuote(yahooSymbol);
-
-        // Parse response - Yahoo Finance has complex nested structure
-        Map<String, Object> quoteSummary = (Map<String, Object>) response.get("quoteSummary");
-        if (quoteSummary == null) {
+        if (fmpQuoteClient == null) {
             throw new StrategizException(
                 ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
-                "service-dashboard",
-                "Yahoo Finance response missing quoteSummary for " + yahooSymbol
+                "business-watchlist",
+                "FMP client is not available"
             );
         }
 
-        List<Map<String, Object>> result = (List<Map<String, Object>>) quoteSummary.get("result");
-        if (result == null || result.isEmpty()) {
-            throw new StrategizException(
-                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
-                "service-dashboard",
-                "Yahoo Finance quoteSummary has no results for " + yahooSymbol
-            );
+        FmpQuote quote = fmpQuoteClient.getQuote(symbol);
+
+        if (quote.getPrice() != null) {
+            entity.setCurrentPrice(quote.getPrice());
+        }
+        if (quote.getChange() != null) {
+            entity.setChange(quote.getChange());
+        }
+        if (quote.getChangePercent() != null) {
+            entity.setChangePercent(quote.getChangePercent());
+        }
+        if (quote.getVolume() != null) {
+            entity.setVolume(quote.getVolume());
+        }
+        if (quote.getMarketCap() != null) {
+            entity.setMarketCap(quote.getMarketCap().longValue());
         }
 
-        Map<String, Object> firstResult = result.get(0);
-        Map<String, Object> price = (Map<String, Object>) firstResult.get("price");
-        if (price == null) {
-            throw new StrategizException(
-                ServiceDashboardErrorDetails.MARKET_DATA_UNAVAILABLE,
-                "service-dashboard",
-                "Yahoo Finance result missing price data for " + yahooSymbol
-            );
-        }
-
-        // Extract price data from nested structure
-        Object regularMarketPriceObj = price.get("regularMarketPrice");
-        Object regularMarketChangeObj = price.get("regularMarketChange");
-        Object regularMarketChangePercentObj = price.get("regularMarketChangePercent");
-        Object marketCapObj = price.get("marketCap");
-        Object regularMarketVolumeObj = price.get("regularMarketVolume");
-        Object shortNameObj = price.get("shortName");
-        Object longNameObj = price.get("longName");
-
-        // Parse price - can be Map with "raw" key or direct number
-        BigDecimal currentPrice = extractBigDecimal(regularMarketPriceObj);
-        BigDecimal change = extractBigDecimal(regularMarketChangeObj);
-        BigDecimal changePercent = extractBigDecimal(regularMarketChangePercentObj);
-        Long marketCap = extractLong(marketCapObj);
-        Long volume = extractLong(regularMarketVolumeObj);
-
-        // Populate entity
-        if (currentPrice != null) {
-            entity.setCurrentPrice(currentPrice);
-        }
-        if (change != null) {
-            entity.setChange(change);
-        }
-        if (changePercent != null) {
-            entity.setChangePercent(changePercent);
-        }
-        if (volume != null) {
-            entity.setVolume(volume);
-        }
-        if (marketCap != null) {
-            entity.setMarketCap(marketCap);
-        }
-
-        // Set name from Yahoo Finance if not already set
-        if (entity.getName() == null || entity.getName().equals(symbol)) {
-            String name = longNameObj != null ? longNameObj.toString() :
-                         (shortNameObj != null ? shortNameObj.toString() : symbol);
-            entity.setName(name);
+        // Set name from FMP if not already set
+        if ((entity.getName() == null || entity.getName().equals(symbol)) && quote.getName() != null) {
+            entity.setName(quote.getName());
         }
     }
 
@@ -298,71 +250,4 @@ public class WatchlistBusiness {
         }
     }
 
-    /**
-     * Extract BigDecimal from Yahoo Finance response (handles both Map with "raw" key and direct numbers)
-     */
-    private BigDecimal extractBigDecimal(Object obj) {
-        if (obj == null) {
-            return null;
-        }
-
-        // If it's a Map, extract "raw" value
-        if (obj instanceof Map) {
-            Map<String, Object> map = (Map<String, Object>) obj;
-            Object raw = map.get("raw");
-            if (raw instanceof Number) {
-                return BigDecimal.valueOf(((Number) raw).doubleValue());
-            }
-        }
-
-        // If it's a direct number
-        if (obj instanceof Number) {
-            return BigDecimal.valueOf(((Number) obj).doubleValue());
-        }
-
-        // Try parsing as string
-        if (obj instanceof String) {
-            try {
-                return new BigDecimal((String) obj);
-            } catch (NumberFormatException e) {
-                log.warn("Could not parse BigDecimal from string: {}", obj);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Extract Long from Yahoo Finance response (handles both Map with "raw" key and direct numbers)
-     */
-    private Long extractLong(Object obj) {
-        if (obj == null) {
-            return null;
-        }
-
-        // If it's a Map, extract "raw" value
-        if (obj instanceof Map) {
-            Map<String, Object> map = (Map<String, Object>) obj;
-            Object raw = map.get("raw");
-            if (raw instanceof Number) {
-                return ((Number) raw).longValue();
-            }
-        }
-
-        // If it's a direct number
-        if (obj instanceof Number) {
-            return ((Number) obj).longValue();
-        }
-
-        // Try parsing as string
-        if (obj instanceof String) {
-            try {
-                return Long.parseLong((String) obj);
-            } catch (NumberFormatException e) {
-                log.warn("Could not parse Long from string: {}", obj);
-            }
-        }
-
-        return null;
-    }
 }

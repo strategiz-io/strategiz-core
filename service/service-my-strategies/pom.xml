@@ -42,10 +42,10 @@
             <artifactId>data-marketdata</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Keep YahooFinance as fallback for symbols not in cache -->
+        <!-- FMP as fallback for symbols not in cache -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>client-yahoofinance</artifactId>
+            <artifactId>client-fmp</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

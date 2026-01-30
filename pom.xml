@@ -85,7 +85,7 @@
         <module>client/client-google</module>
         <module>client/client-firebase</module>
         <module>client/client-fmp</module>
-        <module>client/client-yahoofinance</module>
+
         <module>client/client-firebase-sms</module>
         <module>client/client-schwab</module>
         <module>client/client-etrade</module>
@@ -543,11 +543,6 @@
             <dependency>
                 <groupId>io.strategiz</groupId>
                 <artifactId>client-claude-vertex</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.strategiz</groupId>
-                <artifactId>client-yahoofinance</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

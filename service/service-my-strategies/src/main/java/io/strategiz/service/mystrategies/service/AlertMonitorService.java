@@ -2,7 +2,8 @@ package io.strategiz.service.mystrategies.service;
 
 import io.strategiz.business.strategy.execution.model.ExecutionResult;
 import io.strategiz.business.strategy.execution.service.StrategyExecutionBusiness;
-import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
+import io.strategiz.client.fmp.client.FmpQuoteClient;
+import io.strategiz.client.fmp.dto.FmpQuote;
 import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import io.strategiz.data.marketdata.repository.MarketDataRepository;
 import io.strategiz.data.strategy.entity.DeploymentType;
@@ -73,7 +74,7 @@ public class AlertMonitorService extends BaseService {
     private final CreateAlertDeploymentHistoryRepository createHistoryRepository;
     private final StrategyExecutionBusiness strategyExecutionBusiness;
     private final MarketDataRepository marketDataRepository;
-    private final YahooFinanceClient yahooFinanceClient; // Fallback for symbols not in cache
+    private final FmpQuoteClient fmpQuoteClient; // Fallback for symbols not in cache
     private final AlertNotificationService notificationService;
 
     @Autowired
@@ -83,14 +84,14 @@ public class AlertMonitorService extends BaseService {
             CreateAlertDeploymentHistoryRepository createHistoryRepository,
             StrategyExecutionBusiness strategyExecutionBusiness,
             MarketDataRepository marketDataRepository,
-            @Autowired(required = false) YahooFinanceClient yahooFinanceClient,
+            @Autowired(required = false) FmpQuoteClient fmpQuoteClient,
             AlertNotificationService notificationService) {
         this.readAlertRepository = readAlertRepository;
         this.updateAlertRepository = updateAlertRepository;
         this.createHistoryRepository = createHistoryRepository;
         this.strategyExecutionBusiness = strategyExecutionBusiness;
         this.marketDataRepository = marketDataRepository;
-        this.yahooFinanceClient = yahooFinanceClient;
+        this.fmpQuoteClient = fmpQuoteClient;
         this.notificationService = notificationService;
     }
 
@@ -460,11 +461,17 @@ public class AlertMonitorService extends BaseService {
                 }
             }
 
-            // Cache miss - try Yahoo Finance fallback if available
-            if (yahooFinanceClient != null) {
-                log.info("Cache miss for {}, falling back to Yahoo Finance", symbol);
-                Map<String, Object> response = yahooFinanceClient.fetchQuote(symbol);
-                return extractPriceFromResponse(response);
+            // Cache miss - try FMP fallback if available
+            if (fmpQuoteClient != null) {
+                log.info("Cache miss for {}, falling back to FMP", symbol);
+                try {
+                    FmpQuote quote = fmpQuoteClient.getQuote(symbol);
+                    if (quote != null && quote.getPrice() != null) {
+                        return quote.getPrice().doubleValue();
+                    }
+                } catch (Exception fmpEx) {
+                    log.warn("FMP fallback failed for {}: {}", symbol, fmpEx.getMessage());
+                }
             }
 
             log.warn("No cached data for {} and no fallback available", symbol);
@@ -472,51 +479,6 @@ public class AlertMonitorService extends BaseService {
 
         } catch (Exception e) {
             log.error("Error getting price for {}: {}", symbol, e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Extract price from Yahoo Finance API response (fallback only)
-     */
-    private Double extractPriceFromResponse(Map<String, Object> response) {
-        try {
-            // Try v10 API format first: quoteSummary.result[0].price.regularMarketPrice.raw
-            if (response.containsKey("quoteSummary")) {
-                Map<String, Object> quoteSummary = (Map<String, Object>) response.get("quoteSummary");
-                if (quoteSummary != null && quoteSummary.containsKey("result")) {
-                    List<Map<String, Object>> results = (List<Map<String, Object>>) quoteSummary.get("result");
-                    if (results != null && !results.isEmpty()) {
-                        Map<String, Object> price = (Map<String, Object>) results.get(0).get("price");
-                        if (price != null && price.containsKey("regularMarketPrice")) {
-                            Map<String, Object> marketPrice = (Map<String, Object>) price.get("regularMarketPrice");
-                            if (marketPrice != null && marketPrice.containsKey("raw")) {
-                                return ((Number) marketPrice.get("raw")).doubleValue();
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Try v8 API format: quoteResponse.result[0].regularMarketPrice
-            if (response.containsKey("quoteResponse")) {
-                Map<String, Object> quoteResponse = (Map<String, Object>) response.get("quoteResponse");
-                if (quoteResponse != null && quoteResponse.containsKey("result")) {
-                    List<Map<String, Object>> results = (List<Map<String, Object>>) quoteResponse.get("result");
-                    if (results != null && !results.isEmpty()) {
-                        Object priceObj = results.get(0).get("regularMarketPrice");
-                        if (priceObj != null) {
-                            return ((Number) priceObj).doubleValue();
-                        }
-                    }
-                }
-            }
-
-            log.warn("Could not find price in Yahoo Finance response format");
-            return null;
-
-        } catch (Exception e) {
-            log.error("Error extracting price from response: {}", e.getMessage());
             return null;
         }
     }

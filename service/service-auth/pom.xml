@@ -149,11 +149,6 @@
             <artifactId>client-coingecko</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-yahoofinance</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <!-- PASETO implementation (paseto4j v4.local) -->
         <dependency>

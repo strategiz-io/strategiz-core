@@ -5,7 +5,7 @@ import io.strategiz.business.provider.kraken.exception.KrakenProviderErrorDetail
 import io.strategiz.business.provider.kraken.enrichment.KrakenDataEnrichmentService;
 import io.strategiz.business.provider.kraken.enrichment.model.EnrichedKrakenData;
 import io.strategiz.client.kraken.auth.KrakenApiAuthClient;
-import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
+
 import io.strategiz.data.provider.entity.PortfolioProviderEntity;
 import io.strategiz.data.provider.entity.ProviderHoldingsEntity;
 import io.strategiz.data.provider.repository.PortfolioProviderRepository;
@@ -57,7 +57,7 @@ public class KrakenDataInitializer {
     private final PortfolioProviderRepository portfolioProviderRepository;
     private final ProviderHoldingsRepository providerHoldingsRepository;
     private final KrakenDataEnrichmentService enrichmentService;
-    private final YahooFinancePriceService yahooFinancePriceService;
+    private final FmpPriceService fmpPriceService;
 
     @Autowired(required = false)
     private PortfolioSummaryManager portfolioSummaryManager;
@@ -68,13 +68,13 @@ public class KrakenDataInitializer {
                                  PortfolioProviderRepository portfolioProviderRepository,
                                  ProviderHoldingsRepository providerHoldingsRepository,
                                  @Autowired(required = false) KrakenDataEnrichmentService enrichmentService,
-                                 @Autowired(required = false) YahooFinancePriceService yahooFinancePriceService) {
+                                 @Autowired(required = false) FmpPriceService fmpPriceService) {
         this.krakenClient = krakenClient;
         this.dataTransformer = dataTransformer;
         this.portfolioProviderRepository = portfolioProviderRepository;
         this.providerHoldingsRepository = providerHoldingsRepository;
         this.enrichmentService = enrichmentService;
-        this.yahooFinancePriceService = yahooFinancePriceService;
+        this.fmpPriceService = fmpPriceService;
 
         if (enrichmentService == null) {
             log.error("WARNING: KrakenDataEnrichmentService is NULL - enrichment will not work!");
@@ -82,10 +82,10 @@ public class KrakenDataInitializer {
             log.info("KrakenDataEnrichmentService successfully injected");
         }
 
-        if (yahooFinancePriceService == null) {
-            log.warn("YahooFinancePriceService is NULL - falling back to Kraken ticker API");
+        if (fmpPriceService == null) {
+            log.warn("FmpPriceService is NULL - falling back to Kraken ticker API");
         } else {
-            log.info("YahooFinancePriceService successfully injected for price fetching");
+            log.info("FmpPriceService successfully injected for price fetching");
         }
     }
     
@@ -398,11 +398,11 @@ public class KrakenDataInitializer {
                     }
                 }
                 
-                if (!pairsToQuery.isEmpty() && yahooFinancePriceService != null) {
-                    // Use Yahoo Finance for price fetching instead of Kraken ticker API
-                    log.info("Fetching real-time prices for {} assets from Yahoo Finance", assetToPairMap.size());
+                if (!pairsToQuery.isEmpty() && fmpPriceService != null) {
+                    // Use FMP for price fetching instead of Kraken ticker API
+                    log.info("Fetching real-time prices for {} assets from FMP", assetToPairMap.size());
                     
-                    // Extract asset symbols for Yahoo Finance
+                    // Extract asset symbols for FMP
                     List<String> assetSymbols = new ArrayList<>();
                     for (String asset : assetToPairMap.keySet()) {
                         // Convert Kraken symbols to standard symbols
@@ -420,16 +420,16 @@ public class KrakenDataInitializer {
                             .replace(".F", ""); // Remove futures suffix
                         assetSymbols.add(normalizedSymbol);
                     }
-                    
+
                     try {
-                        Map<String, Double> yahooFinancePrices = yahooFinancePriceService.getBulkPrices(assetSymbols);
-                        
-                        if (yahooFinancePrices != null && !yahooFinancePrices.isEmpty()) {
-                            log.info("Successfully fetched {} prices from Yahoo Finance", yahooFinancePrices.size());
-                            
-                            // Process each asset's price from Yahoo Finance
+                        Map<String, Double> fmpPrices = fmpPriceService.getBulkPrices(assetSymbols);
+
+                        if (fmpPrices != null && !fmpPrices.isEmpty()) {
+                            log.info("Successfully fetched {} prices from FMP", fmpPrices.size());
+
+                            // Process each asset's price from FMP
                             for (String asset : assetToPairMap.keySet()) {
-                                // Convert Kraken symbol to standard symbol for Yahoo Finance lookup
+                                // Convert Kraken symbol to standard symbol for FMP lookup
                                 String normalizedSymbol = asset
                                     .replace("XXBT", "BTC")
                                     .replace("XETH", "ETH")
@@ -442,33 +442,29 @@ public class KrakenDataInitializer {
                                     .replace("ETH2", "ETH")
                                     .replace(".S", "")  // Remove staking suffix
                                     .replace(".F", ""); // Remove futures suffix
-                                
-                                // Try to get price from Yahoo Finance
-                                Double yahooPrice = yahooFinancePrices.get(normalizedSymbol);
-                                
-                                if (yahooPrice != null && yahooPrice > 0) {
-                                    BigDecimal price = BigDecimal.valueOf(yahooPrice);
-                                    // For now, we'll use 0 for 24h change since Yahoo Finance doesn't provide it in this simple call
-                                    // In production, you might want to fetch this separately
+
+                                // Try to get price from FMP
+                                Double fmpPrice = fmpPrices.get(normalizedSymbol);
+
+                                if (fmpPrice != null && fmpPrice > 0) {
+                                    BigDecimal price = BigDecimal.valueOf(fmpPrice);
                                     BigDecimal change24h = BigDecimal.ZERO;
-                                    
+
                                     priceDataMap.put(asset, new PriceData(price, change24h));
-                                    log.info("Got price for {} (normalized: {}) from Yahoo Finance: ${}", 
+                                    log.info("Got price for {} (normalized: {}) from FMP: ${}",
                                             asset, normalizedSymbol, price);
                                 } else {
-                                    log.warn("Could not find price for asset {} (normalized: {}) in Yahoo Finance",
+                                    log.warn("Could not find price for asset {} (normalized: {}) in FMP",
                                             asset, normalizedSymbol);
-                                    // Leave this asset out - we'll use fallback prices for assets without Yahoo Finance data
                                 }
                             }
                         } else {
-                            log.error("Failed to get prices from Yahoo Finance - response was empty, using fallback static prices");
+                            log.error("Failed to get prices from FMP - response was empty, using fallback static prices");
                             return getFallbackPrices(assetToPairMap.keySet());
                         }
                     } catch (Exception e) {
-                        log.error("Failed to fetch prices from Yahoo Finance: {}", e.getMessage());
+                        log.error("Failed to fetch prices from FMP: {}", e.getMessage());
                         log.info("Using fallback static prices for portfolio valuation");
-                        // Use fallback static prices when Yahoo Finance fails
                         return getFallbackPrices(assetToPairMap.keySet());
                     }
 

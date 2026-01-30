@@ -58,13 +58,6 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
-        <!-- Yahoo Finance Client for price data -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-yahoofinance</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
         <!-- Framework -->
         <dependency>
             <groupId>io.strategiz</groupId>

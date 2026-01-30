@@ -2,8 +2,6 @@ package io.strategiz.business.portfolio.enhancer.business;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.strategiz.client.yahoofinance.client.YahooFinanceClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -23,8 +21,6 @@ public class MarketPriceBusiness {
     
     private static final Logger LOGGER = Logger.getLogger(MarketPriceBusiness.class.getName());
     
-    private final YahooFinanceClient yahooFinanceClient;
-
     // Cache prices for 60 seconds to avoid excessive API calls
     private final Cache<String, BigDecimal> priceCache = Caffeine.newBuilder()
         .maximumSize(1000)
@@ -37,14 +33,8 @@ public class MarketPriceBusiness {
         .expireAfterWrite(60, TimeUnit.SECONDS)
         .build();
 
-    @Autowired
-    public MarketPriceBusiness(@Autowired(required = false) YahooFinanceClient yahooFinanceClient) {
-        this.yahooFinanceClient = yahooFinanceClient;
-        if (yahooFinanceClient != null) {
-            LOGGER.info("MarketPriceBusiness initialized with Yahoo Finance client");
-        } else {
-            LOGGER.warning("Yahoo Finance client not available, using static prices");
-        }
+    public MarketPriceBusiness() {
+        LOGGER.info("MarketPriceBusiness initialized with static prices");
     }
     
     /**
@@ -175,14 +165,6 @@ public class MarketPriceBusiness {
         );
         
         return staticPrices.getOrDefault(symbol.toUpperCase(), new BigDecimal("1"));
-    }
-    
-    /**
-     * Convert crypto symbol to Yahoo Finance format
-     */
-    private String getYahooSymbol(String symbol) {
-        // Yahoo Finance uses suffix format for crypto (e.g., BTC-USD)
-        return symbol.toUpperCase() + "-USD";
     }
     
     /**

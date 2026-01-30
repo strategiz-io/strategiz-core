@@ -25,6 +25,7 @@
         <!-- Business Modules (Build Second) -->
         <module>business/business-base</module>
         <module>business/business-provider-base</module>
+        <module>business/business-risk-assessment</module>
         <module>business/business-token-auth</module>
         <module>business/business-portfolio</module>
         <module>business/business-provider-coinbase</module>

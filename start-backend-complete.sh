@@ -21,7 +21,7 @@ BOLD='\033[1m'
 
 # Configuration
 VAULT_ADDR="http://localhost:8200"
-VAULT_DEV_ROOT_TOKEN="hvs.zjEbQaSDy8WmdiW0vEl81tFH"
+VAULT_DEV_ROOT_TOKEN="strategiz-local-token"
 APP_JAR="application/target/application-1.0-SNAPSHOT.jar"
 SPRING_PROFILE="${PROFILE:-dev-https}"  # Can override with PROFILE env var
 SERVER_PORT="${PORT:-8443}"              # Can override with PORT env var

@@ -8,7 +8,9 @@ import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
 import io.strategiz.data.base.constants.SubscriptionTierConstants;
 import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
 import io.strategiz.data.auth.entity.AuthenticationMethodType;
+import io.strategiz.data.auth.entity.OtpCodeEntity;
 import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
+import io.strategiz.data.auth.repository.OtpCodeRepository;
 import io.strategiz.data.base.transaction.FirestoreTransactionTemplate;
 import io.strategiz.data.featureflags.service.FeatureFlagService;
 import io.strategiz.data.user.entity.UserEntity;
@@ -22,6 +24,7 @@ import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -29,8 +32,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -52,8 +55,9 @@ public class EmailSignupService extends BaseService {
         return "service-auth";
     }
 
-    // Store pending signups until OTP verification
-    private final Map<String, PendingSignup> pendingSignups = new ConcurrentHashMap<>();
+    private static final String EMAIL_SIGNUP_PURPOSE = "email_signup";
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Value("${email.otp.expiration.minutes:10}")
     private int expirationMinutes;
@@ -78,6 +82,9 @@ public class EmailSignupService extends BaseService {
 
     @Autowired
     private AuthenticationMethodRepository authenticationMethodRepository;
+
+    @Autowired
+    private OtpCodeRepository otpCodeRepository;
 
     @Autowired
     private FirestoreTransactionTemplate transactionTemplate;
@@ -137,21 +144,21 @@ public class EmailSignupService extends BaseService {
         String userId = UUID.randomUUID().toString();
         log.info("Email available for signup - email: {}, userId: {}, sessionId: {}", email, userId, sessionId);
 
-        // Store pending signup with pre-generated userId (no password - passwordless flow)
-        PendingSignup pending = new PendingSignup(
-            request.name(),
-            email,
-            otpCode,
-            expiration,
-            userId
-        );
-        pendingSignups.put(sessionId, pending);
+        // Store OTP in Firestore with hashed code
+        OtpCodeEntity otpEntity = new OtpCodeEntity(email, EMAIL_SIGNUP_PURPOSE,
+            passwordEncoder.encode(otpCode), expiration);
+        otpEntity.setSessionId(sessionId);
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("name", request.name());
+        metadata.put("userId", userId);
+        otpEntity.setMetadata(metadata);
+        otpCodeRepository.save(otpEntity, "system");
 
         // Send OTP email (skip for admin bypass in dev)
         if (!adminBypassEnabled || !isAdminEmail(email)) {
             boolean sent = sendOtpEmail(email, otpCode);
             if (!sent) {
-                pendingSignups.remove(sessionId);
+                otpCodeRepository.deleteByEmailAndPurpose(email, EMAIL_SIGNUP_PURPOSE);
                 throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, "Failed to send verification email");
             }
         } else {
@@ -177,26 +184,29 @@ public class EmailSignupService extends BaseService {
         String normalizedEmail = email.toLowerCase();
         log.info("Verifying email signup for: {}", normalizedEmail);
 
-        // Get pending signup
-        PendingSignup pending = pendingSignups.get(sessionId);
-        if (pending == null) {
+        // Get pending signup from Firestore
+        Optional<OtpCodeEntity> otpOpt = otpCodeRepository.findBySessionId(sessionId);
+        if (otpOpt.isEmpty()) {
             throw new StrategizException(AuthErrors.OTP_NOT_FOUND, "No pending signup found for this session");
         }
+        OtpCodeEntity otpEntity = otpOpt.get();
 
         // Verify email matches
-        if (!pending.email().equals(normalizedEmail)) {
+        if (!otpEntity.getEmail().equals(normalizedEmail)) {
             throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Email does not match pending signup");
         }
 
-        // Check expiration
-        if (Instant.now().isAfter(pending.expiration())) {
-            pendingSignups.remove(sessionId);
+        // Check expiration (also checked in findBySessionId, but be explicit)
+        if (otpEntity.isExpired()) {
+            otpCodeRepository.deleteById(otpEntity.getId());
             throw new StrategizException(AuthErrors.OTP_EXPIRED, "Verification code has expired");
         }
 
         // Verify OTP (admin bypass check)
         boolean isAdmin = adminBypassEnabled && isAdminEmail(normalizedEmail);
-        if (!isAdmin && !pending.otpCode().equals(otpCode)) {
+        if (!isAdmin && !passwordEncoder.matches(otpCode, otpEntity.getCodeHash())) {
+            otpEntity.incrementAttempts();
+            otpCodeRepository.update(otpEntity, "system");
             throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Invalid verification code");
         }
 
@@ -204,16 +214,17 @@ public class EmailSignupService extends BaseService {
             log.info("Admin bypass - auto-verifying OTP for: {}", normalizedEmail);
         }
 
+        Map<String, String> signupMetadata = otpEntity.getMetadata();
+
         // Create user account
         try {
             UserEntity createdUser = transactionTemplate.execute(transaction -> {
-                // Reserve and immediately confirm the email within this transaction
+                // Create CONFIRMED email reservation in a single write (no read)
                 // This creates the userEmails document only after OTP verification succeeds
-                String userId = pending.userId();
-                emailReservationService.reserveEmailWithUserId(normalizedEmail, userId, "email_otp", null);
-                emailReservationService.confirmReservation(normalizedEmail);
+                String userId = signupMetadata.get("userId");
+                emailReservationService.createConfirmedReservation(normalizedEmail, userId, "email_otp");
                 UserProfileEntity profile = new UserProfileEntity(
-                    pending.name(),
+                    signupMetadata.get("name"),
                     normalizedEmail,
                     null, // No photo
                     true, // Email verified through OTP
@@ -250,8 +261,8 @@ public class EmailSignupService extends BaseService {
                 return created;
             });
 
-            // Clean up pending signup
-            pendingSignups.remove(sessionId);
+            // Clean up OTP record from Firestore
+            otpCodeRepository.deleteById(otpEntity.getId());
 
             // Initialize trial subscription
             if (subscriptionService != null) {
@@ -445,16 +456,4 @@ public class EmailSignupService extends BaseService {
         }
     }
 
-    /**
-     * Record for storing pending signup data.
-     * No password stored - this is a passwordless signup flow.
-     * userId is pre-generated during reservation for consistency.
-     */
-    private record PendingSignup(
-        String name,
-        String email,
-        String otpCode,
-        Instant expiration,
-        String userId
-    ) {}
 }

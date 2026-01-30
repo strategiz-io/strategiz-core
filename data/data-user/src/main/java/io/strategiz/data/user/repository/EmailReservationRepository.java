@@ -61,6 +61,15 @@ public interface EmailReservationRepository {
     EmailReservationEntity confirm(String email);
 
     /**
+     * Create a CONFIRMED email reservation in a single write (no read).
+     * Used when the email was validated before the transaction (e.g., after OTP verification).
+     *
+     * @param reservation The reservation to create (will be set to CONFIRMED)
+     * @return The created reservation
+     */
+    EmailReservationEntity createConfirmed(EmailReservationEntity reservation);
+
+    /**
      * Delete a reservation (e.g., when signup fails or is cancelled).
      *
      * @param email The email address to release

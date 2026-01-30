@@ -144,6 +144,26 @@ public class EmailReservationService extends BaseService {
     }
 
     /**
+     * Create a CONFIRMED email reservation directly (single write, no read).
+     * Used after OTP verification to create the userEmails document atomically
+     * with user creation inside a Firestore transaction.
+     *
+     * @param email The email address
+     * @param userId The pre-generated user ID
+     * @param signupType Type of signup (e.g., "email_otp")
+     */
+    public void createConfirmedReservation(String email, String userId, String signupType) {
+        String normalizedEmail = email.toLowerCase().trim();
+        log.info("Creating confirmed email reservation: {} for userId: {}", normalizedEmail, userId);
+
+        EmailReservationEntity reservation = new EmailReservationEntity(
+            normalizedEmail, userId, signupType, null
+        );
+        emailReservationRepository.createConfirmed(reservation);
+        log.info("Confirmed email reservation created: {}", normalizedEmail);
+    }
+
+    /**
      * Confirm an email reservation during signup completion.
      * This should be called within the same transaction as user creation.
      *

@@ -117,6 +117,36 @@ public class EmailReservationRepositoryImpl implements EmailReservationRepositor
     }
 
     @Override
+    public EmailReservationEntity createConfirmed(EmailReservationEntity reservation) {
+        String email = normalizeEmail(reservation.getEmail());
+        log.info("Creating CONFIRMED email reservation: {}", email);
+
+        reservation.setEmail(email);
+        reservation.confirm();
+
+        DocumentReference docRef = firestore.collection(COLLECTION_NAME).document(email);
+
+        try {
+            if (FirestoreTransactionHolder.isTransactionActive()) {
+                Transaction transaction = FirestoreTransactionHolder.getTransaction();
+                transaction.set(docRef, reservation);
+            } else {
+                docRef.set(reservation).get();
+            }
+            log.info("CONFIRMED email reservation created for: {}", email);
+            return reservation;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+                "EmailReservation", email);
+        } catch (ExecutionException e) {
+            log.error("Failed to create confirmed email reservation {}: {}", email, e.getMessage(), e);
+            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e,
+                "EmailReservation", email);
+        }
+    }
+
+    @Override
     public Optional<EmailReservationEntity> findByEmail(String email) {
         String normalizedEmail = normalizeEmail(email);
 

@@ -150,7 +150,7 @@ public class StripeService {
 			case "customer.subscription.created", "customer.subscription.updated" ->
 				handleSubscriptionUpdate((Subscription) stripeObject);
 			case "customer.subscription.deleted" -> handleSubscriptionCanceled((Subscription) stripeObject);
-			case "invoice.payment_succeeded" -> handlePaymentSucceeded((Invoice) stripeObject);
+			case "invoice.payment_succeeded", "invoice.paid" -> handlePaymentSucceeded((Invoice) stripeObject);
 			case "invoice.payment_failed" -> handlePaymentFailed((Invoice) stripeObject);
 			default -> {
 				logger.debug("Ignoring event type: {}", eventType);

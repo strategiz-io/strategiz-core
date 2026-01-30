@@ -65,13 +65,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Finnhub Client for News -->
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-finnhub</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

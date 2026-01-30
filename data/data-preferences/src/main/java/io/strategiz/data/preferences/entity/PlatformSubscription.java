@@ -64,11 +64,13 @@ public class PlatformSubscription extends BaseEntity {
 	private Boolean cancelAtPeriodEnd = false;
 
 	// STRAT-based usage tracking
-	@PropertyName("monthlyStratAllowed")
+	// Firestore field names kept as legacy "monthlyCreditsAllowed/Used" for backward compatibility
+	// with existing documents. Use migration endpoint to rename, then switch to new names.
+	@PropertyName("monthlyCreditsAllowed")
 	@JsonProperty("monthlyStratAllowed")
 	private Integer monthlyStratAllowed = 0;
 
-	@PropertyName("monthlyStratUsed")
+	@PropertyName("monthlyCreditsUsed")
 	@JsonProperty("monthlyStratUsed")
 	private Integer monthlyStratUsed = 0;
 

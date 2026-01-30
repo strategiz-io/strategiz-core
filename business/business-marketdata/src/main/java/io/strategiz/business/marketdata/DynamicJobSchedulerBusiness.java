@@ -52,20 +52,26 @@ public class DynamicJobSchedulerBusiness {
 	 */
 	@PostConstruct
 	public void initializeSchedules() {
-		List<JobDefinitionFirestoreEntity> jobs = jobDefinitionRepository.findScheduledJobs();
-		log.info("Initializing dynamic job scheduler with {} jobs from database", jobs.size());
+		try {
+			List<JobDefinitionFirestoreEntity> jobs = jobDefinitionRepository.findScheduledJobs();
+			log.info("Initializing dynamic job scheduler with {} jobs from database", jobs.size());
 
-		for (JobDefinitionFirestoreEntity job : jobs) {
-			try {
-				scheduleJob(job);
-				log.info("Scheduled job: {} with cron: {}", job.getJobId(), job.getScheduleCron());
+			for (JobDefinitionFirestoreEntity job : jobs) {
+				try {
+					scheduleJob(job);
+					log.info("Scheduled job: {} with cron: {}", job.getJobId(), job.getScheduleCron());
+				}
+				catch (Exception e) {
+					log.error("Failed to schedule job {}: {}", job.getJobId(), e.getMessage(), e);
+				}
 			}
-			catch (Exception e) {
-				log.error("Failed to schedule job {}: {}", job.getJobId(), e.getMessage(), e);
-			}
+
+			log.info("Dynamic job scheduler initialized with {} active schedules", scheduledTasks.size());
 		}
-
-		log.info("Dynamic job scheduler initialized with {} active schedules", scheduledTasks.size());
+		catch (Exception e) {
+			log.error("Failed to initialize dynamic job scheduler: {}. App will start without scheduled jobs.",
+					e.getMessage(), e);
+		}
 	}
 
 	/**

@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 /**
  * Service for News Sentinel agent - real-time news and sentiment analysis.
  * Uses FMP API for stock news, market news, and press releases.
- * Uses Finnhub API for SEC filings and earnings calendar data.
+ * Uses FMP API for SEC filings and earnings calendar data.
  */
 @Service
 @ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")

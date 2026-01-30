@@ -45,6 +45,7 @@ import org.springframework.context.annotation.ComponentScan;
     "io.strategiz.data.user",
     "io.strategiz.data.watchlist",
     "io.strategiz.data.featureflags",
+    "io.strategiz.data.preferences",
     "io.strategiz.data.framework",
     "io.strategiz.data.base",
 

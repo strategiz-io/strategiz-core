@@ -47,6 +47,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.business.tokenauth",
 	"io.strategiz.business.marketdata",
 	"io.strategiz.business.infrastructurecosts",
+	"io.strategiz.business.aichat",
 	"io.strategiz.business.livestrategies",
 	"io.strategiz.business.fundamentals",
 
@@ -59,6 +60,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 	"io.strategiz.data.symbol",
 	"io.strategiz.data.strategy",
 	"io.strategiz.data.fundamentals",
+	"io.strategiz.data.infrastructurecosts",
+	"io.strategiz.data.preferences",
 
 	// Framework
 	"io.strategiz.framework.authorization",

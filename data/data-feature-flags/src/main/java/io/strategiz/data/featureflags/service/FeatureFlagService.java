@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,7 +76,10 @@ public class FeatureFlagService {
         this.repository = repository;
     }
 
-    @PostConstruct
+    /**
+     * Initialize default feature flags. Called lazily on first access
+     * or explicitly via admin endpoint, not at startup.
+     */
     public void initializeDefaultFlags() {
         log.info("Initializing default feature flags...");
 
@@ -177,7 +179,12 @@ public class FeatureFlagService {
             "Best for coding & agents (expensive)", true, "ai");
 
         // Refresh cache after initialization
-        refreshCache();
+        try {
+            refreshCache();
+        }
+        catch (Exception e) {
+            log.warn("Failed to refresh feature flag cache during initialization: {}", e.getMessage());
+        }
     }
 
     private void createDefaultFlag(String flagId, String name, String description,

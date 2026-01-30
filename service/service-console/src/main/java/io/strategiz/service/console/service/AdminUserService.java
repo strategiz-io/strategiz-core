@@ -44,7 +44,7 @@ public class AdminUserService extends BaseService {
 	@Autowired
 	public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository,
 			AlertNotificationPreferencesRepository alertPreferencesRepository,
-			PasskeyCredentialRepository passkeyCredentialRepository) {
+			@org.springframework.lang.Nullable PasskeyCredentialRepository passkeyCredentialRepository) {
 		this.userRepository = userRepository;
 		this.sessionRepository = sessionRepository;
 		this.alertPreferencesRepository = alertPreferencesRepository;
@@ -176,13 +176,14 @@ public class AdminUserService extends BaseService {
 		sessionRepository.deleteByUserId(userId);
 
 		// Get passkey credential IDs before deletion (for GPM signaling)
-		List<String> deletedCredentialIds = passkeyCredentialRepository.findByUserId(userId)
-			.stream()
-			.map(cred -> cred.getCredentialId())
-			.toList();
-
-		// Delete all passkey credentials for this user
-		passkeyCredentialRepository.deleteByUserId(userId);
+		List<String> deletedCredentialIds = List.of();
+		if (passkeyCredentialRepository != null) {
+			deletedCredentialIds = passkeyCredentialRepository.findByUserId(userId)
+				.stream()
+				.map(cred -> cred.getCredentialId())
+				.toList();
+			passkeyCredentialRepository.deleteByUserId(userId);
+		}
 
 		// Hard delete the user and all subcollections
 		// Note: hardDeleteUser checks if document exists directly in Firestore (regardless of isActive)

@@ -86,6 +86,42 @@ public class OtpCodeRepositoryImpl extends BaseRepository<OtpCodeEntity> impleme
 	}
 
 	@Override
+	public Optional<OtpCodeEntity> findBySessionId(String sessionId) {
+		try {
+			Query query = getCollection().whereEqualTo("sessionId", sessionId)
+				.whereEqualTo("isActive", true)
+				.limit(1);
+
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+
+			if (docs.isEmpty()) {
+				return Optional.empty();
+			}
+
+			QueryDocumentSnapshot doc = docs.get(0);
+			OtpCodeEntity entity = doc.toObject(OtpCodeEntity.class);
+			entity.setId(doc.getId());
+
+			if (entity.isExpired()) {
+				log.debug("Found expired OTP for sessionId: {}", sessionId);
+				return Optional.empty();
+			}
+
+			return Optional.of(entity);
+
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"OtpCodeEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "OtpCodeEntity",
+					sessionId);
+		}
+	}
+
+	@Override
 	public OtpCodeEntity update(OtpCodeEntity entity, String userId) {
 		return super.save(entity, userId);
 	}

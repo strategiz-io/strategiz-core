@@ -71,6 +71,13 @@ public interface OtpCodeRepository {
 	int deleteExpired();
 
 	/**
+	 * Find an OTP code by session ID.
+	 * @param sessionId the session ID
+	 * @return the OTP code if found
+	 */
+	Optional<OtpCodeEntity> findBySessionId(String sessionId);
+
+	/**
 	 * Count OTP codes for an email in the last N hours.
 	 * Used for rate limiting.
 	 * @param email the email address

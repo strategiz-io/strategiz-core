@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Entity for OTP codes stored in otp_codes collection.
@@ -75,6 +77,14 @@ public class OtpCodeEntity extends BaseEntity {
 	@PropertyName("userAgent")
 	@JsonProperty("userAgent")
 	private String userAgent;
+
+	@PropertyName("sessionId")
+	@JsonProperty("sessionId")
+	private String sessionId;
+
+	@PropertyName("metadata")
+	@JsonProperty("metadata")
+	private Map<String, String> metadata;
 
 	// Constructors
 	public OtpCodeEntity() {
@@ -166,6 +176,22 @@ public class OtpCodeEntity extends BaseEntity {
 
 	public void setUserAgent(String userAgent) {
 		this.userAgent = userAgent;
+	}
+
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+
+	public Map<String, String> getMetadata() {
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, String> metadata) {
+		this.metadata = metadata;
 	}
 
 	// Convenience methods

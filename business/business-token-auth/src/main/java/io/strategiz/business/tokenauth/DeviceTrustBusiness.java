@@ -11,6 +11,7 @@ import io.strategiz.data.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.security.KeyFactory;
@@ -81,7 +82,7 @@ public class DeviceTrustBusiness {
 
 	@Autowired
 	public DeviceTrustBusiness(DeviceIdentityRepository deviceRepository, UserRepository userRepository,
-			SessionAuthBusiness sessionAuthBusiness, RiskAssessmentBusiness riskAssessmentBusiness) {
+			@Lazy SessionAuthBusiness sessionAuthBusiness, RiskAssessmentBusiness riskAssessmentBusiness) {
 		this.deviceRepository = deviceRepository;
 		this.userRepository = userRepository;
 		this.sessionAuthBusiness = sessionAuthBusiness;

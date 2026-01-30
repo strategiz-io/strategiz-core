@@ -218,11 +218,11 @@ class MfaEnforcementBusinessTest {
 		}
 
 		@Test
-		@DisplayName("Should ignore inactive methods")
+		@DisplayName("Should ignore inactive non-passkey methods")
 		void validateCanEnableMfa_InactiveMethods_Ignored() {
-			// Given
+			// Given - only inactive non-passkey methods (passkeys are always active)
 			List<AuthenticationMethodEntity> methods = List.of(createMethod(AuthenticationMethodType.TOTP, false), // inactive
-					createMethod(AuthenticationMethodType.PASSKEY, false) // inactive
+					createMethod(AuthenticationMethodType.SMS_OTP, false) // inactive
 			);
 			when(authMethodRepository.findByUserId(TEST_USER_ID)).thenReturn(methods);
 
@@ -485,9 +485,11 @@ class MfaEnforcementBusinessTest {
 				.getAvailableMfaMethods(TEST_USER_ID);
 
 			// Then
-			assertEquals(2, result.size());
+			// Passkeys are always considered active (verified during WebAuthn registration)
+			assertEquals(3, result.size());
 			assertTrue(result.stream().anyMatch(m -> "totp".equals(m.type())));
 			assertTrue(result.stream().anyMatch(m -> "sms_otp".equals(m.type())));
+			assertTrue(result.stream().anyMatch(m -> "passkey".equals(m.type())));
 		}
 
 		@Test

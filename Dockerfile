@@ -18,7 +18,9 @@ COPY batch/ batch/
 # Build the application and clean up in one layer to reduce snapshot size
 # Use -Dmaven.test.skip to skip both test compilation and execution
 # Activate docker profile for explicit linux-x86_64 protobuf compilation
-RUN mvn clean install -Pdocker -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true -pl '!business/business-crypto-token' && \
+# Clear any cached strategiz artifacts to prevent stale interface conflicts
+RUN rm -rf /root/.m2/repository/io/strategiz && \
+    mvn clean install -Pdocker -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true && \
     rm -rf /root/.m2/repository
 
 # Runtime image

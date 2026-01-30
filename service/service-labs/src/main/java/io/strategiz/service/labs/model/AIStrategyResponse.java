@@ -26,6 +26,9 @@ public class AIStrategyResponse {
 	@JsonProperty("pythonCode")
 	private String pythonCode;
 
+	@JsonProperty("pineScriptCode")
+	private String pineScriptCode;
+
 	@JsonProperty("summaryCard")
 	private String summaryCard;
 
@@ -84,6 +87,14 @@ public class AIStrategyResponse {
 
 	public void setPythonCode(String pythonCode) {
 		this.pythonCode = pythonCode;
+	}
+
+	public String getPineScriptCode() {
+		return pineScriptCode;
+	}
+
+	public void setPineScriptCode(String pineScriptCode) {
+		this.pineScriptCode = pineScriptCode;
 	}
 
 	public String getSummaryCard() {

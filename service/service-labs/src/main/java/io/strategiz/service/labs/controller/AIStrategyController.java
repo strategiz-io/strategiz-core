@@ -358,6 +358,38 @@ public class AIStrategyController extends BaseController {
 	}
 
 	/**
+	 * Convert Python strategy code to PineScript v5 using AI.
+	 */
+	@PostMapping("/convert-to-pinescript")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Convert Python to PineScript", description = "Uses AI to convert Python trading strategy code to TradingView PineScript v5 with caching")
+	public ResponseEntity<AIStrategyResponse> convertToPineScript(@RequestBody Map<String, String> request,
+			@AuthUser AuthenticatedUser user) {
+		String pythonCode = request.get("pythonCode");
+		if (pythonCode == null || pythonCode.isEmpty()) {
+			return ResponseEntity.badRequest().body(AIStrategyResponse.error("Python code is required"));
+		}
+
+		String userId = user.getUserId();
+		logger.info("Received PineScript conversion request from user {}", userId);
+
+		// Check if Labs AI is enabled
+		if (!featureFlagService.isLabsAIEnabled()) {
+			return ResponseEntity.status(503)
+				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
+		}
+
+		try {
+			AIStrategyResponse response = aiStrategyService.convertToPineScript(pythonCode);
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			logger.error("Error converting to PineScript", e);
+			return ResponseEntity.internalServerError().body(AIStrategyResponse.error(e.getMessage()));
+		}
+	}
+
+	/**
 	 * Detect indicators from a partial prompt (for live preview while typing).
 	 */
 	@PostMapping("/preview-indicators")

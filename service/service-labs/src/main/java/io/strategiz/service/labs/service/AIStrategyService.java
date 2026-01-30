@@ -19,13 +19,18 @@ import io.strategiz.service.labs.model.ExecuteStrategyResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.strategiz.service.base.BaseService;
@@ -49,6 +54,18 @@ public class AIStrategyService extends BaseService {
 	private final HistoricalInsightsCacheService cacheService;
 	private final StrategyExecutionService executionService;
 	private final StrategyOptimizationEngine optimizationEngine;
+
+	// PineScript conversion cache (in-memory, 24h TTL, max 500 entries)
+	private static final int PINESCRIPT_CACHE_MAX_SIZE = 500;
+	private static final long PINESCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000L; // 24 hours
+	private final ConcurrentHashMap<String, PineScriptCacheEntry> pineScriptCache = new ConcurrentHashMap<>();
+	private volatile long lastCacheCleanup = System.currentTimeMillis();
+
+	private record PineScriptCacheEntry(String pineScriptCode, long createdAt) {
+		boolean isExpired() {
+			return System.currentTimeMillis() - createdAt > PINESCRIPT_CACHE_TTL_MS;
+		}
+	}
 
 	@Autowired
 	public AIStrategyService(LLMRouter llmRouter,
@@ -1470,6 +1487,10 @@ public class AIStrategyService extends BaseService {
 					result.setPythonCode(json.get("pythonCode").asText());
 				}
 
+				if (json.has("pineScriptCode")) {
+					result.setPineScriptCode(json.get("pineScriptCode").asText());
+				}
+
 				result.setSuccess(result.getPythonCode() != null);
 
 				// Log visual rules quality for monitoring and prompt improvement
@@ -1900,6 +1921,116 @@ public class AIStrategyService extends BaseService {
 		}
 
 		return changes;
+	}
+
+	/**
+	 * Convert Python strategy code to PineScript v5 using AI.
+	 * Results are cached in-memory with a 24h TTL.
+	 */
+	public AIStrategyResponse convertToPineScript(String pythonCode) {
+		log.info("Converting Python code to PineScript ({} chars)", pythonCode.length());
+
+		try {
+			// Compute cache key
+			String cacheKey = "ps:" + sha256(pythonCode);
+
+			// Check cache
+			PineScriptCacheEntry cached = pineScriptCache.get(cacheKey);
+			if (cached != null && !cached.isExpired()) {
+				log.info("PineScript cache hit for key {}", cacheKey.substring(0, 12));
+				AIStrategyResponse response = new AIStrategyResponse();
+				response.setSuccess(true);
+				response.setPineScriptCode(cached.pineScriptCode());
+				return response;
+			}
+
+			// Build prompt and call LLM
+			String prompt = AIStrategyPrompts.buildPythonToPineScriptPrompt(pythonCode);
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+
+			if (llmResponse == null || !llmResponse.isSuccess()) {
+				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
+				log.warn("LLM error during PineScript conversion: {}", technicalError);
+				return AIStrategyResponse.error(sanitizeErrorMessage(technicalError));
+			}
+
+			String text = llmResponse.getContent();
+			JsonNode json = extractJsonFromResponse(text);
+
+			AIStrategyResponse response = new AIStrategyResponse();
+			if (json != null && json.has("pineScriptCode")) {
+				String pineScriptCode = json.get("pineScriptCode").asText();
+				response.setSuccess(true);
+				response.setPineScriptCode(pineScriptCode);
+
+				// Cache the result
+				cleanupCacheIfNeeded();
+				pineScriptCache.put(cacheKey, new PineScriptCacheEntry(pineScriptCode, System.currentTimeMillis()));
+				log.info("PineScript conversion cached (cache size: {})", pineScriptCache.size());
+			}
+			else {
+				response.setSuccess(false);
+				response.setError("Failed to parse PineScript conversion response");
+			}
+
+			return response;
+		}
+		catch (Exception e) {
+			log.error("Error converting to PineScript", e);
+			return AIStrategyResponse.error("Failed to convert to PineScript. Please try again.");
+		}
+	}
+
+	private String sha256(String input) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+			StringBuilder hexString = new StringBuilder();
+			for (byte b : hash) {
+				String hex = Integer.toHexString(0xff & b);
+				if (hex.length() == 1) hexString.append('0');
+				hexString.append(hex);
+			}
+			return hexString.toString();
+		}
+		catch (Exception e) {
+			// Fallback to hashCode if SHA-256 not available
+			return String.valueOf(input.hashCode());
+		}
+	}
+
+	private void cleanupCacheIfNeeded() {
+		long now = System.currentTimeMillis();
+		// Cleanup every hour
+		if (now - lastCacheCleanup < 60 * 60 * 1000L) {
+			return;
+		}
+		lastCacheCleanup = now;
+
+		// Remove expired entries
+		Iterator<Map.Entry<String, PineScriptCacheEntry>> it = pineScriptCache.entrySet().iterator();
+		int removed = 0;
+		while (it.hasNext()) {
+			if (it.next().getValue().isExpired()) {
+				it.remove();
+				removed++;
+			}
+		}
+
+		// If still over max size, remove oldest entries
+		if (pineScriptCache.size() > PINESCRIPT_CACHE_MAX_SIZE) {
+			int toRemove = pineScriptCache.size() - PINESCRIPT_CACHE_MAX_SIZE;
+			Iterator<String> keyIt = pineScriptCache.keySet().iterator();
+			while (keyIt.hasNext() && toRemove > 0) {
+				keyIt.next();
+				keyIt.remove();
+				toRemove--;
+			}
+		}
+
+		if (removed > 0) {
+			log.info("PineScript cache cleanup: removed {} expired entries, size now {}", removed, pineScriptCache.size());
+		}
 	}
 
 	/**

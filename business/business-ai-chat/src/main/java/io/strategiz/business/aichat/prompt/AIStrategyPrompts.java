@@ -56,10 +56,19 @@ public class AIStrategyPrompts {
 			      "minConfidence": 70
 			    }
 			  },
-			  "pythonCode": "<complete-python-code-as-escaped-string>"
+			  "pythonCode": "<complete-python-code-as-escaped-string>",
+			  "pineScriptCode": "<complete-pinescript-v5-code-as-escaped-string>"
 			}
 
-			CRITICAL: Response must contain ONLY visualConfig and pythonCode. Nothing else. No explanation, no summaryCard, no suggestions, no riskLevel, no detectedIndicators.
+			CRITICAL: Response must contain ONLY visualConfig, pythonCode, and pineScriptCode. Nothing else. No explanation, no summaryCard, no suggestions, no riskLevel, no detectedIndicators.
+
+			PINESCRIPT v5 REQUIREMENTS (for the pineScriptCode field):
+			1. Start with //@version=5 and strategy() declaration with overlay=true
+			2. Map indicators to ta.* builtins: ta.rsi, ta.sma, ta.ema, ta.macd, ta.atr, ta.bb, ta.stoch, ta.vwap
+			3. Use strategy.entry() for entries, strategy.close() for exits, strategy.exit() for stop-loss/take-profit
+			4. Use input.float()/input.int() for configurable parameters
+			5. Implement the EXACT SAME trading logic as the Python code
+			6. Add plot() calls for key indicators
 
 			Available indicators for visualConfig:
 			- Price: price, open, high, low, close, volume
@@ -4377,6 +4386,50 @@ public class AIStrategyPrompts {
 
 		// Default to equity examples
 		return FEW_SHOT_EXAMPLES_EQUITY;
+	}
+
+	/**
+	 * Build a prompt to convert Python trading strategy code to PineScript v5.
+	 */
+	public static String buildPythonToPineScriptPrompt(String pythonCode) {
+		return """
+				You are an expert at converting Python trading strategies to TradingView PineScript v5.
+
+				Convert the following Python trading strategy code into equivalent PineScript v5 code.
+
+				PINESCRIPT REQUIREMENTS:
+				1. Start with //@version=5
+				2. Use strategy() declaration with overlay=true
+				3. Map indicators to ta.* builtins:
+				   - RSI → ta.rsi(close, period)
+				   - SMA → ta.sma(close, period)
+				   - EMA → ta.ema(close, period)
+				   - MACD → [macdLine, signalLine, hist] = ta.macd(close, fast, slow, signal)
+				   - ATR → ta.atr(period)
+				   - Bollinger Bands → [middle, upper, lower] = ta.bb(close, period, mult)
+				   - Stochastic → [k, d] = ta.stoch(close, high, low, kPeriod, kSmooth, dSmooth)
+				   - VWAP → ta.vwap(hlc3)
+				4. Use strategy.entry("Long", strategy.long) / strategy.entry("Short", strategy.short) for entries
+				5. Use strategy.close("Long") / strategy.close("Short") for exits
+				6. Use strategy.exit() for stop-loss and take-profit orders
+				7. Extract SYMBOL and TIMEFRAME from Python constants for the strategy title
+				8. Extract STOP_LOSS and TAKE_PROFIT from Python constants for risk management
+				9. Use input.float() / input.int() for configurable parameters
+				10. Implement the EXACT SAME trading logic as the Python code
+				11. Add plot() calls for key indicators
+
+				PYTHON CODE TO CONVERT:
+				```python
+				""" + pythonCode + """
+				```
+
+				CRITICAL: Your response must be valid JSON with this exact structure:
+				{
+				  "pineScriptCode": "<complete-pinescript-v5-code-as-escaped-string>"
+				}
+
+				Respond with ONLY the JSON. No explanation, no markdown, no extra text.
+				""";
 	}
 
 }

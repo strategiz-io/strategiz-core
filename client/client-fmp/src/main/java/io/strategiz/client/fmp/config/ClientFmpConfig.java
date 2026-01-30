@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
+import io.strategiz.client.fmp.client.FmpFilingsClient;
 import io.strategiz.client.fmp.client.FmpFundamentalsClient;
 import io.strategiz.client.fmp.client.FmpNewsClient;
 import io.strategiz.client.fmp.client.FmpQuoteClient;
@@ -132,6 +133,23 @@ public class ClientFmpConfig {
 	public FmpTechnicalClient fmpTechnicalClient(FmpConfig config, RestTemplate fmpRestTemplate, Bucket fmpRateLimiter,
 			ObjectMapper objectMapper) {
 		return new FmpTechnicalClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
+	}
+
+	/**
+	 * FMP Filings Client bean.
+	 * <p>
+	 * Provides access to FMP SEC filings endpoints for regulatory filing data.
+	 * </p>
+	 * @param config FMP configuration
+	 * @param fmpRestTemplate configured RestTemplate
+	 * @param fmpRateLimiter rate limiter bucket
+	 * @param objectMapper Jackson ObjectMapper
+	 * @return FmpFilingsClient instance
+	 */
+	@Bean
+	public FmpFilingsClient fmpFilingsClient(FmpConfig config, RestTemplate fmpRestTemplate, Bucket fmpRateLimiter,
+			ObjectMapper objectMapper) {
+		return new FmpFilingsClient(config, fmpRestTemplate, fmpRateLimiter, objectMapper);
 	}
 
 }

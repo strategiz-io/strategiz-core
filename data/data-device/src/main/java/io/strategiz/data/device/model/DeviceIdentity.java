@@ -304,6 +304,23 @@ public class DeviceIdentity extends BaseEntity {
     @JsonProperty("trusted")
     private boolean trusted;
 
+    // Device trust fields
+    @PropertyName("trust_expires_at")
+    @JsonProperty("trust_expires_at")
+    private Instant trustExpiresAt;
+
+    @PropertyName("last_trust_verification")
+    @JsonProperty("last_trust_verification")
+    private Instant lastTrustVerification;
+
+    @PropertyName("crypto_verified")
+    @JsonProperty("crypto_verified")
+    private Boolean cryptoVerified;
+
+    @PropertyName("baseline_fingerprint")
+    @JsonProperty("baseline_fingerprint")
+    private String baselineFingerprint;
+
     // Additional metadata stored as map for flexibility
     @PropertyName("device_info")
     @JsonProperty("device_info")
@@ -335,6 +352,22 @@ public class DeviceIdentity extends BaseEntity {
     }
 
     
+    /**
+     * Check if this device's trust is still valid.
+     * Trust is valid when the device is trusted, has a trust score >= 80,
+     * and the trust has not expired.
+     * @return true if device trust is currently valid
+     */
+    public boolean isTrustValid() {
+        if (!trusted) {
+            return false;
+        }
+        if (trustExpiresAt != null && Instant.now().isAfter(trustExpiresAt)) {
+            return false;
+        }
+        return getTrustScore() >= 80;
+    }
+
     /**
      * Check if this device is authenticated (has a userId)
      * @return true if this device belongs to a user
@@ -914,6 +947,38 @@ public class DeviceIdentity extends BaseEntity {
 
     public void setDeviceInfo(Map<String, Object> deviceInfo) {
         this.deviceInfo = deviceInfo;
+    }
+
+    public Instant getTrustExpiresAt() {
+        return trustExpiresAt;
+    }
+
+    public void setTrustExpiresAt(Instant trustExpiresAt) {
+        this.trustExpiresAt = trustExpiresAt;
+    }
+
+    public Instant getLastTrustVerification() {
+        return lastTrustVerification;
+    }
+
+    public void setLastTrustVerification(Instant lastTrustVerification) {
+        this.lastTrustVerification = lastTrustVerification;
+    }
+
+    public Boolean getCryptoVerified() {
+        return cryptoVerified;
+    }
+
+    public void setCryptoVerified(Boolean cryptoVerified) {
+        this.cryptoVerified = cryptoVerified;
+    }
+
+    public String getBaselineFingerprint() {
+        return baselineFingerprint;
+    }
+
+    public void setBaselineFingerprint(String baselineFingerprint) {
+        this.baselineFingerprint = baselineFingerprint;
     }
 
     @Override

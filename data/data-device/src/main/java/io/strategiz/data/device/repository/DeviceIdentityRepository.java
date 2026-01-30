@@ -71,6 +71,15 @@ public interface DeviceIdentityRepository {
     List<DeviceIdentity> findByUserIdAndTrustedTrue(String userId);
     
     /**
+     * Find a device by its visitor ID (fingerprint) across authenticated devices.
+     * Used for device trust verification to identify returning users.
+     *
+     * @param visitorId The FingerprintJS visitor ID
+     * @return Optional device identity if found
+     */
+    Optional<DeviceIdentity> findByVisitorId(String visitorId);
+
+    /**
      * Delete authenticated device from user's subcollection
      * @param userId The user ID
      * @param deviceId Device identity ID to delete

@@ -16,7 +16,8 @@ public enum AuthenticationMethodType {
     OAUTH_MICROSOFT("oauth_microsoft", "Microsoft OAuth"),
     OAUTH_GITHUB("oauth_github", "GitHub OAuth"),
     OAUTH_LINKEDIN("oauth_linkedin", "LinkedIn OAuth"),
-    OAUTH_TWITTER("oauth_twitter", "Twitter OAuth");
+    OAUTH_TWITTER("oauth_twitter", "Twitter OAuth"),
+    DEVICE_TRUST("device_trust", "Trusted Device");
 
     private final String value;
     private final String displayName;

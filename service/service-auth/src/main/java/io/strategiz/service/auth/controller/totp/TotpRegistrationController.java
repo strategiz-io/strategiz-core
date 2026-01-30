@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,14 +89,21 @@ public class TotpRegistrationController extends BaseController {
     @PutMapping("/registrations/{registrationId}")
     public ResponseEntity<Map<String, Object>> completeRegistration(
             @PathVariable String registrationId,
-            @RequestBody @Valid TotpRegistrationCompletionRequest request) {
-        
+            @RequestBody @Valid TotpRegistrationCompletionRequest request,
+            HttpServletRequest httpRequest) {
+
         logRequest("completeTotpRegistration", request.userId());
-        
+
+        // Resolve access token: prefer request body, fall back to cookie
+        String accessToken = request.accessToken();
+        if (accessToken == null || accessToken.isBlank()) {
+            accessToken = extractCookieValue(httpRequest, "strategiz-access-token");
+        }
+
         // Complete TOTP registration and get updated tokens
         Map<String, Object> authResult = totpRegistrationService.enableTotpWithTokenUpdate(
             request.userId(),
-            request.accessToken(),
+            accessToken,
             request.totpCode()
         );
         
@@ -174,5 +183,16 @@ public class TotpRegistrationController extends BaseController {
         
         logRequestSuccess("disableTotpRegistration", userId, result);
         return createCleanResponse(result);
+    }
+
+    private String extractCookieValue(HttpServletRequest request, String cookieName) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (cookieName.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

@@ -17,6 +17,7 @@
     <modules>
         <module>business-base</module>
         <module>business-portfolio</module>
+        <module>business-risk-assessment</module>
         <module>business-token-auth</module>
         <module>business-strategy-execution</module>
         <module>business-provider-base</module>

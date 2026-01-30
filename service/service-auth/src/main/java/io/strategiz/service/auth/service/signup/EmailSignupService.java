@@ -129,10 +129,13 @@ public class EmailSignupService extends BaseService {
         String otpCode = generateOtpCode();
         Instant expiration = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expirationMinutes));
 
-        // Reserve email and get pre-generated userId
-        // This throws EMAIL_ALREADY_EXISTS if email is taken or reserved
-        String userId = emailReservationService.reserveEmail(email, "email_otp", sessionId);
-        log.info("Email reserved for signup - email: {}, userId: {}, sessionId: {}", email, userId, sessionId);
+        // Check email availability (without creating a reservation)
+        // The reservation will be created atomically with the user after OTP verification
+        if (!emailReservationService.isEmailAvailable(email)) {
+            throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "Email address is already registered");
+        }
+        String userId = UUID.randomUUID().toString();
+        log.info("Email available for signup - email: {}, userId: {}, sessionId: {}", email, userId, sessionId);
 
         // Store pending signup with pre-generated userId (no password - passwordless flow)
         PendingSignup pending = new PendingSignup(
@@ -149,8 +152,6 @@ public class EmailSignupService extends BaseService {
             boolean sent = sendOtpEmail(email, otpCode);
             if (!sent) {
                 pendingSignups.remove(sessionId);
-                // Release the email reservation since signup failed
-                emailReservationService.releaseReservation(email);
                 throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, "Failed to send verification email");
             }
         } else {
@@ -206,12 +207,11 @@ public class EmailSignupService extends BaseService {
         // Create user account
         try {
             UserEntity createdUser = transactionTemplate.execute(transaction -> {
-                // Confirm the email reservation within transaction
-                // This ensures atomicity with user creation
-                emailReservationService.confirmReservation(normalizedEmail);
-
-                // Use pre-generated userId from reservation
+                // Reserve and immediately confirm the email within this transaction
+                // This creates the userEmails document only after OTP verification succeeds
                 String userId = pending.userId();
+                emailReservationService.reserveEmailWithUserId(normalizedEmail, userId, "email_otp", null);
+                emailReservationService.confirmReservation(normalizedEmail);
                 UserProfileEntity profile = new UserProfileEntity(
                     pending.name(),
                     normalizedEmail,
@@ -274,15 +274,9 @@ public class EmailSignupService extends BaseService {
             );
 
         } catch (StrategizException e) {
-            // Release reservation on failure (only for non-email-exists errors)
-            if (e.getErrorDetails() != AuthErrors.EMAIL_ALREADY_EXISTS) {
-                emailReservationService.releaseReservation(normalizedEmail);
-            }
             throw e;
         } catch (Exception e) {
             log.error("Error completing email signup: {}", e.getMessage(), e);
-            // Release reservation on failure
-            emailReservationService.releaseReservation(normalizedEmail);
             throw new StrategizException(AuthErrors.SIGNUP_FAILED, "Failed to complete signup");
         }
     }

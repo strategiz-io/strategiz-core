@@ -134,11 +134,10 @@ public class GcpBillingClient {
      * Configure BigQuery billing export to get actual GCP costs including Vertex AI.
      */
     private GcpCostSummary getEstimatedCostSummary(LocalDate startDate, LocalDate endDate) {
-        log.error("⚠️  BigQuery billing export is NOT CONFIGURED - returning ZERO costs. " +
-                "This means GCP costs (including Vertex AI) are NOT being tracked. " +
-                "Set use-bigquery=true in Vault and configure billing export to see real costs.");
+        log.warn("BigQuery billing export is NOT CONFIGURED - returning zero costs. "
+                + "To see real GCP costs, set use-bigquery=true in Vault "
+                + "(secret/strategiz/gcp-billing) and enable billing export to BigQuery.");
 
-        // Return zero costs - NO fake estimates
         Map<String, BigDecimal> costByService = new HashMap<>();
         Map<String, BigDecimal> costByProject = new HashMap<>();
 
@@ -238,12 +237,9 @@ public class GcpBillingClient {
 
     /**
      * Return empty daily costs when BigQuery export is not configured.
-     * NO fake estimates - only real billing data should be shown.
      */
     private List<GcpDailyCost> getEstimatedDailyCosts(LocalDate startDate, LocalDate endDate) {
-        log.error("⚠️  BigQuery billing export is NOT CONFIGURED - returning ZERO daily costs.");
-
-        // Return empty list - NO fake estimates
+        log.warn("BigQuery billing export not configured - returning empty daily costs.");
         return Collections.emptyList();
     }
 

@@ -180,8 +180,8 @@ public class XAiBillingClient {
     }
 
     private AiProviderCost estimateCostFromLocalTracking(LocalDate startDate, LocalDate endDate) {
-        // Return empty for now - would need to implement local usage tracking
-        log.info("Returning empty cost report - local tracking not implemented yet");
+        // TODO: Implement local usage tracking once xAI provides a billing API
+        log.warn("xAI billing API not available and local usage tracking not yet implemented - returning empty cost report");
         return AiProviderCost.empty("xAI Grok", startDate, endDate);
     }
 }

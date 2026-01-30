@@ -74,6 +74,10 @@ public class SessionAuthBusiness {
     private final PasetoTokenValidator tokenValidator;
     private final SessionRepository sessionRepository;
 
+    // Optional to avoid circular dependency (DeviceTrustBusiness depends on SessionAuthBusiness)
+    @Autowired(required = false)
+    private DeviceTrustBusiness deviceTrustBusiness;
+
     @Autowired
     public SessionAuthBusiness(PasetoTokenIssuer tokenIssuer,
                               PasetoTokenValidator tokenValidator,
@@ -145,10 +149,21 @@ public class SessionAuthBusiness {
             refreshSession = storeRefreshTokenSession(refreshToken, authRequest, accessSession);
         }
         
-        log.info("Successfully created unified auth for user: {} with {} methods (session: {})", 
-                authRequest.userId(), authRequest.authenticationMethods().size(), 
+        log.info("Successfully created unified auth for user: {} with {} methods (session: {})",
+                authRequest.userId(), authRequest.authenticationMethods().size(),
                 accessSession != null ? "created" : "disabled");
-        
+
+        // Establish device trust after successful authentication
+        if (deviceTrustBusiness != null && authRequest.deviceId() != null
+                && !authRequest.authenticationMethods().contains("device_trust")) {
+            try {
+                deviceTrustBusiness.establishTrust(
+                    authRequest.deviceId(), authRequest.userId(), authRequest.deviceFingerprint());
+            } catch (Exception e) {
+                log.warn("Failed to establish device trust for user {}: {}", authRequest.userId(), e.getMessage());
+            }
+        }
+
         return new AuthResult(accessToken, refreshToken, accessSession);
     }
     

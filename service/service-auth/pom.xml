@@ -49,7 +49,12 @@
             <artifactId>data-user</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- data-device dependency removed - now using service-device module instead -->
+        <!-- data-device needed for DeviceTrustController device management -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-device</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>business-token-auth</artifactId>

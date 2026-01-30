@@ -5,6 +5,8 @@ import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.service.smsotp.SmsOtpRegistrationService;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -96,14 +98,21 @@ public class SmsOtpRegistrationController extends BaseController {
     @PutMapping("/registrations/{registrationId}")
     public ResponseEntity<Map<String, Object>> verifyPhoneNumber(
             @PathVariable String registrationId,
-            @RequestBody @Valid VerificationRequest request) {
-        
+            @RequestBody @Valid VerificationRequest request,
+            HttpServletRequest httpRequest) {
+
         logRequest("verifyPhoneNumber", request.phoneNumber);
-        
+
+        // Resolve access token: prefer request body, fall back to cookie
+        String accessToken = request.accessToken;
+        if (accessToken == null || accessToken.isBlank()) {
+            accessToken = extractCookieValue(httpRequest, "strategiz-access-token");
+        }
+
         // Verify OTP and get updated tokens
         Map<String, Object> authResult = smsOtpRegistrationService.verifySmsOtpWithTokenUpdate(
             request.userId,
-            request.accessToken,
+            accessToken,
             request.phoneNumber,
             request.otpCode
         );
@@ -312,7 +321,6 @@ public class SmsOtpRegistrationController extends BaseController {
         @NotBlank(message = "User ID is required")
         String userId,
 
-        @NotBlank(message = "Access token is required")
         String accessToken,
 
         @NotBlank(message = "Phone number is required")
@@ -337,6 +345,17 @@ public class SmsOtpRegistrationController extends BaseController {
         boolean isRegistration  // true for signup, false for signin
     ) {}
     
+    private String extractCookieValue(HttpServletRequest request, String cookieName) {
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if (cookieName.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
     private String maskPhoneNumber(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.length() < 4) {
             return "****";

@@ -236,7 +236,7 @@ public class MfaEnforcementBusiness {
 
 	private boolean isMfaMethod(AuthenticationMethodType type) {
 		return type == AuthenticationMethodType.TOTP || type == AuthenticationMethodType.PASSKEY
-				|| type == AuthenticationMethodType.SMS_OTP;
+				|| type == AuthenticationMethodType.SMS_OTP || type == AuthenticationMethodType.DEVICE_TRUST;
 	}
 
 	private int calculateMaxAchievableAcr(List<AuthenticationMethodEntity> mfaMethods) {

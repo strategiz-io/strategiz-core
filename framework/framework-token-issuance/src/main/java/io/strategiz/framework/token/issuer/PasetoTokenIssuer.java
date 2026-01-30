@@ -293,6 +293,11 @@ public class PasetoTokenIssuer {
 			return "2";
 		}
 
+		// Device trust alone = ACR 1 (single possession factor)
+		if (authenticationMethods.size() == 1 && authenticationMethods.contains("device_trust")) {
+			return "1";
+		}
+
 		return "1";
 	}
 
@@ -308,7 +313,8 @@ public class PasetoTokenIssuer {
 
 		Map<String, Integer> methodMap = Map.ofEntries(Map.entry("password", 1), Map.entry("sms_otp", 2),
 				Map.entry("passkeys", 3), Map.entry("totp", 4), Map.entry("email_otp", 5), Map.entry("backup_codes", 6),
-				Map.entry("google", 7), Map.entry("facebook", 8), Map.entry("apple", 9), Map.entry("microsoft", 10));
+				Map.entry("google", 7), Map.entry("facebook", 8), Map.entry("apple", 9), Map.entry("microsoft", 10),
+				Map.entry("device_trust", 11));
 
 		return authMethods.stream().filter(methodMap::containsKey).map(methodMap::get).collect(Collectors.toList());
 	}
@@ -325,7 +331,8 @@ public class PasetoTokenIssuer {
 
 		Map<Integer, String> methodMap = Map.ofEntries(Map.entry(1, "password"), Map.entry(2, "sms_otp"),
 				Map.entry(3, "passkeys"), Map.entry(4, "totp"), Map.entry(5, "email_otp"), Map.entry(6, "backup_codes"),
-				Map.entry(7, "google"), Map.entry(8, "facebook"), Map.entry(9, "apple"), Map.entry(10, "microsoft"));
+				Map.entry(7, "google"), Map.entry(8, "facebook"), Map.entry(9, "apple"), Map.entry(10, "microsoft"),
+				Map.entry(11, "device_trust"));
 
 		return amr.stream().filter(methodMap::containsKey).map(methodMap::get).collect(Collectors.toList());
 	}

@@ -76,6 +76,12 @@ public enum ServiceAuthErrorDetails implements ErrorDetails {
     EXTERNAL_SERVICE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "external-service-error"),
     CONFIGURATION_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "configuration-error"),
     
+    // Device trust errors
+    DEVICE_TRUST_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "device-trust-verification-failed"),
+    DEVICE_TRUST_CHALLENGE_FAILED(HttpStatus.BAD_REQUEST, "device-trust-challenge-failed"),
+    DEVICE_TRUST_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "device-trust-authentication-failed"),
+    DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "device-not-found"),
+
     // Additional token error (for SessionController)
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "invalid-refresh-token");
     

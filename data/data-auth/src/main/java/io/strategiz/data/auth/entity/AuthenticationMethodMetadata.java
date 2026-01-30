@@ -185,8 +185,9 @@ public class AuthenticationMethodMetadata {
             case TOTP -> validateTotpMetadata(metadata);
             case SMS_OTP -> validateSmsOtpMetadata(metadata);
             case EMAIL_OTP -> validateEmailOtpMetadata(metadata);
-            case OAUTH_GOOGLE, OAUTH_FACEBOOK, OAUTH_MICROSOFT, 
+            case OAUTH_GOOGLE, OAUTH_FACEBOOK, OAUTH_MICROSOFT,
                  OAUTH_GITHUB, OAUTH_LINKEDIN, OAUTH_TWITTER -> validateOAuthMetadata(metadata);
+            case DEVICE_TRUST -> true;
         };
     }
 

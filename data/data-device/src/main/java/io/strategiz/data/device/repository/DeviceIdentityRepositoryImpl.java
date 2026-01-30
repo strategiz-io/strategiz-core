@@ -42,6 +42,16 @@ public class DeviceIdentityRepositoryImpl extends BaseRepository<DeviceIdentity>
     }
     
     @Override
+    public Optional<DeviceIdentity> findByVisitorId(String visitorId) {
+        List<DeviceIdentity> devices = findByField("visitor_id", visitorId);
+        // Return the first authenticated device (non-anonymous)
+        return devices.stream()
+                .filter(DeviceIdentity::isAuthenticated)
+                .findFirst()
+                .or(() -> devices.stream().findFirst());
+    }
+
+    @Override
     public DeviceIdentity saveAuthenticatedDevice(DeviceIdentity entity, String userId) {
         // For now, save to main collection and mark it as authenticated
         entity.setUserId(userId);

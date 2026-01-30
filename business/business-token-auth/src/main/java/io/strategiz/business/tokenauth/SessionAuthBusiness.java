@@ -423,7 +423,8 @@ public class SessionAuthBusiness {
             Map.entry(7, "google"),
             Map.entry(8, "facebook"),
             Map.entry(9, "apple"),
-            Map.entry(10, "microsoft")
+            Map.entry(10, "microsoft"),
+            Map.entry(11, "device_trust")
         );
 
         List<String> methods = new ArrayList<>();

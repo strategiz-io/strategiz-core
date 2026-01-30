@@ -93,6 +93,9 @@ yarn-error.log*
 # OS
 Thumbs.db
 
+# Firebase service account credentials
+firebase-service-account.json
+
 # Vault local data and secrets
 vault/data/
 vault/vault-keys.txt

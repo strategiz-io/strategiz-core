@@ -18,17 +18,19 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import jakarta.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Firebase configuration responsible for initializing Firebase app and providing Firestore beans.
  * Moved from service-framework-base to data-framework-base module as Firebase/Firestore is primarily a data storage concern.
  */
 @Configuration
-@Order(Ordered.HIGHEST_PRECEDENCE) // Ensure this runs before other beans are created
+@Order(Ordered.HIGHEST_PRECEDENCE + 2) // Runs after FirebaseVaultConfig loads credentials
 public class FirebaseConfig {
 
     private static final String SERVICE_ACCOUNT_FILE = "firebase-service-account.json";
@@ -46,29 +48,39 @@ public class FirebaseConfig {
 
             System.out.println("Starting Firebase initialization from data-base module...");
             
-            // Try to find the service account file
+            // Try to find the service account credentials in priority order
             InputStream serviceAccount = null;
             String foundLocation = null;
-            
-            // Try in classpath first (recommended approach)
-            Resource resource = new ClassPathResource(SERVICE_ACCOUNT_FILE);
-            if (resource.exists()) {
-                serviceAccount = resource.getInputStream();
-                foundLocation = "classpath:" + SERVICE_ACCOUNT_FILE;
-                System.out.println("Found Firebase service account in classpath");
+
+            // 1. Try Vault (highest priority - production)
+            String vaultJson = FirebaseVaultConfig.getServiceAccountJson();
+            if (vaultJson != null && !vaultJson.isEmpty()) {
+                serviceAccount = new ByteArrayInputStream(vaultJson.getBytes(StandardCharsets.UTF_8));
+                foundLocation = "Vault (secret/strategiz/firebase)";
+                System.out.println("Found Firebase service account in Vault");
             }
-            
-            // If not found in classpath, try working directory 
+
+            // 2. Try FIREBASE_SERVICE_ACCOUNT_KEY env var / Spring property (inline JSON)
             if (serviceAccount == null) {
-                File file = new File(SERVICE_ACCOUNT_FILE);
-                if (file.exists()) {
-                    serviceAccount = new FileInputStream(file);
-                    foundLocation = file.getAbsolutePath();
-                    System.out.println("Found Firebase service account in working directory");
+                String envKey = System.getenv("FIREBASE_SERVICE_ACCOUNT_KEY");
+                if (envKey != null && !envKey.isEmpty()) {
+                    serviceAccount = new ByteArrayInputStream(envKey.getBytes(StandardCharsets.UTF_8));
+                    foundLocation = "FIREBASE_SERVICE_ACCOUNT_KEY environment variable";
+                    System.out.println("Found Firebase service account from FIREBASE_SERVICE_ACCOUNT_KEY env var");
                 }
             }
-            
-            // If still not found, try environment variable
+
+            // 3. Try classpath (local dev fallback)
+            if (serviceAccount == null) {
+                Resource resource = new ClassPathResource(SERVICE_ACCOUNT_FILE);
+                if (resource.exists()) {
+                    serviceAccount = resource.getInputStream();
+                    foundLocation = "classpath:" + SERVICE_ACCOUNT_FILE;
+                    System.out.println("Found Firebase service account in classpath");
+                }
+            }
+
+            // 4. Try FIREBASE_SERVICE_ACCOUNT_PATH env var (file path)
             if (serviceAccount == null) {
                 String envPath = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH");
                 if (envPath != null && !envPath.isEmpty()) {
@@ -76,7 +88,7 @@ public class FirebaseConfig {
                     if (envFile.exists()) {
                         serviceAccount = new FileInputStream(envFile);
                         foundLocation = envFile.getAbsolutePath();
-                        System.out.println("Found Firebase service account from environment variable at: " + envFile.getAbsolutePath());
+                        System.out.println("Found Firebase service account from FIREBASE_SERVICE_ACCOUNT_PATH at: " + envFile.getAbsolutePath());
                     }
                 }
             }

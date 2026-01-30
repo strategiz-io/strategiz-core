@@ -106,6 +106,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Secrets Framework (for Vault integration) -->
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>framework-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -136,4 +136,49 @@ public class FmpEarningsEvent {
 		};
 	}
 
+	/**
+	 * Get date as LocalDate.
+	 */
+	public java.time.LocalDate getDateAsLocalDate() {
+		return date != null ? java.time.LocalDate.parse(date) : null;
+	}
+
+	/**
+	 * Calculate EPS surprise percentage.
+	 */
+	public Double getEpsSurprisePercent() {
+		if (epsActual == null || epsEstimated == null || epsEstimated == 0) {
+			return null;
+		}
+		return ((epsActual - epsEstimated) / Math.abs(epsEstimated)) * 100;
+	}
+
+	/**
+	 * Format for AI context injection.
+	 */
+	public String toContextString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(String.format("| %s | %s | ", date != null ? date : "TBD", symbol));
+
+		if (epsEstimated != null) {
+			sb.append(String.format("Est: $%.2f", epsEstimated));
+		}
+		if (epsActual != null) {
+			sb.append(String.format(" | Act: $%.2f", epsActual));
+			Double surprise = getEpsSurprisePercent();
+			if (surprise != null) {
+				sb.append(String.format(" (%+.1f%%)", surprise));
+			}
+		}
+		sb.append(" | ").append(getTimingDescription());
+
+		return sb.toString();
+	}
+
+	@Override
+	public String toString() {
+		return "FmpEarningsEvent{" + "symbol='" + symbol + '\'' + ", date='" + date + '\'' + ", epsEstimated="
+				+ epsEstimated + ", epsActual=" + epsActual + ", time='" + time + '\'' + '}';
+	}
+
 }

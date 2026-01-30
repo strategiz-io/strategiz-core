@@ -1,12 +1,12 @@
 package io.strategiz.service.agents.context;
 
-import io.strategiz.client.finnhub.FinnhubEarningsClient;
-import io.strategiz.client.finnhub.FinnhubFilingsClient;
-import io.strategiz.client.finnhub.dto.EarningsCalendarEvent;
-import io.strategiz.client.finnhub.dto.SECFiling;
+import io.strategiz.client.fmp.client.FmpFilingsClient;
+import io.strategiz.client.fmp.client.FmpFundamentalsClient;
 import io.strategiz.client.fmp.client.FmpNewsClient;
+import io.strategiz.client.fmp.dto.FmpEarningsEvent;
 import io.strategiz.client.fmp.dto.FmpNewsArticle;
 import io.strategiz.client.fmp.dto.FmpPressRelease;
+import io.strategiz.client.fmp.dto.FmpSECFiling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,14 +18,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Provides real news context for AI agents using FMP API for news and Finnhub for
- * earnings/filings.
+ * Provides real news context for AI agents using FMP API for news, earnings, and filings.
  *
  * <p>
  * Data sources:
  * <ul>
  * <li>FMP: Stock news, general market news, forex/crypto news, press releases</li>
- * <li>Finnhub: SEC filings, earnings calendar</li>
+ * <li>FMP: SEC filings, earnings calendar</li>
  * </ul>
  * </p>
  */
@@ -45,15 +44,15 @@ public class NewsContextProvider {
 
 	private final FmpNewsClient fmpNewsClient;
 
-	private final FinnhubFilingsClient filingsClient;
+	private final FmpFilingsClient filingsClient;
 
-	private final FinnhubEarningsClient earningsClient;
+	private final FmpFundamentalsClient fundamentalsClient;
 
-	public NewsContextProvider(@Nullable FmpNewsClient fmpNewsClient, @Nullable FinnhubFilingsClient filingsClient,
-			@Nullable FinnhubEarningsClient earningsClient) {
+	public NewsContextProvider(@Nullable FmpNewsClient fmpNewsClient, @Nullable FmpFilingsClient filingsClient,
+			@Nullable FmpFundamentalsClient fundamentalsClient) {
 		this.fmpNewsClient = fmpNewsClient;
 		this.filingsClient = filingsClient;
-		this.earningsClient = earningsClient;
+		this.fundamentalsClient = fundamentalsClient;
 	}
 
 	/**
@@ -101,19 +100,19 @@ public class NewsContextProvider {
 		// Press releases from FMP
 		appendPressReleasesForSymbol(context, symbol);
 
-		// SEC filings from Finnhub
+		// SEC filings from FMP
 		appendFilingsForSymbol(context, symbol);
 
-		// Symbol-specific earnings from Finnhub
-		if (earningsClient != null && earningsClient.isConfigured()) {
-			List<EarningsCalendarEvent> earnings = earningsClient.getUpcomingEarnings(30)
+		// Symbol-specific earnings from FMP
+		if (fundamentalsClient != null && fundamentalsClient.isConfigured()) {
+			List<FmpEarningsEvent> earnings = fundamentalsClient.getUpcomingEarnings(30)
 				.stream()
 				.filter(e -> symbol.equalsIgnoreCase(e.getSymbol()))
 				.toList();
 
 			if (!earnings.isEmpty()) {
 				context.append("UPCOMING EARNINGS FOR ").append(symbol.toUpperCase()).append(":\n");
-				context.append(earningsClient.formatEarningsForContext(earnings, true));
+				context.append(fundamentalsClient.formatEarningsForContext(earnings, true));
 				context.append("\n");
 			}
 		}
@@ -254,7 +253,7 @@ public class NewsContextProvider {
 		}
 
 		try {
-			List<SECFiling> filings = filingsClient.getFilingsForSymbols(symbols, DEFAULT_FILINGS_DAYS);
+			List<FmpSECFiling> filings = filingsClient.getFilingsForSymbols(symbols, DEFAULT_FILINGS_DAYS);
 			if (!filings.isEmpty()) {
 				context.append("RECENT SEC FILINGS:\n");
 				context.append("-".repeat(50)).append("\n");
@@ -274,7 +273,7 @@ public class NewsContextProvider {
 		}
 
 		try {
-			List<SECFiling> filings = filingsClient.getMajorFilings(symbol, 90);
+			List<FmpSECFiling> filings = filingsClient.getMajorFilings(symbol, 90);
 			if (!filings.isEmpty()) {
 				context.append("SEC FILINGS (Last 90 days):\n");
 				context.append("-".repeat(50)).append("\n");
@@ -291,18 +290,18 @@ public class NewsContextProvider {
 	}
 
 	private void appendUpcomingEarnings(StringBuilder context) {
-		if (earningsClient == null || !earningsClient.isConfigured()) {
+		if (fundamentalsClient == null || !fundamentalsClient.isConfigured()) {
 			return;
 		}
 
 		try {
-			List<EarningsCalendarEvent> upcoming = earningsClient.getUpcomingEarnings(7);
+			List<FmpEarningsEvent> upcoming = fundamentalsClient.getUpcomingEarnings(7);
 			if (!upcoming.isEmpty()) {
 				context.append("UPCOMING EARNINGS (Next 7 days):\n");
 				context.append("-".repeat(50)).append("\n");
 				// Limit to notable names
-				List<EarningsCalendarEvent> limited = upcoming.stream().limit(15).toList();
-				context.append(earningsClient.formatEarningsForContext(limited, true));
+				List<FmpEarningsEvent> limited = upcoming.stream().limit(15).toList();
+				context.append(fundamentalsClient.formatEarningsForContext(limited, true));
 				context.append("\n");
 			}
 		}

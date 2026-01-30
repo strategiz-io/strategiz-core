@@ -162,12 +162,6 @@
             <artifactId>client-github</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.strategiz</groupId>
-            <artifactId>client-finnhub</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- Business Provider Modules -->
         <dependency>
             <groupId>io.strategiz</groupId>

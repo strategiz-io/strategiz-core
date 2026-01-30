@@ -36,9 +36,11 @@ import org.springframework.context.annotation.ComponentScan;
 
     // Business Layer
     "io.strategiz.business.tokenauth",
+    "io.strategiz.business.risk",
 
     // Data Layer
     "io.strategiz.data.auth",
+    "io.strategiz.data.device",
     "io.strategiz.data.session",
     "io.strategiz.data.user",
     "io.strategiz.data.watchlist",
@@ -62,7 +64,7 @@ import org.springframework.context.annotation.ComponentScan;
     "io.strategiz.client.webpush",
     "io.strategiz.client.coinbase",
     "io.strategiz.client.coingecko",
-    "io.strategiz.client.yahoofinance",
+
     "io.strategiz.client.recaptcha",
 
     // Service Framework Base (CorsFilter, SecurityConfig, BaseController)

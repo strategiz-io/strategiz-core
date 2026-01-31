@@ -50,4 +50,23 @@ public class FeatureFlagPublicController extends BaseController {
 		}
 	}
 
+	/**
+	 * Check if marketplace is enabled. Used by frontend to determine whether to show
+	 * marketplace or a "coming soon" overlay.
+	 */
+	@GetMapping("/marketplace")
+	public ResponseEntity<Map<String, Object>> getMarketplaceEnabled() {
+		try {
+			boolean enabled = featureFlagService.isMarketplaceEnabled();
+			log.debug("Marketplace enabled check: {}", enabled);
+
+			return ResponseEntity
+				.ok(Map.of("marketplaceEnabled", enabled, "timestamp", System.currentTimeMillis()));
+		}
+		catch (Exception e) {
+			log.error("Error checking marketplace flag", e);
+			throw handleException(e, "getMarketplaceEnabled");
+		}
+	}
+
 }

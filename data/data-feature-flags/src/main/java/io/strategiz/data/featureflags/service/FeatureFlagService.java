@@ -41,6 +41,8 @@ public class FeatureFlagService {
 	// Platform flags
 	public static final String FLAG_PRE_LAUNCH_MODE = "pre_launch_mode_enabled";
 
+	public static final String FLAG_MARKETPLACE_ENABLED = "marketplace_enabled";
+
 	// Auth flags
 	public static final String FLAG_AUTH_EMAIL_OTP_SIGNUP = "auth_email_otp_signup_enabled";
 
@@ -106,6 +108,7 @@ public class FeatureFlagService {
 		defaults.put(FLAG_TRADING_ENABLED, false);
 		// Platform flags
 		defaults.put(FLAG_PRE_LAUNCH_MODE, false);
+		defaults.put(FLAG_MARKETPLACE_ENABLED, false);
 		// Auth flags - all enabled by default
 		defaults.put(FLAG_AUTH_EMAIL_OTP_SIGNUP, true);
 		defaults.put(FLAG_AUTH_PASSKEY_SIGNUP, true);
@@ -144,6 +147,9 @@ public class FeatureFlagService {
 		// Platform flags
 		createDefaultFlag(FLAG_PRE_LAUNCH_MODE, "Pre-Launch Mode",
 				"Show pre-launch waitlist page instead of main landing page", false, "platform");
+
+		createDefaultFlag(FLAG_MARKETPLACE_ENABLED, "Marketplace",
+				"Enable the strategy marketplace for browsing and sharing trading strategies", false, "platform");
 
 		// Auth flags
 		createDefaultFlag(FLAG_AUTH_EMAIL_OTP_SIGNUP, "Email OTP Signup",
@@ -326,6 +332,13 @@ public class FeatureFlagService {
 	 */
 	public boolean isPreLaunchMode() {
 		return isEnabled(FLAG_PRE_LAUNCH_MODE);
+	}
+
+	/**
+	 * Check if Marketplace is enabled.
+	 */
+	public boolean isMarketplaceEnabled() {
+		return isEnabled(FLAG_MARKETPLACE_ENABLED);
 	}
 
 	/**

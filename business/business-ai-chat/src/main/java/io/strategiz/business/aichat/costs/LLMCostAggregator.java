@@ -5,6 +5,7 @@ import io.strategiz.business.aichat.costs.model.ModelCostBreakdown;
 import io.strategiz.business.aichat.costs.model.ProviderCostReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
  * a unified view of LLM costs for the console dashboard.
  */
 @Service
+@ConditionalOnProperty(name = "llm.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class LLMCostAggregator {
 
 	private static final Logger logger = LoggerFactory.getLogger(LLMCostAggregator.class);

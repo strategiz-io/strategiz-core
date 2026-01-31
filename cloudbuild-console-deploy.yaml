@@ -28,5 +28,8 @@ steps:
     - '--set-env-vars=^|^SPRING_PROFILES_ACTIVE=prod,scheduler|console.auth.enabled=true|strategiz.clickhouse.enabled=true|strategiz.timescale.enabled=false|VAULT_ADDR=https://strategiz-vault-bflhiwsnmq-ue.a.run.app|STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-bflhiwsnmq-ue.a.run.app'
     - '--set-secrets=VAULT_TOKEN=vault-root-token:latest'
 
+options:
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+
 images:
 - 'gcr.io/$PROJECT_ID/strategiz-console'

@@ -11,6 +11,7 @@ import io.strategiz.client.gcpbilling.model.GcpCostSummary;
 import io.strategiz.client.gcpbilling.model.GcpDailyCost;
 import io.strategiz.client.gcpbilling.model.GcpServiceUsage;
 import io.strategiz.business.infrastructurecosts.model.ClickHouseCostSummary;
+import io.strategiz.client.gcpbilling.StripeBillingClient;
 import io.strategiz.client.sendgridbilling.SendGridBillingClient;
 import io.strategiz.client.sendgridbilling.model.SendGridCostSummary;
 import io.strategiz.data.infrastructurecosts.entity.DailyCostEntity;
@@ -60,6 +61,8 @@ public class CostAggregationService {
 
 	private final SendGridBillingClient sendgridBillingClient;
 
+	private final StripeBillingClient stripeBillingClient;
+
 	private final DailyCostRepository dailyCostRepository;
 
 	private final FirestoreUsageRepository firestoreUsageRepository;
@@ -73,11 +76,21 @@ public class CostAggregationService {
 	@Value("${subscriptions.claude.enabled:false}")
 	private boolean claudeEnabled;
 
+	@Value("${subscriptions.fmp.monthly-cost:0}")
+	private BigDecimal fmpMonthlyCost;
+
+	@Value("${subscriptions.fmp.name:FMP (Financial Modeling Prep)}")
+	private String fmpName;
+
+	@Value("${subscriptions.fmp.enabled:false}")
+	private boolean fmpEnabled;
+
 	public CostAggregationService(@Autowired(required = false) GcpBillingClient gcpBillingClient,
 			@Autowired(required = false) GcpMonitoringClient gcpMonitoringClient,
 			@Autowired(required = false) ClickHouseBillingClient clickHouseBillingClient,
 			@Autowired(required = false) FirestoreClickHouseBillingService firestoreClickHouseBillingService,
 			@Autowired(required = false) SendGridBillingClient sendgridBillingClient,
+			@Autowired(required = false) StripeBillingClient stripeBillingClient,
 			@Autowired(required = false) DailyCostRepository dailyCostRepository,
 			@Autowired(required = false) FirestoreUsageRepository firestoreUsageRepository) {
 		this.gcpBillingClient = gcpBillingClient;
@@ -85,14 +98,15 @@ public class CostAggregationService {
 		this.clickHouseBillingClient = clickHouseBillingClient;
 		this.firestoreClickHouseBillingService = firestoreClickHouseBillingService;
 		this.sendgridBillingClient = sendgridBillingClient;
+		this.stripeBillingClient = stripeBillingClient;
 		this.dailyCostRepository = dailyCostRepository;
 		this.firestoreUsageRepository = firestoreUsageRepository;
 
 		log.info(
-				"CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, clickhouseCloud={}, clickhouseFirestore={}, sendgrid={}, dailyCostRepo={}, firestoreUsageRepo={}",
+				"CostAggregationService initialized - gcpBilling={}, gcpMonitoring={}, clickhouseCloud={}, clickhouseFirestore={}, sendgrid={}, stripe={}, dailyCostRepo={}, firestoreUsageRepo={}",
 				gcpBillingClient != null, gcpMonitoringClient != null, clickHouseBillingClient != null,
-				firestoreClickHouseBillingService != null, sendgridBillingClient != null, dailyCostRepository != null,
-				firestoreUsageRepository != null);
+				firestoreClickHouseBillingService != null, sendgridBillingClient != null, stripeBillingClient != null,
+				dailyCostRepository != null, firestoreUsageRepository != null);
 	}
 
 	/**
@@ -118,6 +132,18 @@ public class CostAggregationService {
 					? sendgridBillingClient.getCostSummary(startOfMonth, today)
 					: SendGridCostSummary.empty(startOfMonth, today);
 
+			// Get Stripe fees (optional)
+			BigDecimal stripeFees = BigDecimal.ZERO;
+			if (stripeBillingClient != null && stripeBillingClient.isConfigured()) {
+				try {
+					Map<String, BigDecimal> stripeData = stripeBillingClient.getFeeSummary(startOfMonth, today);
+					stripeFees = stripeData.getOrDefault("totalFees", BigDecimal.ZERO);
+				}
+				catch (Exception e) {
+					log.warn("Could not fetch Stripe fees: {}", e.getMessage());
+				}
+			}
+
 			// Calculate totals
 			BigDecimal gcpCost = gcpSummary.totalCost();
 			BigDecimal clickhouseCost = clickhouseSummary.totalCost();
@@ -126,7 +152,8 @@ public class CostAggregationService {
 			// Calculate subscription costs (prorated for current month)
 			BigDecimal subscriptionCosts = calculateSubscriptionCosts(today);
 
-			BigDecimal totalCost = gcpCost.add(clickhouseCost).add(sendgridCost).add(subscriptionCosts);
+			BigDecimal totalCost = gcpCost.add(clickhouseCost).add(sendgridCost).add(stripeFees)
+					.add(subscriptionCosts);
 
 			// Calculate days so far
 			int daysSoFar = today.getDayOfMonth();
@@ -139,10 +166,16 @@ public class CostAggregationService {
 			Map<String, BigDecimal> costByService = new HashMap<>(gcpSummary.costByService());
 			costByService.put("ClickHouse", clickhouseCost);
 			costByService.put("SendGrid", sendgridCost);
+			if (stripeFees.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put("Stripe", stripeFees);
+			}
 
 			// Add subscription costs if enabled
-			if (claudeEnabled && subscriptionCosts.compareTo(BigDecimal.ZERO) > 0) {
-				costByService.put(claudeName, subscriptionCosts);
+			if (claudeEnabled && claudeMonthlyCost != null && claudeMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put(claudeName, prorateSubscription(claudeMonthlyCost, today));
+			}
+			if (fmpEnabled && fmpMonthlyCost != null && fmpMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put(fmpName, prorateSubscription(fmpMonthlyCost, today));
 			}
 
 			// Get last month for comparison
@@ -202,10 +235,16 @@ public class CostAggregationService {
 				breakdown.put("ClickHouse", dailyClickHouseCost);
 				breakdown.put("SendGrid", dailySendGridCost);
 
-				// Add daily subscription cost
+				// Add daily subscription costs
 				BigDecimal dailySubscriptionCost = getDailySubscriptionCost(gcpDaily.date());
-				if (claudeEnabled && dailySubscriptionCost.compareTo(BigDecimal.ZERO) > 0) {
-					breakdown.put(claudeName, dailySubscriptionCost);
+				if (claudeEnabled && claudeMonthlyCost != null && claudeMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+					breakdown.put(claudeName,
+							claudeMonthlyCost.divide(BigDecimal.valueOf(gcpDaily.date().lengthOfMonth()), 4,
+									RoundingMode.HALF_UP));
+				}
+				if (fmpEnabled && fmpMonthlyCost != null && fmpMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+					breakdown.put(fmpName, fmpMonthlyCost.divide(BigDecimal.valueOf(gcpDaily.date().lengthOfMonth()), 4,
+							RoundingMode.HALF_UP));
 				}
 
 				BigDecimal totalCost = gcpDaily.totalCost()
@@ -252,10 +291,28 @@ public class CostAggregationService {
 				costByService.put("SendGrid", sendgridSummary.totalCost());
 			}
 
+			// Add Stripe fees if available
+			if (stripeBillingClient != null && stripeBillingClient.isConfigured()) {
+				try {
+					Map<String, BigDecimal> stripeData = stripeBillingClient
+						.getFeeSummary(LocalDate.now().withDayOfMonth(1), LocalDate.now());
+					BigDecimal stripeFees = stripeData.getOrDefault("totalFees", BigDecimal.ZERO);
+					if (stripeFees.compareTo(BigDecimal.ZERO) > 0) {
+						costByService.put("Stripe", stripeFees);
+					}
+				}
+				catch (Exception e) {
+					log.warn("Could not fetch Stripe fees: {}", e.getMessage());
+				}
+			}
+
 			// Add subscription costs
-			BigDecimal subscriptionCosts = calculateSubscriptionCosts(LocalDate.now());
-			if (claudeEnabled && subscriptionCosts.compareTo(BigDecimal.ZERO) > 0) {
-				costByService.put(claudeName, subscriptionCosts);
+			LocalDate now = LocalDate.now();
+			if (claudeEnabled && claudeMonthlyCost != null && claudeMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put(claudeName, prorateSubscription(claudeMonthlyCost, now));
+			}
+			if (fmpEnabled && fmpMonthlyCost != null && fmpMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put(fmpName, prorateSubscription(fmpMonthlyCost, now));
 			}
 
 			return costByService;
@@ -372,8 +429,14 @@ public class CostAggregationService {
 			}
 
 			// Add subscription costs
-			if (claudeEnabled && subscriptionCost.compareTo(BigDecimal.ZERO) > 0) {
-				costByService.put(claudeName, subscriptionCost);
+			if (claudeEnabled && claudeMonthlyCost != null && claudeMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put(claudeName,
+						claudeMonthlyCost.divide(BigDecimal.valueOf(yesterday.lengthOfMonth()), 4,
+								RoundingMode.HALF_UP));
+			}
+			if (fmpEnabled && fmpMonthlyCost != null && fmpMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+				costByService.put(fmpName, fmpMonthlyCost.divide(BigDecimal.valueOf(yesterday.lengthOfMonth()), 4,
+						RoundingMode.HALF_UP));
 			}
 
 			entity.setCostByService(costByService);
@@ -494,30 +557,44 @@ public class CostAggregationService {
 	 * Calculate prorated subscription costs for the current month
 	 */
 	private BigDecimal calculateSubscriptionCosts(LocalDate currentDate) {
-		if (!claudeEnabled || claudeMonthlyCost == null || claudeMonthlyCost.compareTo(BigDecimal.ZERO) == 0) {
-			return BigDecimal.ZERO;
-		}
-
-		// Prorate based on days in month
+		BigDecimal total = BigDecimal.ZERO;
 		int daysInMonth = currentDate.lengthOfMonth();
 		int daysSoFar = currentDate.getDayOfMonth();
 
-		// Calculate prorated cost: (monthly cost / days in month) * days so far
-		return claudeMonthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
-			.multiply(BigDecimal.valueOf(daysSoFar))
-			.setScale(2, RoundingMode.HALF_UP);
+		if (claudeEnabled && claudeMonthlyCost != null && claudeMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+			total = total.add(claudeMonthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
+				.multiply(BigDecimal.valueOf(daysSoFar)));
+		}
+		if (fmpEnabled && fmpMonthlyCost != null && fmpMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+			total = total.add(fmpMonthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
+				.multiply(BigDecimal.valueOf(daysSoFar)));
+		}
+
+		return total.setScale(2, RoundingMode.HALF_UP);
 	}
 
 	/**
 	 * Calculate daily subscription costs
 	 */
 	private BigDecimal getDailySubscriptionCost(LocalDate date) {
-		if (!claudeEnabled || claudeMonthlyCost == null || claudeMonthlyCost.compareTo(BigDecimal.ZERO) == 0) {
-			return BigDecimal.ZERO;
+		BigDecimal total = BigDecimal.ZERO;
+		int daysInMonth = date.lengthOfMonth();
+
+		if (claudeEnabled && claudeMonthlyCost != null && claudeMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+			total = total.add(claudeMonthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP));
+		}
+		if (fmpEnabled && fmpMonthlyCost != null && fmpMonthlyCost.compareTo(BigDecimal.ZERO) > 0) {
+			total = total.add(fmpMonthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP));
 		}
 
-		int daysInMonth = date.lengthOfMonth();
-		return claudeMonthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
+		return total.setScale(2, RoundingMode.HALF_UP);
+	}
+
+	private BigDecimal prorateSubscription(BigDecimal monthlyCost, LocalDate currentDate) {
+		int daysInMonth = currentDate.lengthOfMonth();
+		int daysSoFar = currentDate.getDayOfMonth();
+		return monthlyCost.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP)
+			.multiply(BigDecimal.valueOf(daysSoFar))
 			.setScale(2, RoundingMode.HALF_UP);
 	}
 

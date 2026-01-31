@@ -25,7 +25,7 @@ import java.util.Map;
  * API Documentation: https://docs.anthropic.com/en/api/admin-api Required: Admin API key
  * (sk-ant-admin-...)
  *
- * Credentials loaded from Vault: secret/strategiz/ai/anthropic Required secrets:
+ * Credentials loaded from Vault: secret/strategiz/anthropic Required secrets:
  * admin-api-key
  *
  * Enable with: ai.billing.enabled=true
@@ -55,9 +55,9 @@ public class AnthropicBillingClient {
 		// field)
 		String vaultKey = null;
 		try {
-			vaultKey = vaultSecretService.readSecret("ai/anthropic.admin-api-key");
+			vaultKey = vaultSecretService.readSecret("anthropic.admin-api-key");
 			if (vaultKey == null || vaultKey.isEmpty()) {
-				log.warn("Admin API key not found in Vault at ai/anthropic.admin-api-key, "
+				log.warn("Admin API key not found in Vault at anthropic.admin-api-key, "
 						+ "falling back to environment variable");
 				vaultKey = System.getenv("ANTHROPIC_ADMIN_API_KEY");
 			}

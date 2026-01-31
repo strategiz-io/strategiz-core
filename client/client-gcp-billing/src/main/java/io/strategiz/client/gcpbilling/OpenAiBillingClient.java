@@ -25,7 +25,7 @@ import java.util.Map;
  * API Documentation: https://platform.openai.com/docs/api-reference/usage Required:
  * OpenAI API key with organization access
  *
- * Credentials loaded from Vault: secret/strategiz/ai/openai Required secrets: api-key
+ * Credentials loaded from Vault: secret/strategiz/openai Required secrets: api-key
  *
  * Enable with: ai.billing.enabled=true
  */
@@ -51,9 +51,9 @@ public class OpenAiBillingClient {
 		// Load API key from Vault: secret/strategiz/ai/openai (api-key field)
 		String vaultKey = null;
 		try {
-			vaultKey = vaultSecretService.readSecret("ai/openai.api-key");
+			vaultKey = vaultSecretService.readSecret("openai.api-key");
 			if (vaultKey == null || vaultKey.isEmpty()) {
-				log.warn("API key not found in Vault at ai/openai.api-key, " + "falling back to environment variable");
+				log.warn("API key not found in Vault at openai.api-key, " + "falling back to environment variable");
 				vaultKey = System.getenv("OPENAI_API_KEY");
 			}
 		}

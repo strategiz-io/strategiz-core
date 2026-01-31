@@ -23,7 +23,7 @@ import java.util.Map;
  *
  * API Documentation: https://docs.x.ai Required: xAI API key
  *
- * Credentials loaded from Vault: secret/strategiz/ai/xai Required secrets: api-key
+ * Credentials loaded from Vault: secret/strategiz/grok Required secrets: api-key
  *
  * Enable with: ai.billing.enabled=true
  *
@@ -65,9 +65,9 @@ public class XAiBillingClient {
 		// Load API key from Vault: secret/strategiz/ai/xai (api-key field)
 		String vaultKey = null;
 		try {
-			vaultKey = vaultSecretService.readSecret("ai/xai.api-key");
+			vaultKey = vaultSecretService.readSecret("grok.api-key");
 			if (vaultKey == null || vaultKey.isEmpty()) {
-				log.warn("API key not found in Vault at ai/xai.api-key, " + "falling back to environment variable");
+				log.warn("API key not found in Vault at grok.api-key, " + "falling back to environment variable");
 				vaultKey = System.getenv("XAI_API_KEY");
 			}
 		}

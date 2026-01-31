@@ -37,9 +37,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 		// Business Layer
 		"io.strategiz.business.tokenauth", "io.strategiz.business.marketdata",
-		"io.strategiz.business.infrastructurecosts",
+		"io.strategiz.business.infrastructurecosts", "io.strategiz.business.aichat",
 		"io.strategiz.business.livestrategies", "io.strategiz.business.fundamentals",
 		"io.strategiz.business.cryptotoken", "io.strategiz.business.risk", "io.strategiz.business.preferences",
+		"io.strategiz.business.portfolio", "io.strategiz.business.historicalinsights",
 
 		// Data Layer
 		"io.strategiz.data.base", "io.strategiz.data.auth", "io.strategiz.data.provider", "io.strategiz.data.session",
@@ -58,6 +59,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		"io.strategiz.client.gcpbilling", "io.strategiz.client.sendgridbilling", "io.strategiz.client.github",
 		"io.strategiz.client.execution", "io.strategiz.client.kraken", "io.strategiz.client.binanceus",
 		"io.strategiz.client.coinbase", "io.strategiz.client.coingecko",
+
+		// LLM Provider Clients (for AI chat and cost aggregation)
+		"io.strategiz.client.gemini", "io.strategiz.client.claude", "io.strategiz.client.openai",
+		"io.strategiz.client.llama", "io.strategiz.client.mistral", "io.strategiz.client.cohere",
+		"io.strategiz.client.anthropic", "io.strategiz.client.grok",
 
 		// Service Framework Base
 		"io.strategiz.service.base" })

@@ -1,9 +1,25 @@
 package io.strategiz.application.console;
 
+import io.strategiz.batch.fundamentals.config.BatchFundamentalsConfig;
+import io.strategiz.batch.livestrategies.config.BatchLiveStrategiesConfig;
+import io.strategiz.batch.marketdata.config.BatchMarketDataConfig;
+import io.strategiz.business.livestrategies.config.LiveStrategiesConfig;
+import io.strategiz.business.portfolio.config.BusinessPortfolioConfig;
+import io.strategiz.data.auth.config.DataAuthConfig;
+import io.strategiz.data.base.config.FirebaseConfig;
+import io.strategiz.data.device.config.DataDeviceConfig;
+import io.strategiz.data.infrastructurecosts.config.DataInfrastructureCostsConfig;
+import io.strategiz.data.portfolio.config.DataPortfolioConfig;
+import io.strategiz.data.provider.config.DataProviderConfig;
+import io.strategiz.data.strategy.config.DataStrategyConfig;
+import io.strategiz.service.console.config.ServiceConsoleConfig;
+import io.strategiz.service.marketdata.config.ServiceMarketDataConfig;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -26,29 +42,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		// Console Application
 		"io.strategiz.application.console",
 
-		// Console Admin Services
-		"io.strategiz.service.console",
-
-		// Market Data Service (for batch controller)
-		"io.strategiz.service.marketdata",
-
-		// Batch Jobs
-		"io.strategiz.batch.marketdata", "io.strategiz.batch.livestrategies", "io.strategiz.batch.fundamentals",
-
-		// Business Layer
-		"io.strategiz.business.tokenauth", "io.strategiz.business.marketdata",
-		"io.strategiz.business.infrastructurecosts", "io.strategiz.business.aichat",
-		"io.strategiz.business.livestrategies", "io.strategiz.business.fundamentals",
-		"io.strategiz.business.cryptotoken", "io.strategiz.business.risk", "io.strategiz.business.preferences",
-		"io.strategiz.business.portfolio", "io.strategiz.business.historicalinsights",
-
-		// Data Layer
-		"io.strategiz.data.base", "io.strategiz.data.auth", "io.strategiz.data.provider", "io.strategiz.data.session",
-		"io.strategiz.data.user", "io.strategiz.data.marketdata", "io.strategiz.data.symbol",
-		"io.strategiz.data.strategy", "io.strategiz.data.fundamentals", "io.strategiz.data.infrastructurecosts",
-		"io.strategiz.data.featureflags", "io.strategiz.data.preferences", "io.strategiz.data.cryptotoken",
-		"io.strategiz.data.device", "io.strategiz.data.testing", "io.strategiz.data.watchlist",
-
 		// Framework
 		"io.strategiz.framework.authorization", "io.strategiz.framework.token", "io.strategiz.framework.firebase",
 		"io.strategiz.framework.secrets", "io.strategiz.framework.exception",
@@ -66,6 +59,19 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 		// Service Framework Base
 		"io.strategiz.service.base" })
+@Import({
+		// Service layer configs (pull in their business + data dependencies)
+		ServiceConsoleConfig.class, ServiceMarketDataConfig.class,
+
+		// Batch job configs (pull in their business + data dependencies)
+		BatchMarketDataConfig.class, BatchFundamentalsConfig.class, BatchLiveStrategiesConfig.class,
+
+		// Additional business configs not pulled in by service/batch configs above
+		LiveStrategiesConfig.class, BusinessPortfolioConfig.class,
+
+		// Additional data configs not pulled in by service/batch configs above
+		FirebaseConfig.class, DataAuthConfig.class, DataDeviceConfig.class, DataProviderConfig.class,
+		DataStrategyConfig.class, DataInfrastructureCostsConfig.class, DataPortfolioConfig.class })
 public class ConsoleApplication {
 
 	public static void main(String[] args) {

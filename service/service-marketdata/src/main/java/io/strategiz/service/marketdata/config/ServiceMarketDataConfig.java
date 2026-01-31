@@ -1,0 +1,16 @@
+package io.strategiz.service.marketdata.config;
+
+import io.strategiz.business.marketdata.config.BusinessMarketDataConfig;
+import io.strategiz.data.marketdata.config.DataMarketDataConfig;
+import io.strategiz.data.symbol.config.DataSymbolConfig;
+
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+@Configuration
+@ComponentScan(basePackages = "io.strategiz.service.marketdata")
+@Import({ BusinessMarketDataConfig.class, DataMarketDataConfig.class, DataSymbolConfig.class })
+public class ServiceMarketDataConfig {
+
+}

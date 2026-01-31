@@ -243,6 +243,16 @@
             <artifactId>business-portfolio</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-framework-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>data-portfolio</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

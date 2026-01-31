@@ -129,7 +129,7 @@ public class RobinhoodOAuthClient {
 		}
 		catch (Exception e) {
 			log.error("Unexpected error during Robinhood login", e);
-			return RobinhoodLoginResult.error("Login failed: " + e.getMessage(), "UNKNOWN_ERROR");
+			return RobinhoodLoginResult.error("Login failed. Please try again.", "UNKNOWN_ERROR");
 		}
 	}
 
@@ -247,12 +247,12 @@ public class RobinhoodOAuthClient {
 
 		log.debug("Robinhood login returned status {}: {}", statusCode, responseBody);
 
+		// Parse the response body once for use in all checks
+		Map<String, Object> errorResponse = parseJsonResponse(responseBody);
+
 		// 400 status often means MFA is required
 		if (statusCode == 400) {
 			try {
-				// Try to parse challenge info from response
-				Map<String, Object> errorResponse = parseJsonResponse(responseBody);
-
 				// Check for challenge in response
 				if (errorResponse.containsKey("challenge")) {
 					Map<String, Object> challengeMap = (Map<String, Object>) errorResponse.get("challenge");
@@ -265,12 +265,20 @@ public class RobinhoodOAuthClient {
 					return RobinhoodLoginResult.mfaRequired(challenge, challenge.getType(), deviceToken);
 				}
 
-				// Check for device approval requirement
+				// Check for device approval / push notification requirement.
+				// Robinhood may return {"detail":"Unable to log in with provided
+				// credentials."}
+				// while simultaneously sending a push notification to the mobile app.
+				// Detect this by checking for common device/push-related patterns.
 				if (errorResponse.containsKey("detail")) {
 					String detail = (String) errorResponse.get("detail");
-					if (detail != null && detail.toLowerCase().contains("device")) {
-						log.info("Device approval required");
-						return RobinhoodLoginResult.deviceApprovalRequired(deviceToken);
+					if (detail != null) {
+						String detailLower = detail.toLowerCase();
+						if (detailLower.contains("device") || detailLower.contains("unable to log in")
+								|| detailLower.contains("push")) {
+							log.info("Device approval / push notification required (detail: {})", detail);
+							return RobinhoodLoginResult.deviceApprovalRequired(deviceToken);
+						}
 					}
 				}
 
@@ -296,7 +304,30 @@ public class RobinhoodOAuthClient {
 			return RobinhoodLoginResult.error("Rate limited - please try again later", "RATE_LIMITED");
 		}
 
-		return RobinhoodLoginResult.error("Login failed: " + responseBody, "HTTP_" + statusCode);
+		// Extract a human-readable message from the response, falling back to a generic
+		// message
+		String errorMessage = extractErrorMessage(errorResponse, responseBody);
+		return RobinhoodLoginResult.error(errorMessage, "HTTP_" + statusCode);
+	}
+
+	/**
+	 * Extract a human-readable error message from Robinhood's error response. Prefers the
+	 * "detail" field if present, otherwise falls back to a generic message.
+	 */
+	private String extractErrorMessage(Map<String, Object> errorResponse, String rawResponseBody) {
+		if (errorResponse != null && errorResponse.containsKey("detail")) {
+			Object detail = errorResponse.get("detail");
+			if (detail instanceof String && !((String) detail).isEmpty()) {
+				return (String) detail;
+			}
+		}
+		if (errorResponse != null && errorResponse.containsKey("error")) {
+			Object error = errorResponse.get("error");
+			if (error instanceof String && !((String) error).isEmpty()) {
+				return (String) error;
+			}
+		}
+		return "Login failed. Please try again.";
 	}
 
 	/**

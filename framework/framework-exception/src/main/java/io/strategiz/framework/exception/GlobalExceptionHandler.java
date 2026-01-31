@@ -2,6 +2,7 @@ package io.strategiz.framework.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -10,6 +11,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -68,6 +70,29 @@ public class GlobalExceptionHandler {
 		MDC.put("traceId", traceId);
 
 		return ResponseEntity.status(ex.getHttpStatus()).body(errorResponse);
+	}
+
+	/** Handle validation errors from @Valid annotations. */
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<StandardErrorResponse> handleValidationException(MethodArgumentNotValidException ex,
+			HttpServletRequest request) {
+
+		String traceId = generateTraceId();
+
+		String fieldErrors = ex.getBindingResult()
+			.getFieldErrors()
+			.stream()
+			.map(error -> error.getField() + ": " + error.getDefaultMessage())
+			.collect(Collectors.joining(", "));
+
+		log.warn("Validation failed [{}]: {}", traceId, fieldErrors);
+
+		StandardErrorResponse errorResponse = new StandardErrorResponse("VALIDATION_FAILED",
+				"Validation failed: " + fieldErrors, "MethodArgumentNotValidException - " + fieldErrors,
+				"https://docs.strategiz.io/errors/general/validation-failed");
+
+		MDC.put("traceId", traceId);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 	}
 
 	/** Handle unexpected runtime exceptions (system-level errors). */
